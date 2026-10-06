@@ -99,5 +99,9 @@ export interface IGame {
 
     createSpectator(x: number, y: number, touring?: boolean): void;
 
-    startRendering(gameInformation: WelcomeMessage): void;
+    /**
+     * Returns a promise when the zone data must load first (a `-debug-zones`
+     * server); the caller holds every later server message until it settles.
+     */
+    startRendering(gameInformation: WelcomeMessage): Promise<void> | undefined;
 }

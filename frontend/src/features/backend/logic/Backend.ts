@@ -80,6 +80,11 @@ export class Backend implements IBackend {
     // the actor is still very much in range.
     private badgedEntityId = 0;
 
+    // Messages that arrived while startRendering was still loading zone data
+    // (the lazy debug zone set); null = not holding. Replayed in order once it
+    // settles, so no GameState ever reaches a game that has not rendered.
+    private heldMessages: MessageEvent[] | null = null;
+
     public setup(game: IGame): void {
         this.game = game;
 
@@ -195,6 +200,10 @@ export class Backend implements IBackend {
     }
 
     private receive(message: MessageEvent): void {
+        if (this.heldMessages) {
+            this.heldMessages.push(message);
+            return;
+        }
         if (!message.data) {
             if (Develop.isActive()) {
                 Develop.get().logWebsocketStatus('Receiving empty messages', 'bad');
@@ -251,7 +260,19 @@ export class Backend implements IBackend {
                 if (Develop.isActive()) {
                     Develop.get().logServerMessage(welcome, 'Welcome', timeSinceLastMessage);
                 }
-                this.game.startRendering(welcome);
+                const rendering = this.game.startRendering(welcome);
+                if (rendering) {
+                    this.heldMessages = [];
+                    const release = () => {
+                        const held = this.heldMessages;
+                        this.heldMessages = null;
+                        held.forEach(m => this.receive(m));
+                    };
+                    rendering.then(release, (err) => {
+                        console.error('Rendering the welcome failed.', err);
+                        release();
+                    });
+                }
                 break;
             case AuraApi.ServerMessageBody.Accept:
                 this.setState(BackendState.PLAYING);

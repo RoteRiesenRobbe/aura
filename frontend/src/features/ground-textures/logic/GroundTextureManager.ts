@@ -4,7 +4,7 @@ import {groundTextureTypes} from './GroundTextureTypes';
 import {IGame} from "../../core/logic/IGame";
 import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
-import {pickZoneSet} from './ZoneSets';
+import {isDebugZoneSet} from './ZoneSets';
 import {PropLayersJSON} from '../../zones/logic/PropLayers';
 import {AreaJSON, flattenAreas} from '../../zones/logic/ZoneAreas';
 
@@ -285,24 +285,58 @@ export interface ZoneJSON {
 // at load. Every reader of getZoneData sees today's flat arrays, each area
 // object tagged with its `area`. (The in-game editor bundles the raw files
 // itself; ZoneModel.fromJSON runs the same flatten and keeps the areas.)
+function stemOf(key: string): string {
+    return key.replace(/^\.\//, '').replace(/\.json$/, '');
+}
+
 function bundleByStem(context: __WebpackModuleApi.RequireContext): { [stem: string]: ZoneJSON } {
     const byStem: { [stem: string]: ZoneJSON } = {};
     context.keys().forEach((key: string) => {
-        const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
-        byStem[stem] = flattenAreas(context(key) as ZoneJSON & {areas?: AreaJSON[]});
+        byStem[stemOf(key)] = flattenAreas(context(key) as ZoneJSON & {areas?: AreaJSON[]});
     });
     return byStem;
 }
 const mainZonesByStem = bundleByStem(require.context('../../../../../api/zones', false, /\.json$/));
-const debugZonesByStem = bundleByStem(require.context('../../../../../api/zones/.debug', false, /\.json$/));
+// ⭐ The debug set is a LAZY chunk ('lazy-once': one chunk for the whole set,
+// fetched on first use). Only an `aurad -debug-zones` server ever selects it,
+// so eagerly bundling it shipped ~295 KB of `world_debug.json` to every
+// player. keys() stays synchronous, so the set is still PICKED at once; only
+// its contents arrive later (selectZoneSet's promise).
+const debugZonesContext = require.context('../../../../../api/zones/.debug', false, /\.json$/, 'lazy-once');
+const debugZoneStems: { [stem: string]: string } = {};
+debugZonesContext.keys().forEach((key: string) => {
+    debugZoneStems[stemOf(key)] = key;
+});
 let zonesByStem = mainZonesByStem;
 
 /**
  * Points every zone-data read at the set the server is running, named by its
  * primary zone (Welcome.zoneName). Call it before anything reads zone data.
+ *
+ * Returns undefined when the main set is picked (it is bundled, nothing to
+ * wait for). For the debug set it returns a promise that resolves once the set
+ * is loaded, and NOTHING may read zone data before it does. ⚑ It never
+ * rejects: a failed chunk load leaves the main set in place, so every read
+ * takes the existing "no bundled zone data" degrade instead of hanging.
  */
-export function selectZoneSet(primaryZoneName: string): void {
-    zonesByStem = pickZoneSet(primaryZoneName, mainZonesByStem, debugZonesByStem);
+export function selectZoneSet(primaryZoneName: string): Promise<void> | undefined {
+    if (!isDebugZoneSet(primaryZoneName, mainZonesByStem, debugZoneStems)) {
+        zonesByStem = mainZonesByStem;
+        return undefined;
+    }
+    const byStem: { [stem: string]: ZoneJSON } = {};
+    return Promise.all(Object.keys(debugZoneStems).map((stem) =>
+        debugZonesContext(debugZoneStems[stem]).then((module: {default?: ZoneJSON} & ZoneJSON) => {
+            // A lazy JSON module arrives as a namespace object; the data is its default.
+            const zone = module.default || module;
+            byStem[stem] = flattenAreas(zone as ZoneJSON & {areas?: AreaJSON[]});
+        }),
+    )).then(() => {
+        zonesByStem = byStem;
+    }, (err) => {
+        console.error('Failed to load the debug zone set; rendering without zone data.', err);
+        zonesByStem = mainZonesByStem;
+    });
 }
 
 /**

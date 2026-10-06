@@ -1,23 +1,23 @@
 import {describe, expect, it} from 'vitest';
-import {pickZoneSet} from './ZoneSets';
+import {isDebugZoneSet} from './ZoneSets';
 
-describe('pickZoneSet', () => {
+describe('isDebugZoneSet', () => {
     const main = {world: 1, underworld: 2};
     const debug = {world_debug: 3, underworld: 4};
 
     it('follows the server into the debug set when only it has the primary zone', () => {
-        expect(pickZoneSet('world_debug', main, debug)).toBe(debug);
+        expect(isDebugZoneSet('world_debug', main, debug)).toBe(true);
     });
 
     it('stays on the main set for a main-only primary', () => {
-        expect(pickZoneSet('world', main, debug)).toBe(main);
+        expect(isDebugZoneSet('world', main, debug)).toBe(false);
     });
 
     it('lets the main set win a stem both sets carry', () => {
-        expect(pickZoneSet('underworld', main, debug)).toBe(main);
+        expect(isDebugZoneSet('underworld', main, debug)).toBe(false);
     });
 
     it('falls back to the main set for a stem neither carries', () => {
-        expect(pickZoneSet('nowhere', main, debug)).toBe(main);
+        expect(isDebugZoneSet('nowhere', main, debug)).toBe(false);
     });
 });
