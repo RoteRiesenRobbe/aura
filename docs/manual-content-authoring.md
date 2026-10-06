@@ -1496,11 +1496,11 @@ row appears exactly when its edge is walkable. So **quest rows need no
 `quest_at_stage` gates at all**, and since Q4 the content pattern is:
 
 - the NPC's **root** is an ordinary unconditional greeting with rows;
-- each quest sits **behind its own row** on root (`"Any issues around here?"`),
-  its brief as that quest node's text — written once, so it reads correctly
-  before and after acceptance (§4.6 of the plan);
-- the Accept row, the turn-in row and any follow-up question rows all live on
-  that one node; the show-rule sorts out which are visible. Grant rows author
+- each quest sits behind **two rows** on root, an offer row and a progress
+  row: the two-row shape below, THE quest shape since plan-quest-dialogue.md
+  C2 (2026-10-06). ⚑ Most shipped quests still use the older one-node shape
+  (the brief, Accept and turn-in on one node behind one root row) until C3
+  converts them; author every NEW quest in the two-row shape. Grant rows author
   no `next` — the player stays on the node and the grant's `line` is spoken;
 - an NPC turning in a quest that is not otherwise his (the wolves branch legs)
   puts the turn-in row directly on root.
@@ -1523,37 +1523,68 @@ row appears exactly when its edge is walkable. So **quest rows need no
 
 ### The two-row shape: a row that offers, a row that asks how it goes
 
-The Gothic shape (PO 2026-10-04), and a deliberate second pattern beside the
-one-node shape above. `api/mobs/reinhard.json` (`giant-rats-in-the-barn`) is the
-worked example. The root carries TWO rows for one quest, and exactly one of them
-is ever on screen:
+THE quest shape (PO 2026-10-04, ruled the norm 2026-10-06, plan-quest-dialogue.md
+D4/D11). `api/mobs/reinhard.json` (`giant-rats-in-the-barn`) is the worked
+example. The root carries TWO rows for one quest:
 
-- `"Anything in the barn?"` leads to the **offer node**: the brief as its lines,
-  and only the Accept row.
-- `"About the rats in the barn..."` leads to the **progress node**: the turn-in
-  row plus every row that only makes sense while the quest runs.
+- the **offer row** (`"Anything in the barn?"`) leads to the **offer node**
+  (`rats`): the brief as its lines, and only the Accept row;
+- the **progress row** (`"About the rats in the barn..."`) leads to the
+  **progress node** (`rats_running`): the turn-in row, the per-stage answers
+  and the questions.
 
-⭐ **Neither node is gated.** The show-rule hides the Accept row once the quest
-runs and the turn-in row until its edge is walkable, and `pruneEmptyDestinations`
-then takes away the root row of whichever node presents nothing. Before the
-accept that is the progress node, while the quest runs it is the offer node,
-after the turn-in it is both. An abandon brings the offer row back.
+⭐ **Neither quest node is gated.** The show-rule hides the Accept row once the
+quest runs and the turn-in row until its edge is walkable, and
+`pruneEmptyDestinations` then takes away the root row of whichever node presents
+nothing. So: before the accept only the offer row shows; while the quest runs
+only the progress row; an abandon brings the offer row back.
 
-- A row for ONE stage (`"I am on it."` during the kill stage) navigates to a
-  lines-only node gated `quest_at_stage` on that stage id. Options carry no
+The rats' progress node, row by row:
+
+```json
+{ "id": "rats_running", "lines": ["The rats?"],
+  "options": [
+    { "text": "I killed the 8 rats.", "grants": [ "...the turn-in, unchanged..." ] },
+    { "text": "I am on it.", "next": "rats_on_it" },
+    { "text": "Tell me more about rats.", "next": "rats_more" } ] },
+{ "id": "rats_on_it",
+  "conditions": [ { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "clear" } ],
+  "lines": ["Kill 8 of them in there, then come back to me."] },
+{ "id": "rats_more",
+  "conditions": [ { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "running" } ],
+  "lines": ["They came in with the grain sacks. Big as a cat, and they bite."] }
+```
+
+- **A row for ONE stage** (`"I am on it."` during the kill stage) navigates to
+  a lines-only node gated `quest_at_stage` on that stage id. Options carry no
   conditions, so the gate sits on the destination.
-- A further question about the running quest is the same thing gated `running`.
-- ⚑ **Every row on the progress node must hide itself outside the running band**
-  (a quest row, or a `next` to a gated node). One ungated lore row there keeps
-  the node alive, and its root row then shows before the accept and forever
-  after the turn-in.
-- ⚑ Do not gate the two quest nodes themselves with `not_started` / `running`.
-  It reads the same on root, but the node the player stands on vanishes with the
-  click, and the panel drops back to the greeting instead of staying on the
-  reply.
+- **A question about the quest** is the same thing, gated `running` (the
+  rats' "Tell me more about rats.").
+- ⭐ **At the turn-in the progress row leaves** (D15, PO 2026-10-07): every row
+  on the progress node hides itself, the node empties, and its root row goes
+  with it. That is the norm, and the rats do exactly this. ⚑ It is NOT an
+  engine rule: a quest with something worth asking afterwards gates that one
+  question `any` of `running` / `completed` (`conditionsMode`, below), and its
+  progress row then stays on root after the turn-in. Write such a question only
+  where there is something to say, never to keep a row alive.
+- ⚑ **Every row on the progress node must hide itself outside its band** (a
+  quest row, or a `next` to a gated node). One ungated lore row there keeps the
+  node alive, and its root row then shows before the accept and forever after.
+- ⚑ **Do not gate the two quest nodes themselves** with `not_started` /
+  `running` (D12). It reads the same on root, but the node the player stands on
+  vanishes with the click, and the panel drops back to the greeting instead of
+  staying on the reply.
+- ⚑ **The brief lives on the offer node**, so after the accept the task is
+  readable in the journal only. A one-line restatement belongs in a stage
+  answer (`rats_on_it` repeats the count).
+- **The one deliberate exception is the Grandfather Knot** (D13): his two
+  quests keep their PO-passed gated-offer flow (2026-10-03) until he is touched
+  again.
 
-Pinned by `TestContent_ReinhardsRatsQuestSwapsItsRootRow` (`sys/`), which walks
-the real content through every quest state.
+Pinned by `TestContent_ReinhardsRatsQuestSwapsItsRootRow` and
+`TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack`
+(`sys/quest_content_test.go`), which walk the real Reinhard through every quest
+state.
 
 ### Node conditions — greetings, and hiding a spent info row
 
@@ -1636,14 +1667,15 @@ the node is hidden with it.
 AND by default: every entry must pass. Author `"conditionsMode": "any"` beside
 `conditions` and one passing entry is enough. The editor shows it as the AND/OR
 select in the Conditions header and writes the key only for OR. There is no
-negation and no nesting; "running or completed" is the shape it exists for:
+negation and no nesting; "running or completed" is the shape it exists for (a two-row quest's question that should outlive the
+turn-in, see above). Illustrative: no shipped content uses OR yet.
 
 ```json
-{ "id": "rats_more",
+{ "id": "lamp_more",
   "conditionsMode": "any",
   "conditions": [
-    { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "running" },
-    { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "completed" }
+    { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "running" },
+    { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
   ],
   "lines": ["..."] }
 ```

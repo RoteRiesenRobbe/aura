@@ -1,7 +1,7 @@
 # Plan - quest dialogue: an any/all toggle on conditions, and the two-row quest shape
 
-**Status:** DESIGNED + PO-RULED 2026-10-06; **C1 BUILT 2026-10-06** (§10),
-C2 next. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
+**Status:** DESIGNED + PO-RULED 2026-10-06; **C1 + C2 BUILT 2026-10-06/07**
+(§10), C3 next. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
 day; D5-D12 are mine, flag if wrong. Three chunks: C1 engine + editor, C2 the rats example, C3 every
 other quest. **Schema: DB NONE · wire NONE · conf NONE · content +1 optional
 key on dialogue nodes and ascension entries (`conditionsMode`), then a content
@@ -68,6 +68,13 @@ kinds, the same sentinels.
   a question authored on its progress node is gated to outlive the quest. A
   question is content, written where there is something to say; only the rats
   get one in this plan, as the example.
+- **D16 (PO 2026-10-07, at the C2 look) - the rats' question ends with the
+  quest too.** "Tell me more about rats." is gated `running`, not `any` of
+  running / completed, so after the turn-in Reinhard shows neither rats row.
+  This amends D3's "running OR completed": the progress row leaving at the
+  turn-in is the norm for the vast majority of quests, NOT an engine rule; a
+  quest that wants a question afterwards still authors the `any` gate. No
+  shipped content uses `any` after C2.
 
 ## 4. Design decisions (mine)
 
@@ -329,5 +336,26 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   stands at (-122, -30) on the main world, the harness warps to (-55, 26)).
   ⚑ Unwalked: an `any` gate in-game (first content is C2). `skill-inventory`
   is red at HEAD on `packIcon`, so its "or" join got a syntax check only.
-- **C2 the rats example:** not started.
+- **C2 the rats example:** ✅ 2026-10-07 `[uncommitted]`, PO-walked ("works").
+  `api/mobs/reinhard.json`: root gains "About the rats in the barn..." →
+  `rats_running` beside the offer row; `rats` keeps the brief + Accept only;
+  `rats_running` ("The rats?") holds the turn-in (moved, unchanged), "I am on
+  it." → `rats_on_it` (gated stage `clear`, restates the count) and "Tell me
+  more about rats." → `rats_more` (drafted lore). ⭐ **D16 at the look:** the
+  PO asked for the progress row to be GONE after the turn-in, so `rats_more`
+  is gated `running`, not D3's `any` of running / completed; Reinhard shows no
+  rats row after the turn-in. The norm for most quests, NOT an engine rule
+  (§3 D16). So no shipped content uses `any` after C2; the manual's OR
+  example is marked illustrative (`lamp_more`). Pins:
+  `sys/quest_content_test.go` (`TestContent_ReinhardsRatsQuestSwapsItsRootRow`
+  walks accept → kill stage → 8 GiantRat kills → turn-in through
+  `present()`/`applyGrant`; `...AbandonBringsTheOfferBack`), red on the old
+  content first; it adds `contentRegistries` to `sys` tests (the first real
+  content there). Manual §6 rewritten as THE shape (D11, D12, D15/D16, the
+  Knot exception D13); the old section's nonexistent test name is now real.
+  `content-npcs.md` rats row. **Schema: DB NONE · wire NONE · conf NONE ·
+  content: Reinhard +3 nodes +1 root row.** Verified: Go green bar the known
+  C1b prop test · `-validate` 0 (main + debug) · `validate.mjs` 0 · editor
+  smoke 0 · PO in-game walk on the main world 2026-10-07 (all states incl.
+  abandon). No harness touches the rats rows.
 - **C3 every other quest (18, the Knot excepted):** not started.

@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+- **Prior: BUFF TRAY C2 (client desktop) + C0 (mob icons), the tray is VISIBLE** ✅ 2026-10-03/04 `116a9519` (ledger: `docs/plan-buff-tray.md` §11 C2): ⭐ `#buffTray` above the action bars, beneficial left / harmful right, a circle = the skill's icon with a conic `--gone` wedge, a red rim when harmful, hover = tooltip + time; the own pips retired (D10). ⭐ D19: a circle an AURA keeps up draws STEADY, then sweeps out once (pure `BuffTray.ts`); D20: 48 px. ⚑ Hidden under `html.mobile` until C3. C0: icons on the 11 mob skills. **Schema: DB/wire/conf NONE.** Verified: vitest 1478/0 · DEBUG zones `buff-tray` 13/13, `c2-player-cc` 17 + 6 INC. ⚑ A hot AURA skips its caster. ✅ PO looks 2026-10-04 + 2026-10-06 (9/9).
+
+*(2026-10-07, the quest dialogue C2 wrap: the buff-tray C2 entry fell off the cap of three and moved here verbatim. Its plan is live: `docs/plan-buff-tray.md`, C3 next.)*
+
 - **Prior: BUFF TRAY C1, the server half** ✅ 2026-10-02 `49eb390e` (ledger: `docs/plan-buff-tray.md` §11 C1; PO rulings D16-D18): ⭐ **the circle key is (skill, caster)**: a dot stream ticks PER CASTER on the server, so two wolves' dots are two circles; everything with no caster stays one circle per skill. ⭐ An entry carries a **kinds BITMASK** (side = any harmful bit). ⭐ **Placed area effects get ids** (above 2^32). Built: `Buffs.Revision()` (⛔ NEVER bumps on aging, pinned at store + socket), `Buffs.OwnEffects()`, `EffectKind` + `OwnEffect` + `own_effects` inside the owner block. **Schema: DB NONE · wire +1 enum +1 struct +1 field · conf NONE · content NONE.** Verified: Go green (+22 tests) · vitest 1456/0 · DEBUG-zone sweep swift 7/7, calm 7/7, charm 7/9 (known), player-cc 22 PASS + 1 INCONCLUSIVE.
 
 *(2026-10-06, the quest dialogue C1 wrap: the buff-tray C1 entry fell off the cap of three and moved here verbatim. Its plan is live: `docs/plan-buff-tray.md`, C2 shipped, C3 next.)*

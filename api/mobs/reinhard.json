@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). ⛑ RENAMED Farmer → Reinhard 2026-09-23 (PO): the def NAME is what zone spawns and quest talk_to targets resolve against, and it was ALSO what resolved his sprite — so the rename broke art resolution and the explicit entityType override above is the repair. The wire enum value `Farmer` is unchanged; it could not be reclaimed anyway. All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row — and `boars-in-the-field` (plan-generic-kill-quests.md C1), the first second quest on one giver, and `giant-rats-in-the-barn` (2026-09-23), which makes him the first THREE-offer giver and the zone's first AGGRESSIVE fight — his boars are prey faction and wait to be provoked, a GiantRat hunts you; each quest sits behind its own root row per the Q4 tree shape. ⚑ He turns in `eliza-sends-me` (plan-region-identity.md R2) on a root 'Eliza sends me.' row, shown only while that quest waits at `meet` (the Q1 show-rule). ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). ⛑ RENAMED Farmer → Reinhard 2026-09-23 (PO): the def NAME is what zone spawns and quest talk_to targets resolve against, and it was ALSO what resolved his sprite — so the rename broke art resolution and the explicit entityType override above is the repair. The wire enum value `Farmer` is unchanged; it could not be reclaimed anyway. All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row — and `boars-in-the-field` (plan-generic-kill-quests.md C1), the first second quest on one giver, and `giant-rats-in-the-barn` (2026-09-23), which makes him the first THREE-offer giver and the zone's first AGGRESSIVE fight — his boars are prey faction and wait to be provoked, a GiantRat hunts you; each quest sits behind its own root row per the Q4 tree shape. ⭐ The rats are the worked example of the TWO-ROW quest shape (plan-quest-dialogue.md D11): 'Anything in the barn?' leads to the offer node (brief + Accept), 'About the rats in the barn...' to the progress node (turn-in, 'I am on it.', a question); the question node is gated `running`, so the whole progress row leaves at the turn-in (PO 2026-10-07: the norm for most quests). Drafted texts, PO rewords. ⚑ He turns in `eliza-sends-me` (plan-region-identity.md R2) on a root 'Eliza sends me.' row, shown only while that quest waits at `meet` (the Q1 show-rule). ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
   "id": 51,
   "name": "Reinhard",
   "entityType": "Farmer",
@@ -52,6 +52,10 @@
           {
             "text": "Anything in the barn?",
             "next": "rats"
+          },
+          {
+            "text": "About the rats in the barn...",
+            "next": "rats_running"
           },
           {
             "text": "Teach me something.",
@@ -146,7 +150,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "rats_running",
+        "lines": [
+          "The rats?"
+        ],
+        "options": [
           {
             "text": "I killed the 8 rats.",
             "grants": [
@@ -163,7 +175,41 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "rats_on_it"
+          },
+          {
+            "text": "Tell me more about rats.",
+            "next": "rats_more"
           }
+        ]
+      },
+      {
+        "id": "rats_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "clear"
+          }
+        ],
+        "lines": [
+          "Kill 8 of them in there, then come back to me."
+        ]
+      },
+      {
+        "id": "rats_more",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          "They came in with the grain sacks. Big as a cat, and they bite."
         ]
       },
       {

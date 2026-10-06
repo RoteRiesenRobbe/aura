@@ -84,7 +84,7 @@ live in the NPCs' `interaction` blocks and are served by nothing.
 | Miner | `spiders-in-the-diggings` | offers and turns in; 6× Spider L11, 930 XP (C1) — the quest his tunnel idle-lore was already pointing at |
 | **Eliza** | `dinner-for-the-family` | offers **and** turns in — ⭐ the game's **first quest**; 150 XP (L1) **+ FirstAid** on the turn-in row |
 | **Hendrik** | `dinner-for-the-family` | a `talk_to` objective in the parallel `gather` stage, and where **Wild** is taught. Carries no row |
-| **Reinhard** | `giant-rats-in-the-barn` | offers and turns in — ⭐ his **third** quest, making him the first three-offer giver; 8× GiantRat L2, 180 XP. The zone's first aggressive target, and ⛑ the mob has placeholder art |
+| **Reinhard** | `giant-rats-in-the-barn` | offers and turns in — ⭐ his **third** quest, making him the first three-offer giver; 8× GiantRat L2, 180 XP. The zone's first aggressive target, and ⛑ the mob has placeholder art. ⭐ The worked example of the **two-row quest shape** (offer row + progress row, both gone after the turn-in; manual §6, plan-quest-dialogue.md C2) |
 | **Benjamin** | `dinner-for-the-family` | a `talk_to` objective in the parallel `gather` stage, and where **Harvest** is taught. Carries no row. ⛔ The 6 beets are hard-locked behind that teaching |
 | Mother | `stags-for-the-table` | **offers** it, and turns in **nothing** |
 | Father | `stags-for-the-table` | **offers** the same row, and turns in **nothing** — ⭐ the first quest in the game with **two givers**, and the show-rule alone keeps them from double-offering |
