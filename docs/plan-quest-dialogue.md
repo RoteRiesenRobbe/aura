@@ -288,7 +288,7 @@ server). Schema line for every chunk: DB NONE, wire NONE.
 
 ## 10. Chunk ledger
 
-- **C1 engine + editor:** ✅ 2026-10-06 `[uncommitted]`. Built as §6 says:
+- **C1 engine + editor:** ✅ 2026-10-06 `ea04313d`. Built as §6 says:
   `mobs.Gate{Mode, Conditions}` replaces the bare slice on `InteractionNode`
   and `ascension.Entry`; `mobs.ParseConditionMode(name, n)` is the one parser
   both loaders call (absent = all, unknown refused, any mode on an empty list
