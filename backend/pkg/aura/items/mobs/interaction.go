@@ -40,11 +40,11 @@ type Interaction struct {
 	Nodes []InteractionNode
 }
 
-// InteractionNode is one thing the actor can say. Conditions gate the node as a
-// whole; the evaluator speaks the FIRST node whose conditions all pass.
+// InteractionNode is one thing the actor can say. Its Gate decides whether the
+// node is there at all; the evaluator speaks the FIRST node whose gate passes.
 type InteractionNode struct {
-	ID         string
-	Conditions []InteractionCondition
+	ID   string
+	Gate Gate
 	// Lines are the lore/sign-post fallback, spoken when the node granted
 	// nothing (an all-learned sage, or a pure flavour NPC that never grants).
 	Lines   []string
@@ -420,13 +420,53 @@ const (
 	QuestStageNotStarted = "not_started"
 	QuestStageCompleted  = "completed"
 	// QuestStageRunning is the whole in-progress band without naming a stage:
-	// accepted, not yet finished (intake round 8 item 2). It exists because
-	// conditions are AND-ed with no negation, so "while this quest is running"
-	// was otherwise inexpressible except by duplicating a node once per stage —
-	// and a row that answers a question only a running quest asks is exactly
-	// what should leave when the quest does.
+	// accepted, not yet finished (intake round 8 item 2). It saves duplicating a
+	// node once per stage, and a row that answers a question only a running
+	// quest asks is exactly what should leave when the quest does.
 	QuestStageRunning = "running"
 )
+
+// ConditionMode says how a condition list combines (plan-quest-dialogue.md D5).
+// The zero value reads as all, so a Gate nobody set a mode on keeps the
+// meaning every list had before the mode existed.
+type ConditionMode string
+
+const (
+	// ConditionModeAll: every condition must pass. Absent in JSON means this.
+	ConditionModeAll ConditionMode = "all"
+	// ConditionModeAny: one passing condition is enough.
+	ConditionModeAny ConditionMode = "any"
+)
+
+// Gate is a condition list together with its mode. ⚑ One value, not two fields
+// (D6): the ascension ceremony stashes a site's gate and re-judges it when the
+// channel completes, and a mode kept beside the slice would be dropped by that
+// copy, turning an `any` price into an `all` one.
+//
+// An empty list is unconditional in both modes (D7); `len(Conditions) > 0` is
+// still what "this node is gated" means everywhere.
+type Gate struct {
+	Mode       ConditionMode
+	Conditions []InteractionCondition
+}
+
+// ParseConditionMode resolves an authored conditionsMode for a list of n
+// conditions. Absent is all. An unknown value is refused like an unknown kind,
+// and so is any mode on an empty list: a mode that combines nothing is an
+// authored no-op (D7).
+func ParseConditionMode(name string, n int) (ConditionMode, error) {
+	if name == "" {
+		return ConditionModeAll, nil
+	}
+	mode := ConditionMode(name)
+	if mode != ConditionModeAll && mode != ConditionModeAny {
+		return "", fmt.Errorf("conditionsMode %q must be %q or %q", name, ConditionModeAll, ConditionModeAny)
+	}
+	if n == 0 {
+		return "", fmt.Errorf("conditionsMode %q combines no conditions: drop the key, or author the conditions it joins", name)
+	}
+	return mode, nil
+}
 
 var conditionKinds = map[string]ConditionKind{
 	string(ConditionMinLevel):            ConditionMinLevel,
@@ -488,11 +528,12 @@ type jsonInteraction struct {
 }
 
 type jsonInteractionNode struct {
-	ID         string                  `json:"id"`
-	Conditions []JSONCondition         `json:"conditions"`
-	Lines      []string                `json:"lines"`
-	Rows       string                  `json:"rows"`
-	Options    []jsonInteractionOption `json:"options"`
+	ID             string                  `json:"id"`
+	Conditions     []JSONCondition         `json:"conditions"`
+	ConditionsMode string                  `json:"conditionsMode"`
+	Lines          []string                `json:"lines"`
+	Rows           string                  `json:"rows"`
+	Options        []jsonInteractionOption `json:"options"`
 
 	// ⚑ A POINTER, and that is D5 rather than style: absent and `[]` are
 	// different authored statements — "this site says nothing about what it
@@ -679,8 +720,13 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			if err != nil {
 				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: %w", m.Name, jn.ID, j, err)
 			}
-			node.Conditions = append(node.Conditions, cond)
+			node.Gate.Conditions = append(node.Gate.Conditions, cond)
 		}
+		mode, err := ParseConditionMode(jn.ConditionsMode, len(jn.Conditions))
+		if err != nil {
+			return nil, fmt.Errorf("mob %q: interaction node %q: %w", m.Name, jn.ID, err)
+		}
+		node.Gate.Mode = mode
 
 		if len(jn.Options) > maxAddressableIndex+1 {
 			return nil, fmt.Errorf("mob %q: interaction node %q: %d options, but only indices 0..%d are addressable on the wire",
@@ -792,11 +838,11 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		}
 	}
 	for i := range in.Nodes {
-		if len(in.Nodes[i].Conditions) > 0 {
+		if len(in.Nodes[i].Gate.Conditions) > 0 {
 			continue
 		}
 		for _, later := range in.Nodes[i+1:] {
-			if len(later.Conditions) > 0 && !destinations[later.ID] {
+			if len(later.Gate.Conditions) > 0 && !destinations[later.ID] {
 				return nil, fmt.Errorf("mob %q: interaction node %q is conditional but sits below the unconditional "+
 					"node %q with nothing navigating to it, so it can never be selected as the greeting — "+
 					"put conditional nodes first (L3)",
@@ -829,7 +875,7 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				continue
 			}
 			dest := nodeByID(in, opt.Next)
-			if dest == nil || len(dest.Conditions) == 0 {
+			if dest == nil || len(dest.Gate.Conditions) == 0 {
 				return nil, fmt.Errorf("mob %q: interaction node %q option %d: lockedWhenGated needs a GATED "+
 					"destination to name, but node %q carries no conditions and is visible to everybody",
 					m.Name, node.ID, j, opt.Next)

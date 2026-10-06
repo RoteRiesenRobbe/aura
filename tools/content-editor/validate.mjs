@@ -13,6 +13,7 @@
 
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
+const CONDITIONS_MODES = ['all', 'any']; // mobs.ConditionModeAll/Any, hand-synced (plan-quest-dialogue.md L2)
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
 const QUEST_KINDS = ['offer_quest', 'advance_quest'];
 // The closed destination vocabulary of a travel_to grant (interaction.go
@@ -258,6 +259,15 @@ export function validateInteraction(mob, idx) {
       err(`${nWho}: rewards is only for an ascension_catalog node`);
     }
 
+    // conditionsMode (plan-quest-dialogue.md D5/D7): a hand-synced port of
+    // mobs.ParseConditionMode. Absent is "all"; a mode on no conditions is refused.
+    if ('conditionsMode' in node) {
+      if (!CONDITIONS_MODES.includes(node.conditionsMode)) {
+        err(`${nWho}: conditionsMode "${node.conditionsMode}" must be ${CONDITIONS_MODES.join(' or ')}`);
+      } else if (!(node.conditions || []).length) {
+        err(`${nWho}: conditionsMode "${node.conditionsMode}" combines no conditions`);
+      }
+    }
     for (const [ci, c] of (node.conditions || []).entries()) {
       const cWho = `${nWho} condition ${ci}`;
       if (!CONDITION_KINDS.includes(c.kind)) {

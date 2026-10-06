@@ -315,7 +315,7 @@ func (d DerivedStats) CostFactor() float32 {
 // conditions and letting the caller supply the player keeps that property
 // exactly as the key-only stash had it.
 //
-// ⚑ Gate is `any` because it holds a `[]mobs.InteractionCondition` and this
+// ⚑ Gate is `any` because it holds a `mobs.Gate` (mode and conditions) and this
 // package CANNOT name that type: `mobs` imports `skills`, so the honest
 // declaration is an import cycle. Only `sys` ever reads it, where both the
 // conditions and the live player are in scope, and it fails CLOSED — a pick with

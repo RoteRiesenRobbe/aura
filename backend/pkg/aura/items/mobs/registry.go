@@ -129,8 +129,8 @@ func resolveConditionSpecies(mobs *registry) error {
 		}
 		for ni := range def.Interaction.Nodes {
 			node := &def.Interaction.Nodes[ni]
-			for ci := range node.Conditions {
-				cond := &node.Conditions[ci]
+			for ci := range node.Gate.Conditions {
+				cond := &node.Gate.Conditions[ci]
 				if cond.Kind != ConditionKillsThisLife {
 					continue
 				}

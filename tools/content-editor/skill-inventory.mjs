@@ -227,9 +227,16 @@ function readAscensionGates() {
   const byKey = new Map();
   for (const entry of readDir('ascension')) {
     if (!entry.raw.unlockKey) continue;
-    byKey.set(entry.raw.unlockKey, entry.raw.conditions || []);
+    byKey.set(entry.raw.unlockKey, { conditions: entry.raw.conditions || [], mode: entry.raw.conditionsMode });
   }
   return byKey;
+}
+
+const NO_GATE = { conditions: [] };
+
+// conditionsMode "any" joins the gate with "or" (plan-quest-dialogue.md D8).
+function gateText(gate) {
+  return gate.conditions.map(conditionText).join(gate.mode === 'any' ? ' or ' : '; ');
 }
 
 function conditionText(c) {
@@ -249,8 +256,8 @@ function sourceText(source, ascensionGates) {
     case 'quest': return `Quest: ${source.quest} via ${source.mob}`;
     case 'recipe': return `Recipe: ${source.ingredients.map((i) => `${i.skill} ${i.level}`).join(' + ')}`;
     case 'ascension': {
-      const gates = ascensionGates.get(source.skill) || [];
-      return `Ascension via ${source.mob}${gates.length ? ` (${gates.map(conditionText).join('; ')})` : ''}`;
+      const gate = ascensionGates.get(source.skill) || NO_GATE;
+      return `Ascension via ${source.mob}${gate.conditions.length ? ` (${gateText(gate)})` : ''}`;
     }
     default: return source.label;
   }
@@ -516,8 +523,8 @@ function render(ctx) {
 
   const stoneLines = stones.map((st) => {
     const rewards = st.rewards.map((name) => {
-      const gates = ascensionGates.get(name) || [];
-      return gates.length ? `${name} (${gates.map(conditionText).join('; ')})` : name;
+      const gate = ascensionGates.get(name) || NO_GATE;
+      return gate.conditions.length ? `${name} (${gateText(gate)})` : name;
     });
     return `- **${st.mob}**: ${rewards.join(' · ')}`;
   });

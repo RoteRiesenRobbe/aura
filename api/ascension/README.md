@@ -26,8 +26,11 @@ with nothing left to pick.
   string stored in `game.bloodline_unlocks` (D17). An unknown name is a boot
   error, and so are two entries naming the same skill.
 - **`conditions`** (optional) is the entry's gate (D18): a list of conditions in
-  the SAME authored vocabulary as an NPC dialogue node's, ANDed, unknown kind
-  refused at boot. Absent or empty means anyone may pick it.
+  the SAME authored vocabulary as an NPC dialogue node's, unknown kind refused
+  at boot. Absent or empty means anyone may pick it.
+- **`conditionsMode`** (optional) is `all` (the default: every condition must
+  pass) or `any` (one is enough), exactly as on a dialogue node. Refused
+  without conditions. A locked `any` gate reads its conditions joined by "or".
 
 A gated entry is **not hidden** - it renders locked, with the gate named and the
 player's progress toward it. The recipes stay secret; the gates do not.

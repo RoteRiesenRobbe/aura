@@ -856,7 +856,7 @@ type learner interface {
 // simplification rather than an addition: the kind is already `node.Rows`, both
 // call sites already hold the node, and the mux dispatches exactly as it did.
 // The reason it had to change is that a site OWNS things the kind cannot carry —
-// its price, which C1 snapshots onto the pick from `node.Conditions`, and its
+// its price, which C1 snapshots onto the pick from `node.Gate`, and its
 // reward list (C3) — so a provider serving a global catalog for a global kind
 // could never tell two stones apart.
 //
@@ -934,7 +934,7 @@ func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) 
 	visible := make(map[string]bool, len(in.Nodes))
 	entry := ""
 	for i := range in.Nodes {
-		if !conditionsPass(in.Nodes[i].Conditions, p) {
+		if !conditionsPass(in.Nodes[i].Gate, p) {
 			continue
 		}
 		visible[in.Nodes[i].ID] = true
@@ -1211,13 +1211,13 @@ func lockedGateRow(in *mobs.Interaction, index int, opt *mobs.InteractionOption,
 	// nil here would render a row locked for no stated reason, which reads as
 	// broken rather than as a wall.
 	dest := nodeByID(in, opt.Next)
-	if dest == nil || len(dest.Conditions) == 0 {
+	if dest == nil || len(dest.Gate.Conditions) == 0 {
 		return model.ConversationOption{}, false
 	}
 	return model.ConversationOption{
 		OptionIndex: uint8(index),
 		GrantIndex:  model.ConversationNoGrant,
-		Text:        fmt.Sprintf("%s - locked: %s", opt.Text, describeConditions(dest.Conditions, p)),
+		Text:        fmt.Sprintf("%s - locked: %s", opt.Text, describeConditions(dest.Gate, p)),
 		Locked:      true,
 	}, true
 }
@@ -1243,7 +1243,7 @@ func lockedGateRow(in *mobs.Interaction, index int, opt *mobs.InteractionOption,
 func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSeam,
 	nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
 	node := nodeByID(in, nodeID)
-	if node == nil || !conditionsPass(node.Conditions, p) {
+	if node == nil || !conditionsPass(node.Gate, p) {
 		return "", nil, false
 	}
 	// ⭐ A source node routes WHOLE to its provider, and the node gate above is
@@ -1253,7 +1253,7 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSea
 	//
 	// ⚑ THE PROVIDER SEEING THE NODE DOES NOT MOVE THAT CHECK (P2). It is handed
 	// the node so it can serve what the node OWNS — a site's price, a site's
-	// reward list — and it may read `node.Conditions` for its own purposes; but
+	// reward list — and it may read `node.Gate` for its own purposes; but
 	// the gate that decides whether this player may speak to this node at all is
 	// evaluated here, once, for every kind of node alike.
 	//
@@ -1412,7 +1412,7 @@ func destinationVisible(in *mobs.Interaction, opt *mobs.InteractionOption, p lea
 		return true
 	}
 	dest := nodeByID(in, opt.Next)
-	return dest != nil && conditionsPass(dest.Conditions, p)
+	return dest != nil && conditionsPass(dest.Gate, p)
 }
 
 func nodeByID(in *mobs.Interaction, id string) *mobs.InteractionNode {
@@ -1429,48 +1429,63 @@ func nodeByID(in *mobs.Interaction, id string) *mobs.InteractionNode {
 // a second implementation of one rule that also doubled the condition evaluations
 // on the per-tick present() path. The rule now lives there, once.
 
-func conditionsPass(conditions []mobs.InteractionCondition, p learner) bool {
-	for _, c := range conditions {
-		switch c.Kind {
-		case mobs.ConditionMinLevel:
-			if p.Progression().Level < uint32(c.Value) {
-				return false
-			}
-		case mobs.ConditionBloodlineAscensions:
-			// One int compare. It is session-constant by construction, since
-			// ascending ends the session, so nothing can invalidate it while a
-			// player is reading the row it gates.
-			if p.BloodlineAscensions() < c.Value {
-				return false
-			}
-		case mobs.ConditionQuestAtStage:
-			// One O(1) map read (L15). A nil ledger fails closed with everything
-			// else here — a conversation is not the place to panic, and the
-			// unconditional fallback node still speaks.
-			if !p.QuestLedger().MatchesStage(c.Quest, c.Stage) {
-				return false
-			}
-		case mobs.ConditionKillsThisLife:
-			// ⭐ AN UNRESOLVED SPECIES FAILS CLOSED. Zero is what SpeciesID holds
-			// when no load-time pass filled it in, and counting "kills of mob 0"
-			// would answer about the wrong species rather than refuse. The loaders
-			// make this unreachable; it is here because the cost of being wrong is
-			// a gate that opens for the wrong reason, which is worse than one that
-			// never opens.
-			if c.SpeciesID == 0 {
-				return false
-			}
-			// One O(1) map read, same as above, and a nil ledger fails closed the
-			// same way (the guard lives in KillCount).
-			if p.QuestLedger().KillCount(c.SpeciesID) < uint64(c.Value) {
-				return false
-			}
-		default:
-			// Unreachable: the loader rejects an unknown kind at boot, which is
-			// the point of the parse table. Failing closed here keeps a future
-			// kind from silently passing every check before it is implemented.
+// conditionsPass judges a gate: under all every condition must hold, under any
+// one is enough, and an empty list passes in both (plan-quest-dialogue.md D7).
+func conditionsPass(gate mobs.Gate, p learner) bool {
+	if len(gate.Conditions) == 0 {
+		return true
+	}
+	wantAny := gate.Mode == mobs.ConditionModeAny
+	for _, c := range gate.Conditions {
+		if conditionHolds(c, p) == wantAny {
+			return wantAny
+		}
+	}
+	return !wantAny
+}
+
+// conditionHolds judges one condition. Every kind fails closed when it cannot
+// answer, so under any an unanswerable entry never opens the gate either.
+func conditionHolds(c mobs.InteractionCondition, p learner) bool {
+	switch c.Kind {
+	case mobs.ConditionMinLevel:
+		if p.Progression().Level < uint32(c.Value) {
 			return false
 		}
+	case mobs.ConditionBloodlineAscensions:
+		// One int compare. It is session-constant by construction, since
+		// ascending ends the session, so nothing can invalidate it while a
+		// player is reading the row it gates.
+		if p.BloodlineAscensions() < c.Value {
+			return false
+		}
+	case mobs.ConditionQuestAtStage:
+		// One O(1) map read (L15). A nil ledger fails closed with everything
+		// else here — a conversation is not the place to panic, and the
+		// unconditional fallback node still speaks.
+		if !p.QuestLedger().MatchesStage(c.Quest, c.Stage) {
+			return false
+		}
+	case mobs.ConditionKillsThisLife:
+		// ⭐ AN UNRESOLVED SPECIES FAILS CLOSED. Zero is what SpeciesID holds
+		// when no load-time pass filled it in, and counting "kills of mob 0"
+		// would answer about the wrong species rather than refuse. The loaders
+		// make this unreachable; it is here because the cost of being wrong is
+		// a gate that opens for the wrong reason, which is worse than one that
+		// never opens.
+		if c.SpeciesID == 0 {
+			return false
+		}
+		// One O(1) map read, same as above, and a nil ledger fails closed the
+		// same way (the guard lives in KillCount).
+		if p.QuestLedger().KillCount(c.SpeciesID) < uint64(c.Value) {
+			return false
+		}
+	default:
+		// Unreachable: the loader rejects an unknown kind at boot, which is
+		// the point of the parse table. Failing closed here keeps a future
+		// kind from silently passing every check before it is implemented.
+		return false
 	}
 	return true
 }

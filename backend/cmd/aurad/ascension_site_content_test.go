@@ -181,7 +181,7 @@ func TestAscensionSites_EveryNodeButTheFallbackIsGated(t *testing.T) {
 			"%q needs a gated greeting and the fallback preview at least", name)
 
 		for _, node := range nodes[:len(nodes)-1] {
-			require.NotEmpty(t, node.Conditions,
+			require.NotEmpty(t, node.Gate.Conditions,
 				"%q node %q is not the fallback, so it must be gated or it becomes the greeting for everybody",
 				name, node.ID)
 		}
@@ -193,13 +193,13 @@ func TestAscensionSites_EveryNodeButTheFallbackIsGated(t *testing.T) {
 			}
 		}
 		require.NotNil(t, rowNode, "%q generates its reward rows (C2a step 2/3)", name)
-		assert.NotEmpty(t, rowNode.Conditions,
+		assert.NotEmpty(t, rowNode.Gate.Conditions,
 			"%q's row-source node must be gated: applyGrant checks the NODE, and the pick carries that gate to the ceremony",
 			name)
 
 		// The unconditional fallback is LAST, so a player who cannot pay still
 		// gets a greeting instead of no panel at all.
-		assert.Empty(t, nodes[len(nodes)-1].Conditions,
+		assert.Empty(t, nodes[len(nodes)-1].Gate.Conditions,
 			"%q's preview is the final, unconditional node", name)
 	}
 }
@@ -221,7 +221,7 @@ func TestAscensionSites_TheirFallbackNamesThePrice(t *testing.T) {
 	for name, def := range ascensionSiteDefs(t, registry) {
 		nodes := def.Interaction.Nodes
 		fallback := nodes[len(nodes)-1]
-		require.Empty(t, fallback.Conditions, "%q: the fallback is the last, unconditional node", name)
+		require.Empty(t, fallback.Gate.Conditions, "%q: the fallback is the last, unconditional node", name)
 
 		var rowNodeID string
 		for i := range nodes {
@@ -257,7 +257,7 @@ func TestAscensionSites_DoNotAllChargeTheSamePrice(t *testing.T) {
 
 	prices := map[string]bool{}
 	for _, def := range sites {
-		prices[fmt.Sprintf("%v", def.Interaction.Nodes[0].Conditions)] = true
+		prices[fmt.Sprintf("%v", def.Interaction.Nodes[0].Gate.Conditions)] = true
 	}
 	assert.Greater(t, len(prices), 1,
 		"every site charges the same thing, so nothing proves a site owns its price")

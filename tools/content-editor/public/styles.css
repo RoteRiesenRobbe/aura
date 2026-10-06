@@ -202,6 +202,7 @@ input[type=checkbox]:disabled { cursor: default; }
 
 .subsection { margin-top: 8px; }
 .subsection > label, .subsection-title { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+.subsection-title select.conditions-mode { text-transform: none; font-size: 11px; margin-left: 4px; }
 
 .condition-row, .grant-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; background: var(--bg-card-2); border-radius: 5px; padding: 5px; }
 .condition-row select, .grant-row select { min-width: 100px; }

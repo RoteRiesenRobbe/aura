@@ -381,7 +381,7 @@ func TestMapMobDefinition_ResolvesAQuestCondition(t *testing.T) {
 	]}`)
 	require.NoError(t, err)
 
-	c := def.Interaction.Nodes[0].Conditions[0]
+	c := def.Interaction.Nodes[0].Gate.Conditions[0]
 	assert.Equal(t, ConditionQuestAtStage, c.Kind)
 	assert.Equal(t, "pelts", c.Quest)
 	assert.Equal(t, "turn_in", c.Stage)
@@ -1366,4 +1366,52 @@ func TestMapMobDefinition_RejectsANextOnATravelRow(t *testing.T) {
 	]}`)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "travel_to")
+}
+
+// --- conditionsMode (plan-quest-dialogue.md C1, D5-D7) ---
+// A condition list has a mode: `all` (absent, today's meaning) or `any`.
+
+func TestMapMobDefinition_AbsentConditionsModeIsAll(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [
+	  {"id": "gated", "conditions": [{"kind": "minLevel", "value": 5}], "lines": ["hi"]},
+	  {"id": "root", "lines": ["hello"]}
+	]}`)
+	require.NoError(t, err)
+	assert.Equal(t, ConditionModeAll, def.Interaction.Nodes[0].Gate.Mode)
+	assert.Equal(t, ConditionModeAll, def.Interaction.Nodes[1].Gate.Mode,
+		"an ungated node reads as all too, so the zero gate means one thing")
+}
+
+func TestMapMobDefinition_ResolvesAnyConditionsMode(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [
+	  {"id": "gated", "conditionsMode": "any", "conditions": [
+	    {"kind": "quest_at_stage", "quest": "rats", "stage": "running"},
+	    {"kind": "quest_at_stage", "quest": "rats", "stage": "completed"}
+	  ], "lines": ["hi"]},
+	  {"id": "root", "lines": ["hello"]}
+	]}`)
+	require.NoError(t, err)
+	gate := def.Interaction.Nodes[0].Gate
+	assert.Equal(t, ConditionModeAny, gate.Mode)
+	assert.Len(t, gate.Conditions, 2)
+}
+
+func TestMapMobDefinition_RejectsUnknownConditionsMode(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "gated", "conditionsMode": "or", "conditions": [{"kind": "minLevel", "value": 5}], "lines": ["hi"]},
+	  {"id": "root", "lines": ["hello"]}
+	]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `"or"`)
+}
+
+// D7: a mode beside no conditions is an authored no-op, refused like a zero count.
+func TestMapMobDefinition_RejectsConditionsModeWithoutConditions(t *testing.T) {
+	for _, mode := range []string{"any", "all"} {
+		_, err := mapInteraction(t, `{"nodes": [
+		  {"id": "root", "conditionsMode": "`+mode+`", "lines": ["hello"]}
+		]}`)
+		require.Error(t, err, mode)
+		assert.Contains(t, err.Error(), "conditionsMode", mode)
+	}
 }

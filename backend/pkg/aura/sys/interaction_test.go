@@ -244,9 +244,9 @@ func TestPresent_AuthoredCycleIsHarmless(t *testing.T) {
 func TestPresent_EntryNodeIsTheFirstWhoseConditionsPass(t *testing.T) {
 	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
 		{
-			ID:         "veteran",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-			Lines:      []string{"Well met, veteran."},
+			ID:    "veteran",
+			Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+			Lines: []string{"Well met, veteran."},
 		},
 		{ID: "root", Lines: []string{"Move along."}},
 	}}
@@ -264,9 +264,9 @@ func TestPresent_OmitsConditionFailedNodeAndItsInboundRows(t *testing.T) {
 			{Text: "Where is the mill?", Next: "directions"},
 		}},
 		{
-			ID:         "secret",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-			Lines:      []string{"The vault is under the mill."},
+			ID:    "secret",
+			Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+			Lines: []string{"The vault is under the mill."},
 		},
 		{ID: "directions", Lines: []string{"Two hills east."}},
 	}}
@@ -283,9 +283,9 @@ func TestPresent_OmitsConditionFailedNodeAndItsInboundRows(t *testing.T) {
 
 func TestPresent_NoNodePassesMeansNoConversation(t *testing.T) {
 	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{{
-		ID:         "veteran",
-		Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-		Lines:      []string{"Well met."},
+		ID:    "veteran",
+		Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+		Lines: []string{"Well met."},
 	}}}
 
 	assert.Nil(t, present(in, newLearner(1), noRows, noTravel), "an actor with nothing to say opens no panel")
@@ -473,7 +473,7 @@ func TestPresent_AllKnownLeavesTheLinesStanding(t *testing.T) {
 }
 
 func TestConditionsPass_UnknownKindFailsClosed(t *testing.T) {
-	assert.False(t, conditionsPass([]mobs.InteractionCondition{{Kind: "hasQuest"}}, newLearner(99)),
+	assert.False(t, conditionsPass(mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: "hasQuest"}}}, newLearner(99)),
 		"a kind the engine does not implement must never pass by default")
 }
 
@@ -535,9 +535,9 @@ func TestApplyGrant_Refusals(t *testing.T) {
 	build := func() *mobs.Interaction {
 		in := teachingInteraction([]string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
 		in.Nodes = append(in.Nodes, mobs.InteractionNode{
-			ID:         "secret",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-			Lines:      []string{"the vault"},
+			ID:    "secret",
+			Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+			Lines: []string{"the vault"},
 			Options: []mobs.InteractionOption{{
 				Grants: []mobs.InteractionGrant{namedGrant(9, "Vault", 1, "the way in")},
 			}},
@@ -583,9 +583,9 @@ func TestApplyGrant_Refusals(t *testing.T) {
 func TestApplyGrant_ConditionPassedNodeGrants(t *testing.T) {
 	in := teachingInteraction([]string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
 	in.Nodes = append(in.Nodes, mobs.InteractionNode{
-		ID:         "secret",
-		Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-		Lines:      []string{"the vault"},
+		ID:    "secret",
+		Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+		Lines: []string{"the vault"},
 		Options: []mobs.InteractionOption{{
 			Grants: []mobs.InteractionGrant{namedGrant(9, "Vault", 1, "the way in")},
 		}},
@@ -614,9 +614,9 @@ func TestApplyGrant_RefusesARowNavigatingToAHiddenNode(t *testing.T) {
 				Next:   "vault",
 			}}},
 			{
-				ID:         "vault",
-				Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-				Lines:      []string{"the vault"},
+				ID:    "vault",
+				Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+				Lines: []string{"the vault"},
 			},
 		}}
 	}
@@ -660,9 +660,9 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted(t *testing.T) {
 				{Text: "gossip", Next: "news"},
 			}},
 			{
-				ID:         "vault",
-				Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
-				Lines:      []string{"the vault"},
+				ID:    "vault",
+				Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}}},
+				Lines: []string{"the vault"},
 			},
 			{ID: "news", Lines: []string{"news"}},
 		}}
@@ -1018,9 +1018,9 @@ func travellerInteraction() *mobs.Interaction {
 			{Text: "They are dead.", Grants: []mobs.InteractionGrant{advanceGrant()}},
 			{Text: "Where do they nest?", Next: "lamp_where"},
 		}},
-		{ID: "lamp_where", Lines: []string{"North of the tunnel."}, Conditions: []mobs.InteractionCondition{
+		{ID: "lamp_where", Lines: []string{"North of the tunnel."}, Gate: mobs.Gate{Conditions: []mobs.InteractionCondition{
 			{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageRunning},
-		}},
+		}}},
 	}}
 }
 
@@ -1070,7 +1070,7 @@ func TestPresent_RunningGateCascadesTheQuestRowOffRoot(t *testing.T) {
 // the content and this is the test that notices.
 func TestPresent_UngatedInfoRowOutlivesTheQuest(t *testing.T) {
 	in := travellerInteraction()
-	in.Nodes[2].Conditions = nil
+	in.Nodes[2].Gate.Conditions = nil
 	p := newQuestLearner(t, 1, peltsQuest())
 
 	require.NoError(t, p.ledger.Accept(questID))
@@ -1301,21 +1301,21 @@ func TestApplyGrant_QuestRowWithoutALedgerIsRefused(t *testing.T) {
 func questGatedInteraction() *mobs.Interaction {
 	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
 		{
-			ID:         "turn_in_node",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: stageTurn}},
-			Lines:      []string{"You have them?"},
-			Options:    []mobs.InteractionOption{{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}}},
+			ID:      "turn_in_node",
+			Gate:    mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: stageTurn}}},
+			Lines:   []string{"You have them?"},
+			Options: []mobs.InteractionOption{{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}}},
 		},
 		{
-			ID:         "thanks_node",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageCompleted}},
-			Lines:      []string{"The road is safer for it."},
+			ID:    "thanks_node",
+			Gate:  mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageCompleted}}},
+			Lines: []string{"The road is safer for it."},
 		},
 		{
-			ID:         "offer_node",
-			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageNotStarted}},
-			Lines:      []string{"Wolves have taken the road."},
-			Options:    []mobs.InteractionOption{{Text: "I'll help.", Grants: []mobs.InteractionGrant{offerGrant()}}},
+			ID:      "offer_node",
+			Gate:    mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageNotStarted}}},
+			Lines:   []string{"Wolves have taken the road."},
+			Options: []mobs.InteractionOption{{Text: "I'll help.", Grants: []mobs.InteractionGrant{offerGrant()}}},
 		},
 		{ID: "root", Lines: []string{"Mind the road."}},
 	}}
@@ -2525,7 +2525,7 @@ func TestApplyGrant_RefusesASourceNodeWithNoProvider(t *testing.T) {
 // walk straight past a condition the panel enforces.
 func TestApplyGrant_ASourceNodeStillHonoursItsConditions(t *testing.T) {
 	in := sourceInteraction()
-	in.Nodes[0].Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
+	in.Nodes[0].Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
 	src := &fakeRowSource{rows: []model.ConversationOption{generatedRow(0, "Frost Shield", "yours")}, reply: "yours"}
 
 	_, _, ok := applyGrant(in, newLearner(29), src, noTravel, "root", 0, 0)
@@ -2608,10 +2608,10 @@ func TestApplyGrant_CarriesASourcesRefusalThrough(t *testing.T) {
 
 // killGate is a resolved gate, the shape the mob loader hands over: the id is
 // what the ledger is keyed by, the name is what the player is shown.
-func killGate(species mobs.MobID, count int) []mobs.InteractionCondition {
-	return []mobs.InteractionCondition{
+func killGate(species mobs.MobID, count int) mobs.Gate {
+	return mobs.Gate{Conditions: []mobs.InteractionCondition{
 		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", SpeciesID: species, Value: count},
-	}
+	}}
 }
 
 // The whole evaluation, and it costs NO new learner surface: QuestLedger() was
@@ -2667,7 +2667,7 @@ func TestConditionsPass_KillsThisLifeFailsClosedOnAnUnresolvedSpecies(t *testing
 	unresolved := []mobs.InteractionCondition{
 		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", Value: 20},
 	}
-	assert.False(t, conditionsPass(unresolved, p),
+	assert.False(t, conditionsPass(mobs.Gate{Conditions: unresolved}, p),
 		"a gate nobody resolved must never pass")
 }
 
@@ -2760,7 +2760,7 @@ func TestRowSourceMux_RefusesADuplicateRegistration(t *testing.T) {
 // hidden.
 func gatedDestination(flagged bool, conditions ...mobs.InteractionCondition) *mobs.Interaction {
 	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
-		{ID: "catalog", Conditions: conditions, Lines: []string{"Pick one."}},
+		{ID: "catalog", Gate: mobs.Gate{Conditions: conditions}, Lines: []string{"Pick one."}},
 		{ID: "root", Lines: []string{"A stone."}, Options: []mobs.InteractionOption{
 			{Text: "Show me the rewards.", Next: "catalog", LockedWhenGated: flagged},
 		}},
@@ -2874,4 +2874,77 @@ func TestPresent_AGatedDestinationNamesEveryConditionItHas(t *testing.T) {
 
 	require.Len(t, rows, 1)
 	assert.Equal(t, `Show me the rewards. - locked: level 25 (12/25), complete "Thin the Orc Line"`, rows[0].Text)
+}
+
+// --- conditionsMode at the evaluator (plan-quest-dialogue.md C1, D6/D7) ---
+
+// anyGate is "level 30 OR two ascensions": two kinds, so one can pass alone.
+func anyGate() mobs.Gate {
+	return mobs.Gate{Mode: mobs.ConditionModeAny, Conditions: []mobs.InteractionCondition{
+		minLevelGate(30),
+		{Kind: mobs.ConditionBloodlineAscensions, Value: 2},
+	}}
+}
+
+func TestConditionsPass_AnyModePassesOnOneEntry(t *testing.T) {
+	levelOnly := newLearner(30)
+	ascendedOnly := newLearner(5)
+	ascendedOnly.ascensions = 2
+	assert.True(t, conditionsPass(anyGate(), levelOnly), "the level alone opens an any gate")
+	assert.True(t, conditionsPass(anyGate(), ascendedOnly), "the ascensions alone open it too")
+
+	all := anyGate()
+	all.Mode = mobs.ConditionModeAll
+	assert.False(t, conditionsPass(all, levelOnly), "the same list under all wants both")
+}
+
+func TestConditionsPass_AnyModeFailsWhenNothingPasses(t *testing.T) {
+	assert.False(t, conditionsPass(anyGate(), newLearner(5)))
+}
+
+// D7: an empty list is unconditional whatever the mode says.
+func TestConditionsPass_AnEmptyListPassesInBothModes(t *testing.T) {
+	assert.True(t, conditionsPass(mobs.Gate{}, newLearner(1)))
+	assert.True(t, conditionsPass(mobs.Gate{Mode: mobs.ConditionModeAny}, newLearner(1)),
+		"any over nothing must not read as 'no entry passed'")
+}
+
+// The N1 pair under `any`: present() and applyGrant() judge the destination
+// through the one evaluator, so an any gate cannot show a row it then refuses.
+func TestPresentAndApplyGrant_AgreeOnAnAnyGatedDestination(t *testing.T) {
+	build := func() *mobs.Interaction {
+		return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+			{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{{
+				Text:   "take the badge and step inside",
+				Grants: []mobs.InteractionGrant{namedGrant(1, "Torch", 1, "light")},
+				Next:   "vault",
+			}}},
+			{ID: "vault", Gate: anyGate(), Lines: []string{"the vault"}},
+		}}
+	}
+
+	ascended := newLearner(5)
+	ascended.ascensions = 2
+	assert.Len(t, rowsOf(t, present(build(), ascended, noRows, noTravel), "root"), 1,
+		"one passing entry shows the row")
+	_, _, ok := applyGrant(build(), ascended, noRows, noTravel, "root", 0, 0)
+	assert.True(t, ok, "and the click on it is honoured")
+
+	none := newLearner(5)
+	assert.Empty(t, rowsOf(t, present(build(), none, noRows, noTravel), "root"))
+	_, _, ok = applyGrant(build(), none, noRows, noTravel, "root", 0, 0)
+	assert.False(t, ok, "no passing entry hides the row and refuses the click")
+}
+
+// D8: the locked row is the one place the player reads the mode.
+func TestPresent_AnAnyGatedDestinationJoinsItsGateWithOr(t *testing.T) {
+	in := gatedDestination(true, minLevelGate(30), mobs.InteractionCondition{
+		Kind: mobs.ConditionBloodlineAscensions, Value: 2})
+	in.Nodes[0].Gate.Mode = mobs.ConditionModeAny
+
+	rows := rowsOf(t, present(in, newLearner(12), noRows, noTravel), "root")
+
+	require.Len(t, rows, 1)
+	assert.True(t, rows[0].Locked)
+	assert.Contains(t, rows[0].Text, "level 30 (12/30) or ")
 }

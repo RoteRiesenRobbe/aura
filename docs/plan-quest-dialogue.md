@@ -1,7 +1,7 @@
 # Plan - quest dialogue: an any/all toggle on conditions, and the two-row quest shape
 
-**Status:** DESIGNED + PO-RULED 2026-10-06 (planning session, docs only,
-nothing built). PO rulings D1-D4 and D13-D15 taken as choice prompts the same
+**Status:** DESIGNED + PO-RULED 2026-10-06; **C1 BUILT 2026-10-06** (§10),
+C2 next. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
 day; D5-D12 are mine, flag if wrong. Three chunks: C1 engine + editor, C2 the rats example, C3 every
 other quest. **Schema: DB NONE · wire NONE · conf NONE · content +1 optional
 key on dialogue nodes and ascension entries (`conditionsMode`), then a content
@@ -288,6 +288,46 @@ server). Schema line for every chunk: DB NONE, wire NONE.
 
 ## 10. Chunk ledger
 
-- **C1 engine + editor:** not started.
+- **C1 engine + editor:** ✅ 2026-10-06 `[uncommitted]`. Built as §6 says:
+  `mobs.Gate{Mode, Conditions}` replaces the bare slice on `InteractionNode`
+  and `ascension.Entry`; `mobs.ParseConditionMode(name, n)` is the one parser
+  both loaders call (absent = all, unknown refused, any mode on an empty list
+  refused, D7); `conditionsPass(gate, p)` loops `conditionHolds` by mode;
+  `describeConditions` joins with " or " under `any`; the stash stores the
+  whole gate and `siteGateHolds` asserts `mobs.Gate` (L1). Editor: an AND/OR
+  select in the Conditions header (labels D14), key written only for OR,
+  dropped with the last condition; `validate.mjs` ports the parser (L2 hand-sync
+  point: Go loader, `validate.mjs` `CONDITIONS_MODES`, the editor select);
+  `skill-inventory.mjs` joins ascension gates with "or". Docs: manual §6 (the
+  AND/OR section, example uses C2's `rats_more`, keep the id or update it),
+  `api/ascension/README.md`, `backlog.md`.
+  ⚑ The plan missed two `.Conditions` readers, `items/mobs/registry.go`
+  (kill-species resolution) and `quests/interactions.go` (stage refs): renames.
+  ⚑ The L1 trap was real: `TestAscensionRows_AnUngatedSiteStillPricesThePick`
+  still asserted the old slice type and went red; the new L1 test
+  (`TestAscension_AStashedAnyPriceStillHoldsWhenOneEntryLapses`) was
+  mutation-checked (stash dropping the mode → red).
+  ⚑ **Fixed on the way:** `tools/content-editor/aurad-validate.mjs`
+  `CONTENT_SUBDIRS` listed 10 dirs, the server loads 13 (`areas`, `regions`,
+  `atmospheres` missing), so with a fresh binary EVERY editor save was refused
+  (`stat areas: no such file or directory`); the smoke only skipped it while
+  `aurad` was stale.
+  **Schema: DB NONE · wire NONE · conf NONE · content +1 optional key, no
+  shipped file changed.** Verified: Go green bar the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` (36 ok; `store` /
+  `accounts` skipped, untouched) · `-validate` 0 (main + debug) ·
+  `validate.mjs` 0 · editor smoke 0 · the editor driven headless (OR writes
+  `"any"`, AND drops it, `or` / a mode on an ungated node refused) · DEBUG
+  zones, each on a fresh restart: `c2a-ascension-site` 31/31,
+  `c1-front-stone` 13/16 + 3 INCONCLUSIVE (the orc hunt), `chunkC4-quests`
+  19 PASS + 8 FAIL + 3 INCONCLUSIVE: every conversation leg green incl. the
+  `running` gate (D2/D3) and the turn-in paying (A14); the 8 FAILs are stale
+  harness reads, A8 expects the actor `Farmer` (renamed Reinhard 2026-09-23)
+  and seven read the journal detail as undefined (C1 touched no client or
+  ledger code). C3 rewrites those legs anyway (L4).
+  ⚑ The three harnesses' venues exist only in the DEBUG world now (the Hermit
+  stands at (-122, -30) on the main world, the harness warps to (-55, 26)).
+  ⚑ Unwalked: an `any` gate in-game (first content is C2). `skill-inventory`
+  is red at HEAD on `packIcon`, so its "or" join got a syntax check only.
 - **C2 the rats example:** not started.
 - **C3 every other quest (18, the Knot excepted):** not started.

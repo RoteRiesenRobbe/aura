@@ -22,7 +22,7 @@ import (
 // ascendCastUpdates is one press-processing update plus the full channel.
 const ascendCastUpdates = 1 + 300
 
-func ascensionChannelSetup(t *testing.T, gates map[string][]mobs.InteractionCondition) (
+func ascensionChannelSetup(t *testing.T, gates map[string]mobs.Gate) (
 	*fakePlayer, *fakeConnState, AscensionSource, *SkillSystem,
 ) {
 	t.Helper()
@@ -40,8 +40,8 @@ func ascensionChannelSetup(t *testing.T, gates map[string][]mobs.InteractionCond
 	conn := &fakeConnState{ascendResult: true, bound: true}
 	sk.SetConnState(conn)
 	src := NewAscensionRows(ascension.CatalogOf(
-		ascension.Entry{UnlockKey: "EmberWard", Skill: rewardEmber, Conditions: gates["EmberWard"]},
-		ascension.Entry{UnlockKey: "FrostShield", Skill: rewardFrost, Conditions: gates["FrostShield"]},
+		ascension.Entry{UnlockKey: "EmberWard", Skill: rewardEmber, Gate: gates["EmberWard"]},
+		ascension.Entry{UnlockKey: "FrostShield", Skill: rewardFrost, Gate: gates["FrostShield"]},
 	))
 	sk.SetAscensionSource(src)
 	return caster, conn, src, sk
@@ -93,9 +93,9 @@ func TestAscension_CompletionSpendsTheStashedPick(t *testing.T) {
 // D14: a bloodline with nothing left to learn still ascends, and the empty key
 // is what RequestAscension already accepts (C1).
 func TestAscension_TheEmptyPickCompletesToo(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"EmberWard":   {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	caster, conn, src, sk := ascensionChannelSetup(t, gates)
 	_, ok := src.ApplyRow(catalogNode(), caster, ascensionEmptyPickIndex, 0)
@@ -144,7 +144,7 @@ func TestAscension_APickThatStoppedBeingLegitimateIsRefused(t *testing.T) {
 func TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn(t *testing.T) {
 	priced := func(level int) *mobs.InteractionNode {
 		site := catalogNode()
-		site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: level}}
+		site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: level}}
 		return site
 	}
 
@@ -187,7 +187,7 @@ func TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn(t *testing.
 func TestAscension_ASitePriceThatLapsesMidChannelRefuses(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
 	site := catalogNode()
-	site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
+	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
 	_, ok := src.ApplyRow(site, caster, 1, 0)
 	require.True(t, ok)
 
@@ -299,7 +299,7 @@ func TestAscension_NoConnStateMeansNoAscension(t *testing.T) {
 // --- ValidatePick, the seam the completion check runs through ----------------
 
 func TestAscensionRows_ValidatePick(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
 	src := newAscensionRows(testCatalog(gates))
 
 	assert.True(t, src.ValidatePick(newAscensionLearner(30), "FrostShield"))
@@ -308,4 +308,28 @@ func TestAscensionRows_ValidatePick(t *testing.T) {
 		"already spent by this bloodline")
 	assert.False(t, src.ValidatePick(newAscensionLearner(30), "Paralyze"), "its gate has not passed")
 	assert.False(t, src.ValidatePick(newAscensionLearner(30), "NoSuchReward"), "not in the catalog at all")
+}
+
+// ⭐ L1 (plan-quest-dialogue.md C1): the stash carries the site's MODE with its
+// conditions. An `any` price met by the level, which then lapses while the
+// ascensions still stand, must still ascend: re-judged as `all` it would refuse
+// a pick the stone just offered.
+func TestAscension_AStashedAnyPriceStillHoldsWhenOneEntryLapses(t *testing.T) {
+	caster, conn, src, sk := ascensionChannelSetup(t, nil)
+	caster.ascensions = 2
+	site := catalogNode()
+	site.Gate = mobs.Gate{Mode: mobs.ConditionModeAny, Conditions: []mobs.InteractionCondition{
+		{Kind: mobs.ConditionMinLevel, Value: 30},
+		{Kind: mobs.ConditionBloodlineAscensions, Value: 2},
+	}}
+	_, ok := src.ApplyRow(site, caster, 1, 0)
+	require.True(t, ok)
+
+	caster.level = 29 // one entry lapses, the other stands
+
+	for i := 0; i < ascendCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.Equal(t, 1, conn.ascendCalls, "the any price still holds, so the ceremony completes")
 }

@@ -279,7 +279,7 @@ func TestDiskContent_AscensionGatesResolveAgainstTheRealWorld(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, entry := range catalog.All() {
-		for _, cond := range entry.Conditions {
+		for _, cond := range entry.Gate.Conditions {
 			if cond.Kind == mobs.ConditionKillsThisLife {
 				assert.NotZero(t, cond.SpeciesID,
 					"entry %q gates on kills of %q and it never resolved", entry.UnlockKey, cond.Species)

@@ -107,7 +107,7 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 		if a.spent(p, entry.UnlockKey) {
 			continue // P4: a taken entry leaves this bloodline's catalog forever
 		}
-		locked := !conditionsPass(entry.Conditions, p)
+		locked := !conditionsPass(entry.Gate, p)
 		if !locked {
 			pickable++
 		}
@@ -159,7 +159,7 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 	// are the whole message, and the optimistic panel must have nothing to speak.
 	reply := fmt.Sprintf("%s it is. Channelling now, walk away to cancel.", text)
 	if locked {
-		text = fmt.Sprintf("%s - locked: %s", text, describeConditions(entry.Conditions, p))
+		text = fmt.Sprintf("%s - locked: %s", text, describeConditions(entry.Gate, p))
 		reply = ""
 	}
 	return model.ConversationOption{
@@ -216,7 +216,7 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 		return "", false
 	}
 	entry := entries[option]
-	if a.spent(p, entry.UnlockKey) || !conditionsPass(entry.Conditions, p) {
+	if a.spent(p, entry.UnlockKey) || !conditionsPass(entry.Gate, p) {
 		return "", false
 	}
 	return a.stash(node, p, entry.UnlockKey)
@@ -249,7 +249,7 @@ func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 	if !known {
 		return false // not in the catalog at all
 	}
-	return !a.spent(p, key) && conditionsPass(entry.Conditions, p)
+	return !a.spent(p, key) && conditionsPass(entry.Gate, p)
 }
 
 // stash records the pick, starts the ceremony's channel, and returns the reply
@@ -264,14 +264,16 @@ func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 // ⭐ THE SITE'S PRICE RIDES ALONG (plan-ascension-sites.md P1), and both callers
 // pass it — the empty pick included, because D14's ascend-with-no-gift is still
 // something a player does AT A STONE and must cost what that stone asks.
-// `node.Conditions` is a slice into loaded content, immutable after boot, so the
-// snapshot is the slice header and there is nothing to copy or invalidate.
+// `node.Gate` is stashed WHOLE, mode included (plan-quest-dialogue.md L1): its
+// list is a slice into loaded content, immutable after boot, so there is nothing
+// to copy or invalidate, and the mode must ride along or an `any` price is
+// re-judged as `all` at completion.
 func (a *ascensionRows) stash(node *mobs.InteractionNode, p learner, key string) (string, bool) {
 	sc := p.SkillComponent()
 	if sc == nil {
 		return "", false
 	}
-	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Conditions}
+	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Gate}
 	sc.StartUtilityCast(skills.UtilityAscend)
 	if key == "" {
 		return "Channelling now. Walk away to cancel.", true
@@ -310,7 +312,7 @@ func (a *ascensionRows) displayNameOf(key string) string {
 // pickable), which the player sees as a row that does nothing.
 func (a *ascensionRows) anyPickable(node *mobs.InteractionNode, p learner) bool {
 	for _, entry := range a.entriesFor(node) {
-		if !a.spent(p, entry.UnlockKey) && conditionsPass(entry.Conditions, p) {
+		if !a.spent(p, entry.UnlockKey) && conditionsPass(entry.Gate, p) {
 			return true
 		}
 	}
@@ -338,12 +340,16 @@ func (a *ascensionRows) spent(p learner, key string) bool {
 // ⚑ Composed PER PLAYER at render, never authored (D18). Serving a threshold
 // for unreached content out of the catalog would repeat the mistake the quest
 // journal's Objectives exists to avoid.
-func describeConditions(conditions []mobs.InteractionCondition, p learner) string {
-	parts := make([]string, 0, len(conditions))
-	for _, c := range conditions {
+func describeConditions(gate mobs.Gate, p learner) string {
+	parts := make([]string, 0, len(gate.Conditions))
+	for _, c := range gate.Conditions {
 		parts = append(parts, describeCondition(c, p))
 	}
-	return strings.Join(parts, ", ")
+	sep := ", "
+	if gate.Mode == mobs.ConditionModeAny {
+		sep = " or " // D8: the locked row is where the player reads the mode
+	}
+	return strings.Join(parts, sep)
 }
 
 func describeCondition(c mobs.InteractionCondition, p learner) string {
@@ -403,10 +409,10 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 // siteGateHolds re-judges the price the site charged when the row was clicked.
 //
 // ⚑ It lives here rather than on the pick because `skills` cannot name
-// `[]mobs.InteractionCondition` — `mobs` imports `skills`, so the field is
+// `mobs.Gate` — `mobs` imports `skills`, so the field is
 // carried as `any` and this is the one place that reads it, where both the
 // conditions and the live player are in scope.
 func siteGateHolds(pick *skills.AscensionPick, p learner) bool {
-	gate, priced := pick.Gate.([]mobs.InteractionCondition)
+	gate, priced := pick.Gate.(mobs.Gate)
 	return priced && conditionsPass(gate, p)
 }

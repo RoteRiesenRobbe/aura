@@ -167,7 +167,7 @@ func TestRegistryFromFS_ResolvesAKillsThisLifeSpecies(t *testing.T) {
 
 	hunter, err := registry.GetByName("Hunter")
 	require.NoError(t, err)
-	cond := hunter.Interaction.Nodes[0].Conditions[0]
+	cond := hunter.Interaction.Nodes[0].Gate.Conditions[0]
 	assert.Equal(t, "DireWolf", cond.Species)
 	assert.Equal(t, MobID(12), cond.SpeciesID, "the authored name resolves to the registry's id")
 }

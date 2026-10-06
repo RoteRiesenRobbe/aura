@@ -99,6 +99,8 @@ Context from current state:
 > rows stay readable after turn-in). Tracked with its recommended fix (a third
 > `running` sentinel) in `plan-playtest-feedback.md` §Intake round 8, **not
 > here**.
+> ✅ **Closed** by the `running` sentinel and, since 2026-10-06, an AND/OR
+> `conditionsMode` on every condition list (`plan-quest-dialogue.md` C1).
 >
 > *The original write-up follows, as the record of why.*
 

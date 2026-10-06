@@ -47,7 +47,7 @@ func TestCatalogFromFS_LoadsEntriesAndResolvesSkills(t *testing.T) {
 	}
 	require.Contains(t, byKey, "FrostShield")
 	assert.Equal(t, defFrostShield, byKey["FrostShield"].Skill)
-	assert.Empty(t, byKey["FrostShield"].Conditions)
+	assert.Empty(t, byKey["FrostShield"].Gate.Conditions)
 }
 
 // The C1 state of api/ascension/ is README-only: entries arrive in C3. An empty
@@ -110,9 +110,9 @@ func TestCatalogFromFS_ParsesConditions(t *testing.T) {
 	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 	require.Len(t, catalog.All(), 1)
-	require.Len(t, catalog.All()[0].Conditions, 1)
-	assert.Equal(t, mobs.ConditionMinLevel, catalog.All()[0].Conditions[0].Kind)
-	assert.Equal(t, 30, catalog.All()[0].Conditions[0].Value)
+	require.Len(t, catalog.All()[0].Gate.Conditions, 1)
+	assert.Equal(t, mobs.ConditionMinLevel, catalog.All()[0].Gate.Conditions[0].Kind)
+	assert.Equal(t, 30, catalog.All()[0].Gate.Conditions[0].Value)
 }
 
 // Refused at boot following conditionKinds' existing discipline: conditionsPass
@@ -285,7 +285,7 @@ func TestCatalogFromFS_ResolvesAHuntGatesSpecies(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, catalog.All(), 1)
 
-	cond := catalog.All()[0].Conditions[0]
+	cond := catalog.All()[0].Gate.Conditions[0]
 	assert.Equal(t, mobs.ConditionKillsThisLife, cond.Kind)
 	assert.Equal(t, "DireWolf", cond.Species)
 	assert.Equal(t, mobs.MobID(12), cond.SpeciesID,
@@ -363,4 +363,46 @@ func TestCatalogFromFS_AcceptsTheHouseCommentConvention(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, catalog.All(), 1)
 	assert.Equal(t, "Paralyze", catalog.All()[0].UnlockKey)
+}
+
+// --- conditionsMode (plan-quest-dialogue.md C1, D2): the same key, the same parser ---
+
+func TestCatalogFromFS_AbsentConditionsModeIsAll(t *testing.T) {
+	fsys := fstest.MapFS{
+		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditions":[{"kind":"minLevel","value":30}]}`)},
+	}
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.NoError(t, err)
+	assert.Equal(t, mobs.ConditionModeAll, catalog.All()[0].Gate.Mode)
+}
+
+func TestCatalogFromFS_ParsesAnyConditionsMode(t *testing.T) {
+	fsys := fstest.MapFS{
+		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditionsMode":"any",` +
+			`"conditions":[{"kind":"minLevel","value":30},{"kind":"bloodline_ascensions","value":2}]}`)},
+	}
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.NoError(t, err)
+	gate := catalog.All()[0].Gate
+	assert.Equal(t, mobs.ConditionModeAny, gate.Mode)
+	assert.Len(t, gate.Conditions, 2)
+}
+
+func TestCatalogFromFS_UnknownConditionsModeIsABootError(t *testing.T) {
+	fsys := fstest.MapFS{
+		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditionsMode":"either",` +
+			`"conditions":[{"kind":"minLevel","value":30}]}`)},
+	}
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `"either"`)
+}
+
+func TestCatalogFromFS_ConditionsModeWithoutConditionsIsABootError(t *testing.T) {
+	fsys := fstest.MapFS{
+		"open.json": {Data: []byte(`{"unlockKey":"Paralyze","conditionsMode":"any"}`)},
+	}
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "conditionsMode")
 }

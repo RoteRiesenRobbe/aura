@@ -54,7 +54,7 @@ func TestAscensionCatalog_IsTheAuthoredSeed(t *testing.T) {
 	var keys []string
 	for _, entry := range catalog.All() {
 		keys = append(keys, entry.UnlockKey)
-		for _, cond := range entry.Conditions {
+		for _, cond := range entry.Gate.Conditions {
 			gates[entry.UnlockKey] = cond.Kind
 		}
 	}
@@ -85,8 +85,8 @@ func TestAscensionCatalog_TheQuestGateUsesTheShippedSentinel(t *testing.T) {
 		if entry.UnlockKey != "Lantern" {
 			continue
 		}
-		require.Len(t, entry.Conditions, 1)
-		cond := entry.Conditions[0]
+		require.Len(t, entry.Gate.Conditions, 1)
+		cond := entry.Gate.Conditions[0]
 		assert.Equal(t, mobs.ConditionQuestAtStage, cond.Kind)
 		assert.Equal(t, "the-lost-lamp", cond.Quest)
 		assert.Equal(t, mobs.QuestStageCompleted, cond.Stage)
@@ -102,7 +102,7 @@ func TestAscensionCatalog_TheHuntGateResolvesToARealSpecies(t *testing.T) {
 	catalog, mobsRegistry := loadedCatalog(t)
 
 	for _, entry := range catalog.All() {
-		for _, cond := range entry.Conditions {
+		for _, cond := range entry.Gate.Conditions {
 			if cond.Kind != mobs.ConditionKillsThisLife {
 				continue
 			}
@@ -228,7 +228,7 @@ func TestMemorial_ItsNodeIsUngatedAndServesTheGraveyard(t *testing.T) {
 	require.Len(t, def.Interaction.Nodes, 1)
 
 	node := def.Interaction.Nodes[0]
-	assert.Empty(t, node.Conditions, "no gate: the monument is not a reward (P26)")
+	assert.Empty(t, node.Gate.Conditions, "no gate: the monument is not a reward (P26)")
 	assert.Equal(t, mobs.RowSourceMemorialNames, node.Rows)
 	assert.Empty(t, node.Options, "its rows are generated; an authored option would share their index space")
 	assert.NotEmpty(t, node.Lines,

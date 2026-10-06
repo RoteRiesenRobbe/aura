@@ -28,11 +28,11 @@ var (
 // testCatalog builds a catalog in All()'s guaranteed order (sorted by unlock
 // key), so a test can name an index and mean it: EmberWard 0, FrostShield 1,
 // Paralyze 2.
-func testCatalog(gates map[string][]mobs.InteractionCondition) ascension.Catalog {
+func testCatalog(gates map[string]mobs.Gate) ascension.Catalog {
 	return ascension.CatalogOf(
-		ascension.Entry{UnlockKey: "EmberWard", Skill: rewardEmber, Conditions: gates["EmberWard"]},
-		ascension.Entry{UnlockKey: "FrostShield", Skill: rewardFrost, Conditions: gates["FrostShield"]},
-		ascension.Entry{UnlockKey: "Paralyze", Skill: rewardParalyze, Conditions: gates["Paralyze"]},
+		ascension.Entry{UnlockKey: "EmberWard", Skill: rewardEmber, Gate: gates["EmberWard"]},
+		ascension.Entry{UnlockKey: "FrostShield", Skill: rewardFrost, Gate: gates["FrostShield"]},
+		ascension.Entry{UnlockKey: "Paralyze", Skill: rewardParalyze, Gate: gates["Paralyze"]},
 	)
 }
 
@@ -102,8 +102,8 @@ func TestAscensionRows_IndicesAreCatalogPositionsAndSurviveFiltering(t *testing.
 // sentinel is walked locally and never reaches the server. Every Go test on the
 // path stays green while the feature dead-ends inside the panel.
 func TestAscensionRows_NoRowCarriesTheNoGrantSentinel(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"Paralyze": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
@@ -125,8 +125,8 @@ func TestAscensionRows_ServesNothingForAKindItDoesNotOwn(t *testing.T) {
 // --- gates (D18) ------------------------------------------------------------
 
 func TestAscensionRows_AFailingGateLocksTheRowAndNamesIt(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 25}},
+	gates := map[string]mobs.Gate{
+		"Paralyze": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}},
 	}
 	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(12))
 
@@ -139,8 +139,8 @@ func TestAscensionRows_AFailingGateLocksTheRowAndNamesIt(t *testing.T) {
 }
 
 func TestAscensionRows_APassingGateIsAnOrdinaryPickableRow(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 25}},
+	gates := map[string]mobs.Gate{
+		"Paralyze": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}},
 	}
 	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
@@ -169,10 +169,10 @@ func TestAscensionRows_TheEmptyPickRowIsOfferedEvenWithNothingLeft(t *testing.T)
 // LOCKED can still ascend. Hiding the row there would make max level not the
 // whole price after all.
 func TestAscensionRows_TheEmptyPickRowSurvivesAnAllLockedCatalog(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"EmberWard":   {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"Paralyze":    {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"Paralyze":    {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
@@ -185,10 +185,10 @@ func TestAscensionRows_TheEmptyPickRowSurvivesAnAllLockedCatalog(t *testing.T) {
 // only when nothing is pickable, so applying it against a catalog with a real
 // choice on screen would be applying a row that was never presented.
 func TestAscensionRows_ApplyingTheEmptyPickStashesTheEmptyKey(t *testing.T) {
-	src := newAscensionRows(testCatalog(map[string][]mobs.InteractionCondition{
-		"EmberWard":   {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"Paralyze":    {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	src := newAscensionRows(testCatalog(map[string]mobs.Gate{
+		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"Paralyze":    {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}))
 	p := newAscensionLearner(30)
 
@@ -225,13 +225,13 @@ func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
 	src := newAscensionRows(testCatalog(nil))
 	p := newAscensionLearner(30)
 	site := catalogNode()
-	site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
+	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
 
 	_, ok := src.ApplyRow(site, p, 1, 0) // FrostShield
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, site.Conditions, p.sc.PendingAscension.Gate,
+	assert.Equal(t, site.Gate, p.sc.PendingAscension.Gate,
 		"the ceremony must be able to re-judge the price of the site it was started at")
 }
 
@@ -240,20 +240,20 @@ func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
 // bloodline with nothing left to learn does not get a cheaper entry than one
 // that is buying something.
 func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
-	src := newAscensionRows(testCatalog(map[string][]mobs.InteractionCondition{
-		"EmberWard":   {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
-		"Paralyze":    {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	src := newAscensionRows(testCatalog(map[string]mobs.Gate{
+		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"Paralyze":    {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}))
 	p := newAscensionLearner(30)
 	site := catalogNode()
-	site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
+	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
 
 	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, site.Conditions, p.sc.PendingAscension.Gate)
+	assert.Equal(t, site.Gate, p.sc.PendingAscension.Gate)
 }
 
 // An UNGATED site is legitimate content (D1 leaves the price entirely to the
@@ -268,14 +268,14 @@ func TestAscensionRows_AnUngatedSiteStillPricesThePick(t *testing.T) {
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
-	gate, isGate := p.sc.PendingAscension.Gate.([]mobs.InteractionCondition)
+	gate, isGate := p.sc.PendingAscension.Gate.(mobs.Gate)
 	assert.True(t, isGate, "a priced-with-nothing pick still carries a gate of the right type")
-	assert.Empty(t, gate)
+	assert.Empty(t, gate.Conditions)
 }
 
 func TestAscensionRows_ApplyRefusalsLeaveNothingStashed(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"Paralyze": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	for _, tc := range []struct {
 		name   string
@@ -303,9 +303,9 @@ func TestAscensionRows_ApplyRefusalsLeaveNothingStashed(t *testing.T) {
 // than a fake: everything shown can be taken, with the reply the panel already
 // spoke, and everything locked is inert on both ends.
 func TestAscensionRows_PresentAndApplyCannotDisagree(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"EmberWard": {{Kind: mobs.ConditionMinLevel, Value: 20}},
-		"Paralyze":  {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"EmberWard": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 20}}},
+		"Paralyze":  {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 
 	for _, level := range []uint32{1, 19, 20, 30} {
@@ -399,8 +399,8 @@ func TestAscensionRows_RefusesAnIndexPastThisSitesList(t *testing.T) {
 // nothing pickable so the row is SHOWN, while EmberWard is still pickable at the
 // other stone so the click is REFUSED. The player watches a row do nothing.
 func TestAscensionRows_TheAscendAnywayRowIsJudgedAgainstThisSitesList(t *testing.T) {
-	src := newAscensionRows(testCatalog(map[string][]mobs.InteractionCondition{
-		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	src := newAscensionRows(testCatalog(map[string]mobs.Gate{
+		"Paralyze": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}))
 	site := catalogNodeOffering("Paralyze") // gated here; EmberWard is pickable elsewhere
 	p := newAscensionLearner(30)
@@ -468,9 +468,9 @@ func TestAscensionRows_SkipsAnOfferedKeyTheCatalogDoesNotHold(t *testing.T) {
 // The optimistic-panel property again (L24), now over sites that DIFFER — which
 // is the configuration every per-site index bug lives in.
 func TestAscensionRows_PresentAndApplyCannotDisagree_AcrossSites(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{
-		"EmberWard": {{Kind: mobs.ConditionMinLevel, Value: 20}},
-		"Paralyze":  {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	gates := map[string]mobs.Gate{
+		"EmberWard": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 20}}},
+		"Paralyze":  {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	sites := map[string][]string{
 		"the village stone": {"Paralyze", "EmberWard", "FrostShield"},
@@ -505,8 +505,8 @@ func TestAscensionRows_PresentAndApplyCannotDisagree_AcrossSites(t *testing.T) {
 
 // --- bloodline_ascensions at the evaluator (D18 tier B, C2a step 4) ---
 
-func ascensionGate(n int) []mobs.InteractionCondition {
-	return []mobs.InteractionCondition{{Kind: mobs.ConditionBloodlineAscensions, Value: n}}
+func ascensionGate(n int) mobs.Gate {
+	return mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionBloodlineAscensions, Value: n}}}
 }
 
 func TestConditionsPass_BloodlineAscensions(t *testing.T) {
@@ -530,7 +530,7 @@ func TestConditionsPass_BloodlineAscensions(t *testing.T) {
 // for a first life and pickable for a third, with the count named and its
 // progress composed per player. C3 authors exactly this shape.
 func TestAscensionRows_AVeteranGateLocksAndThenOpens(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
 
 	first := newAscensionLearner(30)
 	first.ascensions = 1
@@ -552,7 +552,7 @@ func TestAscensionRows_AVeteranGateLocksAndThenOpens(t *testing.T) {
 // The refusal half: a locked veteran row cannot be taken by a crafted message
 // either, because ApplyRow re-runs the same judgement.
 func TestAscensionRows_AVeteranGateRefusesTheUntakeable(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
 	p := newAscensionLearner(30)
 	p.ascensions = 1
 
@@ -567,7 +567,7 @@ func TestAscensionRows_AVeteranGateRefusesTheUntakeable(t *testing.T) {
 // ⭐ Only a TAKEABLE row asks for a confirmation. A locked row is inert on both
 // ends, so a countdown in front of it would be friction with nothing behind it.
 func TestAscensionRows_TakeableRowsCarryTheConfirmCountdown(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
 	rows := newAscensionRows(testCatalog(gates)).
 		PresentRows(catalogNode(), newAscensionLearner(30))
 
@@ -597,7 +597,7 @@ func TestAscensionRows_TheEmptyPickIsHeldBehindTheCountdownToo(t *testing.T) {
 // player can find out what is behind it. The locked branch rewrites Text and
 // clears Reply; it must not clear this.
 func TestAscensionRows_EveryRewardRowNamesItsSkill(t *testing.T) {
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
 	rows := newAscensionRows(testCatalog(gates)).
 		PresentRows(catalogNode(), newAscensionLearner(30))
 
@@ -676,7 +676,7 @@ func TestDescribeCondition_TheHuntCounterIsPerPlayer(t *testing.T) {
 // the hunt is unfinished, and pickable once it is done.
 func TestAscensionRows_AHuntGateLocksAndThenOpens(t *testing.T) {
 	const wolf = mobs.MobID(12)
-	gates := map[string][]mobs.InteractionCondition{"Paralyze": killGate(wolf, 20)}
+	gates := map[string]mobs.Gate{"Paralyze": killGate(wolf, 20)}
 
 	hunting := newQuestLearner(t, 30)
 	rows := newAscensionRows(testCatalog(gates)).
@@ -715,7 +715,7 @@ func TestDescribeCondition_AnUnresolvedHuntShowsNoProgress(t *testing.T) {
 		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", Value: 20},
 	}
 
-	assert.Equal(t, "slay 20 × Dire Wolf this life (0/20)", describeConditions(unresolved, p))
+	assert.Equal(t, "slay 20 × Dire Wolf this life (0/20)", describeConditions(mobs.Gate{Conditions: unresolved}, p))
 }
 
 // --- the authored displayName override (found by c2a at C3 step 4) ---
@@ -778,9 +778,9 @@ func TestDescribeCondition_NamesTheQuestByItsTitle(t *testing.T) {
 		Stages: []*quests.Stage{{ID: "cull", Journal: "Cull them."}},
 	})
 
-	got := describeConditions([]mobs.InteractionCondition{
+	got := describeConditions(mobs.Gate{Conditions: []mobs.InteractionCondition{
 		{Kind: mobs.ConditionQuestAtStage, Quest: "thin-the-orc-line", Stage: mobs.QuestStageCompleted},
-	}, p)
+	}}, p)
 
 	assert.Equal(t, `complete "Thin the Orc Line"`, got)
 }
@@ -794,9 +794,24 @@ func TestDescribeCondition_AStageGateAlsoTitlesTheQuest(t *testing.T) {
 		Stages: []*quests.Stage{{ID: "bring_it_back", Journal: "Bring it back."}},
 	})
 
-	got := describeConditions([]mobs.InteractionCondition{
+	got := describeConditions(mobs.Gate{Conditions: []mobs.InteractionCondition{
 		{Kind: mobs.ConditionQuestAtStage, Quest: "lamp", Stage: "bring_it_back"},
-	}, p)
+	}}, p)
 
 	assert.Equal(t, `"The Lost Lamp" at "bring_it_back"`, got)
+}
+
+// D8: one dialect for both surfaces, and the mode is the join.
+func TestDescribeConditions_JoinsWithOrUnderAny(t *testing.T) {
+	conds := []mobs.InteractionCondition{
+		{Kind: mobs.ConditionMinLevel, Value: 30},
+		{Kind: mobs.ConditionBloodlineAscensions, Value: 2},
+	}
+	p := newAscensionLearner(12)
+
+	all := describeConditions(mobs.Gate{Conditions: conds}, p)
+	anyOf := describeConditions(mobs.Gate{Mode: mobs.ConditionModeAny, Conditions: conds}, p)
+
+	assert.Equal(t, strings.Replace(all, ", ", " or ", 1), anyOf)
+	assert.NotEqual(t, all, anyOf)
 }

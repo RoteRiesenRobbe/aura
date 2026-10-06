@@ -41,7 +41,7 @@ func CrossValidate(mr conversantSource, qr Registry) ([]string, error) {
 		}
 		for ni := range def.Interaction.Nodes {
 			node := &def.Interaction.Nodes[ni]
-			for _, cond := range node.Conditions {
+			for _, cond := range node.Gate.Conditions {
 				if cond.Kind != mobs.ConditionQuestAtStage {
 					continue
 				}

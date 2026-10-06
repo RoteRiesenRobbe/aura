@@ -1113,16 +1113,31 @@ function questRowHint(g) {
   return '';
 }
 
+// The AND/OR select writes conditionsMode only for OR; AND is the absent key, so
+// a file that never used OR stays byte for byte (plan-quest-dialogue.md D10, D14).
+const CONDITIONS_MODE_LABELS = { all: 'AND (all must pass)', any: 'OR (one is enough)' };
+
 function conditionsSection(node, onChange) {
-  const col = el('div', { class: 'subsection' }, [el('div', {
+  const title = el('div', {
     class: 'subsection-title',
-    text: 'Conditions (all must pass)',
     title: 'Gates whether a player can reach THIS NODE at all. This is separate from a quest row\'s own visibility below — an offer_quest/advance_quest row shows or hides itself automatically from the player\'s live quest progress, with no condition authored anywhere.',
-  })]);
+  });
+  const col = el('div', { class: 'subsection' }, [title]);
   const headerSlot = el('div');
   const rowsWrap = el('div');
   function rerender() {
     const conditions = node.conditions || [];
+    // A mode on no conditions is refused at boot (D7): it leaves with the last one.
+    if (!conditions.length) delete node.conditionsMode;
+    title.innerHTML = '';
+    title.appendChild(document.createTextNode('Conditions '));
+    if (conditions.length) {
+      title.appendChild(select(['all', 'any'], node.conditionsMode || 'all', (v) => {
+        if (v === 'any') node.conditionsMode = 'any';
+        else delete node.conditionsMode;
+        onChange();
+      }, (v) => CONDITIONS_MODE_LABELS[v], 'conditions-mode'));
+    }
     headerSlot.innerHTML = '';
     if (conditions.length) headerSlot.appendChild(colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }]));
     rowsWrap.innerHTML = '';

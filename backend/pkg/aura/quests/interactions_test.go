@@ -181,7 +181,7 @@ func conditionalConversant(name string, cond mobs.InteractionCondition) *mobs.Mo
 	return &mobs.MobDefinition{
 		Name: name,
 		Interaction: &mobs.Interaction{Nodes: []mobs.InteractionNode{
-			{ID: "gated", Conditions: []mobs.InteractionCondition{cond}, Lines: []string{"back already?"}},
+			{ID: "gated", Gate: mobs.Gate{Conditions: []mobs.InteractionCondition{cond}}, Lines: []string{"back already?"}},
 			{ID: "root", Lines: []string{"hello"}},
 		}},
 	}

@@ -36,19 +36,18 @@ type Entry struct {
 	// row that silently does nothing.
 	Skill *skills.SkillDefinition
 
-	// Conditions gate the entry (D18). Empty is the common case and means
-	// pickable by anyone. All of them must pass — AND semantics, exactly as a
-	// dialogue node's conditions, because they ARE a dialogue node's conditions:
-	// one vocabulary, two surfaces.
+	// Gate decides whether the entry is pickable (D18). An empty list is the
+	// common case and means pickable by anyone. It is a dialogue node's gate,
+	// mode and all (plan-quest-dialogue.md D2): one vocabulary, two surfaces.
 	//
 	// ⚑ A gated entry is NOT hidden. C2 renders it locked with the gate named
 	// and its progress, which is what keeps "this bloodline has learned
 	// everything it can teach" (D14) from being a lie.
-	Conditions []mobs.InteractionCondition
+	Gate mobs.Gate
 }
 
 // Gated reports whether this entry carries a condition at all.
-func (e Entry) Gated() bool { return len(e.Conditions) > 0 }
+func (e Entry) Gated() bool { return len(e.Gate.Conditions) > 0 }
 
 // MaxEntries is how many rewards the catalog may hold, and it is a WIRE limit
 // rather than a design one (plan-ascension.md §12.4 C2a step 3). A generated
@@ -154,9 +153,10 @@ type jsonEntry struct {
 	// reading `unknown field "_comment"`, and the rationale that belongs beside
 	// a reward (which world content it sits level with, and on which axis it
 	// differs) is exactly what D1 asks every entry to be able to state.
-	Comment    string               `json:"_comment"`
-	UnlockKey  string               `json:"unlockKey"`
-	Conditions []mobs.JSONCondition `json:"conditions"`
+	Comment        string               `json:"_comment"`
+	UnlockKey      string               `json:"unlockKey"`
+	Conditions     []mobs.JSONCondition `json:"conditions"`
+	ConditionsMode string               `json:"conditionsMode"`
 }
 
 // CatalogFromFS walks fsys for .json files and parses each as one entry, with
@@ -235,8 +235,13 @@ func parseEntry(data []byte, r skillResolver, g gateResolver) (Entry, error) {
 		if err := resolveGate(&cond, g); err != nil {
 			return Entry{}, fmt.Errorf("condition %d: %w", i, err)
 		}
-		entry.Conditions = append(entry.Conditions, cond)
+		entry.Gate.Conditions = append(entry.Gate.Conditions, cond)
 	}
+	mode, err := mobs.ParseConditionMode(je.ConditionsMode, len(je.Conditions))
+	if err != nil {
+		return Entry{}, err
+	}
+	entry.Gate.Mode = mode
 	return entry, nil
 }
 

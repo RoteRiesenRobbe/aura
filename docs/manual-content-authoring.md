@@ -1564,8 +1564,7 @@ their own; an option pointing at a hidden node is hidden with it. Two uses:
 done), and **hiding a row by gating its destination**.
 
 ⭐ **`running` is the whole in-progress band** — accepted, not yet finished,
-across every stage. It exists because conditions are AND-ed with no negation, so
-"while this quest is running" otherwise meant duplicating a node once per stage.
+across every stage, so "while this quest is running" needs no node per stage.
 Its use is the rule *a row that answers a question only a RUNNING quest asks*:
 the traveller's *"Where do they nest?"* leaves when the lamp quest ends
 (intake round 8 item 2). ⚑ **Do NOT gate pure lore that merely sits near a
@@ -1630,8 +1629,29 @@ quest file - a quest never knows who offers it (D11), and there is no
   "options": [ { "text": "...", "grants": [ { "kind": "offer_quest", "quest": "second-chain" } ] } ] }
 ```
 
-Conditions are AND-ed with no negation, so several prerequisites are just
-several entries. The root row that navigates to the node is hidden with it.
+Several prerequisites are just several entries. The root row that navigates to
+the node is hidden with it.
+
+**AND or OR: `conditionsMode`** (plan-quest-dialogue.md C1). A condition list is
+AND by default: every entry must pass. Author `"conditionsMode": "any"` beside
+`conditions` and one passing entry is enough. The editor shows it as the AND/OR
+select in the Conditions header and writes the key only for OR. There is no
+negation and no nesting; "running or completed" is the shape it exists for:
+
+```json
+{ "id": "rats_more",
+  "conditionsMode": "any",
+  "conditions": [
+    { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "running" },
+    { "kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "completed" }
+  ],
+  "lines": ["..."] }
+```
+
+Only `all` and `any` are valid, and a mode with no conditions is refused at boot
+(an empty list always passes, so the mode would do nothing). A locked row joins
+an OR gate with "or" (`level 30 (12/30) or complete "The Lost Lamp"`). The same
+key works on an ascension entry (`api/ascension/README.md`).
 
 ⚑ **Gate on `completed`, not on `not_started`, whenever the row should read as
 a locked door.** `describeConditions` renders `completed` as
