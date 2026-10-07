@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07**; **C2 BUILT 2026-10-07**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`)**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -375,6 +375,10 @@ does not compile.
     cheat only. Harness `c2-thorns.mjs` (debug zones, two
     clients) 4/4.
   - No mob wears thorns yet (no content); the mob side is Go-tested only.
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model,
+    simharness guardrails, vitest 1581/0 + typecheck, editor smoke 0,
+    `-validate` 0 both zone sets, `c2-thorns.mjs` 4/4, `c1-stat-buffs.mjs`
+    4/4, `buff-tray.mjs` 22/22. PO in-game pass 2026-10-08: "works".
 
 ### C3 - charge
 
@@ -538,7 +542,7 @@ None blocking. Raised at execution if they come up:
 |---|---|---|---|
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
-| C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-07 (see §6 C2 "As built") |
+| C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-08 `fe298f70` (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | not started |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
