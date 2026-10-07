@@ -100,6 +100,8 @@ export const NEUTRAL_EFFECT_TYPES: string[] = [
     // A stat buff or debuff on others (plan-effect-types-round-2.md C1) has no
     // ring colour; its pip colours are its own, not a category's.
     'stat_aura', 'instant_stat',
+    // Charge (C3) is movement, like dash.
+    'charge',
 ];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -671,6 +673,10 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             break;
         case 'dash':
             lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} m in your movement direction`);
+            break;
+        case 'charge':
+            // The search distance is the generic Radius line below.
+            lines.push('Charge to the nearest enemy in range');
             break;
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a

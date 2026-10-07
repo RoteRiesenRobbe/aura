@@ -1,14 +1,16 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); C2-C7 not started. D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07**; C2, C4-C7 not started. D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
 chunk · client YES (pips, tray kinds, the stealth look).** Ledger: §10.
 
 Line refs are as of `d35ab702`, from four code surveys run 2026-10-07. Re-verify
-them before executing a chunk.
+them before executing a chunk. Re-pinned to `5a697d91` (2026-10-07): the C2 and
+C3 refs, the per-type checklist in §6 and the C5 ladder; C4, C6, C7 and the rest
+of §7 are still as of `d35ab702`.
 
 **Origin.** The PO's 2026-10-07 session counted how many WoW Classic class spells
 Aura can emulate (386 spells, from the 2026-09-29 survey: 167 clean, 114 rough,
@@ -153,7 +155,8 @@ ruling blocked stealth "on §39", meaning on the wire. C0 removes that block.
   `retaliate_burst` with no target at all. The reflect is a fraction of the incoming hit. A flat thorns
   value would be one more payload field; not built until content asks for it.
 - **D17 - Mobs can wear it.** Today `retaliate` exists only on `*player`
-  (`player.go:935`) and `ApplyReflect` only on the player (`:778`). C2 adds
+  (`player.go:947`) and `ApplyReflect` only on the player (`:790`); the
+  self-only applier is `sys/skills.go:2507-2533`. C2 adds
   `Mob.ApplyReflect` and a mob-side reflect in `Mob.PlayerTouches` and
   `Mob.MobTouches`, so a shaman can put thorns on a bear. The reflected hit goes
   through the attacker's normal touch door, so it builds threat and pays kill
@@ -163,7 +166,7 @@ ruling blocked stealth "on §39", meaning on the wire. C0 removes that block.
 
 - **D18 - Charge = pick the nearest enemy, then dash to it.** Params:
   `radius` (search), `selector: nearest` fixed, the stepped static probe
-  `applyDash` already uses (`sys/skills.go:2240-2287`), stopping at contact
+  `applyDash` already uses (`sys/skills.go:2297-2342`), stopping at contact
   distance. No enemy in range: the activation precondition refuses the cast (no
   cost, no cooldown, the rejection reason the HUD already shows), like other
   per-effect gates.
@@ -171,7 +174,7 @@ ruling blocked stealth "on §39", meaning on the wire. C0 removes that block.
   are dynamic bodies the static probe ignores. The mob door is recorded in §6,
   not built. Effects after `charge` in the same skill (a stun, a hit) fire in
   the same tick from the landing position (`fireCooldown` runs effects in
-  authored order, `sys/skills.go:2035-2205`).
+  authored order, `sys/skills.go:2087-2248`).
 
 ### Empower (C4)
 
@@ -258,9 +261,9 @@ ruling blocked stealth "on §39", meaning on the wire. C0 removes that block.
 ## 6. The change, per chunk
 
 Every new effect type touches the same list (the `add-content` skill): the enum
-and name map (`skills/definition.go:37-75`, `:105-140`), the per-type key table
-(`:1300-1430`), the category table (`:1550-1595`), the build switch
-(`:1920-1970`), `skills/aura_category.go`, `model/auramask.go:29` for aura
+and name map (`skills/definition.go:36-75`, `:115-185`), the per-type key table
+(`:1362-1552`), the category table (`:1593-1637`), the build switch
+(`:1956-2031`), `skills/aura_category.go`, `model/auramask.go:29` for aura
 types, `api/shared-constants.json` `effectTypes` (pinned by
 `skills/shared_constants_test.go` and `SharedConstants.test.ts`), the vocabulary
 golden (`UPDATE_SKILL_VOCABULARY=1`), and the content editor smoke. A new buff
@@ -294,7 +297,7 @@ does not compile.
 ### C1 - stat buff/debuff on others + the threat stat
 
 - `stat_aura`, `instant_stat` (D11-D14); `statPayload`; `Buffs.StatBonus`.
-- `threat` added to `validStats` (`skills/definition.go:261-281`) and
+- `threat` added to `validStats` (`skills/definition.go:285-310`) and
   `DerivedStats` (`ThreatBonus`), read in `noteThreat` / `NoteThreat` (D15).
 - Read sites per D14. Capability interface `statBuffable` on player and mob.
 - Wire: EffectKind StatUp, StatDown; pips StatUp, StatDown.
@@ -344,6 +347,39 @@ does not compile.
   copy it.
 - Wire: none.
 - Example: a warrior-style charge + 1 s stun.
+- ⚑ **As built (2026-10-07):**
+  - `charge` authors `radius` / `radiusPerLevel` only (the key table's
+    `keysGeometry`): no selector, cap or target flags, so the pick cannot be
+    authored wrong. It is payload-less, like `recall`. Cooldown only.
+  - `sys/skills.go`: `probeLanding` is the stepped probe, moved out of
+    `applyDash` unchanged; `chargeTarget` picks the nearest eligible enemy
+    (`eligibleByTargetFlags` with the flags forced to enemies), and both the
+    activation precondition and `applyCharge` call it, so the cast that passed
+    the gate is the cast that lands. The landing is the target's centre minus
+    both body radii, probed for walls; a target already touching moves nobody
+    and still counts as landed.
+  - No enemy in range: `ActivationRejectedNoTarget` (revive's arm), no cost, no
+    cooldown. A mob caster is a no-op (D19).
+  - L2 is pinned twice: on the REAL player (`SetPosition` moves
+    `AuraCollider()`, `model/player/cc_doors_test.go`) and end to end in `sys`
+    (charge + a 1 u stun holds a target that stood 4 u away).
+  - Example: `Charge` (id 160, `api/skills/charge.json`): a charge (search 6 u,
+    +0.5 per level) then a 1 s stun at 1 u, cooldown 15 s, SKILL cheat only.
+    Icon reuses Dash's glyph (`lorc/wingfoot`); a new glyph needs the icon
+    fetch script. All values [PLACEHOLDER].
+  - Harness `c3-charge.mjs` (debug zones) 6/6 on a clean venue; a run whose
+    venue fails its premise is INCONCLUSIVE by design (see the verify skill).
+  - **The look (PO 2026-10-07: "it needs to look right, this is cosmetic"):**
+    the server still moves the charger in one tick; the client runs the jump
+    backwards on the token. A tenth visual kind, `rush` (`on: fired`, reads
+    `ms` only), built on the lunge's body-offset seam and its one-motion-per-
+    entity slot. The start point is `GameObject.recentJumpFrom()`, recorded
+    by the teleport snap and readable once within 100 ms (the jump and the
+    cast event arrive in one snapshot). No jump, no rush. Charge authors
+    `{ "kind": "rush", "on": "fired", "ms": 180 }` [PLACEHOLDER]. Wire NONE.
+    The stun still lands at the start of the glide (~0.2 s before the token
+    arrives); the PO judges that by eye. The preview gallery's stand-in
+    claims a jump from its left, so the `rush` slot shows the glide.
 
 ### C4 - empower next cast
 
@@ -354,7 +390,7 @@ does not compile.
 ### C5 - fear
 
 - `fear` (D22, D23), `fearPayload{sourceID, lastPos}`. The ladder in
-  `Buffs.ApplyStun` (`skills/buffs.go:588-610`) becomes the hard-CC ladder
+  `Buffs.ApplyStun` (`skills/buffs.go:648-663`) becomes the hard-CC ladder
   shared by both payloads.
 - Mob movement branch; player input override; `stunSuppressible` covers fear.
 - Wire: EffectKind Fear; pip Fear.
@@ -427,6 +463,8 @@ does not compile.
   clamps only the top (`skills/component.go:276-278`); a negative bonus means
   more damage taken, bounded at -1 (2x) for aura drawbacks. `stat_aura` /
   `instant_stat` take the same bound, or two debuffs stack past 2x.
+  ✅ **Closed by C1:** `DamageReductionFactor()` now clamps both sides at ±1
+  (§6 C1 "As built").
 
 ## 8. Open questions for the PO
 
@@ -466,7 +504,7 @@ None blocking. Raised at execution if they come up:
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
-| C3 | Charge | none | not started |
+| C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | not started |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |

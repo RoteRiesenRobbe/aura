@@ -254,7 +254,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Bulwark id 158 and Demoralize id 159 (plan-effect-types-round-2.md
 	// C1), the stat_aura and instant_stat examples; SKILL cheat only, no
 	// unlock source. 122 → 124 (82 player + 42 mob).
-	assert.Len(t, r.All(), 124)
+	// + Charge id 160 (plan-effect-types-round-2.md C3), the charge example;
+	// SKILL cheat only. 124 → 125 (83 player + 42 mob).
+	assert.Len(t, r.All(), 125)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

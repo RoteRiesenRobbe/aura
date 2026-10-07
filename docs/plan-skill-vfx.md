@@ -230,6 +230,17 @@ authors either hard-fails at load, naming the `maul`).
 | --- | --- | --- | --- |
 | `maul` | hit / applied | a mark ON the victim, centred on it and SCREEN-ALIGNED (it reads nothing of the attacker); `curve` picks the mark: `bite`, `pincer`, `gore`, `claw`, `kick`; hidden at density `off`, inside the Fx budget | two rows of teeth, a fang pair, two gashes, three rakes, a hoof print |
 
+⚑ **AMENDED 2026-10-07, ten** (`plan-effect-types-round-2.md` C3, PO: the
+charge must look like a fast run, cosmetic only): the server moves a charger
+in one tick and the client snaps it, so the charge's look is a kind that runs
+the jump backwards on the token. It shares the lunge's body slot (one body
+motion per entity per snapshot) and its `setBodyOffset` seam; the start point
+is `GameObject.recentJumpFrom()`, recorded by the teleport snap.
+
+| Kind | Trigger | What moves | Placeholder body |
+| --- | --- | --- | --- |
+| `rush` | fired | the CASTER's own token starts where it stood before the server's jump and eases onto its logical position; reads only `ms`; no jump that snapshot, no rush; plays at density `off`, outside the Fx budget | none (an existing sprite moves) |
+
 ### 4.2 Layers, triggers, bodies, palette
 
 A skill carries one new top-level key, `visual`, holding a list of layers:

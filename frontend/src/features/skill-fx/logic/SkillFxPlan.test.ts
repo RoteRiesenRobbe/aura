@@ -871,3 +871,34 @@ describe('planSpawns: the maul (plan-natural-weapons.md §3.3)', () => {
         expect(kinds(planSpawns([hit()], wolf, NEAR, 'off'))).toEqual(['lunge']);
     });
 });
+
+// plan-effect-types-round-2.md C3: the rush moves the CASTER's own token on
+// its cast, so it is a body motion like the lunge: one per entity per
+// snapshot (a rush and a lunge share it), and `off` still plans it.
+describe('planSpawns: the rush', () => {
+    const RUSH: VisualLayer = {kind: 'rush', on: 'fired', ms: 180};
+
+    it('plans the rush on the caster at its cast, at no delay', () => {
+        const plan = planSpawns([fired()], visuals({[SKILL]: [RUSH]}), NEAR);
+        expect(kinds(plan)).toEqual(['rush']);
+        expect(plan[0].from).toBe(CASTER);
+        expect(plan[0].victim).toBe(CASTER);
+        expect(plan[0].delayMs).toBe(0);
+    });
+
+    it('is still planned at density off, and alone', () => {
+        const plan = planSpawns([fired()], visuals({[SKILL]: [
+            RUSH, {kind: 'emitter', on: 'fired'},
+        ]}), NEAR, 'off');
+        expect(kinds(plan)).toEqual(['rush']);
+        expect(plan[0].victim).toBe(CASTER);
+    });
+
+    it('shares the one body slot with a lunge in the same snapshot', () => {
+        const plan = planSpawns([fired(), hit()], visuals({[SKILL]: [
+            RUSH, {kind: 'lunge', on: 'hit'},
+        ]}), NEAR);
+        expect(plan.filter(entry => entry.def.kind === 'rush' || entry.def.kind === 'lunge'))
+            .toHaveLength(1);
+    });
+});

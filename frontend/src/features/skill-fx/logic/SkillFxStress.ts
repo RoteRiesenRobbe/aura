@@ -31,6 +31,7 @@ import {
     HIT_MARK_MS,
     lungeContactMsOf,
     lungeTotalMsOf,
+    rushTotalMsOf,
     maulTotalMsOf,
     ORBIT_DEFAULT_MS,
     strikeContactMsOf,
@@ -156,6 +157,8 @@ function layerLifetimeMs(def: VisualLayer, distPx: number): number {
             return waveTotalMsOf(def.ms);
         case 'lunge':
             return lungeTotalMsOf(def.ms);
+        case 'rush':
+            return rushTotalMsOf(def.ms);
         case 'maul':
             return maulTotalMsOf(def.curve, def.ms);
         case 'beam':
@@ -189,8 +192,9 @@ export function estimateLiveFx(eventsPerSec: number, meanEventMs: number): numbe
 /**
  * Exactly what `anchorFor` and the reconciler read off a game object, and
  * nothing else: `shape.position`, `shape.destroyed`, `shape.parent`, `size`,
- * plus the one method the manager calls, `setBodyOffset` (a lunge's nudge,
- * plan-natural-weapons.md §3.2). A stub has no token to move, so it is a no-op.
+ * plus the two methods the manager calls, `setBodyOffset` (a lunge's nudge,
+ * plan-natural-weapons.md §3.2) and `recentJumpFrom` (a rush's start). A stub
+ * has no token to move and never jumps, so both are no-ops.
  * A real GameObject is a PixiJS display tree; standing 40 of those up would
  * measure the entity layer rather than the VFX one.
  *
@@ -203,6 +207,7 @@ interface Stub {
     shape: { position: { x: number, y: number }, destroyed: boolean, parent: object };
     size: number;
     setBodyOffset(x: number, y: number): void;
+    recentJumpFrom(): null;
 }
 
 let Game: IGame = null;
@@ -458,6 +463,7 @@ function placeStubs(count: number): void {
             },
             size: STUB_RADIUS_PX,
             setBodyOffset: () => undefined,
+            recentJumpFrom: () => null,
         };
         allStubs.push(stub);
         byId.set(stub.id, stub);

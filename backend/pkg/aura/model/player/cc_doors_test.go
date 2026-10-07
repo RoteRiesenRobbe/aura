@@ -10,6 +10,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -187,4 +188,18 @@ func TestPlayerStun_DiminishingReturns(t *testing.T) {
 	tickPlayer(p, skills.StunDRResetTicks)
 	require.True(t, p.ApplyStun(ccDoorSource, 80), "the window reset the ladder")
 	assert.Equal(t, 80, length())
+}
+
+// plan-effect-types-round-2.md L2: a charge moves the caster with SetPosition,
+// and the effects after it in the same skill query from AuraCollider() in the
+// same tick. The real player must move its aura collider with its body, or a
+// charge + stun stuns from where the charge started.
+func TestPlayerSetPosition_MovesTheAuraCollider(t *testing.T) {
+	p := newCCPlayer(t)
+	to := phy.Vec2f{X: 7, Y: -3}
+
+	p.SetPosition(to)
+
+	assert.Equal(t, to, p.AuraCollider().Position())
+	assert.Equal(t, to, p.Position())
 }

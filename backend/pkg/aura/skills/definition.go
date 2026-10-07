@@ -72,6 +72,7 @@ const (
 	EffectTypeInstantSlow
 	EffectTypeStatAura
 	EffectTypeInstantStat
+	EffectTypeCharge
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -182,6 +183,9 @@ var effectTypeMap = map[string]EffectType{
 	// cooldown; the sign of the bonus decides buff or debuff.
 	"stat_aura":    EffectTypeStatAura,
 	"instant_stat": EffectTypeInstantStat,
+	// Charge (plan-effect-types-round-2.md C3, D18): the nearest enemy in a
+	// search radius, then a dash to contact along dash's stepped probe.
+	"charge": EffectTypeCharge,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -1549,6 +1553,10 @@ var effectKeys = map[EffectType][]string{
 	// a stat_multiplier on an aura).
 	EffectTypeInstantSlow: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
 		[]string{"slowFraction", "slowFractionPerLevel", "slowDurationTicks", "slowDurationTicksPerLevel"}),
+	// Charge (C3, D18): the search radius alone. The pick is fixed (the
+	// nearest enemy), so no selector, cap or target flags; the distance is
+	// wherever that enemy stands.
+	EffectTypeCharge: keysGeometry,
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1625,6 +1633,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeSpeedBurst:     {SkillCategoryCooldown},
 	EffectTypeLifestealBurst: {SkillCategoryCooldown},
 	EffectTypeRetaliateBurst: {SkillCategoryCooldown},
+	EffectTypeCharge:         {SkillCategoryCooldown},
 	EffectTypeInstantDamage:  {SkillCategoryCooldown},
 	EffectTypeInstantDot:     {SkillCategoryCooldown},
 
@@ -2015,10 +2024,11 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
 		def.Charm, err = e.charmParams()
-	case EffectTypeLightAura, EffectTypeRecall:
+	case EffectTypeLightAura, EffectTypeRecall, EffectTypeCharge:
 		// Payload-less by design: light_aura is pure geometry (its radius
-		// streams as the wire light_radius) and recall's destination is the
-		// caster's campfire anchor. Both intentionally leave every payload nil.
+		// streams as the wire light_radius), recall's destination is the
+		// caster's campfire anchor and charge's is the nearest enemy inside
+		// its radius. All three intentionally leave every payload nil.
 	default:
 		// A type in effectTypeMap but absent from this switch would parse into
 		// an EffectDef with every payload nil — the exact invariant the struct

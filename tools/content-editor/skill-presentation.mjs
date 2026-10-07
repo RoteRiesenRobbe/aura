@@ -80,7 +80,7 @@ export const SKILL_PRESENTATION = {
 // presence-gated in Go (> 0 when authored); blank means the kind's own
 // default, a [PLACEHOLDER] client constant deliberately not copied here.
 export const LAYER_PRESENTATION = {
-  kind: { control: 'select', label: 'Kind', hint: 'One of the nine renderer kinds; the list offers the kinds this category can play.' },
+  kind: { control: 'select', label: 'Kind', hint: 'One of the renderer kinds; the list offers the kinds this category can play.' },
   on: { control: 'select', label: 'Moment', hint: 'When the layer plays: ambient, fired, hit or applied.' },
   body: { control: 'select', label: 'Body', hint: 'A PNG from the body folder; none draws the kind\'s placeholder shape.' },
   curve: { control: 'select', label: 'Curve', hint: 'The motion curve, out of this kind\'s own set.' },

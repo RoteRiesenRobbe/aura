@@ -142,6 +142,9 @@ export const GALLERY_LAYERS: Record<VisualKind, VisualLayer> = {
     'lunge': {kind: 'lunge', on: 'hit'},
     // Drawn ON the victim's stand-in, which every slot already has.
     'maul': {kind: 'maul', on: 'hit', curve: 'bite'},
+    // Draws nothing of its own: the caster's stand-in claims a jump from its
+    // left and glides into place (fx-preview.ts).
+    'rush': {kind: 'rush', on: 'fired'},
 };
 
 /** The gallery's shared palette tag and reach. [PLACEHOLDER] */

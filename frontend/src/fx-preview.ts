@@ -69,6 +69,7 @@ interface Stub {
     ring: Graphics;
     offset: { x: number, y: number };
     setBodyOffset(x: number, y: number): void;
+    recentJumpFrom(): { x: number, y: number };
 }
 
 /** One caster/victim pair looping one layer. */
@@ -102,6 +103,11 @@ function makeStub(id: number): Stub {
         setBodyOffset(x: number, y: number) {
             stub.offset = {x, y};
             drawStub(stub);
+        },
+        // A stand-in never jumps, so it claims one: four radii to its left,
+        // which is what makes the gallery's `rush` slot glide into place.
+        recentJumpFrom() {
+            return {x: stub.shape.position.x - 4 * PREVIEW_STUB_RADIUS_PX, y: stub.shape.position.y};
         },
     };
     stubsById.set(id, stub);

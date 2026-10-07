@@ -57,6 +57,9 @@ import {
     lungeContactMsOf,
     lungeDistancePx,
     lungeShare,
+    RUSH_DEFAULT_MS,
+    rushShare,
+    rushTotalMsOf,
     lungeTotalMsOf,
 } from './SkillFxMath';
 import {
@@ -1126,5 +1129,36 @@ describe('kickPhase (a hoof print punched in)', () => {
         expect(KICK_POP_SCALE).toBeGreaterThan(1);
         expect(kickPhase(total * 0.4, total).parts[0].scale).toBeCloseTo(1);
         expect(kickPhase(total * 0.4, total).parts[0].alpha).toBe(1);
+    });
+});
+
+// plan-effect-types-round-2.md C3: the rush. The body starts back where the
+// entity jumped from and catches up with it; the share is how much of that
+// jump is still to cover.
+describe('rushShare', () => {
+    it('is EXACT at both ends: the whole jump at the start, nothing at the end', () => {
+        expect(rushShare(0, 180)).toBe(1);
+        expect(rushShare(180, 180)).toBe(0);
+        expect(rushShare(500, 180)).toBe(0);
+    });
+
+    it('falls steadily, fastest at the start (an ease-out)', () => {
+        let prev = 1;
+        for (let t = 10; t < 180; t += 10) {
+            const share = rushShare(t, 180);
+            expect(share).toBeLessThan(prev);
+            prev = share;
+        }
+        expect(rushShare(90, 180)).toBeLessThan(0.5);
+    });
+
+    it('never answers NaN', () => {
+        expect(rushShare(NaN, 180)).toBe(0);
+        expect(rushShare(10, 0)).toBe(0);
+    });
+
+    it('defaults the duration when none is authored', () => {
+        expect(rushTotalMsOf(undefined)).toBe(RUSH_DEFAULT_MS);
+        expect(rushTotalMsOf(250)).toBe(250);
     });
 });

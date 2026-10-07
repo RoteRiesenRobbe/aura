@@ -226,6 +226,39 @@ func TestVisual_LungeOnApplied(t *testing.T) {
 	assert.Equal(t, "applied", def.Visual.Layers[0].On)
 }
 
+// The rush (plan-effect-types-round-2.md C3, the charge's look): the caster's
+// own token glides from where it was to where the server put it. It draws
+// nothing and has no victim, so it reads only `ms` and plays on the cast.
+func TestVisual_Rush(t *testing.T) {
+	def := mustParse(t, visualSkill("cooldown", `{
+	  "layers": [
+	    { "kind": "rush", "on": "fired", "ms": 180 },
+	    { "kind": "rush", "on": "fired" }
+	  ]
+	}`))
+	require.NotNil(t, def.Visual)
+	require.Len(t, def.Visual.Layers, 2)
+
+	assert.Equal(t, "rush", def.Visual.Layers[0].Kind)
+	assert.Equal(t, 180, def.Visual.Layers[0].MS)
+	assert.Equal(t, 0, def.Visual.Layers[1].MS, "an unauthored ms stays zero and the renderer supplies the kind's default")
+	assert.True(t, def.Visual.HasFired, "a rush is a `fired` layer, so the skill bills a FIRED event")
+	assert.Equal(t, []string{"kind", "on", "ms"}, visualKeysByKind["rush"])
+}
+
+func TestVisual_RushRefusesOtherMomentsAndKeys(t *testing.T) {
+	for name, visual := range map[string]string{
+		"on hit":  `{"layers":[{"kind":"rush","on":"hit"}]}`,
+		"a scale": `{"layers":[{"kind":"rush","on":"fired","scale":2}]}`,
+		"a tint":  `{"layers":[{"kind":"rush","on":"fired","tint":"#3fa9f5"}]}`,
+	} {
+		raw, err := parseSkillDefinition(visualSkill("cooldown", visual))
+		require.NoError(t, err, name)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, name)
+	}
+}
+
 // The overwhelmingly common case: no `visual` at all. Nothing else changes.
 func TestVisual_AbsentIsNil(t *testing.T) {
 	def := mustParse(t, damageAuraJSON)

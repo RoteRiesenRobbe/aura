@@ -738,6 +738,44 @@ func TestMap_DashKeyOnOtherEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Charge (plan-effect-types-round-2.md C3, D18): a search radius, nothing
+// else. The pick is fixed (nearest enemy), so it authors no selector, cap or
+// target flags.
+func TestParse_Charge(t *testing.T) {
+	data := []byte(`{
+      "id": 160, "name": "Charge", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "charge", "radius": 6, "radiusPerLevel": 0.5}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeCharge, e.Type)
+	assert.InDelta(t, 6, e.Radius, 1e-6)
+	assert.InDelta(t, 0.5, e.RadiusPerLevel, 1e-6)
+}
+
+func TestMap_ChargeRefusesBadShapes(t *testing.T) {
+	for name, effect := range map[string]string{
+		"no radius":    `{"type":"charge"}`,
+		"target flags": `{"type":"charge","radius":6,"targetsAllies":true}`,
+		"selector":     `{"type":"charge","radius":6,"selector":"lowest_health"}`,
+		"aura only":    `{"type":"charge","radius":6,"tickInterval":30}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":160,"name":"Charge","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
+		require.NoError(t, err, name)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, name)
+	}
+}
+
+func TestMap_ChargeIsCooldownOnly(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":160,"name":"Charge","category":"active_aura","maxLevel":1,"effects":[{"type":"charge","radius":6}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.Error(t, err)
+}
+
 func TestParse_TickRate(t *testing.T) {
 	data := []byte(`{
       "id": 34, "name": "Haste", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,

@@ -131,7 +131,7 @@
     "calm", "charm", "speed_burst", "lifesteal_burst", "retaliate_slow",
     "retaliate_damage", "retaliate_burst", "stun", "instant_resist",
     "speed_aura", "spawn_at_anchor", "projectile", "instant_slow", "stat_aura",
-    "instant_stat"
+    "instant_stat", "charge"
   ],
   "selectors": ["nearest", "lowest_health", "all"],
   "gateKeys": ["harvest", "smash"],

@@ -33,6 +33,10 @@
       "calmTicks",
       "calmTicksPerLevel"
     ],
+    "charge": [
+      "radius",
+      "radiusPerLevel"
+    ],
     "charm": [
       "radius",
       "radiusPerLevel",
@@ -412,6 +416,9 @@
     "calm": [
       "cooldown"
     ],
+    "charge": [
+      "cooldown"
+    ],
     "charm": [
       "cooldown"
     ],
@@ -557,7 +564,8 @@
     "orbit",
     "emitter",
     "lunge",
-    "maul"
+    "maul",
+    "rush"
   ],
   "visualTriggers": [
     "ambient",
@@ -627,6 +635,11 @@
       "scale",
       "speed"
     ],
+    "rush": [
+      "kind",
+      "on",
+      "ms"
+    ],
     "strike": [
       "kind",
       "on",
@@ -677,6 +690,9 @@
     "projectile": [
       "hit",
       "applied"
+    ],
+    "rush": [
+      "fired"
     ],
     "strike": [
       "hit",

@@ -128,6 +128,8 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// the stunned mob — which is the SLOW pip, since the ubyte has no bit left
 	// (D6). The mob visibly stopping doing anything is the rest of the read.
 	EffectTypeStun: AuraCategoryNone,
+	// A charge moves the caster; the movement is the tell.
+	EffectTypeCharge: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

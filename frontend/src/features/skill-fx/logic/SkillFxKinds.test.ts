@@ -4,6 +4,7 @@ import {Container} from 'pixi.js';
 import {Fx, FxAnchor, HIT_MARK_KIND, KIND_REGISTRY, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
 import {
     lungeContactMsOf, lungeDistancePx, lungeTotalMsOf, MAUL_CURVE_MS, MAUL_PARTS, MaulCurve, maulPhase, maulSizePx,
+    rushTotalMsOf,
 } from './SkillFxMath';
 import {VisualLayer} from '../../../client-data/Skills';
 
@@ -21,7 +22,7 @@ describe('the kind registry', () => {
         expect(Object.keys(KIND_REGISTRY).sort()).toEqual([...vocabulary.visualKinds].sort());
     });
 
-    it('lists the same nine names it registers', () => {
+    it('lists the same names it registers', () => {
         expect([...VISUAL_KINDS].sort()).toEqual(Object.keys(KIND_REGISTRY).sort());
     });
 
@@ -226,5 +227,81 @@ describe('the maul', () => {
         expect(layer.children[0].position.x).toBeCloseTo(50, 9);
         expect(layer.children[0].position.y).toBeCloseTo(-20, 9);
         expect(fx.update(START + MAUL_CURVE_MS.kick)).toBe(false);
+    });
+});
+
+// plan-effect-types-round-2.md C3: the rush draws nothing and moves the
+// caster's own token, from where it jumped from back onto its logical
+// position, through the same `nudge` the lunge uses.
+describe('the rush', () => {
+    interface TestAnchor extends FxAnchor {
+        at: { x: number, y: number };
+        from: { x: number, y: number } | null;
+        live: boolean;
+        nudges: { x: number, y: number }[];
+    }
+
+    function anchor(x: number, y: number, from: { x: number, y: number } | null): TestAnchor {
+        const a: TestAnchor = {
+            at: {x, y},
+            from,
+            live: true,
+            nudges: [],
+            radiusPx: 36,
+            point: () => a.at,
+            alive: () => a.live,
+            nudge: (dx, dy) => a.nudges.push({x: dx, y: dy}),
+            jumpedFrom: () => a.from,
+        };
+        return a;
+    }
+
+    const START = 1_000;
+
+    function spawn(source: FxAnchor, def: VisualLayer = {kind: 'rush', on: 'fired'}): Fx | null {
+        return KIND_REGISTRY['rush'].spawn({
+            layer: new Container(), source, victim: source, color: 0xffffff, def,
+            startAtMs: START, seed: 0, density: 'full', reachPx: 0,
+        });
+    }
+
+    function last(a: TestAnchor): { x: number, y: number } {
+        return a.nudges[a.nudges.length - 1];
+    }
+
+    it('spawns nothing when the caster did not jump', () => {
+        expect(spawn(anchor(0, 0, null))).toBeNull();
+    });
+
+    it('starts the body back at the jump\'s origin and adds nothing to the layer', () => {
+        const layer = new Container();
+        const source = anchor(400, 0, {x: 0, y: 0});
+        const fx = KIND_REGISTRY['rush'].spawn({
+            layer, source, victim: source, color: 0xffffff,
+            def: {kind: 'rush', on: 'fired'}, startAtMs: START, seed: 0, density: 'full', reachPx: 0,
+        });
+        expect(fx.update(START)).toBe(true);
+        expect(last(source)).toEqual({x: -400, y: 0});
+        expect(layer.children).toHaveLength(0);
+    });
+
+    it('closes the gap over its duration and ends at EXACT zero', () => {
+        const source = anchor(0, 300, {x: 0, y: 0});
+        const fx = spawn(source, {kind: 'rush', on: 'fired', ms: 200});
+        fx.update(START + 100);
+        expect(last(source).y).toBeLessThan(0);
+        expect(last(source).y).toBeGreaterThan(-300);
+        expect(fx.update(START + rushTotalMsOf(200))).toBe(false);
+        fx.dispose();
+        expect(last(source)).toEqual({x: 0, y: 0});
+    });
+
+    it('holds the start offset while it waits, and ends when the caster leaves', () => {
+        const source = anchor(100, 0, {x: 0, y: 0});
+        const fx = spawn(source);
+        expect(fx.update(START - 10)).toBe(true);
+        expect(last(source)).toEqual({x: -100, y: 0});
+        source.live = false;
+        expect(fx.update(START + 10)).toBe(false);
     });
 });

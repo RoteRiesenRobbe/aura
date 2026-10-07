@@ -1644,3 +1644,17 @@ describe('stat_aura and instant_stat', () => {
         expect(lines(fury, 1, 1)).toEqual(['Threat: +50%']);
     });
 });
+
+describe('charge', () => {
+    it('renders the charge with its search radius, and no targets line', () => {
+        const charge = skill({
+            displayName: 'Charge', category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+            effects: [effect({type: 'charge', radius: 6})],
+        });
+        expect(lines(charge, 1, 1)).toEqual([
+            'Charge to the nearest enemy in range',
+            'Radius: 6 m',
+            'Cooldown: 10s',
+        ]);
+    });
+});

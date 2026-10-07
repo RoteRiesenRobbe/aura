@@ -1821,6 +1821,13 @@ func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedS
 			if _, ok := s.nearestCorpseID(e, effect, es.Level); !ok {
 				return model.ActivationRejectedNoTarget
 			}
+		case skills.EffectTypeCharge:
+			// No enemy in range refuses the cast like revive's empty circle
+			// (plan-effect-types-round-2.md D18): a charge at nothing would
+			// burn the cooldown and move nobody.
+			if _, ok := s.chargeTarget(e, effect, es.Level); !ok {
+				return model.ActivationRejectedNoTarget
+			}
 		}
 	}
 	return model.ActivationRejectedNone
@@ -2198,6 +2205,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeCharge:
+			if s.applyCharge(e, effect, es.Level) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeTickRate:
 			if s.applyTickRate(e, es.Def.ID, effect) {
 				hitAny = true
@@ -2309,18 +2321,26 @@ func (s *SkillSystem) applyDash(e skillEntity, effect skills.EffectDef, level in
 		return false
 	}
 
-	start := e.AuraCollider().Position()
-	step := p.Radius()
-	if step <= 0 {
+	if p.Radius() <= 0 {
 		// A zero-radius caster can't be probed; players always have a radius.
 		return false
 	}
 
-	probe := phy.NewCircle(phy.VEC2F_ZERO, p.Radius())
+	p.SetPosition(s.probeLanding(e.AuraCollider().Position(), dir, dist, p.Radius()))
+	// A dash always "fires" (like spawn — no whiff); even a wall-flush zero-
+	// distance dash consumes the cooldown by the player path's own rule.
+	return true
+}
+
+// probeLanding is the stepped static probe dash and charge share: it marches a
+// circle of the given radius from start along the unit vector dir in
+// radius-sized steps, up to dist, and returns the last free point.
+func (s *SkillSystem) probeLanding(start, dir phy.Vec2f, dist, radius float32) phy.Vec2f {
+	probe := phy.NewCircle(phy.VEC2F_ZERO, radius)
 	probe.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
 
 	landing := start
-	for travelled := step; ; travelled += step {
+	for travelled := radius; ; travelled += radius {
 		if travelled > dist {
 			travelled = dist
 		}
@@ -2334,10 +2354,58 @@ func (s *SkillSystem) applyDash(e skillEntity, effect skills.EffectDef, level in
 			break // reached full distance in the clear
 		}
 	}
+	return landing
+}
 
-	p.SetPosition(landing)
-	// A dash always "fires" (like spawn — no whiff); even a wall-flush zero-
-	// distance dash consumes the cooldown by the player path's own rule.
+// chargeTarget picks a charge's target (plan-effect-types-round-2.md C3, D18):
+// the nearest enemy inside the level-scaled search radius. The pick is fixed,
+// so the authored effect carries no target flags; they are set here. Shared by
+// the activation precondition and applyCharge, so the cast that passed the
+// gate is the cast that lands.
+func (s *SkillSystem) chargeTarget(e skillEntity, effect skills.EffectDef, level int) (phy.Collider, bool) {
+	pick := effect
+	pick.TargetsEnemies, pick.TargetsAllies, pick.TargetsStructures = true, false, false
+
+	query := phy.NewCircle(e.AuraCollider().Position(), skills.Scaled(effect.Radius, effect.RadiusPerLevel, level))
+	query.Shape().Mask = model.InstantDamageMask(pick)
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	eligible := eligibleByTargetFlags[model.Factioned](pick, e, e.Basic().ID(), true)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), skills.SelectorNearest, 1, eligible)
+	if len(targets) == 0 {
+		return nil, false
+	}
+	return targets[0], true
+}
+
+// applyCharge fires a charge (C3, D18 + D19): the caster dashes at the nearest
+// enemy along the dash's stepped static probe and stops at contact distance, so
+// the effects authored after it (a stun, a hit) fire from the landing spot in
+// the same tick. Player-only like dash: mobs are dynamic bodies the static
+// probe ignores, so a mob caster is a no-op. The activation precondition has
+// already refused a player cast with no enemy in range.
+func (s *SkillSystem) applyCharge(e skillEntity, effect skills.EffectDef, level int) bool {
+	p, ok := e.(model.PlayerEntity)
+	if !ok || p.Radius() <= 0 {
+		return false
+	}
+	target, ok := s.chargeTarget(e, effect, level)
+	if !ok {
+		return false
+	}
+
+	start := e.AuraCollider().Position()
+	offset := target.Position().Sub(start)
+	contact := p.Radius()
+	if c, isCircle := target.(*phy.Circle); isCircle {
+		contact += c.Radius
+	}
+	if gap := offset.Abs() - contact; gap > 0 {
+		p.SetPosition(s.probeLanding(start, offset.Normalize(), gap, p.Radius()))
+	}
 	return true
 }
 

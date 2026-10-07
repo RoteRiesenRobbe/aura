@@ -479,6 +479,37 @@ export function lungeShare(elapsedMs: number, totalMs: number): number {
     return 1 - easeInOutCubic((elapsedMs - contact) / (totalMs - contact));
 }
 
+// --- rush (plan-effect-types-round-2.md C3) ----------------------------------
+//
+// The charge's look. The server moves the caster in one tick and the client
+// snaps it there; the rush starts the drawn token back where it jumped from
+// and lets it catch up, so the jump reads as a fast run.
+
+/** A `rush` layer's whole duration when it authors no `ms`. [PLACEHOLDER] */
+export const RUSH_DEFAULT_MS = 180;
+
+/** A `rush` layer's whole duration: the authored `ms`, else the default. */
+export function rushTotalMsOf(ms: number | undefined): number {
+    return ms && ms > 0 ? ms : RUSH_DEFAULT_MS;
+}
+
+/**
+ * How much of the jump the body still has to cover, `elapsedMs` into a rush
+ * of `totalMs`: 1 at the start (the body sits at the jump's origin), 0 at the
+ * end (on the logical position), with an ease-out so it leaves fast and
+ * settles. EXACT at both ends, and never NaN.
+ */
+export function rushShare(elapsedMs: number, totalMs: number): number {
+    if (!Number.isFinite(elapsedMs) || !Number.isFinite(totalMs) || totalMs <= 0
+        || elapsedMs >= totalMs) {
+        return 0;
+    }
+    if (elapsedMs <= 0) {
+        return 1;
+    }
+    return 1 - easeOutCubic(elapsedMs / totalMs);
+}
+
 // --- maul (plan-natural-weapons.md §3.3) ------------------------------------
 //
 // ⭐ The natural weapon's mark drawn ON the victim: teeth, fangs, tusk gashes,

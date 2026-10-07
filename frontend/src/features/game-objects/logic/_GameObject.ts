@@ -25,6 +25,11 @@ let rotatingObjects = new Set();
 const TELEPORT_SNAP_DISTANCE_PX = meter2px(1.5);
 const TELEPORT_SNAP_DISTANCE_PX_SQUARED = TELEPORT_SNAP_DISTANCE_PX * TELEPORT_SNAP_DISTANCE_PX;
 
+// How long a recorded snap stays readable by the `rush` (plan-effect-types-
+// round-2.md C3). The jump and the cast event that asks for it arrive in the
+// SAME snapshot, so anything older belongs to some other jump.
+const RECENT_JUMP_MS = 100;
+
 // How far in the past the world is rendered (plan-render-jitter.md Lever B).
 // Buffered interpolation lerps between the two snapshots that bracket
 // `now − RENDER_DELAY_MS`, so the "next" sample the lerp needs is already in
@@ -123,6 +128,8 @@ export abstract class GameObject {
     visibleOnMinimap: boolean = false;
     shape: Container;
     statusEffects: { [key: string]: StatusEffect };
+    /** The last teleport snap: where the entity was drawn before it, and when (the `rush`). */
+    private lastJump: { x: number, y: number, atMs: number } | null = null;
     activeStatusEffect: StatusEffect = null;
 
     // Floating speech-bubble state, hoisted from Character so ANY game object
@@ -228,6 +235,8 @@ export abstract class GameObject {
             const dx = x - refX;
             const dy = y - refY;
             if (dx * dx + dy * dy > TELEPORT_SNAP_DISTANCE_PX_SQUARED) {
+                // Where it was drawn, for a rush the same snapshot may ask for.
+                this.lastJump = {x: this.shape.position.x, y: this.shape.position.y, atMs: now};
                 this.shape.position.set(x, y);
                 buffer.length = 0;
                 movementInterpolatedObjects.delete(this);
@@ -318,6 +327,21 @@ export abstract class GameObject {
      * with a token container (Mob, Character) can jab.
      */
     setBodyOffset(x: number, y: number): void {
+    }
+
+    /**
+     * Where the entity was drawn just before its last teleport snap, if that
+     * snap happened within RECENT_JUMP_MS, else null. Read once: a second ask
+     * for the same jump answers null, so one jump feeds one rush
+     * (plan-effect-types-round-2.md C3).
+     */
+    recentJumpFrom(): { x: number, y: number } | null {
+        const jump = this.lastJump;
+        this.lastJump = null;
+        if (!jump || performance.now() - jump.atMs > RECENT_JUMP_MS) {
+            return null;
+        }
+        return {x: jump.x, y: jump.y};
     }
 
     /** The token's current offset, (0, 0) for an entity without one. The harness reads it. */

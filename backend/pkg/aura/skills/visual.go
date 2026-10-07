@@ -145,7 +145,12 @@ var (
 	// weapon's mark drawn ON the victim, screen-aligned (D10), the lunge's
 	// second moment. It took `bite` and `pincer` from the strike, which is a
 	// held weapon again.
-	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter", "lunge", "maul"}
+	//
+	// `rush` is the tenth (plan-effect-types-round-2.md C3): the caster's own
+	// token glides from where it stood to where the server just put it, the
+	// charge's look. It draws nothing, like the lunge, through the same body
+	// offset.
+	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter", "lunge", "maul", "rush"}
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
@@ -209,6 +214,9 @@ var (
 		// distance (plan-natural-weapons.md §3.1).
 		"lunge": {"kind", "on", "ms", "scale"},
 		"maul":  mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
+		// A rush draws nothing and its distance is the server's jump, so
+		// `ms` is the only thing it reads.
+		"rush": {"kind", "on", "ms"},
 	}
 
 	// visualCountMaxByKind is the upper half of the `count` range, for the
@@ -242,6 +250,8 @@ var (
 		"emitter":    {"ambient", "fired", "hit", visualTriggerApplied},
 		"lunge":      {"hit", visualTriggerApplied},
 		"maul":       {"hit", visualTriggerApplied},
+		// The glide follows the cast's own jump, and a cast has no victim.
+		"rush": {visualTriggerFired},
 	}
 
 	// visualTriggersByCategory is D2, enforced at load (PO 2026-09-19).

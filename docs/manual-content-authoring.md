@@ -433,8 +433,8 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 37 since plan-effect-types-round-2.md
-C1 added `stat_aura` and `instant_stat`):
+`backend/pkg/aura/skills/definition.go`, 38 since plan-effect-types-round-2.md
+C3 added `charge`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
@@ -442,7 +442,7 @@ C1 added `stat_aura` and `instant_stat`):
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
 `retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`,
-`stat_aura`, `instant_stat`.
+`stat_aura`, `instant_stat`, `charge`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -474,7 +474,7 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`, `instant_slow`, `instant_stat`.
+  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   seven-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`, `threat`), `resist_passive`,
@@ -603,7 +603,14 @@ Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
 - Effects resolve **sequentially in authored order** at fire time too, not just
   for cost: OmniStrike authors `detaunt` before `taunt` so the net state is
   taunted, and `dash` LAST so every query circle centers on the cast position
-  (the spawned totem also lands there, not at the dash destination).
+  (the spawned totem also lands there, not at the dash destination). `charge`
+  is the opposite case: author it FIRST, and the effects after it (Charge's
+  stun) query from the landing spot.
+- `charge` authors only `radius` / `radiusPerLevel`, the search distance. It
+  always picks the nearest enemy (no selector, cap or target flags), moves the
+  caster to touching it along dash's wall probe, and refuses the cast when no
+  enemy is in range (no cost, no cooldown). Player casters only; on a mob it
+  does nothing.
 
 ⚑ **The two healing types do NOT target alike, and it is not authorable.**
 `heal_aura` only ever affects a **wounded** ally (`HealthRatio() < 1`, hardcoded
@@ -721,9 +728,10 @@ authors should know:
 ### Visuals: the `visual` key
 
 *(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii + C3b and `plan-natural-weapons.md`
-C1 + C2, last amended 2026-09-28. All nine kinds work; none is a stub any more, the
-eighth, `lunge`, draws nothing by design, and the ninth, `maul`, is the one
-authored look drawn ON the victim.)*
+C1 + C2, `plan-effect-types-round-2.md` C3, last amended 2026-10-07. All ten
+kinds work; none is a stub any more, the eighth, `lunge`, draws nothing by
+design, the ninth, `maul`, is the one authored look drawn ON the victim, and
+the tenth, `rush`, is the charge's glide.)*
 
 ⭐ **Since C3b the look is authored in the content editor too**: the Skills
 tab's Visuals section for a player skill, a per-skill block on the mob's page
@@ -778,11 +786,14 @@ content decision. Everything else is a parameter.
 | `emitter` | ambient, fired, hit, applied | `ms`, `count`, `motion` | particles from a point or a disc |
 | `lunge` | hit, applied | `ms` | the ATTACKER's own token jabs toward the victim and snaps back; draws nothing, and still plays with the VFX density slider at `off` (below) |
 | `maul` | hit, applied | `ms`, `curve` | the natural weapon's mark drawn ON the victim, screen-aligned: teeth, fangs, tusk gashes, claw rakes, a hoof (below) |
+| `rush` | fired | `ms` | the CASTER's own token glides from where it stood before a server jump (a `charge`) onto where it landed; draws nothing, needs a jump that tick (else it does nothing), and plays at density `off` like the lunge |
 
 Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
 (lowercase `#rrggbb`) and `scale`. ⚑ **Except a `lunge`**, which reads only
 `kind`, `on`, `ms` and `scale`: it draws nothing, so `body` and `tint` are keys
-it does not read, and a key a kind does not read is a hard-fail. Every number is a **[PLACEHOLDER]** like all
+it does not read, and a key a kind does not read is a hard-fail. A `rush`
+reads only `kind`, `on` and `ms`, for the same reason (its distance is the
+server's jump). Every number is a **[PLACEHOLDER]** like all
 the others; `ms`, `speed`, `width` and `scale` must be > 0 when authored and
 `count` >= 1, and omitting one means "the kind's own default" rather than zero.
 **Units are screen-space: `speed` is px per second, `width` is px** (a world

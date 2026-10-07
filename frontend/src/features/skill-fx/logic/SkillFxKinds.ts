@@ -69,6 +69,8 @@ import {
     lungeDistancePx,
     lungeShare,
     lungeTotalMsOf,
+    rushShare,
+    rushTotalMsOf,
     MAUL_PART_LENGTH,
     MAUL_PARTS,
     MaulCurve,
@@ -109,7 +111,7 @@ import {
 
 /** The nine AUTHORABLE names. */
 export const VISUAL_KINDS = [
-    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge', 'maul',
+    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge', 'maul', 'rush',
 ] as const;
 
 export type VisualKind = typeof VISUAL_KINDS[number];
@@ -146,6 +148,12 @@ export interface FxAnchor {
      * body simply leaves it out.
      */
     nudge?(dx: number, dy: number): void;
+    /**
+     * Where the anchored entity's token was drawn just before it SNAPPED to a
+     * server jump this snapshot, or null when it did not jump. Only the `rush`
+     * reads it (plan-effect-types-round-2.md C3).
+     */
+    jumpedFrom?(): { x: number, y: number } | null;
 }
 
 export interface FxSpawnContext {
@@ -1063,6 +1071,53 @@ class LungeFx implements Fx {
     }
 }
 
+// --- rush -------------------------------------------------------------------
+
+/**
+ * The caster's own token runs the jump the server just made
+ * (plan-effect-types-round-2.md C3, the charge's look). It DRAWS NOTHING: the
+ * client already snapped the entity to its landing, and the rush starts the
+ * token back at the jump's origin and eases it onto the logical position,
+ * through the lunge's `nudge`.
+ *
+ * No jump this snapshot (a wall in the first step), no rush: `spawn` answers
+ * null. Like the lunge, every end path goes through `dispose`, which puts the
+ * body back at EXACT zero.
+ */
+class RushFx implements Fx {
+    static spawn(ctx: FxSpawnContext): RushFx | null {
+        const from = ctx.source.jumpedFrom?.();
+        if (!from) {
+            return null;
+        }
+        const at = ctx.source.point();
+        const dx = from.x - at.x;
+        const dy = from.y - at.y;
+        return dx === 0 && dy === 0 ? null : new RushFx(ctx, dx, dy);
+    }
+
+    private readonly totalMs: number;
+
+    private constructor(private readonly ctx: FxSpawnContext,
+                        private readonly dx: number, private readonly dy: number) {
+        this.totalMs = rushTotalMsOf(ctx.def.ms);
+    }
+
+    update(nowMs: number): boolean {
+        const elapsed = nowMs - this.ctx.startAtMs;
+        if (!this.ctx.source.alive() || elapsed >= this.totalMs) {
+            return false;
+        }
+        const share = rushShare(elapsed, this.totalMs);
+        this.ctx.source.nudge?.(this.dx * share, this.dy * share);
+        return true;
+    }
+
+    dispose(): void {
+        this.ctx.source.nudge?.(0, 0);
+    }
+}
+
 // --- maul -------------------------------------------------------------------
 
 /**
@@ -1191,6 +1246,7 @@ export const KIND_REGISTRY: { [kind: string]: KindHandler } = {
     'wave': {spawn: ctx => new WaveFx(ctx)},
     'lunge': {spawn: ctx => new LungeFx(ctx)},
     'maul': {spawn: ctx => new MaulFx(ctx)},
+    'rush': {spawn: ctx => RushFx.spawn(ctx)},
 };
 
 const HIT_MARK_HANDLER: KindHandler = {spawn: ctx => new ImpactFx(ctx)};

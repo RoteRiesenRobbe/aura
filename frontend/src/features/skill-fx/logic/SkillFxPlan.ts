@@ -46,6 +46,10 @@
  *    layer `off` does not cut (D4: it costs no fill rate): at `off` the plan
  *    holds the lunge layers and nothing else, each at seed 0, and the seed
  *    counter does not move (§10 L3).
+ * 8. The `rush` (plan-effect-types-round-2.md C3) moves the CASTER's own token
+ *    on its cast, so rule 7's body slot is shared: one body motion per entity
+ *    per snapshot, lunge or rush, whichever comes first, and `off` plans both.
+ *    A cast names no victim, so a rush's victim is the caster itself.
  */
 import type {VisualLayer} from '../../../client-data/Skills';
 import {AuraApi} from '../../backend/logic/AuraApi';
@@ -60,6 +64,11 @@ import {
     strikeContactMsOf,
 } from './SkillFxMath';
 import {NEUTRAL_COLOR} from './SkillFxPalette';
+
+/** The kinds that move an entity's own token (rules 7 and 8): one per entity per snapshot. */
+export function isBodyMotion(kind: string): boolean {
+    return kind === 'lunge' || kind === 'rush';
+}
 
 /** The one layer no content authors: the planner appends it to a damage landing. */
 const HIT_MARK_LAYER: VisualLayer = {kind: HIT_MARK_KIND, on: 'hit'};
@@ -253,13 +262,13 @@ function planLungesOnly(
             return;
         }
         const visual = visualOf(event.skillId);
-        const layers = (visual?.layers ?? []).filter(l => l.on === trigger && l.kind === 'lunge');
+        const layers = (visual?.layers ?? []).filter(l => l.on === trigger && isBodyMotion(l.kind));
         if (layers.length === 0) {
             return;
         }
-        // A lunge never sits on `fired` (the vocabulary refuses it), so the
-        // event always names its victim.
-        const victim = event.victim;
+        // A lunge never sits on `fired` (the vocabulary refuses it), so its
+        // event names a victim; a rush only sits on `fired`, which names none.
+        const victim = event.fired ? event.source : event.victim;
         if (!pointOf(event.source) || !pointOf(victim)) {
             return;
         }
@@ -347,8 +356,8 @@ function emit(
             }
             posed.add(landing.castKey);
         }
-        // A body jabs once per beat, whichever skill or victim asked (rule 7).
-        if (def.kind === 'lunge') {
+        // A body moves once per beat, whichever skill or victim asked (rules 7, 8).
+        if (isBodyMotion(def.kind)) {
             if (lunged.has(landing.source)) {
                 return;
             }
@@ -358,7 +367,7 @@ function emit(
             def,
             source: landing.source,
             // The body that moves is the attacker's, even on a chain hop.
-            from: def.kind === 'lunge' ? landing.source : from,
+            from: isBodyMotion(def.kind) ? landing.source : from,
             victim: landing.victim,
             delayMs: baseDelayMs + (landsAtArrival(def) ? arrival : 0),
             baseColor: landing.baseColor,

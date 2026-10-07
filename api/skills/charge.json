@@ -1,0 +1,32 @@
+{
+  "_comment": "Charges the nearest enemy in range and stuns it on arrival. No enemy in range refuses the cast. All values placeholder.",
+  "id": 160,
+  "name": "Charge",
+  "icon": "lorc/wingfoot",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 450,
+  "visual": {
+    "layers": [
+      { "kind": "rush", "on": "fired", "ms": 180 },
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#f2f6ff" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "charge",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.002,
+      "radius": 6,
+      "radiusPerLevel": 0.5
+    },
+    {
+      "type": "stun",
+      "radius": 1,
+      "maxTargets": 1,
+      "selector": "nearest",
+      "targetsEnemies": true,
+      "stunTicks": 30
+    }
+  ]
+}

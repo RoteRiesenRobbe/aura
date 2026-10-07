@@ -120,6 +120,7 @@ const EFFECT_FIXTURES: { [type: string]: Partial<SkillEffect> } = {
     instant_hot: {hot: HOT},
     revive: {revive: {healthFraction: 0.3}},
     dash: {dash: {distance: 5, distancePerLevel: 1}},
+    charge: {radius: 6},
     tick_rate: {tickRate: {factor: 0.5, durationTicks: 300}},
     calm: {calm: HELD, radius: 4, targetsEnemies: true},
     charm: {charm: HELD, radius: 4, targetsEnemies: true, maxTargets: 1},

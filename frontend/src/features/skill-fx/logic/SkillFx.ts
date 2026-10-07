@@ -41,7 +41,7 @@ import {skillDefinition, SkillDefinition} from '../../../client-data/Skills';
 import {GameSettings, VfxDensity} from '../../game-settings/logic/GameSettings';
 import {GLOW_COLOR, GLOW_WIDTH_PX, percentileOf, windUpGlowAlpha} from './SkillFxMath';
 import {clearPools, Fx, FxAnchor, kindHandler, spriteSpawns, VISUAL_KINDS} from './SkillFxKinds';
-import {planAmbient, planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
+import {isBodyMotion, planAmbient, planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
 import {parseTint, skillFxColor} from './SkillFxPalette';
 
 /**
@@ -365,9 +365,9 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
         if (fx === null) {
             return;
         }
-        if (def.kind === 'lunge') {
-            // One body per attacker: the old jab puts its body back at zero
-            // FIRST, then the new one starts from there (§3.1).
+        if (isBodyMotion(def.kind)) {
+            // One body per entity, lunge or rush: the old motion puts its body
+            // back at zero FIRST, then the new one starts from there (§3.1).
             const attacker = objectOf(entry.source);
             lunges.get(attacker)?.dispose();
             lunges.set(attacker, fx);
@@ -470,13 +470,15 @@ function anchorFor(obj: GameObject): FxAnchor {
             }
             return last;
         },
-        // The lunge's one write (plan-natural-weapons.md §3.2).
+        // The lunge's one write (plan-natural-weapons.md §3.2), the rush's too.
         nudge(dx: number, dy: number) {
             if (dx !== 0 || dy !== 0) {
                 lungeNudges++;
             }
             obj.setBodyOffset(dx, dy);
         },
+        // The rush's start (plan-effect-types-round-2.md C3).
+        jumpedFrom: () => obj.recentJumpFrom(),
     };
 }
 
