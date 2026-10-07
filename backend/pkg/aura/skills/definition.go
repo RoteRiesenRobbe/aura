@@ -1515,15 +1515,20 @@ var effectKeys = map[EffectType][]string{
 	// the attacker. What is left is the amount, its slope and its damage type.
 	EffectTypeRetaliateDamage: {"damageHP", "damageHPPerLevel", "damageTags"},
 	// Retaliate burst (PO 2026-08-17): the PERCENTAGE reflect, and structurally
-	// a lifesteal_burst rather than a second FireShield — activation puts a
-	// timed SELF-buff up, and the buff is what the hit site reads. So it takes
-	// no geometry, no cadence and no target flags for lifesteal_burst's reason
-	// (it projects nothing and reaches nobody), and no damageHP for its own: it
-	// authors a SHARE of the incoming hit, never an amount. damageTags rides
-	// along because PO ruling 2 puts the reflect's damage type on the SKILL
-	// rather than mirroring whatever hit you.
-	EffectTypeRetaliateBurst: {"reflectFraction", "reflectFractionPerLevel",
-		"reflectDurationTicks", "reflectDurationTicksPerLevel", "damageTags"},
+	// a lifesteal_burst rather than a second FireShield: activation puts a
+	// timed buff up, and the buff is what the hit site reads. No cadence, and
+	// no damageHP: it authors a SHARE of the incoming hit, never an amount.
+	// damageTags rides along because PO ruling 2 puts the reflect's damage type
+	// on the SKILL rather than mirroring whatever hit you.
+	//
+	// Since plan-effect-types-round-2.md C2 (D16) it takes the speed_burst
+	// shape: targetsSelf, targetsAllies and a capped query circle, so thorns
+	// can go on an ally. Never targetsEnemies: a reflect is a buff. The radius
+	// gate is speed_burst's carve-out (the self-only form authors none).
+	EffectTypeRetaliateBurst: mergeKeys(keysGeometry, keysCapped,
+		[]string{"reflectFraction", "reflectFractionPerLevel",
+			"reflectDurationTicks", "reflectDurationTicksPerLevel", "damageTags",
+			"targetsAllies", "targetsSelf"}),
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -2052,7 +2057,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 	// hard-fail Swift at boot the moment the key joined its allowlist — the
 	// landmine C4 was warned about. Its conditional gate lives in speedParams,
 	// where the flag that turns the circle on is in scope.
-	if effectType != EffectTypeSpeedBurst && slices.Contains(effectKeys[effectType], "radius") && def.Radius <= 0 {
+	// retaliate_burst took the same shape in plan-effect-types-round-2.md C2,
+	// so it shares the carve-out; its gate lives in retaliateBurstParams.
+	if effectType != EffectTypeSpeedBurst && effectType != EffectTypeRetaliateBurst &&
+		slices.Contains(effectKeys[effectType], "radius") && def.Radius <= 0 {
 		return EffectDef{}, fmt.Errorf("effect type %v: radius must be > 0 (an aura with no radius reaches nothing)", effectType)
 	}
 
@@ -2558,6 +2566,10 @@ type RetaliateBurstParams struct {
 	DurationTicks         int      `json:"durationTicks"`
 	DurationTicksPerLevel int      `json:"durationTicksPerLevel"`
 	Tags                  []string `json:"tags"`
+	// TargetsSelf puts the reflect on the caster (Retribution); the ally half
+	// rides EffectDef.TargetsAllies (plan-effect-types-round-2.md C2, D16).
+	// Here rather than on EffectDef for SpeedParams' reason.
+	TargetsSelf bool `json:"targetsSelf"`
 }
 
 // FractionAt is the level-scaled share, floored at 0 with NO upper cap — the
@@ -2603,12 +2615,22 @@ func (e *effectDef) retaliateBurstParams() (*RetaliateBurstParams, error) {
 	} else if err := validateDamageTypes(tags); err != nil {
 		return nil, err
 	}
+	// The speedParams gates (plan-effect-types-round-2.md C2, D16): absent
+	// flags mean false, so a burst naming neither reaches nobody; and the ally
+	// half's query circle needs a radius the self-only form never authors.
+	if !e.TargetsSelf && !e.TargetsAllies {
+		return nil, fmt.Errorf("targetsSelf: a retaliate_burst must name somebody: author targetsSelf, targetsAllies, or both (a cast that reaches nobody is a no-op)")
+	}
+	if e.TargetsAllies && e.Radius <= 0 {
+		return nil, fmt.Errorf("radius: must be > 0 when a retaliate_burst targets allies (a query circle with no radius reaches nobody)")
+	}
 	return &RetaliateBurstParams{
 		Fraction:              e.ReflectFraction,
 		FractionPerLevel:      e.ReflectFractionPerLevel,
 		DurationTicks:         e.ReflectDurationTicks,
 		DurationTicksPerLevel: e.ReflectDurationTicksPerLevel,
 		Tags:                  tags,
+		TargetsSelf:           e.TargetsSelf,
 	}, nil
 }
 

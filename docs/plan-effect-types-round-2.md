@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07**; C2, C4-C7 not started. D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07**; **C2 BUILT 2026-10-07**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -161,6 +161,13 @@ ruling blocked stealth "on §39", meaning on the wire. C0 removes that block.
   `Mob.MobTouches`, so a shaman can put thorns on a bear. The reflected hit goes
   through the attacker's normal touch door, so it builds threat and pays kill
   credit like any hit.
+- **D30 - A reflected hit never retaliates** (PO 2026-10-07, ruled at C2's
+  execution). Once mobs wear thorns, a thorned player and a thorned mob would
+  bounce one hit back and forth forever (synchronous recursion through the two
+  touch doors). Every reflect marks its hit `Reflected` (`model.Damage`,
+  `mobs.Factors`), and a marked hit sets off no retaliation of any kind: not
+  the percentage reflect, not FireShield's flat one, not the retaliate slow.
+  Thorns damage is not a swing (WoW's rule too).
 
 ### Charge (C3)
 
@@ -340,6 +347,34 @@ does not compile.
   `PlayerTouches` / `MobTouches` (D17).
 - Wire: Reflect already has a tray kind; add a Reflect pip.
 - Example: a thorns cooldown on the nearest ally.
+- ⚑ **As built (2026-10-07):**
+  - The loader takes speed_burst's rules: `targetsSelf` and/or
+    `targetsAllies` (neither is a hard-fail), radius required exactly when
+    `targetsAllies` is, so the type shares speed_burst's carve-out from the
+    generic zero-radius gate. `targetsEnemies` is not an allowed key. The
+    flag lives on the payload (`RetaliateBurstParams.TargetsSelf`), the
+    SpeedParams precedent.
+  - `applyRetaliateBurst` is `applySpeedBurst` over the reflect payload: the
+    self half keeps Retribution's authored window exactly, the ally half adds
+    +1 tick; the bool is the whiff answer a mob's cooldown is consumed on.
+  - The capability is `model.Reflector` (`ApplyReflect` + `ReflectBurst`),
+    pinned at compile time on `*player` and `*Mob` (L8); the old
+    sys-local `reflectApplier` is gone.
+  - The mob trigger is `Mob.reflect`, called first in both `PlayerTouches`
+    and `MobTouches` (pre-mitigation, like the player's). It leaves through
+    the attacker's `MobTouches` (a local `mobToucher` door) with the
+    dead-attacker guard. A summon's hit bounces at the SUMMON (a dead summon
+    is skipped, never swapped for its owner).
+  - D30 (above) is the `Reflected` flag; `player.MobTouches` skips
+    `retaliate` on it and both player damage halves set it.
+  - Pip: `AppliedEffectReflect` = 1024 (bit 10), colour 0xd0507a
+    [PLACEHOLDER]. The tooltip's ally form reads "For 10s, the target
+    reflects 25% of the damage it takes"; Retribution's line is unchanged.
+  - Example: `Thorns` (id 161, `api/skills/thorns.json`), the caster and
+    every ally in 4 u (PO 2026-10-08, was nearest 1 ally), nature, SKILL
+    cheat only. Harness `c2-thorns.mjs` (debug zones, two
+    clients) 4/4.
+  - No mob wears thorns yet (no content); the mob side is Go-tested only.
 
 ### C3 - charge
 
@@ -503,7 +538,7 @@ None blocking. Raised at execution if they come up:
 |---|---|---|---|
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
-| C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
+| C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-07 (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | not started |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |

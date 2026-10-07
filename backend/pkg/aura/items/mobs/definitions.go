@@ -163,6 +163,7 @@ type Factors struct {
 	Lifesteal               float32
 	Crit                    bool
 	Tick                    bool // the Damage.Tick twin (plan-skill-vfx.md §12h): set on a DoT tick; payload-only
+	Reflected               bool // the Damage.Reflected twin (plan-effect-types-round-2.md C2): never retaliated; payload-only
 	GateKey                 string
 	Speed                   float32
 	DeltaPhi                float32

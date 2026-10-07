@@ -278,11 +278,18 @@
       "resistFactorPerLevel"
     ],
     "retaliate_burst": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
       "reflectFraction",
       "reflectFractionPerLevel",
       "reflectDurationTicks",
       "reflectDurationTicksPerLevel",
-      "damageTags"
+      "damageTags",
+      "targetsAllies",
+      "targetsSelf"
     ],
     "retaliate_damage": [
       "damageHP",

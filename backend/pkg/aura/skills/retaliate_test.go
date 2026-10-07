@@ -306,7 +306,7 @@ func TestRetaliateBurst_ParsesItsPayload(t *testing.T) {
 	    "costFractionOfMax": 0.02,
 	    "reflectFraction": 0.2, "reflectFractionPerLevel": 0.05,
 	    "reflectDurationTicks": 300, "reflectDurationTicksPerLevel": 0,
-	    "damageTags": ["fire"]
+	    "damageTags": ["fire"], "targetsSelf": true
 	  }]
 	}`))
 	require.Len(t, def.Effects, 1)
@@ -329,7 +329,7 @@ func TestRetaliateBurst_ParsesItsPayload(t *testing.T) {
 func TestRetaliateBurst_AbsentTagsDefaultToPhysical(t *testing.T) {
 	def := mustParse(t, []byte(`{
 	  "id": 203, "name": "Retribution", "category": "cooldown", "maxLevel": 5,
-	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.2, "reflectDurationTicks": 300}]
+	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.2, "reflectDurationTicks": 300, "targetsSelf": true}]
 	}`))
 	assert.Equal(t, []string{DamageTagPhysical}, def.Effects[0].RetaliateBurst.Tags)
 }
@@ -338,7 +338,7 @@ func TestRetaliateBurst_RejectsAnUnknownDamageType(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{
 	  "id": 203, "name": "Retribution", "category": "cooldown", "maxLevel": 5,
 	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.2,
-	    "reflectDurationTicks": 300, "damageTags": ["fyre"]}]
+	    "reflectDurationTicks": 300, "damageTags": ["fyre"], "targetsSelf": true}]
 	}`))
 	if err == nil {
 		_, err = raw.mapToSkillDefinition(nil)
@@ -355,7 +355,7 @@ func TestRetaliateBurst_RejectsAZeroShareAndAZeroWindow(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{
 		  "id": 203, "name": "Retribution", "category": "cooldown", "maxLevel": 5,
-		  "effects": [{"type": "retaliate_burst", ` + payload + `}]
+		  "effects": [{"type": "retaliate_burst", "targetsSelf": true, ` + payload + `}]
 		}`))
 		if err == nil {
 			_, err = raw.mapToSkillDefinition(nil)
@@ -370,27 +370,67 @@ func TestRetaliateBurst_RejectsAZeroShareAndAZeroWindow(t *testing.T) {
 func TestRetaliateBurst_AcceptsAShareAboveOne(t *testing.T) {
 	def := mustParse(t, []byte(`{
 	  "id": 203, "name": "Retribution", "category": "cooldown", "maxLevel": 5,
-	  "effects": [{"type": "retaliate_burst", "reflectFraction": 1.5, "reflectDurationTicks": 300}]
+	  "effects": [{"type": "retaliate_burst", "reflectFraction": 1.5, "reflectDurationTicks": 300, "targetsSelf": true}]
 	}`))
 	assert.InDelta(t, 1.5, def.Effects[0].RetaliateBurst.FractionAt(1), 1e-6)
 }
 
-// A self-buff projects nothing and reaches nobody, so it takes no geometry, no
-// cadence and no target flags — the retaliate_slow/lifesteal_burst rule.
-func TestRetaliateBurst_RejectsGeometryCadenceAndTargeting(t *testing.T) {
+// The burst fires once, on activation, and never reaches an enemy: no cadence,
+// no enemy flag, and no damage payload (it authors a SHARE, never an amount).
+// Geometry and the ally flags are its own since C2 (thorns on others).
+func TestRetaliateBurst_RejectsCadenceEnemiesAndDamageKeys(t *testing.T) {
 	for _, key := range []string{
-		`"radius": 2`, `"tickInterval": 30`, `"targetsEnemies": true`,
-		`"targetsAllies": true`, `"maxTargets": 1`, `"variance": 0.1`,
+		`"tickInterval": 30`, `"targetsEnemies": true`, `"variance": 0.1`,
 		`"damageHP": 3`, `"gateKey": "harvest"`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{
 		  "id": 203, "name": "Retribution", "category": "cooldown", "maxLevel": 5,
 		  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.2,
-		    "reflectDurationTicks": 300, ` + key + `}]
+		    "reflectDurationTicks": 300, "targetsSelf": true, ` + key + `}]
 		}`))
 		if err == nil {
 			_, err = raw.mapToSkillDefinition(nil)
 		}
 		require.Error(t, err, "authored %s", key)
 	}
+}
+
+// --- thorns on others (plan-effect-types-round-2.md C2, D16): the speed_burst
+// shape. The self half needs no radius; the ally half is a capped query circle.
+
+func TestRetaliateBurst_AllyFormParsesItsTargeting(t *testing.T) {
+	def := mustParse(t, []byte(`{
+	  "id": 204, "name": "Thorns", "category": "cooldown", "maxLevel": 5,
+	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.3, "reflectDurationTicks": 300,
+	    "radius": 4, "selector": "nearest", "maxTargets": 1, "targetsAllies": true}]
+	}`))
+	e := def.Effects[0]
+	assert.True(t, e.TargetsAllies)
+	assert.False(t, e.RetaliateBurst.TargetsSelf, "absent targetsSelf means false (D16)")
+	assert.InDelta(t, 4, e.Radius, 1e-6)
+	assert.Equal(t, 1, e.MaxTargets)
+}
+
+// D16: absent flags mean false, so a burst authoring neither would reach nobody.
+func TestRetaliateBurst_RefusesABurstThatNamesNobody(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 204, "name": "Thorns", "category": "cooldown", "maxLevel": 5,
+	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.3, "reflectDurationTicks": 300}]
+	}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "targetsSelf")
+}
+
+func TestRetaliateBurst_AlliesNeedARadius(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 204, "name": "Thorns", "category": "cooldown", "maxLevel": 5,
+	  "effects": [{"type": "retaliate_burst", "reflectFraction": 0.3, "reflectDurationTicks": 300,
+	    "targetsAllies": true}]
+	}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "radius")
 }

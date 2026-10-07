@@ -2564,42 +2564,55 @@ func (s *SkillSystem) applyLifestealBurst(e skillEntity, source skills.SkillID, 
 	return true
 }
 
-// reflectApplier is the reflect-buff door, declared at its point of use like
-// lifestealApplier and asserted rather than required on the entity interfaces.
-//
-// ⚑ Unlike lifesteal, that assertion is currently PLAYER-ONLY in practice, and
-// the reason is worth recording: the trigger that reads this buff lives in
-// player.retaliate, off player.MobTouches. Mob.PlayerTouches has no retaliate
-// call at all, so a mob authoring retaliate_burst would carry a buff nothing
-// reads. Giving mobs a reflect means writing that trigger first, not just
-// adding an ApplyReflect accessor.
-type reflectApplier interface {
-	ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int)
-}
-
 // applyRetaliateBurst fires a retaliate_burst cooldown: for a while, a share of
-// every hit the caster TAKES goes back at whoever landed it. The
-// applyLifestealBurst twin in every respect — no query circle (it changes what
-// happens to the caster rather than reaching anyone), scaled values floored in
-// the payload, and true reported unconditionally once the entity can carry the
-// buff, because a cooldown pays on cast (D9).
+// every hit the wearer TAKES goes back at whoever landed it. Since
+// plan-effect-types-round-2.md C2 (D16) it is applySpeedBurst over the reflect
+// payload: the caster on targetsSelf (Retribution), eligible allies in a
+// one-shot capped query circle on targetsAllies (thorns), or both. Players and
+// mobs both wear it (model.Reflector) and both trigger it off their damage
+// doors (player.retaliate, Mob.reflect).
+//
+// ⚑ The self half keeps Retribution's authored window exactly; the ally half
+// adds +1 tick, the speed_burst asymmetry and for its reason.
 //
 // ⚑ The tags go into the buff store here rather than being read from the
 // incoming hit later. That is PO ruling 2, and putting it at the application
 // site is what makes it structural: the trigger site has no way to reach the
 // skill's authored type, so if it were not carried by the buff it could only
 // mirror the attacker's damage type.
+//
+// The bool is the applySpeedBurst contract: a mob's cooldown is consumed only
+// on a hit, so an ally-only burst with nobody in range stays ready.
 func (s *SkillSystem) applyRetaliateBurst(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
-	self, ok := e.(reflectApplier)
-	if !ok || effect.RetaliateBurst == nil {
+	burst := effect.RetaliateBurst
+	if burst == nil {
 		return false
 	}
-	fraction := effect.RetaliateBurst.FractionAt(level)
+	fraction := burst.FractionAt(level)
 	if fraction <= 0 {
 		return false
 	}
-	self.ApplyReflect(source, fraction, effect.RetaliateBurst.Tags, effect.RetaliateBurst.TicksAt(level))
-	return true
+	ticks := burst.TicksAt(level)
+
+	hitAny := false
+	if burst.TargetsSelf {
+		if self, ok := e.(model.Reflector); ok {
+			self.ApplyReflect(source, fraction, burst.Tags, ticks)
+			hitAny = true
+		}
+	}
+	if !effect.TargetsAllies {
+		return hitAny
+	}
+
+	eligible := eligibleByTargetFlags[model.Reflector](effect, e, e.Basic().ID(), true)
+	candidates := s.queryInstantTargets(e, effect, level)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(model.Reflector).ApplyReflect(source, fraction, burst.Tags, ticks+1)
+		hitAny = true
+	}
+	return hitAny
 }
 
 // casterLifesteal is the leech a live lifesteal_burst adds to every hit the

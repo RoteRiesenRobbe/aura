@@ -130,7 +130,7 @@ const EFFECT_FIXTURES: { [type: string]: Partial<SkillEffect> } = {
     lifesteal_burst: {lifesteal: {fraction: 0.3, fractionPerLevel: 0.05, durationTicks: 180, durationTicksPerLevel: 0}},
     retaliate_slow: {retaliate: {fraction: 0.1, fractionPerLevel: 0.05, durationTicks: 150, durationTicksPerLevel: 0}},
     retaliate_damage: {retaliateDamage: {hp: 3, hpPerLevel: 1, tags: ['fire']}},
-    retaliate_burst: {retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire']}},
+    retaliate_burst: {retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire'], targetsSelf: true}},
 };
 
 function fixtureSkill(type: string): SkillDefinition {

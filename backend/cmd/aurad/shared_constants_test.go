@@ -152,6 +152,7 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"speed":    uint16(skills.AppliedEffectSpeed),
 		"statUp":   uint16(skills.AppliedEffectStatUp),
 		"statDown": uint16(skills.AppliedEffectStatDown),
+		"reflect":  uint16(skills.AppliedEffectReflect),
 	}, fixture.AppliedEffectBits,
 		"skills.AppliedEffect has drifted from api/shared-constants.json — the client colors pips off these bits")
 

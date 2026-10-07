@@ -5820,7 +5820,7 @@ func retaliateBurstDef() *skills.SkillDefinition {
 			Type: skills.EffectTypeRetaliateBurst,
 			RetaliateBurst: &skills.RetaliateBurstParams{
 				Fraction: 0.2, FractionPerLevel: 0.05, DurationTicks: 300,
-				Tags: []string{"fire"},
+				Tags: []string{"fire"}, TargetsSelf: true,
 			},
 		}},
 	}

@@ -753,7 +753,7 @@ describe('retaliate burst', () => {
         description: 'The share is of the hit as thrown, before your own mitigation',
         effects: [effect({
             type: 'retaliate_burst',
-            retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire']},
+            retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire'], targetsSelf: true},
         })],
     });
 
@@ -779,6 +779,31 @@ describe('retaliate burst', () => {
     it('does not scale with character power', () => {
         expect(lines(retribution, 1, SCALE_AT_30, 0, 1, 2))
             .toContain('For 10s, reflects 20% → 25% of damage taken');
+    });
+
+    // Thorns on others (plan-effect-types-round-2.md C2): the ally form names
+    // its wearer, and the shared targets line says who that is.
+    const thorns = skill({
+        displayName: 'Thorns', category: 'cooldown', maxLevel: 5, cooldownTicks: 900,
+        effects: [effect({
+            type: 'retaliate_burst', radius: 4, selector: 'nearest', maxTargets: 1, targetsAllies: true,
+            retaliateBurst: {fraction: 0.25, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['nature'], targetsSelf: false},
+        })],
+    });
+
+    it('words the ally form from the wearer\'s side', () => {
+        const out = lines(thorns, 1, 1);
+        expect(out).toContain('For 10s, the target reflects 25% → 30% of the damage it takes');
+        expect(out).not.toContain('Applies to you');
+        expect(out).not.toContain('Also applies to you');
+    });
+
+    it('adds the self line when the caster wears it too', () => {
+        const both = skill({
+            ...thorns,
+            effects: [{...thorns.effects[0], retaliateBurst: {...thorns.effects[0].retaliateBurst!, targetsSelf: true}}],
+        });
+        expect(lines(both, 1, 1)).toContain('Also applies to you');
     });
 });
 

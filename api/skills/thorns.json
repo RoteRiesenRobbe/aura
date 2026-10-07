@@ -1,0 +1,29 @@
+{
+  "_comment": "Thorns on the caster and every ally in range: for a while, a share of every hit each wearer takes goes back at whoever landed it, as nature damage. The share is of the hit as thrown, before the wearer's own mitigation. Reachable only with the SKILL cheat. All values placeholder.",
+  "id": 161,
+  "name": "Thorns",
+  "icon": "lorc/vine-leaf",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 900,
+  "description": "The share is of the hit as thrown, before the wearer's own mitigation.",
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "retaliate_burst",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.0025,
+      "radius": 4,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "reflectFraction": 0.25,
+      "reflectFractionPerLevel": 0.05,
+      "reflectDurationTicks": 300,
+      "damageTags": ["nature"]
+    }
+  ]
+}

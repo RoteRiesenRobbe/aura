@@ -22,6 +22,7 @@ import (
 var _ = model.PlayerEntity(&player{})
 var _ = model.Healable(&player{})
 var _ = model.StatBuffable(&player{})
+var _ = model.Reflector(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -785,8 +786,9 @@ func (p *player) LifestealFraction() float32 {
 }
 
 // ApplyReflect grants a damage-reflect buff from a retaliate_burst cooldown
-// (Retribution, PO 2026-08-17); the retaliate trigger reads it on every hit
-// taken, via ReflectBurst.
+// (Retribution, PO 2026-08-17; an ally's thorns since
+// plan-effect-types-round-2.md C2); the retaliate trigger reads it on every
+// hit taken, via ReflectBurst.
 func (p *player) ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int) {
 	p.buffs.ApplyReflect(source, fraction, tags, ticks)
 }
@@ -866,7 +868,10 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	// ⚑ factors.Damage is passed RAW and BEFORE takeDamage on purpose: the
 	// percentage reflect takes its share of the swing as the mob authored it
 	// (PO ruling 1), not of whatever survives this player's mitigation.
-	p.retaliate(e, factors.Damage)
+	// A reflected hit (a thorned mob's) never retaliates (PO 2026-10-07).
+	if !factors.Reflected {
+		p.retaliate(e, factors.Damage)
+	}
 	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, Tick: factors.Tick, SkillID: factors.SkillID}
 	// Factors carries no Source, so the toucher IS the acting entity.
 	dealt := p.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
@@ -903,7 +908,11 @@ type reflectable interface {
 // retaliate_damage, and takes a SHARE of its own swing back from a live
 // retaliate_burst. Called from MobTouches, the ONE site both mob→player damage
 // paths funnel through — direct damage-aura hits and mob DoT ticks alike, so
-// "every mob that hits you" has no hole.
+// "every mob that hits you" has no hole. The one exception is a REFLECTED hit
+// (a thorned mob bouncing this player's own swing), which MobTouches keeps out
+// of here altogether: a reflect is not a swing, and both damage halves mark
+// what they send Reflected for the same reason (PO 2026-10-07,
+// plan-effect-types-round-2.md C2).
 //
 // The three halves are independent: a wearer may run any combination, each
 // zero-checks itself, and the two damage halves deliver SEPARATELY rather than
@@ -968,7 +977,7 @@ func (p *player) retaliate(attacker model.MobEntity, incoming float32) {
 			// already stamped this mob for the DEFEND signal a few lines up;
 			// the reflect is the player fighting back, and a companion reading
 			// it as "my owner attacked that" is correct.
-			target.PlayerTouches(p, model.Damage{HP: d.Damage, Tags: d.Tags, SkillID: d.Source})
+			target.PlayerTouches(p, model.Damage{HP: d.Damage, Tags: d.Tags, SkillID: d.Source, Reflected: true})
 		}
 	}
 	// The percentage reflect (retaliate_burst / Retribution), an INDEPENDENT
@@ -985,7 +994,7 @@ func (p *player) retaliate(attacker model.MobEntity, incoming float32) {
 	if incoming > 0 {
 		if source, fraction, tags := p.buffs.ReflectBurst(); fraction > 0 {
 			if target, ok := attacker.(reflectable); ok && target.HealthRatio() > 0 {
-				target.PlayerTouches(p, model.Damage{HP: fraction * incoming, Tags: tags, SkillID: source})
+				target.PlayerTouches(p, model.Damage{HP: fraction * incoming, Tags: tags, SkillID: source, Reflected: true})
 			}
 		}
 	}

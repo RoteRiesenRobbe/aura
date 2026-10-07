@@ -18,6 +18,7 @@ import (
 var _ = model.MobEntity(&Mob{})
 var _ = model.Healable(&Mob{})
 var _ = model.StatBuffable(&Mob{})
+var _ = model.Reflector(&Mob{})
 
 // processSalt randomizes every mob's RNG stream per process run so a fresh
 // server no longer re-rolls the same HP variance + first drop for the Nth
@@ -2156,6 +2157,53 @@ func (m *Mob) LifestealFraction() float32 {
 	return m.buffs.LifestealFraction()
 }
 
+// ApplyReflect grants a damage-reflect buff (plan-effect-types-round-2.md C2,
+// D17): a shaman's thorns on a bear, or a mob's own retaliate_burst. The
+// trigger is reflect, off both of this mob's damage doors.
+func (m *Mob) ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int) {
+	m.buffs.ApplyReflect(source, fraction, tags, ticks)
+}
+
+// ReflectBurst is the strongest live reflect on this mob; zeros with none up.
+func (m *Mob) ReflectBurst() (skills.SkillID, float32, []string) {
+	return m.buffs.ReflectBurst()
+}
+
+// mobToucher is the door a mob's reflect leaves through: the attacker's
+// ordinary mob-damage entry plus the liveness read that makes entering it
+// safe. Players and mobs both carry it; neither entity interface declares it.
+type mobToucher interface {
+	MobTouches(m model.MobEntity, factors mobs.Factors)
+	HealthRatio() float32
+}
+
+// reflect is the mob half of player.retaliate's percentage reflect
+// (plan-effect-types-round-2.md C2, D17), with the same rulings: the share is
+// of the PRE-MITIGATION hit, the damage type is the buff's own, and what goes
+// back is raw (no crit, no lifesteal, no damageDealt). It leaves through the
+// attacker's mob-damage door with this mob as the toucher, so it is an
+// ordinary hit there: the attacker's mitigation applies, a mob attacker builds
+// threat on this mob, and a player's companion reads it as a DEFEND signal.
+//
+// ⚑ A reflected hit never reflects (PO 2026-10-07): without that gate a
+// thorned player and a thorned mob would bounce one hit back and forth
+// forever. Every reflect marks what it sends Reflected.
+//
+// ⚑ The dead-attacker guard is player.retaliate's: a DoT tick carries its
+// caster's ref by design, and a corpse's damage door is not a no-op.
+func (m *Mob) reflect(attacker any, incoming float32, reflected bool) {
+	if reflected || incoming <= 0 || m.HealthRatio() == 0 {
+		return
+	}
+	source, fraction, tags := m.buffs.ReflectBurst()
+	if fraction <= 0 {
+		return
+	}
+	if target, ok := attacker.(mobToucher); ok && target.HealthRatio() > 0 {
+		target.MobTouches(m, mobs.Factors{Damage: fraction * incoming, DamageTags: tags, SkillID: source, Reflected: true})
+	}
+}
+
 // ApplyCalm puts this mob out of combat for ticks (plan-faction-flips chunk 2,
 // D7). It drops the CURRENT aggro link, not just future acquisition (PO
 // 2026-07-28): calm is the tool you reach for because something is already
@@ -2213,6 +2261,8 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
+	// Thorns (C2) bounce the RAW swing, before this mob's mitigation.
+	m.reflect(e, factors.Damage, factors.Reflected)
 	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, Tick: factors.Tick, SkillID: factors.SkillID}
 	// Factors carries no Source, so the toucher IS the acting entity.
 	lost := m.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
@@ -2260,6 +2310,13 @@ func (m *Mob) AreaTouches(_ model.AreaSource, damage model.Damage) {
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
+	// Thorns (C2) bounce at whoever landed the hit: the summon when one did
+	// (a dead summon is skipped, never swapped for its owner), else the player.
+	var hitter any = p
+	if damage.Source != nil {
+		hitter = damage.Source
+	}
+	m.reflect(hitter, damage.HP, damage.Reflected)
 	lost := m.takeDamage(damage, model.ActingSourceID(damage.Source, p), model.StatusEffectDamagedAmbient)
 	// Lifesteal heal-back (chunk 1, F6 §3.1/9): the living Source (a summon
 	// leeches for itself, §4.2) else the toucher, from the dealt amount.

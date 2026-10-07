@@ -256,7 +256,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// unlock source. 122 → 124 (82 player + 42 mob).
 	// + Charge id 160 (plan-effect-types-round-2.md C3), the charge example;
 	// SKILL cheat only. 124 → 125 (83 player + 42 mob).
-	assert.Len(t, r.All(), 125)
+	// + Thorns id 161 (plan-effect-types-round-2.md C2), the thorns-on-an-ally
+	// example; SKILL cheat only. 125 → 126 (84 player + 42 mob).
+	assert.Len(t, r.All(), 126)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

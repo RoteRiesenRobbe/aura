@@ -25,13 +25,16 @@ const (
 	// D12): the sign of the bonus picks the bit.
 	AppliedEffectStatUp   AppliedEffect = 1 << 8
 	AppliedEffectStatDown AppliedEffect = 1 << 9
+	// A live reflect, own or granted (plan-effect-types-round-2.md C2): thorns
+	// on an ally or a mob has to be readable before anyone hits it.
+	AppliedEffectReflect AppliedEffect = 1 << 10
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
 	// ⚑ Bit 7 was the LAST bit of the old ubyte; effect types round 2 C0
 	// (plan-effect-types-round-2.md) widened the wire field to a ushort, so
 	// bits 8-15 are free. lifestealPayload (R3) and reflectPayload went
-	// without a pip while there was no room; reflect gets one in that plan's
+	// without a pip while there was no room; reflect got bit 10 in that plan's
 	// C2, lifesteal still has none.
 	// The burst is not silent in play — every hit floats a heal number off the
 	// caster and the cooldown icon runs its own timer — but it is the first buff
@@ -64,13 +67,11 @@ func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
 // No pip yet; see the ⚑ note above.
 func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 
-// The reflect burst joins lifesteal in the no-bit-left queue, and it wants one
-// more than lifesteal does: a leech announces itself through the heal numbers
-// floating off the caster, while a reflect's numbers float off the ATTACKER,
-// where they are hard to tell from any other source of damage. Until it gets
-// its pip (plan-effect-types-round-2.md C2), the cooldown icon's own timer is
-// the honest tell.
-func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
+// The reflect wants a pip more than lifesteal does: a leech announces itself
+// through the heal numbers floating off the caster, while a reflect's numbers
+// float off the ATTACKER, where they are hard to tell from any other damage.
+// It got one with thorns on others (plan-effect-types-round-2.md C2).
+func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectReflect }
 
 // D6: the stun borrows the SLOW bit rather than widening the wire for one
 // buff — the lifestealPayload precedent above, applied where reuse at least

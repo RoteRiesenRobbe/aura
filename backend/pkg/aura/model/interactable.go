@@ -53,6 +53,12 @@ type Damage struct {
 	// after its aura is gone, and a reflect names the passive that bounced it,
 	// not whatever the caster happens to be running now.
 	SkillID skills.SkillID
+
+	// Reflected marks a hit that is itself a reflect (FireShield, a
+	// retaliate_burst). It never sets off any retaliation in turn (PO
+	// 2026-10-07, plan-effect-types-round-2.md C2): two wearers would
+	// otherwise bounce one hit back and forth forever.
+	Reflected bool
 }
 
 type Interacter interface {

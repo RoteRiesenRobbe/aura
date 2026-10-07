@@ -33,6 +33,9 @@ export enum AppliedEffectBit {
     // the sign of the bonus picks the bit.
     StatUp = 1 << 8,
     StatDown = 1 << 9,
+    // A live reflect, own or granted (plan-effect-types-round-2.md C2): thorns
+    // on an ally or a mob reads before anyone hits it.
+    Reflect = 1 << 10,
 }
 
 interface PipStyle {
@@ -63,6 +66,8 @@ const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.StatDown, color: 0x9a4f2c},
     {bit: AppliedEffectBit.Hot, color: AURA_CATEGORY_COLORS.heal},
     {bit: AppliedEffectBit.Resist, color: AURA_CATEGORY_COLORS.resist},
+    // [PLACEHOLDER] a thorn rose, apart from the damage ring's red.
+    {bit: AppliedEffectBit.Reflect, color: 0xd0507a},
     {bit: AppliedEffectBit.TickRate, color: 0xe0812e},
     // Distinct from tick_rate's orange: both are self-buffs on the same actor
     // and telling "faster auras" from "faster feet" apart matters. [PLACEHOLDER]

@@ -785,7 +785,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const burst = effect.retaliateBurst;
             const share = prog(burst.fraction, burst.fractionPerLevel, level, maxLevel, pct);
             const window = prog(burst.durationTicks, burst.durationTicksPerLevel, level, maxLevel, ticksToSecs);
-            lines.push(`For ${window}, reflects ${share} of damage taken`);
+            // Thorns on others (plan-effect-types-round-2.md C2): the ally form
+            // names its wearer; who that is rides the shared targets line. The
+            // self-only form (Retribution) keeps its line unchanged.
+            if (effect.targetsAllies) {
+                lines.push(`For ${window}, the target reflects ${share} of the damage it takes`);
+                if (burst.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
+            } else {
+                lines.push(`For ${window}, reflects ${share} of damage taken`);
+            }
             if (burst.tags.length > 1 || burst.tags[0] !== 'physical') {
                 lines.push(`Damage type: ${burst.tags.join(', ')}`);
             }

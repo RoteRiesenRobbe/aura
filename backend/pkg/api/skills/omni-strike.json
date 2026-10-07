@@ -174,7 +174,8 @@
       "reflectFraction": 0.25,
       "reflectFractionPerLevel": 0.05,
       "reflectDurationTicks": 300,
-      "damageTags": ["fire"]
+      "damageTags": ["fire"],
+      "targetsSelf": true
     },
     {
       "type": "spawn",

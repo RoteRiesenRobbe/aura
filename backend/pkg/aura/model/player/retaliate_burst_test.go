@@ -196,3 +196,29 @@ func TestRetaliateBurst_TheAttackersResistanceMitigatesTheReflect(t *testing.T) 
 
 	assert.Equal(t, full-10, m.Health(), "50% of 40 = 20, halved by fire resistance = 10")
 }
+
+// PO 2026-10-07 (plan-effect-types-round-2.md C2): a reflected hit never
+// retaliates, in any half, or a thorned player and a thorned mob would bounce
+// one hit forever.
+func TestRetaliateBurst_AReflectedHitDoesNotRetaliate(t *testing.T) {
+	p := burstWearer(t, 0.2, []string{"fire"})
+	p.skills.EquipPassive(0, reflectPassive, 1)
+	mob := livingAttacker()
+
+	p.MobTouches(mob, mobs.Factors{Damage: 50, Reflected: true})
+
+	assert.Empty(t, mob.hits, "neither the burst nor the flat reflect fires on a reflected hit")
+}
+
+func TestRetaliateBurst_TheReflectIsMarkedReflected(t *testing.T) {
+	p := burstWearer(t, 0.2, []string{"fire"})
+	p.skills.EquipPassive(0, reflectPassive, 1)
+	mob := livingAttacker()
+
+	p.MobTouches(mob, mobs.Factors{Damage: 50})
+
+	require.Len(t, mob.hits, 2, "the flat and the percentage reflect")
+	for _, hit := range mob.hits {
+		assert.True(t, hit.Reflected, "a thorned mob must not bounce it back")
+	}
+}

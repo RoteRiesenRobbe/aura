@@ -231,6 +231,9 @@ export interface RetaliateBurstParams {
     durationTicks: number;
     durationTicksPerLevel: number;
     tags: string[];
+    // The caster wears it too (plan-effect-types-round-2.md C2); the ally
+    // half rides the effect's targetsAllies.
+    targetsSelf: boolean;
 }
 
 export interface CalmParams {
