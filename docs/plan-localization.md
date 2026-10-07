@@ -47,7 +47,7 @@ runtime-rasterized (no bitmap atlases). What is *not* localizable today:
 | --- | --- | --- | --- |
 | Frontend UI strings | ~160 HTML-partial sites + ~120 TS sites | English literals at the use site; no i18n library, no catalog | C0b |
 | `SkillTooltip.ts` | ~29 sites | English *sentence assembly* from fragments, with capitalization logic | C4 |
-| Authored content in `api/` | ~300 strings at survey time; **≈ 735 on 2026-10-06** (upper bound): ≈ 340 dialogue strings in 36 conversants (141 node lines, 127 option texts, 71 shown grant lines; 28 more grant lines are never shown, see C3), 141 quest strings (22 titles, 71 journals, 40 stage + 8 objective trackers), 105 mob + 122 skill names (10 skill `displayName`s authored, the rest derived), 11 skill `description`s, 15 faction names | English inline in the authored JSON | C1 + C3 |
+| Authored content in `api/` | ~300 strings at survey time; **≈ 810 on 2026-10-07** (upper bound): ≈ 417 dialogue strings in 36 conversants and 134 nodes after `plan-quest-dialogue.md` C3 (180 node lines, 166 option texts, 71 shown grant lines; 28 more grant lines are never shown, see C3; stock phrases repeat, e.g. "I am on it." and "I'll do it." 19× each), 141 quest strings (22 titles, 71 journals, 40 stage + 8 objective trackers), 105 mob + 122 skill names (10 skill `displayName`s authored, the rest derived), 11 skill `description`s, 15 faction names | English inline in the authored JSON | C1 + C3 |
 | Client-bundled content (found 2026-10-06) | 50 region titles/subtitles (26 regions) + 5 zone names | English in `api/regions/regions.json` and the zone JSON, imported into the client bundle at build time (`RegionNames.ts:15`, `Game.ts:917`); never served | C1 |
 | Server-composed wire text | ~60 Go sites | Finished English via `fmt.Sprintf`/concat, shipped as strings | C2 + C3 |
 | Accounts HTTP errors | 14 messages | English `error` string **plus a machine `code`** (`accounts/respond.go:23-37`) - already shaped for client-side mapping | C0b |
@@ -643,7 +643,13 @@ and the extraction sweep (C0b) are each about a session.
   (appended fields); the client looks the text up in the bundle. The composed
   `"%s - locked: %s"` (`interaction.go:1017/:1067`) is replaced by an appended
   structured lock-reason list (kind + args) mirroring `describeConditions`'s
-  cases (`ascension_rows.go:340-400`), which itself turns structured;
+  cases (`ascension_rows.go:340-400`), which itself turns structured.
+  ⚑ **Since `plan-quest-dialogue.md` C1 (2026-10-06) a gate has a mode**
+  (`mobs.Gate{Mode, Conditions}`, `conditionsMode` `all`/`any`), and
+  `describeConditions` joins with ", " or " or ". The structured list carries
+  the mode too, and the client joins with `Intl.ListFormat` (`conjunction` /
+  `disjunction`: de "… und …" / "… oder …"); the same holds for the ascension
+  entries, which share the gate;
   `travelClosedReason` (`interaction.go:1001`) and the `"an NPC"` fallback
   become keys. Runtime-synthesized ascension row text ("Spend this
   character…", `:130/:160/:279`) becomes UI-catalog keys + args. The panel
@@ -656,9 +662,16 @@ and the extraction sweep (C0b) are each about a session.
 - ⚑ **Entry gate**: verify `skill_id` is populated on every teach row - the
   `plan-conversation-journal.md` D17 fallback ("the granted skill's display name") must be computed
   client-side from it once `text` stops carrying prose.
-- **German dialogue pass**: the ~220 authored sentences (≈ 340 strings on
-  2026-10-06: 141 lines, 127 option texts, 71 shown grant lines) + ambients
-  into `api/lang/de/mobs.arb`.
+- **German dialogue pass**: the ~220 authored sentences (≈ 417 strings on
+  2026-10-07, after the two-row quest shape: 180 lines, 166 option texts, 71
+  shown grant lines) + ambients into `api/lang/de/mobs.arb`.
+- ⚑ **The quest-dialogue content pins read row TEXT through `present()`**
+  (`sys/quest_content_test.go`: the rats walk, every quest's progress row, the
+  Crier's wolves row). When the wire stops carrying prose, those pins keep
+  reading the server-side model (which still holds the English) or move to
+  ids; they must stay green either way. The same plan's text-surgery script
+  (C3, turn-ins moved byte for byte across 15 files) is the precedent for
+  D20's format-preserving id tool.
 - Bonus, not a goal: the per-tick conversation tree (re-sent 30×/s while open,
   `plan-entity-model.md`'s D16 contract preserved) shrinks - keys instead of
   prose.
@@ -773,7 +786,8 @@ and the extraction sweep (C0b) are each about a session.
   (`Mob.mob_id`).
 - ⚑ **L19 - the content editor would strip the dialogue ids.** It edits a
   node's lines as one textarea and rebuilds the list from the text
-  (`tools/content-editor/public/app.js:999`), so a save would drop every D20
+  (`tools/content-editor/public/app.js:999`, and a second lines textarea at
+  `:944`), so a save would drop every D20
   id, and re-tagging would mint new ones, cutting each line from its German.
   C3 changes it to one row per line that keeps its id; until then, the
   loader's refusal of a missing id is the loud failure. The same class as a
@@ -841,14 +855,14 @@ is the full German playthrough.
 | C0b UI strings | ~1 session; big but mechanical (~280 sites, each with a note) + de UI text | DB NONE · wire NONE |
 | C1 per-locale catalogs | ~1 session; loader + overlay + serving + de names/quests/regions | DB NONE · wire NONE (HTTP param only) |
 | C2 system messages + objectives | ~1 session; ~20 Go sites + 2 tables' appends + client formatter + the server-key pin | DB NONE · **wire YES** (appended) · quest format +`tracker` on three objective kinds (required on talk_to and reach) · mob format +`namePlural` (Q2) |
-| C3 conversation surface | ~1–1.5 sessions; the id pass over 36 NPC files + bundle endpoint + lock reasons + ≈ 340 de strings | DB NONE · **wire YES** (appended) · content format: every dialogue string gains an `id` (D20) |
+| C3 conversation surface | ~1.5 sessions; the id pass over 36 NPC files + bundle endpoint + lock reasons (with the gate mode) + ≈ 417 de strings | DB NONE · **wire YES** (appended) · content format: every dialogue string gains an `id` (D20) |
 | C4 tooltips + polish | ~1 session; template rework + length sweep + PO playthrough | DB NONE · wire NONE |
 
 Total new machinery is deliberately small: one client i18n module (on one
 library, `intl-messageformat`, D16), one overlay loader, one en-source
 generator (D19), one bundle endpoint, one formatter, one pseudo transform
 (D21). The bulk is extraction and German authoring: ~600–700 translatable
-units at survey time, **≈ 1,150 on 2026-10-06** (≈ 790 content strings,
+units at survey time, **≈ 1,230 on 2026-10-07** (≈ 865 content strings,
 counted as an upper bound, + ~280 UI sites + ~60 server templates + the
 tooltip fragments).
 
@@ -881,6 +895,17 @@ tooltip fragments).
   calls, not rulings. The one worth a second look: D11 (reload-on-switch,
   which backlog §52's teardown work would later soften for free). D9 was
   superseded for objectives by the PO's Q2 ruling, 2026-10-07.
+- ⭐ **OPEN (raised 2026-10-07, after `plan-quest-dialogue.md` C3): repeated
+  stock phrases.** The two-row shape put "I am on it." and "I'll do it." on
+  19 nodes each, "Do you have a task for me?" on 17. Under D20 each
+  occurrence has its own id, so German is entered per occurrence.
+  Recommended: keep one id per occurrence (the industry norm: an NPC's voice
+  may want a different German line), and have the D20 update tool pre-fill
+  the German of any string whose English exactly matches one already
+  translated, flagged for review (a platform's translation-memory exact
+  match). Alternative: shared stock-phrase keys that dialogue points at,
+  less typing but one wording for every NPC and a second way to reference
+  text.
 - ✅ **PO calls from the 2026-10-06 review, all ruled 2026-10-07:**
   - ~~**Q1, stable keys (D20)**~~ ✅ **RULED 2026-10-07 (PO):** every
     translatable string has a stable id, dialogue included, and a
@@ -971,8 +996,8 @@ changing a file. The candidates, as researched 2026-10-05:
   - **Hosted Libre plan**: free, but only for **public** open-source
     projects. The private repo most likely rules it out;
   - **Hosted cloud**: from €47/month for 10,000 strings. The ~600–700 units
-    per language (§7) fit the smallest tier, and so do the ≈ 1,150 counted
-    2026-10-06.
+    per language (§7) fit the smallest tier, and so do the ≈ 1,230 counted
+    2026-10-07.
 - **Tolgee**: open source and free to self-host. Its standout feature is
   click-to-translate in the running app, which reaches DOM text only here,
   never Pixi-rendered text. Some features are paid. Its cloud free tier is
