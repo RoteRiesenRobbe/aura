@@ -430,7 +430,7 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   smoke 0 · PO in-game walk on the main world 2026-10-07 (all states incl.
   abandon). No harness touches the rats rows.
 - **C3 every other quest (18, the Knot excepted):** ✅ BUILT 2026-10-07
-  `[uncommitted]`, PO walk owed. As §6 "C3 detailed" says: 18 quests on 15 files moved to the
+  `8a72d8bb`, PO walk owed. As §6 "C3 detailed" says: 18 quests on 15 files moved to the
   two-row shape by a text-surgery script (each turn-in moved byte for byte;
   every file's grant set checked identical before/after), a `<offer>_running`
   progress node + an `<offer>_on_it` stage answer per quest, the traveller's
