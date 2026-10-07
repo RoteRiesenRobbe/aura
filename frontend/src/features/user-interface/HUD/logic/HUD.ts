@@ -22,7 +22,7 @@ import {
 import {createIconToken, hasGlyph} from './IconToken';
 import {createSweepMemory, sweepFraction} from './CooldownSweep';
 import {attachSkillTooltips, attachTooltips, hideTooltip, setAvailableSkillPoints, showEffectTooltip, tooltipAnchor} from './SkillTooltip';
-import {applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant} from './BuffTray';
+import {alwaysOnTenants, applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant, TrayState} from './BuffTray';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -65,6 +65,9 @@ const cooldownSweep = createSweepMemory();
 // renders into, and the last snapshot tick (the clock a hovered circle's time
 // line is read against).
 const buffTray = createTrayState();
+// The always-on circles (passives, the active aura's drawbacks), derived from
+// the loadout on every snapshot and drawn after the timed ones (BuffTray.ts).
+let buffAlwaysOn: TrayState = createTrayState();
 let buffTrayElement: HTMLElement | null = null;
 let buffBeneficialBox: HTMLElement | null = null;
 let buffHarmfulBox: HTMLElement | null = null;
@@ -91,6 +94,11 @@ let currentSkillPoints = 0;
 // Latest positional aura-slot contents from the server (skill id per slot, 0 = empty).
 // Source of truth for the activate-vs-empty check in the slot pointerdown handler.
 let currentAuraSlots: number[] = [];
+// The server's active aura slot (-1 = none) and passive slot contents, kept
+// for the buff tray's always-on circles. Unlike activeSlotIndex these never
+// carry the optimistic click.
+let serverActiveAuraSlot = -1;
+let currentPassiveSlots: number[] = [];
 // Optimistically-highlighted active slot in the new panel; client-side only in 1a.
 let activeSlotIndex: number | null = null;
 
@@ -936,6 +944,7 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 // optimistic click highlight within a tick, making the server the source of
 // truth for the panel from spawn on.
 export function updateActiveAuraSlot(slot: number) {
+    serverActiveAuraSlot = slot;
     if (pendingSlot !== undefined) {
         const server: number | null = slot >= 0 ? slot : null;
         if (server === pendingSlot || Date.now() > pendingSlotUntil) {
@@ -984,14 +993,24 @@ function setupBuffTray() {
     if (!buffTrayElement) return;
     buffBeneficialBox = buffTrayElement.querySelector('.buffBox.beneficial');
     buffHarmfulBox = buffTrayElement.querySelector('.buffBox.harmful');
-    // Hover only, the loadout slots' wiring (D12): the MouseManager pointerdown
-    // gotcha does not touch hover. The phone's hold variant is C3's.
-    attachTooltips(buffTrayElement, '.buffCircle', showBuffCircleTooltip);
+    // Desktop: hover, the loadout slots' wiring (D12); the MouseManager
+    // pointerdown gotcha does not touch hover. Phone: a held press of 500 ms
+    // [PLACEHOLDER] opens it and lifting closes it (D12, C3).
+    attachTooltips(buffTrayElement, '.buffCircle', showBuffCircleTooltip, Mobile.isMobile() ? 500 : undefined);
+    // The phone puts the tray under the Focus/XP bars (D8, D21). Moved into
+    // #vitalSigns so it follows the bars' height wherever the rem/vh sizing
+    // lands them, instead of a top offset that would have to repeat it.
+    if (Mobile.isMobile()) {
+        document.getElementById('vitalSigns')?.appendChild(buffTrayElement);
+    }
 }
 
 function buffTenantOf(circle: HTMLElement): Tenant | undefined {
     const key = circle.dataset.key;
-    return buffTray.beneficial.find((t) => t.key === key) ?? buffTray.harmful.find((t) => t.key === key);
+    for (const t of [...buffTray.beneficial, ...buffTray.harmful, ...buffAlwaysOn.beneficial, ...buffAlwaysOn.harmful]) {
+        if (t.key === key) return t;
+    }
+    return undefined;
 }
 
 // The level the tooltip scales to (plan-buff-tray.md §3.4, Q1 as proposed):
@@ -1011,6 +1030,9 @@ function showBuffCircleTooltip(circle: HTMLElement) {
 // to name while the aura holds it (PO look 2026-10-04), so it says so; once
 // the aura lets go, and for every timed circle, it is the seconds left.
 function buffTimeLine(tenant: Tenant): string {
+    if (tenant.permanent) {
+        return 'permanent';
+    }
     if (tenant.sustained && tenant.leavingAt === undefined) {
         return 'while in range';
     }
@@ -1038,8 +1060,11 @@ export function updateBuffTray(effects: OwnEffectData[] | undefined, tick: numbe
     if (!buffBeneficialBox || !buffHarmfulBox) return;
     buffTrayTick = tick;
     applyOwnEffects(buffTray, effects, tick, isAuraSkill);
-    renderBuffBox(buffBeneficialBox, buffTray.beneficial, tick);
-    renderBuffBox(buffHarmfulBox, buffTray.harmful, tick);
+    const activeAura = serverActiveAuraSlot >= 0 ? (currentAuraSlots[serverActiveAuraSlot] ?? 0) : 0;
+    buffAlwaysOn = alwaysOnTenants(currentPassiveSlots, activeAura, skillDefinition, skillLevelOf);
+    // Timed first, so the always-on circles sit at the OUTER end of each box (P5).
+    renderBuffBox(buffBeneficialBox, [...buffTray.beneficial, ...buffAlwaysOn.beneficial], tick);
+    renderBuffBox(buffHarmfulBox, [...buffTray.harmful, ...buffAlwaysOn.harmful], tick);
 
     // A tooltip open on a circle follows the countdown: re-rendered only when
     // its time line would change, and closed when its circle has gone.
@@ -1074,10 +1099,12 @@ function renderBuffBox(box: HTMLElement, tenants: Tenant[], tick: number) {
             token.replaceWith(createBuffToken(t.skillId));
         }
         el.classList.toggle('harmful', t.harmful);
-        // Read by the verify suite: a circle an aura keeps up, and one whose
-        // aura has let go and that is sweeping out (the server no longer has it).
+        // Read by the verify suite: a circle an aura keeps up, one whose aura
+        // has let go and that is sweeping out (the server no longer has it),
+        // and an always-on one.
         el.classList.toggle('sustained', t.sustained);
         el.classList.toggle('leaving', t.leavingAt !== undefined);
+        el.classList.toggle('permanent', t.permanent === true); // an always-on circle (D9)
         el.dataset.kinds = String(t.kinds);
         el.style.setProperty('--gone', `${((1 - fractionLeft(t, tick)) * 360).toFixed(1)}deg`);
     }
@@ -1126,6 +1153,7 @@ export function updateAuraLoadout(slots: number[]) {
 // normalised the passive slots onto the family's contract). Writing textContent
 // on the li would ALSO wipe the icon token out of it once per snapshot.
 export function updatePassiveLoadout(slots: number[]) {
+    currentPassiveSlots = slots;
     if (!passiveSlotListElement) return;
     for (let i = 0; i < slots.length; i++) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;

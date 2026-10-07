@@ -27,6 +27,7 @@
 
 import {AuraApi} from '../../../backend/logic/AuraApi';
 import {BasicConfig} from '../../../../client-data/BasicConfig';
+import {SkillDefinition} from '../../../../client-data/Skills';
 
 /** One `OwnEffect` off the wire, bigints already narrowed to numbers. */
 export interface OwnEffectData {
@@ -49,6 +50,8 @@ export interface Tenant extends OwnEffectData {
     sustained: boolean;
     /** The tick a sustained circle's aura let go; it sweeps out over `totalTicks` from here. */
     leavingAt?: number;
+    /** An always-on circle (a passive, an aura's drawbacks): no time at all, so no wedge. */
+    permanent?: boolean;
 }
 
 /** Both boxes, each NEWEST FIRST: index 0 is the circle nearest the centre line (D5/D6). */
@@ -91,7 +94,10 @@ export function isSustained(e: OwnEffectData, isAura: (skillId: number) => boole
  * A sustained circle is full while its aura holds it and sweeps out once,
  * over one lifetime, from the tick the aura let go.
  */
-export function fractionLeft(t: OwnEffectData & Partial<Pick<Tenant, 'sustained' | 'leavingAt'>>, tick: number): number {
+export function fractionLeft(t: OwnEffectData & Partial<Pick<Tenant, 'sustained' | 'leavingAt' | 'permanent'>>, tick: number): number {
+    if (t.permanent) {
+        return 1;
+    }
     if (!(t.totalTicks > 0)) {
         return 0;
     }
@@ -167,4 +173,36 @@ export function applyOwnEffects(state: TrayState, effects: OwnEffectData[] | und
     };
     state.beneficial = state.beneficial.filter(keep);
     state.harmful = state.harmful.filter(keep);
+}
+
+/**
+ * The always-on circles (D9, plan §3.7), derived from the loadout rather than
+ * the wire: one beneficial circle per equipped passive, in slot order, and one
+ * harmful circle for the active aura when any of its while-active modifiers is
+ * negative at its level (a drawback). An aura with four drawbacks is still one
+ * circle (D11); the tooltip names all four. A positive while-active modifier
+ * draws nothing: no content has one (YAGNI).
+ *
+ * Kept apart from the timed set: applyOwnEffects drops whatever the server
+ * does not list, and these are never listed. The tray draws them after the
+ * timed circles, at the outer end of each box (P5). Keyed `always:<skill>` so
+ * a passive that also lands a timed effect keeps both circles.
+ */
+export function alwaysOnTenants(passiveSlots: number[], activeAuraSkill: number,
+                                defOf: (skillId: number) => SkillDefinition | undefined,
+                                levelOf: (skillId: number) => number): TrayState {
+    const permanent = (skillId: number, harmful: boolean): Tenant => ({
+        key: `always:${skillId}`, skillId, kinds: 0, totalTicks: 0, caster: 0, expiresTick: 0,
+        harmful, sustained: false, permanent: true,
+    });
+    const passives = [...new Set(passiveSlots.filter((id) => id !== 0))];
+    return {
+        beneficial: passives.map((id) => permanent(id, false)),
+        harmful: hasDrawback(defOf(activeAuraSkill), levelOf(activeAuraSkill)) ? [permanent(activeAuraSkill, true)] : [],
+    };
+}
+
+function hasDrawback(def: SkillDefinition | undefined, level: number): boolean {
+    return def?.category === 'aura' && def.effects.some((e) =>
+        e.type === 'stat_multiplier' && e.stat.bonus + e.stat.bonusPerLevel * (level - 1) < 0);
 }

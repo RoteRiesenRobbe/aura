@@ -1,6 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import {AuraApi} from '../../../backend/logic/AuraApi';
+import {SkillDefinition, SkillEffect} from '../../../../client-data/Skills';
 import {
+    alwaysOnTenants,
     applyOwnEffects,
     createTrayState,
     fractionLeft,
@@ -225,3 +227,62 @@ describe('BuffTray sustained circles (an aura keeps the effect up)', () => {
     });
 });
 
+
+describe('BuffTray always-on circles (D9, P5)', () => {
+    // Just the fields alwaysOnTenants reads; the catalog has many more.
+    function def(id: number, category: string, bonuses: [number, number][] = []): SkillDefinition {
+        const effects = bonuses.map(([bonus, bonusPerLevel]) =>
+            ({type: 'stat_multiplier', stat: {name: 'movementSpeed', bonus, bonusPerLevel}}) as unknown as SkillEffect);
+        return {id, category, effects} as unknown as SkillDefinition;
+    }
+    const catalog = new Map<number, SkillDefinition>([
+        [10, def(10, 'passive', [[0.1, 0]])],
+        [11, def(11, 'passive')],
+        [20, def(20, 'aura', [[-0.3, 0], [-0.2, 0]])], // four drawbacks or two: one circle
+        [21, def(21, 'aura')], // no modifier at all
+        [22, def(22, 'aura', [[0.1, 0]])], // a positive while-active modifier: no circle (YAGNI)
+        [23, def(23, 'aura', [[-0.1, 0.05]])], // a drawback that turns positive from level 3
+    ]);
+    const defOf = (id: number) => catalog.get(id);
+    const level1 = () => 1;
+
+    it('draws one beneficial circle per equipped passive, in slot order, skipping empty slots', () => {
+        const s = alwaysOnTenants([11, 0, 10], 0, defOf, level1);
+        expect(s.beneficial.map((t) => t.skillId)).toEqual([11, 10]);
+        expect(s.harmful).toEqual([]);
+        expect(s.beneficial.every((t) => t.permanent && !t.harmful)).toBe(true);
+    });
+
+    it('draws one harmful circle for an active aura with drawbacks, however many', () => {
+        const s = alwaysOnTenants([], 20, defOf, level1);
+        expect(s.harmful.map((t) => t.skillId)).toEqual([20]);
+        expect(s.harmful[0].harmful).toBe(true);
+    });
+
+    it('draws nothing for an aura without a negative modifier, or no active aura', () => {
+        expect(alwaysOnTenants([], 21, defOf, level1).harmful).toEqual([]);
+        expect(alwaysOnTenants([], 22, defOf, level1).harmful).toEqual([]);
+        expect(alwaysOnTenants([], 0, defOf, level1).harmful).toEqual([]);
+    });
+
+    it('reads the drawback sign at the aura\'s own level', () => {
+        expect(alwaysOnTenants([], 23, defOf, () => 2).harmful).toHaveLength(1);
+        expect(alwaysOnTenants([], 23, defOf, () => 3).harmful).toEqual([]);
+    });
+
+    it('draws nothing for a skill the catalog does not know yet', () => {
+        const s = alwaysOnTenants([99], 98, defOf, level1);
+        expect(s.beneficial.map((t) => t.skillId)).toEqual([99]); // a passive slot is a passive
+        expect(s.harmful).toEqual([]); // a drawback needs the definition
+    });
+
+    it('keys always-on circles apart from timed ones of the same skill', () => {
+        const s = alwaysOnTenants([10], 0, defOf, level1);
+        expect(s.beneficial[0].key).not.toBe(tenantKey(effect({skillId: 10})));
+    });
+
+    it('draws a permanent circle full: no wedge', () => {
+        const [t] = alwaysOnTenants([10], 0, defOf, level1).beneficial;
+        expect(fractionLeft(t, 5000)).toBe(1);
+    });
+});

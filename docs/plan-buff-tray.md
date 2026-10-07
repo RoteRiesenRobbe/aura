@@ -2,7 +2,10 @@
 
 > **Status: C1 (server) BUILT 2026-10-02, C2 (client desktop) + C0 BUILT
 > 2026-10-03/04 `116a9519` with the D19 + D20 look round, PO second look passed
-> 2026-10-06, see §11; C3 (client phone + always-on) next.
+> 2026-10-06; C3 (client phone + always-on) BUILT 2026-10-07 [uncommitted]
+> with D21 (the phone shape), see §11. Owed: the real-phone check (deferred to
+> the next live deploy, PO 2026-10-07); world effects' tenants belong to
+> `plan-world-effects.md` C2.
 > DESIGNED + APPROVED 2026-10-01 (one PO session, D1-D15 taken as choice
 > prompts after a mockup round), 3 chunks + an optional content C0. ⭐ §7
 > approved the same day, PO: *"All approved though things might change in
@@ -85,6 +88,7 @@ cooldown slots' remaining ticks.
 | **D18** | **World effects (lava, the bog) are their own circles too** (PO 2026-10-02: *"circles per effect that comes from the world or other players"*): every placed area effect gets an id at load (`world.PlacedAreaEffect.ID`, a range above 2^32 that entity ids never reach), and a dot's caster resolves to it, so two lava pools draw apart. |
 | **D19** | **A circle an AURA keeps up draws STEADY, then sweeps out once** (PO look 2026-10-04, amending D2 for this one class): the spider web's slow lives 11 ticks and is re-applied every 10, so its honest wedge strobed three times a second. PO: *"steady and then a very fast circle fill in the case of the web"*, and it then disappears as any other effect does. Positions stay D6's (new at the inner end); gameplay, content and the wire are untouched. D2's refill stands for everything with a real duration (a re-bitten dot). |
 | **D20** | **Circle size: 48 px** (PO look 2026-10-04, two passes): first roughly 50 % bigger than the mockup's 46 px (68 px), then 30 % smaller than that. Still [PLACEHOLDER]. |
+| **D21** | **Phone shape: two rows, right-aligned** (PO 2026-10-07, C3's session, amending D8's "two boxes side by side"): the harmful row under the bars, the beneficial row under it, each anchored at the right edge and growing leftward (newest at the edge, always-on circles at the outer, left end). Two boxes side by side at one edge cannot both keep D5's fixed anchor; two rows can. Both rows are reserved, so nothing jumps; the combat indicator moves under them. ⚑ As built, "the right edge" is the edge of the FREE strip: the interact button and the utility column (`@mobile-button` wide) own the screen edge under the bars, and a circle there was covered and untappable (C3's harness). The inset was PO-confirmed 2026-10-07. |
 
 ---
 
@@ -705,3 +709,80 @@ tenants need a second feed into `TrayState` (passives from `passive_slots`,
 drawbacks from the active aura's definition) since they carry no expiry, at
 the OUTER end of each box (P5). Harness legs under `?mobile` per §7.
 
+### C3 (client, phone + always-on) ✅ BUILT 2026-10-07 [uncommitted]
+
+What shipped, against §7's row, with the one ruling the session took (D21)
+and what it found:
+
+- **Always-on tenants** (D9, §3.7, P5): `BuffTray.alwaysOnTenants(passiveSlots,
+  activeAuraSkill, defOf, levelOf)`, pure, derived per snapshot inside
+  `HUD.updateBuffTray` from the slots the HUD already holds (the server's
+  `active_aura_slot`, never the optimistic click), so a late catalog repairs
+  itself. One beneficial circle per equipped passive in slot order; one harmful
+  circle for the active aura when any `stat_multiplier` is negative at its
+  level (D11: four drawbacks, one circle). A positive while-active modifier
+  draws nothing (no content has one, YAGNI). Keyed `always:<skill>`, kept in
+  their own arrays (applyOwnEffects drops anything unlisted, and
+  `fractionLeft` read a zero lifetime as fully dark), drawn after the timed
+  circles at the outer end. `permanent` tenants draw full, carry the
+  `permanent` class, and their tooltip line reads `permanent` (P6).
+  ⚑ The only aura with drawbacks is `OverchargeAura`, a cheat-only rig: no
+  shipped content reaches the harmful always-on circle.
+- **The hold** (D12): `attachTooltips(..., holdMs)`, opt-in, passed by the tray
+  alone and only under `html.mobile` (the project's one phone switch, so the
+  spellbook and loadout lists keep their phone behaviour, and a harness drives
+  it with a mouse). Pointerdown on an entry starts the timer; pointerup,
+  pointercancel or a move past 8 px [PLACEHOLDER] cancels it and closes the
+  tooltip; `contextmenu` is prevented. The circles carry `touch-action: none`,
+  `user-select: none`, `-webkit-touch-callout: none`.
+- **The phone placement** (D8, D21): `setupBuffTray` MOVES `#buffTray` into
+  `#vitalSigns` on the phone, so it follows the bars' rem/vh sizing. Two
+  reserved rows, harmful on top, `row-reverse` + `wrap` (downward), 36 px
+  circles, 4 px gaps [PLACEHOLDER]; `#combatIndicator` moved down by the two
+  rows. ⚑ **D21 amended in the build, PO-confirmed**: the interact button and
+  the utility column (`@mobile-button` wide) own the screen edge under the
+  bars, and a circle there was covered and untappable, so the rows end one
+  gutter left of that column.
+- **Not changed**: the desktop tray; the wire; the 2026-08-02 "nothing else on
+  the permanent phone HUD" cap is widened by D8 and says so in the stylesheet.
+
+**Schema impact: DB NONE · wire NONE · conf NONE · content NONE.**
+
+**Verified:**
+
+- vitest **1564/0** (7 new in `BuffTray.test.ts`, 6 in the new
+  `SkillTooltipHold.test.ts`; the hold tests were written after the code, then
+  falsified: with `holdMs` dropped 3 of 6 go red), `npm run typecheck` clean,
+  prod build clean.
+- `buff-tray.mjs` **22/22** on a fresh DEBUG boot (13 C2 legs + 9 new: the
+  passive circle full at the outer end with a `permanent` tooltip, the
+  OverchargeAura drawback circle and its leaving when the aura is switched off,
+  and five phone legs: under the bars harmful-above-beneficial, 36 px left of
+  the tile column, nothing covering the circle, a 200 ms tap opens nothing, a
+  700 ms hold opens and lifting closes). ⚑ One earlier run printed nothing at
+  all, cause unknown; the rerun is the tally.
+- `c2-player-cc.mjs`: 19 PASS / 4 INCONCLUSIVE / 0 FAIL, and one run before it
+  with "Stunned: movement input is dead" red (2.19 u drift, a 5.4 s "stun"):
+  the leg reads the stun's end off the tray's Slow bit, which a web's slow
+  keeps lit after the stun. Permanent circles carry no kind bits, so C3 cannot
+  move it; a pack-dependent flake, 1 in 2.
+- `mobile-layout.mjs`: everything green but leg 7 ("journal from the sheet"),
+  the known red at clean HEAD.
+- **No real phone** (PO 2026-10-07: deferred to the next live deploy).
+  Simulated-phone screenshots (844 x 390 and 390 x 844, touch on, `?mobile`)
+  were shown instead.
+
+**Found on the way:**
+
+- **The registration nag covers the tray**: in landscape the left part of both
+  rows (four venom circles live, three visible), in portrait both rows whole.
+  Anonymous accounts only, until dismissed. PO 2026-10-07: shipped as is, *"at
+  least that forces an interaction with the banner"* (translated).
+- **The held tooltip runs past the bottom of a landscape phone**: it is the
+  full ability tooltip. A look item for the real-phone check.
+- **A background headless page clamps timers.** With the desktop page still
+  open, the phone page's 500 ms hold never fired inside 700 ms; closing the
+  desktop page first fixed it (the rAF gotcha's sibling).
+- **Picking a passive on the phone opens the ☰ sheet** (its slots live there),
+  which covers the tray until a player shuts it; the harness taps ☰ after the
+  equip.

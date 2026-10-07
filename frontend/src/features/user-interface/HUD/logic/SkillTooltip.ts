@@ -1242,8 +1242,18 @@ export function showTooltip(anchor: HTMLElement, content: TooltipContent) {
 // callback rather than a content value because both callers need the CURRENT
 // state at hover time (a skill's level, a utility's charge count), not the
 // state at wiring time.
+//
+// `holdMs` swaps hover for a HELD press (the buff tray on the phone,
+// plan-buff-tray.md D12): a plain tap opens nothing, a press held `holdMs`
+// opens the tooltip, and lifting, sliding off or the browser cancelling the
+// touch closes it. Opt-in per container on purpose: the spellbook and the
+// loadout lists keep their phone behaviour.
 export function attachTooltips(container: HTMLElement, selector: string,
-                               show: (entry: HTMLElement) => void) {
+                               show: (entry: HTMLElement) => void, holdMs?: number) {
+    if (holdMs !== undefined) {
+        attachHoldTooltips(container, selector, show, holdMs);
+        return;
+    }
     container.addEventListener('pointerover', (e) => {
         const entry = (e.target as HTMLElement).closest(selector) as HTMLElement | null;
         if (!entry || !container.contains(entry)) {
@@ -1265,6 +1275,51 @@ export function attachTooltips(container: HTMLElement, selector: string,
     // Clicks re-render lists and equip/activate — the anchored element may
     // vanish under the pointer, so drop the tooltip.
     container.addEventListener('pointerdown', hideTooltip);
+}
+
+// A press that moves further than this is a drag, not a hold. [PLACEHOLDER]
+const HOLD_SLOP_PX = 8;
+
+function attachHoldTooltips(container: HTMLElement, selector: string,
+                            show: (entry: HTMLElement) => void, holdMs: number) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let pressed = false; // a press began on an entry and has not ended
+    let startX = 0;
+    let startY = 0;
+    const release = () => {
+        if (!pressed) {
+            return;
+        }
+        pressed = false;
+        clearTimeout(timer);
+        timer = undefined;
+        hideTooltip();
+    };
+    container.addEventListener('pointerdown', (e) => {
+        release();
+        const entry = (e.target as HTMLElement).closest(selector) as HTMLElement | null;
+        if (!entry || !container.contains(entry)) {
+            return;
+        }
+        pressed = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        timer = setTimeout(() => {
+            timer = undefined;
+            if (entry.isConnected) {
+                show(entry);
+            }
+        }, holdMs);
+    });
+    container.addEventListener('pointermove', (e) => {
+        if (pressed && Math.hypot(e.clientX - startX, e.clientY - startY) > HOLD_SLOP_PX) {
+            release();
+        }
+    });
+    container.addEventListener('pointerup', release);
+    container.addEventListener('pointercancel', release);
+    // A long press is the browser's context-menu gesture on Android (~500 ms).
+    container.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
 // attachSkillTooltips is attachTooltips over the catalog: the spellbook and the

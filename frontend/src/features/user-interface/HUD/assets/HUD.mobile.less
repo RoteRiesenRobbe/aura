@@ -42,6 +42,10 @@
 
 @mobile-edge:   0.7rem;
 @mobile-button: 4.4rem;
+// The buff tray (plan-buff-tray.md D21). [PLACEHOLDER] sizes; §9 P4 drew 36 px.
+@mobile-buff-circle: 36px;
+@mobile-buff-gap:    4px;
+@mobile-buff-rows:   (2 * @mobile-buff-circle + 2 * @mobile-buff-gap);
 // The sheet's footer bar — sized by the minimap it carries, not by the zoom
 // buttons, so the map has somewhere to live that overlaps no content.
 @mobile-map:    6rem;
@@ -135,11 +139,59 @@ html.mobile {
 		pointer-events: auto;
 	}
 
-	// The buff tray HIDES on the phone until C3 places it under the Focus/XP
-	// bars on the top edge (plan-buff-tray.md §3.5, D8): the bottom column is
-	// the thumb's, and an interim look there was never ruled.
-	#buffTray {
-		display: none;
+	// The buff tray under the Focus/XP bars (plan-buff-tray.md D8, D21): the
+	// bottom column is the thumb's. HUD.setupBuffTray MOVES it into
+	// #vitalSigns on the phone, so it follows the bars wherever their rem/vh
+	// sizing lands them. Two rows, harmful on top, each anchored at the RIGHT
+	// edge and growing leftward (newest at the edge, always-on circles at the
+	// left end), wrapping DOWNWARD, the desktop's direction flipped. Both rows
+	// are reserved, so nothing jumps when the first circle lands.
+	//
+	// ⚑ This WIDENS the permanent phone HUD past the 2026-08-02 cap ("the
+	// bars, the tiles, the combat indicator and the alert banner"), as the
+	// map button did: D8 ruled it in. Only the circles take touches (the
+	// desktop rule), so the empty rows never block the world.
+	#vitalSigns > #buffTray {
+		flex-direction: column;
+		justify-content: flex-start;
+		align-items: stretch;
+		gap: @mobile-buff-gap;
+		min-height: 0;
+		margin-top: @mobile-buff-gap;
+		// "The right edge" is the edge of the FREE strip: the interact button
+		// and the utility column (@mobile-button wide) own the screen edge
+		// right under the bars, and a circle under them is untappable.
+		margin-right: (@mobile-button + @mobile-edge);
+
+		> .buffBox.beneficial,
+		> .buffBox.harmful {
+			flex: none;
+			min-height: @mobile-buff-circle;
+			flex-direction: row-reverse;
+			flex-wrap: wrap;
+			justify-content: flex-start;
+			gap: @mobile-buff-gap;
+		}
+
+		> .buffBox.harmful {
+			order: -1;
+		}
+
+		.buffCircle {
+			width: @mobile-buff-circle;
+			height: @mobile-buff-circle;
+			border-width: 2px;
+			// The hold is the tooltip (D12): keep the browser from claiming
+			// the press as a scroll, a text selection or its callout menu.
+			touch-action: none;
+			user-select: none;
+			-webkit-user-select: none;
+			-webkit-touch-callout: none;
+
+			> .ink-token.letterFallback {
+				font-size: 14px;
+			}
+		}
 	}
 
 	/* --- always on: Focus + XP ---------------------------------------- */
@@ -203,7 +255,8 @@ html.mobile {
 	// Just below the bars, top-right — its desktop anchor (bottom: 13vh) is
 	// inside the action-tile band now.
 	#combatIndicator {
-		top: ~"calc(min(1.7rem, 4.5vh) + min(1.1rem, 3vh) + 1.6rem)";
+		// Under the buff tray's two reserved rows (D21).
+		top: ~"calc(min(1.7rem, 4.5vh) + min(1.1rem, 3vh) + 1.6rem + @{mobile-buff-rows})";
 		right: @mobile-edge;
 		bottom: auto;
 	}

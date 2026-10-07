@@ -16,6 +16,15 @@
 //   6  a spider under the player's Immolate (a 2 u dot aura; Blight's 1 u never
 //      reaches a spider biting from 1.6 u) still carries its own Dot pip: the
 //      pips retired for the own player only.
+//   C3 (plan-buff-tray.md §7 C3, the phone + always-on half):
+//   7  an equipped passive (Tough) is a PERMANENT beneficial circle: full, at
+//      the outer end, its tooltip ending in "permanent",
+//   8  the active OverchargeAura (the one aura with drawbacks, a cheat-only
+//      rig) is a permanent HARMFUL circle, gone when the aura is switched off,
+//   9  ?mobile at 844x390: the tray sits under the Focus/XP bars, harmful row
+//      above beneficial, right-aligned, 36 px circles (D8, D21),
+//  10  a 200 ms press opens no tooltip, a 700 ms hold opens it, lifting closes
+//      it (D12). ⚑ The hold keys on html.mobile, so a mouse press drives it.
 //
 // ⚑ VENUE: the GiantSpider pack of the DEBUG world (five around (35, -33)),
 // so the server must boot with `./scripts/dev-restart.sh server debug`
@@ -99,7 +108,7 @@ const tray = () => page.evaluate(() => {
   const read = (side) => [...document.querySelectorAll(`#buffTray .buffBox.${side} .buffCircle`)].map((c) => ({
     name: c.dataset.skillName, skillId: Number(c.dataset.skillId), caster: c.dataset.caster,
     kinds: Number(c.dataset.kinds), gone: parseFloat(c.style.getPropertyValue('--gone')) || 0,
-    harmfulClass: c.classList.contains('harmful'),
+    harmfulClass: c.classList.contains('harmful'), permanent: c.classList.contains('permanent'),
     token: c.querySelector('.ink-token')?.className || '',
   }));
   return { beneficial: read('beneficial'), harmful: read('harmful'), present: !!document.getElementById('buffTray') };
@@ -255,6 +264,69 @@ check('D10: the own plate draws no pips while the hot is up',
   hotUp ? pipsUnderHot.instructions === 0 : null,
   hotUp ? `own pips drawnMask ${pipsUnderHot.drawnMask}, instructions ${pipsUnderHot.instructions}` : 'INCONCLUSIVE: no hot circle');
 
+// --- leg 7: a passive is a permanent beneficial circle (D9) --------------------------
+const tooltipText = () => page.evaluate(() => {
+  const t = document.getElementById('skillTooltip');
+  return t && !t.classList.contains('hidden') ? t.textContent : '';
+});
+const hoverCircle = async (selector) => {
+  const el = await page.$(selector);
+  const bb = el ? await el.boundingBox() : null;
+  if (!bb) return '';
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.waitForTimeout(600);
+  const text = await tooltipText();
+  await page.mouse.move(640, 300);
+  return text;
+};
+const equipPassive = async (skillRe, slotIndex) => {
+  const rowIndex = await page.waitForFunction(
+    (re) => [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)),
+    skillRe.source, { timeout: 20_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => -1);
+  if (rowIndex < 0) return false;
+  await showSkillRowAt(page, rowIndex);
+  const rows = await page.$$('#spellbookList li');
+  const box = await rows[rowIndex].boundingBox();
+  await page.mouse.click(box.x + 25, box.y + box.height / 2);
+  await page.waitForTimeout(700);
+  const sbox = await (await page.$(`#passiveSlotList .passiveSlot[data-slot="${slotIndex}"]`)).boundingBox();
+  await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+  return !!(await page.waitForFunction(
+    ({ re, i }) => new RegExp(re, 'i').test(document.querySelector(`#passiveSlotList .passiveSlot[data-slot="${i}"] .slotLabel`)?.textContent || ''),
+    { re: skillRe.source, i: slotIndex }, { timeout: 15_000, polling: 500 }).catch(() => null));
+};
+
+await cmd('SKILL Tough');
+const toughEquipped = await equipPassive(/Tough/, 0);
+const toughUp = toughEquipped ? await waitFor(async () => find(await tray(), 'beneficial', 'Tough'), 4000) : null;
+const toughTip = toughUp ? await hoverCircle('#buffTray .buffBox.beneficial .buffCircle.permanent[data-skill-name="Tough"]') : '';
+const benOrder = (await tray()).beneficial;
+check('A passive (Tough): a permanent beneficial circle, full, at the OUTER end (P5)',
+  toughEquipped ? !!toughUp && toughUp.permanent && !toughUp.harmfulClass && toughUp.gone === 0
+    && benOrder[benOrder.length - 1]?.name === 'Tough' : null,
+  toughEquipped ? `circle ${JSON.stringify(toughUp)}; beneficial order ${JSON.stringify(benOrder.map((c) => c.name))}` : 'INCONCLUSIVE: Tough never reached passive slot 0');
+check('A passive: the tooltip is Tough\'s plus the line "permanent"',
+  toughUp ? /Tough/.test(toughTip) && /permanent$/.test(toughTip.trim()) : null,
+  `tooltip: ${JSON.stringify(toughTip.slice(-120))}`);
+
+// --- leg 8: an aura's drawbacks are a permanent harmful circle (D9) ----------------
+await cmd('SKILL OverchargeAura');
+const overcharge = await equipAndActivateAura(/Overcharge/, 0);
+const drawbackUp = overcharge.ok ? await waitFor(async () => (await tray()).harmful.find((c) => c.permanent && /Overcharge/.test(c.name)) || null, 4000) : null;
+const drawbackTip = drawbackUp ? await hoverCircle('#buffTray .buffBox.harmful .buffCircle.permanent') : '';
+if (drawbackUp) await page.screenshot({ path: join(shotDir, `buff-tray-${label}-always-on.png`) });
+let drawbackGone = null;
+if (drawbackUp) {
+  const sbox = await (await page.$('#auraSlotList li[data-slot="0"]')).boundingBox();
+  await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2); // switch it off
+  drawbackGone = await waitFor(async () => ((await tray()).harmful.some((c) => c.permanent) ? null : true), 4000);
+}
+check('The active OverchargeAura: one permanent HARMFUL circle for its four drawbacks',
+  overcharge.ok ? !!drawbackUp && drawbackUp.gone === 0 && (await tray()).harmful.filter((c) => c.permanent).length <= 1 : null,
+  overcharge.ok ? `circle ${JSON.stringify(drawbackUp)}; tooltip tail ${JSON.stringify(drawbackTip.slice(-160))}` : `INCONCLUSIVE: ${overcharge.why}`);
+check('Switching the aura off takes the drawback circle away', drawbackUp ? drawbackGone === true : null,
+  drawbackGone ? 'gone within 4 s' : 'still on the tray 4 s after switching the aura off');
+
 // --- leg 5 + 6: the pack, Immolate on, GOD on ----------------------------------------
 const blight = await equipAndActivateAura(/Immolate/, 0);
 await cmd('WARP ' + (PACK.x * 120) + ' ' + (PACK.y * 120), 2500);
@@ -327,6 +399,95 @@ check('Away from the pack the venom circle drains out and leaves',
 check('A spider under Immolate still carries its own Dot pip (the strip retired for the own player only)',
   blight.ok ? !!mobPip : null,
   blight.ok ? (mobPip ? `${mobPip.drawn} of ${mobPip.strips} mob pip strips drawn across ${mobPip.shapes} mob shapes` : 'no mob plate drew a Dot pip within 12 s of arriving with Immolate on') : `INCONCLUSIVE: ${blight.why}`);
+
+// --- legs 9 + 10: the phone (?mobile, 844x390) -------------------------------------
+// ⚑ Shut the desktop page first: two live pages leave one in the background,
+// and a background page clamps timers, which the 500 ms hold IS.
+await page.close();
+const phoneCtx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+const phone = await phoneCtx.newPage();
+phone.on('console', (m) => { if (m.type() === 'error') consoleErrors.push('phone: ' + m.text()); });
+phone.on('pageerror', (e) => consoleErrors.push('phone pageerror: ' + e.message));
+await phone.goto(url + '&mobile', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+await joinAsNewCharacter(phone, 'trayph');
+await phone.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
+await phone.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
+await phone.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
+await phone.evaluate((t) => {
+  for (const c of t) {
+    const input = document.getElementById('console_command');
+    input.value = c;
+    document.getElementById('console').dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+}, ['GOD', 'SKILL Tough']);
+await phone.waitForTimeout(1500);
+// The spellbook lives in the ☰ sheet on the phone: equip through the same
+// pointerdown handlers the taps reach, dispatched on the (hidden) rows.
+const phoneEquipped = await phone.evaluate(async () => {
+  const row = [...document.querySelectorAll('#spellbookList li')].find((li) => /Tough/i.test(li.textContent));
+  if (!row) return 'no Tough row';
+  row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 500));
+  document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"]')
+    .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  return 'sent';
+});
+const phoneCircle = await phone.waitForSelector('#buffTray .buffCircle.permanent', { timeout: 8000 }).catch(() => null);
+// Picking a passive brings up the ☰ sheet (its slots live there, HUD.ts); a
+// player then shuts it with ☰, which is what uncovers the tray.
+if (await phone.evaluate(() => document.documentElement.classList.contains('menuOpen'))) {
+  await phone.click('#mobileMenuButton');
+  await phone.waitForTimeout(500);
+}
+const geo = await phone.evaluate(() => {
+  const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { top: b.top, bottom: b.bottom, left: b.left, right: b.right, w: b.width, h: b.height } : null; };
+  const trayEl = document.getElementById('buffTray');
+  const ci = document.getElementById('combatIndicator');
+  return {
+    parent: trayEl?.parentElement?.id, visible: trayEl ? getComputedStyle(trayEl).display !== 'none' : false,
+    xp: r(document.getElementById('xpBar')), tray: r(trayEl),
+    harmful: r(trayEl?.querySelector('.buffBox.harmful')), beneficial: r(trayEl?.querySelector('.buffBox.beneficial')),
+    circle: r(trayEl?.querySelector('.buffCircle')), vw: window.innerWidth, column: r(document.getElementById('utilityBar')),
+    combatTop: ci ? parseFloat(getComputedStyle(ci).top) : null,
+  };
+});
+await phone.screenshot({ path: join(shotDir, `buff-tray-${label}-phone.png`) });
+check('Phone: the tray sits under the Focus/XP bars, harmful row above beneficial (D8, D21)',
+  geo.visible && geo.parent === 'vitalSigns' && geo.tray && geo.xp && geo.tray.top >= geo.xp.bottom - 1
+    && geo.harmful.top < geo.beneficial.top && geo.combatTop >= geo.tray.bottom - 1,
+  `parent ${geo.parent}, xp bottom ${f1(geo.xp?.bottom)}, tray ${f1(geo.tray?.top)}-${f1(geo.tray?.bottom)}, harmful top ${f1(geo.harmful?.top)}, beneficial top ${f1(geo.beneficial?.top)}, combat indicator top ${f1(geo.combatTop)}`);
+check('Phone: a 36 px circle anchored at the right edge of the free strip, left of the tile column',
+  phoneCircle ? Math.round(geo.circle.w) === 36 && geo.circle.right <= geo.column.left && geo.column.left - geo.circle.right < 20 : null,
+  phoneCircle ? `circle ${f1(geo.circle.w)} px, right edge ${f1(geo.circle.right)}, tile column left ${f1(geo.column.left)}` : `INCONCLUSIVE: no Tough circle on the phone (equip: ${phoneEquipped})`);
+let tapTip = null; let holdTip = null; let liftTip = null; let onTop = null;
+if (phoneCircle) {
+  const bb = await phoneCircle.boundingBox();
+  // A press only reaches a circle nothing else covers (the tile column did, once).
+  onTop = await phone.evaluate(({ x, y }) => {
+    let n = document.elementFromPoint(x, y);
+    const hit = n?.closest('.buffCircle') ? 'buffCircle' : null;
+    while (n && !n.id) n = n.parentElement;
+    return hit || n?.id || 'nothing';
+  }, { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 });
+  const tipOpen = () => phone.evaluate(() => { const t = document.getElementById('skillTooltip'); return !!t && !t.classList.contains('hidden'); });
+  await phone.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await phone.waitForTimeout(300);
+  await phone.mouse.down(); await phone.waitForTimeout(200); await phone.mouse.up();
+  await phone.waitForTimeout(700);
+  tapTip = await tipOpen();
+  await phone.mouse.down(); await phone.waitForTimeout(700);
+  holdTip = await tipOpen() ? await phone.evaluate(() => document.getElementById('skillTooltip').textContent) : '';
+  await phone.screenshot({ path: join(shotDir, `buff-tray-${label}-phone-hold.png`) });
+  await phone.mouse.up(); await phone.waitForTimeout(300);
+  liftTip = await tipOpen();
+}
+check('Phone: nothing covers the circle (a press reaches it)', phoneCircle ? onTop === 'buffCircle' : null,
+  phoneCircle ? `on top at the circle's centre: ${onTop}` : 'INCONCLUSIVE: no circle');
+check('Phone: hovering and a 200 ms tap open no tooltip (D12)', phoneCircle ? tapTip === false : null,
+  phoneCircle ? `tooltip open after the tap: ${tapTip}` : 'INCONCLUSIVE: no circle');
+check('Phone: a 700 ms hold opens the tooltip, lifting closes it (D12)',
+  phoneCircle ? /Tough/.test(holdTip) && /permanent/.test(holdTip) && liftTip === false : null,
+  phoneCircle ? `held: ${JSON.stringify(holdTip.slice(-80))}; open after lifting: ${liftTip}` : 'INCONCLUSIVE: no circle');
 
 console.log('\nlabel :', label);
 let pass = 0, fail = 0, inc = 0;
