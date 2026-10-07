@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ NEXT: EFFECT TYPES ROUND 2, C0** (`docs/plan-effect-types-round-2.md`, designed + PO-ruled 2026-10-07, D1-D10 PO, D11-D29 mine, C0-C7, nothing built): stat buffs/debuffs on others + a `threat` stat, thorns on others, charge, empower next cast, fear both ways, stealth towards mobs, `onDeath` skill lists on mobs. C0 widens `applied_effects` + `EffectKind` first. Schema DB NONE, wire YES. Also owed: the PATH CORNERS + ENDS chunk A look (`docs/plan-world-paths.md` §12).
+- **⭐ NEXT: EFFECT TYPES ROUND 2, C1** (`docs/plan-effect-types-round-2.md`, designed + PO-ruled 2026-10-07, D1-D10 PO, D11-D29 mine, C0-C7): stat buffs/debuffs on others + a `threat` stat, thorns on others, charge, empower next cast, fear both ways, stealth towards mobs, `onDeath` skill lists on mobs. ✅ C0 `25668fd7`: `applied_effects` ushort, `EffectKind` uint, `OwnEffect` still 24 bytes. Schema DB NONE, wire YES. Also owed: the PATH CORNERS + ENDS chunk A look (`docs/plan-world-paths.md` §12).
 
 - **⭐ BUFF TRAY: real-phone check at the next live deploy** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).
 
