@@ -71,7 +71,7 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	// Ring colour (triage item 7); 0 while no aura is active.
 	AuraApi.CharacterAddAuraCategory(builder, byte(p.AuraCategories()))
 	// Buff/debuff kinds currently applied TO the player — drives the pips.
-	AuraApi.CharacterAddAppliedEffects(builder, byte(p.AppliedEffects()))
+	AuraApi.CharacterAddAppliedEffects(builder, uint16(p.AppliedEffects()))
 	// Flight state (plan-flight-paths.md C2, D15): destination + arrival tick
 	// let the client run its camera, input lock and ETA without guessing.
 	// Dest/arrival only while airborne — the fields default to zero/absent.
@@ -252,8 +252,8 @@ func OwnEffectsMarshalFlatbuf(effects []skills.OwnEffect, tick uint64, builder *
 		e := effects[i]
 		AuraApi.CreateOwnEffect(builder,
 			uint16(e.Skill),
-			AuraApi.EffectKind(e.Kinds),
 			uint16(min(e.Total, 0xFFFF)),
+			AuraApi.EffectKind(e.Kinds),
 			model.SourceID(e.Caster),
 			tick+uint64(e.Left),
 		)

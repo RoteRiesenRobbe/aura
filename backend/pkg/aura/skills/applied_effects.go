@@ -6,10 +6,10 @@ package skills
 // entity itself projects — the two directions are separate wire fields on
 // purpose.
 //
-// Serialized as the applied_effects wire ubyte on both Mob and Character.
+// Serialized as the applied_effects wire ushort on both Mob and Character.
 // Presence only: a bit is set while at least one application of that kind is
 // alive, with no per-effect duration on the wire.
-type AppliedEffect uint8
+type AppliedEffect uint16
 
 const (
 	AppliedEffectNone     AppliedEffect = 0
@@ -24,15 +24,11 @@ const (
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
-	// ⚑ Bit 7 is the LAST bit of the ubyte. The next payload kind that wants a
-	// pip has to widen the wire field first — a natural part of backlog §39
-	// (the entity presentation rework), which replaces presence-only pips with
-	// durations anyway.
-	//
-	// ⚑ That day has arrived and the answer was to WAIT. lifestealPayload (R3,
-	// the burst Reaper's rider became) carries AppliedEffectNone — not because a
-	// leech is invisible the way a shield is, but because there is no bit left to
-	// give it and widening the wire for one buff is §39's job, not a cooldown's.
+	// ⚑ Bit 7 was the LAST bit of the old ubyte; effect types round 2 C0
+	// (plan-effect-types-round-2.md) widened the wire field to a ushort, so
+	// bits 8-15 are free. lifestealPayload (R3) and reflectPayload went
+	// without a pip while there was no room; reflect gets one in that plan's
+	// C2, lifesteal still has none.
 	// The burst is not silent in play — every hit floats a heal number off the
 	// caster and the cooldown icon runs its own timer — but it is the first buff
 	// with NO pip and a real duration, so it is the concrete cost of the missing
@@ -61,14 +57,15 @@ func (*resistPayload) appliedBit() AppliedEffect   { return AppliedEffectResist 
 func (*tickRatePayload) appliedBit() AppliedEffect { return AppliedEffectTickRate }
 func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
 
-// No bit left in the ubyte — see the ⚑ note above.
+// No pip yet; see the ⚑ note above.
 func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 
 // The reflect burst joins lifesteal in the no-bit-left queue, and it wants one
 // more than lifesteal does: a leech announces itself through the heal numbers
 // floating off the caster, while a reflect's numbers float off the ATTACKER,
-// where they are hard to tell from any other source of damage. Until backlog
-// §39 widens the byte, the cooldown icon's own timer is the honest tell.
+// where they are hard to tell from any other source of damage. Until it gets
+// its pip (plan-effect-types-round-2.md C2), the cooldown icon's own timer is
+// the honest tell.
 func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 
 // D6: the stun borrows the SLOW bit rather than widening the wire for one

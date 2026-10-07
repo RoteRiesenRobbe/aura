@@ -167,7 +167,7 @@ auraCategory():number {
 
 appliedEffects():number {
   const offset = this.bb!.__offset(this.bb_pos, 64);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 costPaid():number {
@@ -307,7 +307,7 @@ static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
 }
 
 static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
-  builder.addFieldInt8(30, appliedEffects, 0);
+  builder.addFieldInt16(30, appliedEffects, 0);
 }
 
 static addCostPaid(builder:flatbuffers.Builder, costPaid:number) {

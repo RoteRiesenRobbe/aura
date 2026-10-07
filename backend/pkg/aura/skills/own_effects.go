@@ -16,7 +16,7 @@ import "sort"
 // ⚑ Which side a circle sits on (D13: Slow, Dot and Stun harmful, the rest
 // beneficial) is the CLIENT's rule. The server has no reason to know and
 // deliberately does not restate it.
-type EffectKind uint16
+type EffectKind uint32
 
 const (
 	EffectKindResist    EffectKind = 1 << 0

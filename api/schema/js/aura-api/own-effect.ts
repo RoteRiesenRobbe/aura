@@ -20,12 +20,12 @@ skillId():number {
   return this.bb!.readUint16(this.bb_pos);
 }
 
-kinds():EffectKind {
+totalTicks():number {
   return this.bb!.readUint16(this.bb_pos + 2);
 }
 
-totalTicks():number {
-  return this.bb!.readUint16(this.bb_pos + 4);
+kinds():EffectKind {
+  return this.bb!.readUint32(this.bb_pos + 4);
 }
 
 caster():bigint {
@@ -40,13 +40,12 @@ static sizeOf():number {
   return 24;
 }
 
-static createOwnEffect(builder:flatbuffers.Builder, skill_id: number, kinds: EffectKind, total_ticks: number, caster: bigint, expires_tick: bigint):flatbuffers.Offset {
+static createOwnEffect(builder:flatbuffers.Builder, skill_id: number, total_ticks: number, kinds: EffectKind, caster: bigint, expires_tick: bigint):flatbuffers.Offset {
   builder.prep(8, 24);
   builder.writeInt64(BigInt(expires_tick ?? 0));
   builder.writeInt64(BigInt(caster ?? 0));
-  builder.pad(2);
+  builder.writeInt32(kinds);
   builder.writeInt16(total_ticks);
-  builder.writeInt16(kinds);
   builder.writeInt16(skill_id);
   return builder.offset();
 }

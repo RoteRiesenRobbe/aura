@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07 (planning session, docs only,
-nothing built). D1-D9 PO-ruled, D11-D27 mine (flag if wrong). 8 chunks, C0
+nothing built). D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8 chunks, C0
 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -281,6 +281,15 @@ does not compile.
   `SharedConstants.test.ts`, `BuffTray.test.ts`.
 - **Byte-identical gameplay**; the wire grows by a few bytes per entity snapshot (1 per
   `applied_effects`, 2 per `EffectKind` entry).
+- ⚑ **As built:** `OwnEffect` is a STRUCT, and a `uint` `kinds` between two
+  ushorts padded it from 24 to 32 bytes per tray entry. C0 moved `kinds` after
+  `total_ticks` (`skill_id`, `total_ticks`, `kinds`, `caster`, `expires_tick`),
+  so the struct stays 24 bytes and an `EffectKind` entry costs nothing extra.
+  `CreateOwnEffect`'s argument order changed with it (one caller,
+  `codec/gamestate.go`). The client needed no source change: it reads both
+  fields as plain numbers. The shared-constants pin's casts widened too
+  (`uint8` to `uint16`, `uint16` to `uint32`), or C1's bit 8 would have been
+  cut off silently in the test.
 
 ### C1 - stat buff/debuff on others + the threat stat
 
@@ -422,7 +431,7 @@ None blocking. Raised at execution if they come up:
 
 | Chunk | What | Wire | Status |
 |---|---|---|---|
-| C0 | Widen `applied_effects` + `EffectKind` | YES | not started |
+| C0 | Widen `applied_effects` + `EffectKind` | YES | BUILT 2026-10-07, uncommitted (see §6 C0 "As built") |
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | not started |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
 | C3 | Charge | none | not started |

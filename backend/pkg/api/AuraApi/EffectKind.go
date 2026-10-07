@@ -4,7 +4,7 @@ package AuraApi
 
 import "strconv"
 
-type EffectKind uint16
+type EffectKind uint32
 
 const (
 	EffectKindResist    EffectKind = 1

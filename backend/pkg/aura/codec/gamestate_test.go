@@ -2,6 +2,7 @@ package codec
 
 import (
 	"github.com/EngoEngine/ecs"
+	"reflect"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
@@ -1061,4 +1062,22 @@ func TestEffectKind_MirrorsTheWireEnum(t *testing.T) {
 		assert.Equal(t, wireKind, AuraApi.EffectKind(goKind), "%s", wireKind)
 	}
 	assert.Len(t, AuraApi.EnumNamesEffectKind, len(pairs), "a new kind needs a skills constant too")
+}
+
+// The two presence bitfields have room for effect types round 2
+// (plan-effect-types-round-2.md C0): applied_effects was a full ubyte and
+// EffectKind 12 of 16 bits. The Go mirror and the wire field must be the SAME
+// width, or the marshal cast silently drops the high bits.
+func TestPresenceBitfields_GoMirrorMatchesTheWireWidth(t *testing.T) {
+	var mob AuraApi.Mob
+	var character AuraApi.Character
+	var own AuraApi.OwnEffect
+	applied := reflect.TypeOf(skills.AppliedEffect(0)).Size()
+	kind := reflect.TypeOf(skills.EffectKind(0)).Size()
+
+	assert.Equal(t, uintptr(2), applied, "applied_effects is 16 bits wide")
+	assert.Equal(t, uintptr(4), kind, "EffectKind is 32 bits wide")
+	assert.Equal(t, applied, reflect.TypeOf(mob.AppliedEffects).Out(0).Size(), "Mob.applied_effects")
+	assert.Equal(t, applied, reflect.TypeOf(character.AppliedEffects).Out(0).Size(), "Character.applied_effects")
+	assert.Equal(t, kind, reflect.TypeOf(own.Kinds).Out(0).Size(), "OwnEffect.kinds")
 }

@@ -26,18 +26,18 @@ func (rcv *OwnEffect) MutateSkillId(n uint16) bool {
 	return rcv._tab.MutateUint16(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
 }
 
-func (rcv *OwnEffect) Kinds() EffectKind {
-	return EffectKind(rcv._tab.GetUint16(rcv._tab.Pos + flatbuffers.UOffsetT(2)))
-}
-func (rcv *OwnEffect) MutateKinds(n EffectKind) bool {
-	return rcv._tab.MutateUint16(rcv._tab.Pos+flatbuffers.UOffsetT(2), uint16(n))
-}
-
 func (rcv *OwnEffect) TotalTicks() uint16 {
-	return rcv._tab.GetUint16(rcv._tab.Pos + flatbuffers.UOffsetT(4))
+	return rcv._tab.GetUint16(rcv._tab.Pos + flatbuffers.UOffsetT(2))
 }
 func (rcv *OwnEffect) MutateTotalTicks(n uint16) bool {
-	return rcv._tab.MutateUint16(rcv._tab.Pos+flatbuffers.UOffsetT(4), n)
+	return rcv._tab.MutateUint16(rcv._tab.Pos+flatbuffers.UOffsetT(2), n)
+}
+
+func (rcv *OwnEffect) Kinds() EffectKind {
+	return EffectKind(rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(4)))
+}
+func (rcv *OwnEffect) MutateKinds(n EffectKind) bool {
+	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(4), uint32(n))
 }
 
 func (rcv *OwnEffect) Caster() uint64 {
@@ -54,13 +54,12 @@ func (rcv *OwnEffect) MutateExpiresTick(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(16), n)
 }
 
-func CreateOwnEffect(builder *flatbuffers.Builder, skillId uint16, kinds EffectKind, totalTicks uint16, caster uint64, expiresTick uint64) flatbuffers.UOffsetT {
+func CreateOwnEffect(builder *flatbuffers.Builder, skillId uint16, totalTicks uint16, kinds EffectKind, caster uint64, expiresTick uint64) flatbuffers.UOffsetT {
 	builder.Prep(8, 24)
 	builder.PrependUint64(expiresTick)
 	builder.PrependUint64(caster)
-	builder.Pad(2)
+	builder.PrependUint32(uint32(kinds))
 	builder.PrependUint16(totalTicks)
-	builder.PrependUint16(uint16(kinds))
 	builder.PrependUint16(skillId)
 	return builder.Offset()
 }

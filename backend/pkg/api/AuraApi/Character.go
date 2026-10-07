@@ -353,16 +353,16 @@ func (rcv *Character) MutateAuraCategory(n byte) bool {
 	return rcv._tab.MutateByteSlot(62, n)
 }
 
-func (rcv *Character) AppliedEffects() byte {
+func (rcv *Character) AppliedEffects() uint16 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
 	if o != 0 {
-		return rcv._tab.GetByte(o + rcv._tab.Pos)
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Character) MutateAppliedEffects(n byte) bool {
-	return rcv._tab.MutateByteSlot(64, n)
+func (rcv *Character) MutateAppliedEffects(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(64, n)
 }
 
 func (rcv *Character) CostPaid() uint32 {
@@ -495,8 +495,8 @@ func CharacterAddAuraTickPhase(builder *flatbuffers.Builder, auraTickPhase uint1
 func CharacterAddAuraCategory(builder *flatbuffers.Builder, auraCategory byte) {
 	builder.PrependByteSlot(29, auraCategory, 0)
 }
-func CharacterAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
-	builder.PrependByteSlot(30, appliedEffects, 0)
+func CharacterAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects uint16) {
+	builder.PrependUint16Slot(30, appliedEffects, 0)
 }
 func CharacterAddCostPaid(builder *flatbuffers.Builder, costPaid uint32) {
 	builder.PrependUint32Slot(31, costPaid, 0)

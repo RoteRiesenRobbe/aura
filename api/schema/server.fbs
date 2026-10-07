@@ -480,7 +480,7 @@ table Mob {
   // the client draws the buff/debuff pips from it. Shields are deliberately
   // absent: shield_hp already carries them. Appended at table end so existing
   // field IDs stay stable.
-  applied_effects:ubyte = 0;
+  applied_effects:ushort = 0;
 
   // EFFECTIVE combat level of this mob instance (plan-mob-levels.md C2), i.e.
   // the server's live Mob.Level() — owner ?? spawn override ?? species
@@ -632,7 +632,7 @@ table Character {
   // (plan-buff-tray.md D10), so the own value is sent and ignored. Shields are
   // deliberately absent (shield_hp already carries them). Appended at the
   // table end so existing field IDs stay stable.
-  applied_effects:ubyte = 0;
+  applied_effects:ushort = 0;
 
   // Resource cost paid this tick (round-7 item 7): the damage_taken twin for
   // what the player SPENT rather than what hit them. Same absolute-HP scale,
@@ -896,7 +896,7 @@ table MapFog {
 // a slow draws as a buff. Which side a circle sits on is the CLIENT's rule
 // (D13: Slow, Dot and Stun are harmful, the rest beneficial); nothing here
 // says so, because the server has no reason to know.
-enum EffectKind : ushort (bit_flags) {
+enum EffectKind : uint (bit_flags) {
   Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm
 }
 
@@ -917,8 +917,8 @@ enum EffectKind : ushort (bit_flags) {
 // bog: a disjoint range above 2^32, world.PlacedAreaEffect.ID), or 0.
 struct OwnEffect {
   skill_id:ushort;
-  kinds:EffectKind;     // the union of EffectKind bits live under this circle
   total_ticks:ushort;   // the lifetime the longest stream started with; a refresh resets it (D2)
+  kinds:EffectKind;     // the union of EffectKind bits live under this circle (after total_ticks so the uint packs without padding)
   caster:ulong;         // see above; 0 = the skill's shared circle
   expires_tick:ulong;   // the server tick the longest stream ends on; GameState.tick is the clock
 }

@@ -135,7 +135,7 @@ tier():number {
 
 appliedEffects():number {
   const offset = this.bb!.__offset(this.bb_pos, 50);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 level():number {
@@ -241,7 +241,7 @@ static addTier(builder:flatbuffers.Builder, tier:number) {
 }
 
 static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
-  builder.addFieldInt8(23, appliedEffects, 0);
+  builder.addFieldInt16(23, appliedEffects, 0);
 }
 
 static addLevel(builder:flatbuffers.Builder, level:number) {

@@ -29,8 +29,8 @@ import (
 // spelled out — a NEW bit therefore needs a fixture entry, this map, and the
 // client table (whose test IS exhaustive over its enum) touched together.
 type sharedConstants struct {
-	AppliedEffectBits map[string]uint8  `json:"appliedEffectBits"`
-	EffectKindBits    map[string]uint16 `json:"effectKindBits"`
+	AppliedEffectBits map[string]uint16 `json:"appliedEffectBits"`
+	EffectKindBits    map[string]uint32 `json:"effectKindBits"`
 	AuraCategoryBits  map[string]uint8  `json:"auraCategoryBits"`
 	TierRanks         map[string]uint8  `json:"tierRanks"`
 	ViewportMeters    struct {
@@ -141,31 +141,31 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 	var fixture sharedConstants
 	require.NoError(t, json.Unmarshal(raw, &fixture))
 
-	assert.Equal(t, map[string]uint8{
-		"dot":      uint8(skills.AppliedEffectDot),
-		"slow":     uint8(skills.AppliedEffectSlow),
-		"hot":      uint8(skills.AppliedEffectHot),
-		"resist":   uint8(skills.AppliedEffectResist),
-		"tickRate": uint8(skills.AppliedEffectTickRate),
-		"calm":     uint8(skills.AppliedEffectCalm),
-		"charm":    uint8(skills.AppliedEffectCharm),
-		"speed":    uint8(skills.AppliedEffectSpeed),
+	assert.Equal(t, map[string]uint16{
+		"dot":      uint16(skills.AppliedEffectDot),
+		"slow":     uint16(skills.AppliedEffectSlow),
+		"hot":      uint16(skills.AppliedEffectHot),
+		"resist":   uint16(skills.AppliedEffectResist),
+		"tickRate": uint16(skills.AppliedEffectTickRate),
+		"calm":     uint16(skills.AppliedEffectCalm),
+		"charm":    uint16(skills.AppliedEffectCharm),
+		"speed":    uint16(skills.AppliedEffectSpeed),
 	}, fixture.AppliedEffectBits,
 		"skills.AppliedEffect has drifted from api/shared-constants.json — the client colors pips off these bits")
 
-	assert.Equal(t, map[string]uint16{
-		"resist":    uint16(skills.EffectKindResist),
-		"slow":      uint16(skills.EffectKindSlow),
-		"speed":     uint16(skills.EffectKindSpeed),
-		"lifesteal": uint16(skills.EffectKindLifesteal),
-		"reflect":   uint16(skills.EffectKindReflect),
-		"tickRate":  uint16(skills.EffectKindTickRate),
-		"dot":       uint16(skills.EffectKindDot),
-		"hot":       uint16(skills.EffectKindHot),
-		"shield":    uint16(skills.EffectKindShield),
-		"calm":      uint16(skills.EffectKindCalm),
-		"stun":      uint16(skills.EffectKindStun),
-		"charm":     uint16(skills.EffectKindCharm),
+	assert.Equal(t, map[string]uint32{
+		"resist":    uint32(skills.EffectKindResist),
+		"slow":      uint32(skills.EffectKindSlow),
+		"speed":     uint32(skills.EffectKindSpeed),
+		"lifesteal": uint32(skills.EffectKindLifesteal),
+		"reflect":   uint32(skills.EffectKindReflect),
+		"tickRate":  uint32(skills.EffectKindTickRate),
+		"dot":       uint32(skills.EffectKindDot),
+		"hot":       uint32(skills.EffectKindHot),
+		"shield":    uint32(skills.EffectKindShield),
+		"calm":      uint32(skills.EffectKindCalm),
+		"stun":      uint32(skills.EffectKindStun),
+		"charm":     uint32(skills.EffectKindCharm),
 	}, fixture.EffectKindBits,
 		"skills.EffectKind has drifted from api/shared-constants.json: the buff tray sides and names circles off these bits")
 
