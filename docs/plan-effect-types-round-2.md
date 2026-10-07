@@ -347,7 +347,7 @@ does not compile.
   copy it.
 - Wire: none.
 - Example: a warrior-style charge + 1 s stun.
-- ⚑ **As built (2026-10-07):**
+- ⚑ **As built (2026-10-07, `d9a0b2ac`):**
   - `charge` authors `radius` / `radiusPerLevel` only (the key table's
     `keysGeometry`): no selector, cap or target flags, so the pick cannot be
     authored wrong. It is payload-less, like `recall`. Cooldown only.
@@ -504,7 +504,7 @@ None blocking. Raised at execution if they come up:
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
-| C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 (see §6 C3 "As built") |
+| C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | not started |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
