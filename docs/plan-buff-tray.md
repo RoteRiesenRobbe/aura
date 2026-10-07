@@ -2,7 +2,7 @@
 
 > **Status: C1 (server) BUILT 2026-10-02, C2 (client desktop) + C0 BUILT
 > 2026-10-03/04 `116a9519` with the D19 + D20 look round, PO second look passed
-> 2026-10-06; C3 (client phone + always-on) BUILT 2026-10-07 [uncommitted]
+> 2026-10-06; C3 (client phone + always-on) BUILT 2026-10-07 `dc500f13`
 > with D21 (the phone shape), see §11. Owed: the real-phone check (deferred to
 > the next live deploy, PO 2026-10-07); world effects' tenants belong to
 > `plan-world-effects.md` C2.
@@ -709,7 +709,7 @@ tenants need a second feed into `TrayState` (passives from `passive_slots`,
 drawbacks from the active aura's definition) since they carry no expiry, at
 the OUTER end of each box (P5). Harness legs under `?mobile` per §7.
 
-### C3 (client, phone + always-on) ✅ BUILT 2026-10-07 [uncommitted]
+### C3 (client, phone + always-on) ✅ BUILT 2026-10-07 `dc500f13`
 
 What shipped, against §7's row, with the one ruling the session took (D21)
 and what it found:
