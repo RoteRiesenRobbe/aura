@@ -30,6 +30,7 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "wolves" },
+          { "text": "About the dire wolves...", "next": "wolves_running" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
@@ -48,7 +49,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "wolves_running",
+        "lines": [
+          "The dire wolves?"
+        ],
+        "options": [
           {
             "text": "I killed the 4 dire wolves.",
             "grants": [
@@ -65,7 +74,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "wolves_on_it"
           }
+        ]
+      },
+      {
+        "id": "wolves_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "dire-wolves-in-the-forest",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 4 dire wolves in the dark forest, then come back to me."
         ]
       },
       {

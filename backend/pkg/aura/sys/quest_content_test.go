@@ -134,3 +134,185 @@ func TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack(t *testing.T) {
 	assert.Contains(t, root, ratsOffer)
 	assert.NotContains(t, root, ratsProgress)
 }
+
+// The two-row shape on EVERY quest (plan-quest-dialogue.md C3, L5): for each
+// node holding a quest's turn-in, the rows leading there are absent before the
+// accept, present at the working stage and at the report stage, and gone after
+// the turn-in; the rows leading to the quest's offer node show only before the
+// accept. A turn-in on an entry node (a node no row leads to) is the old
+// one-node shape's leftover, or a giver that skipped the progress row.
+//
+// Exempt by name, each a PO ruling: the Grandfather Knot's two quests keep their
+// flow (D13); `eliza-sends-me` has no brief and turns in on Reinhard's root
+// (D17); `wolves-on-the-road` turns in on root at two NPCs that did not give it
+// (D18; its giver, the Town Crier, is walked by the offer half).
+var twoRowExempt = map[string]bool{
+	"clear-the-grove":    true,
+	"the-sleeping-roots": true,
+	"eliza-sends-me":     true,
+	"wolves-on-the-road": true,
+}
+
+type questSite struct {
+	mob    *mobs.MobDefinition
+	nodeID string
+	grant  mobs.InteractionGrant
+}
+
+// questSites finds every node carrying a quest grant of the given kind, and
+// which nodes are entry nodes (no authored row leads to them).
+func questSites(mr mobs.Registry, kind mobs.GrantKind) ([]questSite, map[*mobs.MobDefinition]map[string]bool) {
+	var sites []questSite
+	entries := map[*mobs.MobDefinition]map[string]bool{}
+	for _, m := range mr.Mobs() {
+		if m.Interaction == nil {
+			continue
+		}
+		led := map[string]bool{}
+		for _, n := range m.Interaction.Nodes {
+			for _, o := range n.Options {
+				if o.Next != "" {
+					led[o.Next] = true
+				}
+			}
+		}
+		entries[m] = map[string]bool{}
+		for _, n := range m.Interaction.Nodes {
+			if !led[n.ID] {
+				entries[m][n.ID] = true
+			}
+			for _, o := range n.Options {
+				for _, g := range o.Grants {
+					if g.Kind == kind {
+						sites = append(sites, questSite{mob: m, nodeID: n.ID, grant: g})
+					}
+				}
+			}
+		}
+	}
+	return sites, entries
+}
+
+// rowsInto reports whether any presented row, on any presented node, leads to
+// nodeID: that is the root row the dead-end prune keeps or takes away, whichever
+// entry node (Eliza's root_fed, the traveller's root_lit) is speaking.
+func rowsInto(c *model.Conversation, nodeID string) bool {
+	for _, n := range c.Nodes {
+		for _, o := range n.Options {
+			if o.Next == nodeID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestContent_EveryQuestTurnsInBehindAProgressRow(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	turnIns, entries := questSites(mr, mobs.GrantAdvanceQuest)
+	require.NotEmpty(t, turnIns)
+
+	for _, s := range turnIns {
+		q, err := qr.Get(s.grant.Quest)
+		require.NoError(t, err)
+		if twoRowExempt[q.ID] {
+			continue
+		}
+		name := s.mob.Name + "/" + q.ID
+		t.Run(name, func(t *testing.T) {
+			in := s.mob.Interaction
+			require.False(t, entries[s.mob][s.nodeID],
+				"the turn-in sits on entry node %q: move it to a progress node behind an \"About the ...\" row", s.nodeID)
+
+			p := newLearner(30)
+			p.ledger = quests.NewLedger(qr)
+			shows := func() bool { return rowsInto(present(in, p, noRows, noTravel), s.nodeID) }
+
+			assert.False(t, shows(), "before the accept the progress row is hidden")
+
+			require.NoError(t, p.ledger.Accept(q.ID))
+			assert.True(t, shows(), "at the working stage the progress row shows (author \"I am on it.\" gated on the stage)")
+
+			p.ledger.Restore(quests.LedgerState{Quests: map[string]quests.Progress{
+				q.ID: {Path: []string{q.Stages[0].ID, s.grant.FromStage}, Running: true},
+			}})
+			require.True(t, p.ledger.MatchesStage(q.ID, s.grant.FromStage))
+			require.True(t, shows(), "at the report stage the progress row shows")
+
+			click := func() {
+				for _, r := range rowsOf(t, present(in, p, noRows, noTravel), s.nodeID) {
+					if r.GrantIndex == 0 && in.Nodes[nodeIndex(t, in, s.nodeID)].Options[r.OptionIndex].Grants[0].Quest == q.ID {
+						_, _, ok := applyGrant(in, p, noRows, noTravel, s.nodeID, int(r.OptionIndex), int(r.GrantIndex))
+						require.True(t, ok)
+						return
+					}
+				}
+				t.Fatalf("no turn-in row presented on %q", s.nodeID)
+			}
+			click()
+			_, running, completed := p.ledger.Progress(q.ID)
+			require.True(t, completed && !running)
+			assert.False(t, shows(), "after the turn-in the progress row is gone (D15/D16)")
+		})
+	}
+}
+
+func TestContent_EveryQuestOfferRowLeavesWithTheAccept(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	offers, entries := questSites(mr, mobs.GrantOfferQuest)
+	require.NotEmpty(t, offers)
+
+	for _, s := range offers {
+		q, err := qr.Get(s.grant.Quest)
+		require.NoError(t, err)
+		if twoRowExempt[q.ID] && q.ID != "wolves-on-the-road" {
+			continue
+		}
+		t.Run(s.mob.Name+"/"+q.ID, func(t *testing.T) {
+			in := s.mob.Interaction
+			require.False(t, entries[s.mob][s.nodeID], "the offer sits on entry node %q", s.nodeID)
+
+			p := newLearner(30)
+			p.ledger = quests.NewLedger(qr)
+			shows := func() bool { return rowsInto(present(in, p, noRows, noTravel), s.nodeID) }
+
+			assert.True(t, shows(), "before the accept the offer row shows")
+			require.NoError(t, p.ledger.Accept(q.ID))
+			assert.False(t, shows(), "the offer row leaves with the accept: the offer node holds only Accept")
+		})
+	}
+}
+
+func nodeIndex(t *testing.T, in *mobs.Interaction, id string) int {
+	t.Helper()
+	for i, n := range in.Nodes {
+		if n.ID == id {
+			return i
+		}
+	}
+	t.Fatalf("no node %q", id)
+	return -1
+}
+
+// The Town Crier gives `wolves-on-the-road` but turns it in nowhere (D18: the
+// City Guard and the Shaman take it on root), so the turn-in walk never sees
+// his progress row: it shows while the wolves are hunted, and leaves when the
+// word is to be carried elsewhere.
+func TestContent_TheCriersWolvesRowLastsTheHunt(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	crier, err := mr.GetByName("TownCrier")
+	require.NoError(t, err)
+	in := crier.Interaction
+
+	p := newLearner(30)
+	p.ledger = quests.NewLedger(qr)
+	shows := func() bool { return rowsInto(present(in, p, noRows, noTravel), "wolves_running") }
+
+	assert.False(t, shows(), "before the accept")
+	require.NoError(t, p.ledger.Accept("wolves-on-the-road"))
+	assert.True(t, shows(), "while the wolves are hunted")
+	p.ledger.Restore(quests.LedgerState{Quests: map[string]quests.Progress{
+		"wolves-on-the-road": {Path: []string{"thin", "carry_word"}, Running: true},
+	}})
+	assert.False(t, shows(), "once the word goes to the Guard or the Shaman")
+}

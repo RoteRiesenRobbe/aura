@@ -29,6 +29,7 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "alphawolves" },
+          { "text": "About the alpha wolves...", "next": "alphawolves_running" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
@@ -47,7 +48,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "alphawolves_running",
+        "lines": [
+          "The alpha wolves?"
+        ],
+        "options": [
           {
             "text": "I killed the 5 alpha wolves.",
             "grants": [
@@ -64,7 +73,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "alphawolves_on_it"
           }
+        ]
+      },
+      {
+        "id": "alphawolves_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "alpha-wolves-at-the-village",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 5 alpha wolves around the village, then come back to me."
         ]
       },
       {

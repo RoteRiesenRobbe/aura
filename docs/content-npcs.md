@@ -68,6 +68,13 @@ and reference the quest (D11), so this table is the only place the world's quest
 wiring reads as one picture. Diary prose lives in `api/quests/*.json`; rewards
 live in the NPCs' `interaction` blocks and are served by nothing.
 
+⭐ Every giver below carries its quest in the **two-row shape** since
+plan-quest-dialogue.md C3 (2026-10-07): an offer row before the accept, an
+"About the ..." progress row while it runs, both gone after the turn-in
+(manual §6). Exceptions by PO ruling: the Grandfather Knot (D13),
+`eliza-sends-me` (D17), and the City Guard's and the Shaman's `wolves-on-the-road`
+turn-ins, which sit on root (D18).
+
 | NPC | quest | role |
 |---|---|---|
 | Hermit | `village-welcome` | offers **and** turns in — the talk_to tutorial, and the quest that meets D3's retroactive credit head-on (most players have already met both targets, so it cascades on accept) |

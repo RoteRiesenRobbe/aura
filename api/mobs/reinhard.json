@@ -46,8 +46,16 @@
             "next": "turnips"
           },
           {
+            "text": "About the turnips...",
+            "next": "turnips_running"
+          },
+          {
             "text": "Anything else that needs doing?",
             "next": "boars"
+          },
+          {
+            "text": "About the boars...",
+            "next": "boars_running"
           },
           {
             "text": "Anything in the barn?",
@@ -79,7 +87,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "turnips_running",
+        "lines": [
+          "The turnips?"
+        ],
+        "options": [
           {
             "text": "I harvested the 5 turnips.",
             "grants": [
@@ -96,7 +112,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "turnips_on_it"
           }
+        ]
+      },
+      {
+        "id": "turnips_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "turnip-chore",
+            "stage": "pull"
+          }
+        ],
+        "lines": [
+          "Harvest 5 turnips from the row north of here, then come back to me."
         ]
       },
       {
@@ -114,7 +147,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "boars_running",
+        "lines": [
+          "The boars?"
+        ],
+        "options": [
           {
             "text": "I killed the 6 boars.",
             "grants": [
@@ -131,7 +172,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "boars_on_it"
           }
+        ]
+      },
+      {
+        "id": "boars_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "boars-in-the-field",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 6 boars in the fields around the farm, then come back to me."
         ]
       },
       {

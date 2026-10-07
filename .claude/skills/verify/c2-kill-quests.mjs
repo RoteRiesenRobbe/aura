@@ -299,8 +299,10 @@ try {
   // be read - sampling here used to return null and score the show-rule red.
   await page.keyboard.press('KeyJ');
   const reOpened = await talkTo('City Guard');
-  check('A4 the Accept row VANISHED the moment the quest started (Q1 show-rule)',
-    reOpened !== null && !reOpened.rows.some((r) => r.includes("I'll do it")),
+  check('A4 the root rows SWAPPED with the accept: the offer row left, "About the bears..." came (two-row shape)',
+    reOpened !== null
+    && !reOpened.rows.some((r) => r.includes('Do you have a task for me'))
+    && reOpened.rows.some((r) => r.includes('About the bears')),
     `rows=${JSON.stringify(reOpened?.rows)}`);
   await leave();
 
@@ -333,9 +335,9 @@ try {
 
     await warpTo(AT.CityGuard);
     await talkTo('City Guard');
-    await clickRow('Do you have a task for me');
+    await clickRow('About the bears');
     const turnIn = await panel();
-    check('A8 the turn-in row appeared behind the same row, exactly when walkable (show-rule)',
+    check('A8 the turn-in row appeared behind the progress row, exactly when walkable (show-rule)',
       turnIn?.rows.some((r) => r.includes('I killed the 5 bears'))
       && !turnIn.rows.some((r) => r.includes("I'll do it")),
       `rows=${JSON.stringify(turnIn?.rows)}`);
@@ -351,10 +353,10 @@ try {
     // Same C2 D1 consequence as A4: the journal read above left the Guard.
     await page.keyboard.press('KeyJ');
     const after = await talkTo('City Guard');
-    check('A10 the row is CLOSED after completion — no re-accept, no second payment (show-rule)',
+    check('A10 BOTH bear rows are gone after the turn-in: no re-accept, no second payment (D15/D16)',
       after !== null
-      && !after.rows.some((r) => r.includes('I killed the 5 bears'))
-      && !after.rows.some((r) => r.includes("I'll do it")),
+      && !after.rows.some((r) => r.includes('Do you have a task for me'))
+      && !after.rows.some((r) => r.includes('About the bears')),
       `rows=${JSON.stringify(after?.rows)}`);
     await leave();
   }

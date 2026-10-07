@@ -29,13 +29,14 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "welcome" },
+          { "text": "About the village...", "next": "welcome_running" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          "Talk to the Farmer and the Town Crier, then come back to me."
+          "Talk to Reinhard and the Town Crier, then come back to me."
         ],
         "options": [
           {
@@ -47,9 +48,17 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "welcome_running",
+        "lines": [
+          "The village?"
+        ],
+        "options": [
           {
-            "text": "I talked to the Farmer and the Town Crier.",
+            "text": "I talked to Reinhard and the Town Crier.",
             "grants": [
               {
                 "kind": "advance_quest",
@@ -64,7 +73,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "welcome_on_it"
           }
+        ]
+      },
+      {
+        "id": "welcome_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "village-welcome",
+            "stage": "meet"
+          }
+        ],
+        "lines": [
+          "Talk to Reinhard and the Town Crier, then come back to me."
         ]
       },
       {

@@ -32,6 +32,10 @@
           {
             "text": "Do you have a task for me?",
             "next": "strays"
+          },
+          {
+            "text": "About your sheep...",
+            "next": "strays_running"
           }
         ]
       },
@@ -52,7 +56,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "strays_running",
+        "lines": [
+          "My sheep?"
+        ],
+        "options": [
           {
             "text": "I found Baabara, Woolliam and Lambert, and the dog.",
             "grants": [
@@ -69,7 +81,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "strays_on_it"
           }
+        ]
+      },
+      {
+        "id": "strays_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-strays",
+            "stage": "find"
+          }
+        ],
+        "lines": [
+          "Baabara, Woolliam and Lambert, and the dog. Find them on the pasture, then come back to me."
         ]
       }
     ]

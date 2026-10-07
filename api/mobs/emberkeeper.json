@@ -30,6 +30,7 @@
         ],
         "options": [
           {"text": "Do you have a task for me?", "next": "bandits"},
+          { "text": "About the bandits...", "next": "bandits_running" },
           {"text": "Teach me something.", "next": "teachings"},
           {"text": "Anything new around here?", "next": "news"},
           {"text": "Where can I find...", "next": "directions"}
@@ -50,7 +51,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "bandits_running",
+        "lines": [
+          "The bandits?"
+        ],
+        "options": [
           {
             "text": "I killed the 6 bandits.",
             "grants": [
@@ -67,7 +76,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "bandits_on_it"
           }
+        ]
+      },
+      {
+        "id": "bandits_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "bandits-at-the-shrine",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 6 bandits from the camp east of here, then come back to me."
         ]
       },
       {

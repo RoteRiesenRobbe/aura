@@ -233,7 +233,11 @@ if (!w1) {
   if (!w2) {
     check('E the Wanderer was found again', false, 'INCONCLUSIVE — not inside talk range; re-run');
   } else {
-    await clickRow('Are you travelling alone?');
+    // quest dialogue C3: the offer row left with the accept; the turn-in sits
+    // behind the progress row now.
+    check('E0 the offer row is gone and "About your friend..." stands in its place',
+      !w2.rows.includes('Are you travelling alone?') && w2.rows.includes('About your friend...'), JSON.stringify(w2.rows));
+    await clickRow('About your friend...');
     check('E1 the turn-in row is offered and taken', await clickRow('I found him. He is dead.'), JSON.stringify(await panel()));
     check('E2 the quest is completed',
       await waitFor(async () => (await journalObjectives()).completed.includes('The Lost Friend')), JSON.stringify(await journalObjectives()));

@@ -30,7 +30,9 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "sounder" },
-          { "text": "Anything else?", "next": "ring" }
+          { "text": "About the boars at the mill...", "next": "sounder_running" },
+          { "text": "Anything else?", "next": "ring" },
+          { "text": "About your ring...", "next": "ring_running" }
         ]
       },
       {
@@ -50,7 +52,15 @@
                 "line": "Thank you."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "ring_running",
+        "lines": [
+          "My ring?"
+        ],
+        "options": [
           {
             "text": "I found your ring.",
             "grants": [
@@ -67,7 +77,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "ring_on_it"
           }
+        ]
+      },
+      {
+        "id": "ring_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-millers-ring",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          "On the beach north of the farmland. Look under the seaweed."
         ]
       },
       {
@@ -87,7 +114,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "sounder_running",
+        "lines": [
+          "The sounder?"
+        ],
+        "options": [
           {
             "text": "I killed the alpha boar.",
             "grants": [
@@ -104,7 +139,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "sounder_on_it"
           }
+        ]
+      },
+      {
+        "id": "sounder_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sounder-at-the-mill",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill the big one by the mill. The rest will scatter."
         ]
       }
     ]

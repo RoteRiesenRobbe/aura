@@ -29,6 +29,7 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "orcs" },
+          { "text": "About the orcs...", "next": "orcs_running" },
           { "text": "How do I bring down the Orc Commander?", "next": "commander" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
@@ -48,7 +49,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "orcs_running",
+        "lines": [
+          "The orcs?"
+        ],
+        "options": [
           {
             "text": "I killed the 5 orcs.",
             "grants": [
@@ -65,7 +74,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "orcs_on_it"
           }
+        ]
+      },
+      {
+        "id": "orcs_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "thin-the-orc-line",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 5 orcs on the front line south of here, then come back to me."
         ]
       },
       {

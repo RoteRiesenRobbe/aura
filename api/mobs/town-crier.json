@@ -30,6 +30,7 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "wolves" },
+          { "text": "About the wolves...", "next": "wolves_running" },
           { "text": "Who else should I speak to?", "next": "news_who" }
         ]
       },
@@ -53,9 +54,34 @@
         ]
       },
       {
+        "id": "wolves_running",
+        "lines": [
+          "The wolves?"
+        ],
+        "options": [
+          {
+            "text": "I am on it.",
+            "next": "wolves_on_it"
+          }
+        ]
+      },
+      {
+        "id": "wolves_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "wolves-on-the-road",
+            "stage": "thin"
+          }
+        ],
+        "lines": [
+          "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman."
+        ]
+      },
+      {
         "id": "news_who",
         "lines": [
-          "Talk to the Hermit and the Farmer."
+          "Talk to the Hermit and Reinhard."
         ]
       }
     ]

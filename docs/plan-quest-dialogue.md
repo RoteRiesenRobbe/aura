@@ -1,7 +1,7 @@
 # Plan - quest dialogue: an any/all toggle on conditions, and the two-row quest shape
 
-**Status:** DESIGNED + PO-RULED 2026-10-06; **C1 + C2 BUILT 2026-10-06/07**
-(§10), C3 next. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
+**Status:** DESIGNED + PO-RULED 2026-10-06; **C1 + C2 + C3 BUILT
+2026-10-06/07** (§10), C3's PO walk owed. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
 day; D5-D12 are mine, flag if wrong. Three chunks: C1 engine + editor, C2 the rats example, C3 every
 other quest. **Schema: DB NONE · wire NONE · conf NONE · content +1 optional
 key on dialogue nodes and ascension entries (`conditionsMode`), then a content
@@ -75,6 +75,18 @@ kinds, the same sentinels.
   turn-in is the norm for the vast majority of quests, NOT an engine rule; a
   quest that wants a question afterwards still authors the `any` gate. No
   shipped content uses `any` after C2.
+- **D17 (PO 2026-10-07, C3 planning) - `eliza-sends-me` stays as it is.** The
+  R2 reach quest (the 22nd file, after the §6 survey) has no brief node: a bare
+  offer row on Eliza, the turn-in "Eliza sends me." on Reinhard's root. Nothing
+  to ask about it; the C3 walk test exempts it by name, beside the Knot.
+- **D18 (PO 2026-10-07) - a foreign turn-in stays on root.** The City Guard's
+  and the Shaman's `wolves-on-the-road` turn-ins (neither gave the quest) keep
+  the manual's rule and sit directly on root, shown only at `carry_word`. Only
+  the Town Crier, the giver, gets a progress row. This amends §6's "progress
+  rows on the City Guard and the Shaman".
+- **D19 (PO 2026-10-07) - "Farmer" becomes "Reinhard" in C3.** The Hermit's
+  brief and turn-in row and the Crier's `news_who` still name the pre-2026-09-23
+  actor; fixed in passing, the chunkC4 harness's "Farmer" leg with them.
 
 ## 4. Design decisions (mine)
 
@@ -222,6 +234,65 @@ checklist points at it; `content-npcs.md` Quest roles; the `verify` skill's
 coverage-map rows for `chunkC4-quests`, `c1-kill-quests` and `c2-kill-quests`
 (they describe the row texts the legs click).
 
+**C3 detailed (planned 2026-10-07, D17-D19 ruled; supersedes the Crier line
+above).** 18 quests on 15 files.
+
+- **Per quest:** the existing quest node becomes the offer node (brief +
+  Accept; its root row keeps its text). A new root row "About the ..." leads to
+  a new `<q>_running` node holding the turn-in row, moved byte for byte (grants,
+  XP, taught skill, Eliza's trailing `offer_quest` for `eliza-sends-me`), and
+  "I am on it." → `<q>_on_it`, gated `quest_at_stage` on the quest's one
+  working stage, lines restating the task with its count.
+  ⭐ **The stage answer is load-bearing:** a progress node with only the
+  turn-in presents nothing between the accept and the report stage, the prune
+  then removes its root row, and the giver shows NO row for the quest while
+  the player works. No questions are added (D15); the traveller's existing
+  "Where do they nest?" (`running`) moves onto the lamp's progress node.
+- **Drafted rows** (the PO rewords in the editor):
+
+  | Giver | Quest | Progress row | Working stage |
+  |---|---|---|---|
+  | Reinhard | turnip-chore / boars-in-the-field | About the turnips... / About the boars... | `pull` / `cull` |
+  | Eliza (on `root`, not `root_fed`) | dinner-for-the-family | About the dinner... | `gather` |
+  | Hermit | village-welcome | About the village... | `meet` |
+  | Lampless Traveller | the-lost-lamp | About your lamp... | `cull` |
+  | Lamplighter | dire-wolves-in-the-forest | About the dire wolves... | `cull` |
+  | Miller | the-millers-ring / the-sounder-at-the-mill | About your ring... / About the boars at the mill... | `search` / `cull` |
+  | Miner | spiders-in-the-diggings | About the spiders... | `cull` |
+  | Shepherd | the-strays | About your sheep... | `find` |
+  | Village Healer | alpha-wolves-at-the-village | About the alpha wolves... | `cull` |
+  | Wanderer | kobolds-on-the-road / the-lost-friend | About the kobolds... / About your friend... | `cull` / `search` |
+  | Emberkeeper | bandits-at-the-shrine | About the bandits... | `cull` |
+  | Front Captain | thin-the-orc-line | About the orcs... | `cull` |
+  | City Guard | bears-at-the-walls | About the bears... | `cull` |
+  | Shaman | dire-wolves-at-the-camp | About the dire wolves... | `cull` |
+  | Town Crier | wolves-on-the-road | About the wolves... ("I am on it." only) | `thin` |
+
+  The Guard's and the Shaman's wolves turn-ins stay on root (D18). "Farmer"
+  → "Reinhard" on the Hermit and the Crier (D19).
+- **The walk test (L5), red-first against today's content:** one Go content
+  test over every quest. For every non-root node holding the quest's
+  `advance_quest`, the root row pointing there is absent at not started,
+  present at the working stage and at the report stage, gone after the
+  turn-in; and no `advance_quest` row sits on root outside a named exempt
+  list (the Knot's two quests, D13; `eliza-sends-me`, D17; the two foreign
+  wolves turn-ins, D18). Stages are placed through `Ledger.Restore`, so
+  harvest / talk_to / reach quests need no drivers. The C2 rats pin stays.
+- **Order, one file at a time (L6, L7):** edit → `make -C backend cp-defs` →
+  `go test ./pkg/aura/quests/ ./pkg/aura/sys/ -count=1` → `-validate` (main +
+  debug) → `validate.mjs`.
+- **Harnesses (L4, wider than listed):** `c1-kill-quests`, `c2-kill-quests`,
+  `chunkC4-quests` and also `remains-lost-friend` (clicks the Wanderer's
+  turn-in from the friend node) click the progress row before each turn-in.
+  `r4-recall-utility` reads only "Do you have a task" and should survive;
+  `gk-grandfather-knot` is untouched (D13). chunkC4's journal `undefined`
+  reads predate C3 (red at C1 with no client change): fixed if one selector
+  drifted, otherwise recorded. All on the DEBUG zones, each on a fresh server.
+- **Docs:** manual §6 (drop "most shipped quests still use the older shape";
+  the foreign turn-in rule stands, D18), the `add-content` quest checklist,
+  `content-npcs.md` Quest roles, the verify coverage map for every touched
+  harness, §10.
+
 ## 7. Landmines
 
 - **L1 - the stash.** `AscensionPick.Gate` is an `any` carrying a bare
@@ -358,4 +429,35 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   C1b prop test · `-validate` 0 (main + debug) · `validate.mjs` 0 · editor
   smoke 0 · PO in-game walk on the main world 2026-10-07 (all states incl.
   abandon). No harness touches the rats rows.
-- **C3 every other quest (18, the Knot excepted):** not started.
+- **C3 every other quest (18, the Knot excepted):** ✅ BUILT 2026-10-07
+  `[uncommitted]`, PO walk owed. As §6 "C3 detailed" says: 18 quests on 15 files moved to the
+  two-row shape by a text-surgery script (each turn-in moved byte for byte;
+  every file's grant set checked identical before/after), a `<offer>_running`
+  progress node + an `<offer>_on_it` stage answer per quest, the traveller's
+  nest question moved onto `lamp_running`, the Crier's `wolves_running` holds
+  only "I am on it." (D18). "Farmer" → "Reinhard" on the Hermit (brief +
+  turn-in row) and the Crier (`news_who`), D19. Eliza's one-row inline root
+  array was expanded by hand first (the script's only layout miss).
+  Pins, red on the old content first (17 turn-in subtests + the lamp's offer):
+  `TestContent_EveryQuestTurnsInBehindAProgressRow`,
+  `TestContent_EveryQuestOfferRowLeavesWithTheAccept` and
+  `TestContent_TheCriersWolvesRowLastsTheHunt` (mutation-checked: the Crier's
+  gate on `carry_word` → red), stages placed through `Ledger.Restore`.
+  Harnesses: `chunkC4-quests`, `c1-kill-quests`, `c2-kill-quests`,
+  `remains-lost-friend` click the progress row before each turn-in and assert
+  the root swap. ⚑ **Fixed on the way:** chunkC4's seven `undefined` journal
+  reads were ONE missing helper: since the UI pass C2 exclusivity policy the
+  journal and a conversation shut each other, and chunkC4 never re-opened its
+  journal (c1/c2 do, `ensureJournalOpen`); ported, plus a fresh talk where a
+  panel is read after a journal read. c1's A7 read a hand-renamed tracker
+  ("Return to the Reinhard") that no content says; it now reads the authored
+  tracker off `api/quests/` (the `/quests` catalog serves no trackers). c1's B3/C3 accept a nonzero count at the accept (a passing mob can
+  die first; chunkC4 already did).
+  ⚑ Left for the PO: `turnip-chore` and `boars-in-the-field` journals and
+  trackers still say "the Farmer" (outside D19).
+  **Schema: DB NONE · wire NONE · conf NONE · content 15 NPC files (+36 nodes,
+  +18 root rows), no quest file.** Verified: Go green bar the known C1b prop
+  test · `-validate` 0 (main + debug) · `validate.mjs` 0 · editor smoke 0 ·
+  DEBUG zones, each on a fresh server: `chunkC4-quests` 43/43 (every hunt
+  landed, the wolf branch and the lamp turn-in walked), `c2-kill-quests` 23/23,
+  `c1-kill-quests` 20/20 · main world: `remains-lost-friend` 12/12.

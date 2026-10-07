@@ -198,6 +198,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   spell builder C4), which runs the REAL loader on save (`aurad -validate`, so
   `make -C backend build` must be current) and hands you the post-save
   checklist: the registry pin below, the inventory row, placement, restart.
+- **A new quest's rows go in the two-row shape** (manual §6 "The two-row
+  shape", plan-quest-dialogue.md D11): an offer row → brief + Accept only, an
+  "About the ..." progress row → the turn-in plus "I am on it." gated on the
+  working stage. ⚑ Without that stage answer the giver shows NO row while the
+  quest runs. `TestContent_EveryQuestTurnsInBehindAProgressRow` reddens on a
+  turn-in left on root or a progress row that outlives its band; run
+  `make -C backend cp-defs` first, it reads the embedded copy.
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),

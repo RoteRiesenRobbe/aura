@@ -34,7 +34,9 @@
         "options": [
           { "text": "Which way is safe?", "next": "roads" },
           { "text": "Do you have a task for me?", "next": "kobolds" },
-          { "text": "Are you travelling alone?", "next": "friend" }
+          { "text": "About the kobolds...", "next": "kobolds_running" },
+          { "text": "Are you travelling alone?", "next": "friend" },
+          { "text": "About your friend...", "next": "friend_running" }
         ]
       },
       {
@@ -59,7 +61,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "kobolds_running",
+        "lines": [
+          "The kobolds?"
+        ],
+        "options": [
           {
             "text": "I killed the 8 kobolds.",
             "grants": [
@@ -76,7 +86,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "kobolds_on_it"
           }
+        ]
+      },
+      {
+        "id": "kobolds_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "kobolds-on-the-road",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 8 kobolds near the road, then come back to me."
         ]
       },
       {
@@ -95,7 +122,15 @@
                 "line": "Thank you."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "friend_running",
+        "lines": [
+          "My friend?"
+        ],
+        "options": [
           {
             "text": "I found him. He is dead.",
             "grants": [
@@ -112,7 +147,24 @@
                 "line": "Take this for your trouble."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "friend_on_it"
           }
+        ]
+      },
+      {
+        "id": "friend_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-lost-friend",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          "He went into the forest for berries. A grey cloak and a walking staff."
         ]
       }
     ]

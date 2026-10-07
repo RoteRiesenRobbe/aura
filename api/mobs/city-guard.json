@@ -51,6 +51,7 @@
             ]
           },
           { "text": "Do you have a task for me?", "next": "bears" },
+          { "text": "About the bears...", "next": "bears_running" },
           { "text": "Teach me something.", "next": "teachings" },
           { "text": "Where can I make myself useful?", "next": "front" }
         ]
@@ -70,7 +71,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "bears_running",
+        "lines": [
+          "The bears?"
+        ],
+        "options": [
           {
             "text": "I killed the 5 bears.",
             "grants": [
@@ -87,7 +96,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "bears_on_it"
           }
+        ]
+      },
+      {
+        "id": "bears_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "bears-at-the-walls",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 5 bears near the city walls, then come back to me."
         ]
       },
       {

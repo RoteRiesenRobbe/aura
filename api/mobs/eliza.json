@@ -37,7 +37,10 @@
           "There you are. Come here, let me look at you.",
           "Taller than your father already. I don't know when that happened."
         ],
-        "options": [ { "text": "Do you have a task for me?", "next": "dinner" } ]
+        "options": [
+          { "text": "Do you have a task for me?", "next": "dinner" },
+          { "text": "About the dinner...", "next": "dinner_running" }
+        ]
       },
       {
         "id": "dinner",
@@ -57,7 +60,15 @@
                 "line": "Thank you. Go on, before I change my mind about letting you out of the house."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "dinner_running",
+        "lines": [
+          "The dinner?"
+        ],
+        "options": [
           {
             "text": "I have the meat and the beets.",
             "grants": [
@@ -76,7 +87,24 @@
               { "kind": "grant_xp", "xp": 150, "line": "Now eat. Slowly. I want to remember this." },
               { "kind": "offer_quest", "quest": "eliza-sends-me", "line": "Go on, then. Stay on the road." }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "dinner_on_it"
           }
+        ]
+      },
+      {
+        "id": "dinner_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "dinner-for-the-family",
+            "stage": "gather"
+          }
+        ],
+        "lines": [
+          "Help your father with his game down by the lake, and get the six beets from Benjamin. Then we eat."
         ]
       }
     ]

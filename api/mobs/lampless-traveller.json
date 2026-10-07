@@ -38,7 +38,8 @@
           "What are you doing out here?"
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "lamp" }
+          { "text": "Do you have a task for me?", "next": "lamp" },
+          { "text": "About your lamp...", "next": "lamp_running" }
         ]
       },
       {
@@ -57,7 +58,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "lamp_running",
+        "lines": [
+          "My lamp?"
+        ],
+        "options": [
           {
             "text": "The 6 kobolds are dead.",
             "grants": [
@@ -80,7 +89,24 @@
               }
             ]
           },
+          {
+            "text": "I am on it.",
+            "next": "lamp_on_it"
+          },
           { "text": "Where do they nest?", "next": "lamp_where" }
+        ]
+      },
+      {
+        "id": "lamp_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-lost-lamp",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 6 kobolds north of the tunnel, then come back to me."
         ]
       },
       {

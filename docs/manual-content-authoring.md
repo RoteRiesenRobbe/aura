@@ -1498,10 +1498,9 @@ row appears exactly when its edge is walkable. So **quest rows need no
 - the NPC's **root** is an ordinary unconditional greeting with rows;
 - each quest sits behind **two rows** on root, an offer row and a progress
   row: the two-row shape below, THE quest shape since plan-quest-dialogue.md
-  C2 (2026-10-06). ⚑ Most shipped quests still use the older one-node shape
-  (the brief, Accept and turn-in on one node behind one root row) until C3
-  converts them; author every NEW quest in the two-row shape. Grant rows author
-  no `next` — the player stays on the node and the grant's `line` is spoken;
+  C2 (2026-10-06), and every shipped quest's shape since C3 (2026-10-07)
+  except the named ones below. Grant rows author no `next`; the player stays
+  on the node and the grant's `line` is spoken;
 - an NPC turning in a quest that is not otherwise his (the wolves branch legs)
   puts the turn-in row directly on root.
 
@@ -1556,7 +1555,11 @@ The rats' progress node, row by row:
 ```
 
 - **A row for ONE stage** (`"I am on it."` during the kill stage) navigates to
-  a lines-only node gated `quest_at_stage` on that stage id. Options carry no
+  a lines-only node gated `quest_at_stage` on that stage id. ⭐ It is not
+  optional: between the accept and the report stage the turn-in is hidden, so
+  without a stage answer the progress node presents nothing, the prune takes
+  its root row, and the giver shows NO row for the quest while the player
+  works. Every converted quest carries one (`<offer node>_on_it`). Options carry no
   conditions, so the gate sits on the destination.
 - **A question about the quest** is the same thing, gated `running` (the
   rats' "Tell me more about rats.").
@@ -1577,14 +1580,22 @@ The rats' progress node, row by row:
 - ⚑ **The brief lives on the offer node**, so after the accept the task is
   readable in the journal only. A one-line restatement belongs in a stage
   answer (`rats_on_it` repeats the count).
-- **The one deliberate exception is the Grandfather Knot** (D13): his two
-  quests keep their PO-passed gated-offer flow (2026-10-03) until he is touched
-  again.
+- **The named exceptions** (each a PO ruling, each exempted by name in the
+  walk test): the Grandfather Knot's two quests keep their PO-passed
+  gated-offer flow (D13, 2026-10-03) until he is touched again;
+  `eliza-sends-me` has no brief and turns in on Reinhard's root (D17); the
+  City Guard's and the Shaman's `wolves-on-the-road` turn-ins sit on root,
+  since neither gave the quest (D18, the foreign turn-in rule above).
 
-Pinned by `TestContent_ReinhardsRatsQuestSwapsItsRootRow` and
-`TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack`
-(`sys/quest_content_test.go`), which walk the real Reinhard through every quest
-state.
+Pinned in `sys/quest_content_test.go`: the rats walk
+(`TestContent_ReinhardsRatsQuestSwapsItsRootRow`,
+`...AbandonBringsTheOfferBack`), and for EVERY quest
+`TestContent_EveryQuestTurnsInBehindAProgressRow` (the progress row absent
+before the accept, present while it runs, gone after the turn-in; no turn-in on
+an entry node outside the exempt list) and
+`TestContent_EveryQuestOfferRowLeavesWithTheAccept`, plus
+`TestContent_TheCriersWolvesRowLastsTheHunt`. A new quest in the old one-node
+shape goes red there.
 
 ### Node conditions — greetings, and hiding a spent info row
 

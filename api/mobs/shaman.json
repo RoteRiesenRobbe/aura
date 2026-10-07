@@ -52,6 +52,7 @@
             ]
           },
           { "text": "Do you have a task for me?", "next": "direwolves" },
+          { "text": "About the dire wolves...", "next": "direwolves_running" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
@@ -70,7 +71,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "direwolves_running",
+        "lines": [
+          "The dire wolves?"
+        ],
+        "options": [
           {
             "text": "I killed the 6 dire wolves.",
             "grants": [
@@ -87,7 +96,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "direwolves_on_it"
           }
+        ]
+      },
+      {
+        "id": "direwolves_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "dire-wolves-at-the-camp",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 6 dire wolves around my camp, then come back to me."
         ]
       },
       {

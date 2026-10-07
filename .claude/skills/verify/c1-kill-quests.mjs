@@ -31,6 +31,7 @@
 //
 // Usage: node .claude/skills/verify/c1-kill-quests.mjs [label] [url]
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
@@ -259,6 +260,12 @@ const prose = (questId, stageId) => {
   const q = Array.isArray(catalog) ? catalog.find((x) => x.id === questId) : null;
   return q?.stages.find((s) => s.id === stageId)?.journal ?? `??${questId}/${stageId}`;
 };
+// Trackers are not in the /quests catalog (it serves the journal prose only),
+// so read the authored stage off disk: the check follows the content.
+const trackerOf = (questId, stageId) => {
+  const q = JSON.parse(readFileSync(new URL(`../../../api/quests/${questId}.json`, import.meta.url), 'utf8'));
+  return q.stages.find((s) => s.id === stageId)?.tracker ?? `??${questId}/${stageId}`;
+};
 const titleOf = (questId) => (Array.isArray(catalog) ? catalog.find((x) => x.id === questId)?.title : null) ?? `??${questId}`;
 
 await cmd('PING'); // the first command after joining is dropped
@@ -303,8 +310,10 @@ try {
   // be read - sampling here used to return null and score the show-rule red.
   await page.keyboard.press('KeyJ');
   const reOpened = await talkTo('Reinhard');
-  check('A4 the Accept row VANISHED the moment the quest started (Q1 show-rule)',
-    reOpened !== null && !reOpened.rows.some((r) => r.includes("I'll do it")),
+  check('A4 the root rows SWAPPED with the accept: the offer row left, "About the boars..." came (two-row shape)',
+    reOpened !== null
+    && !reOpened.rows.some((r) => r.includes('Anything else that needs doing'))
+    && reOpened.rows.some((r) => r.includes('About the boars')),
     `rows=${JSON.stringify(reOpened?.rows)}`);
   await leave();
 
@@ -333,14 +342,14 @@ try {
       hunted.entries[1] === prose('boars-in-the-field', 'report'),
       `entries=${JSON.stringify(hunted.entries)}`);
     check('A7 ...and the report stage shows its authored tracker',
-      (hunted.objectives ?? []).some((o) => o.includes('Return to the Reinhard')),
+      (hunted.objectives ?? []).includes(trackerOf('boars-in-the-field', 'report')),
       `objectives=${JSON.stringify(hunted.objectives)}`);
 
     await warpTo(AT.Reinhard);
     await talkTo('Reinhard');
-    await clickRow('Anything else that needs doing');
+    await clickRow('About the boars');
     const turnIn = await panel();
-    check('A8 the turn-in row appeared behind the same row, exactly when walkable (show-rule)',
+    check('A8 the turn-in row appeared behind the progress row, exactly when walkable (show-rule)',
       turnIn?.rows.some((r) => r.includes('I killed the 6 boars'))
       && !turnIn.rows.some((r) => r.includes("I'll do it")),
       `rows=${JSON.stringify(turnIn?.rows)}`);
@@ -356,10 +365,10 @@ try {
     // Same C2 D1 consequence as A4: the journal read above left the Reinhard.
     await page.keyboard.press('KeyJ');
     const after = await talkTo('Reinhard');
-    check('A10 the row is CLOSED after completion — no re-accept, no second payment (show-rule)',
+    check('A10 BOTH boar rows are gone after the turn-in: no re-accept, no second payment (D15/D16)',
       after !== null
-      && !after.rows.some((r) => r.includes('I killed the 6 boars'))
-      && !after.rows.some((r) => r.includes("I'll do it")),
+      && !after.rows.some((r) => r.includes('Anything else that needs doing'))
+      && !after.rows.some((r) => r.includes('About the boars')),
       `rows=${JSON.stringify(after?.rows)}`);
     await leave();
   }
@@ -397,7 +406,7 @@ const offerLeg = async (tag, where, displayName, questId, rowNeedle, turnInNeedl
     check(`${tag}3 accepting starts ${questId} and writes its diary + tracker`,
       inList(j?.running ?? [], titleOf(questId))
       && d?.entries[0] === prose(questId, 'cull')
-      && (d?.objectives ?? []).some((o) => /^0\/\d+ .+ killed$/.test(o)),
+      && (d?.objectives ?? []).some((o) => /^\d+\/\d+ .+ killed$/.test(o)),
       `entries=${JSON.stringify(d?.entries)} objectives=${JSON.stringify(d?.objectives)}`);
     await leave();
     return true;

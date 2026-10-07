@@ -30,6 +30,7 @@
         "options": [
           { "text": "What happened down there?", "next": "tunnel" },
           { "text": "Do you have a task for me?", "next": "spiders" },
+          { "text": "About the spiders...", "next": "spiders_running" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
@@ -48,7 +49,15 @@
                 "line": "Good."
               }
             ]
-          },
+          }
+        ]
+      },
+      {
+        "id": "spiders_running",
+        "lines": [
+          "The spiders?"
+        ],
+        "options": [
           {
             "text": "I killed the 6 spiders.",
             "grants": [
@@ -65,7 +74,24 @@
                 "line": "Here is your reward."
               }
             ]
+          },
+          {
+            "text": "I am on it.",
+            "next": "spiders_on_it"
           }
+        ]
+      },
+      {
+        "id": "spiders_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "spiders-in-the-diggings",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Kill 6 spiders in the tunnel diggings, then come back to me."
         ]
       },
       {
