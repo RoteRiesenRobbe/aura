@@ -683,6 +683,11 @@ and the extraction sweep (C0b) are each about a session.
   clauses, cadence fragments, and the `verb + ' you'` capitalization logic
   (`:395`). ⚑ This visit is the chance to close the standing `TICKING_TYPES`
   watch item (hand-maintained set, silent failure) with a completeness pin.
+  ⚑ The tooltip keeps growing: effect types round 2 (C0/C1, 2026-10-07) added
+  the `stat_aura`/`instant_stat` phrases ("when it reaches someone new",
+  "for {secs}", "applies to") and a "Threat" stat label, and more rounds will
+  follow. Survey the fragment set at C4 entry rather than trusting §1's 29
+  sites; every new effect type until then adds English-only fragments.
 - **German number formatting**: ruled by D16 (`Intl.NumberFormat` per locale,
   so de gets the decimal comma). This chunk routes the tooltip's numbers
   through it, since tooltips are where decimals actually appear, and its
