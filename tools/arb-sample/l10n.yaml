@@ -1,0 +1,5 @@
+# Flutter-style project marker. Aura does not use Flutter; some ARB editors
+# (BabelEdit, Locmate) look for this file to find the source (template) file.
+arb-dir: .
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart

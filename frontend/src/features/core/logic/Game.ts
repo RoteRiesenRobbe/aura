@@ -622,7 +622,20 @@ export class Game implements IGame {
         this.spectator = new Spectator(this, x, y, touring);
     }
 
-    startRendering(gameInformation: WelcomeMessage): void {
+    startRendering(gameInformation: WelcomeMessage): Promise<void> | undefined {
+        // ⚑ FIRST: which bundled zone set (main or `.debug/`) every read in
+        // renderWelcome resolves against. The debug set is a lazy chunk, so on
+        // a `-debug-zones` server this waits for it, and the Backend holds every
+        // later message until it has (the returned promise).
+        const loading = GroundTextureManager.selectZoneSet(gameInformation.zoneName);
+        if (loading) {
+            return loading.then(() => this.renderWelcome(gameInformation));
+        }
+        this.renderWelcome(gameInformation);
+        return undefined;
+    }
+
+    private renderWelcome(gameInformation: WelcomeMessage): void {
         Console.log('Joined Server "' + gameInformation.serverName + '"');
         // Render the terrain of the zone the server selected (chunk 6). setup()
         // has already run during construction, so placed textures render now.
@@ -634,9 +647,8 @@ export class Game implements IGame {
         // Which zones exist this boot, and which one we start in
         // (plan-underworld.md U2). The tracker answers "where am I" from
         // position alone; nothing about a zone change rides the wire.
-        // ⚑ FIRST: which bundled zone set (main or `.debug/`) every read below
-        // resolves against. The tracker is the first to read zone data.
-        GroundTextureManager.selectZoneSet(gameInformation.zoneName);
+        // The zone set was picked in startRendering; the tracker is the first
+        // to read zone data.
         this.activeZone = new ActiveZoneTracker(gameInformation.zoneNames, gameInformation.zoneName);
         const start = this.activeZone.active;
         const mapWidth = start ? meter2px(start.width) : gameInformation.mapWidth;

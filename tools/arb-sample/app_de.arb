@@ -1,0 +1,31 @@
+{
+  "@@locale": "de",
+
+  "connectionLost": "Verbindung verloren – neu laden, um dich wieder zu verbinden",
+
+  "levelUp": "Stufenaufstieg!",
+
+  "settingsLanguage": "Sprache",
+
+  "quest.wolves-on-the-road.title": "Wölfe an der Straße",
+
+  "questWolvesOnTheRoadTitle": "Wölfe an der Straße",
+
+  "quest.wolves-on-the-road.thin.journal": "Töte 8 Wölfe an der Weststraße.",
+
+  "quest.wolves-on-the-road.thin.tracker": "{n}/{m} Wölfe getötet",
+
+  "conv.reinhard.root.line.0": "Ich bestelle dieses Feld.",
+
+  "conv.reinhard.root.opt.0.text": "Eliza schickt mich.",
+
+  "conv.reinhard.root.opt.0.reply": "Elizas Kind. Dann wirst du arbeiten. Frag mich nach einer Aufgabe.",
+
+  "quest.objective.kill": "{mob}: {n}/{m} erlegt",
+
+  "hud.skillPoints": "{count, plural, =0 {Keine Fertigkeitspunkte} one {# Fertigkeitspunkt} other {# Fertigkeitspunkte}}",
+
+  "tooltip.damagePerSecond": "{dps, number} Schaden pro Sekunde",
+
+  "test.escaping": "Escape-Test: '{'dies'}' zeigt geschweifte Klammern."
+}

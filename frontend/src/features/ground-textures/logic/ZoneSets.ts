@@ -6,12 +6,14 @@
  * only in the debug set, which is what makes the rule unambiguous, and why
  * the two sets' `underworld` never collide.
  *
+ * Takes the two sets' STEMS (any object keyed by stem), not their data: the
+ * debug set is a lazy chunk whose contents are not loaded when this decides.
+ *
  * Kept apart from GroundTextureManager so it is testable without webpack's
  * require.context.
  */
-export function pickZoneSet<T>(primaryZoneName: string, main: { [stem: string]: T },
-                               debug: { [stem: string]: T }): { [stem: string]: T } {
-    const inMain = Object.prototype.hasOwnProperty.call(main, primaryZoneName);
-    const inDebug = Object.prototype.hasOwnProperty.call(debug, primaryZoneName);
-    return !inMain && inDebug ? debug : main;
+export function isDebugZoneSet(primaryZoneName: string, mainStems: object, debugStems: object): boolean {
+    const inMain = Object.prototype.hasOwnProperty.call(mainStems, primaryZoneName);
+    const inDebug = Object.prototype.hasOwnProperty.call(debugStems, primaryZoneName);
+    return !inMain && inDebug;
 }
