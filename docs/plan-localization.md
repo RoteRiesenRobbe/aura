@@ -17,7 +17,8 @@ translation platform is recorded as a possibility, not a decision (§9).
 **Reviewed 2026-10-06 (industry-standards pass):** added D20-D23 (a stable id
 for every translatable string, dialogue included, PO-ruled 2026-10-07; a
 pseudo-locale; a German style guide; the after-launch rule) and L16-L19, found
-a third text home (region and zone names, bundled into the client), corrected
+region and zone names arriving bundled into the client (now served, PO
+2026-10-07), corrected
 §8's D9 recommendation and C3's actor-name lookup, and split C0. Q1-Q6 were
 all PO-ruled 2026-10-07 (D20; objective wording, superseding D9 for
 objectives; detection only when German is complete; German in the same
@@ -48,7 +49,7 @@ runtime-rasterized (no bitmap atlases). What is *not* localizable today:
 | Frontend UI strings | ~160 HTML-partial sites + ~120 TS sites | English literals at the use site; no i18n library, no catalog | C0b |
 | `SkillTooltip.ts` | ~29 sites | English *sentence assembly* from fragments, with capitalization logic | C4 |
 | Authored content in `api/` | ~300 strings at survey time; **≈ 810 on 2026-10-07** (upper bound): ≈ 417 dialogue strings in 36 conversants and 134 nodes after `plan-quest-dialogue.md` C3 (180 node lines, 166 option texts, 71 shown grant lines; 28 more grant lines are never shown, see C3; stock phrases repeat, e.g. "I am on it." and "I'll do it." 19× each), 141 quest strings (22 titles, 71 journals, 40 stage + 8 objective trackers), 105 mob + 122 skill names (10 skill `displayName`s authored, the rest derived), 11 skill `description`s, 15 faction names | English inline in the authored JSON | C1 + C3 |
-| Client-bundled content (found 2026-10-06) | 50 region titles/subtitles (26 regions) + 5 zone names | English in `api/regions/regions.json` and the zone JSON, imported into the client bundle at build time (`RegionNames.ts:15`, `Game.ts:917`); never served | C1 |
+| Client-bundled content (found 2026-10-06) | 50 region titles/subtitles (26 regions) + 5 zone names | English in `api/regions/regions.json` and the zone JSON, imported into the client bundle at build time (`RegionNames.ts:15`, `Game.ts:917`); never served (C1 serves the text via `/lang`) | C1 |
 | Server-composed wire text | ~60 Go sites | Finished English via `fmt.Sprintf`/concat, shipped as strings | C2 + C3 |
 | Accounts HTTP errors | 14 messages | English `error` string **plus a machine `code`** (`accounts/respond.go:23-37`) - already shaped for client-side mapping | C0b |
 
@@ -91,8 +92,8 @@ Four facts that make it harder:
   PO's Q2 ruling replaced it for objectives with real plural forms.
 - **Some content text never passes through the server** (found 2026-10-06).
   Region titles/subtitles and zone names are imported into the client bundle
-  at build time (`RegionNames.ts:15`, `Game.ts:917`), so neither of D6's two
-  homes covers them; D6 item 3 is their home.
+  at build time (`RegionNames.ts:15`, `Game.ts:917`). ✅ PO 2026-10-07: their
+  text moves to the server-served `/lang` bundle (D6 item 2, C1).
 
 ---
 
@@ -252,8 +253,10 @@ translator notes in the files.
 
 ## 3. Design decisions (mine, flag if wrong)
 
-- **D6 - three string homes, split by who needs the text first** (two until
-  the 2026-10-06 review found the third).
+- **D6 - two string homes, split by who needs the text first.** (The
+  2026-10-06 review found region and zone names arriving a third way, bundled
+  into the client; ✅ PO 2026-10-07: they are SERVED like all other content
+  text, item 2, so every content translation ships on one path.)
   1. **Client-bundled UI catalog** (`frontend/src/lang/en.arb` + `de.arb`,
      D17; was `.ts`):
      everything the client can need *before or without* a connection (account
@@ -261,17 +264,14 @@ translator notes in the files.
      C2/C3's keys - templates version with the client code that formats them.
   2. **Server-served content text**: the three catalogs serve per-locale
      payloads (`?lang=de`, marshal-once-per-locale, unknown locale → en), and a
-     new **`/lang` bundle endpoint** serves the authored interaction text
-     (conversation lines/options/replies/ambients) as a flat key→string map
-     per locale (C3). English is extracted from the authored JSON at boot;
-     German comes from the D3 overlay. What is served is the ARB with its `@`
-     metadata stripped (D18).
-  3. **Client-bundled content text**: region titles/subtitles and zone names,
-     which the client already imports from `api/regions/regions.json` and the
-     zone JSON at build time. Their overlays (`api/lang/<locale>/regions.arb`,
-     zone names beside them) are bundled the same way, every locale (a few
-     hundred bytes each), so the region banner and the zone curtain need no
-     fetch. Generated and pinned like any content domain (D19, D13).
+     new **`/lang` bundle endpoint** serves the content text that no catalog
+     carries, as a flat key→string map per locale: region titles/subtitles and
+     zone names from C1, the authored interaction text (conversation
+     lines/options/replies/ambients) from C3. English is extracted from the
+     authored JSON at boot; German comes from the D3 overlay. What is served
+     is the ARB with its `@` metadata stripped (D18). The client keeps
+     importing `regions.json` and the zone JSON for their geometry and ids;
+     only the displayed text comes from `/lang`.
 - ⛔ **D7 - SUPERSEDED 2026-10-05 by D16 (ICU MessageFormat).** Plurals live
   inside the ICU message, not in `.one`/`.other` key variants, and one library
   does the formatting. The `{x}` argument syntax it chose is ICU's own, so
@@ -427,8 +427,8 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
 - **D21 - a PSEUDO-LOCALE from C0a.** A dev-only locale, `en-XA`, chosen only
   by an explicit pin (D12's mechanism), never by detection. It renders
   English with accented letters, about 35 % padding and brackets around every
-  message. Every lookup path applies it: `t()` and the bundled-content lookup
-  on the client, and the per-locale builders on the server, only to the
+  message. Every lookup path applies it: `t()` on the client, and the
+  per-locale builders on the server (catalogs and `/lang`), only to the
   fields the D19 extractor marks as text, so ids are never touched. Any
   visible text without the markers is a string this plan missed, whether from
   a partial, a TS literal, a catalog or a server-composed message.
@@ -531,7 +531,8 @@ and the extraction sweep (C0b) are each about a session.
 
 - **`api/lang/de/`** sidecar tree (D3, ARB per D17): one file per domain
   (`quests.arb`, `mobs.arb`, `skills.arb` with the 11 skill descriptions,
-  `factions.arb`, and `regions.arb` with the zone names, D6 item 3) with flat
+  `factions.arb`, and `regions.arb` with the zone names, served via `/lang`)
+  with flat
   keys built from the content's own stable ids + field (D20; e.g.
   `quest.wolves-on-the-road.title`, `quest.wolves-on-the-road.s1.tracker`);
   the final key spelling waits on the ARB key check in §8. Beside it, the
@@ -560,9 +561,12 @@ and the extraction sweep (C0b) are each about a session.
   `?lang=`, unknown → en. Display names: en = `Display()` for skills (an
   authored `displayName` wins) and `DeriveDisplayName` output for mobs, de =
   overlay.
-- **Region and zone names** (D6 item 3): the client bundles every locale's
-  `regions.arb` beside `regions.json`, and the banner and the zone curtain
-  read the localized title.
+- **Region and zone names** (D6 item 2, PO 2026-10-07): the **`/lang`
+  endpoint is born here**, serving `regions.arb` per locale
+  (marshal-once-per-locale, unknown → en); the client fetches it at boot with
+  the catalogs, and the region banner and the zone curtain read the
+  localized title from it, keeping `regions.json` and the zone JSON for
+  geometry and ids. C3 adds the dialogue to the same endpoint.
 - **Authoring steps** (D23): the regeneration command (D19) and the
   translation step join the `add-content` skill and CLAUDE.md's content rules.
 - **Client**: catalog fetches pass the locale - ⚑ `catalogUrl` does
@@ -628,8 +632,9 @@ and the extraction sweep (C0b) are each about a session.
   duplicate id. Every reader of the dialogue format changes with it: the Go
   loader and its test fixtures, and the content editor (`validate.mjs`, and
   `public/app.js`, whose lines textarea would strip the ids, L19).
-- **`/lang/{locale}` bundle endpoint** (D6): flat id→string map of all
-  authored interaction text (`conv.<id>` for every node line, option, grant
+- **The `/lang` bundle gains the dialogue** (D6; the endpoint is born in C1
+  with the region names): flat id→string map of all authored interaction
+  text (`conv.<id>` for every node line, option, grant
   line and ambient line, D20), extracted from `api/mobs/*.json` at boot, de
   from the overlay, marshal-once-per-locale. **This is where D5's accepted
   leak lives.** Each grant has its own id and line, since a teaching option
@@ -858,7 +863,7 @@ is the full German playthrough.
 | --- | --- | --- |
 | C0a client i18n machinery | ~1 session; `Locale.ts` + ARB loading + pins + toggle + `lang` + pseudo-locale + style guide + the harness `locale` sweep | DB NONE · wire NONE |
 | C0b UI strings | ~1 session; big but mechanical (~280 sites, each with a note) + de UI text | DB NONE · wire NONE |
-| C1 per-locale catalogs | ~1 session; loader + overlay + serving + de names/quests/regions | DB NONE · wire NONE (HTTP param only) |
+| C1 per-locale catalogs | ~1 session; loader + overlay + serving (catalogs + the new `/lang` endpoint for region/zone names) + de names/quests/regions | DB NONE · wire NONE (HTTP param only) |
 | C2 system messages + objectives | ~1 session; ~20 Go sites + 2 tables' appends + client formatter + the server-key pin | DB NONE · **wire YES** (appended) · quest format +`tracker` on three objective kinds (required on talk_to and reach) · mob format +`namePlural` (Q2) |
 | C3 conversation surface | ~1.5 sessions; the id pass over 36 NPC files + bundle endpoint + lock reasons (with the gate mode) + ≈ 417 de strings | DB NONE · **wire YES** (appended) · content format: every dialogue string gains an `id` (D20) |
 | C4 tooltips + polish | ~1 session; template rework + length sweep + PO playthrough | DB NONE · wire NONE |
@@ -987,7 +992,7 @@ tooltip fragments).
   ("Talk to the") and `:529` (tracker substitution) are now `:679` and
   `:664-668`. Re-survey at C0a entry. The content counts were refreshed
   2026-10-06 (§1), which also found the client-bundled region and zone text
-  (D6 item 3).
+  (served via `/lang` from C1, D6).
 
 ---
 
