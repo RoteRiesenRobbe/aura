@@ -251,7 +251,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + EntanglingRoots id 157 (docs/plan-grandfather-knot.md), a player
 	// cooldown taught only on Grandfather Knot's turn-in row. 121 → 122
 	// (80 player + 42 mob).
-	assert.Len(t, r.All(), 122)
+	// + Bulwark id 158 and Demoralize id 159 (plan-effect-types-round-2.md
+	// C1), the stat_aura and instant_stat examples; SKILL cheat only, no
+	// unlock source. 122 → 124 (82 player + 42 mob).
+	assert.Len(t, r.All(), 124)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

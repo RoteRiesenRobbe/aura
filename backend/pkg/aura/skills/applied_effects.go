@@ -21,6 +21,10 @@ const (
 	AppliedEffectCalm     AppliedEffect = 1 << 5
 	AppliedEffectCharm    AppliedEffect = 1 << 6
 	AppliedEffectSpeed    AppliedEffect = 1 << 7
+	// A timed stat buff or debuff on others (plan-effect-types-round-2.md C1,
+	// D12): the sign of the bonus picks the bit.
+	AppliedEffectStatUp   AppliedEffect = 1 << 8
+	AppliedEffectStatDown AppliedEffect = 1 << 9
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
@@ -73,7 +77,14 @@ func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 // reads as movement impairment instead of as nothing at all. ⚑ The conflation
 // is real: a stunned mob is indistinguishable from a slowed one on the wire,
 // and a stun suppresses a weaker slow's pip. §39 owns splitting them.
-func (*stunPayload) appliedBit() AppliedEffect  { return AppliedEffectSlow }
+func (*stunPayload) appliedBit() AppliedEffect { return AppliedEffectSlow }
+
+func (p *statPayload) appliedBit() AppliedEffect {
+	if p.bonus < 0 {
+		return AppliedEffectStatDown
+	}
+	return AppliedEffectStatUp
+}
 
 func (*calmPayload) appliedBit() AppliedEffect  { return AppliedEffectCalm }
 func (*charmPayload) appliedBit() AppliedEffect { return AppliedEffectCharm }

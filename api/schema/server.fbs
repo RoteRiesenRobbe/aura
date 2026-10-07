@@ -897,7 +897,7 @@ table MapFog {
 // (D13: Slow, Dot and Stun are harmful, the rest beneficial); nothing here
 // says so, because the server has no reason to know.
 enum EffectKind : uint (bit_flags) {
-  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm
+  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm, StatUp, StatDown
 }
 
 // One circle on the own player's buff tray: a skill's timed effects, with the

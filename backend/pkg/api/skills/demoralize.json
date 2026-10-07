@@ -1,0 +1,27 @@
+{
+  "_comment": "A shout that weakens every enemy in range: their damage drops for a while. All values placeholder.",
+  "id": 159,
+  "name": "Demoralize",
+  "icon": "lorc/shouting",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 600,
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 400, "count": 1 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "instant_stat",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.002,
+      "radius": 3,
+      "stat": "damageDealt",
+      "statBonus": -0.15,
+      "statBonusPerLevel": -0.02,
+      "statDurationTicks": 300,
+      "targetsEnemies": true
+    }
+  ]
+}

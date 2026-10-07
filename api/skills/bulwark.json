@@ -1,0 +1,50 @@
+{
+  "_comment": "A tank aura: light damage on the nearest two enemies, less damage taken for the caster and allies in the ring, and more threat while it is on. All values placeholder.",
+  "id": 158,
+  "name": "Bulwark",
+  "icon": "lorc/bordered-shield",
+  "category": "active_aura",
+  "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "swing", "ms": 200 },
+      { "kind": "orbit", "on": "ambient", "count": 2, "tint": "#c8b27a" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.012,
+      "costFractionOfMaxPerLevel": 0.0012,
+      "radius": 1.5,
+      "damageHP": 8,
+      "damageHPPerLevel": 0.8,
+      "damageTags": ["physical"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 40
+    },
+    {
+      "type": "stat_aura",
+      "costFractionOfMax": 0.01,
+      "costFractionOfMaxPerLevel": 0.001,
+      "radius": 1.5,
+      "stat": "damageReduction",
+      "statBonus": 0.1,
+      "statBonusPerLevel": 0.01,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "selector": "nearest",
+      "maxTargets": 4,
+      "tickInterval": 40
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "threat",
+      "statBonus": 0.5,
+      "statBonusPerLevel": 0.05
+    }
+  ]
+}

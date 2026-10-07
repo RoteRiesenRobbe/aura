@@ -221,6 +221,20 @@
       "slowDurationTicks",
       "slowDurationTicksPerLevel"
     ],
+    "instant_stat": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "stat",
+      "statBonus",
+      "statBonusPerLevel",
+      "statDurationTicks",
+      "targetsSelf"
+    ],
     "lifesteal_burst": [
       "lifestealFraction",
       "lifestealFractionPerLevel",
@@ -351,6 +365,21 @@
       "targetsAllies",
       "targetsSelf"
     ],
+    "stat_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "stat",
+      "statBonus",
+      "statBonusPerLevel",
+      "targetsSelf"
+    ],
     "stat_multiplier": [
       "stat",
       "statBonus",
@@ -422,6 +451,9 @@
     "instant_slow": [
       "cooldown"
     ],
+    "instant_stat": [
+      "cooldown"
+    ],
     "lifesteal_burst": [
       "cooldown"
     ],
@@ -473,6 +505,9 @@
     ],
     "speed_burst": [
       "cooldown"
+    ],
+    "stat_aura": [
+      "active_aura"
     ],
     "stat_multiplier": [
       "active_aura",

@@ -203,6 +203,10 @@ type DerivedStats struct {
 	// Whether Strong ought to scale the flat reflect is an open PO tuning
 	// question, recorded, not decided here.
 	DamageDealtBonus float32
+	// ThreatBonus multiplies the threat the entity writes on a mob's table:
+	// threat × (1 + bonus), applied in Mob.noteThreat
+	// (plan-effect-types-round-2.md D8, D15).
+	ThreatBonus float32
 	// RetaliateSlow is the resolved retaliate_slow payload — the first entry in
 	// DerivedStats that is not a scalar, because it is the first passive with a
 	// RUNTIME TRIGGER rather than an equip-time fold (plan-cc-and-retaliation.md
@@ -273,8 +277,12 @@ func (d DerivedStats) MaxHealthFactor() float32 {
 // "more damage taken" and is live: an active aura's drawback authors it,
 // bounded at -1 (2x) by the loader (plan-aura-drawbacks.md §3.1). A passive's
 // sign is not bounded, and no shipped passive authors a negative one.
+//
+// The bottom is clamped too since stat debuffs on others
+// (plan-effect-types-round-2.md L13): two debuffs from different skills add,
+// and the total still caps damage taken at 2x.
 func (d DerivedStats) DamageReductionFactor() float32 {
-	return 1 - min(d.DamageReductionBonus, 1)
+	return 1 - max(min(d.DamageReductionBonus, 1), -1)
 }
 
 // MovementSpeedFactor is the multiplier a movement-speed passive puts on the
@@ -287,8 +295,31 @@ func (d DerivedStats) MovementSpeedFactor() float32 {
 // point of damage the owner deals: base × (1 + bonus). The one place the
 // 1+bonus composition is written — the damage sites and the wire both read it,
 // so the tooltip cannot drift from what the server charges (round-7 item 5).
+//
+// Floored at a [PLACEHOLDER] 0.1 (plan-effect-types-round-2.md D13): stacked
+// damage debuffs weaken a hit, they never zero or invert it.
 func (d DerivedStats) DamageFactor() float32 {
-	return 1 + d.DamageDealtBonus
+	return max(1+d.DamageDealtBonus, minDamageFactor)
+}
+
+const minDamageFactor = 0.1
+
+// ThreatFactor is the multiplier the threat stat puts on every point of threat
+// the owner writes: 1 + bonus, floored at 0 (no threat at all, never negative).
+func (d DerivedStats) ThreatFactor() float32 {
+	return max(1+d.ThreatBonus, 0)
+}
+
+// WithBuffs is the stats as they stand right now: Derived (the equip-time
+// fold) plus the timed stat buffs in b, for the four stats a buff can carry
+// (plan-effect-types-round-2.md D14). A copy, so Derived stays a pure fold of
+// the loadout. Every read site of those four stats goes through it.
+func (d DerivedStats) WithBuffs(b *Buffs) DerivedStats {
+	d.DamageDealtBonus += b.StatBonus(StatDamageDealt)
+	d.DamageReductionBonus += b.StatBonus(StatDamageReduction)
+	d.CritChanceBonus += b.StatBonus(StatCritChance)
+	d.ThreatBonus += b.StatBonus(StatThreat)
+	return d
 }
 
 // CostFactor is the multiplier a cost-reduction bonus puts on an effect's
@@ -697,6 +728,8 @@ func (d *DerivedStats) addStat(p *StatParams, level int) {
 		d.CritChanceBonus += bonus
 	case StatDamageDealt:
 		d.DamageDealtBonus += bonus
+	case StatThreat:
+		d.ThreatBonus += bonus
 	case StatCostReduction:
 		d.CostReductionBonus += bonus
 	}

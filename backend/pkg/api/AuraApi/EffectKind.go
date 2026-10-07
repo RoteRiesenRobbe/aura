@@ -19,6 +19,8 @@ const (
 	EffectKindCalm      EffectKind = 512
 	EffectKindStun      EffectKind = 1024
 	EffectKindCharm     EffectKind = 2048
+	EffectKindStatUp    EffectKind = 4096
+	EffectKindStatDown  EffectKind = 8192
 )
 
 var EnumNamesEffectKind = map[EffectKind]string{
@@ -34,6 +36,8 @@ var EnumNamesEffectKind = map[EffectKind]string{
 	EffectKindCalm:      "Calm",
 	EffectKindStun:      "Stun",
 	EffectKindCharm:     "Charm",
+	EffectKindStatUp:    "StatUp",
+	EffectKindStatDown:  "StatDown",
 }
 
 var EnumValuesEffectKind = map[string]EffectKind{
@@ -49,6 +53,8 @@ var EnumValuesEffectKind = map[string]EffectKind{
 	"Calm":      EffectKindCalm,
 	"Stun":      EffectKindStun,
 	"Charm":     EffectKindCharm,
+	"StatUp":    EffectKindStatUp,
+	"StatDown":  EffectKindStatDown,
 }
 
 func (v EffectKind) String() string {

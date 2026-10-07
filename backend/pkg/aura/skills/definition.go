@@ -70,6 +70,8 @@ const (
 	EffectTypeSpawnAtAnchor
 	EffectTypeProjectile
 	EffectTypeInstantSlow
+	EffectTypeStatAura
+	EffectTypeInstantStat
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -175,6 +177,11 @@ var effectTypeMap = map[string]EffectType{
 	// one-shot, capped query circle with an authored lifetime instead of a
 	// field re-applied every beat.
 	"instant_slow": EffectTypeInstantSlow,
+	// Stat buffs and debuffs on others (plan-effect-types-round-2.md C1, D11):
+	// the resist pair's shape with the stat_multiplier payload. One aura, one
+	// cooldown; the sign of the bonus decides buff or debuff.
+	"stat_aura":    EffectTypeStatAura,
+	"instant_stat": EffectTypeInstantStat,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -269,6 +276,10 @@ const (
 	// applied in sys.effectCostHP. It is the build answer to resource costs
 	// other than not paying them.
 	StatCostReduction = "costReduction"
+	// StatThreat multiplies the threat the holder writes onto a mob's table:
+	// threat × (1 + bonus), applied in Mob.noteThreat
+	// (plan-effect-types-round-2.md D8, D15).
+	StatThreat = "threat"
 )
 
 var validStats = map[string]bool{
@@ -278,6 +289,19 @@ var validStats = map[string]bool{
 	StatCritChance:      true,
 	StatDamageDealt:     true,
 	StatCostReduction:   true,
+	StatThreat:          true,
+}
+
+// statsOnOthers are the stats stat_aura and instant_stat may grant
+// (plan-effect-types-round-2.md D9): the four with a read site that takes the
+// buff store beside Derived (DerivedStats.WithBuffs). Pool, cost and movement
+// are refused: pool needs a mid-fight clamp rule, cost only matters to whoever
+// pays, and movement on others already exists (speed_aura, slows).
+var statsOnOthers = map[string]bool{
+	StatDamageDealt:     true,
+	StatDamageReduction: true,
+	StatCritChance:      true,
+	StatThreat:          true,
 }
 
 // ValidStat reports whether name is a stat_multiplier stat the fold applies.
@@ -1010,6 +1034,13 @@ type StatParams struct {
 	Name          string  `json:"name"`
 	Bonus         float32 `json:"bonus"`
 	BonusPerLevel float32 `json:"bonusPerLevel"`
+
+	// TargetsSelf (stat_aura, instant_stat) also buffs the caster, outside the
+	// target cap, the ResistParams rule.
+	TargetsSelf bool `json:"targetsSelf,omitempty"`
+	// DurationTicks is the buff lifetime one instant_stat grants; 0 on the
+	// aura (it derives its lifetime from the cadence) and on stat_multiplier.
+	DurationTicks int `json:"durationTicks,omitempty"`
 }
 
 // BonusAt is the level-scaled additive stat bonus.
@@ -1200,6 +1231,9 @@ type effectDef struct {
 	Stat              string  `json:"stat"`
 	StatBonus         float32 `json:"statBonus"`
 	StatBonusPerLevel float32 `json:"statBonusPerLevel"`
+	// instant_stat authors its buff lifetime outright, resistDurationTicks'
+	// convention.
+	StatDurationTicks int `json:"statDurationTicks"`
 
 	DotTicks        int `json:"dotTicks"`        // damage events per application
 	DotTickInterval int `json:"dotTickInterval"` // game ticks between events
@@ -1310,6 +1344,7 @@ var (
 		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critChancePerLevel", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
+	keysStatPayload   = []string{"stat", "statBonus", "statBonusPerLevel"}
 	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
 	keysShieldPayload = []string{"shieldHP", "shieldHPPerLevel"}
 	// Hot reuses the heal HP/variance keys (heal HP is heal HP) plus its own
@@ -1349,8 +1384,14 @@ var effectKeys = map[EffectType][]string{
 		keysResistPayload, []string{"resistDurationTicks", "targetsSelf"}),
 	// Equip-time folds into DerivedStats — no geometry, cadence, or targeting.
 	EffectTypeResistPassive:  keysResistPayload,
-	EffectTypeStatMultiplier: {"stat", "statBonus", "statBonusPerLevel"},
-	EffectTypeDotAura:        mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDotPayload),
+	EffectTypeStatMultiplier: keysStatPayload,
+	// The resist pair's shape over the stat payload (plan-effect-types-round-2.md
+	// D11).
+	EffectTypeStatAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags,
+		keysStatPayload, []string{"targetsSelf"}),
+	EffectTypeInstantStat: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		keysStatPayload, []string{"statDurationTicks", "targetsSelf"}),
+	EffectTypeDotAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDotPayload),
 	// No cadence: instant_dot applies once on cooldown activation.
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
@@ -1559,6 +1600,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeShieldAura: {SkillCategoryActiveAura},
 	EffectTypeHotAura:    {SkillCategoryActiveAura},
 	EffectTypeSpeedAura:  {SkillCategoryActiveAura},
+	EffectTypeStatAura:   {SkillCategoryActiveAura},
 	EffectTypeLightAura:  {SkillCategoryActiveAura, SkillCategoryPassive},
 
 	// The cast effects, fired on activation.
@@ -1573,6 +1615,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeCalm:           {SkillCategoryCooldown},
 	EffectTypeStun:           {SkillCategoryCooldown},
 	EffectTypeInstantSlow:    {SkillCategoryCooldown},
+	EffectTypeInstantStat:    {SkillCategoryCooldown},
 	EffectTypeCharm:          {SkillCategoryCooldown},
 	EffectTypeRecall:         {SkillCategoryCooldown},
 	EffectTypeInstantHot:     {SkillCategoryCooldown},
@@ -1738,11 +1781,14 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 				strings.Join(legalCategoryNames(effect.Type), ", "))
 		}
 		if effect.Type == EffectTypeStatMultiplier && category == SkillCategoryActiveAura {
-			if err := checkWhileActiveBounds(effect.Stat, s.MaxLevel); err != nil {
+			if err := checkWhileActiveBounds(effect.Stat, s.MaxLevel, "stat_multiplier on an active aura"); err != nil {
 				return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 			}
 		}
 		if err := checkSlowBounds(effect, s.MaxLevel); err != nil {
+			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+		}
+		if err := checkStatOnOthersBounds(effect, s.MaxLevel); err != nil {
 			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 		}
 		// A faction-scoped effect without an allowlist would reach every
@@ -1925,8 +1971,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		}
 	case EffectTypeResistAura, EffectTypeResistPassive, EffectTypeInstantResist:
 		def.Resist, err = e.resistParams(effectType)
-	case EffectTypeStatMultiplier:
-		def.Stat, err = e.statParams()
+	case EffectTypeStatMultiplier, EffectTypeStatAura, EffectTypeInstantStat:
+		def.Stat, err = e.statParams(effectType)
 	case EffectTypeDotAura, EffectTypeInstantDot:
 		def.Dot, err = e.dotParams()
 	case EffectTypeSpawn, EffectTypeSpawnAtAnchor:
@@ -2623,20 +2669,48 @@ func (e *effectDef) tauntParams() (*ThreatParams, error) {
 	return &ThreatParams{Margin: e.ThreatMargin}, nil
 }
 
-func (e *effectDef) statParams() (*StatParams, error) {
+func (e *effectDef) statParams(effectType EffectType) (*StatParams, error) {
+	name := effectTypeNames[effectType]
 	if !validStats[e.Stat] {
-		return nil, fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
+		return nil, fmt.Errorf("%s: unknown stat %q", name, e.Stat)
+	}
+	if effectType != EffectTypeStatMultiplier && !statsOnOthers[e.Stat] {
+		return nil, fmt.Errorf("%s: stat %q cannot be granted to others (damageDealt, damageReduction, critChance or threat)", name, e.Stat)
 	}
 	// A both-zero stat_multiplier does nothing — hard-fail rather than load a
 	// do-nothing passive.
 	if e.StatBonus == 0 && e.StatBonusPerLevel == 0 {
-		return nil, fmt.Errorf("stat_multiplier: no scaling authored (statBonus and statBonusPerLevel both 0)")
+		return nil, fmt.Errorf("%s: no scaling authored (statBonus and statBonusPerLevel both 0)", name)
+	}
+	// The instant form requires its authored buff lifetime (the resistParams
+	// rule); the allowlist keeps the key off the other two.
+	if effectType == EffectTypeInstantStat && e.StatDurationTicks < 1 {
+		return nil, fmt.Errorf("statDurationTicks: must be >= 1, got %v", e.StatDurationTicks)
 	}
 	return &StatParams{
 		Name:          e.Stat,
 		Bonus:         e.StatBonus,
 		BonusPerLevel: e.StatBonusPerLevel,
+		TargetsSelf:   e.TargetsSelf,
+		DurationTicks: e.StatDurationTicks,
 	}, nil
+}
+
+// checkStatOnOthersBounds holds stat_aura and instant_stat to their range at
+// EVERY level (plan-effect-types-round-2.md D12, L13): the while-active
+// bounds (damage taken caps at 2x), and never zero, because a zero buffs
+// nothing and the sign is what picks buff or debuff. Per level, the
+// checkSlowBounds reason: a slope can walk a legal level 1 out of range.
+func checkStatOnOthersBounds(e EffectDef, maxLevel int) error {
+	if e.Type != EffectTypeStatAura && e.Type != EffectTypeInstantStat {
+		return nil
+	}
+	for level := 1; level <= maxLevel; level++ {
+		if e.Stat.BonusAt(level) == 0 {
+			return fmt.Errorf("%s %s: bonus is 0 at level %d", effectTypeNames[e.Type], e.Stat.Name, level)
+		}
+	}
+	return checkWhileActiveBounds(e.Stat, maxLevel, effectTypeNames[e.Type])
 }
 
 // whileActiveBounds is the legal range of a stat_multiplier's bonus on an
@@ -2654,15 +2728,15 @@ var whileActiveBounds = map[string][2]float32{
 	StatCostReduction:   {-1, 1},
 }
 
-func checkWhileActiveBounds(p *StatParams, maxLevel int) error {
+func checkWhileActiveBounds(p *StatParams, maxLevel int, label string) error {
 	bound, ok := whileActiveBounds[p.Name]
 	if !ok {
 		return nil
 	}
 	for level := 1; level <= maxLevel; level++ {
 		if b := p.BonusAt(level); b < bound[0] || b > bound[1] {
-			return fmt.Errorf("stat_multiplier %s on an active aura: bonus %v at level %d is outside [%v, %v]",
-				p.Name, b, level, bound[0], bound[1])
+			return fmt.Errorf("%s %s: bonus %v at level %d is outside [%v, %v]",
+				label, p.Name, b, level, bound[0], bound[1])
 		}
 	}
 	return nil

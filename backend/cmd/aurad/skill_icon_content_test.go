@@ -95,6 +95,7 @@ var mobTimedEffectTypes = map[string]bool{
 	"hot_aura": true, "instant_hot": true,
 	"resist_aura": true, "instant_resist": true,
 	"speed_aura": true, "calm": true, "charm": true, "stun": true, "retaliate_slow": true,
+	"stat_aura": true, "instant_stat": true,
 }
 
 type skillEffectTypes struct {

@@ -1,8 +1,8 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
-**Status:** DESIGNED + PO-RULED 2026-10-07 (planning session, docs only,
-nothing built). D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8 chunks, C0
-first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
+**Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
+(§10); C2-C7 not started. D1-D10 PO-ruled, D11-D29 mine (flag if wrong). 8
+chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
 chunk · client YES (pips, tray kinds, the stealth look).** Ledger: §10.
@@ -302,6 +302,32 @@ does not compile.
   + `stat_aura` `damageReduction` on self and allies + a while-active
   `stat_multiplier` `threat`), and a demoralize cooldown (`instant_stat`
   `damageDealt` < 0 on enemies).
+- ⚑ **As built (2026-10-07):**
+  - The capability is `model.StatBuffable` (`ApplyStat` + `EffectiveStats`),
+    pinned at compile time on `*player` and `*Mob`. `EffectiveStats()` is
+    `Derived.WithBuffs(&buffs)`, and every read site of the four stats goes
+    through it: `casterDamageFactor`, `casterCritChance`, both `takeDamage`s,
+    `Mob.noteThreat`.
+  - The floors live in the shared factor methods, so they hold for the
+    passive fold too: `DamageFactor()` floors at 0.1 (D13),
+    `DamageReductionFactor()` clamps BOTH sides at ±1 (L13: damage taken
+    caps at 2x), the new `ThreatFactor()` floors at 0. Nothing shipped
+    reaches any of them, so this changes no shipped number.
+  - `buffLifetimeMatchesInterval` was NOT carried over to `stat_aura` (D11
+    listed it): no content asks for the pricing lever yet. One key and one
+    branch when it does.
+  - The loader refuses a zero bonus at any level (the sign picks the side)
+    and applies the while-active bounds; `threat` has no bound (floored at
+    0 at the read site, like damageDealt and critChance, nothing degenerate).
+  - Bits: pips StatUp 256 / StatDown 512, tray kinds StatUp 4096 /
+    StatDown 8192 (harmful). Pip colours gold / rust, [PLACEHOLDER].
+  - Examples: `Bulwark` (id 158, `api/skills/bulwark.json`) and
+    `Demoralize` (id 159), SKILL cheat only. Harness
+    `c1-stat-buffs.mjs` (debug zones, two clients) 4/4.
+  - PO-ruled 2026-10-07 (§8): a NEGATIVE threat buff on allies stays StatDown
+    (harmful row, D12 literally), and `GameState.damage_factor` keeps reading
+    `Derived` only (a timed damageDealt buff moves the tray, not the tooltip
+    numbers).
 
 ### C2 - thorns on others
 
@@ -409,6 +435,12 @@ None blocking. Raised at execution if they come up:
 - The stealth alpha and whether the stealthed player sees a stronger cue
   (an outline) on their own token.
 - Whether mobs should charge later (D19).
+- ~~(C1) A negative `threat` buff on allies (Salvation) reads as harmful on
+  the tray.~~ **PO 2026-10-07: keep, the sign decides** (D12 stands for every
+  stat).
+- ~~(C1) Should the tooltip preview (`GameState.damage_factor`) include a
+  timed damageDealt buff?~~ **PO 2026-10-07: leave as is for now**; the
+  tooltip shows the loadout, timed buffs show on the tray.
 
 ## 9. Test strategy and verification
 
@@ -432,7 +464,7 @@ None blocking. Raised at execution if they come up:
 | Chunk | What | Wire | Status |
 |---|---|---|---|
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
-| C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | not started |
+| C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | BUILT 2026-10-07, uncommitted (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
 | C3 | Charge | none | not started |
 | C4 | Empower next cast | +1 kind | not started |

@@ -433,15 +433,16 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 35 since plan-aura-drawbacks.md C2
-added `instant_slow`):
+`backend/pkg/aura/skills/definition.go`, 37 since plan-effect-types-round-2.md
+C1 added `stat_aura` and `instant_stat`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
 `stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`,
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
-`retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`.
+`retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`,
+`stat_aura`, `instant_stat`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -465,7 +466,7 @@ the dispatch sites themselves:
 
 - **`active_aura`** (`sys.applyAuraEffect`): `damage_aura`, `heal_aura`,
   `dot_aura`, `hot_aura`, `shield_aura`, `slow_aura`, `resist_aura`,
-  `speed_aura` - plus `light_aura`, which never ticks (rendering-only, streams
+  `speed_aura`, `stat_aura` - plus `light_aura`, which never ticks (rendering-only, streams
   as the wire `light_radius`), and `stat_multiplier`, which never ticks either:
   it is the **while-active self modifier** below (`recomputeDerived`, since
   plan-aura-drawbacks.md C1).
@@ -473,10 +474,10 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`, `instant_slow`.
+  `recall`, `revive`, `instant_slow`, `instant_stat`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
-  six-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
-  `critChance`, `damageDealt`, `costReduction`), `resist_passive`,
+  seven-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
+  `critChance`, `damageDealt`, `costReduction`, `threat`), `resist_passive`,
   `retaliate_slow`, `retaliate_damage` - plus `light_aura` (the Torch pattern;
   light is read per equipped skill, so passives glow too). Passives have no
   cadence and no fire: a `costFractionOfMax` on a passive effect parses but can
@@ -1216,7 +1217,8 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive, instant_resist. ⚑ `resistTags` is NOT the closed damage vocabulary: it also accepts the reserved wildcard `"*"`, which covers every hit tag (factor 0 with it = invulnerability). A wildcard must be the ONLY entry - mixed with named tags it would apply twice to those tags, and that hard-fails |
 | `resistDurationTicks` | `resist.durationTicks` | instant_resist only (the `shieldDurationTicks` twin; the aura form derives its lifetime from the cadence) |
 | `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |
-| `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
+| `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier, stat_aura, instant_stat. On the two "on others" types only `damageDealt`, `damageReduction`, `critChance` and `threat` load; the bonus may be either sign (the sign picks buff or debuff) but never 0 at any level, and `damageReduction` stays in [-1, 1] (plan-effect-types-round-2.md C1) |
+| `statDurationTicks` | `stat.durationTicks` | instant_stat only (the `resistDurationTicks` twin; the aura form derives its lifetime from the cadence + 1) |
 | `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
 | `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` / `follows` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all six: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound), and ⭐ `follows: true` is what makes the summon a PET (plan-summon-follows.md D1) - it trails its caster and takes its fights, and any mob in the picker qualifies, because nothing on the MOB grants or withholds the permission (C2 retired the `follower` role that once did). `follows` is on the `spawn` row ALONE: a portal is a door, a bomb is a bomb, so authoring it on `spawn_at_anchor` or `projectile` hard-fails. `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8). ⚑ **`ttlTicks` is not the only end**: every OWNED summon - pet, totem, portal, thrown bomb - expires the moment its owner leaves the world, whether they die, disconnect or take a flight (plan-summon-follows.md C3, PO 2026-09-13: one rule, so nothing a player placed outlives them) |
 | `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
@@ -1290,8 +1292,8 @@ rule "mob skills author no icon" is amended: a mob skill MAY author `icon`
 (+ `packIcon`), and one that carries an effect type landing a timed effect on
 another entity MUST (`dot_aura`, `instant_dot`, `slow_aura`, `instant_slow`,
 `shield_aura`, `instant_shield`, `hot_aura`, `instant_hot`, `resist_aura`,
-`instant_resist`, `speed_aura`, `calm`, `charm`, `stun`, `retaliate_slow`;
-pinned by `cmd/aurad/skill_icon_content_test.go`). A self-only effect such as
+`instant_resist`, `speed_aura`, `calm`, `charm`, `stun`, `retaliate_slow`,
+`stat_aura`, `instant_stat`; pinned by `cmd/aurad/skill_icon_content_test.go`). A self-only effect such as
 the warlord's `tick_rate` frenzy stays bare. The same three steps as a player
 skill: the `icon` glyph is bundled by `scripts/fetch-skill-icons.mjs` (it
 walks `mobs/` too, icon optional there), the `packIcon` names a manifest entry

@@ -88,6 +88,10 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// The slow cooldown, for the same reason: a one-cast query circle with
 	// nothing persistent to outline. Its tell is the slow pip on the target.
 	EffectTypeInstantSlow: AuraCategoryNone,
+	// The stat pair draws no ring (plan-effect-types-round-2.md §2: the ring
+	// byte is full). Its tell is the StatUp / StatDown pip on whoever wears it.
+	EffectTypeStatAura:    AuraCategoryNone,
+	EffectTypeInstantStat: AuraCategoryNone,
 	// A speed burst is self-targeted and projects nothing; its tell is the
 	// applied-effect pip on the caster (plus visibly moving faster).
 	EffectTypeSpeedBurst: AuraCategoryNone,

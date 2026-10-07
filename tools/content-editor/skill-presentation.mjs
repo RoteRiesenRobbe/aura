@@ -188,6 +188,7 @@ export const EFFECT_PRESENTATION = {
   stat: { control: 'select', options: 'statNames', group: PAYLOAD },
   statBonus: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Additive share of the stat (0.04 = +4 %).' },
   statBonusPerLevel: { control: 'number', group: PAYLOAD },
+  statDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
 
   // --- spawn / projectile ---
   spawnMob: { control: 'mob', group: PAYLOAD, hint: 'Picked from every mob on disk, grouped by role; the summon\'s own stats, aura and art are edited in the Mobs tab (D2), never inline here.' },

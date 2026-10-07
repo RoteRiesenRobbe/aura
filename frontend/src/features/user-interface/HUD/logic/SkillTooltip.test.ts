@@ -1600,3 +1600,47 @@ describe('served description (C8 D1)', () => {
         expect(formatSkillTooltip(bare, 1, 1).description).toBeUndefined();
     });
 });
+
+// Stat buffs and debuffs on others (plan-effect-types-round-2.md C1): the
+// stat_multiplier line, scoped by how the effect delivers it.
+describe('stat_aura and instant_stat', () => {
+    it('renders a guarding aura on allies and the caster, with its refresh', () => {
+        const guard = skill({
+            displayName: 'Guard', category: 'aura', maxLevel: 5,
+            effects: [effect({
+                type: 'stat_aura', radius: 3, tickInterval: 30, targetsAllies: true,
+                stat: {name: 'damageReduction', bonus: 0.1, bonusPerLevel: 0, targetsSelf: true},
+            })],
+        });
+        expect(lines(guard, 1, 1)).toEqual([
+            'Damage taken: −10%, refreshed every 1s',
+            'Also applies to you',
+            'Radius: 3 m',
+            'Targets: all allies in range',
+        ]);
+    });
+
+    it('renders a demoralize on enemies for its own lifetime, not as a price', () => {
+        const demoralize = skill({
+            displayName: 'Demoralize', category: 'cooldown', maxLevel: 1, cooldownTicks: 600,
+            effects: [effect({
+                type: 'instant_stat', radius: 4, targetsEnemies: true,
+                stat: {name: 'damageDealt', bonus: -0.2, bonusPerLevel: 0, durationTicks: 300},
+            })],
+        });
+        expect(lines(demoralize, 1, 1)).toEqual([
+            'All damage: −20% for 10s',
+            'Radius: 4 m',
+            'Targets: all enemies in range',
+            'Cooldown: 20s',
+        ]);
+    });
+
+    it('names the threat stat', () => {
+        const fury = skill({
+            displayName: 'Fury', category: 'passive', maxLevel: 1,
+            effects: [effect({type: 'stat_multiplier', stat: {name: 'threat', bonus: 0.5, bonusPerLevel: 0}})],
+        });
+        expect(lines(fury, 1, 1)).toEqual(['Threat: +50%']);
+    });
+});

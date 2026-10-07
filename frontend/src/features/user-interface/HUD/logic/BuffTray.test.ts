@@ -24,11 +24,12 @@ function keys(list: { key: string }[]): string[] {
 }
 
 describe('BuffTray side by kind (D13 on a mask)', () => {
-    it('calls slow, dot and stun harmful and every other kind beneficial', () => {
+    it('calls slow, dot, stun and a lowered stat harmful and every other kind beneficial', () => {
         expect(isHarmful(K.Slow)).toBe(true);
         expect(isHarmful(K.Dot)).toBe(true);
         expect(isHarmful(K.Stun)).toBe(true);
-        for (const kind of [K.Resist, K.Speed, K.Lifesteal, K.Reflect, K.TickRate, K.Hot, K.Shield, K.Calm, K.Charm]) {
+        expect(isHarmful(K.StatDown)).toBe(true);
+        for (const kind of [K.Resist, K.Speed, K.Lifesteal, K.Reflect, K.TickRate, K.Hot, K.Shield, K.Calm, K.Charm, K.StatUp]) {
             expect(isHarmful(kind), `kind ${kind}`).toBe(false);
         }
     });
@@ -36,7 +37,7 @@ describe('BuffTray side by kind (D13 on a mask)', () => {
     it('reads a mask: any harmful bit makes the circle harmful', () => {
         expect(isHarmful(K.Resist | K.Slow)).toBe(true);
         expect(isHarmful(K.Hot | K.Shield)).toBe(false);
-        expect(HARMFUL_KINDS).toBe(K.Slow | K.Dot | K.Stun);
+        expect(HARMFUL_KINDS).toBe(K.Slow | K.Dot | K.Stun | K.StatDown);
     });
 });
 

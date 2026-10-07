@@ -12,7 +12,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
-// chargeableAuraTypes are the EIGHT effect types applyAuraEffect's switch
+// chargeableAuraTypes are the NINE effect types applyAuraEffect's switch
 // dispatches, and therefore the only ones an active aura can ever be charged
 // for. A second list, deliberately: it fails LOUD (a new chargeable type trips
 // the asserts that read it) rather than escaping them.
@@ -27,6 +27,9 @@ var chargeableAuraTypes = map[skills.EffectType]bool{
 	// The eighth, plan-effect-types.md C4: an ally haste field, work-gated like
 	// the other five state auras (§5.2).
 	skills.EffectTypeSpeedAura: true,
+	// The ninth, plan-effect-types-round-2.md C1: stat buffs and debuffs on
+	// others, work-gated like resist_aura.
+	skills.EffectTypeStatAura: true,
 }
 
 // workGatedCharge is the R2 split of the chargeable types: which of them

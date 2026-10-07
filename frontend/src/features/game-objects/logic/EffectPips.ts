@@ -4,7 +4,7 @@ import {OVERHEAD_BAR_BACKDROP} from '../../../client-data/Theme';
 
 /**
  * Client mirror of the backend `skills.AppliedEffect` bitmask, serialized as
- * the `applied_effects` wire ubyte on both Character and Mob: the buff/debuff
+ * the `applied_effects` wire ushort on both Character and Mob: the buff/debuff
  * kinds currently applied TO an entity — the received-status opposite of
  * `aura_category`, which describes what the entity projects.
  *
@@ -29,6 +29,10 @@ export enum AppliedEffectBit {
     Calm = 1 << 5,
     Charm = 1 << 6,
     Speed = 1 << 7,
+    // A timed stat buff or debuff on others (plan-effect-types-round-2.md C1):
+    // the sign of the bonus picks the bit.
+    StatUp = 1 << 8,
+    StatDown = 1 << 9,
 }
 
 interface PipStyle {
@@ -55,6 +59,8 @@ const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.Calm, color: 0xa8d8f0},
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},
+    // [PLACEHOLDER] colours: a dull rust for a weakened stat, a gold for a raised one.
+    {bit: AppliedEffectBit.StatDown, color: 0x9a4f2c},
     {bit: AppliedEffectBit.Hot, color: AURA_CATEGORY_COLORS.heal},
     {bit: AppliedEffectBit.Resist, color: AURA_CATEGORY_COLORS.resist},
     {bit: AppliedEffectBit.TickRate, color: 0xe0812e},
@@ -64,6 +70,7 @@ const PIP_STYLES: readonly PipStyle[] = [
     // (plan-effect-types.md C4): the ring and this pip must stay one colour, so
     // there is one place to change it.
     {bit: AppliedEffectBit.Speed, color: AURA_CATEGORY_COLORS.speed},
+    {bit: AppliedEffectBit.StatUp, color: 0xe8c547},
 ];
 
 /** Pip radius in px. [PLACEHOLDER] */

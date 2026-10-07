@@ -17,6 +17,7 @@ import (
 
 var _ = model.MobEntity(&Mob{})
 var _ = model.Healable(&Mob{})
+var _ = model.StatBuffable(&Mob{})
 
 // processSalt randomizes every mob's RNG stream per process run so a fresh
 // server no longer re-rolls the same HP variance + first drop for the Nth
@@ -1655,7 +1656,15 @@ type threatEntry struct {
 // noteThreat credits threat against source (chunk 3a). The amount is
 // post-mitigation HP (§6.3, decided 2026-07-10); allied, dead and empty
 // credits are dropped, so a faction gate never needs re-checking on read.
+//
+// The amount is scaled by the SOURCE's threat stat, passive and timed
+// (plan-effect-types-round-2.md D15): every threat write but the taunt's
+// margin comes through here, damage and healer threat alike. A summon's hit
+// names the summon, so it writes with its own factor.
 func (m *Mob) noteThreat(source model.Combatant, amount float32) {
+	if s, ok := source.(model.StatBuffable); ok {
+		amount *= s.EffectiveStats().ThreatFactor()
+	}
 	if amount <= 0 {
 		return
 	}
@@ -1960,7 +1969,7 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 	// player's takeDamage applies, in the same position: after resistances,
 	// before the non-event check (chunk 1a). Base resistances and a reduction
 	// passive are distinct sources and stack multiplicatively.
-	hp32 := damage.HP * multiplier * m.skills.Derived.DamageReductionFactor()
+	hp32 := damage.HP * multiplier * m.EffectiveStats().DamageReductionFactor()
 	// A fully resisted hit stays a non-event: no combat signal, no absorb.
 	// vitals.HP floors any positive amount to at least 1 (§2 of the plan), so
 	// this branch is reachable with damage.HP > 0 only when mitigation
@@ -2058,6 +2067,17 @@ func (m *Mob) Heal(h model.Healing) vitals.VitalSign {
 		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), healed)
 	}
 	return healed
+}
+
+// ApplyStat grants a timed stat buff or debuff (plan-effect-types-round-2.md
+// C1). Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (m *Mob) ApplyStat(source skills.SkillID, stat string, bonus float32, ticks int) bool {
+	return m.buffs.ApplyStat(source, stat, bonus, ticks)
+}
+
+// EffectiveStats is Derived plus the timed stat buffs (D14).
+func (m *Mob) EffectiveStats() skills.DerivedStats {
+	return m.skills.Derived.WithBuffs(&m.buffs)
 }
 
 // ApplyResist grants a transient tag-resistance buff from a resist aura

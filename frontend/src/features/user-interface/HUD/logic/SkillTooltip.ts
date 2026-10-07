@@ -97,6 +97,9 @@ export const NEUTRAL_EFFECT_TYPES: string[] = [
     'stat_multiplier', 'spawn', 'spawn_at_anchor', 'projectile',
     'taunt', 'detaunt', 'recall', 'revive', 'dash', 'tick_rate',
     'calm', 'charm', 'lifesteal_burst',
+    // A stat buff or debuff on others (plan-effect-types-round-2.md C1) has no
+    // ring colour; its pip colours are its own, not a category's.
+    'stat_aura', 'instant_stat',
 ];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -179,6 +182,7 @@ export const STAT_LABELS: { [stat: string]: string } = {
     critChance: 'Crit chance',
     damageDealt: 'All damage',
     costReduction: 'All costs',
+    threat: 'Threat',
 };
 
 // The subtractive stats (server: value × (1 − bonus)) phrase as what the
@@ -228,7 +232,7 @@ function gatedLine(key: string): string {
 // vitest here instead of quietly rendering no cadence.
 export const TICKING_TYPES = new Set([
     'damage_aura', 'heal_aura', 'dot_aura', 'hot_aura',
-    'slow_aura', 'resist_aura', 'shield_aura', 'speed_aura',
+    'slow_aura', 'resist_aura', 'shield_aura', 'speed_aura', 'stat_aura',
 ]);
 
 // The rendered tick cadence of an aura-form effect, with its next-level
@@ -275,6 +279,7 @@ export const COST_TRIGGER_TEXT: { [type: string]: string } = {
     // three share one rule (a fresh buff on somebody is work, a refresh at the
     // same value is not), so they should share one sentence.
     speed_aura: 'when it reaches someone new',
+    stat_aura: 'when it reaches someone new',
 };
 
 // The cost trigger for ONE effect: the type's wording, unless the effect
@@ -542,7 +547,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
             break;
         }
-        case 'stat_multiplier': {
+        case 'stat_multiplier':
+        case 'stat_aura':
+        case 'instant_stat': {
             const stat = effect.stat;
             const label = STAT_LABELS[stat.name] ?? stat.name;
             // The signed change the player feels: a reduction stat's label is
@@ -556,13 +563,19 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // Sign on the first value only, the ward shape; a next value
             // carries its own sign only when it crosses zero.
             const render = (n: number) => (sign(n) === lead ? '' : sign(n)) + pct(Math.abs(n));
-            // An active aura's modifier holds only while it is on (D1).
-            const scope = whileActive ? ' while active' : '';
+            // An active aura's modifier holds only while it is on (D1); the
+            // instant form lasts its own lifetime, the aura form re-applies.
+            let scope = whileActive ? ' while active' : '';
+            if (effect.type === 'instant_stat') scope = ` for ${ticksToSecs(stat.durationTicks ?? 0)}`;
+            if (effect.type === 'stat_aura') scope = refresh;
             lines.push(`${label}: ${lead}${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, render)}${scope}`);
             // A drawback is a price, so it wears the cost line's Focus color.
-            if (current < 0) {
+            // Only on the caster's own modifier: a debuff cast on an enemy is
+            // not something the caster pays.
+            if (current < 0 && effect.type === 'stat_multiplier') {
                 labelColor = FOCUS_COLOR_CSS;
             }
+            if (stat.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
             break;
         }
         case 'dot_aura':

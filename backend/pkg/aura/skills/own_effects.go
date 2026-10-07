@@ -31,6 +31,8 @@ const (
 	EffectKindCalm      EffectKind = 1 << 9
 	EffectKindStun      EffectKind = 1 << 10
 	EffectKindCharm     EffectKind = 1 << 11
+	EffectKindStatUp    EffectKind = 1 << 12
+	EffectKindStatDown  EffectKind = 1 << 13
 )
 
 func (*resistPayload) effectKind() EffectKind    { return EffectKindResist }
@@ -45,6 +47,14 @@ func (*shieldPayload) effectKind() EffectKind    { return EffectKindShield }
 func (*calmPayload) effectKind() EffectKind      { return EffectKindCalm }
 func (*stunPayload) effectKind() EffectKind      { return EffectKindStun }
 func (*charmPayload) effectKind() EffectKind     { return EffectKindCharm }
+
+// The sign picks the tray side (D12), the appliedBit rule.
+func (p *statPayload) effectKind() EffectKind {
+	if p.bonus < 0 {
+		return EffectKindStatDown
+	}
+	return EffectKindStatUp
+}
 
 // OwnEffect is one circle on the own player's buff tray, the store's
 // projection of one (skill, caster) group of streams.

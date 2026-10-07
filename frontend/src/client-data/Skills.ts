@@ -85,6 +85,11 @@ export interface StatParams {
     name: string;
     bonus: number;
     bonusPerLevel: number;
+    // stat_aura / instant_stat only (plan-effect-types-round-2.md C1): also
+    // buffs the caster; and the instant form's own buff lifetime. Both are
+    // omitted from the catalog when unset.
+    targetsSelf?: boolean;
+    durationTicks?: number;
 }
 
 export interface DotParams {

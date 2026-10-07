@@ -21,6 +21,7 @@ import (
 
 var _ = model.PlayerEntity(&player{})
 var _ = model.Healable(&player{})
+var _ = model.StatBuffable(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -382,10 +383,10 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	hp32 := damage.HP *
 		skills.ResistMultiplier(damage.Tags, p.skills.Derived.Resistances) *
 		p.buffs.ResistMultiplier(damage.Tags)
-	// Passive damage reduction (DerivedStats); 100% is the natural cap,
-	// clamped inside the shared factor (chunk 1a — the mob takeDamage calls
-	// the same method).
-	hp32 *= p.skills.Derived.DamageReductionFactor()
+	// Passive damage reduction (DerivedStats) plus a timed damageReduction
+	// buff or debuff (D14); clamped inside the shared factor (chunk 1a — the
+	// mob takeDamage calls the same method).
+	hp32 *= p.EffectiveStats().DamageReductionFactor()
 	// God short-circuits before the absorb step — god never drains a shield.
 	if p.IsGod() {
 		return 0
@@ -641,6 +642,17 @@ func (p *player) SetConversation(c *model.Conversation) { p.conversation = c }
 func (p *player) NoteActivationRejected(skill skills.SkillID, reason model.ActivationRejection) {
 	p.rejectedSkill = skill
 	p.rejectedReason = reason
+}
+
+// ApplyStat grants a timed stat buff or debuff (plan-effect-types-round-2.md
+// C1). Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (p *player) ApplyStat(source skills.SkillID, stat string, bonus float32, ticks int) bool {
+	return p.buffs.ApplyStat(source, stat, bonus, ticks)
+}
+
+// EffectiveStats is Derived plus the timed stat buffs (D14).
+func (p *player) EffectiveStats() skills.DerivedStats {
+	return p.skills.Derived.WithBuffs(&p.buffs)
 }
 
 // ApplyResist grants a transient tag-resistance buff from a resist aura

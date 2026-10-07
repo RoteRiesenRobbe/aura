@@ -175,6 +175,15 @@ type stunPayload struct{}
 // the mob polls Charmed() and the two are kept in step by Charm/EndCharm.
 type charmPayload struct{}
 
+// statPayload is a timed stat buff or debuff granted by stat_aura or
+// instant_stat (plan-effect-types-round-2.md C1, D11): bonus is added to the
+// named stat beside Derived (DerivedStats.WithBuffs), never folded into it.
+// Streams are keyed by (stat, bonus); the sign decides buff or debuff (D12).
+type statPayload struct {
+	stat  string
+	bonus float32
+}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -197,6 +206,7 @@ func (*stunPayload) isBuffPayload()      {}
 func (*charmPayload) isBuffPayload()     {}
 func (*lifestealPayload) isBuffPayload() {}
 func (*reflectPayload) isBuffPayload()   {}
+func (*statPayload) isBuffPayload()      {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -312,6 +322,51 @@ func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) bool {
 	}
 	b.apply(source, &speedPayload{factor: factor}, ticks)
 	return true
+}
+
+// ApplyStat grants (or refreshes) a stat buff or debuff from the given source
+// skill; same stream rules as resist, keyed by (stat, bonus). Reports whether
+// the application was genuinely new (the ApplyResist rule, §5.2): what a
+// stat AURA's cost is charged off.
+func (b *Buffs) ApplyStat(source SkillID, stat string, bonus float32, ticks int) bool {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*statPayload); ok && p.stat == stat && p.bonus == bonus {
+			b.extend(e, ticks)
+			return false
+		}
+	}
+	b.apply(source, &statPayload{stat: stat, bonus: bonus}, ticks)
+	return true
+}
+
+// StatBonus is the timed bonus on one stat right now (D13): per source skill
+// the strongest live stream by magnitude (so a level-up mid-buff never counts
+// twice), summed across skills, because the passive bonuses add too.
+func (b *Buffs) StatBonus(stat string) float32 {
+	var total float32
+	for _, list := range b.entries {
+		var strongest *statPayload
+		for _, e := range list {
+			p, ok := e.payload.(*statPayload)
+			if !ok || p.stat != stat {
+				continue
+			}
+			if strongest == nil || abs32(p.bonus) > abs32(strongest.bonus) {
+				strongest = p
+			}
+		}
+		if strongest != nil {
+			total += strongest.bonus
+		}
+	}
+	return total
+}
+
+func abs32(f float32) float32 {
+	if f < 0 {
+		return -f
+	}
+	return f
 }
 
 // ApplyLifesteal grants (or refreshes) a damage-leech buff from the given source

@@ -150,6 +150,8 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"calm":     uint16(skills.AppliedEffectCalm),
 		"charm":    uint16(skills.AppliedEffectCharm),
 		"speed":    uint16(skills.AppliedEffectSpeed),
+		"statUp":   uint16(skills.AppliedEffectStatUp),
+		"statDown": uint16(skills.AppliedEffectStatDown),
 	}, fixture.AppliedEffectBits,
 		"skills.AppliedEffect has drifted from api/shared-constants.json — the client colors pips off these bits")
 
@@ -166,6 +168,8 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"calm":      uint32(skills.EffectKindCalm),
 		"stun":      uint32(skills.EffectKindStun),
 		"charm":     uint32(skills.EffectKindCharm),
+		"statUp":    uint32(skills.EffectKindStatUp),
+		"statDown":  uint32(skills.EffectKindStatDown),
 	}, fixture.EffectKindBits,
 		"skills.EffectKind has drifted from api/shared-constants.json: the buff tray sides and names circles off these bits")
 

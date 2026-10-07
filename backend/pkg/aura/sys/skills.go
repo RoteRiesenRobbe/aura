@@ -355,6 +355,8 @@ func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, leve
 		landed = applyHotAura(e, source, level, effect, targets)
 	case skills.EffectTypeSpeedAura:
 		landed = applySpeedAura(e, source, level, effect, targets)
+	case skills.EffectTypeStatAura:
+		landed = applyStatAura(e, source, level, effect, targets)
 	}
 
 	if landed && payer != nil {
@@ -873,13 +875,12 @@ func healerThreatFactor() float32 { return combatFactors.HealerThreat() }
 // casterCritChance, the ACTING entity's own stats drive it — a summon never
 // inherits its owner's passives. Applied at the damage base-composition sites
 // (direct auras/instants and dot application), never to heals or CC.
+//
+// Since plan-effect-types-round-2.md C1 it reads EffectiveStats, so a timed
+// damageDealt buff or debuff (a shout, a demoralize) counts beside Strong.
 func casterDamageFactor(acting any) float32 {
-	if h, ok := acting.(interface {
-		SkillComponent() *skills.SkillComponent
-	}); ok {
-		if sc := h.SkillComponent(); sc != nil {
-			return sc.Derived.DamageFactor()
-		}
+	if s, ok := acting.(model.StatBuffable); ok {
+		return s.EffectiveStats().DamageFactor()
 	}
 	return 1
 }
@@ -898,12 +899,9 @@ func casterCritChance(acting any) float32 {
 			chance = c.CritChance
 		}
 	}
-	if h, ok := acting.(interface {
-		SkillComponent() *skills.SkillComponent
-	}); ok {
-		if sc := h.SkillComponent(); sc != nil {
-			chance += sc.Derived.CritChanceBonus
-		}
+	// EffectiveStats: the passive bonus plus a timed critChance buff (C1).
+	if s, ok := acting.(model.StatBuffable); ok {
+		chance += s.EffectiveStats().CritChanceBonus
 	}
 	return chance
 }
@@ -1228,6 +1226,33 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 	return freshAny
 }
 
+// applyStatAura grants the effect's timed stat buff or debuff to eligible
+// targets in range and, with targetsSelf, to the caster outside the target cap
+// (plan-effect-types-round-2.md C1, D11): applyResistAura over the stat
+// payload, with its lifetime rule (interval + 1) and its cost rule (work =
+// at least one genuinely new application, §5.2).
+func applyStatAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
+	stat, bonus := effect.Stat.Name, effect.Stat.BonusAt(level)
+	ticks := effectiveTickInterval(effect, level) + 1
+
+	freshAny := false
+	if effect.Stat.TargetsSelf {
+		if self, ok := e.(model.StatBuffable); ok {
+			freshAny = self.ApplyStat(source, stat, bonus, ticks)
+		}
+	}
+
+	casterID := e.Basic().ID()
+	eligible := eligibleByTargetFlags[model.StatBuffable](effect, e, casterID, true)
+	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		if c.Shape().UserData.(model.StatBuffable).ApplyStat(source, stat, bonus, ticks) {
+			freshAny = true
+		}
+	}
+	return freshAny
+}
+
 // shieldBuffable is implemented by entities that can carry an absorb pool
 // from a shield effect (players and mobs — the generic buff store;
 // plan-skill-vocab chunk 2).
@@ -1386,6 +1411,33 @@ func (s *SkillSystem) applyInstantResist(e skillEntity, source skills.SkillID, l
 	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.Resist.Tags, factor, ticks)
+		hitAny = true
+	}
+	return hitAny
+}
+
+// applyInstantStat fires an instant_stat cooldown (plan-effect-types-round-2.md
+// C1, D11), applyInstantResist over the stat payload: a one-shot capped query
+// circle, the authored lifetime + 1, the self-apply counted as a hit. A
+// cooldown pays on cast, hit or whiff (D9); the bool is the whiff answer a
+// MOB's cooldown is consumed on.
+func (s *SkillSystem) applyInstantStat(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	stat, bonus := effect.Stat.Name, effect.Stat.BonusAt(level)
+	ticks := effect.Stat.DurationTicks + 1
+
+	hitAny := false
+	if effect.Stat.TargetsSelf {
+		if self, ok := e.(model.StatBuffable); ok {
+			self.ApplyStat(source, stat, bonus, ticks)
+			hitAny = true
+		}
+	}
+
+	eligible := eligibleByTargetFlags[model.StatBuffable](effect, e, e.Basic().ID(), true)
+	candidates := s.queryInstantTargets(e, effect, level)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(model.StatBuffable).ApplyStat(source, stat, bonus, ticks)
 		hitAny = true
 	}
 	return hitAny
@@ -2098,6 +2150,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeInstantResist:
 			if s.applyInstantResist(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeInstantStat:
+			if s.applyInstantStat(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
 
