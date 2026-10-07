@@ -1,0 +1,93 @@
+{
+  "@@locale": "en",
+
+  "connectionLost": "Connection lost — reload to reconnect",
+  "@connectionLost": {
+    "description": "Banner at the top of the screen when the server connection drops. Shown until the page reloads."
+  },
+
+  "levelUp": "Level up!",
+  "@levelUp": {
+    "description": "Floating text above the player's character when they gain a level. Keep it short: it is drawn in the game world."
+  },
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Label of the language picker in the settings panel."
+  },
+
+  "quest.wolves-on-the-road.title": "Wolves on the Road",
+  "@quest.wolves-on-the-road.title": {
+    "description": "Quest title, shown in the journal and on the quest tracker. (KEY-STYLE TEST: dotted key with hyphens; compare with questWolvesOnTheRoadTitle.)"
+  },
+
+  "questWolvesOnTheRoadTitle": "Wolves on the Road",
+  "@questWolvesOnTheRoadTitle": {
+    "description": "KEY-STYLE TEST: identifier-style twin of quest.wolves-on-the-road.title. Same text; only the key style differs."
+  },
+
+  "quest.wolves-on-the-road.thin.journal": "Kill 8 wolves on the west road.",
+  "@quest.wolves-on-the-road.thin.journal": {
+    "description": "Quest 'Wolves on the Road', stage 'thin': journal text while the stage is active."
+  },
+
+  "quest.wolves-on-the-road.thin.tracker": "{n}/{m} wolves killed",
+  "@quest.wolves-on-the-road.thin.tracker": {
+    "description": "Quest 'Wolves on the Road', stage 'thin': tracker line on the HUD. The noun is written out, so inflect it freely.",
+    "placeholders": {
+      "n": { "type": "int", "description": "Wolves killed so far", "example": "3" },
+      "m": { "type": "int", "description": "Wolves required", "example": "8" }
+    }
+  },
+
+  "conv.reinhard.root.line.0": "I work this field.",
+  "@conv.reinhard.root.line.0": {
+    "description": "Reinhard (farmer, gruff, few words), dialogue node 'root', line 1. His greeting when the player opens a conversation."
+  },
+
+  "conv.reinhard.root.opt.0.text": "Eliza sends me.",
+  "@conv.reinhard.root.opt.0.text": {
+    "description": "Reinhard, node 'root', option 1: what the PLAYER says. Eliza is the player's mother; Reinhard is the neighbouring farmer."
+  },
+
+  "conv.reinhard.root.opt.0.reply": "Eliza's child. Then you'll work. Ask me for a task.",
+  "@conv.reinhard.root.opt.0.reply": {
+    "description": "Reinhard's reply to option 1 ('Eliza sends me.'). Gruff but accepting."
+  },
+
+  "conv.reinhard.turnips.line.1": "You need the Harvest skill for that — ask me to teach you first.",
+  "@conv.reinhard.turnips.line.1": {
+    "description": "Reinhard, node 'turnips', line 2. 'Harvest' is a skill name: use the skill's translated name. (UNTRANSLATED TEST: deliberately missing from app_de.arb.)"
+  },
+
+  "quest.objective.kill": "{mob}: {n}/{m} slain",
+  "@quest.objective.kill": {
+    "description": "Fallback tracker line for a kill objective, built by code. The mob name is inserted as-is and is NOT inflected: keep it in a label position (before the colon).",
+    "placeholders": {
+      "mob": { "type": "String", "description": "Mob name, uninflected (nominative singular)", "example": "Wolf" },
+      "n": { "type": "int", "description": "Killed so far", "example": "3" },
+      "m": { "type": "int", "description": "Required", "example": "8" }
+    }
+  },
+
+  "hud.skillPoints": "{count, plural, =0 {No skill points} one {# skill point} other {# skill points}}",
+  "@hud.skillPoints": {
+    "description": "PLURAL TEST: skill points available to spend, shown on the skill panel. '#' is replaced by the number.",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" }
+    }
+  },
+
+  "tooltip.damagePerSecond": "{dps, number} damage per second",
+  "@tooltip.damagePerSecond": {
+    "description": "Skill tooltip line. {dps, number} formats the number per language (German gets a decimal comma): keep the ', number' part.",
+    "placeholders": {
+      "dps": { "type": "double", "description": "Damage per second, may have one decimal", "example": "12.5" }
+    }
+  },
+
+  "test.escaping": "Escaping test: '{'this'}' shows literal braces.",
+  "@test.escaping": {
+    "description": "ESCAPING TEST: in ICU, '{' and '}' wrapped in apostrophes are literal braces, not a placeholder. Should display as: Escaping test: {this} shows literal braces."
+  }
+}
