@@ -464,7 +464,7 @@ None blocking. Raised at execution if they come up:
 | Chunk | What | Wire | Status |
 |---|---|---|---|
 | C0 | Widen `applied_effects` + `EffectKind` | YES | ✅ 2026-10-07 `25668fd7` (see §6 C0 "As built") |
-| C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | BUILT 2026-10-07, uncommitted (see §6 C1 "As built") |
+| C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | not started |
 | C3 | Charge | none | not started |
 | C4 | Empower next cast | +1 kind | not started |
