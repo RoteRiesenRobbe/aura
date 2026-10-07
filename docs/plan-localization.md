@@ -895,17 +895,27 @@ tooltip fragments).
   calls, not rulings. The one worth a second look: D11 (reload-on-switch,
   which backlog §52's teardown work would later soften for free). D9 was
   superseded for objectives by the PO's Q2 ruling, 2026-10-07.
-- ⭐ **OPEN (raised 2026-10-07, after `plan-quest-dialogue.md` C3): repeated
-  stock phrases.** The two-row shape put "I am on it." and "I'll do it." on
-  19 nodes each, "Do you have a task for me?" on 17. Under D20 each
-  occurrence has its own id, so German is entered per occurrence.
-  Recommended: keep one id per occurrence (the industry norm: an NPC's voice
-  may want a different German line), and have the D20 update tool pre-fill
-  the German of any string whose English exactly matches one already
-  translated, flagged for review (a platform's translation-memory exact
-  match). Alternative: shared stock-phrase keys that dialogue points at,
-  less typing but one wording for every NPC and a second way to reference
-  text.
+- ✅ **Repeated stock phrases: per-line ids WITH a shared fallback** (PO
+  2026-10-07; raised after `plan-quest-dialogue.md` C3 put "I am on it." and
+  "I'll do it." on 19 nodes each, "Do you have a task for me?" on 17).
+  - An authored list, `api/lang/stock.json`, names the shared phrases
+    descriptively: `{"quest-accept": "I'll do it.", "quest-progress": "I am
+    on it.", "ask-task": "Do you have a task for me?"}`.
+  - The generator gives each a shared entry (`stock.quest-accept`) and links
+    every dialogue line whose English matches the phrase exactly. A line
+    keeps its own D20 id.
+  - The server builds each German line from the first that exists: the
+    line's own German (an override, e.g. one NPC's voice), the shared
+    phrase's German, the English.
+  - The completeness test counts a line as translated when either exists;
+    the translated-from record covers stock entries too. A line whose English
+    is reworded no longer matches, shows English until translated, and is
+    named by the test.
+  - Repeats not on the list stay per line; the generator reports any English
+    string used 3+ times that the list does not name.
+  - Not taken: dialogue lines pointing at a stock name instead of carrying
+    text (one English edit would cover all, but authoring and the content
+    editor change); pre-filling copies (19 entries to edit later).
 - ✅ **PO calls from the 2026-10-06 review, all ruled 2026-10-07:**
   - ~~**Q1, stable keys (D20)**~~ ✅ **RULED 2026-10-07 (PO):** every
     translatable string has a stable id, dialogue included, and a
