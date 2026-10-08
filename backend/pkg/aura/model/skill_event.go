@@ -76,10 +76,16 @@ type SkillEvent struct {
 	Source  uint64
 	Victim  uint64 // 0 on a Fired event
 	SkillID skills.SkillID
-	Amount  vitals.VitalSign // post-mitigation; 0 on Fired and on Immune
-	Kind    HitKind
-	Phase   HitPhase // Direct unless an over-time effect is being applied or ticking
-	Fired   bool
+	// Amount is what the floating number shows: the effect's full value after
+	// mitigation and shields, never capped at the HP the victim had left or
+	// was missing (PO 2026-10-08: a 20 hit on a 5-HP mob reads 20, a 30 heal
+	// on a player missing 5 reads 30). The funnels' RETURN values stay capped,
+	// because threat, lifesteal and kill credit must not count overkill. 0 on
+	// Fired and on Immune.
+	Amount vitals.VitalSign
+	Kind   HitKind
+	Phase  HitPhase // Direct unless an over-time effect is being applied or ticking
+	Fired  bool
 }
 
 // Healing is one heal's payload, the Damage twin, and it exists for the same

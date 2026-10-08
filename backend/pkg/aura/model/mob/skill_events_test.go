@@ -134,6 +134,43 @@ func TestMob_HealEventNamesItsCasterAndSkill(t *testing.T) {
 	assert.Equal(t, healed, e.Amount)
 }
 
+// A floating number shows the effect's full value, never capped at the HP
+// the victim had left or was missing (PO 2026-10-08): a lethal 1000 on a
+// 100-HP mob reads 1000.
+func TestMob_LethalHitReportsItsFullValue(t *testing.T) {
+	m := newTestMob()
+	require.Less(t, m.Health(), vitals.VitalSign(1000))
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 1000})
+
+	require.Zero(t, m.Health())
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, vitals.VitalSign(1000), m.SkillEvents()[0].Amount)
+}
+
+// ...and a hit on a victim already at 0 HP moved nothing, so it shows nothing.
+func TestMob_HitOnADeadMobIsNotALanding(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 1000})
+	m.ResetTickNumbers()
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10})
+
+	assert.Empty(t, m.SkillEvents())
+}
+
+func TestMob_OverhealReportsItsFullValue(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 5})
+	m.ResetTickNumbers()
+
+	healed := m.Heal(model.Healing{HP: 50, Caster: newFakeAuraPlayer(), SkillID: 9})
+
+	require.Equal(t, vitals.VitalSign(5), healed, "the return stays the HP restored")
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, vitals.VitalSign(50), m.SkillEvents()[0].Amount)
+}
+
 func TestMob_HealAtFullHealthIsNotALanding(t *testing.T) {
 	m := newTestMob()
 	require.Equal(t, m.MaxHealth(), m.Health())

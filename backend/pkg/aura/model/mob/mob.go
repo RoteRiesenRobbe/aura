@@ -1990,17 +1990,18 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 	before := m.health
 	m.health = m.health.Sub(hp)
 	loss := before - m.health // actual loss after clamping at 0
-	// One event per landing (§12a.3): a hit that got through reports the REAL
-	// HP loss, absorbed share excluded (the shield bar already shows that);
-	// a hit the shield ate whole reports the absorb instead, so the landing is
-	// never silent.
+	// One event per landing (§12a.3): a hit that got through reports its full
+	// value, absorbed share excluded (the shield bar already shows that) and
+	// never capped at the HP the mob had left (model.SkillEvent.Amount); a hit
+	// the shield ate whole reports the absorb instead, so the landing is never
+	// silent. A hit that moved no HP (the mob was already at 0) is no landing.
 	switch {
 	case loss > 0:
 		kind := model.HitKindDamage
 		if damage.Crit {
 			kind = model.HitKindCrit
 		}
-		m.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), loss)
+		m.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), vitals.VitalSign(hp))
 	case absorbed > 0:
 		m.noteHit(source, damage.SkillID, model.HitKindAbsorb, model.PhaseOf(damage.Tick), absorbed)
 	}
@@ -2063,9 +2064,10 @@ func (m *Mob) Heal(h model.Healing) vitals.VitalSign {
 	m.health = m.health.AddCapped(h.HP, m.MaxHealth())
 	healed := m.health - before
 	// A heal that restored nothing (already full) is not a landing: no event,
-	// exactly as the old accumulator added nothing.
+	// exactly as the old accumulator added nothing. One that did reports its
+	// full value, overheal included (model.SkillEvent.Amount).
 	if healed > 0 && h.Caster != nil {
-		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), healed)
+		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), vitals.VitalSign(h.HP))
 	}
 	return healed
 }

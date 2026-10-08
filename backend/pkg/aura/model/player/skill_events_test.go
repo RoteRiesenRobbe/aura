@@ -154,6 +154,30 @@ func TestPlayer_HealEventNamesItsCasterAndSkill(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(30), e.Amount)
 }
 
+// A floating number shows the effect's full value, never capped at the HP
+// the victim had left or was missing (PO 2026-10-08).
+func TestPlayer_LethalHitReportsItsFullValue(t *testing.T) {
+	p := hittablePlayer(t)
+	p.PlayerVitalSigns.Health = 5
+
+	p.takeDamage(model.Damage{HP: 20}, 7, model.StatusEffectDamagedAmbient)
+
+	require.Zero(t, p.VitalSigns().Health)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, vitals.VitalSign(20), p.SkillEvents()[0].Amount)
+}
+
+func TestPlayer_OverhealReportsItsFullValue(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.PlayerVitalSigns.Health = p.MaxHealth().Sub(5)
+
+	healed := p.Heal(model.Healing{HP: 30, Caster: newTestPlayer(nil), SkillID: 72})
+
+	require.Equal(t, vitals.VitalSign(5), healed, "the return stays the HP restored")
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, vitals.VitalSign(30), p.SkillEvents()[0].Amount)
+}
+
 func TestPlayer_HealAtFullHealthIsNotALanding(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.PlayerVitalSigns.Health = p.MaxHealth()

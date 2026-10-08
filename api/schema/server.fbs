@@ -848,8 +848,9 @@ table SkillEvent {
   // The struck entity; 0 on a FIRED event.
   victim:ulong = 0;
   skill_id:ushort;
-  // Post-mitigation, in the same absolute-HP units as `health`. 0 on FIRED and
-  // on Immune. A PARTIAL absorb reports the real HP loss as Damage/Crit and
+  // Post-mitigation, in the same absolute-HP units as `health`, and never
+  // capped at the victim's remaining or missing HP (an overkill hit or an
+  // overheal reports its full value). 0 on FIRED and on Immune. A PARTIAL absorb reports the real HP loss as Damage/Crit and
   // leaves the absorbed share off the wire; the shield bar already shows it.
   amount:uint = 0;
   kind:HitKind = Damage;

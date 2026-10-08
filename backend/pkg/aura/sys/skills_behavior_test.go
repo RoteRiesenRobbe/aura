@@ -3067,8 +3067,8 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the totem's hit lands")
 	assert.Equal(t, []uint64{atLevelNormalAward}, owner.xp,
 		"kill XP rides PlayerTouches(owner) — the full player reward path")
-	assert.Equal(t, target.MaxHealth(), hitAmountOf(target.SkillEvents(), model.HitKindDamage),
-		"the hit event carries the full loss")
+	assert.Equal(t, vitals.VitalSign(1000), hitAmountOf(target.SkillEvents(), model.HitKindDamage),
+		"the hit event carries the hit's full value, overkill included")
 }
 
 func TestApplyDamageAura_OwnedCasterScalesPower(t *testing.T) {

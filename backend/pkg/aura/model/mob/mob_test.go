@@ -1679,11 +1679,12 @@ func TestMob_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(90), m.Health())
 	assert.Equal(t, vitals.VitalSign(30), healReceived(m))
 
-	// Over-heal clamps at maxHealth; only the applied delta accumulates.
+	// Over-heal clamps at maxHealth and returns only the applied delta; the
+	// floating number still shows the heal's full value (SkillEvent.Amount).
 	healed = m.Heal(model.Healing{HP: 50, Caster: newFakeAuraPlayer()})
 	assert.Equal(t, vitals.VitalSign(10), healed)
 	assert.Equal(t, vitals.VitalSign(100), m.Health())
-	assert.Equal(t, vitals.VitalSign(40), healReceived(m))
+	assert.Equal(t, vitals.VitalSign(80), healReceived(m))
 
 	m.ResetTickNumbers()
 	assert.Zero(t, healReceived(m))

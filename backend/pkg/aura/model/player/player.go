@@ -413,16 +413,17 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	p.PlayerVitalSigns.Health = h.Sub(hp)
 	loss := h - p.PlayerVitalSigns.Health // actual loss after clamping
 	// One event per landing (§12a.3), the mob funnel's rule verbatim: a hit
-	// that got through reports the REAL HP loss and leaves the absorbed share
-	// off the wire (the shield bar shows that); a hit the shield ate whole
-	// reports the absorb, so the landing is never silent.
+	// that got through reports its full value, absorbed share excluded (the
+	// shield bar shows that) and never capped at the HP the player had left
+	// (model.SkillEvent.Amount); a hit the shield ate whole reports the
+	// absorb, so the landing is never silent.
 	switch {
 	case loss > 0:
 		kind := model.HitKindDamage
 		if damage.Crit {
 			kind = model.HitKindCrit
 		}
-		p.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), loss)
+		p.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), vitals.VitalSign(hp))
 	case absorbed > 0:
 		p.noteHit(source, damage.SkillID, model.HitKindAbsorb, model.PhaseOf(damage.Tick), absorbed)
 	}
@@ -491,9 +492,10 @@ func (p *player) Heal(h model.Healing) vitals.VitalSign {
 	before := p.PlayerVitalSigns.Health
 	p.PlayerVitalSigns.Health = before.AddCapped(h.HP, p.MaxHealth())
 	healed := p.PlayerVitalSigns.Health - before
-	// A heal that restored nothing (already full) is not a landing.
+	// A heal that restored nothing (already full) is not a landing; one that
+	// did reports its full value, overheal included (model.SkillEvent.Amount).
 	if healed > 0 && h.Caster != nil {
-		p.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), healed)
+		p.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), vitals.VitalSign(h.HP))
 	}
 	return healed
 }

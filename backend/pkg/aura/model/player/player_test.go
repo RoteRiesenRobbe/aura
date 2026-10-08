@@ -847,11 +847,12 @@ func TestPlayer_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
 	assert.Equal(t, maxHP.Sub(10), p.VitalSigns().Health)
 	assert.Equal(t, vitals.VitalSign(30), healReceived(p))
 
-	// Over-heal clamps at MaxHealth; only the applied delta is recorded.
+	// Over-heal clamps at MaxHealth and returns only the applied delta; the
+	// floating number still shows the heal's full value (SkillEvent.Amount).
 	healed = p.Heal(model.Healing{HP: 50, Caster: p})
 	assert.Equal(t, vitals.VitalSign(10), healed)
 	assert.Equal(t, maxHP, p.VitalSigns().Health)
-	assert.Equal(t, vitals.VitalSign(40), healReceived(p))
+	assert.Equal(t, vitals.VitalSign(80), healReceived(p))
 }
 
 // --- damage dealt return + lifesteal + crit accumulator (plan-skill-vocab chunk 1) ---
