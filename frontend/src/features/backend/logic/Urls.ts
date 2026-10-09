@@ -1,3 +1,4 @@
+import {contentLocale} from '../../i18n/logic/Locale';
 import {BasicConfig as Constants} from "../../../client-data/BasicConfig";
 import {QueryParameters} from '../../internal-tools/logic/QueryParameters';
 
@@ -43,6 +44,17 @@ export function catalogUrl(path: string): string {
     url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
     url.pathname = `/${path}`;
     url.search = '';
+    return url.toString();
+}
+
+/**
+ * A per-locale content catalog (plan-localization.md C1, D6): /skills, /mobs,
+ * /quests and /lang serve the chosen locale's text. ⚑ L2: the lang param is
+ * set AFTER catalogUrl clears the query, or it would be silently stripped.
+ */
+export function contentCatalogUrl(path: string): string {
+    const url = new URL(catalogUrl(path));
+    url.searchParams.set('lang', contentLocale());
     return url.toString();
 }
 

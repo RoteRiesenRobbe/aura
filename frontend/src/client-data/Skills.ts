@@ -9,7 +9,7 @@
 // names render as "Skill #<id>", tooltips simply don't show. The game never
 // blocks on the catalog.
 
-import {catalogUrl} from '../features/backend/logic/Urls';
+import {contentCatalogUrl} from '../features/backend/logic/Urls';
 // The enum file directly, not the AuraApi barrel: the barrel drags the whole
 // wire-binding graph (and its flatbuffers dependency) into this catalog
 // module, which only needs the three named values.
@@ -422,7 +422,7 @@ export const CATEGORY_MAP: { [server: string]: SkillCategory } = {
 };
 
 export function loadSkillCatalog(): Promise<void> {
-    return fetch(catalogUrl('skills'))
+    return fetch(contentCatalogUrl('skills'))
         .then(response => {
             if (!response.ok) {
                 throw new Error(`GET /skills returned ${response.status}`);

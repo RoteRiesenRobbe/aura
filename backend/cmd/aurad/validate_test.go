@@ -19,7 +19,7 @@ import (
 // contentSubdirs is the api/ layout diskContent insists on. The copy helper
 // below reproduces exactly these, never api/schema/ or the loose fixture jsons
 // beside them, which is the same set the editor's seam copies.
-var contentSubdirs = []string{"mobs", "skills", "recipes", "zones", "props", "factions", "milestones", "quests", "ascension", "skill-fx", "areas", "regions", "atmospheres"}
+var contentSubdirs = []string{"mobs", "skills", "recipes", "zones", "props", "factions", "milestones", "quests", "ascension", "skill-fx", "areas", "regions", "atmospheres", "lang"}
 
 // ⭐ THE REAL CONTENT MUST VALIDATE CLEAN. This is the pin that makes
 // `aurad -validate` worth running at all: if it reported findings against the

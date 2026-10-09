@@ -4,6 +4,7 @@ import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
 import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
 import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
+import {contentText, zoneNameKey} from '../../../client-data/LangBundle';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -914,7 +915,7 @@ export class Game implements IGame {
         const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
         const place = placeAt(regions, {x: xPx, y: yPx});
         if (place === null) {
-            return zoneData?.name ? {title: zoneData.name} : null;
+            return zoneData?.name ? {title: contentText(zoneNameKey(entered.name), zoneData.name)} : null;
         }
         // The card names the place, so the region banner must not name it again
         // a second after the reveal. Only when a card is actually shown: a cheat

@@ -212,6 +212,25 @@ the bottom. Trust the code over the manual if a path has drifted.
   reads `api/` fresh off disk, so it never crashes on an unrecognized field —
   it just silently can't author or validate it, which only surfaces as "why
   didn't the editor warn me about this."
+- **Every player-visible string is translated (plan-localization.md D19, D23).**
+  English stays authored in the `api/` JSON; after ANY text edit (a name, a
+  journal line, a tracker, a dialogue line, a region title):
+  1. regenerate the English sources: `cd backend && UPDATE_LANG=1 go test
+     -count=1 -run TestLang ./cmd/aurad/` (⛔ never hand-edit `api/lang/en/`,
+     L15);
+  2. write the German into `api/lang/de/<domain>.arb` in the SAME change
+     (D23; Claude drafts, the PO reviews), following
+     `docs/manual-localization-de.md` (du, the glossary, gender-neutral);
+  3. run the same command again to refresh the translated-from records
+     (`*.source.json`), then `go test -count=1 -run TestLang ./cmd/aurad/`
+     must pass: it names missing, orphaned and outdated German keys.
+  Authored text may not contain `{`, `}`, `<` or `>` outside a field's
+  placeholders (`{n}`/`{m}` in trackers): ICU reads them as syntax, and the
+  loader refuses them (L14). Kill/harvest objective targets need a
+  `namePlural` on the mob (Q2); talk_to/reach objectives need a `tracker`
+  unless their stage has one. An emergency English fix that must ship before
+  its German lists the key in `api/lang/de/allowlist.json` (the exception,
+  never a backlog). `api/lang/` is synced by cp-defs like every content dir.
 
 ## Registry pins — the thing that leaves the suite RED at HEAD
 

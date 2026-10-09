@@ -3,6 +3,8 @@ package quests
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
 // The quest catalog (plan-quests.md chunk C3, D14) serves what the journal
@@ -36,16 +38,24 @@ type CatalogStage struct {
 // CatalogJSON marshals every loaded quest, sorted by id (Registry.All already
 // sorts). An empty registry marshals to `[]`, which is what lets the client tell
 // "this world has no quests" from "the fetch failed".
-func CatalogJSON(r Registry) ([]byte, error) {
+func CatalogJSON(r Registry) ([]byte, error) { return CatalogJSONIn(r, lang.Identity) }
+
+// CatalogJSONIn is the catalog in one locale (plan-localization.md C1): every
+// text field resolves through tr by its stable key (D20), English as fallback.
+func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 	defs := r.All()
 
 	entries := make([]CatalogEntry, 0, len(defs))
 	for _, q := range defs {
 		stages := make([]CatalogStage, 0, len(q.Stages))
 		for _, s := range q.Stages {
-			stages = append(stages, CatalogStage{ID: s.ID, Journal: s.Journal})
+			journal := s.Journal
+			if journal != "" {
+				journal = tr(lang.QuestJournal(q.ID, s.ID), journal)
+			}
+			stages = append(stages, CatalogStage{ID: s.ID, Journal: journal})
 		}
-		entries = append(entries, CatalogEntry{ID: q.ID, Title: q.Title, Stages: stages})
+		entries = append(entries, CatalogEntry{ID: q.ID, Title: tr(lang.QuestTitle(q.ID), q.Title), Stages: stages})
 	}
 	return json.Marshal(entries)
 }
@@ -53,14 +63,6 @@ func CatalogJSON(r Registry) ([]byte, error) {
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in dev
 // the client runs on :2001 against aurad on :2000, and the catalog is public
 // read-only content. Mirrors mobs.CatalogHandler.
-func CatalogHandler(r Registry) (http.Handler, error) {
-	payload, err := CatalogJSON(r)
-	if err != nil {
-		return nil, err
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(payload)
-	}), nil
+func CatalogHandler(r Registry, b *lang.Bundle) (http.Handler, error) {
+	return lang.Handler(b, func(tr lang.Tr) ([]byte, error) { return CatalogJSONIn(r, tr) })
 }

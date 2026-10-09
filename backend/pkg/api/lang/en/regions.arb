@@ -1,0 +1,223 @@
+{
+  "@@locale": "en",
+  "region.ashen-fields.subtitle": "Cinder and Bone",
+  "@region.ashen-fields.subtitle": {
+    "description": "Region banner subtitle under \"The Ashen Fields\"."
+  },
+  "region.ashen-fields.title": "The Ashen Fields",
+  "@region.ashen-fields.title": {
+    "description": "Region banner title of the place \"ashen-fields\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.brackenfold.subtitle": "Plough and Bramble",
+  "@region.brackenfold.subtitle": {
+    "description": "Region banner subtitle under \"Brackenfold Meadows\"."
+  },
+  "region.brackenfold.title": "Brackenfold Meadows",
+  "@region.brackenfold.title": {
+    "description": "Region banner title of the place \"brackenfold\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.brunnstedt.subtitle": "Walls and Wells",
+  "@region.brunnstedt.subtitle": {
+    "description": "Region banner subtitle under \"Brunnstedt\"."
+  },
+  "region.brunnstedt.title": "Brunnstedt",
+  "@region.brunnstedt.title": {
+    "description": "Region banner title of the place \"brunnstedt\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.cinder-conclave.subtitle": "Kindled Faith",
+  "@region.cinder-conclave.subtitle": {
+    "description": "Region banner subtitle under \"The Cinder Conclave\"."
+  },
+  "region.cinder-conclave.title": "The Cinder Conclave",
+  "@region.cinder-conclave.title": {
+    "description": "Region banner title of the place \"cinder-conclave\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.deep-woods.subtitle": "City Outskirts",
+  "@region.deep-woods.subtitle": {
+    "description": "Region banner subtitle under \"Deep Woods\"."
+  },
+  "region.deep-woods.title": "Deep Woods",
+  "@region.deep-woods.title": {
+    "description": "Region banner title of the place \"deep-woods\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.den-of-evil.subtitle": "Kobold Hideout",
+  "@region.den-of-evil.subtitle": {
+    "description": "Region banner subtitle under \"Den of Evil\"."
+  },
+  "region.den-of-evil.title": "Den of Evil",
+  "@region.den-of-evil.title": {
+    "description": "Region banner title of the place \"den-of-evil\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.fallow-reach.subtitle": "Barren Earth",
+  "@region.fallow-reach.subtitle": {
+    "description": "Region banner subtitle under \"The Fallow Reach\"."
+  },
+  "region.fallow-reach.title": "The Fallow Reach",
+  "@region.fallow-reach.title": {
+    "description": "Region banner title of the place \"fallow-reach\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.farmlands.title": "Farmlands",
+  "@region.farmlands.title": {
+    "description": "Region banner title of the place \"farmlands\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.farmreinhard.subtitle": "Farmlands",
+  "@region.farmreinhard.subtitle": {
+    "description": "Region banner subtitle under \"Reinhard's Farm\"."
+  },
+  "region.farmreinhard.title": "Reinhard's Farm",
+  "@region.farmreinhard.title": {
+    "description": "Region banner title of the place \"farmreinhard\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.glimmerwood.subtitle": "Whispering Boughs",
+  "@region.glimmerwood.subtitle": {
+    "description": "Region banner subtitle under \"The Glimmerwood\"."
+  },
+  "region.glimmerwood.title": "The Glimmerwood",
+  "@region.glimmerwood.title": {
+    "description": "Region banner title of the place \"glimmerwood\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.greyspine.subtitle": "Stone Teeth",
+  "@region.greyspine.subtitle": {
+    "description": "Region banner subtitle under \"The Greyspine\"."
+  },
+  "region.greyspine.title": "The Greyspine",
+  "@region.greyspine.title": {
+    "description": "Region banner title of the place \"greyspine\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.grimwatch.subtitle": "The Last Watch",
+  "@region.grimwatch.subtitle": {
+    "description": "Region banner subtitle under \"Fort Grimwatch\"."
+  },
+  "region.grimwatch.title": "Fort Grimwatch",
+  "@region.grimwatch.title": {
+    "description": "Region banner title of the place \"grimwatch\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.hollow-marsh.subtitle": "Empty Hearths",
+  "@region.hollow-marsh.subtitle": {
+    "description": "Region banner subtitle under \"Hollow Marsh\"."
+  },
+  "region.hollow-marsh.title": "Hollow Marsh",
+  "@region.hollow-marsh.title": {
+    "description": "Region banner title of the place \"hollow-marsh\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.homestead.subtitle": "Farmlands",
+  "@region.homestead.subtitle": {
+    "description": "Region banner subtitle under \"Homestead\"."
+  },
+  "region.homestead.title": "Homestead",
+  "@region.homestead.title": {
+    "description": "Region banner title of the place \"homestead\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.moonveil.title": "Moonveil Grove",
+  "@region.moonveil.title": {
+    "description": "Region banner title of the place \"moonveil\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.netmenders-coast.subtitle": "Tide and Tar",
+  "@region.netmenders-coast.subtitle": {
+    "description": "Region banner subtitle under \"Netmender's Coast\"."
+  },
+  "region.netmenders-coast.title": "Netmender's Coast",
+  "@region.netmenders-coast.title": {
+    "description": "Region banner title of the place \"netmenders-coast\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.northgate.subtitle": "Field and Wall",
+  "@region.northgate.subtitle": {
+    "description": "Region banner subtitle under \"Northgate Commons\"."
+  },
+  "region.northgate.title": "Northgate Commons",
+  "@region.northgate.title": {
+    "description": "Region banner title of the place \"northgate\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.rimefrost.subtitle": "Ice and Silence",
+  "@region.rimefrost.subtitle": {
+    "description": "Region banner subtitle under \"Rimefrost\"."
+  },
+  "region.rimefrost.title": "Rimefrost",
+  "@region.rimefrost.title": {
+    "description": "Region banner title of the place \"rimefrost\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.saltgrass.subtitle": "Sea and Salt",
+  "@region.saltgrass.subtitle": {
+    "description": "Region banner subtitle under \"Saltgrass Strand\"."
+  },
+  "region.saltgrass.title": "Saltgrass Strand",
+  "@region.saltgrass.title": {
+    "description": "Region banner title of the place \"saltgrass\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.sorrowfen.subtitle": "Still Water",
+  "@region.sorrowfen.subtitle": {
+    "description": "Region banner subtitle under \"Sorrowfen\"."
+  },
+  "region.sorrowfen.title": "Sorrowfen",
+  "@region.sorrowfen.title": {
+    "description": "Region banner title of the place \"sorrowfen\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.southgate.subtitle": "Coin and Steel",
+  "@region.southgate.subtitle": {
+    "description": "Region banner subtitle under \"Southgate Sprawl\"."
+  },
+  "region.southgate.title": "Southgate Sprawl",
+  "@region.southgate.title": {
+    "description": "Region banner title of the place \"southgate\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.sunscar.subtitle": "Road's End",
+  "@region.sunscar.subtitle": {
+    "description": "Region banner subtitle under \"The Sunscar\"."
+  },
+  "region.sunscar.title": "The Sunscar",
+  "@region.sunscar.title": {
+    "description": "Region banner title of the place \"sunscar\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.umberwood.subtitle": "The Frontline",
+  "@region.umberwood.subtitle": {
+    "description": "Region banner subtitle under \"The Umberwood\"."
+  },
+  "region.umberwood.title": "The Umberwood",
+  "@region.umberwood.title": {
+    "description": "Region banner title of the place \"umberwood\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.witherwood.subtitle": "Root to Rot",
+  "@region.witherwood.subtitle": {
+    "description": "Region banner subtitle under \"The Witherwood\"."
+  },
+  "region.witherwood.title": "The Witherwood",
+  "@region.witherwood.title": {
+    "description": "Region banner title of the place \"witherwood\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.wreckers-bluff.subtitle": "Wind and Wreckage",
+  "@region.wreckers-bluff.subtitle": {
+    "description": "Region banner subtitle under \"Wrecker's Bluff\"."
+  },
+  "region.wreckers-bluff.title": "Wrecker's Bluff",
+  "@region.wreckers-bluff.title": {
+    "description": "Region banner title of the place \"wreckers-bluff\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "region.wyrmhold.subtitle": "The Dragon's Throne",
+  "@region.wyrmhold.subtitle": {
+    "description": "Region banner subtitle under \"Mount Wyrmhold\"."
+  },
+  "region.wyrmhold.title": "Mount Wyrmhold",
+  "@region.wyrmhold.title": {
+    "description": "Region banner title of the place \"wyrmhold\". Descriptive names translate, coined ones stay (style guide §4)."
+  },
+  "zone.barn.name": "Barn",
+  "@zone.barn.name": {
+    "description": "Name of the zone \"barn\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.koboldCave.name": "Underworld",
+  "@zone.koboldCave.name": {
+    "description": "Name of the zone \"koboldCave\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.tunnel.name": "Tunnel",
+  "@zone.tunnel.name": {
+    "description": "Name of the zone \"tunnel\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.underworld.name": "Underworld",
+  "@zone.underworld.name": {
+    "description": "Name of the zone \"underworld\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.world.name": "World",
+  "@zone.world.name": {
+    "description": "Name of the zone \"world\", shown on the crossing curtain when no region names the arrival point."
+  }
+}

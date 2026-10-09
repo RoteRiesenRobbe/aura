@@ -7,7 +7,7 @@
 // Until the fetch lands (or if it fails) the accessors report "unknown" and
 // the nameplate simply does not render. The game never blocks on the catalog.
 
-import {catalogUrl} from '../features/backend/logic/Urls';
+import {contentCatalogUrl} from '../features/backend/logic/Urls';
 
 // Wire `Mob.tier` rank ↔ meaning, mirroring the backend's mobs.TierRank —
 // pinned on both sides by api/shared-constants.json (§35 C4c), so a renumber
@@ -47,7 +47,7 @@ export interface MobDefinition {
 const catalog = new Map<number, MobDefinition>();
 
 export function loadMobCatalog(): Promise<void> {
-    return fetch(catalogUrl('mobs'))
+    return fetch(contentCatalogUrl('mobs'))
         .then(response => {
             if (!response.ok) {
                 throw new Error(`GET /mobs returned ${response.status}`);

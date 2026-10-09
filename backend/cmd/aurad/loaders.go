@@ -25,6 +25,7 @@ import (
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	aregions "github.com/RoteRiesenRobbe/aura/pkg/api/regions"
 	askillfx "github.com/RoteRiesenRobbe/aura/pkg/api/skill-fx"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
@@ -68,6 +69,9 @@ type contentSources struct {
 	// atmospheres is the atmosphere profile table, shared with the client; the
 	// server reads only each profile's darkness (plan-map-fog-darkness.md C1).
 	atmospheres fs.FS
+	// lang is the localization tree (plan-localization.md C1, L3): the
+	// generated English sources and the translation overlays, api/lang/<locale>/.
+	lang fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -85,12 +89,13 @@ func embeddedContent() contentSources {
 		areas:       aareas.Areas,
 		regions:     aregions.Regions,
 		atmospheres: aatmospheres.Atmospheres,
+		lang:        alang.Lang,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/, skill-fx/, areas/, regions/, atmospheres/).
+// ascension/, skill-fx/, areas/, regions/, atmospheres/, lang/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -141,6 +146,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.regions, err = sub("regions"); err != nil {
+		return contentSources{}, err
+	}
+	if c.lang, err = sub("lang"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil

@@ -1,6 +1,8 @@
 package quests
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -66,7 +68,7 @@ func keysOf(m map[string]json.RawMessage) []string {
 
 func TestCatalogHandler_ServesJSONWithCORS(t *testing.T) {
 	r := loadOne(t, wolfCull)
-	h, err := CatalogHandler(r)
+	h, err := CatalogHandler(r, lang.NewBundle())
 	require.NoError(t, err)
 
 	rec := httptest.NewRecorder()

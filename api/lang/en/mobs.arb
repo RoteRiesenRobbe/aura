@@ -1,0 +1,423 @@
+{
+  "@@locale": "en",
+  "mob.AlphaBoar.name": "Alpha Boar",
+  "@mob.AlphaBoar.name": {
+    "description": "Name of the AlphaBoar (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.AlphaWolf.name": "Alpha Wolf",
+  "@mob.AlphaWolf.name": {
+    "description": "Name of the AlphaWolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.ArmySoldier.name": "Army Soldier",
+  "@mob.ArmySoldier.name": {
+    "description": "Name of the ArmySoldier (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.AscensionStone.name": "Ascension Stone",
+  "@mob.AscensionStone.name": {
+    "description": "Name of the AscensionStone (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Baabara.name": "Baabara",
+  "@mob.Baabara.name": {
+    "description": "Name of the Baabara (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Bandit.name": "Bandit",
+  "@mob.Bandit.name": {
+    "description": "Name of the Bandit (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.BanditHealer.name": "Bandit Healer",
+  "@mob.BanditHealer.name": {
+    "description": "Name of the BanditHealer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.BanditPyromancer.name": "Bandit Pyromancer",
+  "@mob.BanditPyromancer.name": {
+    "description": "Name of the BanditPyromancer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.BanditRanged.name": "Bandit Ranged",
+  "@mob.BanditRanged.name": {
+    "description": "Name of the BanditRanged (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Bear.name": "Bear",
+  "@mob.Bear.name": {
+    "description": "Name of the Bear (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Beet.name": "Beet",
+  "@mob.Beet.name": {
+    "description": "Name of the Beet (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Benjamin.name": "Benjamin",
+  "@mob.Benjamin.name": {
+    "description": "Name of the Benjamin (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.BlightedTreant.name": "Blighted Treant",
+  "@mob.BlightedTreant.name": {
+    "description": "Name of the BlightedTreant (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.BlueMushroom.name": "Blue Mushroom",
+  "@mob.BlueMushroom.name": {
+    "description": "Name of the BlueMushroom (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Boar.name": "Boar",
+  "@mob.Boar.name": {
+    "description": "Name of the Boar (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Bramble.name": "Bramble",
+  "@mob.Bramble.name": {
+    "description": "Name of the Bramble (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Camp.name": "Camp",
+  "@mob.Camp.name": {
+    "description": "Name of the Camp (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Campfire.name": "Campfire",
+  "@mob.Campfire.name": {
+    "description": "Name of the Campfire (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.CaveExit.name": "Cave Exit",
+  "@mob.CaveExit.name": {
+    "description": "Name of the CaveExit (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.CaveMouth.name": "Cave Mouth",
+  "@mob.CaveMouth.name": {
+    "description": "Name of the CaveMouth (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.CityGuard.name": "City Guard",
+  "@mob.CityGuard.name": {
+    "description": "Name of the CityGuard (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Companion.name": "Companion",
+  "@mob.Companion.name": {
+    "description": "Name of the Companion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.CultAcolyte.name": "Cult Acolyte",
+  "@mob.CultAcolyte.name": {
+    "description": "Name of the CultAcolyte (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.CultHighPriest.name": "Cult High Priest",
+  "@mob.CultHighPriest.name": {
+    "description": "Name of the CultHighPriest (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Cultist.name": "Cultist",
+  "@mob.Cultist.name": {
+    "description": "Name of the Cultist (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DeadCarter.name": "Dead Carter",
+  "@mob.DeadCarter.name": {
+    "description": "Name of the DeadCarter (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Deadwood.name": "Deadwood",
+  "@mob.Deadwood.name": {
+    "description": "Name of the Deadwood (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DeathKnight.name": "Death Knight",
+  "@mob.DeathKnight.name": {
+    "description": "Name of the DeathKnight (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DireBear.name": "Dire Bear",
+  "@mob.DireBear.name": {
+    "description": "Name of the DireBear (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DireWolf.name": "Dire Wolf",
+  "@mob.DireWolf.name": {
+    "description": "Name of the DireWolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Dog.name": "Dog",
+  "@mob.Dog.name": {
+    "description": "Name of the Dog (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Dragon.name": "Dragon",
+  "@mob.Dragon.name": {
+    "description": "Name of the Dragon (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DragonkinWarrior.name": "Dragonkin Warrior",
+  "@mob.DragonkinWarrior.name": {
+    "description": "Name of the DragonkinWarrior (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Drakeling.name": "Drakeling",
+  "@mob.Drakeling.name": {
+    "description": "Name of the Drakeling (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.EliteBandit.name": "Elite Bandit",
+  "@mob.EliteBandit.name": {
+    "description": "Name of the EliteBandit (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.EliteWolf.name": "Elite Wolf",
+  "@mob.EliteWolf.name": {
+    "description": "Name of the EliteWolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Eliza.name": "Eliza",
+  "@mob.Eliza.name": {
+    "description": "Name of the Eliza (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Emberkeeper.name": "Emberkeeper",
+  "@mob.Emberkeeper.name": {
+    "description": "Name of the Emberkeeper (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.FallenTraveller.name": "Fallen Traveller",
+  "@mob.FallenTraveller.name": {
+    "description": "Name of the FallenTraveller (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Farmhand.name": "Farmhand",
+  "@mob.Farmhand.name": {
+    "description": "Name of the Farmhand (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.FireElemental.name": "Fire Elemental",
+  "@mob.FireElemental.name": {
+    "description": "Name of the FireElemental (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.FireTotem.name": "Fire Totem",
+  "@mob.FireTotem.name": {
+    "description": "Name of the FireTotem (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.ForestSign.name": "Forest Sign",
+  "@mob.ForestSign.name": {
+    "description": "Name of the ForestSign (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.FrontAscensionStone.name": "Front Ascension Stone",
+  "@mob.FrontAscensionStone.name": {
+    "description": "Name of the FrontAscensionStone (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.FrontCaptain.name": "Front Captain",
+  "@mob.FrontCaptain.name": {
+    "description": "Name of the FrontCaptain (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Ghoul.name": "Ghoul",
+  "@mob.Ghoul.name": {
+    "description": "Name of the Ghoul (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GiantRat.name": "Giant Rat",
+  "@mob.GiantRat.name": {
+    "description": "Name of the GiantRat (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GiantScorpion.name": "Giant Scorpion",
+  "@mob.GiantScorpion.name": {
+    "description": "Name of the GiantScorpion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GiantSpider.name": "Giant Spider",
+  "@mob.GiantSpider.name": {
+    "description": "Name of the GiantSpider (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GladeRoot.name": "Glade Root",
+  "@mob.GladeRoot.name": {
+    "description": "Name of the GladeRoot (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GrandfatherKnot.name": "Grandfather Knot",
+  "@mob.GrandfatherKnot.name": {
+    "description": "Name of the GrandfatherKnot (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.GreaterFireElemental.name": "Greater Fire Elemental",
+  "@mob.GreaterFireElemental.name": {
+    "description": "Name of the GreaterFireElemental (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Hendrik.name": "Hendrik",
+  "@mob.Hendrik.name": {
+    "description": "Name of the Hendrik (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Hermit.name": "Hermit",
+  "@mob.Hermit.name": {
+    "description": "Name of the Hermit (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Kobold.name": "Kobold",
+  "@mob.Kobold.name": {
+    "description": "Name of the Kobold (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.KoboldRanged.name": "Kobold Ranged",
+  "@mob.KoboldRanged.name": {
+    "description": "Name of the KoboldRanged (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Lambert.name": "Lambert",
+  "@mob.Lambert.name": {
+    "description": "Name of the Lambert (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.LamplessTraveller.name": "Lampless Traveller",
+  "@mob.LamplessTraveller.name": {
+    "description": "Name of the LamplessTraveller (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Lamplighter.name": "Lamplighter",
+  "@mob.Lamplighter.name": {
+    "description": "Name of the Lamplighter (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Marauder.name": "Marauder",
+  "@mob.Marauder.name": {
+    "description": "Name of the Marauder (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.MedicCompanion.name": "Medic Companion",
+  "@mob.MedicCompanion.name": {
+    "description": "Name of the MedicCompanion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.MemorialStone.name": "Memorial Stone",
+  "@mob.MemorialStone.name": {
+    "description": "Name of the MemorialStone (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Mercenary.name": "Mercenary",
+  "@mob.Mercenary.name": {
+    "description": "Name of the Mercenary (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.MercenaryCaptain.name": "Mercenary Captain",
+  "@mob.MercenaryCaptain.name": {
+    "description": "Name of the MercenaryCaptain (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.MercenaryCrossbowman.name": "Mercenary Crossbowman",
+  "@mob.MercenaryCrossbowman.name": {
+    "description": "Name of the MercenaryCrossbowman (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Miller.name": "Miller",
+  "@mob.Miller.name": {
+    "description": "Name of the Miller (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Miner.name": "Miner",
+  "@mob.Miner.name": {
+    "description": "Name of the Miner (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Orc.name": "Orc",
+  "@mob.Orc.name": {
+    "description": "Name of the Orc (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.OrcGrunt.name": "Orc Grunt",
+  "@mob.OrcGrunt.name": {
+    "description": "Name of the OrcGrunt (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.OrcWarlord.name": "Orc Warlord",
+  "@mob.OrcWarlord.name": {
+    "description": "Name of the OrcWarlord (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.PoisonPool.name": "Poison Pool",
+  "@mob.PoisonPool.name": {
+    "description": "Name of the PoisonPool (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.PortalHome.name": "Portal Home",
+  "@mob.PortalHome.name": {
+    "description": "Name of the PortalHome (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.PortalSummon.name": "Portal Summon",
+  "@mob.PortalSummon.name": {
+    "description": "Name of the PortalSummon (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.ProjectileBomb.name": "Projectile Bomb",
+  "@mob.ProjectileBomb.name": {
+    "description": "Name of the ProjectileBomb (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.RallyDrummer.name": "Rally Drummer",
+  "@mob.RallyDrummer.name": {
+    "description": "Name of the RallyDrummer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.RedMushroom.name": "Red Mushroom",
+  "@mob.RedMushroom.name": {
+    "description": "Name of the RedMushroom (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Reinhard.name": "Reinhard",
+  "@mob.Reinhard.name": {
+    "description": "Name of the Reinhard (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Rockfall.name": "Rockfall",
+  "@mob.Rockfall.name": {
+    "description": "Name of the Rockfall (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.SandBasilisk.name": "Sand Basilisk",
+  "@mob.SandBasilisk.name": {
+    "description": "Name of the SandBasilisk (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Seaweed.name": "Seaweed",
+  "@mob.Seaweed.name": {
+    "description": "Name of the Seaweed (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Shaman.name": "Shaman",
+  "@mob.Shaman.name": {
+    "description": "Name of the Shaman (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Sheep.name": "Sheep",
+  "@mob.Sheep.name": {
+    "description": "Name of the Sheep (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Shepherd.name": "Shepherd",
+  "@mob.Shepherd.name": {
+    "description": "Name of the Shepherd (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.ShieldbearerCompanion.name": "Shieldbearer Companion",
+  "@mob.ShieldbearerCompanion.name": {
+    "description": "Name of the ShieldbearerCompanion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Skeleton.name": "Skeleton",
+  "@mob.Skeleton.name": {
+    "description": "Name of the Skeleton (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.SkeletonArcher.name": "Skeleton Archer",
+  "@mob.SkeletonArcher.name": {
+    "description": "Name of the SkeletonArcher (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.SoldierCompanion.name": "Soldier Companion",
+  "@mob.SoldierCompanion.name": {
+    "description": "Name of the SoldierCompanion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Spider.name": "Spider",
+  "@mob.Spider.name": {
+    "description": "Name of the Spider (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.SpiderWeb.name": "Spider Web",
+  "@mob.SpiderWeb.name": {
+    "description": "Name of the SpiderWeb (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.SpikeBarricade.name": "Spike Barricade",
+  "@mob.SpikeBarricade.name": {
+    "description": "Name of the SpikeBarricade (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Stag.name": "Stag",
+  "@mob.Stag.name": {
+    "description": "Name of the Stag (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.StoneRoot.name": "Stone Root",
+  "@mob.StoneRoot.name": {
+    "description": "Name of the StoneRoot (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.StreamRoot.name": "Stream Root",
+  "@mob.StreamRoot.name": {
+    "description": "Name of the StreamRoot (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Totem.name": "Totem",
+  "@mob.Totem.name": {
+    "description": "Name of the Totem (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.TownCrier.name": "Town Crier",
+  "@mob.TownCrier.name": {
+    "description": "Name of the TownCrier (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Treant.name": "Treant",
+  "@mob.Treant.name": {
+    "description": "Name of the Treant (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Troll.name": "Troll",
+  "@mob.Troll.name": {
+    "description": "Name of the Troll (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Turnip.name": "Turnip",
+  "@mob.Turnip.name": {
+    "description": "Name of the Turnip (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.VenomSpider.name": "Venom Spider",
+  "@mob.VenomSpider.name": {
+    "description": "Name of the VenomSpider (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.VillageHealer.name": "Village Healer",
+  "@mob.VillageHealer.name": {
+    "description": "Name of the VillageHealer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Wanderer.name": "Wanderer",
+  "@mob.Wanderer.name": {
+    "description": "Name of the Wanderer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.WarbannerTotem.name": "Warbanner Totem",
+  "@mob.WarbannerTotem.name": {
+    "description": "Name of the WarbannerTotem (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Wisp.name": "Wisp",
+  "@mob.Wisp.name": {
+    "description": "Name of the Wisp (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Wolf.name": "Wolf",
+  "@mob.Wolf.name": {
+    "description": "Name of the Wolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Woolliam.name": "Woolliam",
+  "@mob.Woolliam.name": {
+    "description": "Name of the Woolliam (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  }
+}

@@ -328,12 +328,12 @@ func main() {
 	// static after boot. /skills also carries the level curve, without which
 	// tooltips can only render the level-1 baseline (skills.Catalog).
 	// /players is the one live one.
-	skillsHandler, err := skills.CatalogHandler(skillsRegistry, levelCurve)
+	skillsHandler, err := skills.CatalogHandler(skillsRegistry, levelCurve, loaded.langBundle)
 	if err != nil {
 		slog.Error("failed to build skill catalog", slog.Any("error", err))
 		panic(err)
 	}
-	mobsHandler, err := mobs.CatalogHandler(mobsRegistry)
+	mobsHandler, err := mobs.CatalogHandler(mobsRegistry, loaded.langBundle)
 	if err != nil {
 		slog.Error("failed to build mob catalog", slog.Any("error", err))
 		panic(err)
@@ -341,9 +341,16 @@ func main() {
 	// /quests is the journal's words (plan-quests.md C3, D14): the wire carries
 	// only quest + stage ids, so titles and diary prose come from here. A minimal
 	// projection — nothing about objectives, the stage graph or rewards.
-	questsHandler, err := quests.CatalogHandler(questsRegistry)
+	questsHandler, err := quests.CatalogHandler(questsRegistry, loaded.langBundle)
 	if err != nil {
 		slog.Error("failed to build quest catalog", slog.Any("error", err))
+		panic(err)
+	}
+	// /lang is the content text no catalog carries (plan-localization.md D6
+	// item 2): region and zone names (C1), the dialogue (C3). Per locale.
+	langHandler, err := langBundleHandler(loaded.langBundle, loaded.langEntries)
+	if err != nil {
+		slog.Error("failed to build the lang bundle", slog.Any("error", err))
 		panic(err)
 	}
 	counter, ok := g.(playerCounter)
@@ -354,6 +361,7 @@ func main() {
 		"/skills":  skillsHandler,
 		"/mobs":    mobsHandler,
 		"/quests":  questsHandler,
+		"/lang":    langHandler,
 		"/players": playersHandler(counter),
 	}
 

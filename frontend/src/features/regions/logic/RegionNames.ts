@@ -13,6 +13,7 @@
  */
 import {pointInPolygon, Region, RegionPoint} from './Regions';
 import regionListJson from '../../../../../api/regions/regions.json';
+import {contentText, onLangBundle, regionSubtitleKey, regionTitleKey} from '../../../client-data/LangBundle';
 
 /** Stay this long before a place is announced, so skimming a border (or a
  *  warp passing through one) says nothing. [PLACEHOLDER] */
@@ -46,7 +47,32 @@ export function placeTable(list: ListedPlace[]): Map<string, PlaceName> {
 }
 
 /** The shipped list (D2), bundled like the zones themselves. */
-export const PLACES: Map<string, PlaceName> = placeTable((regionListJson as {regions: ListedPlace[]}).regions);
+const LISTED: ListedPlace[] = (regionListJson as {regions: ListedPlace[]}).regions;
+
+export const PLACES: Map<string, PlaceName> = placeTable(LISTED);
+
+/**
+ * plan-localization.md C1: the banner text comes from the served /lang bundle
+ * in the chosen locale; regions.json keeps the geometry ids and the English
+ * fallback. Entries are updated in place, so every holder of PLACES sees it.
+ */
+export function localizePlaces(
+    list: ListedPlace[], places: Map<string, PlaceName>,
+    text: (key: string, fallback: string) => string = contentText,
+) {
+    for (const listed of list) {
+        const place = places.get(listed.id);
+        if (!place) {
+            continue;
+        }
+        place.title = text(regionTitleKey(listed.id), listed.title);
+        if (listed.subtitle) {
+            place.subtitle = text(regionSubtitleKey(listed.id), listed.subtitle);
+        }
+    }
+}
+
+onLangBundle(() => localizePlaces(LISTED, PLACES));
 
 /** The place at `point`: the last region in authored order that contains it and
  *  carries an id, or null. */

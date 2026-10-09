@@ -1,6 +1,8 @@
 package mobs
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+
 	"encoding/json"
 	"net/http"
 	"sort"
@@ -87,18 +89,22 @@ func activeAuraSkillID(d *MobDefinition) skills.SkillID {
 // CatalogJSON marshals every loaded mob definition sorted by ID. Legacy
 // species (none ship since zone-editor C3) would be included — harmless,
 // since the client only looks up ids it actually receives in a snapshot.
-func CatalogJSON(r Registry) ([]byte, error) {
+func CatalogJSON(r Registry) ([]byte, error) { return CatalogJSONIn(r, lang.Identity) }
+
+// CatalogJSONIn is the catalog in one locale (plan-localization.md C1): the
+// display name resolves through tr by the mob's id (D20), English as fallback.
+func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 	defs := r.Mobs()
 	sort.Slice(defs, func(i, j int) bool { return defs[i].ID < defs[j].ID })
 
 	entries := make([]CatalogEntry, 0, len(defs))
 	for _, d := range defs {
 		entries = append(entries, CatalogEntry{
-			ID:           d.ID,
-			Name:         d.Name,
-			DisplayName:  skills.DeriveDisplayName(d.Name),
-			CurveLevel:   d.CurveLevel,
-			Tier:         d.Rank(),
+			ID:          d.ID,
+			Name:        d.Name,
+			DisplayName: tr(lang.MobName(d.Name), skills.DeriveDisplayName(d.Name)),
+			CurveLevel:  d.CurveLevel,
+			Tier:        d.Rank(),
 			// Re-derived from xpFactor when the formula replaced the absolute
 			// experience value (plan-xp-formula.md L1): "pays kill XP at all"
 			// is still the test for "is prey", it is just spelled differently.
@@ -113,14 +119,6 @@ func CatalogJSON(r Registry) ([]byte, error) {
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in dev
 // the client runs on :2001 against aurad on :2000, and the catalog is public
 // read-only content. Mirrors skills.CatalogHandler.
-func CatalogHandler(r Registry) (http.Handler, error) {
-	payload, err := CatalogJSON(r)
-	if err != nil {
-		return nil, err
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(payload)
-	}), nil
+func CatalogHandler(r Registry, b *lang.Bundle) (http.Handler, error) {
+	return lang.Handler(b, func(tr lang.Tr) ([]byte, error) { return CatalogJSONIn(r, tr) })
 }
