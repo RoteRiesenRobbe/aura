@@ -24,6 +24,7 @@ import {
 } from '../../../client-data/Skills';
 import {getLocalPlayerLevel} from '../../../client-data/Mobs';
 import {AuraApi} from './AuraApi';
+import {wireMessageText} from '../../i18n/logic/WireText';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
@@ -325,7 +326,9 @@ export class Backend implements IBackend {
                     // owns the "New <category>: <name>" line so it stays in sync
                     // with the catalog's displayName overrides.
                     const skillId = Number(entityMessage.entityId());
-                    const source = entityMessage.message();
+                    // plan-localization.md C2: the source label is a keyed
+                    // message the client words (D8), English as fallback.
+                    const source = wireMessageText(entityMessage);
                     const text = t('unlockBanner', {category: skillCategory(skillId), name: skillDisplayName(skillId)})
                         + (source ? `\n${source}` : '');
                     AlertBanner.show(text, 'unlock');
@@ -335,12 +338,12 @@ export class Backend implements IBackend {
                 // journal's state rides GameState every tick (L8), so a dropped
                 // banner loses nothing but the sentence.
                 else if (entityMessage.kind() === AuraApi.EntityMessageKind.Journal) {
-                    AlertBanner.show(entityMessage.message(), 'unlock');
+                    AlertBanner.show(wireMessageText(entityMessage), 'unlock');
                 }
                 // Entity id 0 = server announcement (chat.SystemEntityID) —
                 // routed to the alert banner, not a speech bubble (C6).
                 else if (Number(entityMessage.entityId()) === 0) {
-                    AlertBanner.show(entityMessage.message(), 'announce');
+                    AlertBanner.show(wireMessageText(entityMessage), 'announce');
                 } else {
                     Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
                 }

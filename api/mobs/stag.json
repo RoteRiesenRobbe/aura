@@ -2,6 +2,7 @@
   "_comment": "Z1 flee-always prey (content pass C2): fleeBelowHealthRatio 1 = it bolts the moment it takes damage (the prey behavior of plan-content-zones12.md §4 — there is no dedicated flee-always flag). Speed just under the player's, so a chase stays winnable. No kill-drop (PO ruling 2026-07-17, §11 TBD stays open). All values [PLACEHOLDER]",
   "id": 18,
   "name": "Stag",
+  "namePlural": "Stags",
   "type": "MOB",
   "faction": "wildlife_prey",
   "tier": "normal",

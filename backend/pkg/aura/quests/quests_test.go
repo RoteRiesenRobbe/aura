@@ -192,11 +192,6 @@ func TestLoad_Rejections(t *testing.T) {
 		"count placeholder on a talk_to-only stage": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "tracker": "{n}/{m} met", "objectives": [{"kind": "talk_to", "npc": "Farmer"}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
-		// An objective tracker rewords a talk_to line only; a kill/harvest
-		// line carries a live count the static text would hide.
-		"objective tracker on a kill": `{"id": "q", "title": "Q", "stages": [
-			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "tracker": "Wolves"}], "next": "t"},
-			{"id": "t", "journal": "done"}]}`,
 		// A stage tracker wins outright, so an objective tracker under it
 		// would be dead text.
 		"objective tracker under a stage tracker": `{"id": "q", "title": "Q", "stages": [

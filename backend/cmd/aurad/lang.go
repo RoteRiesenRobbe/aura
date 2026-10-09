@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -59,10 +60,26 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 						fmt.Sprintf("Tracker line of quest %q, stage %q: the one objective line shown under the quest title.", q.ID, s.ID)), "n", "m")
 				}
 				for _, o := range s.Objectives {
+					// Q2 (PO 2026-10-07): every objective line must be grammatical
+					// in every language. talk_to and reach need an article or a
+					// preposition no template can build from a name, so they author
+					// their own tracker unless the stage's tracker replaces every
+					// line; a kill/harvest line is worded from the mob's name +
+					// namePlural, so the mob must author its plural.
+					if (o.Kind == quests.ObjectiveTalkTo || o.Kind == quests.ObjectiveReach) && o.Tracker == "" && s.Tracker == "" {
+						findings = append(findings, fmt.Sprintf("lang quests: quest %q stage %q: a %s objective (%s) needs its own "+
+							"tracker, e.g. %q (plan-localization.md Q2)", q.ID, s.ID, o.Kind, o.TargetName, "Talk to "+o.TargetName))
+					}
+					if (o.Kind == quests.ObjectiveKill || o.Kind == quests.ObjectiveHarvest) && c.mobs != nil {
+						if def, err := c.mobs.Get(o.Target); err == nil && def.NamePlural == "" {
+							findings = append(findings, fmt.Sprintf("lang quests: quest %q stage %q: %s objective names %s, "+
+								"which authors no namePlural (plan-localization.md Q2)", q.ID, s.ID, o.Kind, def.Name))
+						}
+					}
 					if o.Tracker == "" {
 						continue
 					}
-					add("quests", trackerEntry(lang.QuestObjectiveTracker(q.ID, s.ID, o.Kind.String(), objectiveTarget(o.Region, o.TargetName, uint64(o.Target))), o.Tracker,
+					add("quests", trackerEntry(lang.QuestObjectiveTracker(q.ID, s.ID, o.Kind.String(), quests.ObjectiveTargetKey(&o)), o.Tracker,
 						fmt.Sprintf("Tracker line of one %s objective (%s) in quest %q, stage %q. Write the whole line: articles, case and prepositions belong here (L8).", o.Kind.String(), o.TargetName, q.ID, s.ID)), "n", "m")
 				}
 			}
@@ -75,6 +92,10 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 		for _, d := range mobDefs {
 			add("mobs", lang.Entry{Key: lang.MobName(d.Name), Text: skills.DeriveDisplayName(d.Name),
 				Description: fmt.Sprintf("Name of the %s (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8).", d.Name)})
+			if d.NamePlural != "" {
+				add("mobs", lang.Entry{Key: lang.MobNamePlural(d.Name), Text: d.NamePlural,
+					Description: fmt.Sprintf("Plural name of the %s, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural.", d.Name)})
+			}
 		}
 	}
 
@@ -120,18 +141,6 @@ func trackerEntry(key, text, description string) lang.Entry {
 		ph = append(ph, lang.Placeholder{Name: "m", Type: "int", Description: "Count required", Example: "8"})
 	}
 	return lang.Entry{Key: key, Text: lang.NumberPlaceholders(text, "n", "m"), Description: description, Placeholders: ph}
-}
-
-// objectiveTarget is an objective's target as a key part: the region id for
-// reach, else the authored target name with spaces removed.
-func objectiveTarget(region, targetName string, mobID uint64) string {
-	if region != "" {
-		return region
-	}
-	if targetName != "" {
-		return strings.ReplaceAll(targetName, " ", "")
-	}
-	return fmt.Sprint(mobID)
 }
 
 // zoneNamesFrom reads each top-level zone file's display name, keyed by its

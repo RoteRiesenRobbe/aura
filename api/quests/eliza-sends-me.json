@@ -7,7 +7,7 @@
       "id": "road",
       "journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
       "objectives": [
-        { "kind": "reach", "region": "farmreinhard" }
+        { "kind": "reach", "region": "farmreinhard", "tracker": "Go to Reinhard's farm" }
       ],
       "next": "meet"
     },

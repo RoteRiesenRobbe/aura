@@ -140,5 +140,10 @@
   "quest.wolves-on-the-road.thin.tracker": "{n, number}/{m, number} Wölfe getötet",
   "quest.wolves-on-the-road.title": "Wölfe an der Straße",
   "quest.wolves-on-the-road.told_militia.journal": "Erledigt. Der Stadtwache Bericht erstattet. Spott gelernt.",
-  "quest.wolves-on-the-road.told_shaman.journal": "Erledigt. Dem Schamanen Bericht erstattet. Verlangsamen gelernt."
+  "quest.wolves-on-the-road.told_shaman.journal": "Erledigt. Dem Schamanen Bericht erstattet. Verlangsamen gelernt.",
+  "quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": "Sprich mit Benjamin",
+  "quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": "Sprich mit Hendrik",
+  "quest.eliza-sends-me.road.reach.farmreinhard.tracker": "Geh zu Reinhards Hof",
+  "quest.village-welcome.meet.talk_to.Reinhard.tracker": "Sprich mit Reinhard",
+  "quest.village-welcome.meet.talk_to.TownCrier.tracker": "Sprich mit dem Ausrufer"
 }

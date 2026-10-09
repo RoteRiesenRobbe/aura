@@ -7,6 +7,7 @@ package mob
 // from these tests during the migration is a bug, not a design change.
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"math/rand"
 	"testing"
 
@@ -96,7 +97,8 @@ type capturedUnlock struct {
 	source  string
 }
 
-func (c *mobFakeClient) SendUnlock(id uint64, source string) error {
+func (c *mobFakeClient) SendUnlock(id uint64, msg lang.Message) error {
+	source := msg.English
 	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
 	return nil
 }

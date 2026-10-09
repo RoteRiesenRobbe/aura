@@ -2,6 +2,7 @@
   "_comment": "The dead branches in Grandfather Knot's grove, the harvest target of `clear-the-grove` (docs/plan-grandfather-knot.md D8): the BlueMushroom/Turnip harvest-mob copied field for field - role structure + speed 0, no skills, no faction, no aggroRadius; the wildcard resistance blocks every damage tag except 'harvest', so only Harvest clears it. xpFactor 0.05 = the Turnip's one token. Draws its own branch-heap sprite (EntityType Deadwood), placeholder art. All values [PLACEHOLDER].",
   "id": 113,
   "name": "Deadwood",
+  "namePlural": "Deadwood",
   "type": "MOB",
   "entityType": "Deadwood",
   "role": "structure",

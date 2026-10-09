@@ -810,6 +810,27 @@ table QuestProgress {
   // ⚑ Appended LAST: this table is positional (no field ids), so an insert
   // above would silently renumber `completed` for every client.
   objectives:[string];
+  // C2 (plan-localization.md D8, Q2): the same lines as DATA, which the client
+  // words in its own language: kind, target id, capped counts, done, and the
+  // key of the authored tracker template on the /quests catalog. Appended
+  // LAST for the same positional reason as objectives above.
+  objective_list:[QuestObjective];
+}
+
+enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3 }
+
+// One current-stage objective line as data. stage = the stage's own tracker,
+// the single line that replaces every objective line (kind/target then name
+// its first countable objective, if any).
+table QuestObjective {
+  kind:QuestObjectiveKind = Kill;
+  stage:bool = false;
+  target:ulong;      // a MobID (kill, harvest, talk_to)
+  region:string;     // reach: the region id
+  n:uint;
+  m:uint;
+  done:bool = false;
+  tracker_key:string;
 }
 
 // --- skill events (plan-skill-vfx.md C1, D5/D9) ---
@@ -1226,10 +1247,35 @@ table Obituary {
 // channel drops on a full buffer (L8).
 enum EntityMessageKind:ubyte { Chat = 0, Unlock = 1, Journal = 2 }
 
+// --- keyed messages (plan-localization.md C2, D1/D8/D10) ---
+//
+// What a message argument IS, so the client resolves it from its localized
+// catalogs instead of parsing a display name out of a string (D8). Values are
+// explicit and permanent; the Go lang.ArgKind constants mirror them.
+enum MessageArgKind:ubyte { Text = 0, Number = 1, Mob = 2, Skill = 3, Quest = 4, Region = 5, List = 6 }
+
+// One named ICU argument of a keyed message. Text: literal text (a player's
+// name, never translated). Number: number. Mob/Skill: the numeric id in id.
+// Quest/Region: the string id in text. List: items, joined by the client with
+// Intl.ListFormat (de "A, B und C").
+table MessageArg {
+    name:string;
+    kind:MessageArgKind = Text;
+    text:string;
+    number:double;
+    id:ulong;
+    items:[string];
+}
+
 table EntityMessage {
     entity_id:ulong;   // on Unlock: repurposed to carry the unlocked skill id
     message:string;    // on Unlock: the source label only ("Taught by: Farmer")
     kind:EntityMessageKind = Chat;
+    // C2 (D10): OPTIONAL. Empty = render message verbatim (player chat, old
+    // payloads). Set = the client formats its own template for key with args,
+    // and message stays the server's English as the fallback (D14 (1)).
+    key:string;
+    args:[MessageArg];
 }
 
 table Pong {

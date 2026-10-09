@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
 // Progress is one quest's per-character state: the ordered list of stages this
@@ -44,9 +45,14 @@ type Progress struct {
 	Running    bool
 	Completed  bool
 	Objectives []string
-	KillBase   map[mobs.MobID]uint64
-	TalkBase   map[mobs.MobID]bool
-	reach      string
+	// Views is the same current-stage objective state, structured for the
+	// wire (plan-localization.md C2, D8): ids and counts, never a name, so
+	// the client composes the line in its own language. Derived with
+	// Objectives and never persisted.
+	Views    []ObjectiveView
+	KillBase map[mobs.MobID]uint64
+	TalkBase map[mobs.MobID]bool
+	reach    string
 }
 
 // Ledger is a character's lifetime quest state (D3/D5): per-species kill
@@ -356,6 +362,22 @@ type ProgressEntry struct {
 	Path       []string
 	Completed  bool
 	Objectives []string
+	Views      []ObjectiveView
+}
+
+// ObjectiveView is one current-stage objective line as data (C2): what kind,
+// which target (a MobID, or a region id for reach), the capped count, whether
+// it is done, and the key of the authored tracker template that words it, if
+// any (D20). Stage is the stage tracker's single line, which replaces every
+// objective line (Q2).
+type ObjectiveView struct {
+	Kind       ObjectiveKind
+	Stage      bool
+	Target     mobs.MobID
+	Region     string
+	N, M       uint64
+	Done       bool
+	TrackerKey string
 }
 
 // Snapshot projects every running and completed quest for the per-tick
@@ -380,7 +402,7 @@ func (l *Ledger) Snapshot() []ProgressEntry {
 		if !p.Running && !p.Completed {
 			continue
 		}
-		entries = append(entries, ProgressEntry{QuestID: id, Path: p.Path, Completed: p.Completed, Objectives: p.Objectives})
+		entries = append(entries, ProgressEntry{QuestID: id, Path: p.Path, Completed: p.Completed, Objectives: p.Objectives, Views: p.Views})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].QuestID < entries[j].QuestID })
 	return entries
@@ -434,7 +456,7 @@ func (l *Ledger) Abandon(questID string) error {
 	}
 	p.Running = false
 	p.Path = nil
-	p.Objectives = nil
+	p.Objectives, p.Views = nil, nil
 	p.KillBase, p.TalkBase = nil, nil // re-accept re-baselines via enter anyway; keep no stale state
 	p.reach = ""
 	l.refreshReach()
@@ -553,10 +575,10 @@ func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 	// The objective line follows the stage the quest came to rest on (Q2);
 	// a completed quest carries none — its diary is the record (§7.1 ruling).
 	if p.Running {
-		p.Objectives = l.objectiveLines(p, s)
+		l.setObjectives(q.ID, p, s)
 		p.reach = reachOf(s)
 	} else {
-		p.Objectives = nil
+		p.Objectives, p.Views = nil, nil
 		p.reach = ""
 	}
 	l.refreshReach()
@@ -641,12 +663,64 @@ func (l *Ledger) recheck() {
 			// counters exist to tell apart. The journal must resend (the wire
 			// is change-only since plan-server-performance.md chunk 3), while
 			// the save path must NOT fire on every credited kill.
-			p.Objectives = l.objectiveLines(p, s)
+			l.setObjectives(q.ID, p, s)
 			l.displayRev++
 			continue
 		}
 		l.enter(q, p, q.Stage(s.Next))
 	}
+}
+
+// setObjectives derives both forms of the current stage's objectives: the
+// English lines (tests, the server's own reading) and the structured views
+// the wire carries (plan-localization.md C2).
+func (l *Ledger) setObjectives(questID string, p *Progress, s *Stage) {
+	p.Objectives = l.objectiveLines(p, s)
+	p.Views = l.objectiveViews(questID, p, s)
+}
+
+// objectiveViews is objectiveLines as data: the same branches, ids instead of
+// names, counts capped the same way.
+func (l *Ledger) objectiveViews(questID string, p *Progress, s *Stage) []ObjectiveView {
+	if s.Tracker != "" {
+		v := ObjectiveView{Stage: true, TrackerKey: lang.QuestStageTracker(questID, s.ID)}
+		if o := firstCountable(s); o != nil {
+			v.Kind, v.Target = o.Kind, o.Target
+			v.N, v.M = min(l.countSince(p, o.Target), o.Count), o.Count
+		}
+		return []ObjectiveView{v}
+	}
+	if len(s.Objectives) == 0 {
+		return nil
+	}
+	views := make([]ObjectiveView, 0, len(s.Objectives))
+	for i := range s.Objectives {
+		o := &s.Objectives[i]
+		v := ObjectiveView{Kind: o.Kind, Target: o.Target, Region: o.Region}
+		if o.Tracker != "" {
+			v.TrackerKey = lang.QuestObjectiveTracker(questID, s.ID, o.Kind.String(), ObjectiveTargetKey(o))
+		}
+		switch o.Kind {
+		case ObjectiveTalkTo:
+			v.Done = l.talkedSince(p, o.Target)
+		case ObjectiveReach:
+		default:
+			v.N, v.M = min(l.countSince(p, o.Target), o.Count), o.Count
+			v.Done = v.N >= v.M
+		}
+		views = append(views, v)
+	}
+	return views
+}
+
+// ObjectiveTargetKey is an objective's target as a key part (D20): the region
+// id for reach, else the authored target name without spaces. The loader
+// refuses two objectives of one kind + target in a stage, so it is unique.
+func ObjectiveTargetKey(o *Objective) string {
+	if o.Region != "" {
+		return o.Region
+	}
+	return strings.ReplaceAll(o.TargetName, " ", "")
 }
 
 // objectiveLines composes the current stage's journal lines (Q2/R2): the
@@ -686,11 +760,22 @@ func (l *Ledger) objectiveLines(p *Progress, s *Stage) []string {
 			lines = append(lines, line)
 		case ObjectiveReach:
 			// D7. No tick: arrival moves the stage, so this line never shows done.
-			lines = append(lines, "Go to "+o.TargetName)
-		case ObjectiveHarvest:
-			lines = append(lines, fmt.Sprintf("%d/%d %s harvested", min(l.countSince(p, o.Target), o.Count), o.Count, o.TargetName))
-		default:
-			lines = append(lines, fmt.Sprintf("%d/%d %s slain", min(l.countSince(p, o.Target), o.Count), o.Count, o.TargetName))
+			if o.Tracker != "" {
+				lines = append(lines, o.Tracker)
+			} else {
+				lines = append(lines, "Go to "+o.TargetName)
+			}
+		case ObjectiveHarvest, ObjectiveKill:
+			n := min(l.countSince(p, o.Target), o.Count)
+			switch {
+			case o.Tracker != "":
+				line := strings.ReplaceAll(o.Tracker, "{n}", strconv.FormatUint(n, 10))
+				lines = append(lines, strings.ReplaceAll(line, "{m}", strconv.FormatUint(o.Count, 10)))
+			case o.Kind == ObjectiveHarvest:
+				lines = append(lines, fmt.Sprintf("%d/%d %s harvested", n, o.Count, o.TargetName))
+			default:
+				lines = append(lines, fmt.Sprintf("%d/%d %s slain", n, o.Count, o.TargetName))
+			}
 		}
 	}
 	return lines

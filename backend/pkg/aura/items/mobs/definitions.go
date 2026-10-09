@@ -227,7 +227,11 @@ type MobUnlock struct {
 type MobDefinition struct {
 	ID   MobID
 	Name string
-	Type string
+	// NamePlural is the English plural display name (plan-localization.md
+	// Q2): required on a mob a kill or harvest objective names, so the line
+	// reads "3/8 Wolves slain"; the quest loader enforces it. Absent elsewhere.
+	NamePlural string
+	Type       string
 
 	// EntityType optionally decouples the wire EntityType from the def name
 	// (chunk 9 content): a throwaway/variant def (e.g. an encounter boss)
@@ -305,6 +309,7 @@ type mobDefinition struct {
 
 	Id         uint64 `json:"id"`
 	Name       string `json:"name"`
+	NamePlural string `json:"namePlural"`
 	Type       string `json:"type"`
 	EntityType string `json:"entityType"` // absent → the name resolves the wire type
 	Faction    string `json:"faction"`    // absent → the built-in hostile default
@@ -571,6 +576,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	mob := &MobDefinition{
 		ID:                MobID(m.Id),
 		Name:              m.Name,
+		NamePlural:        m.NamePlural,
 		Type:              m.Type,
 		EntityType:        m.EntityType,
 		Faction:           faction,

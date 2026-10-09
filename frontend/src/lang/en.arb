@@ -886,5 +886,192 @@
   "apiErrorForbiddenOrigin": "That request came from an origin this server does not serve.",
   "@apiErrorForbiddenOrigin": {
     "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "unlockDroppedBy": "Dropped by: {mob}",
+  "@unlockDroppedBy": {
+    "description": "Unlock banner, second line: the skill came from a slain mob.",
+    "placeholders": {
+      "mob": {
+        "type": "String",
+        "description": "Mob name, already localized; not inflected",
+        "example": "Wolf"
+      }
+    }
+  },
+  "unlockLevelReward": "Level {level, number} reward",
+  "@unlockLevelReward": {
+    "description": "Unlock banner, second line: a milestone level granted the skill.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "description": "The level reached",
+        "example": "5"
+      }
+    }
+  },
+  "unlockCombination": "Combination discovered",
+  "@unlockCombination": {
+    "description": "Unlock banner, second line: a skill combination unlocked a new skill."
+  },
+  "unlockTaughtBy": "Taught by: {mob}",
+  "@unlockTaughtBy": {
+    "description": "Unlock banner, second line: an NPC taught the skill.",
+    "placeholders": {
+      "mob": {
+        "type": "String",
+        "description": "NPC name, already localized; not inflected",
+        "example": "Village Healer"
+      }
+    }
+  },
+  "unlockCheat": "Cheat",
+  "@unlockCheat": {
+    "description": "Unlock banner, second line: a developer cheat granted the skill."
+  },
+  "journalUpdated": "Journal updated: {quest}",
+  "@journalUpdated": {
+    "description": "Banner when a quest moves to its next stage.",
+    "placeholders": {
+      "quest": {
+        "type": "String",
+        "description": "Quest title, already localized",
+        "example": "Wolves on the Road"
+      }
+    }
+  },
+  "questComplete": "Quest complete: {quest}",
+  "@questComplete": {
+    "description": "Banner when a quest is finished.",
+    "placeholders": {
+      "quest": {
+        "type": "String",
+        "description": "Quest title, already localized",
+        "example": "Wolves on the Road"
+      }
+    }
+  },
+  "warlordFallen": "{count, plural, =0 {The Orc Warlord has fallen to brave nameless heroes!} other {The Orc Warlord has fallen to {names}!}}",
+  "@warlordFallen": {
+    "description": "Server-wide banner when the Orc Warlord boss dies. {names} is the list of player names who took part, already joined (\"A, B and 2 others\").",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "description": "Player names, joined as a list (player-chosen, never translated)",
+        "example": "Mara, Tom and Eli"
+      },
+      "count": {
+        "type": "int",
+        "description": "How many players took part",
+        "example": "3"
+      }
+    }
+  },
+  "warlordReturned": "The Orc Warlord has returned to the front!",
+  "@warlordReturned": {
+    "description": "Server-wide banner when the Orc Warlord boss respawns."
+  },
+  "saveResumed": "Your progress is being saved again.",
+  "@saveResumed": {
+    "description": "Banner after a save outage ends."
+  },
+  "saveFailing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",
+  "@saveFailing": {
+    "description": "Banner while the server cannot save progress."
+  },
+  "listMoreOthers": "{n, plural, one {# other} other {# others}}",
+  "@listMoreOthers": {
+    "description": "Last item of a name list that was cut short: \"A, B, C and 2 others\".",
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "description": "How many names were left out",
+        "example": "2"
+      }
+    }
+  },
+  "questObjectiveKill": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} slain",
+  "@questObjectiveKill": {
+    "description": "Quest tracker line for a kill objective. {mob} and {mobPlural} are the singular and plural forms of the mob name; the plural branch picks one by the required count {m}. Do not inflect them.",
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "description": "Killed so far",
+        "example": "3"
+      },
+      "m": {
+        "type": "int",
+        "description": "Required",
+        "example": "8"
+      },
+      "mob": {
+        "type": "String",
+        "description": "Mob name, singular",
+        "example": "Wolf"
+      },
+      "mobPlural": {
+        "type": "String",
+        "description": "Mob name, plural",
+        "example": "Wolves"
+      }
+    }
+  },
+  "questObjectiveHarvest": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} harvested",
+  "@questObjectiveHarvest": {
+    "description": "Quest tracker line for a harvest objective; as questObjectiveKill.",
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "description": "Harvested so far",
+        "example": "2"
+      },
+      "m": {
+        "type": "int",
+        "description": "Required",
+        "example": "5"
+      },
+      "mob": {
+        "type": "String",
+        "description": "Plant or object name, singular",
+        "example": "Turnip"
+      },
+      "mobPlural": {
+        "type": "String",
+        "description": "Plural",
+        "example": "Turnips"
+      }
+    }
+  },
+  "questObjectiveTalkTo": "Talk to {name}",
+  "@questObjectiveTalkTo": {
+    "description": "Fallback tracker line for a talk_to objective (content normally authors its own line). {name} is not inflected.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "NPC name",
+        "example": "Hendrik"
+      }
+    }
+  },
+  "questObjectiveReach": "Go to {place}",
+  "@questObjectiveReach": {
+    "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "description": "Place name",
+        "example": "Brunnstedt"
+      }
+    }
+  },
+  "questObjectiveDone": "{line} ✓",
+  "@questObjectiveDone": {
+    "description": "A finished talk_to objective line: the line plus a check mark.",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "description": "The objective line",
+        "example": "Talk to Hendrik"
+      }
+    }
   }
 }

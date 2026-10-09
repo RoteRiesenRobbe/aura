@@ -22,6 +22,9 @@ export interface QuestDefinition {
     id: string;
     title: string;
     stages: QuestStageDefinition[];
+    /** Authored tracker templates by key, ICU, in the served locale
+     *  (plan-localization.md C2). Absent when the quest authors none. */
+    trackers?: Record<string, string>;
 }
 
 /**

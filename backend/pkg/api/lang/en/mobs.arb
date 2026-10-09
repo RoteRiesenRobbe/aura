@@ -4,9 +4,17 @@
   "@mob.AlphaBoar.name": {
     "description": "Name of the AlphaBoar (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.AlphaBoar.namePlural": "Alpha Boars",
+  "@mob.AlphaBoar.namePlural": {
+    "description": "Plural name of the AlphaBoar, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.AlphaWolf.name": "Alpha Wolf",
   "@mob.AlphaWolf.name": {
     "description": "Name of the AlphaWolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.AlphaWolf.namePlural": "Alpha Wolves",
+  "@mob.AlphaWolf.namePlural": {
+    "description": "Plural name of the AlphaWolf, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.ArmySoldier.name": "Army Soldier",
   "@mob.ArmySoldier.name": {
@@ -24,6 +32,10 @@
   "@mob.Bandit.name": {
     "description": "Name of the Bandit (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Bandit.namePlural": "Bandits",
+  "@mob.Bandit.namePlural": {
+    "description": "Plural name of the Bandit, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.BanditHealer.name": "Bandit Healer",
   "@mob.BanditHealer.name": {
     "description": "Name of the BanditHealer (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -40,9 +52,17 @@
   "@mob.Bear.name": {
     "description": "Name of the Bear (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Bear.namePlural": "Bears",
+  "@mob.Bear.namePlural": {
+    "description": "Plural name of the Bear, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.Beet.name": "Beet",
   "@mob.Beet.name": {
     "description": "Name of the Beet (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Beet.namePlural": "Beets",
+  "@mob.Beet.namePlural": {
+    "description": "Plural name of the Beet, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.Benjamin.name": "Benjamin",
   "@mob.Benjamin.name": {
@@ -59,6 +79,10 @@
   "mob.Boar.name": "Boar",
   "@mob.Boar.name": {
     "description": "Name of the Boar (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Boar.namePlural": "Boars",
+  "@mob.Boar.namePlural": {
+    "description": "Plural name of the Boar, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.Bramble.name": "Bramble",
   "@mob.Bramble.name": {
@@ -108,6 +132,10 @@
   "@mob.Deadwood.name": {
     "description": "Name of the Deadwood (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Deadwood.namePlural": "Deadwood",
+  "@mob.Deadwood.namePlural": {
+    "description": "Plural name of the Deadwood, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.DeathKnight.name": "Death Knight",
   "@mob.DeathKnight.name": {
     "description": "Name of the DeathKnight (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -119,6 +147,10 @@
   "mob.DireWolf.name": "Dire Wolf",
   "@mob.DireWolf.name": {
     "description": "Name of the DireWolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.DireWolf.namePlural": "Dire Wolves",
+  "@mob.DireWolf.namePlural": {
+    "description": "Plural name of the DireWolf, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.Dog.name": "Dog",
   "@mob.Dog.name": {
@@ -188,6 +220,10 @@
   "@mob.GiantRat.name": {
     "description": "Name of the GiantRat (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.GiantRat.namePlural": "Giant Rats",
+  "@mob.GiantRat.namePlural": {
+    "description": "Plural name of the GiantRat, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.GiantScorpion.name": "Giant Scorpion",
   "@mob.GiantScorpion.name": {
     "description": "Name of the GiantScorpion (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -219,6 +255,10 @@
   "mob.Kobold.name": "Kobold",
   "@mob.Kobold.name": {
     "description": "Name of the Kobold (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Kobold.namePlural": "Kobolds",
+  "@mob.Kobold.namePlural": {
+    "description": "Plural name of the Kobold, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.KoboldRanged.name": "Kobold Ranged",
   "@mob.KoboldRanged.name": {
@@ -272,6 +312,10 @@
   "@mob.Orc.name": {
     "description": "Name of the Orc (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Orc.namePlural": "Orcs",
+  "@mob.Orc.namePlural": {
+    "description": "Plural name of the Orc, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.OrcGrunt.name": "Orc Grunt",
   "@mob.OrcGrunt.name": {
     "description": "Name of the OrcGrunt (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -320,6 +364,10 @@
   "@mob.Seaweed.name": {
     "description": "Name of the Seaweed (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Seaweed.namePlural": "Seaweed",
+  "@mob.Seaweed.namePlural": {
+    "description": "Plural name of the Seaweed, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.Shaman.name": "Shaman",
   "@mob.Shaman.name": {
     "description": "Name of the Shaman (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -352,6 +400,10 @@
   "@mob.Spider.name": {
     "description": "Name of the Spider (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Spider.namePlural": "Spiders",
+  "@mob.Spider.namePlural": {
+    "description": "Plural name of the Spider, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.SpiderWeb.name": "Spider Web",
   "@mob.SpiderWeb.name": {
     "description": "Name of the SpiderWeb (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -363,6 +415,10 @@
   "mob.Stag.name": "Stag",
   "@mob.Stag.name": {
     "description": "Name of the Stag (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Stag.namePlural": "Stags",
+  "@mob.Stag.namePlural": {
+    "description": "Plural name of the Stag, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.StoneRoot.name": "Stone Root",
   "@mob.StoneRoot.name": {
@@ -392,6 +448,10 @@
   "@mob.Turnip.name": {
     "description": "Name of the Turnip (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
   },
+  "mob.Turnip.namePlural": "Turnips",
+  "@mob.Turnip.namePlural": {
+    "description": "Plural name of the Turnip, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
+  },
   "mob.VenomSpider.name": "Venom Spider",
   "@mob.VenomSpider.name": {
     "description": "Name of the VenomSpider (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -415,6 +475,10 @@
   "mob.Wolf.name": "Wolf",
   "@mob.Wolf.name": {
     "description": "Name of the Wolf (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "mob.Wolf.namePlural": "Wolves",
+  "@mob.Wolf.namePlural": {
+    "description": "Plural name of the Wolf, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural."
   },
   "mob.Woolliam.name": "Woolliam",
   "@mob.Woolliam.name": {

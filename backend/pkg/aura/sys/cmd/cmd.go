@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"log"
 	"strconv"
@@ -146,7 +147,7 @@ var commands = map[string]Command{
 		if !p.SkillComponent().HasDiscovered(def.ID) {
 			p.SkillComponent().Discover(def.ID)
 			// Exercise the same unlock UI the real sources use (label "Cheat").
-			p.Client().SendUnlock(uint64(def.ID), "Cheat")
+			p.Client().SendUnlock(uint64(def.ID), lang.Message{Key: lang.KeyUnlockCheat, English: "Cheat"})
 		}
 		p.ApplyRecipeCascade()
 

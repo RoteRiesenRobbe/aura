@@ -237,9 +237,6 @@ func validateQuest(q *QuestDefinition) error {
 			if o.Count == 0 {
 				return fmt.Errorf("quest %q stage %q: objective with count 0", q.ID, s.ID)
 			}
-			if o.Tracker != "" && o.Kind != ObjectiveTalkTo {
-				return fmt.Errorf("quest %q stage %q: an objective tracker rewords a talk_to line only", q.ID, s.ID)
-			}
 			if o.Tracker != "" && s.Tracker != "" {
 				return fmt.Errorf("quest %q stage %q: an objective tracker under a stage tracker is never shown", q.ID, s.ID)
 			}
@@ -338,7 +335,7 @@ type jsonObjective struct {
 	Species string `json:"species"` // kill / harvest
 	NPC     string `json:"npc"`     // talk_to
 	Count   uint64 `json:"count"`   // absent → 1
-	Tracker string `json:"tracker"` // talk_to only
+	Tracker string `json:"tracker"` // any kind; required on talk_to and reach without a stage tracker (Q2)
 	Region  string `json:"region"`  // reach
 
 	Chance       float64 `json:"chance"`       // kill/harvest: a find rolled per credit
@@ -412,11 +409,19 @@ func parseQuest(data []byte, mr speciesResolver) (*QuestDefinition, error) {
 	q := &QuestDefinition{ID: jq.ID, Title: jq.Title, Repeatable: jq.Repeatable}
 	for _, js := range jq.Stages {
 		s := &Stage{ID: js.ID, Journal: js.Journal, Tracker: js.Tracker, Next: js.Next}
+		seen := map[string]bool{}
 		for _, jo := range js.Objectives {
 			o, err := mapObjective(jo, mr)
 			if err != nil {
 				return nil, fmt.Errorf("quest %q stage %q: %w", jq.ID, js.ID, err)
 			}
+			// D20: an objective's tracker is keyed by kind + target, so two of
+			// one kind + target in a stage would share a key.
+			id := o.Kind.String() + "." + ObjectiveTargetKey(&o)
+			if seen[id] {
+				return nil, fmt.Errorf("quest %q stage %q: two %s objectives name %s", jq.ID, js.ID, jo.Kind, ObjectiveTargetKey(&o))
+			}
+			seen[id] = true
 			s.Objectives = append(s.Objectives, o)
 		}
 		q.Stages = append(q.Stages, s)

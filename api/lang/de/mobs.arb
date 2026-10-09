@@ -104,5 +104,21 @@
   "mob.WarbannerTotem.name": "Kriegsbannertotem",
   "mob.Wisp.name": "Irrlicht",
   "mob.Wolf.name": "Wolf",
-  "mob.Woolliam.name": "Woolliam"
+  "mob.Woolliam.name": "Woolliam",
+  "mob.AlphaBoar.namePlural": "Alphakeiler",
+  "mob.AlphaWolf.namePlural": "Alphawölfe",
+  "mob.Bandit.namePlural": "Banditen",
+  "mob.Bear.namePlural": "Bären",
+  "mob.Beet.namePlural": "Rüben",
+  "mob.Boar.namePlural": "Keiler",
+  "mob.Deadwood.namePlural": "Totholz",
+  "mob.DireWolf.namePlural": "Schreckenswölfe",
+  "mob.GiantRat.namePlural": "Riesenratten",
+  "mob.Kobold.namePlural": "Kobolde",
+  "mob.Orc.namePlural": "Orks",
+  "mob.Seaweed.namePlural": "Seetang",
+  "mob.Spider.namePlural": "Spinnen",
+  "mob.Stag.namePlural": "Hirsche",
+  "mob.Turnip.namePlural": "Steckrüben",
+  "mob.Wolf.namePlural": "Wölfe"
 }

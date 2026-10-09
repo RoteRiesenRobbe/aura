@@ -9,6 +9,7 @@ package core
 // model.Game, player.New for a real player) rather than inventing another one.
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"testing"
 
@@ -54,7 +55,7 @@ func (c *wireFakeClient) SendMessage(msg []byte) error {
 // SendJournal absorbs the accept/advance/complete announce quests.Ledger
 // fires through the player (ledger.go's enter → player.announceJournal) —
 // garnish these tests don't assert on, but a nil Client method panics.
-func (c *wireFakeClient) SendJournal(string) error { return nil }
+func (c *wireFakeClient) SendJournal(lang.Message) error { return nil }
 
 type wireRegistry map[skills.SkillID]*skills.SkillDefinition
 

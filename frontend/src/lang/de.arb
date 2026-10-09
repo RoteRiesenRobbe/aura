@@ -183,5 +183,22 @@
   "apiErrorDatabase": "Aura erreicht seine Datenbank gerade nicht. Bitte versuch es gleich noch einmal.",
   "apiErrorBusy": "Aura ist gerade ausgelastet. Bitte versuch es gleich noch einmal.",
   "apiErrorBadRequest": "Diese Anfrage wurde nicht verstanden.",
-  "apiErrorForbiddenOrigin": "Diese Anfrage kam von einem Ursprung, den dieser Server nicht bedient."
+  "apiErrorForbiddenOrigin": "Diese Anfrage kam von einem Ursprung, den dieser Server nicht bedient.",
+  "unlockDroppedBy": "Fallen gelassen von: {mob}",
+  "unlockLevelReward": "Belohnung für Stufe {level, number}",
+  "unlockCombination": "Kombination entdeckt",
+  "unlockTaughtBy": "Gelehrt von: {mob}",
+  "unlockCheat": "Cheat",
+  "journalUpdated": "Tagebuch aktualisiert: {quest}",
+  "questComplete": "Auftrag abgeschlossen: {quest}",
+  "warlordFallen": "{count, plural, =0 {Der Ork-Kriegsherr ist tapferen namenlosen Helden erlegen!} other {Der Ork-Kriegsherr ist {names} erlegen!}}",
+  "warlordReturned": "Der Ork-Kriegsherr ist an die Front zurückgekehrt!",
+  "saveResumed": "Dein Fortschritt wird wieder gespeichert.",
+  "saveFailing": "⚠ Aura kann deinen Fortschritt gerade nicht speichern. Der jüngste Fortschritt könnte verloren gehen.",
+  "listMoreOthers": "{n, plural, one {# weiterer} other {# weitere}}",
+  "questObjectiveKill": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} getötet",
+  "questObjectiveHarvest": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} geerntet",
+  "questObjectiveTalkTo": "Sprich mit {name}",
+  "questObjectiveReach": "Geh nach {place}",
+  "questObjectiveDone": "{line} ✓"
 }

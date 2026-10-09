@@ -5,6 +5,7 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { EntityMessageKind } from '../aura-api/entity-message-kind.js';
+import { MessageArg } from '../aura-api/message-arg.js';
 
 
 export class EntityMessage {
@@ -42,8 +43,25 @@ kind():EntityMessageKind {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : EntityMessageKind.Chat;
 }
 
+key():string|null
+key(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+key(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+args(index: number, obj?:MessageArg):MessageArg|null {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? (obj || new MessageArg()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+argsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startEntityMessage(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(5);
 }
 
 static addEntityId(builder:flatbuffers.Builder, entityId:bigint) {
@@ -58,16 +76,38 @@ static addKind(builder:flatbuffers.Builder, kind:EntityMessageKind) {
   builder.addFieldInt8(2, kind, EntityMessageKind.Chat);
 }
 
+static addKey(builder:flatbuffers.Builder, keyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, keyOffset, 0);
+}
+
+static addArgs(builder:flatbuffers.Builder, argsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, argsOffset, 0);
+}
+
+static createArgsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startArgsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endEntityMessage(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createEntityMessage(builder:flatbuffers.Builder, entityId:bigint, messageOffset:flatbuffers.Offset, kind:EntityMessageKind):flatbuffers.Offset {
+static createEntityMessage(builder:flatbuffers.Builder, entityId:bigint, messageOffset:flatbuffers.Offset, kind:EntityMessageKind, keyOffset:flatbuffers.Offset, argsOffset:flatbuffers.Offset):flatbuffers.Offset {
   EntityMessage.startEntityMessage(builder);
   EntityMessage.addEntityId(builder, entityId);
   EntityMessage.addMessage(builder, messageOffset);
   EntityMessage.addKind(builder, kind);
+  EntityMessage.addKey(builder, keyOffset);
+  EntityMessage.addArgs(builder, argsOffset);
   return EntityMessage.endEntityMessage(builder);
 }
 }

@@ -21,10 +21,21 @@ import (
 // endpoint). Accepted residual leak: the diary prose of stages this character
 // has not reached is curl-readable — with no accounts there is no per-player
 // gating to do it any better.
+//
+// ⚑ plan-localization.md C2 (L13) WIDENS this on purpose: the tracker
+// templates of every stage are served too (Trackers), so the client can word
+// each objective line in its own language. That is the D5 leak the PO accepted
+// 2026-08-23 with the fact in view ("datamining is in the spirit of the
+// community discovers and shares"); do not restore the old projection.
 type CatalogEntry struct {
 	ID     string         `json:"id"`
 	Title  string         `json:"title"`
 	Stages []CatalogStage `json:"stages"`
+	// Trackers maps each authored tracker's key (lang.QuestStageTracker /
+	// lang.QuestObjectiveTracker) to its ICU template in the served locale,
+	// "{n, number}/{m, number} Wolves slain" (C2). The wire's objective list
+	// names a template by this key.
+	Trackers map[string]string `json:"trackers,omitempty"`
 }
 
 // CatalogStage is one stage's identity and its diary text. The id is what the
@@ -55,9 +66,33 @@ func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 			}
 			stages = append(stages, CatalogStage{ID: s.ID, Journal: journal})
 		}
-		entries = append(entries, CatalogEntry{ID: q.ID, Title: tr(lang.QuestTitle(q.ID), q.Title), Stages: stages})
+		entries = append(entries, CatalogEntry{ID: q.ID, Title: tr(lang.QuestTitle(q.ID), q.Title), Stages: stages,
+			Trackers: trackersOf(q, tr)})
 	}
 	return json.Marshal(entries)
+}
+
+// trackersOf is every authored tracker of q as an ICU template, the counts
+// written {n, number} (D16), each resolved through tr by its key (D20).
+func trackersOf(q *QuestDefinition, tr lang.Tr) map[string]string {
+	out := map[string]string{}
+	for _, s := range q.Stages {
+		if s.Tracker != "" {
+			key := lang.QuestStageTracker(q.ID, s.ID)
+			out[key] = tr(key, lang.NumberPlaceholders(s.Tracker, "n", "m"))
+		}
+		for i := range s.Objectives {
+			o := &s.Objectives[i]
+			if o.Tracker != "" {
+				key := lang.QuestObjectiveTracker(q.ID, s.ID, o.Kind.String(), ObjectiveTargetKey(o))
+				out[key] = tr(key, lang.NumberPlaceholders(o.Tracker, "n", "m"))
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in dev

@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"strings"
 
@@ -673,7 +674,7 @@ func (s *InteractionSystem) handleInteracts() {
 		if !ok || taught == nil {
 			continue
 		}
-		p.Client().SendUnlock(uint64(*taught), "Taught by: "+actorName(a))
+		p.Client().SendUnlock(uint64(*taught), teachLabel(a))
 	}
 }
 
@@ -1488,6 +1489,18 @@ func conditionHolds(c mobs.InteractionCondition, p learner) bool {
 		return false
 	}
 	return true
+}
+
+// teachLabel is the keyed "Taught by: X" unlock label (plan-localization.md
+// C2): the teacher as a mob reference the client names in its own language.
+func teachLabel(a Conversant) lang.Message {
+	m := lang.Message{Key: lang.KeyUnlockTaughtBy, English: "Taught by: " + actorName(a)}
+	if def := a.MobDefinition(); def != nil {
+		m.Args = []lang.Arg{lang.MobRef("mob", uint64(def.ID))}
+	} else {
+		m.Key = ""
+	}
+	return m
 }
 
 // actorName is the friendly source name for a "Taught by: X" unlock label: the

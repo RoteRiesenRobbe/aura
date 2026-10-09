@@ -1,3 +1,4 @@
+import {decodeObjectives, objectiveLine} from '../../../../i18n/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
@@ -342,9 +343,17 @@ function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
 
         // The current stage's server-composed objective lines (Q2) — verbatim,
         // absent (= empty) on completed quests.
-        const objectives: string[] = [];
-        for (let j = 0; j < e.objectivesLength(); ++j) {
-            objectives.push(e.objectives(j));
+        // plan-localization.md C2: the structured list wins, worded in the
+        // chosen language; the server's English lines are the fallback for an
+        // old payload.
+        const questId = e.questId() ?? '';
+        const objectives: string[] = e.objectiveListLength() > 0
+            ? decodeObjectives(e).map(o => objectiveLine(questId, o))
+            : [];
+        if (objectives.length === 0) {
+            for (let j = 0; j < e.objectivesLength(); ++j) {
+                objectives.push(e.objectives(j));
+            }
         }
 
         entries.push({

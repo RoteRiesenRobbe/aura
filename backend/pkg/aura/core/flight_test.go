@@ -6,6 +6,7 @@ package core
 // exercised through the same tryStartFlight the wire drives.
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"testing"
 
@@ -103,7 +104,7 @@ func (c *flightFakeClient) NextStartFlight() *model.StartFlight {
 	return m
 }
 
-func (c *flightFakeClient) SendUnlock(uint64, string) error { return nil }
+func (c *flightFakeClient) SendUnlock(uint64, lang.Message) error { return nil }
 
 // fakeFlightConn is the validation authority: two known fires, a per-client
 // discovered set.

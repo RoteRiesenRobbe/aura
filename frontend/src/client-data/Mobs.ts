@@ -23,6 +23,8 @@ export interface MobDefinition {
     id: number;
     name: string;
     displayName: string;
+    /** The plural, where content authors one (plan-localization.md Q2). */
+    displayNamePlural?: string;
     // Authored combat level (cL) — the nameplate tint reads its distance from
     // the local player's level.
     curveLevel: number;

@@ -12,6 +12,7 @@ package main
 //   - area:    world tiled MxN (constant density, growing world)
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -66,8 +67,8 @@ func (c *countingClient) SendMessage(b []byte) error {
 	c.sends++
 	return nil
 }
-func (c *countingClient) SendUnlock(uint64, string) error { return nil }
-func (c *countingClient) SendJournal(string) error        { return nil }
+func (c *countingClient) SendUnlock(uint64, lang.Message) error { return nil }
+func (c *countingClient) SendJournal(lang.Message) error        { return nil }
 func (c *countingClient) Close()                          {}
 func (c *countingClient) UUID() uuid.UUID                 { return c.id }
 

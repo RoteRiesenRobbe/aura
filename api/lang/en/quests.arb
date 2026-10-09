@@ -148,6 +148,14 @@
   "@quest.dinner-for-the-family.gather.journal": {
     "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"gather\": written in the player's voice, first person."
   },
+  "quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": "Talk to Benjamin",
+  "@quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": {
+    "description": "Tracker line of one talk_to objective (Benjamin) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": "Talk to Hendrik",
+  "@quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": {
+    "description": "Tracker line of one talk_to objective (Hendrik) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
   "quest.dinner-for-the-family.home.journal": "Meat and beets. Eliza is waiting on the pot.",
   "@quest.dinner-for-the-family.home.journal": {
     "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"home\": written in the player's voice, first person."
@@ -231,6 +239,10 @@
   "quest.eliza-sends-me.road.journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
   "@quest.eliza-sends-me.road.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"road\": written in the player's voice, first person."
+  },
+  "quest.eliza-sends-me.road.reach.farmreinhard.tracker": "Go to Reinhard's farm",
+  "@quest.eliza-sends-me.road.reach.farmreinhard.tracker": {
+    "description": "Tracker line of one reach objective (Reinhard's Farm) in quest \"eliza-sends-me\", stage \"road\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
   "quest.eliza-sends-me.title": "Eliza Sends Me",
   "@quest.eliza-sends-me.title": {
@@ -587,6 +599,14 @@
   "quest.village-welcome.meet.journal": "Talk to Reinhard and the Town Crier.",
   "@quest.village-welcome.meet.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"meet\": written in the player's voice, first person."
+  },
+  "quest.village-welcome.meet.talk_to.Reinhard.tracker": "Talk to Reinhard",
+  "@quest.village-welcome.meet.talk_to.Reinhard.tracker": {
+    "description": "Tracker line of one talk_to objective (Reinhard) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.village-welcome.meet.talk_to.TownCrier.tracker": "Talk to the Town Crier",
+  "@quest.village-welcome.meet.talk_to.TownCrier.tracker": {
+    "description": "Tracker line of one talk_to objective (Town Crier) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
   "quest.village-welcome.title": "Village Welcome",
   "@quest.village-welcome.title": {

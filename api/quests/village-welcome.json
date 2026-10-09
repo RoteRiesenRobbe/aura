@@ -7,8 +7,8 @@
       "id": "meet",
       "journal": "Talk to Reinhard and the Town Crier.",
       "objectives": [
-        { "kind": "talk_to", "npc": "Reinhard" },
-        { "kind": "talk_to", "npc": "TownCrier" }
+        { "kind": "talk_to", "npc": "Reinhard", "tracker": "Talk to Reinhard" },
+        { "kind": "talk_to", "npc": "TownCrier", "tracker": "Talk to the Town Crier" }
       ],
       "next": "back"
     },

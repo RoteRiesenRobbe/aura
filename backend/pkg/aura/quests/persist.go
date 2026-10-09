@@ -245,7 +245,7 @@ func (l *Ledger) restoreObjectives(id string, p *Progress) {
 		return
 	}
 	if s := q.Stage(p.Path[len(p.Path)-1]); s != nil {
-		p.Objectives = l.objectiveLines(p, s)
+		l.setObjectives(id, p, s)
 		// The reach target is derived the same way (plan-region-identity.md
 		// D6: nothing about it is stored), so a reload mid-stage waits for an
 		// arrival exactly as before it.

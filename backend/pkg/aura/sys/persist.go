@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"encoding/json"
 	"log"
 	"log/slog"
@@ -582,7 +583,7 @@ func (s *ConnectionStateSystem) warnAboutFailingSaves() {
 	now := s.game.Ticks()
 	if !s.saves.Failing() {
 		if s.saveWarningSent {
-			s.tellPlayers("Your progress is being saved again.")
+			s.tellPlayers(lang.Message{Key: lang.KeySaveResumed, English: "Your progress is being saved again."})
 		}
 		s.saveFailureActive, s.saveWarningSent = false, false
 		return
@@ -601,13 +602,13 @@ func (s *ConnectionStateSystem) warnAboutFailingSaves() {
 		return
 	}
 	s.saveWarningSent, s.lastSaveWarning = true, now
-	s.tellPlayers("⚠ Aura cannot save your progress right now. Recent progress may be lost.")
+	s.tellPlayers(lang.Message{Key: lang.KeySaveFailing, English: "⚠ Aura cannot save your progress right now. Recent progress may be lost."})
 }
 
 // tellPlayers puts one line in front of every live player.
-func (s *ConnectionStateSystem) tellPlayers(text string) {
+func (s *ConnectionStateSystem) tellPlayers(m lang.Message) {
 	for _, p := range s.players {
-		_ = p.Client().SendJournal(text)
+		_ = p.Client().SendJournal(m)
 	}
 }
 

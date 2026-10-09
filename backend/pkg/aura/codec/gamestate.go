@@ -406,6 +406,41 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 			objectives = builder.EndVector(len(objectiveOffsets))
 		}
 
+		// The same lines as data (plan-localization.md C2, D8): ids and
+		// counts the client words in its own language.
+		var objectiveList flatbuffers.UOffsetT
+		if len(e.Views) > 0 {
+			viewOffsets := make([]flatbuffers.UOffsetT, len(e.Views))
+			for k, v := range e.Views {
+				var region, tracker flatbuffers.UOffsetT
+				if v.Region != "" {
+					region = builder.CreateString(v.Region)
+				}
+				if v.TrackerKey != "" {
+					tracker = builder.CreateString(v.TrackerKey)
+				}
+				AuraApi.QuestObjectiveStart(builder)
+				AuraApi.QuestObjectiveAddKind(builder, AuraApi.QuestObjectiveKind(v.Kind))
+				AuraApi.QuestObjectiveAddStage(builder, v.Stage)
+				AuraApi.QuestObjectiveAddTarget(builder, uint64(v.Target))
+				if region != 0 {
+					AuraApi.QuestObjectiveAddRegion(builder, region)
+				}
+				AuraApi.QuestObjectiveAddN(builder, uint32(v.N))
+				AuraApi.QuestObjectiveAddM(builder, uint32(v.M))
+				AuraApi.QuestObjectiveAddDone(builder, v.Done)
+				if tracker != 0 {
+					AuraApi.QuestObjectiveAddTrackerKey(builder, tracker)
+				}
+				viewOffsets[k] = AuraApi.QuestObjectiveEnd(builder)
+			}
+			AuraApi.QuestProgressStartObjectiveListVector(builder, len(viewOffsets))
+			for k := len(viewOffsets) - 1; k >= 0; k-- {
+				builder.PrependUOffsetT(viewOffsets[k])
+			}
+			objectiveList = builder.EndVector(len(viewOffsets))
+		}
+
 		questID := builder.CreateString(e.QuestID)
 		AuraApi.QuestProgressStart(builder)
 		AuraApi.QuestProgressAddQuestId(builder, questID)
@@ -413,6 +448,9 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 		AuraApi.QuestProgressAddCompleted(builder, e.Completed)
 		if objectives != 0 {
 			AuraApi.QuestProgressAddObjectives(builder, objectives)
+		}
+		if objectiveList != 0 {
+			AuraApi.QuestProgressAddObjectiveList(builder, objectiveList)
 		}
 		offsets = append(offsets, AuraApi.QuestProgressEnd(builder))
 	}

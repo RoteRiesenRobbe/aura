@@ -2,6 +2,7 @@
   "_comment": "Z2 dire wolf (intermission triage Session ②, item 18): the stronger Z2 wildlife variant. Own sprite/EntityType since the unique-art pass (PO 2026-07-21 — every mob reads distinctly, higher tier looks meaner); shares the WolfBite skill; the step-up is pure curveLevel (2 → 6, ~1.6× the pool/damage per Philosophy A) plus a bigger body. Apex predator of the Session-④ wolf-heavy predator forest (overrides the item-18 dropless note). Drop set reshuffled across the wolf line (PO 2026-07-21): Swift 0.1 + KeenEye 0.06 are now line-wide — the wolf line owns the precision identity — and this one carries LongRangeStrike 0.2, the positioning side-grade, moved down from EliteWolf. Wild moved up to EliteWolf. All chances [PLACEHOLDER].",
   "id": 43,
   "name": "DireWolf",
+  "namePlural": "Dire Wolves",
   "type": "MOB",
   "faction": "wildlife_predator",
   "tier": "normal",

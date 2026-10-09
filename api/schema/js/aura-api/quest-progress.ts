@@ -4,6 +4,9 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { QuestObjective } from '../aura-api/quest-objective.js';
+
+
 export class QuestProgress {
   bb: flatbuffers.ByteBuffer|null = null;
   bb_pos = 0;
@@ -58,8 +61,18 @@ objectivesLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+objectiveList(index: number, obj?:QuestObjective):QuestObjective|null {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? (obj || new QuestObjective()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+objectiveListLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startQuestProgress(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 }
 
 static addQuestId(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset) {
@@ -102,17 +115,34 @@ static startObjectivesVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 }
 
+static addObjectiveList(builder:flatbuffers.Builder, objectiveListOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, objectiveListOffset, 0);
+}
+
+static createObjectiveListVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startObjectiveListVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endQuestProgress(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createQuestProgress(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset, stagesOffset:flatbuffers.Offset, completed:boolean, objectivesOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQuestProgress(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset, stagesOffset:flatbuffers.Offset, completed:boolean, objectivesOffset:flatbuffers.Offset, objectiveListOffset:flatbuffers.Offset):flatbuffers.Offset {
   QuestProgress.startQuestProgress(builder);
   QuestProgress.addQuestId(builder, questIdOffset);
   QuestProgress.addStages(builder, stagesOffset);
   QuestProgress.addCompleted(builder, completed);
   QuestProgress.addObjectives(builder, objectivesOffset);
+  QuestProgress.addObjectiveList(builder, objectiveListOffset);
   return QuestProgress.endQuestProgress(builder);
 }
 }

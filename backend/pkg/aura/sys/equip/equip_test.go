@@ -1,6 +1,7 @@
 package equip
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"testing"
 	"testing/fstest"
@@ -91,8 +92,8 @@ func (c *stubClient) NextRespawn() *model.Respawn           { return nil }
 func (c *stubClient) NextInteract() *model.Interact         { return nil }
 func (c *stubClient) SendMessage([]byte) error              { return nil }
 func (c *stubClient) NextAbandonQuest() *model.AbandonQuest { return nil }
-func (c *stubClient) SendUnlock(uint64, string) error       { return nil }
-func (c *stubClient) SendJournal(string) error              { return nil }
+func (c *stubClient) SendUnlock(uint64, lang.Message) error       { return nil }
+func (c *stubClient) SendJournal(lang.Message) error              { return nil }
 func (c *stubClient) Close()                                {}
 func (c *stubClient) UUID() uuid.UUID                       { return uuid.UUID{} }
 

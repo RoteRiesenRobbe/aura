@@ -7,9 +7,9 @@
       "id": "gather",
       "journal": "Eliza needs meat and beets for dinner. Hendrik hunts; Benjamin grows beets.",
       "objectives": [
-        { "kind": "talk_to", "npc": "Hendrik" },
+        { "kind": "talk_to", "npc": "Hendrik", "tracker": "Talk to Hendrik" },
         { "kind": "kill", "species": "Stag", "count": 3 },
-        { "kind": "talk_to", "npc": "Benjamin" },
+        { "kind": "talk_to", "npc": "Benjamin", "tracker": "Talk to Benjamin" },
         { "kind": "harvest", "species": "Beet", "count": 6 }
       ],
       "next": "home"

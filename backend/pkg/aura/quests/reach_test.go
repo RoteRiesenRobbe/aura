@@ -53,7 +53,6 @@ func TestLoad_ReachRejections(t *testing.T) {
 		"npc":            {stage(`{"kind": "reach", "region": "a", "npc": "Farmer"}`), "reach names a region, not a species or an npc"},
 		"count":          {stage(`{"kind": "reach", "region": "a", "count": 2}`), "a reach objective takes no count"},
 		"chance":         {stage(`{"kind": "reach", "region": "a", "chance": 0.5}`), "a chance rides a kill/harvest objective"},
-		"tracker":        {stage(`{"kind": "reach", "region": "a", "tracker": "x"}`), "rewords a talk_to line only"},
 		"not alone":      {stage(`{"kind": "reach", "region": "a"}, {"kind": "kill", "species": "Wolf"}`), "a reach objective must be its stage's only objective"},
 		"region on kill": {stage(`{"kind": "kill", "species": "Wolf", "region": "a"}`), "only a reach objective names a region"},
 	} {

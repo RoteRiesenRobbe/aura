@@ -1,6 +1,7 @@
 package player
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"math"
 	"testing"
@@ -117,7 +118,8 @@ type fakePlayerClient struct {
 	unlocks []capturedUnlock
 }
 
-func (c *fakePlayerClient) SendUnlock(id uint64, source string) error {
+func (c *fakePlayerClient) SendUnlock(id uint64, msg lang.Message) error {
+	source := msg.English
 	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
 	return nil
 }

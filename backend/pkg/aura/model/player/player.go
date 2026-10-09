@@ -1,6 +1,7 @@
 package player
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"log/slog"
 	"math"
@@ -1276,7 +1277,8 @@ func (p *player) applyMilestoneUnlocks(from, to uint32) {
 		if u.Level >= from && u.Level <= to && !p.skills.HasDiscovered(u.Skill.ID) {
 			p.skills.Discover(u.Skill.ID)
 			// Attribute the unlock to the milestone level (plan-unlock-attribution.md).
-			p.client.SendUnlock(uint64(u.Skill.ID), "Level "+strconv.Itoa(int(u.Level))+" reward")
+			p.client.SendUnlock(uint64(u.Skill.ID), lang.Message{Key: lang.KeyUnlockLevelReward,
+				Args: []lang.Arg{lang.Number("level", float64(u.Level))}, English: "Level " + strconv.Itoa(int(u.Level)) + " reward"})
 			slog.Info("milestone unlock", slog.String("player", p.name), slog.String("skill", u.Skill.Name), slog.Uint64("level", uint64(u.Level)))
 		}
 	}
@@ -1296,7 +1298,7 @@ func (p *player) ApplyRecipeCascade() {
 	for _, id := range skills.ApplyRecipes(p.skills, p.recipes) {
 		// A combination has no source entity — attribute it generically
 		// (plan-unlock-attribution.md).
-		p.client.SendUnlock(uint64(id), "Combination discovered")
+		p.client.SendUnlock(uint64(id), lang.Message{Key: lang.KeyUnlockCombination, English: "Combination discovered"})
 		slog.Info("combination unlock", slog.String("player", p.name), slog.Int("skillID", int(id)))
 	}
 }
@@ -1467,11 +1469,14 @@ func (p *player) announceJournal(n quests.Notice) {
 	if p.client == nil {
 		return
 	}
-	text := "Journal updated: " + n.Title
+	// plan-localization.md C2: the quest is a reference the client resolves
+	// from its localized catalog; the English stays the fallback (D10).
+	msg := lang.Message{Key: lang.KeyJournalUpdated, Args: []lang.Arg{lang.QuestRef("quest", n.QuestID)},
+		English: "Journal updated: " + n.Title}
 	if n.Completed {
-		text = "Quest complete: " + n.Title
+		msg.Key, msg.English = lang.KeyQuestComplete, "Quest complete: "+n.Title
 	}
-	p.client.SendJournal(text)
+	p.client.SendJournal(msg)
 }
 
 // SetSkillComponent replaces the freshly-initialized skill component with a

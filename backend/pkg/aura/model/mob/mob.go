@@ -1,6 +1,7 @@
 package mob
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"log"
 	"math/rand"
@@ -2465,7 +2466,8 @@ func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 		// new discovery announces its source (plan-unlock-attribution.md).
 		if m.rand.Float32() < u.Chance && !p.SkillComponent().HasDiscovered(u.Skill.ID) {
 			p.SkillComponent().Discover(u.Skill.ID)
-			p.Client().SendUnlock(uint64(u.Skill.ID), "Dropped by: "+m.dropSourceName())
+			p.Client().SendUnlock(uint64(u.Skill.ID), lang.Message{Key: lang.KeyUnlockDroppedBy,
+				Args: []lang.Arg{lang.MobRef("mob", uint64(m.definition.ID))}, English: "Dropped by: " + m.dropSourceName()})
 		}
 	}
 	// A kill-drop discovery can newly satisfy a recipe (Phase 9).
