@@ -228,7 +228,7 @@ function rampWidth(cols, centre, halfWindow) {
     + `(${want.stand.x}, ${want.stand.y})`);
 
   const browser = await chromium.launch({ env });
-  const page = await browser.newPage({ viewport: VIEW });
+  const page = await browser.newPage({ locale: 'en-US', viewport: VIEW });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
 

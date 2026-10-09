@@ -1,0 +1,6 @@
+{
+  "@@locale": "de",
+  "settingsLanguageHeading": "Sprache",
+  "settingsLanguageLabel": "Spielsprache",
+  "settingsLanguageReloadConfirm": "Das Spiel wird neu geladen, um die Sprache zu wechseln. Fortfahren?"
+}

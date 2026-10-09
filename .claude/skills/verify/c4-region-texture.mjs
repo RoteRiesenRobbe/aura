@@ -282,7 +282,7 @@ function classifyRun(run) {
   }
 
   const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-  const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1400, height: 900 } });
   const page = await context.newPage();
   const errors = [];
   const requested = [];

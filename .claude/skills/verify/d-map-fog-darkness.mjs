@@ -72,7 +72,7 @@ const check = (ok, name, note = '') => {
 console.log(`venues: cave V=${JSON.stringify(V)} far=${JSON.stringify(FAR)} fire=${fire?.id} C=${JSON.stringify(C)} cDark=${JSON.stringify(C_DARK)}`);
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 page.on('console', (m) => { if (m.type() === 'error' && !/\b401\b/.test(m.text())) errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 

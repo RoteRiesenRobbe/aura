@@ -60,7 +60,7 @@ const styles = (page, spec) => page.evaluate((s) => {
 }, spec);
 
 // ------------------------------------------------------------------ desktop --
-const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 1000 } });
 const page = await ctx.newPage();
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -131,7 +131,7 @@ const desk = await styles(page, {
 console.log('DESKTOP ' + JSON.stringify(desk, null, 2));
 
 // ------------------------------------------------------------------- mobile --
-const mctx = await browser.newContext({
+const mctx = await browser.newContext({ locale: 'en-US',
   viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
 });
 const mob = await mctx.newPage();

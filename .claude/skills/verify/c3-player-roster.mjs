@@ -74,7 +74,7 @@ const check = (ok, name, note) => {
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 
 const newPlayer = async (tag) => {
-  const page = await (await browser.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
+  const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1400, height: 900 } })).newPage();
   // A 401 on a cold load is expected: the client asks the server who it is
   // before it can know (the chunk4-persistence filter, same reason).
   page.on('console', (m) => {

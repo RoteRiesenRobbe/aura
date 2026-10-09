@@ -110,7 +110,7 @@ const pressKey = async (page, key) => {
 
 // ---------------------------------------------------------------- desktop ---
 
-const deskCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const deskCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await deskCtx.newPage();
 wire(page);
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
@@ -243,7 +243,7 @@ await deskCtx.close();
 // flip the `pointer: coarse` media query, so an emulation-only run would drive
 // the desktop layout, where MobileMenu never even registers.
 
-const mobCtx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+const mobCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 844, height: 390 }, hasTouch: true });
 const mob = await mobCtx.newPage();
 wire(mob);
 await mob.goto(url + '&mobile', { waitUntil: 'domcontentloaded', timeout: 120_000 });

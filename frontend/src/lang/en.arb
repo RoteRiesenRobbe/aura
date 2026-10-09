@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "settingsLanguageHeading": "Language",
+  "@settingsLanguageHeading": {
+    "description": "Settings panel: heading of the language section."
+  },
+  "settingsLanguageLabel": "Game language",
+  "@settingsLanguageLabel": {
+    "description": "Settings panel: label of the language dropdown. Each option shows the language under its own name (Deutsch, English)."
+  },
+  "settingsLanguageReloadConfirm": "The game will reload to switch the language. Continue?",
+  "@settingsLanguageReloadConfirm": {
+    "description": "Browser confirm dialog shown before switching language; switching reloads the page and drops the connection."
+  }
+}

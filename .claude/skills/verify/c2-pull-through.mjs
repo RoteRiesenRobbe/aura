@@ -302,7 +302,7 @@ function rig(page, tag) {
 }
 
 async function newClient(tag) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const r = rig(page, tag);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -898,7 +898,7 @@ try {
   // spawns inside spawnpoint-1's dwell circle and binds ~1.7 s later, and a
   // Playwright round-trip per WARP loses every time. An interval installed with
   // addInitScript fires the instant window.game.character exists.
-  const ctxU = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const ctxU = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
   await ctxU.addInitScript((target) => {
     window.__warps = 0;
     const tick = () => {

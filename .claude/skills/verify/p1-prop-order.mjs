@@ -63,7 +63,7 @@ const check = (ok, name, note) => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } })).newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error' && !/\b401\b/.test(m.text())) errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));

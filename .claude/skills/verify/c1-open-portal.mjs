@@ -246,7 +246,7 @@ function rig(page, tag) {
 }
 
 async function newClient(tag) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const r = rig(page, tag);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -607,7 +607,7 @@ try {
   // character was already bound to spawnpoint-1 before the first one landed),
   // while an interval installed BEFORE navigation fires the moment
   // window.game.character exists and wins reliably (3/3 on a standalone probe).
-  const ctxC = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const ctxC = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
   await ctxC.addInitScript((target) => {
     window.__warps = 0;
     const tick = () => {

@@ -141,7 +141,7 @@ const sample = (page) => page.evaluate(TRAIL);
 
 // ---------------------------------------------------------------- desktop ---
 
-const deskCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const deskCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } });
 const page = await deskCtx.newPage();
 wire(page);
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
@@ -445,7 +445,7 @@ await page.screenshot({ path: join(here, 'c4b-desktop-reshut.png') });
 // assuming a glow cannot need one. This reads the ☰'s box AND its computed
 // animation, so a mobile rule that flattened either would be visible here.
 
-const mobCtx = await browser.newContext({
+const mobCtx = await browser.newContext({ locale: 'en-US',
   viewport: { width: 390, height: 844 },
   isMobile: true, hasTouch: true, deviceScaleFactor: 2,
 });

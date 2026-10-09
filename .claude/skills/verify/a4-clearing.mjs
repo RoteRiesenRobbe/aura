@@ -203,7 +203,7 @@ function venue() {
   // (logPrettyShaderError), so the renderer never starts and every reading below
   // is of a blank page. Measured 2026-09-16. The default GL backend renders.
   const browser = await chromium.launch({ env });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const page = await browser.newPage({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
 

@@ -50,7 +50,7 @@ const check = (ok, name, note) => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 // A 401 on a cold load is expected: the client asks the server who it is before
 // it can know (same filter, same reason, as chunk4-persistence.mjs).

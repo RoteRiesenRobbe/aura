@@ -63,7 +63,7 @@ const FAR_AWAY = w(-23, 14);     // the most open tile in the zone, ~37 units of
 const GAP_ABOVE_SPRITE = 10;
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 const webglLosses = [];

@@ -50,7 +50,7 @@ const check = (ok, name, note) => report(ok ? 'PASS' : 'FAIL', name, note);
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 page.on('console', (m) => {
   if (m.type() === 'error' && !/\b401\b/.test(m.text())) consoleErrors.push(m.text());

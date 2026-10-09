@@ -60,7 +60,7 @@ const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
 const newPlayer = async (name) => {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+  const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
   page.on('console', (m) => {
     if (m.type() === 'error') consoleErrors.push(`[${name}] ` + m.text());
     if (/webgl.*context lost/i.test(m.text())) ctxLosses.push(name);

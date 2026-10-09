@@ -27,7 +27,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const pageErrors = [];
 page.on('pageerror', (e) => pageErrors.push({ message: e.message, stack: e.stack || null }));

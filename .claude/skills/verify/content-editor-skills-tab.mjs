@@ -107,7 +107,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1400, height: 2400 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1400, height: 2400 } })).newPage();
 const problems = [];
 // The preview frames load from the frontend dev server (2e), which may be down
 // or may not serve fx-preview.html yet: their errors are NOTEs, not problems.

@@ -4,6 +4,7 @@ import {PreloadingProgressedEvent, PreloadingStartedEvent, StartScreenDomReadyEv
 import {Assets, Texture} from 'pixi.js';
 import {ISvgContainer} from "./ISvgContainer";
 import {packIconTexture, packIconsReady} from '../../../client-data/icons/PackIconFiles';
+import {applyI18n} from '../../i18n/logic/DomI18n';
 
 /**
  * A portrait source that may be OVERRIDDEN by an icon-pack portrait: `file` is
@@ -119,6 +120,10 @@ export function renderPartial(
     html: (string | { default: string }),
     onDomReady = () => {},
 ) {
-    document.body.appendChild(htmlToElement(htmlModuleToString(html)));
+    const element = htmlToElement(htmlModuleToString(html));
+    // plan-localization.md C0b: data-i18n attributes resolve before the
+    // partial is visible.
+    applyI18n(element as unknown as ParentNode);
+    document.body.appendChild(element);
     onDomReady();
 }

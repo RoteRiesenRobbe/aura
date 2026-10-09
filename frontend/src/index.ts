@@ -1,3 +1,5 @@
+// plan-localization.md C0a: resolve the locale and declare the page language first.
+import './features/i18n/logic/Locale';
 import * as Preloading from './features/core/logic/Preloading';
 import * as Events from './features/core/logic/Events';
 

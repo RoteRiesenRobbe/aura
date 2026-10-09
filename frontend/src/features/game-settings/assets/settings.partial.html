@@ -64,6 +64,19 @@
         </div>
 
         <!--
+          Language (plan-localization.md C0a, D11): switching reloads the page,
+          so the change listener confirms first. Each option is the language's
+          own name (Intl.DisplayNames), filled in by GameSettingsUI.
+        -->
+        <h3 data-i18n="settingsLanguageHeading">Language</h3>
+        <div class="setting-group">
+            <div>
+                <label for="languageSelect" data-i18n="settingsLanguageLabel">Game language</label>
+                <select id="languageSelect"></select>
+            </div>
+        </div>
+
+        <!--
           Account (plan-accounts-frontend.md §4, §5.4, §10b ruling 3 & 6).
 
           ⚑ There is deliberately NO "Log in" here. Login is reachable only

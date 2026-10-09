@@ -61,7 +61,7 @@ const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 
 // joinGame opens a fresh page at the given flavour and gets into the world.
 async function joinGame(flavour, topic) {
-  const ctx = await browser.newContext({ viewport: PHONE, hasTouch: true });
+  const ctx = await browser.newContext({ locale: 'en-US', viewport: PHONE, hasTouch: true });
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });

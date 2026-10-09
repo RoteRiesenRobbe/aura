@@ -85,7 +85,7 @@ function collect(page, tag) {
 const spawned = (c) => Object.values(c.spawnedByKind).reduce((n, v) => n + v, 0);
 
 try {
-  const context = await browser.newContext({ viewport: { width: 1400, height: 400 } });
+  const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1400, height: 400 } });
 
   // --- leg 1: the gallery -------------------------------------------------
   const gallery = await context.newPage();

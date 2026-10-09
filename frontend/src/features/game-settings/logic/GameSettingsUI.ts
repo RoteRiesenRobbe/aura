@@ -7,6 +7,7 @@ import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
 import * as AccountSettings from './AccountSettings';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {BackendState} from '../../backend/logic/IBackend';
+import * as Locale from '../../i18n/logic/Locale';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;
@@ -52,7 +53,39 @@ function setupPanel() {
 
     setupAudioSettings();
     setupGraphicsSettings();
+    setupLanguage();
     AccountSettings.setup(panelElement);
+}
+
+/**
+ * plan-localization.md C0a: the language toggle. D11: a switch writes
+ * localStorage and reloads, which drops the connection mid-world, so it asks.
+ */
+function setupLanguage() {
+    const select = panelElement.querySelector('#languageSelect') as HTMLSelectElement;
+    const options = Locale.SUPPORTED_LOCALES.slice();
+    if (Locale.locale() === Locale.PSEUDO_LOCALE) {
+        options.push(Locale.PSEUDO_LOCALE);
+    }
+    options.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag === Locale.PSEUDO_LOCALE ? tag : Locale.nativeName(tag);
+        option.lang = tag;
+        select.appendChild(option);
+    });
+    select.value = Locale.locale();
+    preventShortcutPropagation(select);
+    select.addEventListener('change', () => {
+        if (select.value === Locale.locale()) {
+            return;
+        }
+        if (!window.confirm(Locale.t('settingsLanguageReloadConfirm'))) {
+            select.value = Locale.locale();
+            return;
+        }
+        Locale.chooseLocale(select.value);
+    });
 }
 
 function setupAudioSettings() {

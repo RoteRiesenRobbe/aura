@@ -51,7 +51,7 @@ const consoleErrors = [];
 const results = [];
 
 const newPlayer = async (name) => {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+  const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${name}] ` + m.text()); });
   page.on('pageerror', (e) => consoleErrors.push(`[${name}] pageerror: ` + e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });

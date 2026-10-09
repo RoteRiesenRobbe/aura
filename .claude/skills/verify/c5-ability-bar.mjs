@@ -163,7 +163,7 @@ const SLOTS = (listSelector) => {
 
 // ---------------------------------------------------------------- desktop ---
 
-const deskCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const deskCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } });
 const page = await deskCtx.newPage();
 wire(page);
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
@@ -503,7 +503,7 @@ await deskCtx.close();
 // D2: ICONS INHERIT, LAYOUT STAYS. The tile row, the hidden hotkeys and the
 // fixed right-edge thumb column are all unchanged; only the tile's content is.
 
-const mobCtx = await browser.newContext({
+const mobCtx = await browser.newContext({ locale: 'en-US',
   viewport: { width: 430, height: 932 }, isMobile: true, hasTouch: true,
   deviceScaleFactor: 3,
   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',

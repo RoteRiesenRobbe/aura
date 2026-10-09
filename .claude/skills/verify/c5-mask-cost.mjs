@@ -51,7 +51,7 @@ const browser = await chromium.launch({
 });
 // Phone-shaped: the platform already at its render ceiling is the one the
 // cost question is about. DPR 3 is the measured mobile fill-rate killer.
-const context = await browser.newContext({
+const context = await browser.newContext({ locale: 'en-US',
   viewport: { width: 390, height: 844 },
   deviceScaleFactor: 3,
 });
