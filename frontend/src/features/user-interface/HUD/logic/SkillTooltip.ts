@@ -1,3 +1,4 @@
+import {formatList, formatNumber, t} from '../../../i18n/logic/Locale';
 // Ability hover tooltips (plan-ui-polish chunk 1): stats-only condensed
 // info, auto-generated from the skill catalog so it stays correct through
 // every balance retune. PO rulings 2026-07-21: FULL detail — every authored
@@ -124,7 +125,9 @@ function scaled(base: number, perLevel: number, level: number): number {
 
 // Trims float noise: up to 2 decimals, no trailing zeros.
 function fmt(n: number): string {
-    return String(parseFloat(n.toFixed(2)));
+    // toFixed first keeps the shipped rounding; Intl then writes the digits in
+    // the player's locale (de "1,5"), never grouping (en stays "1500").
+    return formatNumber(parseFloat(n.toFixed(2)), {maximumFractionDigits: 2, useGrouping: false});
 }
 
 // hpFmt renders an absolute Focus amount the way the server deals it —
@@ -135,11 +138,11 @@ function hpFmt(n: number): string {
 }
 
 function pct(fraction: number): string {
-    return fmt(fraction * 100) + '%';
+    return t('ttPercent', {n: fmt(fraction * 100)});
 }
 
 function ticksToSecs(ticks: number): string {
-    return fmt(ticks * TICK_MS / 1000) + 's';
+    return t('ttSeconds', {n: fmt(ticks * TICK_MS / 1000)});
 }
 
 // prog renders a level-scaled value as "current → next" while a next level
@@ -159,16 +162,16 @@ function prog(base: number, perLevel: number, level: number, maxLevel: number,
     if (perLevel !== 0 && level < maxLevel) {
         const next = render(scaled(base, perLevel, level + 1) * scale);
         if (next !== current) {
-            return `${current} → ${next}`;
+            return t('ttProgression', {current, next});
         }
     }
     return current;
 }
 
 const CATEGORY_LABELS: { [category: string]: string } = {
-    aura: 'Aura',
-    passive: 'Passive',
-    cooldown: 'Cooldown',
+    aura: t('ttCategoryAura'),
+    passive: t('ttCategoryPassive'),
+    cooldown: t('ttCategoryCooldown'),
 };
 
 // One entry per stat the server dispatches in recomputeDerived — a stat
@@ -178,13 +181,13 @@ const CATEGORY_LABELS: { [category: string]: string } = {
 // (SharedConstants.test.ts, C8), which the Go twin asserts against
 // skills.validStats - so a new stat cannot land label-less.
 export const STAT_LABELS: { [stat: string]: string } = {
-    movementSpeed: 'Movement speed',
-    maxHealth: 'Max Focus',
-    damageReduction: 'Damage taken',
-    critChance: 'Crit chance',
-    damageDealt: 'All damage',
-    costReduction: 'All costs',
-    threat: 'Threat',
+    movementSpeed: t('ttStatMovementSpeed'),
+    maxHealth: t('ttStatMaxHealth'),
+    damageReduction: t('ttStatDamageTaken'),
+    critChance: t('ttStatCritChance'),
+    damageDealt: t('ttStatDamageDealt'),
+    costReduction: t('ttStatCosts'),
+    threat: t('ttStatThreat'),
 };
 
 // The subtractive stats (server: value × (1 − bonus)) phrase as what the
@@ -195,8 +198,8 @@ const REDUCTION_STATS = new Set(['damageReduction', 'costReduction']);
 // Pinned as a PARTITION against api/shared-constants.json's selectors (C8):
 // this table plus SELECTORS_PHRASED_ELSEWHERE must be the whole set.
 export const SELECTOR_LABELS: { [selector: string]: string } = {
-    nearest: 'nearest',
-    lowest_health: 'most wounded',
+    nearest: t('ttSelectorNearest'),
+    lowest_health: t('ttSelectorMostWounded'),
 };
 
 // The selectors this table deliberately has no label for: `all` takes the
@@ -214,12 +217,12 @@ export const SELECTORS_PHRASED_ELSEWHERE: string[] = ['all'];
 // the CLOSED set skills.GateKeys, so the fallback below is unreachable for
 // served data and stays only as the degrade path.
 export const GATE_KEY_LINES: { [key: string]: string } = {
-    smash: 'Smashes boulders and rockfalls — nothing else',
-    harvest: 'Harvests plants and brambles — nothing else',
+    smash: t('ttGateSmash'),
+    harvest: t('ttGateHarvest'),
 };
 
 function gatedLine(key: string): string {
-    return GATE_KEY_LINES[key] ?? `Only affects targets vulnerable to: ${key}`;
+    return GATE_KEY_LINES[key] ?? t('ttGateOther', {key});
 }
 
 // Aura-form effects with a real tick cadence; every other type's
@@ -272,16 +275,16 @@ function effectIntervalString(effect: SkillEffect, level: number, maxLevel: numb
 // (SharedConstants.test.ts), so a new chargeable type cannot land with the
 // wrong sentence, and the Go content guard reads the same taxonomy.
 export const COST_TRIGGER_TEXT: { [type: string]: string } = {
-    dot_aura: 'when it sets something alight',
-    hot_aura: 'when it reaches someone new',
-    resist_aura: 'when it reaches someone new',
-    slow_aura: 'when it catches someone new',
-    shield_aura: 'when a shield goes up or is refilled',
+    dot_aura: t('ttWhenAlight'),
+    hot_aura: t('ttWhenReachesNew'),
+    resist_aura: t('ttWhenReachesNew'),
+    slow_aura: t('ttWhenCatchesNew'),
+    shield_aura: t('ttWhenShield'),
     // Byte-identical to hot_aura/resist_aura's line, and deliberately so: the
     // three share one rule (a fresh buff on somebody is work, a refresh at the
     // same value is not), so they should share one sentence.
-    speed_aura: 'when it reaches someone new',
-    stat_aura: 'when it reaches someone new',
+    speed_aura: t('ttWhenReachesNew'),
+    stat_aura: t('ttWhenReachesNew'),
 };
 
 // The cost trigger for ONE effect: the type's wording, unless the effect
@@ -303,20 +306,20 @@ export const COST_TRIGGER_TEXT: { [type: string]: string } = {
 // variant WITHIN a type, which the shared taxonomy has no way to express.
 function costTriggerText(effect: SkillEffect): string | undefined {
     if (effect.type === 'resist_aura' && effect.resist?.buffLifetimeMatchesInterval) {
-        return 'every time it re-applies';
+        return t('ttWhenReapplies');
     }
     return COST_TRIGGER_TEXT[effect.type];
 }
 
 function targetsLine(effect: SkillEffect, level: number, maxLevel: number): string | null {
     const groups: string[] = [];
-    if (effect.targetsEnemies) groups.push('enemies');
-    if (effect.targetsAllies) groups.push('allies');
+    if (effect.targetsEnemies) groups.push(t('ttGroupEnemies'));
+    if (effect.targetsAllies) groups.push(t('ttGroupAllies'));
     // The heal/hot aura forms carry no flags — they are allies-implicit.
     if (groups.length === 0 && (effect.type === 'heal_aura' || effect.type === 'hot_aura')) {
-        groups.push('allies');
+        groups.push(t('ttGroupAllies'));
     }
-    if (effect.targetsStructures) groups.push('structures');
+    if (effect.targetsStructures) groups.push(t('ttGroupStructures'));
     if (groups.length === 0) {
         return null;
     }
@@ -324,9 +327,9 @@ function targetsLine(effect: SkillEffect, level: number, maxLevel: number): stri
     if (effect.maxTargets > 0 && effect.selector !== 'all') {
         const count = prog(effect.maxTargets, effect.maxTargetsPerLevel, level, maxLevel);
         const selector = SELECTOR_LABELS[effect.selector] ?? effect.selector;
-        return `Targets: ${selector} ${count} ${who}`;
+        return t('ttTargetsCount', {selector, count, who});
     }
-    return `Targets: all ${who} in range`;
+    return t('ttTargetsAll', {who});
 }
 
 // The extras are all relative multipliers (crit %, variance, execute,
@@ -342,27 +345,27 @@ function damageExtraLines(damage: DamageParams, level: number, maxLevel: number,
     } else {
         const nonPhysical = damage.tags.length > 1 || damage.tags[0] !== 'physical';
         if (nonPhysical) {
-            lines.push(`Damage type: ${damage.tags.join(', ')}`);
+            lines.push(t('ttDamageType', {types: damage.tags.join(', ')}));
         }
     }
     if (damage.variance > 0) {
-        lines.push(`Variance: ±${pct(damage.variance)}`);
+        lines.push(t('ttVariance', {pct: pct(damage.variance)}));
     }
     if (damage.critChance > 0 || damage.critChancePerLevel > 0) {
-        const factor = damage.critFactor > 0 ? ` (×${fmt(damage.critFactor)})` : '';
-        lines.push(`Crit: ${prog(damage.critChance, damage.critChancePerLevel, level, maxLevel, pct)}${factor}`);
+        const factor = damage.critFactor > 0 ? t('ttCritFactor', {factor: fmt(damage.critFactor)}) : '';
+        lines.push(t('ttCrit', {chance: prog(damage.critChance, damage.critChancePerLevel, level, maxLevel, pct), factor}));
     }
     if (damage.executeBonusFactor > 0) {
-        lines.push(`Execute: ×${fmt(damage.executeBonusFactor)} below ${pct(damage.executeBelowFraction)} Focus`);
+        lines.push(t('ttExecute', {factor: fmt(damage.executeBonusFactor), pct: pct(damage.executeBelowFraction)}));
     }
     if (damage.berserkerMaxBonusFactor > 0) {
-        lines.push(`Berserker: up to +${pct(damage.berserkerMaxBonusFactor)} damage at low Focus`);
+        lines.push(t('ttBerserker', {pct: pct(damage.berserkerMaxBonusFactor)}));
     }
     if (damage.lifestealFraction > 0) {
-        lines.push(`Lifesteal: ${pct(damage.lifestealFraction)}`);
+        lines.push(t('ttLifesteal', {pct: pct(damage.lifestealFraction)}));
     }
     if (damage.structureDamageFraction > 0) {
-        lines.push(`Structure damage: ${pct(damage.structureDamageFraction)}`);
+        lines.push(t('ttStructureDamage', {pct: pct(damage.structureDamageFraction)}));
     }
 }
 
@@ -424,14 +427,14 @@ function costRenderer(maxHealth: number, costFactor: number): CostRenderer {
         return {
             render: pct,
             sum: (fractions) => pct(fractions.reduce((total, f) => total + f, 0)),
-            unit: ' of max Focus',
+            unit: t('ttUnitOfMaxFocus'),
         };
     }
     const one = (fraction: number) => roundHP(fraction * maxHealth * costFactor);
     return {
         render: (fraction: number) => String(one(fraction)),
         sum: (fractions) => String(fractions.reduce((total, f) => total + one(f), 0)),
-        unit: ' Focus',
+        unit: t('ttUnitFocus'),
     };
 }
 
@@ -439,10 +442,8 @@ function costRenderer(maxHealth: number, costFactor: number): CostRenderer {
 // targets the caster and nobody else, so "Also" promised a second effect that
 // does not exist. The shield and resist lines carry the same word in the same
 // shape — one helper, rather than three chances to get it wrong.
-function selfTargetLine(effect: SkillEffect, verb: string): string {
-    return effect.targetsAllies
-        ? `Also ${verb} you`
-        : verb.charAt(0).toUpperCase() + verb.slice(1) + ' you';
+function selfTargetLine(effect: SkillEffect, verb: 'applies' | 'shields' | 'heals'): string {
+    return effect.targetsAllies ? t('ttAlsoSelf', {verb}) : t('ttSelf', {verb});
 }
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
@@ -463,13 +464,13 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     // bottom instead. The cost trigger below is computed BEFORE the
     // suppression — "when am I charged" stays tied to the amount either way.
     const interval = effectIntervalString(effect, level, maxLevel);
-    const cadence = interval !== null ? ` every ${interval}`
-        : (TICKING_TYPES.has(effect.type) ? ' per tick' : '');
+    const cadence = interval !== null ? t('ttEvery', {interval})
+        : (TICKING_TYPES.has(effect.type) ? t('ttPerTick') : '');
     const trigger = costTriggerText(effect);
     const when = trigger ? ` ${trigger}` : cadence;
     const suppressed = suppressCadence && interval !== null;
     const perTick = suppressed ? '' : cadence;
-    const refresh = interval !== null && !suppressed ? `, refreshed every ${interval}` : '';
+    const refresh = interval !== null && !suppressed ? t('ttRefreshed', {interval}) : '';
 
     switch (effect.type) {
         case 'damage_aura':
@@ -477,7 +478,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // damageFactor rides only the damage lines (here and the dot case
             // below) — the server applies casterDamageFactor at the damage
             // base-composition sites, never to heals, shields or CC.
-            lines.push(`Damage: ${prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor)}${perTick}`);
+            lines.push(t('ttDamage', {amount: prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor), perTick}));
             damageExtraLines(effect.damage, level, maxLevel, lines);
             break;
         case 'heal_aura': {
@@ -485,26 +486,26 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             if (heal.fractionOfMax > 0) {
                 // Curve-free by construction: max HP already carries f(L),
                 // which is why the server skips powerScale on this branch too.
-                lines.push(`Heal: ${prog(heal.fractionOfMax, heal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus${perTick}`);
+                lines.push(t('ttHealPct', {amount: prog(heal.fractionOfMax, heal.fractionOfMaxPerLevel, level, maxLevel, pct), perTick}));
             } else {
-                lines.push(`Heal: ${prog(heal.hp, heal.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
+                lines.push(t('ttHeal', {amount: prog(heal.hp, heal.hpPerLevel, level, maxLevel, hpFmt, powerScale), perTick}));
             }
-            if (heal.variance > 0) lines.push(`Variance: ±${pct(heal.variance)}`);
+            if (heal.variance > 0) lines.push(t('ttVariance', {pct: pct(heal.variance)}));
             break;
         }
         case 'self_heal': {
             const selfHeal = effect.selfHeal;
             if (selfHeal.fractionOfMax > 0) {
                 // Curve-free, as above.
-                lines.push(`Heal self: ${prog(selfHeal.fractionOfMax, selfHeal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus`);
+                lines.push(t('ttHealSelfPct', {amount: prog(selfHeal.fractionOfMax, selfHeal.fractionOfMaxPerLevel, level, maxLevel, pct)}));
             } else {
-                lines.push(`Heal self: ${prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel, hpFmt, powerScale)} Focus`);
+                lines.push(t('ttHealSelf', {amount: prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel, hpFmt, powerScale)}));
             }
-            if (selfHeal.variance > 0) lines.push(`Variance: ±${pct(selfHeal.variance)}`);
+            if (selfHeal.variance > 0) lines.push(t('ttVariance', {pct: pct(selfHeal.variance)}));
             break;
         }
         case 'slow_aura':
-            lines.push(`Slow: ${prog(effect.slow.fraction, effect.slow.fractionPerLevel, level, maxLevel, pct)}${refresh}`);
+            lines.push(t('ttSlow', {amount: prog(effect.slow.fraction, effect.slow.fractionPerLevel, level, maxLevel, pct), refresh}));
             break;
         case 'instant_slow': {
             // The slow_aura line with the instant_shield duration in place of
@@ -513,7 +514,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const slow = effect.slow;
             const share = prog(slow.fraction, slow.fractionPerLevel, level, maxLevel, pct);
             const duration = prog(slow.durationTicks ?? 0, slow.durationTicksPerLevel ?? 0, level, maxLevel, ticksToSecs);
-            lines.push(`Slow: ${share} for ${duration}`);
+            lines.push(t('ttSlowFor', {share, duration}));
             break;
         }
         case 'resist_aura':
@@ -524,10 +525,10 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // type: it covers every tag there is, so it must never reach the
             // player as the literal symbol.
             const subject = resist.tags.length === 1 && resist.tags[0] === '*'
-                ? 'all damage' : resist.tags.join(', ');
+                ? t('ttAllDamage') : resist.tags.join(', ');
             // Only the instant form carries its own lifetime, the instant_shield
             // shape; the aura form's cadence rides `refresh` instead.
-            const duration = effect.type === 'instant_resist' ? ` for ${ticksToSecs(resist.durationTicks)}` : '';
+            const duration = effect.type === 'instant_resist' ? t('ttForDuration', {duration: ticksToSecs(resist.durationTicks)}) : '';
             // Factor is the incoming-damage multiplier (0.5 = takes half,
             // 0 = immune, 1.2 = takes a fifth more); render as the delta
             // players think in. A skill authors one side of 1 across its whole
@@ -537,16 +538,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const factor = scaled(resist.factor, resist.factorPerLevel, level);
             if (factor > 1) {
                 const renderAmplification = (value: number) => pct(value - 1);
-                lines.push(`Vulnerable to ${subject}: +${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderAmplification)} damage taken${duration}${refresh}`);
+                lines.push(t('ttVulnerable', {subject, amount: prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderAmplification), duration, refresh}));
             } else if (factor <= 0) {
                 // Immunity says what it is. "−100% damage taken" is arithmetic;
                 // nothing landing is the thing the player is buying.
-                lines.push(`Immune to ${subject}${duration}${refresh}`);
+                lines.push(t('ttImmune', {subject, duration, refresh}));
             } else {
                 const renderReduction = (value: number) => pct(1 - Math.max(0, value));
-                lines.push(`Resist ${subject}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${duration}${refresh}`);
+                lines.push(t('ttResist', {subject, amount: prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction), duration, refresh}));
             }
-            if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
+            if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies'));
             break;
         }
         case 'stat_multiplier':
@@ -567,27 +568,27 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const render = (n: number) => (sign(n) === lead ? '' : sign(n)) + pct(Math.abs(n));
             // An active aura's modifier holds only while it is on (D1); the
             // instant form lasts its own lifetime, the aura form re-applies.
-            let scope = whileActive ? ' while active' : '';
-            if (effect.type === 'instant_stat') scope = ` for ${ticksToSecs(stat.durationTicks ?? 0)}`;
+            let scope = whileActive ? t('ttWhileActive') : '';
+            if (effect.type === 'instant_stat') scope = t('ttForDuration', {duration: ticksToSecs(stat.durationTicks ?? 0)});
             if (effect.type === 'stat_aura') scope = refresh;
-            lines.push(`${label}: ${lead}${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, render)}${scope}`);
+            lines.push(t('ttStatLine', {label, lead, amount: prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, render), scope}));
             // A drawback is a price, so it wears the cost line's Focus color.
             // Only on the caster's own modifier: a debuff cast on an enemy is
             // not something the caster pays.
             if (current < 0 && effect.type === 'stat_multiplier') {
                 labelColor = FOCUS_COLOR_CSS;
             }
-            if (stat.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
+            if (stat.targetsSelf) lines.push(selfTargetLine(effect, 'applies'));
             break;
         }
         case 'dot_aura':
         case 'instant_dot': {
             const dot = effect.dot;
             const duration = ticksToSecs(dot.tickCount * dot.interval);
-            lines.push(`Damage over time: ${prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor)} × ${dot.tickCount} hits over ${duration}${refresh}`);
+            lines.push(t('ttDot', {amount: prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor), hits: fmt(dot.tickCount), duration, refresh}));
             const nonPhysical = dot.tags.length > 1 || dot.tags[0] !== 'physical';
-            if (nonPhysical) lines.push(`Damage type: ${dot.tags.join(', ')}`);
-            if (dot.variance > 0) lines.push(`Variance: ±${pct(dot.variance)}`);
+            if (nonPhysical) lines.push(t('ttDamageType', {types: dot.tags.join(', ')}));
+            if (dot.variance > 0) lines.push(t('ttVariance', {pct: pct(dot.variance)}));
             break;
         }
         case 'spawn':
@@ -597,21 +598,21 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // does not re-derive it; before the catalog loads, the raw name.
             // spawnCount > 1 is the Call-for-Aid dedupe: three identical spawn
             // effects read "Summons 3× Soldier Companion", not three lines.
-            const count = spawnCount > 1 ? `${spawnCount}× ` : '';
+            const count = spawnCount > 1 ? t('ttCountTimes', {count: fmt(spawnCount)}) : '';
             // ⭐ The ONE thing the remote twin says differently
             // (plan-portal-spells.md D11): where it puts what it summons.
             // Everything else about the line is shared, because everything else
             // about the effect is: it is the same SpawnParams payload.
-            const where = effect.type === 'spawn_at_anchor' ? ' at your campfire' : '';
-            lines.push(`Summons ${count}${mobDisplayName(spawn.mobName)}${where} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            const where = effect.type === 'spawn_at_anchor' ? t('ttAtCampfire') : '';
+            lines.push(t('ttSummons', {count, mob: mobDisplayName(spawn.mobName), where, duration: prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}));
             // A pet, or a thing left standing where it was placed
             // (plan-summon-follows.md D1) - the difference the player feels
             // most, and nothing else in the tooltip says it.
             if (spawn.follows) {
-                lines.push('Follows you and fights at your side');
+                lines.push(t('ttFollows'));
             }
             if (spawn.powerPerOwnerLevel > 0) {
-                lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
+                lines.push(t('ttSummonPower', {pct: pct(spawn.powerPerOwnerLevel)}));
             }
             break;
         }
@@ -621,36 +622,36 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // WHAT lands is the shared spawn payload, rendered by the loadout
             // lines below the block exactly as a summon's are.
             const spawn = effect.spawn;
-            lines.push(`Throws ${mobDisplayName(spawn.mobName)} ${spawn.forwardUnits ?? 0} m ahead for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push(t('ttThrows', {mob: mobDisplayName(spawn.mobName), distance: fmt(spawn.forwardUnits ?? 0), duration: prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}));
             // The fuse is the whole feel of the ability - "drop it and back
             // off" only reads if the player knows how long they have.
-            lines.push(`Arms after ${ticksToSecs(spawn.armTicks ?? 0)}`);
+            lines.push(t('ttArms', {duration: ticksToSecs(spawn.armTicks ?? 0)}));
             break;
         }
         case 'taunt':
-            lines.push('Taunts enemies in range into attacking you');
+            lines.push(t('ttTaunt'));
             break;
         case 'detaunt':
-            lines.push('Sheds your threat to an enemy in range');
+            lines.push(t('ttDetaunt'));
             break;
         case 'light_aura':
             // Feedback pass B item 5: "Emits light" did not read as "this is
             // your light source in the dark" — say what it is for.
-            lines.push('Lights up the darkness around you');
+            lines.push(t('ttLight'));
             break;
         case 'shield_aura':
         case 'instant_shield': {
             const shield = effect.shield;
-            let line = `Shield: ${prog(shield.hp, shield.hpPerLevel, level, maxLevel, hpFmt, powerScale)} Focus`;
+            let line = t('ttShield', {amount: prog(shield.hp, shield.hpPerLevel, level, maxLevel, hpFmt, powerScale)});
             if (effect.type === 'instant_shield') {
-                line += ` for ${ticksToSecs(shield.durationTicks)}`;
+                line += t('ttForDuration', {duration: ticksToSecs(shield.durationTicks)});
             }
             lines.push(line + refresh);
             if (shield.targetsSelf) lines.push(selfTargetLine(effect, 'shields'));
             break;
         }
         case 'recall':
-            lines.push('Returns you to your bound campfire');
+            lines.push(t('ttRecall'));
             break;
         case 'hot_aura':
         case 'instant_hot': {
@@ -661,22 +662,22 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
                 // f(L), so the server skips powerScale here too. Recover is the
                 // first content to take this branch (D14) — before it, a
                 // fractional HoT would have rendered "Heal over time: 0".
-                lines.push(`Heal over time: ${prog(hot.fractionOfMax, hot.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus × ${hot.tickCount} over ${duration}${refresh}`);
+                lines.push(t('ttHotPct', {amount: prog(hot.fractionOfMax, hot.fractionOfMaxPerLevel, level, maxLevel, pct), hits: fmt(hot.tickCount), duration, refresh}));
             } else {
-                lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${hot.tickCount} over ${duration}${refresh}`);
+                lines.push(t('ttHot', {amount: prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale), hits: fmt(hot.tickCount), duration, refresh}));
             }
             if (hot.targetsSelf) lines.push(selfTargetLine(effect, 'heals'));
             break;
         }
         case 'revive':
-            lines.push(`Revives the nearest fallen player at ${pct(effect.revive.healthFraction)} Focus`);
+            lines.push(t('ttRevive', {pct: pct(effect.revive.healthFraction)}));
             break;
         case 'dash':
-            lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} m in your movement direction`);
+            lines.push(t('ttDash', {distance: prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)}));
             break;
         case 'charge':
             // The search distance is the generic Radius line below.
-            lines.push('Charge to the nearest enemy in range');
+            lines.push(t('ttCharge'));
             break;
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
@@ -684,7 +685,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // your own aura included) is standalone ruling prose and rides the
             // skill's authored description since C8 (D1).
             const calm = effect.calm;
-            lines.push(`Calms enemies in range for ${prog(calm.durationTicks, calm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push(t('ttCalm', {duration: prog(calm.durationTicks, calm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}));
             break;
         }
         case 'charm': {
@@ -694,7 +695,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // cooldown), and it turns on you when the timer runs out (D11/L-F)
             // - are ruling prose and ride the skill's description since C8 (D1).
             const charm = effect.charm;
-            lines.push(`Charms the nearest enemy to fight for you for ${prog(charm.durationTicks, charm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push(t('ttCharm', {duration: prog(charm.durationTicks, charm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}));
             break;
         }
         case 'speed_burst': {
@@ -704,16 +705,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const speed = effect.speed;
             // The × rides the per-value renderer, not the joined string, or the
             // next-level preview reads "1.5 → 1.6×" with only one unit.
-            const pace = prog(speed.factor, speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`);
+            const pace = prog(speed.factor, speed.factorPerLevel, level, maxLevel, n => t('ttTimes', {n: fmt(n)}));
             const duration = prog(speed.durationTicks, speed.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             // Who moves is authored since C4, and saying it is not decoration:
             // the caster of an ally-facing burst does NOT move faster, so the
             // shipped "Move …" sentence would have been a plain lie on it. The
             // self-only branch renders Swift byte-identically.
             const mover = speed.targetsSelf
-                ? (effect.targetsAllies ? 'You and allies in range move' : 'Move')
-                : 'Allies in range move';
-            lines.push(`${mover} ${pace} as fast for ${duration}`);
+                ? (effect.targetsAllies ? 'selfAndAllies' : 'self')
+                : 'allies';
+            lines.push(t('ttSpeedBurst', {mover, pace, duration}));
             break;
         }
         case 'speed_aura':
@@ -725,7 +726,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // free — and the caster's exclusion (D9) is invisible here on
             // purpose, being a property of eligibility rather than of the
             // authored numbers.
-            lines.push(`Speed: ${prog(effect.speed.factor, effect.speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`)}${refresh}`);
+            lines.push(t('ttSpeed', {amount: prog(effect.speed.factor, effect.speed.factorPerLevel, level, maxLevel, n => t('ttTimes', {n: fmt(n)})), refresh}));
             break;
         case 'stun': {
             // The duration line spells out that the target cannot ACT on
@@ -736,7 +737,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // and rides the skill's description since C8 (D1).
             const stun = effect.stun;
             const held = prog(stun.durationTicks, stun.durationTicksPerLevel, level, maxLevel, ticksToSecs);
-            lines.push(`Holds one enemy for ${held} — it cannot move, attack or use abilities`);
+            lines.push(t('ttStun', {held}));
             break;
         }
         case 'retaliate_slow': {
@@ -750,7 +751,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const duration = prog(retaliate.durationTicks, retaliate.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             // That being hit is enough (it fires even off a fully absorbed
             // hit) is ruling prose and rides the description since C8 (D1).
-            lines.push(`Slows anything that damages you by ${share} for ${duration}`);
+            lines.push(t('ttRetaliateSlow', {share, duration}));
             break;
         }
         case 'retaliate_damage': {
@@ -767,9 +768,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const amount = prog(reflect.hp, reflect.hpPerLevel, level, maxLevel, hpFmt);
             // Same trigger sentence as retaliate_slow, and same disposition:
             // ruling prose, on the description since C8 (D1).
-            lines.push(`Reflects ${amount} damage onto anything that damages you`);
+            lines.push(t('ttReflect', {amount}));
             if (reflect.tags.length > 1 || reflect.tags[0] !== 'physical') {
-                lines.push(`Damage type: ${reflect.tags.join(', ')}`);
+                lines.push(t('ttDamageType', {types: reflect.tags.join(', ')}));
             }
             break;
         }
@@ -789,13 +790,13 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // names its wearer; who that is rides the shared targets line. The
             // self-only form (Retribution) keeps its line unchanged.
             if (effect.targetsAllies) {
-                lines.push(`For ${window}, the target reflects ${share} of the damage it takes`);
-                if (burst.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
+                lines.push(t('ttThornsOther', {window, share}));
+                if (burst.targetsSelf) lines.push(selfTargetLine(effect, 'applies'));
             } else {
-                lines.push(`For ${window}, reflects ${share} of damage taken`);
+                lines.push(t('ttThornsSelf', {window, share}));
             }
             if (burst.tags.length > 1 || burst.tags[0] !== 'physical') {
-                lines.push(`Damage type: ${burst.tags.join(', ')}`);
+                lines.push(t('ttDamageType', {types: burst.tags.join(', ')}));
             }
             break;
         }
@@ -809,15 +810,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const share = prog(lifesteal.fraction, lifesteal.fractionPerLevel, level, maxLevel, pct);
             // That it rides whichever aura is on is ruling prose and lives on
             // the skill's description since C8 (D1).
-            lines.push(`Heals you for ${share} of the damage you deal, for ${ticksToSecs(lifesteal.durationTicks)}`);
+            lines.push(t('ttLifestealBurst', {share, duration: ticksToSecs(lifesteal.durationTicks)}));
             break;
         }
         case 'tick_rate': {
             const tickRate = effect.tickRate;
             const speed = tickRate.factor < 1
-                ? `${fmt(1 / tickRate.factor)}× faster`
-                : `${fmt(tickRate.factor)}× slower`;
-            lines.push(`Your auras tick ${speed} for ${ticksToSecs(tickRate.durationTicks)}`);
+                ? t('ttFaster', {n: fmt(1 / tickRate.factor)})
+                : t('ttSlower', {n: fmt(tickRate.factor)});
+            lines.push(t('ttTickRate', {speed, duration: ticksToSecs(tickRate.durationTicks)}));
             break;
         }
         default:
@@ -835,7 +836,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     // right lie: a humanoid body is radius 0.3, so a unit is about a person
     // wide. Keep any new distance line on this spelling.
     if (effect.radius > 0) {
-        generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)} m`;
+        generics.radius = t('ttRadius', {radius: prog(effect.radius, effect.radiusPerLevel, level, maxLevel)});
     }
     const targets = targetsLine(effect, level, maxLevel);
     if (targets) {
@@ -889,11 +890,11 @@ function summonLoadoutLines(spawn: SkillEffect['spawn'], skillLevel: number, pow
             if (effect.type === 'spawn') continue; // a summon summoning: render one level deep only
             const block = effectBlock(effect, level, level, powerScale * summonPower, false, false);
             for (const line of block.lines) {
-                out.push({text: `↳ ${line.text}`, labelColor: line.labelColor});
+                out.push({text: t('ttSubLine', {line: line.text}), labelColor: line.labelColor});
             }
             for (const kind of GENERIC_KINDS) {
                 if (block.generics[kind] !== undefined) {
-                    out.push({text: `↳ ${block.generics[kind]}`});
+                    out.push({text: t('ttSubLine', {line: block.generics[kind]})});
                 }
             }
         }
@@ -1019,7 +1020,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // radius/targets machinery (which prints unshared kinds inside blocks)
     // would double-print it.
     if (sharedCadence !== null) {
-        lines.push({text: `Ticks every ${sharedCadence}`});
+        lines.push({text: t('ttTicksEvery', {interval: sharedCadence})});
     }
 
     // Cost lines, grouped by charge trigger (N2/D5) in first-appearance
@@ -1045,10 +1046,10 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         if (level < previewMax) {
             const next = cost.sum(fractionsAt(level + 1));
             if (next !== current) {
-                amount = `${current} → ${next}`;
+                amount = t('ttProgression', {current, next});
             }
         }
-        lines.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR_CSS});
+        lines.push({text: t('ttCosts', {amount, unit: cost.unit, when}), labelColor: FOCUS_COLOR_CSS});
     }
 
     // The faction scope is a property of the SKILL, not of any one effect
@@ -1065,7 +1066,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // display name (`predator` and `wildlife_predator` are both "Predators")
     // would otherwise print the same word twice.
     if (def.targetFactions?.length) {
-        lines.push({text: `Affects: ${[...new Set(def.targetFactions)].join(', ')}`});
+        lines.push({text: t('ttAffects', {factions: formatList([...new Set(def.targetFactions)])})});
     }
     if (def.category === 'cooldown') {
         const castCost = (l: number) => def.effects.reduce(
@@ -1083,21 +1084,21 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
             // Rounding per effect would print 3 points for three 0.2 % summons
             // that cost 1.
             lines.push({
-                text: `Costs you: ${prog(castCost(1), step, level, previewMax, cost.render)}${cost.unit} per cast`,
+                text: t('ttCostsPerCast', {amount: prog(castCost(1), step, level, previewMax, cost.render), unit: cost.unit}),
                 labelColor: FOCUS_COLOR_CSS,
             });
         }
     }
     if (def.cooldownTicks > 0) {
-        lines.push({text: `Cooldown: ${prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, previewMax, ticksToSecs)}`});
+        lines.push({text: t('ttCooldown', {duration: prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, previewMax, ticksToSecs)})});
     }
     if (def.castTicks > 0) {
-        const interrupt = def.castInterruptedByDamage ? ' (interrupted by damage)' : '';
-        lines.push({text: `Cast time: ${prog(def.castTicks, def.castTicksPerLevel, level, previewMax, ticksToSecs)}${interrupt}`});
+        const interrupt = def.castInterruptedByDamage ? t('ttInterrupted') : '';
+        lines.push({text: t('ttCastTime', {duration: prog(def.castTicks, def.castTicksPerLevel, level, previewMax, ticksToSecs), interrupt})});
     }
     return {
         title: def.displayName,
-        subtitle: `${CATEGORY_LABELS[def.category] ?? def.category} · Lv ${level}/${def.maxLevel}`,
+        subtitle: t('ttSubtitle', {category: CATEGORY_LABELS[def.category] ?? def.category, level: fmt(level), max: fmt(def.maxLevel)}),
         // Straight through: the field is prose by ruling, so nothing here
         // scales, formats or level-previews it.
         description: def.description,

@@ -952,7 +952,7 @@ describe('faction scope', () => {
                 calm: {durationTicks: 300, durationTicksPerLevel: 60},
             })],
         });
-        expect(lines(calm, 1, 1)).toContain('Affects: Prey, Predators');
+        expect(lines(calm, 1, 1)).toContain('Affects: Prey and Predators');
     });
 
     it('renders nothing for an unscoped skill', () => {

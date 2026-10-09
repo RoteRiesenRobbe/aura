@@ -1210,5 +1210,1099 @@
         "example": "Lantern"
       }
     }
+  },
+  "ttPercent": "{n}%",
+  "@ttPercent": {
+    "description": "Skill tooltip. A percentage in skill tooltips; {n} is already formatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "description": "Already formatted n",
+        "example": "…"
+      }
+    }
+  },
+  "ttSeconds": "{n}s",
+  "@ttSeconds": {
+    "description": "Skill tooltip. A duration in seconds in skill tooltips; {n} is already formatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "description": "Already formatted n",
+        "example": "…"
+      }
+    }
+  },
+  "ttProgression": "{current} → {next}",
+  "@ttProgression": {
+    "description": "Skill tooltip. A value now and at the next skill level.",
+    "placeholders": {
+      "current": {
+        "type": "String",
+        "description": "Already formatted current",
+        "example": "…"
+      },
+      "next": {
+        "type": "String",
+        "description": "Already formatted next",
+        "example": "…"
+      }
+    }
+  },
+  "ttCategoryAura": "Aura",
+  "@ttCategoryAura": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "ttCategoryPassive": "Passive",
+  "@ttCategoryPassive": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "ttCategoryCooldown": "Cooldown",
+  "@ttCategoryCooldown": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "ttStatMovementSpeed": "Movement speed",
+  "@ttStatMovementSpeed": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttStatMaxHealth": "Max Focus",
+  "@ttStatMaxHealth": {
+    "description": "Skill tooltip. Stat label: the maximum of the one resource."
+  },
+  "ttStatDamageTaken": "Damage taken",
+  "@ttStatDamageTaken": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttStatCritChance": "Crit chance",
+  "@ttStatCritChance": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttStatDamageDealt": "All damage",
+  "@ttStatDamageDealt": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttStatCosts": "All costs",
+  "@ttStatCosts": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttStatThreat": "Threat",
+  "@ttStatThreat": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "ttSelectorNearest": "nearest",
+  "@ttSelectorNearest": {
+    "description": "Skill tooltip. Target selector adjective in \"Targets: nearest 3 enemies\"."
+  },
+  "ttSelectorMostWounded": "most wounded",
+  "@ttSelectorMostWounded": {
+    "description": "Skill tooltip. Target selector adjective in \"Targets: most wounded 2 allies\"."
+  },
+  "ttGateSmash": "Smashes boulders and rockfalls — nothing else",
+  "@ttGateSmash": {
+    "description": "Skill tooltip. Tooltip line of a skill that only affects boulders."
+  },
+  "ttGateHarvest": "Harvests plants and brambles — nothing else",
+  "@ttGateHarvest": {
+    "description": "Skill tooltip. Tooltip line of a skill that only affects plants."
+  },
+  "ttGateOther": "Only affects targets vulnerable to: {key}",
+  "@ttGateOther": {
+    "description": "Skill tooltip. Fallback gate line; {key} is an internal word.",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "description": "Already formatted key",
+        "example": "…"
+      }
+    }
+  },
+  "ttWhenAlight": "when it sets something alight",
+  "@ttWhenAlight": {
+    "description": "Skill tooltip. Cost timing, appended to \"Costs you: 2 Focus\"."
+  },
+  "ttWhenReachesNew": "when it reaches someone new",
+  "@ttWhenReachesNew": {
+    "description": "Skill tooltip. Cost timing, appended to \"Costs you: 2 Focus\"."
+  },
+  "ttWhenCatchesNew": "when it catches someone new",
+  "@ttWhenCatchesNew": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "ttWhenShield": "when a shield goes up or is refilled",
+  "@ttWhenShield": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "ttWhenReapplies": "every time it re-applies",
+  "@ttWhenReapplies": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "ttGroupEnemies": "enemies",
+  "@ttGroupEnemies": {
+    "description": "Skill tooltip. Target group, joined with \" + \"."
+  },
+  "ttGroupAllies": "allies",
+  "@ttGroupAllies": {
+    "description": "Skill tooltip. Target group."
+  },
+  "ttGroupStructures": "structures",
+  "@ttGroupStructures": {
+    "description": "Skill tooltip. Target group."
+  },
+  "ttTargetsCount": "Targets: {selector} {count} {who}",
+  "@ttTargetsCount": {
+    "description": "Skill tooltip. How many targets an effect picks. {selector} is an adjective (nearest), {count} a number, {who} the groups.",
+    "placeholders": {
+      "selector": {
+        "type": "String",
+        "description": "Already formatted selector",
+        "example": "…"
+      },
+      "count": {
+        "type": "String",
+        "description": "Already formatted count",
+        "example": "…"
+      },
+      "who": {
+        "type": "String",
+        "description": "Already formatted who",
+        "example": "…"
+      }
+    }
+  },
+  "ttTargetsAll": "Targets: all {who} in range",
+  "@ttTargetsAll": {
+    "description": "Skill tooltip. An effect that reaches every target in range.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "description": "Already formatted who",
+        "example": "…"
+      }
+    }
+  },
+  "ttDamageType": "Damage type: {types}",
+  "@ttDamageType": {
+    "description": "Skill tooltip. Damage types (internal words such as fire, ice).",
+    "placeholders": {
+      "types": {
+        "type": "String",
+        "description": "Already formatted types",
+        "example": "…"
+      }
+    }
+  },
+  "ttVariance": "Variance: ±{pct}",
+  "@ttVariance": {
+    "description": "Skill tooltip. Random spread of a value.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttCritFactor": " (×{factor})",
+  "@ttCritFactor": {
+    "description": "Skill tooltip. Crit multiplier suffix; keep the leading space.",
+    "placeholders": {
+      "factor": {
+        "type": "String",
+        "description": "Already formatted factor",
+        "example": "…"
+      }
+    }
+  },
+  "ttCrit": "Crit: {chance}{factor}",
+  "@ttCrit": {
+    "description": "Skill tooltip. Critical hit chance line.",
+    "placeholders": {
+      "chance": {
+        "type": "String",
+        "description": "Already formatted chance",
+        "example": "…"
+      },
+      "factor": {
+        "type": "String",
+        "description": "Already formatted factor",
+        "example": "…"
+      }
+    }
+  },
+  "ttExecute": "Execute: ×{factor} below {pct} Focus",
+  "@ttExecute": {
+    "description": "Skill tooltip. Bonus damage against low-Focus targets.",
+    "placeholders": {
+      "factor": {
+        "type": "String",
+        "description": "Already formatted factor",
+        "example": "…"
+      },
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttBerserker": "Berserker: up to +{pct} damage at low Focus",
+  "@ttBerserker": {
+    "description": "Skill tooltip. Bonus damage when the caster is low.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttLifesteal": "Lifesteal: {pct}",
+  "@ttLifesteal": {
+    "description": "Skill tooltip. Share of damage dealt that heals the caster.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttStructureDamage": "Structure damage: {pct}",
+  "@ttStructureDamage": {
+    "description": "Skill tooltip. Damage share against structures.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttUnitOfMaxFocus": " of max Focus",
+  "@ttUnitOfMaxFocus": {
+    "description": "Skill tooltip. Unit suffix after a percentage cost; keep the leading space."
+  },
+  "ttUnitFocus": " Focus",
+  "@ttUnitFocus": {
+    "description": "Skill tooltip. Unit suffix after a Focus amount; keep the leading space."
+  },
+  "ttAlsoSelf": "{verb, select, shields {Also shields you} heals {Also heals you} other {Also applies to you}}",
+  "@ttAlsoSelf": {
+    "description": "Skill tooltip. The effect also reaches the caster, besides allies.",
+    "placeholders": {
+      "verb": {
+        "type": "String",
+        "description": "Already formatted verb",
+        "example": "…"
+      }
+    }
+  },
+  "ttSelf": "{verb, select, shields {Shields you} heals {Heals you} other {Applies to you}}",
+  "@ttSelf": {
+    "description": "Skill tooltip. The effect reaches the caster only.",
+    "placeholders": {
+      "verb": {
+        "type": "String",
+        "description": "Already formatted verb",
+        "example": "…"
+      }
+    }
+  },
+  "ttEvery": " every {interval}",
+  "@ttEvery": {
+    "description": "Skill tooltip. Cadence suffix on a hit line; keep the leading space.",
+    "placeholders": {
+      "interval": {
+        "type": "String",
+        "description": "Already formatted interval",
+        "example": "…"
+      }
+    }
+  },
+  "ttPerTick": " per tick",
+  "@ttPerTick": {
+    "description": "Skill tooltip. Cadence suffix; keep the leading space."
+  },
+  "ttRefreshed": ", refreshed every {interval}",
+  "@ttRefreshed": {
+    "description": "Skill tooltip. Cadence suffix on a state line; keep the leading comma.",
+    "placeholders": {
+      "interval": {
+        "type": "String",
+        "description": "Already formatted interval",
+        "example": "…"
+      }
+    }
+  },
+  "ttDamage": "Damage: {amount}{perTick}",
+  "@ttDamage": {
+    "description": "Skill tooltip. Damage line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "perTick": {
+        "type": "String",
+        "description": "Already formatted perTick",
+        "example": "…"
+      }
+    }
+  },
+  "ttHealPct": "Heal: {amount} of max Focus{perTick}",
+  "@ttHealPct": {
+    "description": "Skill tooltip. Heal line, share of max Focus.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "perTick": {
+        "type": "String",
+        "description": "Already formatted perTick",
+        "example": "…"
+      }
+    }
+  },
+  "ttHeal": "Heal: {amount}{perTick}",
+  "@ttHeal": {
+    "description": "Skill tooltip. Heal line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "perTick": {
+        "type": "String",
+        "description": "Already formatted perTick",
+        "example": "…"
+      }
+    }
+  },
+  "ttHealSelfPct": "Heal self: {amount} of max Focus",
+  "@ttHealSelfPct": {
+    "description": "Skill tooltip. Self-heal line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      }
+    }
+  },
+  "ttHealSelf": "Heal self: {amount} Focus",
+  "@ttHealSelf": {
+    "description": "Skill tooltip. Self-heal line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      }
+    }
+  },
+  "ttSlow": "Slow: {amount}{refresh}",
+  "@ttSlow": {
+    "description": "Skill tooltip. Slow line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttSlowFor": "Slow: {share} for {duration}",
+  "@ttSlowFor": {
+    "description": "Skill tooltip. Timed slow line.",
+    "placeholders": {
+      "share": {
+        "type": "String",
+        "description": "Already formatted share",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttAllDamage": "all damage",
+  "@ttAllDamage": {
+    "description": "Skill tooltip. Resist subject covering every damage type."
+  },
+  "ttForDuration": " for {duration}",
+  "@ttForDuration": {
+    "description": "Skill tooltip. Duration suffix; keep the leading space.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttVulnerable": "Vulnerable to {subject}: +{amount} damage taken{duration}{refresh}",
+  "@ttVulnerable": {
+    "description": "Skill tooltip. A vulnerability line.",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "description": "Already formatted subject",
+        "example": "…"
+      },
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttImmune": "Immune to {subject}{duration}{refresh}",
+  "@ttImmune": {
+    "description": "Skill tooltip. An immunity line.",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "description": "Already formatted subject",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttResist": "Resist {subject}: −{amount} damage taken{duration}{refresh}",
+  "@ttResist": {
+    "description": "Skill tooltip. A resistance line.",
+    "placeholders": {
+      "subject": {
+        "type": "String",
+        "description": "Already formatted subject",
+        "example": "…"
+      },
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttWhileActive": " while active",
+  "@ttWhileActive": {
+    "description": "Skill tooltip. Scope suffix; keep the leading space."
+  },
+  "ttStatLine": "{label}: {lead}{amount}{scope}",
+  "@ttStatLine": {
+    "description": "Skill tooltip. A stat modifier line: label, sign, amount, scope.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "description": "Already formatted label",
+        "example": "…"
+      },
+      "lead": {
+        "type": "String",
+        "description": "Already formatted lead",
+        "example": "…"
+      },
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "scope": {
+        "type": "String",
+        "description": "Already formatted scope",
+        "example": "…"
+      }
+    }
+  },
+  "ttDot": "Damage over time: {amount} × {hits} hits over {duration}{refresh}",
+  "@ttDot": {
+    "description": "Skill tooltip. Damage-over-time line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "hits": {
+        "type": "String",
+        "description": "Already formatted hits",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttCountTimes": "{count}× ",
+  "@ttCountTimes": {
+    "description": "Skill tooltip. A count prefix (\"3× \"); keep the trailing space.",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "description": "Already formatted count",
+        "example": "…"
+      }
+    }
+  },
+  "ttAtCampfire": " at your campfire",
+  "@ttAtCampfire": {
+    "description": "Skill tooltip. Where a summon appears; keep the leading space."
+  },
+  "ttSummons": "Summons {count}{mob}{where} for {duration}",
+  "@ttSummons": {
+    "description": "Skill tooltip. A summon line. {mob} is not inflected.",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "description": "Already formatted count",
+        "example": "…"
+      },
+      "mob": {
+        "type": "String",
+        "description": "Already formatted mob",
+        "example": "…"
+      },
+      "where": {
+        "type": "String",
+        "description": "Already formatted where",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttFollows": "Follows you and fights at your side",
+  "@ttFollows": {
+    "description": "Skill tooltip. A summon that follows the caster."
+  },
+  "ttSummonPower": "Summon power: +{pct} per player level",
+  "@ttSummonPower": {
+    "description": "Skill tooltip. Summon scaling.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttThrows": "Throws {mob} {distance} m ahead for {duration}",
+  "@ttThrows": {
+    "description": "Skill tooltip. A thrown object line.",
+    "placeholders": {
+      "mob": {
+        "type": "String",
+        "description": "Already formatted mob",
+        "example": "…"
+      },
+      "distance": {
+        "type": "String",
+        "description": "Already formatted distance",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttArms": "Arms after {duration}",
+  "@ttArms": {
+    "description": "Skill tooltip. Fuse time of a thrown object.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttTaunt": "Taunts enemies in range into attacking you",
+  "@ttTaunt": {
+    "description": "Skill tooltip. Taunt line."
+  },
+  "ttDetaunt": "Sheds your threat to an enemy in range",
+  "@ttDetaunt": {
+    "description": "Skill tooltip. Threat drop line."
+  },
+  "ttLight": "Lights up the darkness around you",
+  "@ttLight": {
+    "description": "Skill tooltip. Light aura line."
+  },
+  "ttShield": "Shield: {amount} Focus",
+  "@ttShield": {
+    "description": "Skill tooltip. Shield line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      }
+    }
+  },
+  "ttRecall": "Returns you to your bound campfire",
+  "@ttRecall": {
+    "description": "Skill tooltip. Recall line."
+  },
+  "ttHotPct": "Heal over time: {amount} of max Focus × {hits} over {duration}{refresh}",
+  "@ttHotPct": {
+    "description": "Skill tooltip. Heal-over-time line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "hits": {
+        "type": "String",
+        "description": "Already formatted hits",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttHot": "Heal over time: {amount} × {hits} over {duration}{refresh}",
+  "@ttHot": {
+    "description": "Skill tooltip. Heal-over-time line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "hits": {
+        "type": "String",
+        "description": "Already formatted hits",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttRevive": "Revives the nearest fallen player at {pct} Focus",
+  "@ttRevive": {
+    "description": "Skill tooltip. Revive line.",
+    "placeholders": {
+      "pct": {
+        "type": "String",
+        "description": "Already formatted pct",
+        "example": "…"
+      }
+    }
+  },
+  "ttDash": "Dash {distance} m in your movement direction",
+  "@ttDash": {
+    "description": "Skill tooltip. Dash line.",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "description": "Already formatted distance",
+        "example": "…"
+      }
+    }
+  },
+  "ttCharge": "Charge to the nearest enemy in range",
+  "@ttCharge": {
+    "description": "Skill tooltip. Charge line."
+  },
+  "ttCalm": "Calms enemies in range for {duration}",
+  "@ttCalm": {
+    "description": "Skill tooltip. Calm line.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttCharm": "Charms the nearest enemy to fight for you for {duration}",
+  "@ttCharm": {
+    "description": "Skill tooltip. Charm line.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttTimes": "{n}×",
+  "@ttTimes": {
+    "description": "Skill tooltip. A multiplier (\"1.5×\").",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "description": "Already formatted n",
+        "example": "…"
+      }
+    }
+  },
+  "ttSpeedBurst": "{mover, select, selfAndAllies {You and allies in range move} allies {Allies in range move} other {Move}} {pace} as fast for {duration}",
+  "@ttSpeedBurst": {
+    "description": "Skill tooltip. A speed burst line; {mover} says who moves.",
+    "placeholders": {
+      "mover": {
+        "type": "String",
+        "description": "Already formatted mover",
+        "example": "…"
+      },
+      "Move": {
+        "type": "String",
+        "description": "Already formatted Move",
+        "example": "…"
+      },
+      "pace": {
+        "type": "String",
+        "description": "Already formatted pace",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttSpeed": "Speed: {amount}{refresh}",
+  "@ttSpeed": {
+    "description": "Skill tooltip. Speed aura line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "refresh": {
+        "type": "String",
+        "description": "Already formatted refresh",
+        "example": "…"
+      }
+    }
+  },
+  "ttStun": "Holds one enemy for {held} — it cannot move, attack or use abilities",
+  "@ttStun": {
+    "description": "Skill tooltip. Stun line.",
+    "placeholders": {
+      "held": {
+        "type": "String",
+        "description": "Already formatted held",
+        "example": "…"
+      }
+    }
+  },
+  "ttRetaliateSlow": "Slows anything that damages you by {share} for {duration}",
+  "@ttRetaliateSlow": {
+    "description": "Skill tooltip. Retaliate slow line.",
+    "placeholders": {
+      "share": {
+        "type": "String",
+        "description": "Already formatted share",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttReflect": "Reflects {amount} damage onto anything that damages you",
+  "@ttReflect": {
+    "description": "Skill tooltip. Reflect line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      }
+    }
+  },
+  "ttThornsOther": "For {window}, the target reflects {share} of the damage it takes",
+  "@ttThornsOther": {
+    "description": "Skill tooltip. Thorns on another.",
+    "placeholders": {
+      "window": {
+        "type": "String",
+        "description": "Already formatted window",
+        "example": "…"
+      },
+      "share": {
+        "type": "String",
+        "description": "Already formatted share",
+        "example": "…"
+      }
+    }
+  },
+  "ttThornsSelf": "For {window}, reflects {share} of damage taken",
+  "@ttThornsSelf": {
+    "description": "Skill tooltip. Thorns on the caster.",
+    "placeholders": {
+      "window": {
+        "type": "String",
+        "description": "Already formatted window",
+        "example": "…"
+      },
+      "share": {
+        "type": "String",
+        "description": "Already formatted share",
+        "example": "…"
+      }
+    }
+  },
+  "ttLifestealBurst": "Heals you for {share} of the damage you deal, for {duration}",
+  "@ttLifestealBurst": {
+    "description": "Skill tooltip. Lifesteal burst line.",
+    "placeholders": {
+      "share": {
+        "type": "String",
+        "description": "Already formatted share",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttFaster": "{n}× faster",
+  "@ttFaster": {
+    "description": "Skill tooltip. Tick rate change.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "description": "Already formatted n",
+        "example": "…"
+      }
+    }
+  },
+  "ttSlower": "{n}× slower",
+  "@ttSlower": {
+    "description": "Skill tooltip. Tick rate change.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "description": "Already formatted n",
+        "example": "…"
+      }
+    }
+  },
+  "ttTickRate": "Your auras tick {speed} for {duration}",
+  "@ttTickRate": {
+    "description": "Skill tooltip. Tick rate line.",
+    "placeholders": {
+      "speed": {
+        "type": "String",
+        "description": "Already formatted speed",
+        "example": "…"
+      },
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttRadius": "Radius: {radius} m",
+  "@ttRadius": {
+    "description": "Skill tooltip. Effect radius in metres.",
+    "placeholders": {
+      "radius": {
+        "type": "String",
+        "description": "Already formatted radius",
+        "example": "…"
+      }
+    }
+  },
+  "ttSubLine": "↳ {line}",
+  "@ttSubLine": {
+    "description": "Skill tooltip. A summon ability line indented under the summon.",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "description": "Already formatted line",
+        "example": "…"
+      }
+    }
+  },
+  "ttTicksEvery": "Ticks every {interval}",
+  "@ttTicksEvery": {
+    "description": "Skill tooltip. Shared cadence of a multi-effect aura.",
+    "placeholders": {
+      "interval": {
+        "type": "String",
+        "description": "Already formatted interval",
+        "example": "…"
+      }
+    }
+  },
+  "ttCosts": "Costs you: {amount}{unit}{when}",
+  "@ttCosts": {
+    "description": "Skill tooltip. Cost line: amount, unit (\" Focus\"), timing (\" every 1s\" / \" when …\").",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "unit": {
+        "type": "String",
+        "description": "Already formatted unit",
+        "example": "…"
+      },
+      "when": {
+        "type": "String",
+        "description": "Already formatted when",
+        "example": "…"
+      }
+    }
+  },
+  "ttAffects": "Affects: {factions}",
+  "@ttAffects": {
+    "description": "Skill tooltip. Factions a skill is limited to, already joined.",
+    "placeholders": {
+      "factions": {
+        "type": "String",
+        "description": "Already formatted factions",
+        "example": "…"
+      }
+    }
+  },
+  "ttCostsPerCast": "Costs you: {amount}{unit} per cast",
+  "@ttCostsPerCast": {
+    "description": "Skill tooltip. Cooldown cost line.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "Already formatted amount",
+        "example": "…"
+      },
+      "unit": {
+        "type": "String",
+        "description": "Already formatted unit",
+        "example": "…"
+      }
+    }
+  },
+  "ttCooldown": "Cooldown: {duration}",
+  "@ttCooldown": {
+    "description": "Skill tooltip. Cooldown line.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      }
+    }
+  },
+  "ttInterrupted": " (interrupted by damage)",
+  "@ttInterrupted": {
+    "description": "Skill tooltip. Suffix; keep the leading space."
+  },
+  "ttCastTime": "Cast time: {duration}{interrupt}",
+  "@ttCastTime": {
+    "description": "Skill tooltip. Cast time line.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "description": "Already formatted duration",
+        "example": "…"
+      },
+      "interrupt": {
+        "type": "String",
+        "description": "Already formatted interrupt",
+        "example": "…"
+      }
+    }
+  },
+  "ttSubtitle": "{category} · Lv {level}/{max}",
+  "@ttSubtitle": {
+    "description": "Skill tooltip. Tooltip subtitle: skill kind and its level out of the max.",
+    "placeholders": {
+      "category": {
+        "type": "String",
+        "description": "Already formatted category",
+        "example": "…"
+      },
+      "level": {
+        "type": "String",
+        "description": "Already formatted level",
+        "example": "…"
+      },
+      "max": {
+        "type": "String",
+        "description": "Already formatted max",
+        "example": "…"
+      }
+    }
   }
 }

@@ -11,6 +11,12 @@ body {
 	font-family: "stone-age", serif;
 	font-size: 1.5rem;
 	font-variant: small-caps;
+	// plan-localization.md C4, the +30 % length sweep: German runs longer and
+	// builds long compounds ("Fertigkeitspunkte"). Hyphenation follows the
+	// page's lang (Locale.ts declares it), and a word wider than its box breaks
+	// rather than overflowing. Neither changes anything for text that fits.
+	hyphens: auto;
+	overflow-wrap: break-word;
 
 	background-color: @land-color;
 
