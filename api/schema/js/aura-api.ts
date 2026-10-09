@@ -13,6 +13,8 @@ export { Cheat } from './aura-api/cheat.js';
 export { ClientMessage } from './aura-api/client-message.js';
 export { ClientMessageBody } from './aura-api/client-message-body.js';
 export { Conversation } from './aura-api/conversation.js';
+export { ConversationLock } from './aura-api/conversation-lock.js';
+export { ConversationLockKind } from './aura-api/conversation-lock-kind.js';
 export { ConversationNode } from './aura-api/conversation-node.js';
 export { ConversationOption } from './aura-api/conversation-option.js';
 export { EffectKind } from './aura-api/effect-kind.js';

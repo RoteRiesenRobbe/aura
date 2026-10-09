@@ -1,6 +1,8 @@
 package mobs
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,6 +30,10 @@ type Interaction struct {
 	// is precisely what the retired single-valued `trigger` could not express.
 	// Empty (the common case) = the actor says nothing unprompted.
 	Ambient []string
+	// AmbientIDs is each ambient line's stable id (plan-localization.md D20),
+	// parallel to Ambient; "" where the content authors none (test fixtures —
+	// the boot's lang stage refuses that for shipped content).
+	AmbientIDs []string
 
 	// Range is the interaction reach in server units. OPTIONAL (0 = absent):
 	// the effective sensor is MobDefinition.SenseRadius, the wider of this and
@@ -47,7 +53,9 @@ type InteractionNode struct {
 	Gate Gate
 	// Lines are the lore/sign-post fallback, spoken when the node granted
 	// nothing (an all-learned sage, or a pure flavour NPC that never grants).
-	Lines   []string
+	Lines []string
+	// LineIDs is each line's stable id (D20), parallel to Lines.
+	LineIDs []string
 	Options []InteractionOption
 
 	// Rows names a GENERATED row source, empty for the overwhelming majority
@@ -132,7 +140,9 @@ type InteractionOption struct {
 	// Text is the row's label. Empty is legal and means "label me from what I
 	// grant": present() falls back to the skill's display name, which is what
 	// renders the NPCs that were never re-authored into trees.
-	Text   string
+	Text string
+	// ID is the option text's stable id (D20).
+	ID     string
 	Grants []InteractionGrant
 	// Next names the node to continue at. Empty = this row only grants.
 	// Validated at load since 3a; 3b-ii is where it is finally READ, and it is
@@ -168,6 +178,8 @@ type InteractionGrant struct {
 	RequiredLevel uint32
 	// Line is spoken when the grant lands.
 	Line string
+	// LineID is the line's stable id (D20).
+	LineID string
 	// Skill is the definition resolved at load for GrantTeachSkill — the same
 	// discipline as the skill loadout and the kill unlocks: an unknown name is
 	// a boot failure, never a runtime surprise. nil for every other kind.
@@ -522,7 +534,7 @@ type jsonInteraction struct {
 	// typo. The tombstone is what turns that into a sentence naming its
 	// replacement, for a PO who authors these files by hand (L22).
 	Trigger string                `json:"trigger"`
-	Ambient []string              `json:"ambient"` // absent → says nothing unprompted
+	Ambient []jsonDialogueLine    `json:"ambient"` // absent → says nothing unprompted
 	Range   float32               `json:"range"`   // absent → body.aggroRadius
 	Nodes   []jsonInteractionNode `json:"nodes"`
 }
@@ -531,7 +543,7 @@ type jsonInteractionNode struct {
 	ID             string                  `json:"id"`
 	Conditions     []JSONCondition         `json:"conditions"`
 	ConditionsMode string                  `json:"conditionsMode"`
-	Lines          []string                `json:"lines"`
+	Lines          []jsonDialogueLine      `json:"lines"`
 	Rows           string                  `json:"rows"`
 	Options        []jsonInteractionOption `json:"options"`
 
@@ -542,7 +554,46 @@ type jsonInteractionNode struct {
 	Rewards *[]string `json:"rewards"`
 }
 
+// jsonDialogueLine is one authored line: {"id": "a1b2c3", "text": "…"}
+// (plan-localization.md D20, tagged by tools/lang/tag-dialogue.mjs). A bare
+// string still parses, with no id, so a unit fixture stays short; shipped
+// content without ids is refused by the boot's lang stage.
+type jsonDialogueLine struct {
+	ID   string
+	Text string
+}
+
+func (l *jsonDialogueLine) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		return json.Unmarshal(data, &l.Text)
+	}
+	var v struct {
+		ID   string `json:"id"`
+		Text string `json:"text"`
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&v); err != nil {
+		return err
+	}
+	l.ID, l.Text = v.ID, v.Text
+	return nil
+}
+
+func splitDialogue(lines []jsonDialogueLine) (texts, ids []string) {
+	if lines == nil {
+		return nil, nil
+	}
+	texts = make([]string, len(lines))
+	ids = make([]string, len(lines))
+	for i, l := range lines {
+		texts[i], ids[i] = l.Text, l.ID
+	}
+	return texts, ids
+}
+
 type jsonInteractionOption struct {
+	ID   string `json:"id"`
 	Text string `json:"text"`
 	// ⚑ BlockedLine is a TOMBSTONE, kept solely to reject it (Q1/R1, the
 	// `trigger` precedent above): a locked row is greyed with its wall named and
@@ -568,6 +619,7 @@ type jsonInteractionOption struct {
 }
 
 type jsonInteractionGrant struct {
+	ID            string `json:"id"`
 	Kind          string `json:"kind"`
 	Skill         string `json:"skill"`
 	RequiredLevel uint32 `json:"requiredLevel"`
@@ -674,7 +726,8 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		return nil, fmt.Errorf("mob %q: interaction.nodes must not be empty", m.Name)
 	}
 
-	in := &Interaction{Ambient: ji.Ambient, Range: ji.Range}
+	in := &Interaction{Range: ji.Range}
+	in.Ambient, in.AmbientIDs = splitDialogue(ji.Ambient)
 	ids := make(map[string]bool, len(ji.Nodes))
 	for i := range ji.Nodes {
 		jn := &ji.Nodes[i]
@@ -686,7 +739,8 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		}
 		ids[jn.ID] = true
 
-		node := InteractionNode{ID: jn.ID, Lines: jn.Lines}
+		node := InteractionNode{ID: jn.ID}
+		node.Lines, node.LineIDs = splitDialogue(jn.Lines)
 		if jn.Rows != "" {
 			kind, ok := ParseRowSourceKind(jn.Rows)
 			if !ok {
@@ -748,7 +802,7 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			if err := m.checkSchemaRoom(jn.ID, j, jo); err != nil {
 				return nil, err
 			}
-			opt := InteractionOption{Text: jo.Text, Next: jo.Next, LockedWhenGated: jo.LockedWhenGated}
+			opt := InteractionOption{ID: jo.ID, Text: jo.Text, Next: jo.Next, LockedWhenGated: jo.LockedWhenGated}
 			for k, jg := range jo.Grants {
 				kind, ok := ParseGrantKind(jg.Kind)
 				if !ok {
@@ -949,7 +1003,7 @@ func nodeByID(in *Interaction, id string) *InteractionNode {
 func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractionGrant,
 	sr skills.Registry, legacyRefs *[]string,
 ) (InteractionGrant, error) {
-	g := InteractionGrant{Kind: kind, RequiredLevel: jg.RequiredLevel, Line: jg.Line}
+	g := InteractionGrant{Kind: kind, RequiredLevel: jg.RequiredLevel, Line: jg.Line, LineID: jg.ID}
 
 	if kind != GrantTeachSkill && jg.Skill != "" {
 		return g, fmt.Errorf("%s: a %s grant hands over no skill — drop the `skill` key", where, kind)

@@ -26,13 +26,15 @@
       {
         "id": "root",
         "lines": [
-          "I work this field."
+          {"id": "04a305", "text": "I work this field."}
         ],
         "options": [
           {
+            "id": "139105",
             "text": "Eliza sends me.",
             "grants": [
               {
+                "id": "a31e87",
                 "kind": "advance_quest",
                 "quest": "eliza-sends-me",
                 "fromStage": "meet",
@@ -42,30 +44,37 @@
             ]
           },
           {
+            "id": "05e082",
             "text": "Do you have a task for me?",
             "next": "turnips"
           },
           {
+            "id": "d282fe",
             "text": "About the turnips...",
             "next": "turnips_running"
           },
           {
+            "id": "c34364",
             "text": "Anything else that needs doing?",
             "next": "boars"
           },
           {
+            "id": "99d677",
             "text": "About the boars...",
             "next": "boars_running"
           },
           {
+            "id": "cb5409",
             "text": "Anything in the barn?",
             "next": "rats"
           },
           {
+            "id": "8f11a7",
             "text": "About the rats in the barn...",
             "next": "rats_running"
           },
           {
+            "id": "c8cb0a",
             "text": "Teach me something.",
             "next": "teachings"
           }
@@ -74,14 +83,16 @@
       {
         "id": "turnips",
         "lines": [
-          "Harvest 5 turnips from the row north of here, then come back to me.",
-          "You need the Harvest skill for that — ask me to teach you first."
+          {"id": "97dc0a", "text": "Harvest 5 turnips from the row north of here, then come back to me."},
+          {"id": "c97433", "text": "You need the Harvest skill for that — ask me to teach you first."}
         ],
         "options": [
           {
+            "id": "3828a7",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "6defa1",
                 "kind": "offer_quest",
                 "quest": "turnip-chore",
                 "line": "Good."
@@ -93,13 +104,15 @@
       {
         "id": "turnips_running",
         "lines": [
-          "The turnips?"
+          {"id": "2ddf07", "text": "The turnips?"}
         ],
         "options": [
           {
+            "id": "afc21b",
             "text": "I harvested the 5 turnips.",
             "grants": [
               {
+                "id": "776653",
                 "kind": "advance_quest",
                 "quest": "turnip-chore",
                 "fromStage": "handover",
@@ -107,6 +120,7 @@
                 "line": "Good."
               },
               {
+                "id": "116a0c",
                 "kind": "grant_xp",
                 "xp": 150,
                 "line": "Here is your reward."
@@ -114,6 +128,7 @@
             ]
           },
           {
+            "id": "0b80d4",
             "text": "I am on it.",
             "next": "turnips_on_it"
           }
@@ -129,19 +144,21 @@
           }
         ],
         "lines": [
-          "Harvest 5 turnips from the row north of here, then come back to me."
+          {"id": "72ac4c", "text": "Harvest 5 turnips from the row north of here, then come back to me."}
         ]
       },
       {
         "id": "boars",
         "lines": [
-          "Kill 6 boars in the fields around the farm, then come back to me."
+          {"id": "b73074", "text": "Kill 6 boars in the fields around the farm, then come back to me."}
         ],
         "options": [
           {
+            "id": "c9c459",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "65015e",
                 "kind": "offer_quest",
                 "quest": "boars-in-the-field",
                 "line": "Good."
@@ -153,13 +170,15 @@
       {
         "id": "boars_running",
         "lines": [
-          "The boars?"
+          {"id": "ac4005", "text": "The boars?"}
         ],
         "options": [
           {
+            "id": "cbec19",
             "text": "I killed the 6 boars.",
             "grants": [
               {
+                "id": "8d64a7",
                 "kind": "advance_quest",
                 "quest": "boars-in-the-field",
                 "fromStage": "report",
@@ -167,6 +186,7 @@
                 "line": "Good."
               },
               {
+                "id": "6bfb26",
                 "kind": "grant_xp",
                 "xp": 180,
                 "line": "Here is your reward."
@@ -174,6 +194,7 @@
             ]
           },
           {
+            "id": "4d2292",
             "text": "I am on it.",
             "next": "boars_on_it"
           }
@@ -189,20 +210,22 @@
           }
         ],
         "lines": [
-          "Kill 6 boars in the fields around the farm, then come back to me."
+          {"id": "323343", "text": "Kill 6 boars in the fields around the farm, then come back to me."}
         ]
       },
       {
         "id": "rats",
         "lines": [
-          "Giant rats in my barn. They are not shy and they do not run.",
-          "Kill 8 of them in there, then come back to me."
+          {"id": "1fb999", "text": "Giant rats in my barn. They are not shy and they do not run."},
+          {"id": "cd7ad7", "text": "Kill 8 of them in there, then come back to me."}
         ],
         "options": [
           {
+            "id": "2f6d6c",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "f4bf74",
                 "kind": "offer_quest",
                 "quest": "giant-rats-in-the-barn",
                 "line": "Good."
@@ -214,13 +237,15 @@
       {
         "id": "rats_running",
         "lines": [
-          "The rats?"
+          {"id": "2103cb", "text": "The rats?"}
         ],
         "options": [
           {
+            "id": "5e8ae6",
             "text": "I killed the 8 rats.",
             "grants": [
               {
+                "id": "16c5fd",
                 "kind": "advance_quest",
                 "quest": "giant-rats-in-the-barn",
                 "fromStage": "report",
@@ -228,6 +253,7 @@
                 "line": "Good."
               },
               {
+                "id": "c8da7f",
                 "kind": "grant_xp",
                 "xp": 180,
                 "line": "Here is your reward."
@@ -235,10 +261,12 @@
             ]
           },
           {
+            "id": "ee60a8",
             "text": "I am on it.",
             "next": "rats_on_it"
           },
           {
+            "id": "e25ba3",
             "text": "Tell me more about rats.",
             "next": "rats_more"
           }
@@ -254,7 +282,7 @@
           }
         ],
         "lines": [
-          "Kill 8 of them in there, then come back to me."
+          {"id": "53fbd5", "text": "Kill 8 of them in there, then come back to me."}
         ]
       },
       {
@@ -267,19 +295,21 @@
           }
         ],
         "lines": [
-          "They came in with the grain sacks. Big as a cat, and they bite."
+          {"id": "cea9d0", "text": "They came in with the grain sacks. Big as a cat, and they bite."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "0a8ca4", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "e590bc",
             "text": "Harvest",
             "grants": [
               {
+                "id": "354e89",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1,

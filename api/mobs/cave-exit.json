@@ -26,14 +26,16 @@
       {
         "id": "root",
         "lines": [
-          "A narrow shaft, and daylight at the top of it.",
-          "The climb looks manageable."
+          {"id": "57575d", "text": "A narrow shaft, and daylight at the top of it."},
+          {"id": "0c8ba3", "text": "The climb looks manageable."}
         ],
         "options": [
           {
+            "id": "60126e",
             "text": "Climb up.",
             "grants": [
               {
+                "id": "2bdf06",
                 "kind": "travel_to",
                 "mode": "anchor",
                 "line": "You climb back into the light."

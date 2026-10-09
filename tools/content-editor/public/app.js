@@ -204,7 +204,7 @@ function createNewNpc() {
     factors: { baseMaxHealth: 200, xpFactor: 0, speed: 0 },
     body: { radius: 0.35, collisionLayer: 97, collisionMask: 16, aggroRadius: 1.0 },
     skills: [],
-    interaction: { range: 2, ambient: [], nodes: [{ id: 'root', lines: ["TODO: write this NPC's opening line."], options: [] }] },
+    interaction: { range: 2, ambient: [], nodes: [{ id: 'root', lines: keepLineIds([], ["TODO: write this NPC's opening line."]), options: [] }] },
   };
   const entry = { file, raw, isNew: true };
   state.mobs.push(entry);
@@ -929,7 +929,7 @@ function dialogueTreeSection(mob, onChange) {
     col.body.appendChild(el('button', {
       class: 'primary',
       onclick: () => {
-        mob.interaction = { range: 2, ambient: [], nodes: [{ id: 'root', lines: ["TODO: write this NPC's opening line."], options: [] }] };
+        mob.interaction = { range: 2, ambient: [], nodes: [{ id: 'root', lines: keepLineIds([], ["TODO: write this NPC's opening line."]), options: [] }] };
         renderEditor();
       },
     }, '+ Add dialogue tree'));
@@ -939,8 +939,8 @@ function dialogueTreeSection(mob, onChange) {
   const inter = mob.interaction;
   col.body.appendChild(el('div', { class: 'top-fields' }, [
     field('Range', numberInput(inter.range ?? 0, (v) => { inter.range = v; onChange(); })),
-    field('Ambient (one hail per line)', textArea((inter.ambient || []).join('\n'), (v) => {
-      inter.ambient = splitLines(v); onChange();
+    field('Ambient (one hail per line)', textArea(lineTexts(inter.ambient), (v) => {
+      inter.ambient = keepLineIds(inter.ambient, splitLines(v)); onChange();
     }, 'lines-textarea')),
   ]));
 
@@ -996,7 +996,7 @@ function dialogueTreeSection(mob, onChange) {
 
     card.appendChild(el('div', { class: 'subsection' }, [
       el('label', { text: 'Lines' }),
-      textArea((node.lines || []).join('\n'), (v) => { node.lines = splitLines(v); onChange(); }, 'lines-textarea'),
+      textArea(lineTexts(node.lines), (v) => { node.lines = keepLineIds(node.lines, splitLines(v)); onChange(); }, 'lines-textarea'),
     ]));
 
     if (node.rows === 'ascension_catalog') {
@@ -1014,7 +1014,7 @@ function dialogueTreeSection(mob, onChange) {
         el('div', { class: 'subsection-title', text: 'Options' }),
         options.length ? colHeaders([{ label: 'Text', cls: 'col-flex' }, { label: 'Next', cls: 'col-fixed-lg' }]) : null,
         optsCol,
-        el('button', { class: 'add-row', onclick: () => { node.options = node.options || []; node.options.push({ text: '', next: '', grants: [] }); rerenderNodes(); } }, '+ Add option'),
+        el('button', { class: 'add-row', onclick: () => { node.options = node.options || []; node.options.push({ id: newLineId(), text: '', next: '', grants: [] }); rerenderNodes(); } }, '+ Add option'),
       ]));
     }
 
@@ -1048,7 +1048,7 @@ function optionCard(mob, inter, node, opt, ni, oi, nodeIds, onChange, onStructur
   if (grants.length) {
     grantsCol.before(colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }, { label: 'Line', cls: 'col-flex' }]));
   }
-  card.appendChild(el('button', { class: 'add-row', onclick: () => { opt.grants = opt.grants || []; opt.grants.push({ kind: 'teach_skill', line: '' }); onStructuralChange(); } }, '+ Add grant'));
+  card.appendChild(el('button', { class: 'add-row', onclick: () => { opt.grants = opt.grants || []; opt.grants.push({ id: newLineId(), kind: 'teach_skill', line: '' }); onStructuralChange(); } }, '+ Add grant'));
   return card;
 }
 
@@ -2968,6 +2968,33 @@ function select(options, value, onChange, labelFn, cls) {
 // claiming an alignment that isn't there.
 function colHeaders(cells) {
   return el('div', { class: 'col-headers' }, cells.map((c) => el('span', { class: c.cls || '', text: c.label })));
+}
+// plan-localization.md D20 / L19: a dialogue line is {id, text}, and its id is
+// what its German translation hangs on, so a save must never drop or re-mint
+// one. The textarea shows the texts; on edit, a line keeps the id of the old
+// line with the same text, else the id at its position (an edit in place),
+// and only a genuinely new line gets a fresh id.
+function newLineId() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(3)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function lineTexts(lines) {
+  return (lines || []).map((l) => (typeof l === 'string' ? l : l.text)).join('\n');
+}
+function keepLineIds(old, texts) {
+  const prev = (old || []).map((l) => (typeof l === 'string' ? {id: '', text: l} : l));
+  const used = new Set();
+  const byText = new Map();
+  prev.forEach((l, i) => { if (!byText.has(l.text)) byText.set(l.text, i); });
+  const out = texts.map((text) => {
+    const i = byText.get(text);
+    if (i !== undefined && prev[i].id && !used.has(prev[i].id)) { used.add(prev[i].id); return {id: prev[i].id, text}; }
+    return {id: '', text};
+  });
+  out.forEach((l, i) => {
+    if (!l.id && prev[i] && prev[i].id && !used.has(prev[i].id)) { used.add(prev[i].id); l.id = prev[i].id; }
+    if (!l.id) l.id = newLineId();
+  });
+  return out;
 }
 function splitLines(v) {
   const lines = v.split('\n');

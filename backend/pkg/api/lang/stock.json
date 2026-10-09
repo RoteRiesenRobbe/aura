@@ -1,0 +1,12 @@
+{
+  "_comment": "Shared stock phrases (plan-localization.md §8, PO 2026-10-07): a dialogue line whose English matches one EXACTLY falls back to the phrase's German when it has none of its own. A line keeps its own id; its own German overrides (one NPC's voice). Names are descriptive and never change.",
+  "good": "Good.",
+  "quest-accept": "I'll do it.",
+  "quest-progress": "I am on it.",
+  "quest-reward": "Here is your reward.",
+  "ask-task": "Do you have a task for me?",
+  "ask-teach": "Teach me something.",
+  "offer-teach": "What do you want to learn?",
+  "show-rewards": "Show me the rewards.",
+  "which-root": "Which root was it again?"
+}

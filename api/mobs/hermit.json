@@ -25,24 +25,26 @@
       {
         "id": "root",
         "lines": [
-          "What do you need?"
+          {"id": "4e20aa", "text": "What do you need?"}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "welcome" },
-          { "text": "About the village...", "next": "welcome_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "af7e39", "text": "Do you have a task for me?", "next": "welcome" },
+          { "id": "10c5f5", "text": "About the village...", "next": "welcome_running" },
+          { "id": "e700fe", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          "Talk to Reinhard and the Town Crier, then come back to me."
+          {"id": "1fcacb", "text": "Talk to Reinhard and the Town Crier, then come back to me."}
         ],
         "options": [
           {
+            "id": "6fd054",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "eb6918",
                 "kind": "offer_quest",
                 "quest": "village-welcome",
                 "line": "Good."
@@ -54,13 +56,15 @@
       {
         "id": "welcome_running",
         "lines": [
-          "The village?"
+          {"id": "ff69ff", "text": "The village?"}
         ],
         "options": [
           {
+            "id": "631eb2",
             "text": "I talked to Reinhard and the Town Crier.",
             "grants": [
               {
+                "id": "458d56",
                 "kind": "advance_quest",
                 "quest": "village-welcome",
                 "fromStage": "back",
@@ -68,6 +72,7 @@
                 "line": "Good."
               },
               {
+                "id": "13eeb1",
                 "kind": "grant_xp",
                 "xp": 150,
                 "line": "Here is your reward."
@@ -75,6 +80,7 @@
             ]
           },
           {
+            "id": "ff87a4",
             "text": "I am on it.",
             "next": "welcome_on_it"
           }
@@ -90,19 +96,21 @@
           }
         ],
         "lines": [
-          "Talk to Reinhard and the Town Crier, then come back to me."
+          {"id": "2979bb", "text": "Talk to Reinhard and the Town Crier, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "8af3bf", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "225ce5",
             "text": "First Aid",
             "grants": [
               {
+                "id": "acd3e8",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2,
@@ -111,9 +119,11 @@
             ]
           },
           {
+            "id": "14bd6b",
             "text": "Heal",
             "grants": [
               {
+                "id": "96bdac",
                 "kind": "teach_skill",
                 "skill": "Heal",
                 "requiredLevel": 3,
@@ -122,9 +132,11 @@
             ]
           },
           {
+            "id": "712422",
             "text": "Calm",
             "grants": [
               {
+                "id": "9dee2f",
                 "kind": "teach_skill",
                 "skill": "Calm",
                 "requiredLevel": 10,
@@ -133,9 +145,11 @@
             ]
           },
           {
+            "id": "0e534e",
             "text": "Charm Beast",
             "grants": [
               {
+                "id": "f280ef",
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
                 "requiredLevel": 10,

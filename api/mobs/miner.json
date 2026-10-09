@@ -25,25 +25,27 @@
       {
         "id": "root",
         "lines": [
-          "The tunnel is overrun."
+          {"id": "3c2550", "text": "The tunnel is overrun."}
         ],
         "options": [
-          { "text": "What happened down there?", "next": "tunnel" },
-          { "text": "Do you have a task for me?", "next": "spiders" },
-          { "text": "About the spiders...", "next": "spiders_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "09bf53", "text": "What happened down there?", "next": "tunnel" },
+          { "id": "9ec9c0", "text": "Do you have a task for me?", "next": "spiders" },
+          { "id": "a6f0f6", "text": "About the spiders...", "next": "spiders_running" },
+          { "id": "f512a9", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "spiders",
         "lines": [
-          "Kill 6 spiders in the tunnel diggings, then come back to me."
+          {"id": "d712bb", "text": "Kill 6 spiders in the tunnel diggings, then come back to me."}
         ],
         "options": [
           {
+            "id": "9c2faa",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "af4219",
                 "kind": "offer_quest",
                 "quest": "spiders-in-the-diggings",
                 "line": "Good."
@@ -55,13 +57,15 @@
       {
         "id": "spiders_running",
         "lines": [
-          "The spiders?"
+          {"id": "a6df92", "text": "The spiders?"}
         ],
         "options": [
           {
+            "id": "ed1385",
             "text": "I killed the 6 spiders.",
             "grants": [
               {
+                "id": "06db0a",
                 "kind": "advance_quest",
                 "quest": "spiders-in-the-diggings",
                 "fromStage": "report",
@@ -69,6 +73,7 @@
                 "line": "Good."
               },
               {
+                "id": "e74eb8",
                 "kind": "grant_xp",
                 "xp": 930,
                 "line": "Here is your reward."
@@ -76,6 +81,7 @@
             ]
           },
           {
+            "id": "9f24ab",
             "text": "I am on it.",
             "next": "spiders_on_it"
           }
@@ -91,19 +97,21 @@
           }
         ],
         "lines": [
-          "Kill 6 spiders in the tunnel diggings, then come back to me."
+          {"id": "7dd341", "text": "Kill 6 spiders in the tunnel diggings, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "588445", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "cde0c7",
             "text": "Pickaxe",
             "grants": [
               {
+                "id": "8107fc",
                 "kind": "teach_skill",
                 "skill": "Pickaxe",
                 "requiredLevel": 4,
@@ -116,7 +124,7 @@
       {
         "id": "tunnel",
         "lines": [
-          "First the Kobolds, now the Spiders. Things are getting worse every day."
+          {"id": "88715e", "text": "First the Kobolds, now the Spiders. Things are getting worse every day."}
         ]
       }
     ]

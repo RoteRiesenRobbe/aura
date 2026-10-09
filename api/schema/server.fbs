@@ -766,12 +766,43 @@ table ConversationOption {
   // ⚑ A ubyte rather than a bool, with 0 = none so the default is the inert
   // one — the grant_index = 255 convention above. Appended at the table end.
   travel:ubyte = 0;
+  // --- plan-localization.md C3 (D20), appended: the client words the row. ---
+  // The stable id of the authored label / reply line: the client looks it up
+  // in the /lang bundle as conv.<id>. Empty = no authored text (a teach row
+  // labelled by its skill, a generated row).
+  text_id:string;
+  reply_id:string;
+  // A UI-catalog key for a row the server synthesizes (the ascension stone's
+  // rows); its one argument, {skill}, is the skill_id's localized name.
+  text_key:string;
+  reply_key:string;
+  // Why a locked row is locked, as data: the client words each reason and
+  // joins them with Intl.ListFormat, "and" or "or" by locks_any (the gate's
+  // conditionsMode). text stays the server's English for an old client.
+  locks:[ConversationLock];
+  locks_any:bool = false;
+}
+
+enum ConversationLockKind:ubyte { MinLevel = 0, Ascensions = 1, QuestAtStage = 2, QuestComplete = 3, Kills = 4, TravelClosed = 5, Unknown = 255 }
+
+// One reason a row is locked. value/have are the threshold and the player's
+// count; quest + stage name a quest condition (ids); species is a MobID.
+table ConversationLock {
+  kind:ConversationLockKind = Unknown;
+  value:uint;
+  have:uint;
+  quest:string;
+  stage:string;
+  species:ulong;
 }
 
 table ConversationNode {
   id:string;
   lines:[string];
   options:[ConversationOption];
+  // C3 (D20), appended: each line's stable id, parallel to lines; the client
+  // shows conv.<id> from the /lang bundle, lines as the fallback.
+  line_ids:[string];
 }
 
 table Conversation {

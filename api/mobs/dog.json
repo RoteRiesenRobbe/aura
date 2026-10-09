@@ -26,22 +26,24 @@
       {
         "id": "root",
         "lines": [
-          "Woof."
+          {"id": "aba989", "text": "Woof."}
         ],
         "options": [
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "00dd17", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "Woof?"
+          {"id": "2668da", "text": "Woof?"}
         ],
         "options": [
           {
+            "id": "5d9171",
             "text": "Summon Companion",
             "grants": [
               {
+                "id": "c5038b",
                 "kind": "teach_skill",
                 "skill": "SummonCompanion",
                 "line": "Woof!"

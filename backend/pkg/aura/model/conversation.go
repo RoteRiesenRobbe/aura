@@ -65,7 +65,31 @@ type Conversation struct {
 type ConversationNode struct {
 	ID      string
 	Lines   []string
+	LineIDs []string // plan-localization.md D20, parallel to Lines
 	Options []ConversationOption
+}
+
+// LockKind mirrors AuraApi.ConversationLockKind (pinned in codec).
+type LockKind uint8
+
+const (
+	LockMinLevel      LockKind = 0
+	LockAscensions    LockKind = 1
+	LockQuestAtStage  LockKind = 2
+	LockQuestComplete LockKind = 3
+	LockKills         LockKind = 4
+	LockTravelClosed  LockKind = 5
+	LockUnknown       LockKind = 255
+)
+
+// LockReason is one reason a row is locked, as data the client words
+// (plan-localization.md C3): never a composed sentence.
+type LockReason struct {
+	Kind        LockKind
+	Value, Have uint32
+	Quest       string
+	Stage       string
+	Species     uint64
 }
 
 // ConversationOption is one row — the only interactive element in the whole
@@ -122,4 +146,11 @@ type ConversationOption struct {
 	// door is still a door. The client never starts a transition from a locked
 	// row because it gives locked rows no handler at all.
 	Travel TravelDirection
+	// plan-localization.md C3: how the client words the row. TextID/ReplyID are
+	// the authored strings' stable ids (D20); TextKey/ReplyKey are UI keys for a
+	// synthesized row; Locks/LocksAny say why a locked row is locked.
+	TextID, ReplyID   string
+	TextKey, ReplyKey string
+	Locks             []LockReason
+	LocksAny          bool
 }

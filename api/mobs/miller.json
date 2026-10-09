@@ -26,27 +26,29 @@
       {
         "id": "root",
         "lines": [
-          "I grind what the farm brings me, when the farm brings me anything."
+          {"id": "ab1383", "text": "I grind what the farm brings me, when the farm brings me anything."}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "sounder" },
-          { "text": "About the boars at the mill...", "next": "sounder_running" },
-          { "text": "Anything else?", "next": "ring" },
-          { "text": "About your ring...", "next": "ring_running" }
+          { "id": "b04930", "text": "Do you have a task for me?", "next": "sounder" },
+          { "id": "9dc5b0", "text": "About the boars at the mill...", "next": "sounder_running" },
+          { "id": "dea7f5", "text": "Anything else?", "next": "ring" },
+          { "id": "2de13c", "text": "About your ring...", "next": "ring_running" }
         ]
       },
       {
         "id": "ring",
         "lines": [
-          "I lost my heirloom, my wedding ring, on the beach north of the farmland.",
-          "For many days I have looked for it. The thick seaweed from the last tide makes it hard to see.",
-          "Please, help me search for it before my wife takes notice."
+          {"id": "e06023", "text": "I lost my heirloom, my wedding ring, on the beach north of the farmland."},
+          {"id": "792a50", "text": "For many days I have looked for it. The thick seaweed from the last tide makes it hard to see."},
+          {"id": "6ca039", "text": "Please, help me search for it before my wife takes notice."}
         ],
         "options": [
           {
+            "id": "828aa5",
             "text": "I'll look for it.",
             "grants": [
               {
+                "id": "d80928",
                 "kind": "offer_quest",
                 "quest": "the-millers-ring",
                 "line": "Thank you."
@@ -58,13 +60,15 @@
       {
         "id": "ring_running",
         "lines": [
-          "My ring?"
+          {"id": "727f53", "text": "My ring?"}
         ],
         "options": [
           {
+            "id": "f31bda",
             "text": "I found your ring.",
             "grants": [
               {
+                "id": "5f80f0",
                 "kind": "advance_quest",
                 "quest": "the-millers-ring",
                 "fromStage": "return",
@@ -72,6 +76,7 @@
                 "line": "That's it. Thank you."
               },
               {
+                "id": "9df3aa",
                 "kind": "grant_xp",
                 "xp": 216,
                 "line": "Here is your reward."
@@ -79,6 +84,7 @@
             ]
           },
           {
+            "id": "73a61d",
             "text": "I am on it.",
             "next": "ring_on_it"
           }
@@ -94,21 +100,23 @@
           }
         ],
         "lines": [
-          "On the beach north of the farmland. Look under the seaweed."
+          {"id": "2b2bb8", "text": "On the beach north of the farmland. Look under the seaweed."}
         ]
       },
       {
         "id": "sounder",
         "lines": [
-          "A sounder of boars has settled by the mill and I cannot work around them.",
-          "The big one leads them. Kill it and the rest will scatter.",
-          "It is bigger than anything else in this zone. Do not take it lightly."
+          {"id": "90eec0", "text": "A sounder of boars has settled by the mill and I cannot work around them."},
+          {"id": "75cc6c", "text": "The big one leads them. Kill it and the rest will scatter."},
+          {"id": "0d65f1", "text": "It is bigger than anything else in this zone. Do not take it lightly."}
         ],
         "options": [
           {
+            "id": "5ff586",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "5a7150",
                 "kind": "offer_quest",
                 "quest": "the-sounder-at-the-mill",
                 "line": "Good."
@@ -120,13 +128,15 @@
       {
         "id": "sounder_running",
         "lines": [
-          "The sounder?"
+          {"id": "25ad5d", "text": "The sounder?"}
         ],
         "options": [
           {
+            "id": "a29d11",
             "text": "I killed the alpha boar.",
             "grants": [
               {
+                "id": "8ca889",
                 "kind": "advance_quest",
                 "quest": "the-sounder-at-the-mill",
                 "fromStage": "report",
@@ -134,6 +144,7 @@
                 "line": "Good."
               },
               {
+                "id": "4ee53f",
                 "kind": "grant_xp",
                 "xp": 370,
                 "line": "Here is your reward."
@@ -141,6 +152,7 @@
             ]
           },
           {
+            "id": "ae8603",
             "text": "I am on it.",
             "next": "sounder_on_it"
           }
@@ -156,7 +168,7 @@
           }
         ],
         "lines": [
-          "Kill the big one by the mill. The rest will scatter."
+          {"id": "b099c6", "text": "Kill the big one by the mill. The rest will scatter."}
         ]
       }
     ]

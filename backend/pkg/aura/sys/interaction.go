@@ -1,8 +1,8 @@
 package sys
 
 import (
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"strings"
 
 	"github.com/EngoEngine/ecs"
@@ -599,7 +599,7 @@ func (s *InteractionSystem) sense() {
 			// described does both and the retired single-valued `trigger`
 			// could express only one of them.
 			if ambient := a.Interaction().Ambient; len(ambient) > 0 {
-				speakToSensor(a, ambient)
+				speakToSensor(a, ambient, a.Interaction().AmbientIDs)
 			}
 		}
 		s.seen[id] = current
@@ -778,8 +778,8 @@ func (s *InteractionSystem) actorByID(id uint64) Conversant {
 // the text already rode the streamed tree and the panel spoke it locally. So the
 // fan-out survived the thing it was contrasted against, and public is now the
 // only audience there is.
-func speakToSensor(a Conversant, lines []string) {
-	bytes := marshalSay(a, lines)
+func speakToSensor(a Conversant, lines, ids []string) {
+	bytes := marshalSay(a, lines, ids)
 	for c := range a.Sensor().Collisions() {
 		p, ok := c.Shape().UserData.(model.PlayerEntity)
 		if !ok {
@@ -804,9 +804,16 @@ func sayToPlayer(p model.PlayerEntity, line string) {
 	p.Client().SendMessage(builder.FinishedBytes())
 }
 
-func marshalSay(a Conversant, lines []string) []byte {
+// marshalSay sends the lines keyed by their stable ids (plan-localization.md
+// C3): the client shows each conv.<id> from its /lang bundle, the English as
+// the fallback. Lines without ids (test fixtures) go out unkeyed.
+func marshalSay(a Conversant, lines, ids []string) []byte {
 	builder := flatbuffers.NewBuilder(64)
-	entityMessage := codec.EntityMessageFlatbufMarshal(builder, a.Basic().ID(), strings.Join(lines, "\n"), AuraApi.EntityMessageKindChat)
+	m := lang.Literal(strings.Join(lines, "\n"))
+	if len(ids) == len(lines) && len(ids) > 0 && ids[0] != "" {
+		m.Key, m.Args = lang.KeyContentLines, []lang.Arg{lang.List("ids", ids)}
+	}
+	entityMessage := codec.KeyedEntityMessageFlatbufMarshal(builder, a.Basic().ID(), m, AuraApi.EntityMessageKindChat)
 	builder.Finish(entityMessage)
 	return builder.FinishedBytes()
 }
@@ -966,6 +973,7 @@ func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) 
 		c.Nodes = append(c.Nodes, model.ConversationNode{
 			ID:      node.ID,
 			Lines:   node.Lines,
+			LineIDs: node.LineIDs,
 			Options: byNode[node.ID],
 		})
 	}
@@ -1046,6 +1054,7 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 				OptionIndex: uint8(oi),
 				GrantIndex:  model.ConversationNoGrant,
 				Text:        opt.Text,
+				TextID:      opt.ID,
 				Next:        opt.Next,
 			})
 			continue
@@ -1070,8 +1079,10 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 				OptionIndex: uint8(oi),
 				GrantIndex:  0,
 				Text:        opt.Text,
+				TextID:      opt.ID,
 				Next:        opt.Next,
 				Reply:       opt.Grants[0].Line,
+				ReplyID:     opt.Grants[0].LineID,
 			})
 			continue
 		}
@@ -1103,9 +1114,9 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 			// the greying and the named wall already carry the message, so a
 			// locked row rides with an empty Reply and applyTeach refuses it
 			// silently — the deliberate twin that keeps the two ends agreeing.
-			reply := g.Line
+			reply, replyID := g.Line, g.LineID
 			if locked {
-				reply = ""
+				reply, replyID = "", ""
 			}
 			// An authored label wins; otherwise the skill names its own row.
 			// Several grants under one authored Text would all read alike, so
@@ -1118,9 +1129,10 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 			// defect (plan-ascension.md §13.8) in its second home; it was latent
 			// only because no NPC yet teaches one of the five skills that
 			// author one.
-			text := opt.Text
+			text, textID := opt.Text, opt.ID
 			if text == "" || len(opt.Grants) > 1 {
-				text = g.Skill.Display()
+				// The client names it from SkillID in its own language.
+				text, textID = g.Skill.Display(), ""
 			}
 			rows = append(rows, model.ConversationOption{
 				OptionIndex:   uint8(oi),
@@ -1130,6 +1142,8 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 				Locked:        locked,
 				RequiredLevel: uint8(min(g.RequiredLevel, 255)),
 				Reply:         reply,
+				TextID:        textID,
+				ReplyID:       replyID,
 				// ⚑ Set on the LOCKED row too, the same rule the ascension
 				// catalog follows: a wall is only worth naming if the player can
 				// read what is behind it (plan-ascension.md §13.9).
@@ -1163,6 +1177,8 @@ func travelRow(oi, gi int, opt *mobs.InteractionOption, g *mobs.InteractionGrant
 			OptionIndex: uint8(oi),
 			GrantIndex:  uint8(gi),
 			Text:        fmt.Sprintf("%s - locked: %s", opt.Text, travelClosedReason),
+			TextID:      opt.ID,
+			Locks:       []model.LockReason{{Kind: model.LockTravelClosed}},
 			Locked:      true,
 		}
 	}
@@ -1170,7 +1186,9 @@ func travelRow(oi, gi int, opt *mobs.InteractionOption, g *mobs.InteractionGrant
 		OptionIndex: uint8(oi),
 		GrantIndex:  uint8(gi),
 		Text:        opt.Text,
+		TextID:      opt.ID,
 		Reply:       g.Line,
+		ReplyID:     g.LineID,
 		// ⭐ THE ONE PLACE THE DIRECTION IS SET, and it is derived rather than
 		// authored (D7): every travel_to row in the game passes through here, so
 		// both ends of a passage get the right way round with nothing to author
@@ -1219,6 +1237,9 @@ func lockedGateRow(in *mobs.Interaction, index int, opt *mobs.InteractionOption,
 		OptionIndex: uint8(index),
 		GrantIndex:  model.ConversationNoGrant,
 		Text:        fmt.Sprintf("%s - locked: %s", opt.Text, describeConditions(dest.Gate, p)),
+		TextID:      opt.ID,
+		Locks:       lockReasons(dest.Gate, p),
+		LocksAny:    dest.Gate.Mode == mobs.ConditionModeAny,
 		Locked:      true,
 	}, true
 }

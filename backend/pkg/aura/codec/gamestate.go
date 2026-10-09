@@ -285,6 +285,37 @@ func SpellbookLevelsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffe
 // tree bottom-up — option strings, then option tables, then the option vector,
 // then the node's own strings, then the node table. Must itself be called
 // before GameStateStart, like every other vector here.
+// lockReasonsFlatbuf writes a locked row's reasons (plan-localization.md C3).
+func lockReasonsFlatbuf(builder *flatbuffers.Builder, reasons []model.LockReason) flatbuffers.UOffsetT {
+	offsets := make([]flatbuffers.UOffsetT, len(reasons))
+	for i, r := range reasons {
+		var quest, stage flatbuffers.UOffsetT
+		if r.Quest != "" {
+			quest = builder.CreateString(r.Quest)
+		}
+		if r.Stage != "" {
+			stage = builder.CreateString(r.Stage)
+		}
+		AuraApi.ConversationLockStart(builder)
+		AuraApi.ConversationLockAddKind(builder, AuraApi.ConversationLockKind(r.Kind))
+		AuraApi.ConversationLockAddValue(builder, r.Value)
+		AuraApi.ConversationLockAddHave(builder, r.Have)
+		if quest != 0 {
+			AuraApi.ConversationLockAddQuest(builder, quest)
+		}
+		if stage != 0 {
+			AuraApi.ConversationLockAddStage(builder, stage)
+		}
+		AuraApi.ConversationLockAddSpecies(builder, r.Species)
+		offsets[i] = AuraApi.ConversationLockEnd(builder)
+	}
+	AuraApi.ConversationOptionStartLocksVector(builder, len(offsets))
+	for k := len(offsets) - 1; k >= 0; k-- {
+		builder.PrependUOffsetT(offsets[k])
+	}
+	return builder.EndVector(len(offsets))
+}
+
 func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if c == nil {
 		return 0
@@ -300,6 +331,22 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			text := builder.CreateString(opt.Text)
 			next := builder.CreateString(opt.Next)
 			reply := builder.CreateString(opt.Reply)
+			var textID, replyID, textKey, replyKey, locks flatbuffers.UOffsetT
+			if opt.TextID != "" {
+				textID = builder.CreateString(opt.TextID)
+			}
+			if opt.ReplyID != "" {
+				replyID = builder.CreateString(opt.ReplyID)
+			}
+			if opt.TextKey != "" {
+				textKey = builder.CreateString(opt.TextKey)
+			}
+			if opt.ReplyKey != "" {
+				replyKey = builder.CreateString(opt.ReplyKey)
+			}
+			if len(opt.Locks) > 0 {
+				locks = lockReasonsFlatbuf(builder, opt.Locks)
+			}
 
 			AuraApi.ConversationOptionStart(builder)
 			AuraApi.ConversationOptionAddOptionIndex(builder, opt.OptionIndex)
@@ -316,6 +363,22 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			// slots, and TravelNone is 0. That is why it is appended LAST — the
 			// Resource.rotation precedent, one table over.
 			AuraApi.ConversationOptionAddTravel(builder, byte(opt.Travel))
+			if textID != 0 {
+				AuraApi.ConversationOptionAddTextId(builder, textID)
+			}
+			if replyID != 0 {
+				AuraApi.ConversationOptionAddReplyId(builder, replyID)
+			}
+			if textKey != 0 {
+				AuraApi.ConversationOptionAddTextKey(builder, textKey)
+			}
+			if replyKey != 0 {
+				AuraApi.ConversationOptionAddReplyKey(builder, replyKey)
+			}
+			if locks != 0 {
+				AuraApi.ConversationOptionAddLocks(builder, locks)
+				AuraApi.ConversationOptionAddLocksAny(builder, opt.LocksAny)
+			}
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))
@@ -336,11 +399,27 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 		}
 		lines := builder.EndVector(len(lineOffsets))
 
+		var lineIDs flatbuffers.UOffsetT
+		if len(node.LineIDs) > 0 {
+			idOffsets := make([]flatbuffers.UOffsetT, len(node.LineIDs))
+			for k, lineID := range node.LineIDs {
+				idOffsets[k] = builder.CreateString(lineID)
+			}
+			AuraApi.ConversationNodeStartLineIdsVector(builder, len(idOffsets))
+			for k := len(idOffsets) - 1; k >= 0; k-- {
+				builder.PrependUOffsetT(idOffsets[k])
+			}
+			lineIDs = builder.EndVector(len(idOffsets))
+		}
+
 		id := builder.CreateString(node.ID)
 		AuraApi.ConversationNodeStart(builder)
 		AuraApi.ConversationNodeAddId(builder, id)
 		AuraApi.ConversationNodeAddLines(builder, lines)
 		AuraApi.ConversationNodeAddOptions(builder, options)
+		if lineIDs != 0 {
+			AuraApi.ConversationNodeAddLineIds(builder, lineIDs)
+		}
 		nodeOffsets = append(nodeOffsets, AuraApi.ConversationNodeEnd(builder))
 	}
 

@@ -35,7 +35,7 @@ var langDomains = []struct {
 
 // langEntries extracts every domain's entries. Findings name authored text
 // that would not survive as ICU (L14), by domain and key.
-func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lang.Entry, []string) {
+func langEntries(c loadedContent, zoneNames map[string]string, stock map[string]string) (map[string][]lang.Entry, []string) {
 	out := map[string][]lang.Entry{}
 	var findings []string
 	add := func(domain string, e lang.Entry, allowed ...string) {
@@ -96,6 +96,16 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 				add("mobs", lang.Entry{Key: lang.MobNamePlural(d.Name), Text: d.NamePlural,
 					Description: fmt.Sprintf("Plural name of the %s, used by kill/harvest objective lines (Q2): \"3/8 <plural> slain\". Nominative plural.", d.Name)})
 			}
+		}
+	}
+
+	if c.mobs != nil {
+		mobDefs := c.mobs.Mobs()
+		sort.Slice(mobDefs, func(i, j int) bool { return mobDefs[i].Name < mobDefs[j].Name })
+		dialogue, dialogueFindings := dialogueEntries(mobDefs, stock)
+		findings = append(findings, dialogueFindings...)
+		for _, e := range dialogue {
+			add("mobs", e)
 		}
 	}
 
@@ -179,6 +189,9 @@ func langBundleHandler(b *lang.Bundle, entries map[string][]lang.Entry) (http.Ha
 				continue
 			}
 			for _, e := range entries[d.name] {
+				if strings.HasPrefix(e.Key, "mob.") {
+					continue // names ride /mobs
+				}
 				flat[e.Key] = tr(e.Key, e.Text)
 			}
 		}

@@ -33,27 +33,31 @@
           }
         ],
         "lines": [
-          "Come back in about a century, little walker. Tell me how your journey went."
+          {"id": "f8af32", "text": "Come back in about a century, little walker. Tell me how your journey went."}
         ]
       },
       {
         "id": "root",
         "lines": [
-          "Ah. A little walker. You move so... quickly."
+          {"id": "b35c04", "text": "Ah. A little walker. You move so... quickly."}
         ],
         "options": [
           {
+            "id": "4cea71",
             "text": "Do you have a task for me?",
             "next": "grove_brief"
           },
           {
+            "id": "4beeb8",
             "text": "About the deadwood.",
             "next": "deadwood"
           },
           {
+            "id": "701a95",
             "text": "The grove is clear.",
             "grants": [
               {
+                "id": "7afefe",
                 "kind": "advance_quest",
                 "quest": "clear-the-grove",
                 "fromStage": "tidied",
@@ -61,6 +65,7 @@
                 "line": "Ah. I can breathe again."
               },
               {
+                "id": "4b5596",
                 "kind": "grant_xp",
                 "xp": 600,
                 "line": "Take this, little walker. Slowly. There is no hurry."
@@ -68,13 +73,16 @@
             ]
           },
           {
+            "id": "a45cf1",
             "text": "Do you have another task?",
             "next": "roots_brief"
           },
           {
+            "id": "c0a145",
             "text": "The root by the stream is awake.",
             "grants": [
               {
+                "id": "a54da9",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_one",
@@ -84,9 +92,11 @@
             ]
           },
           {
+            "id": "0c9bc4",
             "text": "The root by the stones is awake.",
             "grants": [
               {
+                "id": "b829ea",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_two",
@@ -96,9 +106,11 @@
             ]
           },
           {
+            "id": "1965dd",
             "text": "The last root is awake.",
             "grants": [
               {
+                "id": "65e380",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_three",
@@ -106,11 +118,13 @@
                 "line": "There. Do you feel it? You have walked my roots end to end."
               },
               {
+                "id": "740967",
                 "kind": "teach_skill",
                 "skill": "EntanglingRoots",
                 "line": "They know your hand now. Ask them to hold, and they will."
               },
               {
+                "id": "08dc2c",
                 "kind": "grant_xp",
                 "xp": 1000,
                 "line": "The young ones will not calm in a day. A tree's day is long. Take this as well."
@@ -118,14 +132,17 @@
             ]
           },
           {
+            "id": "d5b73d",
             "text": "Which root was it again?",
             "next": "where_one"
           },
           {
+            "id": "0578d2",
             "text": "Which root was it again?",
             "next": "where_two"
           },
           {
+            "id": "7abcf3",
             "text": "Which root was it again?",
             "next": "where_three"
           }
@@ -141,13 +158,15 @@
           }
         ],
         "lines": [
-          "My grove is choked with deadwood, little walker. Clear it for an old tree?"
+          {"id": "b23a53", "text": "My grove is choked with deadwood, little walker. Clear it for an old tree?"}
         ],
         "options": [
           {
+            "id": "525c50",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "50e661",
                 "kind": "offer_quest",
                 "quest": "clear-the-grove",
                 "line": "Good. I will wait. I am good at waiting."
@@ -166,7 +185,7 @@
           }
         ],
         "lines": [
-          "Six heaps will do. The rest can wait a winter."
+          {"id": "a93655", "text": "Six heaps will do. The rest can wait a winter."}
         ]
       },
       {
@@ -184,15 +203,17 @@
           }
         ],
         "lines": [
-          "The young trees of this wood have grown angry, little walker. Have you met them?",
-          "My roots run beneath all of it. Through them I hum the wood to rest. But three of my roots have fallen asleep.",
-          "Wake them for me. One sleeps by the stream, to the west. Lay a hand on it."
+          {"id": "fd54eb", "text": "The young trees of this wood have grown angry, little walker. Have you met them?"},
+          {"id": "ac3efc", "text": "My roots run beneath all of it. Through them I hum the wood to rest. But three of my roots have fallen asleep."},
+          {"id": "576bfe", "text": "Wake them for me. One sleeps by the stream, to the west. Lay a hand on it."}
         ],
         "options": [
           {
+            "id": "621296",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "3ce9f1",
                 "kind": "offer_quest",
                 "quest": "the-sleeping-roots",
                 "line": "Good. West, to the stream. I will be here."
@@ -211,7 +232,7 @@
           }
         ],
         "lines": [
-          "West, little walker. The root by the stream."
+          {"id": "5df924", "text": "West, little walker. The root by the stream."}
         ]
       },
       {
@@ -224,7 +245,7 @@
           }
         ],
         "lines": [
-          "South. The root by the stones. Take your time. I do."
+          {"id": "d38a57", "text": "South. The root by the stones. Take your time. I do."}
         ]
       },
       {
@@ -237,7 +258,7 @@
           }
         ],
         "lines": [
-          "East, where the wisps gather. The last one. Probably."
+          {"id": "2d5dbd", "text": "East, where the wisps gather. The last one. Probably."}
         ]
       }
     ]

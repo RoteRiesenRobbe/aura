@@ -26,24 +26,26 @@
       {
         "id": "root",
         "lines": [
-          "I can teach you to make light."
+          {"id": "76bdea", "text": "I can teach you to make light."}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "wolves" },
-          { "text": "About the dire wolves...", "next": "wolves_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "82a37d", "text": "Do you have a task for me?", "next": "wolves" },
+          { "id": "3a19c8", "text": "About the dire wolves...", "next": "wolves_running" },
+          { "id": "349d62", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "wolves",
         "lines": [
-          "Kill 4 dire wolves in the dark forest, then come back to me."
+          {"id": "787f59", "text": "Kill 4 dire wolves in the dark forest, then come back to me."}
         ],
         "options": [
           {
+            "id": "2d2be1",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "e4e608",
                 "kind": "offer_quest",
                 "quest": "dire-wolves-in-the-forest",
                 "line": "Good."
@@ -55,13 +57,15 @@
       {
         "id": "wolves_running",
         "lines": [
-          "The dire wolves?"
+          {"id": "314ed5", "text": "The dire wolves?"}
         ],
         "options": [
           {
+            "id": "2c4ade",
             "text": "I killed the 4 dire wolves.",
             "grants": [
               {
+                "id": "58781a",
                 "kind": "advance_quest",
                 "quest": "dire-wolves-in-the-forest",
                 "fromStage": "report",
@@ -69,6 +73,7 @@
                 "line": "Good."
               },
               {
+                "id": "77b176",
                 "kind": "grant_xp",
                 "xp": 370,
                 "line": "Here is your reward."
@@ -76,6 +81,7 @@
             ]
           },
           {
+            "id": "ba285e",
             "text": "I am on it.",
             "next": "wolves_on_it"
           }
@@ -91,19 +97,21 @@
           }
         ],
         "lines": [
-          "Kill 4 dire wolves in the dark forest, then come back to me."
+          {"id": "b09413", "text": "Kill 4 dire wolves in the dark forest, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "8db7f6", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "292891",
             "text": "Torch",
             "grants": [
               {
+                "id": "845760",
                 "kind": "teach_skill",
                 "skill": "Torch",
                 "line": "I'll teach you Torch."

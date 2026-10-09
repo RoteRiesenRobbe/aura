@@ -25,24 +25,26 @@
       {
         "id": "root",
         "lines": [
-          "Rest by the fire and regain your strength."
+          {"id": "a634b3", "text": "Rest by the fire and regain your strength."}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "alphawolves" },
-          { "text": "About the alpha wolves...", "next": "alphawolves_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "916a74", "text": "Do you have a task for me?", "next": "alphawolves" },
+          { "id": "77f3b4", "text": "About the alpha wolves...", "next": "alphawolves_running" },
+          { "id": "ec19f4", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "alphawolves",
         "lines": [
-          "Kill 5 alpha wolves around the village, then come back to me."
+          {"id": "720c5b", "text": "Kill 5 alpha wolves around the village, then come back to me."}
         ],
         "options": [
           {
+            "id": "aaa991",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "1047a9",
                 "kind": "offer_quest",
                 "quest": "alpha-wolves-at-the-village",
                 "line": "Good."
@@ -54,13 +56,15 @@
       {
         "id": "alphawolves_running",
         "lines": [
-          "The alpha wolves?"
+          {"id": "50e03b", "text": "The alpha wolves?"}
         ],
         "options": [
           {
+            "id": "2f91f0",
             "text": "I killed the 5 alpha wolves.",
             "grants": [
               {
+                "id": "3bddf3",
                 "kind": "advance_quest",
                 "quest": "alpha-wolves-at-the-village",
                 "fromStage": "report",
@@ -68,6 +72,7 @@
                 "line": "Good."
               },
               {
+                "id": "42df32",
                 "kind": "grant_xp",
                 "xp": 1900,
                 "line": "Here is your reward."
@@ -75,6 +80,7 @@
             ]
           },
           {
+            "id": "a90caf",
             "text": "I am on it.",
             "next": "alphawolves_on_it"
           }
@@ -90,19 +96,21 @@
           }
         ],
         "lines": [
-          "Kill 5 alpha wolves around the village, then come back to me."
+          {"id": "8014b8", "text": "Kill 5 alpha wolves around the village, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "2e6d41", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "6d9992",
             "text": "First Aid",
             "grants": [
               {
+                "id": "d640cc",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2,
@@ -111,9 +119,11 @@
             ]
           },
           {
+            "id": "c38898",
             "text": "Revive",
             "grants": [
               {
+                "id": "7d4083",
                 "kind": "teach_skill",
                 "skill": "Revive",
                 "requiredLevel": 8,

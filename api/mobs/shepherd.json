@@ -26,14 +26,16 @@
       {
         "id": "root",
         "lines": [
-          "I keep the flock on this pasture."
+          {"id": "0f8775", "text": "I keep the flock on this pasture."}
         ],
         "options": [
           {
+            "id": "8f06b6",
             "text": "Do you have a task for me?",
             "next": "strays"
           },
           {
+            "id": "88c28a",
             "text": "About your sheep...",
             "next": "strays_running"
           }
@@ -42,15 +44,17 @@
       {
         "id": "strays",
         "lines": [
-          "Three of my sheep wandered off and the dog went after them.",
-          "Baabara, Woolliam and Lambert. Find them out on the pasture, and the dog with them, then come back to me.",
-          "Nothing out there will trouble you. The stags and the boars keep to themselves."
+          {"id": "524d3f", "text": "Three of my sheep wandered off and the dog went after them."},
+          {"id": "edf6e1", "text": "Baabara, Woolliam and Lambert. Find them out on the pasture, and the dog with them, then come back to me."},
+          {"id": "aaac77", "text": "Nothing out there will trouble you. The stags and the boars keep to themselves."}
         ],
         "options": [
           {
+            "id": "55182c",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "d2aaf5",
                 "kind": "offer_quest",
                 "quest": "the-strays",
                 "line": "Good."
@@ -62,13 +66,15 @@
       {
         "id": "strays_running",
         "lines": [
-          "My sheep?"
+          {"id": "404a59", "text": "My sheep?"}
         ],
         "options": [
           {
+            "id": "39709f",
             "text": "I found Baabara, Woolliam and Lambert, and the dog.",
             "grants": [
               {
+                "id": "c32980",
                 "kind": "advance_quest",
                 "quest": "the-strays",
                 "fromStage": "report",
@@ -76,6 +82,7 @@
                 "line": "Good."
               },
               {
+                "id": "106e71",
                 "kind": "grant_xp",
                 "xp": 180,
                 "line": "Here is your reward."
@@ -83,6 +90,7 @@
             ]
           },
           {
+            "id": "a3e00e",
             "text": "I am on it.",
             "next": "strays_on_it"
           }
@@ -98,7 +106,7 @@
           }
         ],
         "lines": [
-          "Baabara, Woolliam and Lambert, and the dog. Find them on the pasture, then come back to me."
+          {"id": "a942d1", "text": "Baabara, Woolliam and Lambert, and the dog. Find them on the pasture, then come back to me."}
         ]
       }
     ]

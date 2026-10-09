@@ -1073,5 +1073,142 @@
         "example": "Talk to Hendrik"
       }
     }
+  },
+  "contentLines": "{ids}",
+  "@contentLines": {
+    "description": "Carrier for authored lines sent by id (an NPC calling out to passers-by); the client shows each line from the dialogue bundle. Never shown as written.",
+    "placeholders": {
+      "ids": {
+        "type": "String",
+        "description": "Line ids",
+        "example": "a1b2c3"
+      }
+    }
+  },
+  "conversationLockedRow": "{label} - locked: {reasons}",
+  "@conversationLockedRow": {
+    "description": "A greyed conversation row the player cannot take yet: its label, then why (the reasons, already joined with \"and\" or \"or\").",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "description": "The row label",
+        "example": "Show me the rewards."
+      },
+      "reasons": {
+        "type": "String",
+        "description": "The lock reasons, joined",
+        "example": "level 30 (12/30)"
+      }
+    }
+  },
+  "lockMinLevel": "level {value, number} ({have, number}/{value, number})",
+  "@lockMinLevel": {
+    "description": "Lock reason: a minimum character level, with the player progress.",
+    "placeholders": {
+      "value": {
+        "type": "int",
+        "description": "Required level",
+        "example": "30"
+      },
+      "have": {
+        "type": "int",
+        "description": "Current level",
+        "example": "12"
+      }
+    }
+  },
+  "lockAscensions": "{value, plural, one {# ascension} other {# ascensions}} in this line ({have, number}/{value, number})",
+  "@lockAscensions": {
+    "description": "Lock reason: characters already sacrificed in this bloodline.",
+    "placeholders": {
+      "value": {
+        "type": "int",
+        "description": "Required",
+        "example": "2"
+      },
+      "have": {
+        "type": "int",
+        "description": "So far",
+        "example": "1"
+      }
+    }
+  },
+  "lockQuestComplete": "complete “{quest}”",
+  "@lockQuestComplete": {
+    "description": "Lock reason: a quest must be finished first.",
+    "placeholders": {
+      "quest": {
+        "type": "String",
+        "description": "Quest title, localized",
+        "example": "The Lost Friend"
+      }
+    }
+  },
+  "lockQuestAtStage": "“{quest}” at “{stage}”",
+  "@lockQuestAtStage": {
+    "description": "Lock reason: a quest must be at a given stage (stage is an internal id).",
+    "placeholders": {
+      "quest": {
+        "type": "String",
+        "description": "Quest title, localized",
+        "example": "The Lost Friend"
+      },
+      "stage": {
+        "type": "String",
+        "description": "Stage id",
+        "example": "search"
+      }
+    }
+  },
+  "lockKills": "slay {value, number} × {mob} this life ({have, number}/{value, number})",
+  "@lockKills": {
+    "description": "Lock reason: kill a number of one species in this life. {mob} is the singular name and is not inflected (the \"×\" form avoids the plural).",
+    "placeholders": {
+      "value": {
+        "type": "int",
+        "description": "Required kills",
+        "example": "10"
+      },
+      "have": {
+        "type": "int",
+        "description": "Kills so far",
+        "example": "4"
+      },
+      "mob": {
+        "type": "String",
+        "description": "Mob name, singular",
+        "example": "Orc"
+      }
+    }
+  },
+  "lockTravelClosed": "its far end is gone",
+  "@lockTravelClosed": {
+    "description": "Lock reason on a travel row: the destination no longer exists."
+  },
+  "lockUnknown": "an unnamed requirement",
+  "@lockUnknown": {
+    "description": "Lock reason the client has no wording for (should never show)."
+  },
+  "convAscendNoReward": "Spend this character, take no reward.",
+  "@convAscendNoReward": {
+    "description": "Ascension stone row: sacrifice the character without picking a reward.",
+    "placeholders": {
+      "skill": {
+        "type": "String",
+        "description": "Unused here",
+        "example": ""
+      }
+    }
+  },
+  "convAscendReply": "{skill} it is. Channelling now, walk away to cancel.",
+  "@convAscendReply": {
+    "description": "Ascension stone reply after picking a reward: the channel starts; walking away cancels it.",
+    "placeholders": {
+      "skill": {
+        "type": "String",
+        "description": "The chosen reward skill name",
+        "example": "Lantern"
+      }
+    }
   }
 }

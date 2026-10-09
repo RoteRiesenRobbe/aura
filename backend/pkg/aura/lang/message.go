@@ -67,6 +67,9 @@ const (
 	KeyWarlordReturned   = "warlordReturned"
 	KeySaveResumed       = "saveResumed"
 	KeySaveFailing       = "saveFailing"
+	// KeyContentLines carries authored lines by id (C3): the client shows
+	// each conv.<id> from the /lang bundle, one per line.
+	KeyContentLines = "contentLines"
 )
 
 // ServerKeys is each key's argument names.
@@ -82,4 +85,5 @@ var ServerKeys = map[string][]string{
 	KeyWarlordReturned:   nil,
 	KeySaveResumed:       nil,
 	KeySaveFailing:       nil,
+	KeyContentLines:      {"ids"},
 }

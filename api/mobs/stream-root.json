@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          "A cold root, damp from the stream. It stirs under your hand."
+          {"id": "e4b8d5", "text": "A cold root, damp from the stream. It stirs under your hand."}
         ]
       }
     ]

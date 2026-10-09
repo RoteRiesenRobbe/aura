@@ -17,25 +17,27 @@
       {
         "id": "root",
         "lines": [
-          "Ah! My brother's child! Eliza sent you for beets, didn't she? She always sends someone for beets.",
-          "A beet is a very honest vegetable. Always remember this."
+          {"id": "6dbb06", "text": "Ah! My brother's child! Eliza sent you for beets, didn't she? She always sends someone for beets."},
+          {"id": "f9b9e2", "text": "A beet is a very honest vegetable. Always remember this."}
         ],
         "options": [
-          { "text": "Teach me something.", "next": "teachings" },
-          { "text": "Can't I just pull them up?", "next": "beets" },
-          { "text": "Any advice?", "next": "advice" }
+          { "id": "c8bbb3", "text": "Teach me something.", "next": "teachings" },
+          { "id": "54fe4d", "text": "Can't I just pull them up?", "next": "beets" },
+          { "id": "55b69a", "text": "Any advice?", "next": "advice" }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "Oh, a student! Wonderful. Sit. No, stand. Harvesting is done standing. Always remember this."
+          {"id": "0fc6c0", "text": "Oh, a student! Wonderful. Sit. No, stand. Harvesting is done standing. Always remember this."}
         ],
         "options": [
           {
+            "id": "36628d",
             "text": "Harvest",
             "grants": [
               {
+                "id": "a40be1",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1,
@@ -48,18 +50,18 @@
       {
         "id": "beets",
         "lines": [
-          "Pull them up? With those hands? The beet will laugh at you.",
-          "Learn Harvest, then make it your active aura. You can only wear one at a time, so put your fists away first.",
-          "Stand close. Harvest reaches the nearest beet and nothing further, one at a time. Always remember this."
+          {"id": "18db87", "text": "Pull them up? With those hands? The beet will laugh at you."},
+          {"id": "7cfeb3", "text": "Learn Harvest, then make it your active aura. You can only wear one at a time, so put your fists away first."},
+          {"id": "0b8043", "text": "Stand close. Harvest reaches the nearest beet and nothing further, one at a time. Always remember this."}
         ],
         "options": []
       },
       {
         "id": "advice",
         "lines": [
-          "If you're lost, follow the road. Roads were built by people who knew where they were going.",
-          "Never trust a man who doesn't like soup. Always remember this.",
-          "And write to your mother. She worries."
+          {"id": "5ab789", "text": "If you're lost, follow the road. Roads were built by people who knew where they were going."},
+          {"id": "f80d4a", "text": "Never trust a man who doesn't like soup. Always remember this."},
+          {"id": "a4e803", "text": "And write to your mother. She worries."}
         ],
         "options": []
       }

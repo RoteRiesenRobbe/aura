@@ -26,9 +26,9 @@
       {
         "id": "root",
         "lines": [
-          "A dead carter lies face down beside his burnt cart.",
-          "His purse is gone and his crates are smashed. There are arrows in the wood of the cart.",
-          "Bandits did this."
+          {"id": "989f63", "text": "A dead carter lies face down beside his burnt cart."},
+          {"id": "2a0817", "text": "His purse is gone and his crates are smashed. There are arrows in the wood of the cart."},
+          {"id": "c9299c", "text": "Bandits did this."}
         ]
       }
     ]

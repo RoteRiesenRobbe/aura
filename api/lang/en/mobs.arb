@@ -1,5 +1,1793 @@
 {
   "@@locale": "en",
+  "conv.00dd17": "Teach me something.",
+  "@conv.00dd17": {
+    "description": "A row the player picks when talking to Dog (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.01f837": "North of the tunnel.",
+  "@conv.01f837": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_where\", line 1."
+  },
+  "conv.0315cd": "Pick one reward. It unlocks permanently for this character slot.",
+  "@conv.0315cd": {
+    "description": "Ascension Stone speaks this in the conversation, node \"catalog\", line 1."
+  },
+  "conv.033a5a": "Do you have a task for me?",
+  "@conv.033a5a": {
+    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.04a305": "I work this field.",
+  "@conv.04a305": {
+    "description": "Reinhard speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.0529b7": "Kill 8 wolves on the west road.",
+  "@conv.0529b7": {
+    "description": "Town Crier speaks this in the conversation, node \"wolves\", line 1."
+  },
+  "conv.0578d2": "Which root was it again?",
+  "@conv.0578d2": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words.",
+    "x_stock": "which-root"
+  },
+  "conv.05bf15": "Where can I make myself useful?",
+  "@conv.05bf15": {
+    "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
+  },
+  "conv.05d420": "Good.",
+  "@conv.05d420": {
+    "description": "City Guard answers this when the player picks \"I killed the 5 bears.\" (node \"bears_running\").",
+    "x_stock": "good"
+  },
+  "conv.05e082": "Do you have a task for me?",
+  "@conv.05e082": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.06b6a1": "Strong",
+  "@conv.06b6a1": {
+    "description": "A row the player picks when talking to City Guard (node \"teachings\"), written as the player's own words."
+  },
+  "conv.06db0a": "Good.",
+  "@conv.06db0a": {
+    "description": "Miner answers this when the player picks \"I killed the 6 spiders.\" (node \"spiders_running\").",
+    "x_stock": "good"
+  },
+  "conv.06fe52": "You get my lamp when it is done.",
+  "@conv.06fe52": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"lamp\", line 2."
+  },
+  "conv.07247f": "There you are. Come here, let me look at you.",
+  "@conv.07247f": {
+    "description": "Eliza speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.08ce01": "I found him. He is dead.",
+  "@conv.08ce01": {
+    "description": "A row the player picks when talking to Wanderer (node \"friend_running\"), written as the player's own words."
+  },
+  "conv.08e210": "The 8 wolves on the west road are dead.",
+  "@conv.08e210": {
+    "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
+  },
+  "conv.09bf53": "What happened down there?",
+  "@conv.09bf53": {
+    "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words."
+  },
+  "conv.09f43b": "Every character spent at the ascension stone, newest first.",
+  "@conv.09f43b": {
+    "description": "Memorial Stone speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.0a80aa": "I'll teach you one thing. Learn it properly.",
+  "@conv.0a80aa": {
+    "description": "Hendrik speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.0a8ca4": "What do you want to learn?",
+  "@conv.0a8ca4": {
+    "description": "Reinhard speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.0afbd4": "Which way is safe?",
+  "@conv.0afbd4": {
+    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
+  },
+  "conv.0b8043": "Stand close. Harvest reaches the nearest beet and nothing further, one at a time. Always remember this.",
+  "@conv.0b8043": {
+    "description": "Benjamin speaks this in the conversation, node \"beets\", line 3."
+  },
+  "conv.0b80d4": "I am on it.",
+  "@conv.0b80d4": {
+    "description": "A row the player picks when talking to Reinhard (node \"turnips_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.0b8e1e": "The camp is east of here.",
+  "@conv.0b8e1e": {
+    "description": "Emberkeeper speaks this in the conversation, node \"news\", line 2."
+  },
+  "conv.0c836d": "Let nature guide you. But also be aware of nature. It's complicated.",
+  "@conv.0c836d": {
+    "description": "Shaman speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.0c8ba3": "The climb looks manageable.",
+  "@conv.0c8ba3": {
+    "description": "Cave Exit speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.0c9bc4": "The root by the stones is awake.",
+  "@conv.0c9bc4": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.0d65f1": "It is bigger than anything else in this zone. Do not take it lightly.",
+  "@conv.0d65f1": {
+    "description": "Miller speaks this in the conversation, node \"sounder\", line 3."
+  },
+  "conv.0e534e": "Charm Beast",
+  "@conv.0e534e": {
+    "description": "A row the player picks when talking to Hermit (node \"teachings\"), written as the player's own words."
+  },
+  "conv.0f8775": "I keep the flock on this pasture.",
+  "@conv.0f8775": {
+    "description": "Shepherd speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.0fc6c0": "Oh, a student! Wonderful. Sit. No, stand. Harvesting is done standing. Always remember this.",
+  "@conv.0fc6c0": {
+    "description": "Benjamin speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.1047a9": "Good.",
+  "@conv.1047a9": {
+    "description": "Village Healer answers this when the player picks \"I'll do it.\" (node \"alphawolves\").",
+    "x_stock": "good"
+  },
+  "conv.1053d0": "You step through.",
+  "@conv.1053d0": {
+    "description": "Portal Summon answers this when the player picks \"Step through.\" (node \"root\")."
+  },
+  "conv.10c5f5": "About the village...",
+  "@conv.10c5f5": {
+    "description": "A row the player picks when talking to Hermit (node \"root\"), written as the player's own words."
+  },
+  "conv.139105": "Eliza sends me.",
+  "@conv.139105": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.13e348": "Immolate",
+  "@conv.13e348": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"teachings\"), written as the player's own words."
+  },
+  "conv.14bd6b": "Heal",
+  "@conv.14bd6b": {
+    "description": "A row the player picks when talking to Hermit (node \"teachings\"), written as the player's own words."
+  },
+  "conv.152f32": "Pick one reward. It unlocks permanently for this character slot.",
+  "@conv.152f32": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"catalog\", line 1."
+  },
+  "conv.16c5fd": "Good.",
+  "@conv.16c5fd": {
+    "description": "Reinhard answers this when the player picks \"I killed the 8 rats.\" (node \"rats_running\").",
+    "x_stock": "good"
+  },
+  "conv.175338": "I do the work the farmer has no hands left for.",
+  "@conv.175338": {
+    "description": "Farmhand speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.180506": "Wild",
+  "@conv.180506": {
+    "description": "A row the player picks when talking to Hendrik (node \"teachings\"), written as the player's own words."
+  },
+  "conv.18064c": "Who else should I speak to?",
+  "@conv.18064c": {
+    "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
+  },
+  "conv.18395c": "The 8 wolves on the west road are dead.",
+  "@conv.18395c": {
+    "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words."
+  },
+  "conv.18c49e": "Bind Elemental",
+  "@conv.18c49e": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"teachings\"), written as the player's own words."
+  },
+  "conv.18db87": "Pull them up? With those hands? The beet will laugh at you.",
+  "@conv.18db87": {
+    "description": "Benjamin speaks this in the conversation, node \"beets\", line 1."
+  },
+  "conv.1965dd": "The last root is awake.",
+  "@conv.1965dd": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.1b36c4": "Good.",
+  "@conv.1b36c4": {
+    "description": "Shaman answers this when the player picks \"The 8 wolves on the west road are dead.\" (node \"root\").",
+    "x_stock": "good"
+  },
+  "conv.1d3532": "I'll teach you Torch.",
+  "@conv.1d3532": {
+    "description": "Emberkeeper answers this when the player picks \"Torch\" (node \"teachings\")."
+  },
+  "conv.1eae0d": "East is dangerous. Bandits watch that road.",
+  "@conv.1eae0d": {
+    "description": "Wanderer speaks this in the conversation, node \"roads\", line 2."
+  },
+  "conv.1fb999": "Giant rats in my barn. They are not shy and they do not run.",
+  "@conv.1fb999": {
+    "description": "Reinhard speaks this in the conversation, node \"rats\", line 1."
+  },
+  "conv.1fc6b9": "The 6 kobolds are dead.",
+  "@conv.1fc6b9": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp_running\"), written as the player's own words."
+  },
+  "conv.1fcacb": "Talk to Reinhard and the Town Crier, then come back to me.",
+  "@conv.1fcacb": {
+    "description": "Hermit speaks this in the conversation, node \"welcome\", line 1."
+  },
+  "conv.209d4e": "Talk to the Hermit and Reinhard.",
+  "@conv.209d4e": {
+    "description": "Town Crier speaks this in the conversation, node \"news_who\", line 1."
+  },
+  "conv.2103cb": "The rats?",
+  "@conv.2103cb": {
+    "description": "Reinhard speaks this in the conversation, node \"rats_running\", line 1."
+  },
+  "conv.220b70": "Do you have a task for me?",
+  "@conv.220b70": {
+    "description": "A row the player picks when talking to Front Captain (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.224c66": "Good.",
+  "@conv.224c66": {
+    "description": "Emberkeeper answers this when the player picks \"I'll do it.\" (node \"bandits\").",
+    "x_stock": "good"
+  },
+  "conv.225ce5": "First Aid",
+  "@conv.225ce5": {
+    "description": "A row the player picks when talking to Hermit (node \"teachings\"), written as the player's own words."
+  },
+  "conv.242045": "Campfires are scattered around. Sit at one and you respawn there.",
+  "@conv.242045": {
+    "description": "Emberkeeper speaks this in the conversation, node \"dir_fires\", line 1."
+  },
+  "conv.244d79": "Show me the rewards.",
+  "@conv.244d79": {
+    "description": "A row the player picks when talking to Ascension Stone (node \"ready\"), written as the player's own words.",
+    "x_stock": "show-rewards"
+  },
+  "conv.25088b": "Do you have a task for me?",
+  "@conv.25088b": {
+    "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.25ad5d": "The sounder?",
+  "@conv.25ad5d": {
+    "description": "Miller speaks this in the conversation, node \"sounder_running\", line 1."
+  },
+  "conv.2668da": "Woof?",
+  "@conv.2668da": {
+    "description": "Dog speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.287406": "My lamp?",
+  "@conv.287406": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_running\", line 1."
+  },
+  "conv.289572": "A stag will start to run the moment you hurt it.",
+  "@conv.289572": {
+    "description": "Hendrik speaks this in the conversation, node \"stags\", line 1."
+  },
+  "conv.292891": "Torch",
+  "@conv.292891": {
+    "description": "A row the player picks when talking to Lamplighter (node \"teachings\"), written as the player's own words."
+  },
+  "conv.2979bb": "Talk to Reinhard and the Town Crier, then come back to me.",
+  "@conv.2979bb": {
+    "description": "Hermit speaks this in the conversation, node \"welcome_on_it\", line 1."
+  },
+  "conv.2a0817": "His purse is gone and his crates are smashed. There are arrows in the wood of the cart.",
+  "@conv.2a0817": {
+    "description": "Dead Carter speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.2a8349": "Hail Adventurer",
+  "@conv.2a8349": {
+    "description": "Town Crier calls this out to a player walking past (speech bubble)."
+  },
+  "conv.2b2bb8": "On the beach north of the farmland. Look under the seaweed.",
+  "@conv.2b2bb8": {
+    "description": "Miller speaks this in the conversation, node \"ring_on_it\", line 1."
+  },
+  "conv.2bdf06": "You climb back into the light.",
+  "@conv.2bdf06": {
+    "description": "Cave Exit answers this when the player picks \"Climb up.\" (node \"root\")."
+  },
+  "conv.2c3dbf": "Good.",
+  "@conv.2c3dbf": {
+    "description": "Wanderer answers this when the player picks \"I'll do it.\" (node \"kobolds\").",
+    "x_stock": "good"
+  },
+  "conv.2c4ade": "I killed the 4 dire wolves.",
+  "@conv.2c4ade": {
+    "description": "A row the player picks when talking to Lamplighter (node \"wolves_running\"), written as the player's own words."
+  },
+  "conv.2d2be1": "I'll do it.",
+  "@conv.2d2be1": {
+    "description": "A row the player picks when talking to Lamplighter (node \"wolves\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.2d5dbd": "East, where the wisps gather. The last one. Probably.",
+  "@conv.2d5dbd": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"where_three\", line 1."
+  },
+  "conv.2ddf07": "The turnips?",
+  "@conv.2ddf07": {
+    "description": "Reinhard speaks this in the conversation, node \"turnips_running\", line 1."
+  },
+  "conv.2de13c": "About your ring...",
+  "@conv.2de13c": {
+    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
+  },
+  "conv.2e6d41": "What do you want to learn?",
+  "@conv.2e6d41": {
+    "description": "Village Healer speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.2f6d6c": "I'll do it.",
+  "@conv.2f6d6c": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.2f91f0": "I killed the 5 alpha wolves.",
+  "@conv.2f91f0": {
+    "description": "A row the player picks when talking to Village Healer (node \"alphawolves_running\"), written as the player's own words."
+  },
+  "conv.2fd8df": "Take only what you need, from the land or from anyone.",
+  "@conv.2fd8df": {
+    "description": "Hendrik speaks this in the conversation, node \"advice\", line 1."
+  },
+  "conv.314ed5": "The dire wolves?",
+  "@conv.314ed5": {
+    "description": "Lamplighter speaks this in the conversation, node \"wolves_running\", line 1."
+  },
+  "conv.319b0f": "Then report to the City Guard at the city gate far to the east, or to the Shaman at his fire east along the road.",
+  "@conv.319b0f": {
+    "description": "Town Crier speaks this in the conversation, node \"wolves\", line 2."
+  },
+  "conv.323343": "Kill 6 boars in the fields around the farm, then come back to me.",
+  "@conv.323343": {
+    "description": "Reinhard speaks this in the conversation, node \"boars_on_it\", line 1."
+  },
+  "conv.349d62": "Teach me something.",
+  "@conv.349d62": {
+    "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.34e1e7": "I'll teach you Bind Elemental.",
+  "@conv.34e1e7": {
+    "description": "Emberkeeper answers this when the player picks \"Bind Elemental\" (node \"teachings\")."
+  },
+  "conv.354e89": "I'll teach you Harvest.",
+  "@conv.354e89": {
+    "description": "Reinhard answers this when the player picks \"Harvest\" (node \"teachings\")."
+  },
+  "conv.36628d": "Harvest",
+  "@conv.36628d": {
+    "description": "A row the player picks when talking to Benjamin (node \"teachings\"), written as the player's own words."
+  },
+  "conv.37b36a": "Reinhard's farm is east, down the road. He's a fair man, and he'll give you work.",
+  "@conv.37b36a": {
+    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 2."
+  },
+  "conv.3828a7": "I'll do it.",
+  "@conv.3828a7": {
+    "description": "A row the player picks when talking to Reinhard (node \"turnips\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.3840da": "I'll do it.",
+  "@conv.3840da": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.39709f": "I found Baabara, Woolliam and Lambert, and the dog.",
+  "@conv.39709f": {
+    "description": "A row the player picks when talking to Shepherd (node \"strays_running\"), written as the player's own words."
+  },
+  "conv.39a609": "I'll teach you Recover.",
+  "@conv.39a609": {
+    "description": "Shaman answers this when the player picks \"Recover\" (node \"teachings\")."
+  },
+  "conv.3a19c8": "About the dire wolves...",
+  "@conv.3a19c8": {
+    "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words."
+  },
+  "conv.3bddf3": "Good.",
+  "@conv.3bddf3": {
+    "description": "Village Healer answers this when the player picks \"I killed the 5 alpha wolves.\" (node \"alphawolves_running\").",
+    "x_stock": "good"
+  },
+  "conv.3c2550": "The tunnel is overrun.",
+  "@conv.3c2550": {
+    "description": "Miner speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.3ce9f1": "Good. West, to the stream. I will be here.",
+  "@conv.3ce9f1": {
+    "description": "Grandfather Knot answers this when the player picks \"I'll do it.\" (node \"roots_brief\")."
+  },
+  "conv.3dd309": "What do you want to learn?",
+  "@conv.3dd309": {
+    "description": "Front Captain speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.3ddfc3": "Kill 5 orcs on the front line south of here, then come back to me.",
+  "@conv.3ddfc3": {
+    "description": "Front Captain speaks this in the conversation, node \"orcs\", line 1."
+  },
+  "conv.404a59": "My sheep?",
+  "@conv.404a59": {
+    "description": "Shepherd speaks this in the conversation, node \"strays_running\", line 1."
+  },
+  "conv.40f4c9": "Do you have a task for me?",
+  "@conv.40f4c9": {
+    "description": "A row the player picks when talking to Eliza (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.41655f": "Where can I find...",
+  "@conv.41655f": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"root\"), written as the player's own words."
+  },
+  "conv.41a43e": "One last dinner at home before you go. I want to do this properly.",
+  "@conv.41a43e": {
+    "description": "Eliza speaks this in the conversation, node \"dinner\", line 1."
+  },
+  "conv.458d56": "Good.",
+  "@conv.458d56": {
+    "description": "Hermit answers this when the player picks \"I talked to Reinhard and the Town Crier.\" (node \"welcome_running\").",
+    "x_stock": "good"
+  },
+  "conv.46f094": "Kill 6 bandits from the camp east of here, then come back to me.",
+  "@conv.46f094": {
+    "description": "Emberkeeper speaks this in the conversation, node \"bandits\", line 1."
+  },
+  "conv.4743b6": "Show me the rewards.",
+  "@conv.4743b6": {
+    "description": "A row the player picks when talking to Front Ascension Stone (node \"root\"), written as the player's own words.",
+    "x_stock": "show-rewards"
+  },
+  "conv.47576a": "What do you want to learn?",
+  "@conv.47576a": {
+    "description": "City Guard speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.477fe5": "Thank you.",
+  "@conv.477fe5": {
+    "description": "Wanderer answers this when the player picks \"I'll look for him.\" (node \"friend\")."
+  },
+  "conv.47d310": "Summon Totem",
+  "@conv.47d310": {
+    "description": "A row the player picks when talking to Shaman (node \"teachings\"), written as the player's own words."
+  },
+  "conv.487dfc": "Your father is out hunting down south by the lake. Help him find his game.",
+  "@conv.487dfc": {
+    "description": "Eliza speaks this in the conversation, node \"dinner\", line 2."
+  },
+  "conv.4b7347": "The tunnel north.",
+  "@conv.4b7347": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"directions\"), written as the player's own words."
+  },
+  "conv.4beeb8": "About the deadwood.",
+  "@conv.4beeb8": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.4c6e6c": "You have the lamp now.",
+  "@conv.4c6e6c": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"root_lit\", line 1."
+  },
+  "conv.4cea71": "Do you have a task for me?",
+  "@conv.4cea71": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.4d2292": "I am on it.",
+  "@conv.4d2292": {
+    "description": "A row the player picks when talking to Reinhard (node \"boars_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.4e20aa": "What do you need?",
+  "@conv.4e20aa": {
+    "description": "Hermit speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.4f03dd": "I call out the news here.",
+  "@conv.4f03dd": {
+    "description": "Town Crier speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.4ffbef": "A portal stands open.",
+  "@conv.4ffbef": {
+    "description": "Portal Home speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.50e03b": "The alpha wolves?",
+  "@conv.50e03b": {
+    "description": "Village Healer speaks this in the conversation, node \"alphawolves_running\", line 1."
+  },
+  "conv.50e661": "Good. I will wait. I am good at waiting.",
+  "@conv.50e661": {
+    "description": "Grandfather Knot answers this when the player picks \"I'll do it.\" (node \"grove_brief\")."
+  },
+  "conv.524d3f": "Three of my sheep wandered off and the dog went after them.",
+  "@conv.524d3f": {
+    "description": "Shepherd speaks this in the conversation, node \"strays\", line 1."
+  },
+  "conv.525c50": "I'll do it.",
+  "@conv.525c50": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"grove_brief\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.5337f3": "I'll do it.",
+  "@conv.5337f3": {
+    "description": "A row the player picks when talking to Front Captain (node \"orcs\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.537dbb": "Kill 6 dire wolves around my camp, then come back to me.",
+  "@conv.537dbb": {
+    "description": "Shaman speaks this in the conversation, node \"direwolves_on_it\", line 1."
+  },
+  "conv.53fbd5": "Kill 8 of them in there, then come back to me.",
+  "@conv.53fbd5": {
+    "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 1."
+  },
+  "conv.54fe4d": "Can't I just pull them up?",
+  "@conv.54fe4d": {
+    "description": "A row the player picks when talking to Benjamin (node \"root\"), written as the player's own words."
+  },
+  "conv.55182c": "I'll do it.",
+  "@conv.55182c": {
+    "description": "A row the player picks when talking to Shepherd (node \"strays\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.55b69a": "Any advice?",
+  "@conv.55b69a": {
+    "description": "A row the player picks when talking to Benjamin (node \"root\"), written as the player's own words."
+  },
+  "conv.57575d": "A narrow shaft, and daylight at the top of it.",
+  "@conv.57575d": {
+    "description": "Cave Exit speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.576bfe": "Wake them for me. One sleeps by the stream, to the west. Lay a hand on it.",
+  "@conv.576bfe": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"roots_brief\", line 3."
+  },
+  "conv.579a30": "I'll teach you Strong.",
+  "@conv.579a30": {
+    "description": "City Guard answers this when the player picks \"Strong\" (node \"teachings\")."
+  },
+  "conv.57b945": "His pack has been emptied. A broken walking staff lies beside him.",
+  "@conv.57b945": {
+    "description": "Fallen Traveller speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.58781a": "Good.",
+  "@conv.58781a": {
+    "description": "Lamplighter answers this when the player picks \"I killed the 4 dire wolves.\" (node \"wolves_running\").",
+    "x_stock": "good"
+  },
+  "conv.588445": "What do you want to learn?",
+  "@conv.588445": {
+    "description": "Miner speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.58d0f5": "What are you doing out here?",
+  "@conv.58d0f5": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.59bb38": "I am on it.",
+  "@conv.59bb38": {
+    "description": "A row the player picks when talking to Shaman (node \"direwolves_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.59c912": "Come back to me when you have both. Then we eat.",
+  "@conv.59c912": {
+    "description": "Eliza speaks this in the conversation, node \"dinner\", line 4."
+  },
+  "conv.5a4ad6": "Kill 5 bears near the city walls, then come back to me.",
+  "@conv.5a4ad6": {
+    "description": "City Guard speaks this in the conversation, node \"bears\", line 1."
+  },
+  "conv.5a7150": "Good.",
+  "@conv.5a7150": {
+    "description": "Miller answers this when the player picks \"I'll do it.\" (node \"sounder\").",
+    "x_stock": "good"
+  },
+  "conv.5ab789": "If you're lost, follow the road. Roads were built by people who knew where they were going.",
+  "@conv.5ab789": {
+    "description": "Benjamin speaks this in the conversation, node \"advice\", line 1."
+  },
+  "conv.5b1ab2": "You pick one reward. It stays unlocked for every future character in this slot.",
+  "@conv.5b1ab2": {
+    "description": "Ascension Stone speaks this in the conversation, node \"ready\", line 2."
+  },
+  "conv.5b82c7": "Step through.",
+  "@conv.5b82c7": {
+    "description": "A row the player picks when talking to Portal Home (node \"root\"), written as the player's own words."
+  },
+  "conv.5d9171": "Summon Companion",
+  "@conv.5d9171": {
+    "description": "A row the player picks when talking to Dog (node \"teachings\"), written as the player's own words."
+  },
+  "conv.5df924": "West, little walker. The root by the stream.",
+  "@conv.5df924": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"where_one\", line 1."
+  },
+  "conv.5e8ae6": "I killed the 8 rats.",
+  "@conv.5e8ae6": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
+  },
+  "conv.5f2a00": "The mill.",
+  "@conv.5f2a00": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"directions\"), written as the player's own words."
+  },
+  "conv.5f80f0": "That's it. Thank you.",
+  "@conv.5f80f0": {
+    "description": "Miller answers this when the player picks \"I found your ring.\" (node \"ring_running\")."
+  },
+  "conv.5ff586": "I'll do it.",
+  "@conv.5ff586": {
+    "description": "A row the player picks when talking to Miller (node \"sounder\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.60126e": "Climb up.",
+  "@conv.60126e": {
+    "description": "A row the player picks when talking to Cave Exit (node \"root\"), written as the player's own words."
+  },
+  "conv.617cee": "I am on it.",
+  "@conv.617cee": {
+    "description": "A row the player picks when talking to Wanderer (node \"kobolds_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.618fbe": "Thank you. Go on, before I change my mind about letting you out of the house.",
+  "@conv.618fbe": {
+    "description": "Eliza answers this when the player picks \"I'll do it.\" (node \"dinner\")."
+  },
+  "conv.621296": "I'll do it.",
+  "@conv.621296": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"roots_brief\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.62bb06": "I killed the 5 orcs.",
+  "@conv.62bb06": {
+    "description": "A row the player picks when talking to Front Captain (node \"orcs_running\"), written as the player's own words."
+  },
+  "conv.62f156": "The dire wolves?",
+  "@conv.62f156": {
+    "description": "Shaman speaks this in the conversation, node \"direwolves_running\", line 1."
+  },
+  "conv.631eb2": "I talked to Reinhard and the Town Crier.",
+  "@conv.631eb2": {
+    "description": "A row the player picks when talking to Hermit (node \"welcome_running\"), written as the player's own words."
+  },
+  "conv.64f518": "About the bears...",
+  "@conv.64f518": {
+    "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
+  },
+  "conv.65015e": "Good.",
+  "@conv.65015e": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"boars\").",
+    "x_stock": "good"
+  },
+  "conv.65e380": "There. Do you feel it? You have walked my roots end to end.",
+  "@conv.65e380": {
+    "description": "Grandfather Knot answers this when the player picks \"The last root is awake.\" (node \"root\")."
+  },
+  "conv.66321f": "Teach me something.",
+  "@conv.66321f": {
+    "description": "A row the player picks when talking to Front Captain (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.666025": "Taller than your father already. I don't know when that happened.",
+  "@conv.666025": {
+    "description": "Eliza speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.66f4ee": "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman.",
+  "@conv.66f4ee": {
+    "description": "Town Crier speaks this in the conversation, node \"wolves_on_it\", line 1."
+  },
+  "conv.67bdb1": "The orcs?",
+  "@conv.67bdb1": {
+    "description": "Front Captain speaks this in the conversation, node \"orcs_running\", line 1."
+  },
+  "conv.6a5ad9": "I'll do it.",
+  "@conv.6a5ad9": {
+    "description": "A row the player picks when talking to Wanderer (node \"kobolds\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.6c08f6": "You are max level, so you can spend this character here.",
+  "@conv.6c08f6": {
+    "description": "Ascension Stone speaks this in the conversation, node \"ready\", line 1."
+  },
+  "conv.6c6f46": "Blrrf.",
+  "@conv.6c6f46": {
+    "description": "Woolliam speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.6ca039": "Please, help me search for it before my wife takes notice.",
+  "@conv.6ca039": {
+    "description": "Miller speaks this in the conversation, node \"ring\", line 3."
+  },
+  "conv.6d9992": "First Aid",
+  "@conv.6d9992": {
+    "description": "A row the player picks when talking to Village Healer (node \"teachings\"), written as the player's own words."
+  },
+  "conv.6dbb06": "Ah! My brother's child! Eliza sent you for beets, didn't she? She always sends someone for beets.",
+  "@conv.6dbb06": {
+    "description": "Benjamin speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.6defa1": "Good.",
+  "@conv.6defa1": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"turnips\").",
+    "x_stock": "good"
+  },
+  "conv.6e37fb": "I am on it.",
+  "@conv.6e37fb": {
+    "description": "A row the player picks when talking to Eliza (node \"dinner_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.6f75a5": "Good.",
+  "@conv.6f75a5": {
+    "description": "City Guard answers this when the player picks \"I'll do it.\" (node \"bears\").",
+    "x_stock": "good"
+  },
+  "conv.6fd054": "I'll do it.",
+  "@conv.6fd054": {
+    "description": "A row the player picks when talking to Hermit (node \"welcome\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.701a95": "The grove is clear.",
+  "@conv.701a95": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.712422": "Calm",
+  "@conv.712422": {
+    "description": "A row the player picks when talking to Hermit (node \"teachings\"), written as the player's own words."
+  },
+  "conv.714377": "About your friend...",
+  "@conv.714377": {
+    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
+  },
+  "conv.714894": "Good.",
+  "@conv.714894": {
+    "description": "Shaman answers this when the player picks \"I killed the 6 dire wolves.\" (node \"direwolves_running\").",
+    "x_stock": "good"
+  },
+  "conv.714f53": "A dark opening in the rock.",
+  "@conv.714f53": {
+    "description": "Cave Mouth speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.720c5b": "Kill 5 alpha wolves around the village, then come back to me.",
+  "@conv.720c5b": {
+    "description": "Village Healer speaks this in the conversation, node \"alphawolves\", line 1."
+  },
+  "conv.726dfc": "Vanguard",
+  "@conv.726dfc": {
+    "description": "A row the player picks when talking to Front Captain (node \"teachings\"), written as the player's own words."
+  },
+  "conv.727f53": "My ring?",
+  "@conv.727f53": {
+    "description": "Miller speaks this in the conversation, node \"ring_running\", line 1."
+  },
+  "conv.72ac4c": "Harvest 5 turnips from the row north of here, then come back to me.",
+  "@conv.72ac4c": {
+    "description": "Reinhard speaks this in the conversation, node \"turnips_on_it\", line 1."
+  },
+  "conv.72f5ce": "Cold air rises out of it.",
+  "@conv.72f5ce": {
+    "description": "Cave Mouth speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.73985b": "About the wolves...",
+  "@conv.73985b": {
+    "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
+  },
+  "conv.73a61d": "I am on it.",
+  "@conv.73a61d": {
+    "description": "A row the player picks when talking to Miller (node \"ring_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.73ed98": "Do you have a task for me?",
+  "@conv.73ed98": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.743f4e": "I am on it.",
+  "@conv.743f4e": {
+    "description": "A row the player picks when talking to Town Crier (node \"wolves_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.75cc6c": "The big one leads them. Kill it and the rest will scatter.",
+  "@conv.75cc6c": {
+    "description": "Miller speaks this in the conversation, node \"sounder\", line 2."
+  },
+  "conv.75ee41": "Do you have a task for me?",
+  "@conv.75ee41": {
+    "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.76bdea": "I can teach you to make light.",
+  "@conv.76bdea": {
+    "description": "Lamplighter speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.76e1f2": "Baa.",
+  "@conv.76e1f2": {
+    "description": "Baabara speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.775259": "Good.",
+  "@conv.775259": {
+    "description": "Lampless Traveller answers this when the player picks \"The 6 kobolds are dead.\" (node \"lamp_running\").",
+    "x_stock": "good"
+  },
+  "conv.776653": "Good.",
+  "@conv.776653": {
+    "description": "Reinhard answers this when the player picks \"I harvested the 5 turnips.\" (node \"turnips_running\").",
+    "x_stock": "good"
+  },
+  "conv.778209": "Do you have a task for me?",
+  "@conv.778209": {
+    "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.77ba7d": "What do you want to learn?",
+  "@conv.77ba7d": {
+    "description": "Emberkeeper speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.77f3b4": "About the alpha wolves...",
+  "@conv.77f3b4": {
+    "description": "A row the player picks when talking to Village Healer (node \"root\"), written as the player's own words."
+  },
+  "conv.784c88": "Good.",
+  "@conv.784c88": {
+    "description": "Wanderer answers this when the player picks \"I killed the 8 kobolds.\" (node \"kobolds_running\").",
+    "x_stock": "good"
+  },
+  "conv.787347": "Do you have a task for me?",
+  "@conv.787347": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.787f59": "Kill 4 dire wolves in the dark forest, then come back to me.",
+  "@conv.787f59": {
+    "description": "Lamplighter speaks this in the conversation, node \"wolves\", line 1."
+  },
+  "conv.789efd": "I'll teach you Wild. It reaches further than what you have now, and every blow costs you a little of yourself. Only one aura burns at a time, so choose it when the reach is worth the price.",
+  "@conv.789efd": {
+    "description": "Hendrik answers this when the player picks \"Wild\" (node \"teachings\")."
+  },
+  "conv.792a50": "For many days I have looked for it. The thick seaweed from the last tide makes it hard to see.",
+  "@conv.792a50": {
+    "description": "Miller speaks this in the conversation, node \"ring\", line 2."
+  },
+  "conv.792e11": "The wisps drift around a root that hums. Somewhere, an old tree smiles.",
+  "@conv.792e11": {
+    "description": "Glade Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.798ef3": "Kill 6 dire wolves around my camp, then come back to me.",
+  "@conv.798ef3": {
+    "description": "Shaman speaks this in the conversation, node \"direwolves\", line 1."
+  },
+  "conv.79f35d": "My friend?",
+  "@conv.79f35d": {
+    "description": "Wanderer speaks this in the conversation, node \"friend_running\", line 1."
+  },
+  "conv.7abcf3": "Which root was it again?",
+  "@conv.7abcf3": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words.",
+    "x_stock": "which-root"
+  },
+  "conv.7afefe": "Ah. I can breathe again.",
+  "@conv.7afefe": {
+    "description": "Grandfather Knot answers this when the player picks \"The grove is clear.\" (node \"root\")."
+  },
+  "conv.7cfeb3": "Learn Harvest, then make it your active aura. You can only wear one at a time, so put your fists away first.",
+  "@conv.7cfeb3": {
+    "description": "Benjamin speaks this in the conversation, node \"beets\", line 2."
+  },
+  "conv.7d4083": "I'll teach you Revive.",
+  "@conv.7d4083": {
+    "description": "Village Healer answers this when the player picks \"Revive\" (node \"teachings\")."
+  },
+  "conv.7dd341": "Kill 6 spiders in the tunnel diggings, then come back to me.",
+  "@conv.7dd341": {
+    "description": "Miner speaks this in the conversation, node \"spiders_on_it\", line 1."
+  },
+  "conv.7eaa1b": "Confirming ends this character. Its name goes on the memorial.",
+  "@conv.7eaa1b": {
+    "description": "Ascension Stone speaks this in the conversation, node \"catalog\", line 2."
+  },
+  "conv.7f13de": "What do you want to learn?",
+  "@conv.7f13de": {
+    "description": "Shaman speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.8014b8": "Kill 5 alpha wolves around the village, then come back to me.",
+  "@conv.8014b8": {
+    "description": "Village Healer speaks this in the conversation, node \"alphawolves_on_it\", line 1."
+  },
+  "conv.80d251": "Pay what you owe, even when nobody is counting.",
+  "@conv.80d251": {
+    "description": "Hendrik speaks this in the conversation, node \"advice\", line 2."
+  },
+  "conv.8107fc": "I'll teach you Pickaxe.",
+  "@conv.8107fc": {
+    "description": "Miner answers this when the player picks \"Pickaxe\" (node \"teachings\")."
+  },
+  "conv.828aa5": "I'll look for it.",
+  "@conv.828aa5": {
+    "description": "A row the player picks when talking to Miller (node \"ring\"), written as the player's own words."
+  },
+  "conv.82a37d": "Do you have a task for me?",
+  "@conv.82a37d": {
+    "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.82f1f4": "The bandits?",
+  "@conv.82f1f4": {
+    "description": "Emberkeeper speaks this in the conversation, node \"bandits_running\", line 1."
+  },
+  "conv.845760": "I'll teach you Torch.",
+  "@conv.845760": {
+    "description": "Lamplighter answers this when the player picks \"Torch\" (node \"teachings\")."
+  },
+  "conv.8602b4": "Good.",
+  "@conv.8602b4": {
+    "description": "Lampless Traveller answers this when the player picks \"I'll do it.\" (node \"lamp\").",
+    "x_stock": "good"
+  },
+  "conv.866178": "What should I know before I leave?",
+  "@conv.866178": {
+    "description": "A row the player picks when talking to Hendrik (node \"root\"), written as the player's own words."
+  },
+  "conv.88715e": "First the Kobolds, now the Spiders. Things are getting worse every day.",
+  "@conv.88715e": {
+    "description": "Miner speaks this in the conversation, node \"tunnel\", line 1."
+  },
+  "conv.88c28a": "About your sheep...",
+  "@conv.88c28a": {
+    "description": "A row the player picks when talking to Shepherd (node \"root\"), written as the player's own words."
+  },
+  "conv.8909ab": "Teach me something.",
+  "@conv.8909ab": {
+    "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.890fd4": "I killed the 6 dire wolves.",
+  "@conv.890fd4": {
+    "description": "A row the player picks when talking to Shaman (node \"direwolves_running\"), written as the player's own words."
+  },
+  "conv.8a54e7": "It leads to the campfire the caster is bound to.",
+  "@conv.8a54e7": {
+    "description": "Portal Home speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.8af3bf": "What do you want to learn?",
+  "@conv.8af3bf": {
+    "description": "Hermit speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.8bf174": "About the bandits...",
+  "@conv.8bf174": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"root\"), written as the player's own words."
+  },
+  "conv.8c1c58": "I'll do it.",
+  "@conv.8c1c58": {
+    "description": "A row the player picks when talking to Town Crier (node \"wolves\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.8c70de": "Recover",
+  "@conv.8c70de": {
+    "description": "A row the player picks when talking to Shaman (node \"teachings\"), written as the player's own words."
+  },
+  "conv.8ca889": "Good.",
+  "@conv.8ca889": {
+    "description": "Miller answers this when the player picks \"I killed the alpha boar.\" (node \"sounder_running\").",
+    "x_stock": "good"
+  },
+  "conv.8d183d": "I killed the 5 bears.",
+  "@conv.8d183d": {
+    "description": "A row the player picks when talking to City Guard (node \"bears_running\"), written as the player's own words."
+  },
+  "conv.8d448a": "Teach me something.",
+  "@conv.8d448a": {
+    "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.8d64a7": "Good.",
+  "@conv.8d64a7": {
+    "description": "Reinhard answers this when the player picks \"I killed the 6 boars.\" (node \"boars_running\").",
+    "x_stock": "good"
+  },
+  "conv.8d8f97": "The bears?",
+  "@conv.8d8f97": {
+    "description": "City Guard speaks this in the conversation, node \"bears_running\", line 1."
+  },
+  "conv.8db7f6": "What do you want to learn?",
+  "@conv.8db7f6": {
+    "description": "Lamplighter speaks this in the conversation, node \"teachings\", line 1.",
+    "x_stock": "offer-teach"
+  },
+  "conv.8e1b31": "I'll teach you Vanguard.",
+  "@conv.8e1b31": {
+    "description": "Front Captain answers this when the player picks \"Vanguard\" (node \"teachings\")."
+  },
+  "conv.8e3c30": "About the dinner...",
+  "@conv.8e3c30": {
+    "description": "A row the player picks when talking to Eliza (node \"root\"), written as the player's own words."
+  },
+  "conv.8f06b6": "Do you have a task for me?",
+  "@conv.8f06b6": {
+    "description": "A row the player picks when talking to Shepherd (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.8f11a7": "About the rats in the barn...",
+  "@conv.8f11a7": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.905a85": "About your lamp...",
+  "@conv.905a85": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"root\"), written as the player's own words."
+  },
+  "conv.90b22a": "I'll do it.",
+  "@conv.90b22a": {
+    "description": "A row the player picks when talking to City Guard (node \"bears\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.90eec0": "A sounder of boars has settled by the mill and I cannot work around them.",
+  "@conv.90eec0": {
+    "description": "Miller speaks this in the conversation, node \"sounder\", line 1."
+  },
+  "conv.911a76": "You step through.",
+  "@conv.911a76": {
+    "description": "Portal Home answers this when the player picks \"Step through.\" (node \"root\")."
+  },
+  "conv.916a74": "Do you have a task for me?",
+  "@conv.916a74": {
+    "description": "A row the player picks when talking to Village Healer (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.920f99": "I am passing through.",
+  "@conv.920f99": {
+    "description": "Wanderer speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.93ec7f": "Break the banners in his camp west of here, then kill him.",
+  "@conv.93ec7f": {
+    "description": "Front Captain speaks this in the conversation, node \"commander\", line 2."
+  },
+  "conv.942602": "Downhill, past the broken fence.",
+  "@conv.942602": {
+    "description": "Emberkeeper speaks this in the conversation, node \"dir_mill\", line 1."
+  },
+  "conv.9441a7": "How do I hunt a stag?",
+  "@conv.9441a7": {
+    "description": "A row the player picks when talking to Hendrik (node \"root\"), written as the player's own words."
+  },
+  "conv.96bdac": "I'll teach you Heal.",
+  "@conv.96bdac": {
+    "description": "Hermit answers this when the player picks \"Heal\" (node \"teachings\")."
+  },
+  "conv.96d9dd": "Good.",
+  "@conv.96d9dd": {
+    "description": "Front Captain answers this when the player picks \"I'll do it.\" (node \"orcs\").",
+    "x_stock": "good"
+  },
+  "conv.970bdf": "Are you travelling alone?",
+  "@conv.970bdf": {
+    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
+  },
+  "conv.97dc0a": "Harvest 5 turnips from the row north of here, then come back to me.",
+  "@conv.97dc0a": {
+    "description": "Reinhard speaks this in the conversation, node \"turnips\", line 1."
+  },
+  "conv.989f63": "A dead carter lies face down beside his burnt cart.",
+  "@conv.989f63": {
+    "description": "Dead Carter speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.98c585": "He cannot be hurt while his war banners stand.",
+  "@conv.98c585": {
+    "description": "Front Captain speaks this in the conversation, node \"commander\", line 1."
+  },
+  "conv.998c3c": "And your uncle Benjamin has beets. Six. Don't let him talk your ear off.",
+  "@conv.998c3c": {
+    "description": "Eliza speaks this in the conversation, node \"dinner\", line 3."
+  },
+  "conv.99d677": "About the boars...",
+  "@conv.99d677": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.9a76df": "Kill 8 kobolds near the road, then come back to me.",
+  "@conv.9a76df": {
+    "description": "Wanderer speaks this in the conversation, node \"kobolds\", line 1."
+  },
+  "conv.9c2faa": "I'll do it.",
+  "@conv.9c2faa": {
+    "description": "A row the player picks when talking to Miner (node \"spiders\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.9c7025": "Don't give up the chase, and don't be cruel about it.",
+  "@conv.9c7025": {
+    "description": "Hendrik speaks this in the conversation, node \"stags\", line 3."
+  },
+  "conv.9c99e3": "Anything new around here?",
+  "@conv.9c99e3": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"root\"), written as the player's own words."
+  },
+  "conv.9dc5b0": "About the boars at the mill...",
+  "@conv.9dc5b0": {
+    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
+  },
+  "conv.9dee2f": "I'll teach you Calm.",
+  "@conv.9dee2f": {
+    "description": "Hermit answers this when the player picks \"Calm\" (node \"teachings\")."
+  },
+  "conv.9ec9c0": "Do you have a task for me?",
+  "@conv.9ec9c0": {
+    "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.9f24ab": "I am on it.",
+  "@conv.9f24ab": {
+    "description": "A row the player picks when talking to Miner (node \"spiders_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.a00697": "The front is in the south. They need fighters.",
+  "@conv.a00697": {
+    "description": "City Guard speaks this in the conversation, node \"front\", line 1."
+  },
+  "conv.a1ab5d": "Good.",
+  "@conv.a1ab5d": {
+    "description": "Front Captain answers this when the player picks \"I killed the 5 orcs.\" (node \"orcs_running\").",
+    "x_stock": "good"
+  },
+  "conv.a29d11": "I killed the alpha boar.",
+  "@conv.a29d11": {
+    "description": "A row the player picks when talking to Miller (node \"sounder_running\"), written as the player's own words."
+  },
+  "conv.a31e87": "Eliza's child. Then you'll work. Ask me for a task.",
+  "@conv.a31e87": {
+    "description": "Reinhard answers this when the player picks \"Eliza sends me.\" (node \"root\")."
+  },
+  "conv.a3e00e": "I am on it.",
+  "@conv.a3e00e": {
+    "description": "A row the player picks when talking to Shepherd (node \"strays_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.a40be1": "I'll teach you Harvest. Swinging at a beet does nothing; you have to ask it nicely. Always remember this.",
+  "@conv.a40be1": {
+    "description": "Benjamin answers this when the player picks \"Harvest\" (node \"teachings\")."
+  },
+  "conv.a45cf1": "Do you have another task?",
+  "@conv.a45cf1": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.a4e803": "And write to your mother. She worries.",
+  "@conv.a4e803": {
+    "description": "Benjamin speaks this in the conversation, node \"advice\", line 3."
+  },
+  "conv.a54da9": "Hm. That one was awake already. Or it is now. Try the one by the stones, to the south.",
+  "@conv.a54da9": {
+    "description": "Grandfather Knot answers this when the player picks \"The root by the stream is awake.\" (node \"root\")."
+  },
+  "conv.a5659f": "It leads to whoever opened it.",
+  "@conv.a5659f": {
+    "description": "Portal Summon speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.a634b3": "Rest by the fire and regain your strength.",
+  "@conv.a634b3": {
+    "description": "Village Healer speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.a6c948": "About the kobolds...",
+  "@conv.a6c948": {
+    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
+  },
+  "conv.a6df92": "The spiders?",
+  "@conv.a6df92": {
+    "description": "Miner speaks this in the conversation, node \"spiders_running\", line 1."
+  },
+  "conv.a6f0f6": "About the spiders...",
+  "@conv.a6f0f6": {
+    "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words."
+  },
+  "conv.a84fb7": "I am on it.",
+  "@conv.a84fb7": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"bandits_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.a8af0a": "You ate everything. Good. You'll need it.",
+  "@conv.a8af0a": {
+    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 1."
+  },
+  "conv.a90caf": "I am on it.",
+  "@conv.a90caf": {
+    "description": "A row the player picks when talking to Village Healer (node \"alphawolves_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.a93655": "Six heaps will do. The rest can wait a winter.",
+  "@conv.a93655": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"deadwood\", line 1."
+  },
+  "conv.a942d1": "Baabara, Woolliam and Lambert, and the dog. Find them on the pasture, then come back to me.",
+  "@conv.a942d1": {
+    "description": "Shepherd speaks this in the conversation, node \"strays_on_it\", line 1."
+  },
+  "conv.a97476": "A dead traveller in a grey cloak, deep in the kobold den.",
+  "@conv.a97476": {
+    "description": "Fallen Traveller speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.a987ed": "Good.",
+  "@conv.a987ed": {
+    "description": "City Guard answers this when the player picks \"The 8 wolves on the west road are dead.\" (node \"root\").",
+    "x_stock": "good"
+  },
+  "conv.aaa991": "I'll do it.",
+  "@conv.aaa991": {
+    "description": "A row the player picks when talking to Village Healer (node \"alphawolves\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.aaac77": "Nothing out there will trouble you. The stags and the boars keep to themselves.",
+  "@conv.aaac77": {
+    "description": "Shepherd speaks this in the conversation, node \"strays\", line 3."
+  },
+  "conv.ab1383": "I grind what the farm brings me, when the farm brings me anything.",
+  "@conv.ab1383": {
+    "description": "Miller speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.aba989": "Woof.",
+  "@conv.aba989": {
+    "description": "Dog speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.ac3efc": "My roots run beneath all of it. Through them I hum the wood to rest. But three of my roots have fallen asleep.",
+  "@conv.ac3efc": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"roots_brief\", line 2."
+  },
+  "conv.ac4005": "The boars?",
+  "@conv.ac4005": {
+    "description": "Reinhard speaks this in the conversation, node \"boars_running\", line 1."
+  },
+  "conv.ac70ef": "The kobolds?",
+  "@conv.ac70ef": {
+    "description": "Wanderer speaks this in the conversation, node \"kobolds_running\", line 1."
+  },
+  "conv.acd3e8": "I'll teach you First Aid.",
+  "@conv.acd3e8": {
+    "description": "Hermit answers this when the player picks \"First Aid\" (node \"teachings\")."
+  },
+  "conv.acdcef": "You climb down into the dark.",
+  "@conv.acdcef": {
+    "description": "Cave Mouth answers this when the player picks \"Climb down.\" (node \"root\")."
+  },
+  "conv.ae8603": "I am on it.",
+  "@conv.ae8603": {
+    "description": "A row the player picks when talking to Miller (node \"sounder_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.af2ca9": "Confirming ends this character. Its name goes on the memorial.",
+  "@conv.af2ca9": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"catalog\", line 2."
+  },
+  "conv.af4219": "Good.",
+  "@conv.af4219": {
+    "description": "Miner answers this when the player picks \"I'll do it.\" (node \"spiders\").",
+    "x_stock": "good"
+  },
+  "conv.af7e39": "Do you have a task for me?",
+  "@conv.af7e39": {
+    "description": "A row the player picks when talking to Hermit (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.afc21b": "I harvested the 5 turnips.",
+  "@conv.afc21b": {
+    "description": "A row the player picks when talking to Reinhard (node \"turnips_running\"), written as the player's own words."
+  },
+  "conv.b04930": "Do you have a task for me?",
+  "@conv.b04930": {
+    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.b09413": "Kill 4 dire wolves in the dark forest, then come back to me.",
+  "@conv.b09413": {
+    "description": "Lamplighter speaks this in the conversation, node \"wolves_on_it\", line 1."
+  },
+  "conv.b099c6": "Kill the big one by the mill. The rest will scatter.",
+  "@conv.b099c6": {
+    "description": "Miller speaks this in the conversation, node \"sounder_on_it\", line 1."
+  },
+  "conv.b13bf1": "Memorial stone.",
+  "@conv.b13bf1": {
+    "description": "Memorial Stone speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.b1e46c": "Good.",
+  "@conv.b1e46c": {
+    "description": "Emberkeeper answers this when the player picks \"I killed the 6 bandits.\" (node \"bandits_running\").",
+    "x_stock": "good"
+  },
+  "conv.b23a53": "My grove is choked with deadwood, little walker. Clear it for an old tree?",
+  "@conv.b23a53": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"grove_brief\", line 1."
+  },
+  "conv.b305e7": "You won't win by hitting harder. You win by staying close.",
+  "@conv.b305e7": {
+    "description": "Hendrik speaks this in the conversation, node \"stags\", line 2."
+  },
+  "conv.b35c04": "Ah. A little walker. You move so... quickly.",
+  "@conv.b35c04": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.b42645": "Where do they nest?",
+  "@conv.b42645": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp_running\"), written as the player's own words."
+  },
+  "conv.b452a9": "A portal stands open.",
+  "@conv.b452a9": {
+    "description": "Portal Summon speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.b45e30": "Ask about a place.",
+  "@conv.b45e30": {
+    "description": "Emberkeeper speaks this in the conversation, node \"directions\", line 1."
+  },
+  "conv.b4aad3": "Ignite",
+  "@conv.b4aad3": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"teachings\"), written as the player's own words."
+  },
+  "conv.b66420": "I'll teach you Summon Totem.",
+  "@conv.b66420": {
+    "description": "Shaman answers this when the player picks \"Summon Totem\" (node \"teachings\")."
+  },
+  "conv.b73074": "Kill 6 boars in the fields around the farm, then come back to me.",
+  "@conv.b73074": {
+    "description": "Reinhard speaks this in the conversation, node \"boars\", line 1."
+  },
+  "conv.b829ea": "Was it warm? No? Then it was asleep. Good. The last one lies east, where the wisps gather.",
+  "@conv.b829ea": {
+    "description": "Grandfather Knot answers this when the player picks \"The root by the stones is awake.\" (node \"root\")."
+  },
+  "conv.b833b2": "The dinner?",
+  "@conv.b833b2": {
+    "description": "Eliza speaks this in the conversation, node \"dinner_running\", line 1."
+  },
+  "conv.b8664d": "North, where the hills close in. Take a light.",
+  "@conv.b8664d": {
+    "description": "Emberkeeper speaks this in the conversation, node \"dir_tunnel\", line 1."
+  },
+  "conv.b86808": "I'll do it.",
+  "@conv.b86808": {
+    "description": "A row the player picks when talking to Shaman (node \"direwolves\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.b9a5a5": "I feared as much. Thank you for telling me.",
+  "@conv.b9a5a5": {
+    "description": "Wanderer answers this when the player picks \"I found him. He is dead.\" (node \"friend_running\")."
+  },
+  "conv.b9dc67": "Go on, then. Stay on the road.",
+  "@conv.b9dc67": {
+    "description": "Eliza answers this when the player picks \"Do you have a task for me?\" (node \"root_fed\")."
+  },
+  "conv.ba285e": "I am on it.",
+  "@conv.ba285e": {
+    "description": "A row the player picks when talking to Lamplighter (node \"wolves_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.ba8482": "Bandits hide in the dark forest.",
+  "@conv.ba8482": {
+    "description": "Emberkeeper speaks this in the conversation, node \"news\", line 1."
+  },
+  "conv.bb687a": "Front stone. A life can be laid down here.",
+  "@conv.bb687a": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.bc4229": "I killed the 8 kobolds.",
+  "@conv.bc4229": {
+    "description": "A row the player picks when talking to Wanderer (node \"kobolds_running\"), written as the player's own words."
+  },
+  "conv.bd5ed1": "Good.",
+  "@conv.bd5ed1": {
+    "description": "Town Crier answers this when the player picks \"I'll do it.\" (node \"wolves\").",
+    "x_stock": "good"
+  },
+  "conv.bf5185": "Ask what you need to ask. I'll answer straight.",
+  "@conv.bf5185": {
+    "description": "Hendrik speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.c0a145": "The root by the stream is awake.",
+  "@conv.c0a145": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words."
+  },
+  "conv.c21309": "Spending a character here unlocks a permanent reward for its character slot.",
+  "@conv.c21309": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.c32980": "Good.",
+  "@conv.c32980": {
+    "description": "Shepherd answers this when the player picks \"I found Baabara, Woolliam and Lambert, and the dog.\" (node \"strays_running\").",
+    "x_stock": "good"
+  },
+  "conv.c34364": "Anything else that needs doing?",
+  "@conv.c34364": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.c38898": "Revive",
+  "@conv.c38898": {
+    "description": "A row the player picks when talking to Village Healer (node \"teachings\"), written as the player's own words."
+  },
+  "conv.c431fa": "And when you're wrong, say so quickly. It costs less that way.",
+  "@conv.c431fa": {
+    "description": "Hendrik speaks this in the conversation, node \"advice\", line 3."
+  },
+  "conv.c4520a": "Step through.",
+  "@conv.c4520a": {
+    "description": "A row the player picks when talking to Portal Summon (node \"root\"), written as the player's own words."
+  },
+  "conv.c5038b": "Woof!",
+  "@conv.c5038b": {
+    "description": "Dog answers this when the player picks \"Summon Companion\" (node \"teachings\")."
+  },
+  "conv.c66ceb": "Kill 8 kobolds near the road, then come back to me.",
+  "@conv.c66ceb": {
+    "description": "Wanderer speaks this in the conversation, node \"kobolds_on_it\", line 1."
+  },
+  "conv.c6911c": "Spending one here unlocks a permanent reward for its character slot.",
+  "@conv.c6911c": {
+    "description": "Ascension Stone speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.c6ed72": "I am on it.",
+  "@conv.c6ed72": {
+    "description": "A row the player picks when talking to Front Captain (node \"orcs_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.c78507": "Other fires like yours.",
+  "@conv.c78507": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"directions\"), written as the player's own words."
+  },
+  "conv.c7daee": "I'll teach you Immolate.",
+  "@conv.c7daee": {
+    "description": "Emberkeeper answers this when the player picks \"Immolate\" (node \"teachings\")."
+  },
+  "conv.c867b9": "You can rest at my fire.",
+  "@conv.c867b9": {
+    "description": "Emberkeeper speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.c8bbb3": "Teach me something.",
+  "@conv.c8bbb3": {
+    "description": "A row the player picks when talking to Benjamin (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.c8cb0a": "Teach me something.",
+  "@conv.c8cb0a": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.c9299c": "Bandits did this.",
+  "@conv.c9299c": {
+    "description": "Dead Carter speaks this in the conversation, node \"root\", line 3."
+  },
+  "conv.c97433": "You need the Harvest skill for that — ask me to teach you first.",
+  "@conv.c97433": {
+    "description": "Reinhard speaks this in the conversation, node \"turnips\", line 2."
+  },
+  "conv.c9c459": "I'll do it.",
+  "@conv.c9c459": {
+    "description": "A row the player picks when talking to Reinhard (node \"boars\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.cac932": "I am on it.",
+  "@conv.cac932": {
+    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.cb5409": "Anything in the barn?",
+  "@conv.cb5409": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.cbec19": "I killed the 6 boars.",
+  "@conv.cbec19": {
+    "description": "A row the player picks when talking to Reinhard (node \"boars_running\"), written as the player's own words."
+  },
+  "conv.cd7ad7": "Kill 8 of them in there, then come back to me.",
+  "@conv.cd7ad7": {
+    "description": "Reinhard speaks this in the conversation, node \"rats\", line 2."
+  },
+  "conv.cde0c7": "Pickaxe",
+  "@conv.cde0c7": {
+    "description": "A row the player picks when talking to Miner (node \"teachings\"), written as the player's own words."
+  },
+  "conv.cea9d0": "They came in with the grain sacks. Big as a cat, and they bite.",
+  "@conv.cea9d0": {
+    "description": "Reinhard speaks this in the conversation, node \"rats_more\", line 1."
+  },
+  "conv.cf269a": "Ascension stone. A life can be laid down here.",
+  "@conv.cf269a": {
+    "description": "Ascension Stone speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.d22729": "About the dire wolves...",
+  "@conv.d22729": {
+    "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words."
+  },
+  "conv.d282fe": "About the turnips...",
+  "@conv.d282fe": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.d29850": "Show me the rewards.",
+  "@conv.d29850": {
+    "description": "A row the player picks when talking to Front Ascension Stone (node \"ready\"), written as the player's own words.",
+    "x_stock": "show-rewards"
+  },
+  "conv.d2aaf5": "Good.",
+  "@conv.d2aaf5": {
+    "description": "Shepherd answers this when the player picks \"I'll do it.\" (node \"strays\").",
+    "x_stock": "good"
+  },
+  "conv.d38a57": "South. The root by the stones. Take your time. I do.",
+  "@conv.d38a57": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"where_two\", line 1."
+  },
+  "conv.d39c2f": "He wears a grey cloak and carries a walking staff. Please find him.",
+  "@conv.d39c2f": {
+    "description": "Wanderer speaks this in the conversation, node \"friend\", line 2."
+  },
+  "conv.d42a31": "The gate is closed. The orcs are too close.",
+  "@conv.d42a31": {
+    "description": "City Guard speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.d4c655": "You held the line, and you are far enough along the road. You can spend this character here.",
+  "@conv.d4c655": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"ready\", line 1."
+  },
+  "conv.d5a7ea": "I'll do it.",
+  "@conv.d5a7ea": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"bandits\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.d5b73d": "Which root was it again?",
+  "@conv.d5b73d": {
+    "description": "A row the player picks when talking to Grandfather Knot (node \"root\"), written as the player's own words.",
+    "x_stock": "which-root"
+  },
+  "conv.d640cc": "I'll teach you First Aid.",
+  "@conv.d640cc": {
+    "description": "Village Healer answers this when the player picks \"First Aid\" (node \"teachings\")."
+  },
+  "conv.d712bb": "Kill 6 spiders in the tunnel diggings, then come back to me.",
+  "@conv.d712bb": {
+    "description": "Miner speaks this in the conversation, node \"spiders\", line 1."
+  },
+  "conv.d80928": "Thank you.",
+  "@conv.d80928": {
+    "description": "Miller answers this when the player picks \"I'll look for it.\" (node \"ring\")."
+  },
+  "conv.d8a14d": "About the orcs...",
+  "@conv.d8a14d": {
+    "description": "A row the player picks when talking to Front Captain (node \"root\"), written as the player's own words."
+  },
+  "conv.d9a447": "I am on it.",
+  "@conv.d9a447": {
+    "description": "A row the player picks when talking to City Guard (node \"bears_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.da5df7": "I have the meat and the beets.",
+  "@conv.da5df7": {
+    "description": "A row the player picks when talking to Eliza (node \"dinner_running\"), written as the player's own words."
+  },
+  "conv.da7b38": "Show me the rewards.",
+  "@conv.da7b38": {
+    "description": "A row the player picks when talking to Ascension Stone (node \"root\"), written as the player's own words.",
+    "x_stock": "show-rewards"
+  },
+  "conv.dc299e": "He went into the forest for berries. A grey cloak and a walking staff.",
+  "@conv.dc299e": {
+    "description": "Wanderer speaks this in the conversation, node \"friend_on_it\", line 1."
+  },
+  "conv.dc8434": "Kill 6 bandits from the camp east of here, then come back to me.",
+  "@conv.dc8434": {
+    "description": "Emberkeeper speaks this in the conversation, node \"bandits_on_it\", line 1."
+  },
+  "conv.dd59f0": "Kill 5 bears near the city walls, then come back to me.",
+  "@conv.dd59f0": {
+    "description": "City Guard speaks this in the conversation, node \"bears_on_it\", line 1."
+  },
+  "conv.de667b": "Do you have a task for me?",
+  "@conv.de667b": {
+    "description": "A row the player picks when talking to Eliza (node \"root_fed\"), written as the player's own words.",
+    "x_stock": "ask-task"
+  },
+  "conv.dea7f5": "Anything else?",
+  "@conv.dea7f5": {
+    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
+  },
+  "conv.df1b90": "A root clenched around the stones like a fist. It loosens under your hand.",
+  "@conv.df1b90": {
+    "description": "Stone Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.e0018d": "Kill 6 kobolds north of the tunnel, then come back to me.",
+  "@conv.e0018d": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"lamp\", line 1."
+  },
+  "conv.e06023": "I lost my heirloom, my wedding ring, on the beach north of the farmland.",
+  "@conv.e06023": {
+    "description": "Miller speaks this in the conversation, node \"ring\", line 1."
+  },
+  "conv.e20299": "I killed the 6 bandits.",
+  "@conv.e20299": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"bandits_running\"), written as the player's own words."
+  },
+  "conv.e25ba3": "Tell me more about rats.",
+  "@conv.e25ba3": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
+  },
+  "conv.e4b7ca": "North, through the tunnel. Bring a light.",
+  "@conv.e4b7ca": {
+    "description": "Wanderer speaks this in the conversation, node \"roads\", line 1."
+  },
+  "conv.e4b8d5": "A cold root, damp from the stream. It stirs under your hand.",
+  "@conv.e4b8d5": {
+    "description": "Stream Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.e4e608": "Good.",
+  "@conv.e4e608": {
+    "description": "Lamplighter answers this when the player picks \"I'll do it.\" (node \"wolves\").",
+    "x_stock": "good"
+  },
+  "conv.e590bc": "Harvest",
+  "@conv.e590bc": {
+    "description": "A row the player picks when talking to Reinhard (node \"teachings\"), written as the player's own words."
+  },
+  "conv.e6ef7e": "Torch",
+  "@conv.e6ef7e": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"teachings\"), written as the player's own words."
+  },
+  "conv.e700fe": "Teach me something.",
+  "@conv.e700fe": {
+    "description": "A row the player picks when talking to Hermit (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.e857f0": "DANGER! STAY AWAY!",
+  "@conv.e857f0": {
+    "description": "Forest Sign speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.e907eb": "Your mother wants meat. Then you'll earn it, not be handed it.",
+  "@conv.e907eb": {
+    "description": "Hendrik speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.e930ce": "I am on it.",
+  "@conv.e930ce": {
+    "description": "A row the player picks when talking to Wanderer (node \"friend_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.e9496a": "I'll look for him.",
+  "@conv.e9496a": {
+    "description": "A row the player picks when talking to Wanderer (node \"friend\"), written as the player's own words."
+  },
+  "conv.eb35b3": "You pick one reward. It stays unlocked for every future character in this slot.",
+  "@conv.eb35b3": {
+    "description": "Front Ascension Stone speaks this in the conversation, node \"ready\", line 2."
+  },
+  "conv.eb6918": "Good.",
+  "@conv.eb6918": {
+    "description": "Hermit answers this when the player picks \"I'll do it.\" (node \"welcome\").",
+    "x_stock": "good"
+  },
+  "conv.ebc230": "Stay on the road, and come home when you can. I mean that.",
+  "@conv.ebc230": {
+    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 3."
+  },
+  "conv.ec19f4": "Teach me something.",
+  "@conv.ec19f4": {
+    "description": "A row the player picks when talking to Village Healer (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.ed1385": "I killed the 6 spiders.",
+  "@conv.ed1385": {
+    "description": "A row the player picks when talking to Miner (node \"spiders_running\"), written as the player's own words."
+  },
+  "conv.edf6e1": "Baabara, Woolliam and Lambert. Find them out on the pasture, and the dog with them, then come back to me.",
+  "@conv.edf6e1": {
+    "description": "Shepherd speaks this in the conversation, node \"strays\", line 2."
+  },
+  "conv.ee60a8": "I am on it.",
+  "@conv.ee60a8": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
+  "conv.ee85ae": "Climb down.",
+  "@conv.ee85ae": {
+    "description": "A row the player picks when talking to Cave Mouth (node \"root\"), written as the player's own words."
+  },
+  "conv.f0d4ce": "I'll do it.",
+  "@conv.f0d4ce": {
+    "description": "A row the player picks when talking to Eliza (node \"dinner\"), written as the player's own words.",
+    "x_stock": "quest-accept"
+  },
+  "conv.f1981f": "Not by choice. My friend went into the forest to collect berries and did not come back.",
+  "@conv.f1981f": {
+    "description": "Wanderer speaks this in the conversation, node \"friend\", line 1."
+  },
+  "conv.f280ef": "I'll teach you Charm Beast.",
+  "@conv.f280ef": {
+    "description": "Hermit answers this when the player picks \"Charm Beast\" (node \"teachings\")."
+  },
+  "conv.f2de1e": "Good.",
+  "@conv.f2de1e": {
+    "description": "Shaman answers this when the player picks \"I'll do it.\" (node \"direwolves\").",
+    "x_stock": "good"
+  },
+  "conv.f31bda": "I found your ring.",
+  "@conv.f31bda": {
+    "description": "A row the player picks when talking to Miller (node \"ring_running\"), written as the player's own words."
+  },
+  "conv.f41363": "Baa! Baa!",
+  "@conv.f41363": {
+    "description": "Lambert speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.f4bf74": "Good.",
+  "@conv.f4bf74": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"rats\").",
+    "x_stock": "good"
+  },
+  "conv.f512a9": "Teach me something.",
+  "@conv.f512a9": {
+    "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.f56f0d": "Look at that. Sit, sit. It's nearly ready.",
+  "@conv.f56f0d": {
+    "description": "Eliza answers this when the player picks \"I have the meat and the beets.\" (node \"dinner_running\")."
+  },
+  "conv.f71988": "The wolves?",
+  "@conv.f71988": {
+    "description": "Town Crier speaks this in the conversation, node \"wolves_running\", line 1."
+  },
+  "conv.f778d3": "Teach me something.",
+  "@conv.f778d3": {
+    "description": "A row the player picks when talking to Hendrik (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.f7803c": "Kill 5 orcs on the front line south of here, then come back to me.",
+  "@conv.f7803c": {
+    "description": "Front Captain speaks this in the conversation, node \"orcs_on_it\", line 1."
+  },
+  "conv.f80d4a": "Never trust a man who doesn't like soup. Always remember this.",
+  "@conv.f80d4a": {
+    "description": "Benjamin speaks this in the conversation, node \"advice\", line 2."
+  },
+  "conv.f82987": "I'll teach you Ignite.",
+  "@conv.f82987": {
+    "description": "Emberkeeper answers this when the player picks \"Ignite\" (node \"teachings\")."
+  },
+  "conv.f8af32": "Come back in about a century, little walker. Tell me how your journey went.",
+  "@conv.f8af32": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"root_done\", line 1."
+  },
+  "conv.f8f07f": "This is the southern front.",
+  "@conv.f8f07f": {
+    "description": "Front Captain speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.f9b9e2": "A beet is a very honest vegetable. Always remember this.",
+  "@conv.f9b9e2": {
+    "description": "Benjamin speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.fa496e": "Kill 6 kobolds north of the tunnel, then come back to me.",
+  "@conv.fa496e": {
+    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_on_it\", line 1."
+  },
+  "conv.fbe5c8": "How do I bring down the Orc Commander?",
+  "@conv.fbe5c8": {
+    "description": "A row the player picks when talking to Front Captain (node \"root\"), written as the player's own words."
+  },
+  "conv.fd54eb": "The young trees of this wood have grown angry, little walker. Have you met them?",
+  "@conv.fd54eb": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"roots_brief\", line 1."
+  },
+  "conv.fe09a2": "Help your father with his game down by the lake, and get the six beets from Benjamin. Then we eat.",
+  "@conv.fe09a2": {
+    "description": "Eliza speaks this in the conversation, node \"dinner_on_it\", line 1."
+  },
+  "conv.fea139": "Teach me something.",
+  "@conv.fea139": {
+    "description": "A row the player picks when talking to Emberkeeper (node \"root\"), written as the player's own words.",
+    "x_stock": "ask-teach"
+  },
+  "conv.ff69ff": "The village?",
+  "@conv.ff69ff": {
+    "description": "Hermit speaks this in the conversation, node \"welcome_running\", line 1."
+  },
+  "conv.ff87a4": "I am on it.",
+  "@conv.ff87a4": {
+    "description": "A row the player picks when talking to Hermit (node \"welcome_running\"), written as the player's own words.",
+    "x_stock": "quest-progress"
+  },
   "mob.AlphaBoar.name": "Alpha Boar",
   "@mob.AlphaBoar.name": {
     "description": "Name of the AlphaBoar (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
@@ -483,5 +2271,41 @@
   "mob.Woolliam.name": "Woolliam",
   "@mob.Woolliam.name": {
     "description": "Name of the Woolliam (nameplate, conversation header, quest lines). Singular, nominative; never inflected by a template (D9/L8)."
+  },
+  "stock.ask-task": "Do you have a task for me?",
+  "@stock.ask-task": {
+    "description": "Shared stock phrase \"ask-task\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.ask-teach": "Teach me something.",
+  "@stock.ask-teach": {
+    "description": "Shared stock phrase \"ask-teach\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.good": "Good.",
+  "@stock.good": {
+    "description": "Shared stock phrase \"good\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.offer-teach": "What do you want to learn?",
+  "@stock.offer-teach": {
+    "description": "Shared stock phrase \"offer-teach\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.quest-accept": "I'll do it.",
+  "@stock.quest-accept": {
+    "description": "Shared stock phrase \"quest-accept\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.quest-progress": "I am on it.",
+  "@stock.quest-progress": {
+    "description": "Shared stock phrase \"quest-progress\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.quest-reward": "Here is your reward.",
+  "@stock.quest-reward": {
+    "description": "Shared stock phrase \"quest-reward\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.show-rewards": "Show me the rewards.",
+  "@stock.show-rewards": {
+    "description": "Shared stock phrase \"show-rewards\", used by many conversations; every line whose English matches falls back to this German (§8)."
+  },
+  "stock.which-root": "Which root was it again?",
+  "@stock.which-root": {
+    "description": "Shared stock phrase \"which-root\", used by many conversations; every line whose English matches falls back to this German (§8)."
   }
 }

@@ -182,15 +182,26 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	// entries, refused where authored English would not survive as ICU (L14),
 	// and the translation overlays, refused when not UTF-8 or malformed (L17).
 	// A LEAF stage: it reads the registries above and nothing reads it back.
+	stock, stockErr := loadStockPhrases(src.lang)
+	if stockErr != nil {
+		fail("lang", stockErr)
+	}
 	if zoneNames, err := zoneNamesFrom(src.zones); err != nil {
 		fail("lang", err)
 	} else {
 		var langFindings []string
-		out.langEntries, langFindings = langEntries(out, zoneNames)
+		out.langEntries, langFindings = langEntries(out, zoneNames, stock)
 		findings = append(findings, langFindings...)
 	}
 	if out.langBundle, err = lang.LoadOverlays(src.lang); err != nil {
 		fail("lang", err)
+	} else {
+		// §8: a dialogue line matching a stock phrase falls back to its German.
+		for _, e := range out.langEntries["mobs"] {
+			if e.Stock != "" {
+				out.langBundle.LinkStock(e.Key, e.Stock)
+			}
+		}
 	}
 
 	return out, findings

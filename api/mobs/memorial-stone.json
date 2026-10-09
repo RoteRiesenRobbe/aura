@@ -27,8 +27,8 @@
         "id": "root",
         "rows": "memorial_names",
         "lines": [
-          "Memorial stone.",
-          "Every character spent at the ascension stone, newest first."
+          {"id": "b13bf1", "text": "Memorial stone."},
+          {"id": "09f43b", "text": "Every character spent at the ascension stone, newest first."}
         ]
       }
     ]

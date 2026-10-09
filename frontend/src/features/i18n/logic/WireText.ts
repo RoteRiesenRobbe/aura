@@ -13,6 +13,7 @@ import {mobDefinition} from '../../../client-data/Mobs';
 import {skillDisplayName} from '../../../client-data/Skills';
 import {questDefinition} from '../../../client-data/Quests';
 import {PLACES} from '../../regions/logic/RegionNames';
+import {contentText, conversationKey} from '../../../client-data/LangBundle';
 
 /** One decoded MessageArg, plain data (the unit-testable shape). */
 export interface WireArg {
@@ -101,7 +102,14 @@ export function wireMessageText(message: AuraApi.EntityMessage): string {
     if (!key) {
         return fallback;
     }
-    return tKey(key, resolveArgs(decodeArgs(message)), fallback);
+    const args = decodeArgs(message);
+    if (key === 'contentLines') {
+        // C3: authored lines by their stable ids, each from the /lang bundle.
+        const english = fallback.split('\n');
+        const ids = args.find(a => a.name === 'ids')?.items ?? [];
+        return ids.map((id, i) => contentText(conversationKey(id), english[i] ?? '')).join('\n');
+    }
+    return tKey(key, resolveArgs(args), fallback);
 }
 
 // ------------------------------------------------------------- objectives

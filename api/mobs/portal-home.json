@@ -26,14 +26,16 @@
       {
         "id": "root",
         "lines": [
-          "A portal stands open.",
-          "It leads to the campfire the caster is bound to."
+          {"id": "4ffbef", "text": "A portal stands open."},
+          {"id": "8a54e7", "text": "It leads to the campfire the caster is bound to."}
         ],
         "options": [
           {
+            "id": "5b82c7",
             "text": "Step through.",
             "grants": [
               {
+                "id": "911a76",
                 "kind": "travel_to",
                 "mode": "home_campfire",
                 "line": "You step through."

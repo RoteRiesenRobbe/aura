@@ -27,7 +27,7 @@
       {
         "id": "root",
         "lines": [
-          "I do the work the farmer has no hands left for."
+          {"id": "175338", "text": "I do the work the farmer has no hands left for."}
         ],
         "options": []
       }

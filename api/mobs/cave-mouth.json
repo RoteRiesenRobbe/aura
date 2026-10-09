@@ -26,14 +26,16 @@
       {
         "id": "root",
         "lines": [
-          "A dark opening in the rock.",
-          "Cold air rises out of it."
+          {"id": "714f53", "text": "A dark opening in the rock."},
+          {"id": "72f5ce", "text": "Cold air rises out of it."}
         ],
         "options": [
           {
+            "id": "ee85ae",
             "text": "Climb down.",
             "grants": [
               {
+                "id": "acdcef",
                 "kind": "travel_to",
                 "mode": "anchor",
                 "line": "You climb down into the dark."

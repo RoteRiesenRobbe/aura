@@ -21,30 +21,32 @@
   "skills": [],
   "interaction": {
     "range": 2.0,
-    "ambient": ["Hail Adventurer"],
+    "ambient": [{"id": "2a8349", "text": "Hail Adventurer"}],
     "nodes": [
       {
         "id": "root",
         "lines": [
-          "I call out the news here."
+          {"id": "4f03dd", "text": "I call out the news here."}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "wolves" },
-          { "text": "About the wolves...", "next": "wolves_running" },
-          { "text": "Who else should I speak to?", "next": "news_who" }
+          { "id": "25088b", "text": "Do you have a task for me?", "next": "wolves" },
+          { "id": "73985b", "text": "About the wolves...", "next": "wolves_running" },
+          { "id": "18064c", "text": "Who else should I speak to?", "next": "news_who" }
         ]
       },
       {
         "id": "wolves",
         "lines": [
-          "Kill 8 wolves on the west road.",
-          "Then report to the City Guard at the city gate far to the east, or to the Shaman at his fire east along the road."
+          {"id": "0529b7", "text": "Kill 8 wolves on the west road."},
+          {"id": "319b0f", "text": "Then report to the City Guard at the city gate far to the east, or to the Shaman at his fire east along the road."}
         ],
         "options": [
           {
+            "id": "8c1c58",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "bd5ed1",
                 "kind": "offer_quest",
                 "quest": "wolves-on-the-road",
                 "line": "Good."
@@ -56,10 +58,11 @@
       {
         "id": "wolves_running",
         "lines": [
-          "The wolves?"
+          {"id": "f71988", "text": "The wolves?"}
         ],
         "options": [
           {
+            "id": "743f4e",
             "text": "I am on it.",
             "next": "wolves_on_it"
           }
@@ -75,13 +78,13 @@
           }
         ],
         "lines": [
-          "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman."
+          {"id": "66f4ee", "text": "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman."}
         ]
       },
       {
         "id": "news_who",
         "lines": [
-          "Talk to the Hermit and Reinhard."
+          {"id": "209d4e", "text": "Talk to the Hermit and Reinhard."}
         ]
       }
     ]

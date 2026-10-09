@@ -1,3 +1,9 @@
+import {contentText, conversationKey} from '../../../../../client-data/LangBundle';
+import {formatList, t, tKey} from '../../../../i18n/logic/Locale';
+import {mobName} from '../../../../i18n/logic/WireText';
+import {mobDefinition} from '../../../../../client-data/Mobs';
+import {skillDisplayName} from '../../../../../client-data/Skills';
+import {questDefinition} from '../../../../../client-data/Quests';
 import {decodeObjectives, objectiveLine} from '../../../../i18n/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
@@ -139,8 +145,14 @@ export class GameStateMessage {
         }
 
         this.entities = [];
+        // C3: remember each mob entity's species, so a conversation header can
+        // be named from the localized catalog.
         for (let i = 0; i < gameState.entitiesLength(); ++i) {
-            this.entities.push(unmarshalWrappedEntity(gameState.entities(i)));
+            const decoded = unmarshalWrappedEntity(gameState.entities(i));
+            this.entities.push(decoded);
+            if (decoded && decoded.mobId) {
+                actorMobIds.set(Number(decoded.id), decoded.mobId);
+            }
         }
 
         this.skillEvents = unmarshalSkillEvents(gameState);
@@ -373,6 +385,70 @@ function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
  *
  * @param c the nested table, or null when no panel is open
  */
+/** Species id per mob entity id, refreshed by every snapshot (C3). */
+const actorMobIds = new Map<number, number>();
+
+/**
+ * A row's label in the chosen language (plan-localization.md C3): the authored
+ * text by its stable id, a synthesized row by its UI key, a teach row by its
+ * skill's localized name; a locked row adds its reasons, joined by the gate's
+ * mode. The server's English text is the fallback for anything unresolved.
+ */
+function rowText(o: AuraApi.ConversationOption): string {
+    const english = o.text() ?? '';
+    const skillName = o.skillId() ? skillDisplayName(o.skillId()) : '';
+    let base: string | null = null;
+    if (o.textId()) {
+        base = contentText(conversationKey(o.textId()), '');
+    } else if (o.textKey()) {
+        base = tKey(o.textKey(), {skill: skillName}, '');
+    } else if (skillName) {
+        base = skillName;
+    }
+    if (o.locksLength() === 0) {
+        return base || english;
+    }
+    if (!base) {
+        return english;
+    }
+    const reasons: string[] = [];
+    for (let i = 0; i < o.locksLength(); i++) {
+        reasons.push(lockReasonText(o.locks(i)));
+    }
+    return t('conversationLockedRow', {label: base, reasons: formatList(reasons, o.locksAny() ? 'disjunction' : 'conjunction')});
+}
+
+function rowReply(o: AuraApi.ConversationOption): string {
+    const english = o.reply() ?? '';
+    if (o.replyId()) {
+        return contentText(conversationKey(o.replyId()), english);
+    }
+    if (o.replyKey()) {
+        return tKey(o.replyKey(), {skill: o.skillId() ? skillDisplayName(o.skillId()) : ''}, english);
+    }
+    return english;
+}
+
+function lockReasonText(l: AuraApi.ConversationLock): string {
+    const quest = questDefinition(l.quest() ?? '')?.title ?? (l.quest() ?? '');
+    switch (l.kind()) {
+        case AuraApi.ConversationLockKind.MinLevel:
+            return t('lockMinLevel', {value: l.value(), have: l.have()});
+        case AuraApi.ConversationLockKind.Ascensions:
+            return t('lockAscensions', {value: l.value(), have: l.have()});
+        case AuraApi.ConversationLockKind.QuestComplete:
+            return t('lockQuestComplete', {quest});
+        case AuraApi.ConversationLockKind.QuestAtStage:
+            return t('lockQuestAtStage', {quest, stage: l.stage() ?? ''});
+        case AuraApi.ConversationLockKind.Kills:
+            return t('lockKills', {value: l.value(), have: l.have(), mob: mobName(Number(l.species()))});
+        case AuraApi.ConversationLockKind.TravelClosed:
+            return t('lockTravelClosed');
+        default:
+            return t('lockUnknown');
+    }
+}
+
 function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree | undefined {
     if (c === null) {
         // Absent (chunk 3, D3): no fresh tree this tick. NOT the close signal
@@ -384,9 +460,12 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
     for (let i = 0; i < c.nodesLength(); ++i) {
         const node = c.nodes(i);
 
+        // plan-localization.md C3: each line by its stable id from the /lang
+        // bundle, the server's English as the fallback (D13).
         const lines: string[] = [];
         for (let j = 0; j < node.linesLength(); ++j) {
-            lines.push(node.lines(j));
+            const lineId = j < node.lineIdsLength() ? node.lineIds(j) : '';
+            lines.push(lineId ? contentText(conversationKey(lineId), node.lines(j)) : node.lines(j));
         }
 
         const rows: ConversationRow[] = [];
@@ -398,11 +477,11 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 // index and echoing it back would teach the wrong skill.
                 optionIndex: o.optionIndex(),
                 grantIndex: o.grantIndex(),
-                text: o.text() ?? '',
+                text: rowText(o),
                 next: o.next() ?? '',
                 locked: o.locked(),
                 requiredLevel: o.requiredLevel(),
-                reply: o.reply() ?? '',
+                reply: rowReply(o),
                 confirmSeconds: o.confirmSeconds(),
                 skillId: o.skillId(),
                 travel: o.travel() as TravelDirection,
@@ -412,9 +491,13 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
         nodes.push({id: node.id() ?? '', lines, rows});
     }
 
+    // C3: the header names the conversant from the localized mob catalog by
+    // its species id (never the entity type, L18); the server's English name
+    // is the fallback.
+    const actorMobId = actorMobIds.get(Number(c.entityId()));
     return {
         entityId: Number(c.entityId()),
-        actorName: c.actorName() ?? '',
+        actorName: (actorMobId !== undefined && mobDefinition(actorMobId)?.displayName) || (c.actorName() ?? ''),
         entryNode: c.entryNode() ?? '',
         nodes,
     };

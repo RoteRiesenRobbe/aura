@@ -128,6 +128,7 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 			OptionIndex:    ascensionEmptyPickIndex,
 			GrantIndex:     0,
 			Text:           "Spend this character, take no reward.",
+			TextKey:        "convAscendNoReward",
 			Reply:          "Channelling now. Walk away to cancel.",
 			ConfirmSeconds: ascensionConfirmSeconds,
 		})
@@ -158,9 +159,12 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 	// same deliberate twin the teaching rows have: the greying and the named wall
 	// are the whole message, and the optimistic panel must have nothing to speak.
 	reply := fmt.Sprintf("%s it is. Channelling now, walk away to cancel.", text)
+	replyKey := "convAscendReply"
+	var locks []model.LockReason
 	if locked {
 		text = fmt.Sprintf("%s - locked: %s", text, describeConditions(entry.Gate, p))
-		reply = ""
+		reply, replyKey = "", ""
+		locks = lockReasons(entry.Gate, p)
 	}
 	return model.ConversationOption{
 		OptionIndex: uint8(index),
@@ -172,6 +176,9 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 		Text:       text,
 		Locked:     locked,
 		Reply:      reply,
+		ReplyKey:   replyKey,
+		Locks:      locks,
+		LocksAny:   entry.Gate.Mode == mobs.ConditionModeAny,
 		// ⚑ Set on the locked row as well, which is the whole point: the branch
 		// above rewrites the text and empties the reply, but a gate the player
 		// cannot read the reward behind is indistinguishable from one that is
@@ -340,6 +347,34 @@ func (a *ascensionRows) spent(p learner, key string) bool {
 // ⚑ Composed PER PLAYER at render, never authored (D18). Serving a threshold
 // for unreached content out of the catalog would repeat the mistake the quest
 // journal's Objectives exists to avoid.
+// lockReasons is describeConditions as data (plan-localization.md C3): the
+// client words each reason in its own language and joins them by the gate's
+// mode. The same cases, so the two cannot drift into two dialects.
+func lockReasons(gate mobs.Gate, p learner) []model.LockReason {
+	out := make([]model.LockReason, 0, len(gate.Conditions))
+	for _, c := range gate.Conditions {
+		r := model.LockReason{Kind: model.LockUnknown, Value: uint32(c.Value)}
+		switch c.Kind {
+		case mobs.ConditionMinLevel:
+			r.Kind, r.Have = model.LockMinLevel, uint32(p.Progression().Level)
+		case mobs.ConditionBloodlineAscensions:
+			r.Kind, r.Have = model.LockAscensions, uint32(p.BloodlineAscensions())
+		case mobs.ConditionQuestAtStage:
+			r.Kind, r.Quest, r.Stage = model.LockQuestAtStage, c.Quest, c.Stage
+			if c.Stage == mobs.QuestStageCompleted {
+				r.Kind, r.Stage = model.LockQuestComplete, ""
+			}
+		case mobs.ConditionKillsThisLife:
+			r.Kind, r.Species = model.LockKills, uint64(c.SpeciesID)
+			if c.SpeciesID != 0 {
+				r.Have = uint32(p.QuestLedger().KillCount(c.SpeciesID))
+			}
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
 func describeConditions(gate mobs.Gate, p learner) string {
 	parts := make([]string, 0, len(gate.Conditions))
 	for _, c := range gate.Conditions {

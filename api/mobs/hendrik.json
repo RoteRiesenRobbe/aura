@@ -17,23 +17,25 @@
       {
         "id": "root",
         "lines": [
-          "Your mother wants meat. Then you'll earn it, not be handed it.",
-          "Ask what you need to ask. I'll answer straight."
+          {"id": "e907eb", "text": "Your mother wants meat. Then you'll earn it, not be handed it."},
+          {"id": "bf5185", "text": "Ask what you need to ask. I'll answer straight."}
         ],
         "options": [
-          { "text": "Teach me something.", "next": "teachings" },
-          { "text": "How do I hunt a stag?", "next": "stags" },
-          { "text": "What should I know before I leave?", "next": "advice" }
+          { "id": "f778d3", "text": "Teach me something.", "next": "teachings" },
+          { "id": "9441a7", "text": "How do I hunt a stag?", "next": "stags" },
+          { "id": "866178", "text": "What should I know before I leave?", "next": "advice" }
         ]
       },
       {
         "id": "teachings",
-        "lines": [ "I'll teach you one thing. Learn it properly." ],
+        "lines": [ {"id": "0a80aa", "text": "I'll teach you one thing. Learn it properly."} ],
         "options": [
           {
+            "id": "180506",
             "text": "Wild",
             "grants": [
               {
+                "id": "789efd",
                 "kind": "teach_skill",
                 "skill": "Wild",
                 "requiredLevel": 1,
@@ -46,18 +48,18 @@
       {
         "id": "stags",
         "lines": [
-          "A stag will start to run the moment you hurt it.",
-          "You won't win by hitting harder. You win by staying close.",
-          "Don't give up the chase, and don't be cruel about it."
+          {"id": "289572", "text": "A stag will start to run the moment you hurt it."},
+          {"id": "b305e7", "text": "You won't win by hitting harder. You win by staying close."},
+          {"id": "9c7025", "text": "Don't give up the chase, and don't be cruel about it."}
         ],
         "options": []
       },
       {
         "id": "advice",
         "lines": [
-          "Take only what you need, from the land or from anyone.",
-          "Pay what you owe, even when nobody is counting.",
-          "And when you're wrong, say so quickly. It costs less that way."
+          {"id": "2fd8df", "text": "Take only what you need, from the land or from anyone."},
+          {"id": "80d251", "text": "Pay what you owe, even when nobody is counting."},
+          {"id": "c431fa", "text": "And when you're wrong, say so quickly. It costs less that way."}
         ],
         "options": []
       }

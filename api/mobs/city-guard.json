@@ -25,13 +25,15 @@
       {
         "id": "root",
         "lines": [
-          "The gate is closed. The orcs are too close."
+          {"id": "d42a31", "text": "The gate is closed. The orcs are too close."}
         ],
         "options": [
           {
+            "id": "08e210",
             "text": "The 8 wolves on the west road are dead.",
             "grants": [
               {
+                "id": "a987ed",
                 "kind": "advance_quest",
                 "quest": "wolves-on-the-road",
                 "fromStage": "carry_word",
@@ -39,33 +41,37 @@
                 "line": "Good."
               },
               {
+                "id": "72fabf",
                 "kind": "teach_skill",
                 "skill": "Taunt",
                 "line": "I'll teach you Taunt."
               },
               {
+                "id": "7ea918",
                 "kind": "grant_xp",
                 "xp": 400,
                 "line": "Here is your reward."
               }
             ]
           },
-          { "text": "Do you have a task for me?", "next": "bears" },
-          { "text": "About the bears...", "next": "bears_running" },
-          { "text": "Teach me something.", "next": "teachings" },
-          { "text": "Where can I make myself useful?", "next": "front" }
+          { "id": "778209", "text": "Do you have a task for me?", "next": "bears" },
+          { "id": "64f518", "text": "About the bears...", "next": "bears_running" },
+          { "id": "8909ab", "text": "Teach me something.", "next": "teachings" },
+          { "id": "05bf15", "text": "Where can I make myself useful?", "next": "front" }
         ]
       },
       {
         "id": "bears",
         "lines": [
-          "Kill 5 bears near the city walls, then come back to me."
+          {"id": "5a4ad6", "text": "Kill 5 bears near the city walls, then come back to me."}
         ],
         "options": [
           {
+            "id": "90b22a",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "6f75a5",
                 "kind": "offer_quest",
                 "quest": "bears-at-the-walls",
                 "line": "Good."
@@ -77,13 +83,15 @@
       {
         "id": "bears_running",
         "lines": [
-          "The bears?"
+          {"id": "8d8f97", "text": "The bears?"}
         ],
         "options": [
           {
+            "id": "8d183d",
             "text": "I killed the 5 bears.",
             "grants": [
               {
+                "id": "05d420",
                 "kind": "advance_quest",
                 "quest": "bears-at-the-walls",
                 "fromStage": "report",
@@ -91,6 +99,7 @@
                 "line": "Good."
               },
               {
+                "id": "6c2455",
                 "kind": "grant_xp",
                 "xp": 2300,
                 "line": "Here is your reward."
@@ -98,6 +107,7 @@
             ]
           },
           {
+            "id": "d9a447",
             "text": "I am on it.",
             "next": "bears_on_it"
           }
@@ -113,19 +123,21 @@
           }
         ],
         "lines": [
-          "Kill 5 bears near the city walls, then come back to me."
+          {"id": "dd59f0", "text": "Kill 5 bears near the city walls, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "47576a", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "06b6a1",
             "text": "Strong",
             "grants": [
               {
+                "id": "579a30",
                 "kind": "teach_skill",
                 "skill": "Strong",
                 "requiredLevel": 3,
@@ -138,7 +150,7 @@
       {
         "id": "front",
         "lines": [
-          "The front is in the south. They need fighters."
+          {"id": "a00697", "text": "The front is in the south. They need fighters."}
         ]
       }
     ]

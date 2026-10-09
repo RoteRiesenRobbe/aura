@@ -200,5 +200,16 @@
   "questObjectiveHarvest": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} geerntet",
   "questObjectiveTalkTo": "Sprich mit {name}",
   "questObjectiveReach": "Geh nach {place}",
-  "questObjectiveDone": "{line} ✓"
+  "questObjectiveDone": "{line} ✓",
+  "contentLines": "{ids}",
+  "conversationLockedRow": "{label} – gesperrt: {reasons}",
+  "lockMinLevel": "Stufe {value, number} ({have, number}/{value, number})",
+  "lockAscensions": "{value, plural, one {# Aufstieg} other {# Aufstiege}} in dieser Blutlinie ({have, number}/{value, number})",
+  "lockQuestComplete": "„{quest}“ abschließen",
+  "lockQuestAtStage": "„{quest}“ bei „{stage}“",
+  "lockKills": "{value, number} × {mob} in diesem Leben töten ({have, number}/{value, number})",
+  "lockTravelClosed": "sein anderes Ende ist verschwunden",
+  "lockUnknown": "eine unbenannte Bedingung",
+  "convAscendNoReward": "Diese Figur geben, ohne Belohnung.",
+  "convAscendReply": "{skill} also. Kanalisiere jetzt, geh weg, um abzubrechen."
 }

@@ -6,5 +6,5 @@ import "embed"
 // the generated English sources and the translation overlays. Synced by
 // cp-defs like every other content directory (L3).
 //
-//go:embed */*.arb
+//go:embed */*.arb stock.json
 var Lang embed.FS

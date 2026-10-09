@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          "A root clenched around the stones like a fist. It loosens under your hand."
+          {"id": "df1b90", "text": "A root clenched around the stones like a fist. It loosens under your hand."}
         ]
       }
     ]

@@ -26,13 +26,15 @@
       {
         "id": "root",
         "lines": [
-          "Let nature guide you. But also be aware of nature. It's complicated."
+          {"id": "0c836d", "text": "Let nature guide you. But also be aware of nature. It's complicated."}
         ],
         "options": [
           {
+            "id": "18395c",
             "text": "The 8 wolves on the west road are dead.",
             "grants": [
               {
+                "id": "1b36c4",
                 "kind": "advance_quest",
                 "quest": "wolves-on-the-road",
                 "fromStage": "carry_word",
@@ -40,32 +42,36 @@
                 "line": "Good."
               },
               {
+                "id": "50eb01",
                 "kind": "teach_skill",
                 "skill": "Slow",
                 "line": "I'll teach you Slow."
               },
               {
+                "id": "70f21e",
                 "kind": "grant_xp",
                 "xp": 400,
                 "line": "Here is your reward."
               }
             ]
           },
-          { "text": "Do you have a task for me?", "next": "direwolves" },
-          { "text": "About the dire wolves...", "next": "direwolves_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "id": "75ee41", "text": "Do you have a task for me?", "next": "direwolves" },
+          { "id": "d22729", "text": "About the dire wolves...", "next": "direwolves_running" },
+          { "id": "8d448a", "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "direwolves",
         "lines": [
-          "Kill 6 dire wolves around my camp, then come back to me."
+          {"id": "798ef3", "text": "Kill 6 dire wolves around my camp, then come back to me."}
         ],
         "options": [
           {
+            "id": "b86808",
             "text": "I'll do it.",
             "grants": [
               {
+                "id": "f2de1e",
                 "kind": "offer_quest",
                 "quest": "dire-wolves-at-the-camp",
                 "line": "Good."
@@ -77,13 +83,15 @@
       {
         "id": "direwolves_running",
         "lines": [
-          "The dire wolves?"
+          {"id": "62f156", "text": "The dire wolves?"}
         ],
         "options": [
           {
+            "id": "890fd4",
             "text": "I killed the 6 dire wolves.",
             "grants": [
               {
+                "id": "714894",
                 "kind": "advance_quest",
                 "quest": "dire-wolves-at-the-camp",
                 "fromStage": "report",
@@ -91,6 +99,7 @@
                 "line": "Good."
               },
               {
+                "id": "a3f2fd",
                 "kind": "grant_xp",
                 "xp": 930,
                 "line": "Here is your reward."
@@ -98,6 +107,7 @@
             ]
           },
           {
+            "id": "59bb38",
             "text": "I am on it.",
             "next": "direwolves_on_it"
           }
@@ -113,19 +123,21 @@
           }
         ],
         "lines": [
-          "Kill 6 dire wolves around my camp, then come back to me."
+          {"id": "537dbb", "text": "Kill 6 dire wolves around my camp, then come back to me."}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"id": "7f13de", "text": "What do you want to learn?"}
         ],
         "options": [
           {
+            "id": "8c70de",
             "text": "Recover",
             "grants": [
               {
+                "id": "39a609",
                 "kind": "teach_skill",
                 "skill": "Recover",
                 "requiredLevel": 4,
@@ -134,9 +146,11 @@
             ]
           },
           {
+            "id": "47d310",
             "text": "Summon Totem",
             "grants": [
               {
+                "id": "b66420",
                 "kind": "teach_skill",
                 "skill": "SummonTotem",
                 "requiredLevel": 5,
