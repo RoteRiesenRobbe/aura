@@ -1,3 +1,4 @@
+import {t} from '../../../i18n/logic/Locale';
 import {AccountsApi, ApiError} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
 
@@ -102,12 +103,10 @@ async function submitLogin(): Promise<void> {
     if (mustWarn) {
         const warning = panel.querySelector('.anonymousWarning') as HTMLElement;
         warning.textContent =
-            'You are currently playing without an account. Logging in will abandon '
-            + 'that progress permanently — it cannot be recovered afterwards. '
-            + 'Press Log in again to continue.';
+            t('authAbandonWarning');
         warning.classList.remove('hidden');
         (panel.querySelector('input[type="submit"]') as HTMLInputElement).value =
-            'Log in and abandon progress';
+            t('authAbandonButton');
         discardConfirmed = true;
         return;
     }

@@ -11,5 +11,880 @@
   "settingsLanguageReloadConfirm": "The game will reload to switch the language. Continue?",
   "@settingsLanguageReloadConfirm": {
     "description": "Browser confirm dialog shown before switching language; switching reloads the page and drops the connection."
+  },
+  "hudMobileMenuButtonTitle": "Menu",
+  "@hudMobileMenuButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=mobileMenuButton> element in #gameUI."
+  },
+  "hudRadarZoomInTitle": "Zoom in",
+  "@hudRadarZoomInTitle": {
+    "description": "HUD: the title attribute of the <button id=radarZoomIn> element in #minimap in #gameUI."
+  },
+  "hudRadarZoomOutTitle": "Zoom out",
+  "@hudRadarZoomOutTitle": {
+    "description": "HUD: the title attribute of the <button id=radarZoomOut> element in #minimap in #gameUI."
+  },
+  "hudMapButtonTitle": "Map (M)",
+  "@hudMapButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=mapButton> element in #gameUI."
+  },
+  "hudSpellbookButtonTitle": "Spellbook (B)",
+  "@hudSpellbookButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=spellbookButton> element in #gameUI."
+  },
+  "hudQuestTrackerJournalTitle": "Journal (J)",
+  "@hudQuestTrackerJournalTitle": {
+    "description": "HUD: the title attribute of the <div id=questTrackerJournal> element in #questTracker in #gameUI."
+  },
+  "hudHealthBarTitle": "Focus — your health and everything you spend to act",
+  "@hudHealthBarTitle": {
+    "description": "HUD: the title attribute of the <div id=healthBar> element in #vitalSigns in #gameUI."
+  },
+  "hudXpBarTitle": "Experience — fills up to your next level",
+  "@hudXpBarTitle": {
+    "description": "HUD: the title attribute of the <div id=xpBar> element in #vitalSigns in #gameUI."
+  },
+  "hudCombatIndicatorTitle": "In combat — loadout editing locked",
+  "@hudCombatIndicatorTitle": {
+    "description": "HUD: the title attribute of the <div id=combatIndicator> element in #gameUI."
+  },
+  "hudInteractButtonTitle": "Talk",
+  "@hudInteractButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=interactButton> element in #gameUI."
+  },
+  "hudHelpButtonTitle": "How Aura works",
+  "@hudHelpButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=helpButton> element in #zoomControl in #gameUI."
+  },
+  "hudMap": "Map",
+  "@hudMap": {
+    "description": "HUD: text of the <span> element in #worldMap in #gameUI."
+  },
+  "hudCloseMEscTitle": "Close (M / Esc)",
+  "@hudCloseMEscTitle": {
+    "description": "HUD: the title attribute of the <span> element in #worldMap in #gameUI."
+  },
+  "hudJournal": "Journal",
+  "@hudJournal": {
+    "description": "HUD: text of the <span> element in #journal in #gameUI."
+  },
+  "hudCloseJEscTitle": "Close (J / Esc)",
+  "@hudCloseJEscTitle": {
+    "description": "HUD: the title attribute of the <span> element in #journal in #gameUI."
+  },
+  "hudRunning": "Running",
+  "@hudRunning": {
+    "description": "HUD: text of the <div> element in #journal in #gameUI."
+  },
+  "hudCompleted": "Completed",
+  "@hudCompleted": {
+    "description": "HUD: text of the <div> element in #journal in #gameUI."
+  },
+  "hudHowAuraWorks": "How Aura works",
+  "@hudHowAuraWorks": {
+    "description": "HUD: text of the <span> element in #help in #gameUI."
+  },
+  "hudCloseEscTitle": "Close (Esc)",
+  "@hudCloseEscTitle": {
+    "description": "HUD: the title attribute of the <span> element in #help in #gameUI."
+  },
+  "hudMoving": "Moving",
+  "@hudMoving": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudMoveWithWasdOr": "Move with WASD or the arrow keys. The minimap is north-up; its compass shows directions. The world is shared — everyone you see is really there.",
+  "@hudMoveWithWasdOr": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudAuras": "Auras",
+  "@hudAuras": {
+    "description": "HUD: text of the <li> element in #spellbookTabs in #spellbook."
+  },
+  "hudYouFightWithAuras": "You fight with auras: a circle around you. No targeting, no aiming — where you stand is the attack. Each aura picks its own targets inside its range, and most affect only a limited number at a time (usually the nearest). An active aura ticks on a steady rhythm — every tick applies its effect; the ring pulse and the pip on the slot show the beat. Enemy auras tick too: stepping out between beats is real play. Exactly one aura is active at a time. You start with Damage equipped.",
+  "@hudYouFightWithAuras": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudFocus": "Focus",
+  "@hudFocus": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudTheBarAtThe": "The bar at the top is Focus — your health and everything you spend, in one value. At zero you die. It refills out of combat; getting hit pauses that for a few seconds.",
+  "@hudTheBarAtThe": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudFightingAndXp": "Fighting and XP",
+  "@hudFightingAndXp": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudEveryoneWhoTakesPart": "Everyone who takes part in a fight gets XP — being close with an aura on counts. The red sword means you are in combat. Mobs stop regenerating for a moment after being hit.",
+  "@hudEveryoneWhoTakesPart": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudLevelsAndSkillPoints": "Levels and skill points",
+  "@hudLevelsAndSkillPoints": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudLevelingUpGrantsSkill": "Leveling up grants skill points. Spend them in the spellbook (B) with +. Higher levels cost more points; each skill has its own cap.",
+  "@hudLevelingUpGrantsSkill": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudTheThreeKindsOf": "The three kinds of skills",
+  "@hudTheThreeKindsOf": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudPassives": "Passives",
+  "@hudPassives": {
+    "description": "HUD: text of the <div> element in #passiveLoadout in #leftColumn."
+  },
+  "hudCooldowns": "Cooldowns",
+  "@hudCooldowns": {
+    "description": "HUD: text of the <div> element in #cooldownLoadout in #abilityBar."
+  },
+  "hudRecall": "Recall",
+  "@hudRecall": {
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar."
+  },
+  "hudCamp": "Camp",
+  "@hudCamp": {
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar."
+  },
+  "hudWhereSkillsComeFrom": "Where skills come from",
+  "@hudWhereSkillsComeFrom": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudGrantedAtCertainLevels": "Granted at certain levels, dropped by some mobs, taught by some people (E when the badge appears), rewarded by quests.",
+  "@hudGrantedAtCertainLevels": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudEquipping": "Equipping",
+  "@hudEquipping": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudOpenTheSpellbookB": "Open the spellbook (B), click a skill, then a slot or its hotkey. Not while in combat.",
+  "@hudOpenTheSpellbookB": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudCosts": "Costs",
+  "@hudCosts": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudMostSkillsSpendFocus": "Most skills spend Focus — the tooltip states every price. The basic Damage aura is always free: you are never left without an option.",
+  "@hudMostSkillsSpendFocus": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudPeopleAndQuests": "People and quests",
+  "@hudPeopleAndQuests": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudGetCloseAndPress": "Get close and press E when the badge lights up. Quests are offered and turned in through dialogue; J opens the journal.",
+  "@hudGetCloseAndPress": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudDying": "Dying",
+  "@hudDying": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudAtZeroFocusYou": "At zero Focus you die and respawn, losing the XP you had gathered toward your next level.",
+  "@hudAtZeroFocusYou": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudDarkPlacesAndOther": "Dark places and other players",
+  "@hudDarkPlacesAndOther": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hudSomeAreasAreDark": "Some areas are dark — bring a light aura, or a friend who carries one while you carry the damage. Filling roles for each other is the design. There is no PvP.",
+  "@hudSomeAreasAreDark": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "hudJournalButtonTitle": "Journal (J)",
+  "@hudJournalButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=journalButton> element in #leftColumn in #gameUI."
+  },
+  "hudSpellbookSheetButtonTitle": "Spellbook (B)",
+  "@hudSpellbookSheetButtonTitle": {
+    "description": "HUD: the title attribute of the <div id=spellbookSheetButton> element in #leftColumn in #gameUI."
+  },
+  "hudRespecButton": "Reset",
+  "@hudRespecButton": {
+    "description": "HUD: text of the <span id=respecButton> element in #spellbook in #leftColumn."
+  },
+  "hudRespecButtonTitle": "Reset every skill to level 1 and refund all points",
+  "@hudRespecButtonTitle": {
+    "description": "HUD: the title attribute of the <span id=respecButton> element in #spellbook in #leftColumn."
+  },
+  "hudEmpty": "— Empty —",
+  "@hudEmpty": {
+    "description": "HUD: text of the <span> element in #cooldownSlotList in #cooldownLoadout."
+  },
+  "hudLeaveEscTitle": "Leave (Esc)",
+  "@hudLeaveEscTitle": {
+    "description": "HUD: the title attribute of the <span> element in #conversation in #bottomCenter."
+  },
+  "hudBack": "← Back",
+  "@hudBack": {
+    "description": "HUD: text of the <div> element in #conversation in #bottomCenter."
+  },
+  "hudCancel": "Cancel",
+  "@hudCancel": {
+    "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."
+  },
+  "hudConfirm": "Confirm",
+  "@hudConfirm": {
+    "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."
+  },
+  "hudAuraSlots": "Aura Slots",
+  "@hudAuraSlots": {
+    "description": "HUD: text of the <div> element in #auraLoadout in #abilityBar."
+  },
+  "hudUtility": "Utility",
+  "@hudUtility": {
+    "description": "HUD: text of the <div> element in #utilityBar in #actionBars."
+  },
+  "accountCreateYourCharacter": "Create your character",
+  "@accountCreateYourCharacter": {
+    "description": "Account screens: text of the <h2> element in #characterCreation in #accountScreens."
+  },
+  "accountCreateValue": "Create",
+  "@accountCreateValue": {
+    "description": "Account screens: the value attribute of the <input> element in #characterCreationForm in #characterCreation."
+  },
+  "accountAlreadyHaveAnAccount": "Already have an account?",
+  "@accountAlreadyHaveAnAccount": {
+    "description": "Account screens: text of the <p> element in #selectLoginPrompt in #characterSelect."
+  },
+  "accountCreationLoginButton": "Log in",
+  "@accountCreationLoginButton": {
+    "description": "Account screens: text of the <a id=creationLoginButton> element in #characterCreation in #accountScreens."
+  },
+  "accountCreationBackButton": "Close",
+  "@accountCreationBackButton": {
+    "description": "Account screens: text of the <a id=creationBackButton> element in #characterCreation in #accountScreens."
+  },
+  "accountFullscreen": "Fullscreen",
+  "@accountFullscreen": {
+    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
+  },
+  "accountChooseYourCharacter": "Choose your character",
+  "@accountChooseYourCharacter": {
+    "description": "Account screens: text of the <h2> element in #characterSelect in #accountScreens."
+  },
+  "accountLogoutButton": "Log out",
+  "@accountLogoutButton": {
+    "description": "Account screens: text of the <a id=logoutButton> element in #characterSelect in #accountScreens."
+  },
+  "accountSelectLoginButton": "Log in",
+  "@accountSelectLoginButton": {
+    "description": "Account screens: text of the <a id=selectLoginButton> element in #selectLoginPrompt in #characterSelect."
+  },
+  "accountLogIn": "Log in",
+  "@accountLogIn": {
+    "description": "Account screens: text of the <h2> element in #loginPanel in #accountScreens."
+  },
+  "accountUsername": "Username",
+  "@accountUsername": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "accountPassword": "Password",
+  "@accountPassword": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "accountLogInValue": "Log in",
+  "@accountLogInValue": {
+    "description": "Account screens: the value attribute of the <input> element in #loginForm in #loginPanel."
+  },
+  "accountLoginBackButton": "Back",
+  "@accountLoginBackButton": {
+    "description": "Account screens: text of the <a id=loginBackButton> element in #loginPanel in #accountScreens."
+  },
+  "accountCreateAnAccount": "Create an account",
+  "@accountCreateAnAccount": {
+    "description": "Account screens: text of the <h2> element in #registerPanel in #accountScreens."
+  },
+  "accountYourCharactersAndProgress": "Your characters and progress stay exactly as they are. Registering just adds a username and password to the account you are already playing on.",
+  "@accountYourCharactersAndProgress": {
+    "description": "Account screens: text of the <p> element in #registerPanel in #accountScreens."
+  },
+  "accountRepeatPassword": "Repeat Password",
+  "@accountRepeatPassword": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "accountCreateAccountValue": "Create account",
+  "@accountCreateAccountValue": {
+    "description": "Account screens: the value attribute of the <input> element in #registerForm in #registerPanel."
+  },
+  "accountPasswordRecoveryIsNot": "Password recovery is not available yet. If you forget this password, the account cannot be recovered.",
+  "@accountPasswordRecoveryIsNot": {
+    "description": "Account screens: text of the <p> element in #registerPanel in #accountScreens."
+  },
+  "accountRegisterBackButton": "Close",
+  "@accountRegisterBackButton": {
+    "description": "Account screens: text of the <a id=registerBackButton> element in #registerPanel in #accountScreens."
+  },
+  "accountDeleteThisCharacter": "Delete this character?",
+  "@accountDeleteThisCharacter": {
+    "description": "Account screens: text of the <h2> element in #deleteDialog in #accountScreens."
+  },
+  "accountThisCannotBeUndone": "This cannot be undone.",
+  "@accountThisCannotBeUndone": {
+    "description": "Account screens: text of the <p> element in #deleteDialog in #accountScreens."
+  },
+  "accountDeleteCancelButton": "Cancel",
+  "@accountDeleteCancelButton": {
+    "description": "Account screens: text of the <a id=deleteCancelButton> element in #deleteDialog in #accountScreens."
+  },
+  "accountDeleteConfirmButton": "Delete",
+  "@accountDeleteConfirmButton": {
+    "description": "Account screens: text of the <a id=deleteConfirmButton> element in #deleteDialog in #accountScreens."
+  },
+  "startWarning": "Warning",
+  "@startWarning": {
+    "description": "Start screen: text of the <em> element in #chromeWarning in #startScreen."
+  },
+  "startContinueAnywayButton": "Continue anyway",
+  "@startContinueAnywayButton": {
+    "description": "Start screen: text of the <a id=continueAnywayButton> element in #chromeWarning in #startScreen."
+  },
+  "startGetChrome": "Get Chrome",
+  "@startGetChrome": {
+    "description": "Start screen: text of the <a> element in #chromeWarning in #startScreen."
+  },
+  "startFullscreen": "Fullscreen",
+  "@startFullscreen": {
+    "description": "Start screen: text of the <label> element in #startForm in #startScreen."
+  },
+  "startLoadingStatus": "Loading…",
+  "@startLoadingStatus": {
+    "description": "Start screen: text of the <div id=loadingStatus> element in #startForm in #startScreen."
+  },
+  "startPlayerCountTitle": "Players online",
+  "@startPlayerCountTitle": {
+    "description": "Start screen: the title attribute of the <div id=playerCount> element in #startForm in #startScreen."
+  },
+  "startCurrentlyOnline": "currently online",
+  "@startCurrentlyOnline": {
+    "description": "Start screen: text of the <span> element in #playerCount in #startForm."
+  },
+  "startBetaStamp": "Prototype",
+  "@startBetaStamp": {
+    "description": "Start screen: text of the <a id=betaStamp> element in #startForm in #startScreen."
+  },
+  "startCredits": "Credits",
+  "@startCredits": {
+    "description": "Start screen: text of the <a> element in #startScreen."
+  },
+  "startChangelog": "Changelog",
+  "@startChangelog": {
+    "description": "Start screen: text of the <a> element in #startScreen."
+  },
+  "nagYourProgressLivesOnly": "Your progress lives only on this device.",
+  "@nagYourProgressLivesOnly": {
+    "description": "Registration nag banner: text of the <span> element in #registrationNag."
+  },
+  "nagNagRegisterButton": "Create an account",
+  "@nagNagRegisterButton": {
+    "description": "Registration nag banner: text of the <a id=nagRegisterButton> element in #registrationNag."
+  },
+  "nagNagDismissButtonTitle": "Dismiss",
+  "@nagNagDismissButtonTitle": {
+    "description": "Registration nag banner: the title attribute of the <a id=nagDismissButton> element in #registrationNag."
+  },
+  "endYouDied": "You Died",
+  "@endYouDied": {
+    "description": "Death screen: text of the <h2> element in #endScreen."
+  },
+  "endRespawnValue": "Respawn",
+  "@endRespawnValue": {
+    "description": "Death screen: the value attribute of the <input> element in #endForm in #endScreen."
+  },
+  "settingsSettings": "Settings",
+  "@settingsSettings": {
+    "description": "Settings panel: text of the <h2> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsAudio": "Audio",
+  "@settingsAudio": {
+    "description": "Settings panel: text of the <h3> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsMuteAll": "Mute all",
+  "@settingsMuteAll": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsMaster": "Master",
+  "@settingsMaster": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsMusic": "Music",
+  "@settingsMusic": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsPlayAudioInBackground": "Play audio in background",
+  "@settingsPlayAudioInBackground": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsGraphics": "Graphics",
+  "@settingsGraphics": {
+    "description": "Settings panel: text of the <h3> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsSkillEffects": "Skill effects",
+  "@settingsSkillEffects": {
+    "description": "Settings panel: text of the <legend> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settingsOff": "Off",
+  "@settingsOff": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settingsLow": "Low",
+  "@settingsLow": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settingsFull": "Full",
+  "@settingsFull": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settingsOffKeepsHitNumbers": "Off keeps hit numbers and the aura ring; they are information, not dressing.",
+  "@settingsOffKeepsHitNumbers": {
+    "description": "Settings panel: text of the <p> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settingsAccount": "Account",
+  "@settingsAccount": {
+    "description": "Settings panel: text of the <h3> element in #accountSection in #gameSettingsPanel."
+  },
+  "settingsYouArePlayingWithout": "You are playing without an account. Your progress lives only on this device.",
+  "@settingsYouArePlayingWithout": {
+    "description": "Settings panel: text of the <p> element in #accountAnonymous in #accountSettings."
+  },
+  "settingsSettingsRegisterButton": "Create an account",
+  "@settingsSettingsRegisterButton": {
+    "description": "Settings panel: text of the <a id=settingsRegisterButton> element in #accountAnonymous in #accountSettings."
+  },
+  "settingsLeaveToCharacterSelect": "Leave to character select",
+  "@settingsLeaveToCharacterSelect": {
+    "description": "Settings panel: text of the <a id=leaveToCharacterSelect> element in #accountSettings in #accountSection."
+  },
+  "hudSkillKinds": "<em>Auras</em>: slots 1–3, one active, switch with the hotkeys — also mid-fight. <em>Passives</em>: always on, all in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then recharge — the cooldown belongs to the skill, not the slot. Besides your skills, everyone always has two utility buttons, free and unlevelled: <em>Recall</em> takes you back to your bound campfire, and <em>Camp</em> puts down a small fire that heals everyone standing in it for a short while. Both cast slowly and break if you move or get hit. Camp costs a charge — resting at a real campfire refills them, and you carry more of them as you level.",
+  "@hudSkillKinds": {
+    "description": "HUD help panel (\"How Aura works\"), section \"The three kinds of skills\". <em> marks a term in emphasis; keep the tags around the translated terms (Auren, Passive, Abklingfähigkeiten, Rückkehr, Lager)."
+  },
+  "hudSpellbook": "Spellbook",
+  "@hudSpellbook": {
+    "description": "HUD: label of the spellbook button and the spellbook panel title (the collection of every skill the player has discovered)."
+  },
+  "startBrowserWarning": "In the Beta version, the game only runs smoothly on an up to date <chrome>Chrome</chrome> or <firefox>Firefox</firefox> browser.",
+  "@startBrowserWarning": {
+    "description": "Start screen: warning shown on unsupported browsers. <chrome> and <firefox> wrap links; keep the tags and the browser names."
+  },
+  "settingsSignedInAs": "Signed in as <user></user>.",
+  "@settingsSignedInAs": {
+    "description": "Settings panel, account section: shown to a registered player. <user></user> is filled with the username by code; keep the empty tag where the name belongs in the sentence."
+  },
+  "hudCastBar": "{name} {secs, number, ::.0}s",
+  "@hudCastBar": {
+    "description": "Cast bar text while casting: skill name and seconds left.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Skill or utility name",
+        "example": "Recall"
+      },
+      "secs": {
+        "type": "double",
+        "description": "Seconds left, one decimal",
+        "example": "2.5"
+      }
+    }
+  },
+  "hudNoLoadoutInCombat": "Can't change loadout in combat",
+  "@hudNoLoadoutInCombat": {
+    "description": "Warning banner: equipping is locked in combat."
+  },
+  "hudNoAbilitiesWhileFlying": "Can't use abilities while flying",
+  "@hudNoAbilitiesWhileFlying": {
+    "description": "Warning banner: abilities are locked during flight."
+  },
+  "hudFlyingBar": "Flying — {secs, number, ::.0}s",
+  "@hudFlyingBar": {
+    "description": "Flight bar text: seconds of flight left.",
+    "placeholders": {
+      "secs": {
+        "type": "double",
+        "description": "Seconds left, one decimal",
+        "example": "2.5"
+      }
+    }
+  },
+  "hudRespecConfirm": "Confirm?",
+  "@hudRespecConfirm": {
+    "description": "The skill reset button after the first press; a second press confirms."
+  },
+  "hudFocusBar": "Focus {health, number}/{max, number}",
+  "@hudFocusBar": {
+    "description": "Text on the Focus bar (the one resource: health and spending).",
+    "placeholders": {
+      "health": {
+        "type": "int",
+        "description": "Current Focus",
+        "example": "80"
+      },
+      "max": {
+        "type": "int",
+        "description": "Maximum Focus",
+        "example": "120"
+      }
+    }
+  },
+  "hudXpBar": "XP {xp, number}/{next, number}",
+  "@hudXpBar": {
+    "description": "Text on the experience bar.",
+    "placeholders": {
+      "xp": {
+        "type": "int",
+        "description": "XP gathered in this level",
+        "example": "150"
+      },
+      "next": {
+        "type": "int",
+        "description": "XP needed for the next level",
+        "example": "400"
+      }
+    }
+  },
+  "hudSkillPointsBadge": "{points, plural, one {# Point} other {# Points}}",
+  "@hudSkillPointsBadge": {
+    "description": "Badge on the spellbook button: unspent skill points.",
+    "placeholders": {
+      "points": {
+        "type": "int",
+        "description": "Unspent skill points",
+        "example": "3"
+      }
+    }
+  },
+  "hudSpendCostTitle": "{cost, plural, one {Costs # skill point} other {Costs # skill points}}",
+  "@hudSpendCostTitle": {
+    "description": "Tooltip on a skill's + button in the spellbook.",
+    "placeholders": {
+      "cost": {
+        "type": "int",
+        "description": "Skill points the next level costs",
+        "example": "2"
+      }
+    }
+  },
+  "hudCooldownSeconds": "{secs, number}s",
+  "@hudCooldownSeconds": {
+    "description": "Cooldown digits inside an ability slot circle; must stay very short (3-4 characters).",
+    "placeholders": {
+      "secs": {
+        "type": "int",
+        "description": "Whole seconds left",
+        "example": "4"
+      }
+    }
+  },
+  "accountErrorUnreachable": "Aura could not be reached. Please try again in a moment.",
+  "@accountErrorUnreachable": {
+    "description": "Account screens: the server did not answer."
+  },
+  "accountErrorGeneric": "Something went wrong. Please try again.",
+  "@accountErrorGeneric": {
+    "description": "Account screens: generic error."
+  },
+  "accountErrorJoinTimeout": "That took too long; please pick your character again.",
+  "@accountErrorJoinTimeout": {
+    "description": "Account screens: joining the world timed out."
+  },
+  "backendConnectionLost": "Connection lost — reload to reconnect",
+  "@backendConnectionLost": {
+    "description": "Banner: the game connection dropped."
+  },
+  "unlockBanner": "{category, select, aura {New aura: {name}} passive {New passive: {name}} cooldown {New cooldown: {name}} other {New skill: {name}}}",
+  "@unlockBanner": {
+    "description": "Banner when the player unlocks a skill. {category} is the skill kind; the branches name it.",
+    "placeholders": {
+      "category": {
+        "type": "String",
+        "description": "Skill kind: aura, passive or cooldown",
+        "example": "aura"
+      },
+      "name": {
+        "type": "String",
+        "description": "Skill name, already localized",
+        "example": "Fireball"
+      }
+    }
+  },
+  "floatImmune": "Immune",
+  "@floatImmune": {
+    "description": "Floating text over a target that ignored an effect."
+  },
+  "floatAbsorbed": "Absorbed",
+  "@floatAbsorbed": {
+    "description": "Floating text over a target whose shield absorbed a hit."
+  },
+  "graphicsContextLost": "Graphics context lost — please reload the page.",
+  "@graphicsContextLost": {
+    "description": "Warning banner: WebGL context was lost."
+  },
+  "conversationLevelWall": "level {level, number}",
+  "@conversationLevelWall": {
+    "description": "Conversation row: shown on an option locked behind a level; lower case, it sits beside the option.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "description": "Required level",
+        "example": "5"
+      }
+    }
+  },
+  "conversationLeave": "Leave.",
+  "@conversationLeave": {
+    "description": "Conversation: the row that ends the conversation, written as the player's own words."
+  },
+  "journalOpening": "Opening the journal…",
+  "@journalOpening": {
+    "description": "Journal status while the quest catalog loads."
+  },
+  "journalUnavailable": "Journal unavailable — the quest catalog could not be loaded.",
+  "@journalUnavailable": {
+    "description": "Journal status when the quest catalog failed to load."
+  },
+  "journalEmpty": "Nothing written here yet.",
+  "@journalEmpty": {
+    "description": "Journal status with no quests yet."
+  },
+  "journalAbandon": "Abandon",
+  "@journalAbandon": {
+    "description": "Journal: button that abandons the selected quest."
+  },
+  "mapPickDestination": "Pick a destination to fly to...",
+  "@mapPickDestination": {
+    "description": "World map title while choosing a flight destination."
+  },
+  "playerLevelBanner": "Level {level, number}!",
+  "@playerLevelBanner": {
+    "description": "Banner on level up.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "description": "The new level",
+        "example": "5"
+      }
+    }
+  },
+  "playerLevelUp": "Level up!",
+  "@playerLevelUp": {
+    "description": "Floating text over the player on level up."
+  },
+  "playerBoundRestocked": "Bound and restocked",
+  "@playerBoundRestocked": {
+    "description": "Floating text after resting at a campfire: it is now the home campfire and camp charges are refilled."
+  },
+  "authAbandonWarning": "You are currently playing without an account. Logging in will abandon that progress permanently — it cannot be recovered afterwards. Press Log in again to continue.",
+  "@authAbandonWarning": {
+    "description": "Login form warning for a guest with progress; the login button then reads authAbandonButton."
+  },
+  "authAbandonButton": "Log in and abandon progress",
+  "@authAbandonButton": {
+    "description": "Login button after the abandon warning."
+  },
+  "selectPlayingElsewhere": "This account is in the world in another window. Logging out will end that session.",
+  "@selectPlayingElsewhere": {
+    "description": "Character select: the account is already playing in another tab."
+  },
+  "selectInWorld": "In world",
+  "@selectInWorld": {
+    "description": "Character select: marks the character currently in the world."
+  },
+  "selectPlay": "Play",
+  "@selectPlay": {
+    "description": "Character select: enter the world with this character."
+  },
+  "selectLevel": "Level {level, number}",
+  "@selectLevel": {
+    "description": "Character select card: the character's level.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "description": "Level",
+        "example": "7"
+      }
+    }
+  },
+  "selectContinueBloodlineOf": "Continue the bloodline of {name}",
+  "@selectContinueBloodlineOf": {
+    "description": "Empty slot card that continues a sacrificed character's bloodline. The name is not inflected.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Previous character's name (player-chosen, never translated)",
+        "example": "Mara"
+      }
+    }
+  },
+  "selectContinueBloodline": "Continue this bloodline",
+  "@selectContinueBloodline": {
+    "description": "Empty slot card that continues a bloodline whose previous name was erased."
+  },
+  "selectGifts": "Gifts: {names}",
+  "@selectGifts": {
+    "description": "Bloodline card: skills inherited from earlier lives.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "description": "Skill names, already joined as a list",
+        "example": "Fireball, Heal"
+      }
+    }
+  },
+  "selectCreateCharacter": "Create character",
+  "@selectCreateCharacter": {
+    "description": "Empty slot card."
+  },
+  "selectLogoutLeaveWorld": "Log out and leave the world",
+  "@selectLogoutLeaveWorld": {
+    "description": "Logout button after the playing-elsewhere warning."
+  },
+  "selectLivesSpent": "{count, plural, one {# life spent} other {# lives spent}}",
+  "@selectLivesSpent": {
+    "description": "Bloodline card: how many characters were sacrificed.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Ascensions",
+        "example": "2"
+      }
+    }
+  },
+  "selectGiftCount": "{count, plural, one {# gift} other {# gifts}}",
+  "@selectGiftCount": {
+    "description": "Bloodline card: number of inherited skills.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Gifts",
+        "example": "3"
+      }
+    }
+  },
+  "selectNthLife": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} life",
+  "@selectNthLife": {
+    "description": "Bloodline card: which life this character is.",
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "description": "Life number",
+        "example": "2"
+      }
+    }
+  },
+  "deleteAlreadyGone": "That character is already gone.",
+  "@deleteAlreadyGone": {
+    "description": "Delete dialog: the character was deleted elsewhere."
+  },
+  "utilityCastTime": "Cast time: {secs, number, ::.0}s (interrupted by damage or movement)",
+  "@utilityCastTime": {
+    "description": "Utility tooltip line.",
+    "placeholders": {
+      "secs": {
+        "type": "double",
+        "description": "Seconds left, one decimal",
+        "example": "2.5"
+      }
+    }
+  },
+  "utilitySubtitle": "Utility · always available",
+  "@utilitySubtitle": {
+    "description": "Utility tooltip subtitle."
+  },
+  "utilityRecallLine": "Returns you to the campfire you are bound to.",
+  "@utilityRecallLine": {
+    "description": "Recall tooltip."
+  },
+  "utilityRecallBind": "Rest at any campfire to bind it.",
+  "@utilityRecallBind": {
+    "description": "Recall tooltip."
+  },
+  "utilityRecallFree": "Free — no cost, no cooldown.",
+  "@utilityRecallFree": {
+    "description": "Recall tooltip."
+  },
+  "utilityCampLine": "Places a small campfire that heals everyone standing in it.",
+  "@utilityCampLine": {
+    "description": "Camp tooltip."
+  },
+  "utilityCampLimits": "It burns out shortly, protects nothing, and cannot be bound to.",
+  "@utilityCampLimits": {
+    "description": "Camp tooltip."
+  },
+  "utilityCampCharges": "Charges: {charges, number}/{cap, number}",
+  "@utilityCampCharges": {
+    "description": "Camp tooltip: charges left.",
+    "placeholders": {
+      "charges": {
+        "type": "int",
+        "description": "Charges left",
+        "example": "2"
+      },
+      "cap": {
+        "type": "int",
+        "description": "Charge cap",
+        "example": "3"
+      }
+    }
+  },
+  "utilityCampRefill": "Rest at a real campfire to refill. You carry more as you level.",
+  "@utilityCampRefill": {
+    "description": "Camp tooltip."
+  },
+  "apiErrorInvalidCredentials": "Incorrect username or password.",
+  "@apiErrorInvalidCredentials": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorAlreadyLoggedIn": "This account is already logged in.",
+  "@apiErrorAlreadyLoggedIn": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorUsernameTaken": "That username is already taken.",
+  "@apiErrorUsernameTaken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorNameTaken": "That character name is taken.",
+  "@apiErrorNameTaken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorSlotsFull": "All character slots are full.",
+  "@apiErrorSlotsFull": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorSlotTaken": "That character slot is taken.",
+  "@apiErrorSlotTaken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorAlreadyRegistered": "That account is already registered.",
+  "@apiErrorAlreadyRegistered": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorCharacterPlaying": "That character is in the world right now. Leave the world first.",
+  "@apiErrorCharacterPlaying": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorSignedOut": "You are signed out. Please log in again.",
+  "@apiErrorSignedOut": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorDatabase": "Aura is having trouble reaching its database. Please try again in a moment.",
+  "@apiErrorDatabase": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorBusy": "Aura is busy right now. Please try again in a moment.",
+  "@apiErrorBusy": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorBadRequest": "That request could not be understood.",
+  "@apiErrorBadRequest": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "apiErrorForbiddenOrigin": "That request came from an origin this server does not serve.",
+  "@apiErrorForbiddenOrigin": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
   }
 }

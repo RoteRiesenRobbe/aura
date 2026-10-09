@@ -8,18 +8,18 @@
 	</header>
 
 	<div id="chromeWarning" class="playerForm layout-column hidden">
-		<em class="warning">Warning</em>
-		<p>
+		<em data-i18n="startWarning" class="warning">Warning</em>
+		<p data-i18n-rich="startBrowserWarning">
 			In the Beta version, the game only runs smoothly on an up to date
-			<a href="https://www.google.com/chrome" target="_blank">Chrome</a> or
-			<a href="https://www.mozilla.org/firefox" target="_blank">Firefox</a> browser.
+			<a data-i18n-tag="chrome" href="https://www.google.com/chrome" target="_blank">Chrome</a> or
+			<a data-i18n-tag="firefox" href="https://www.mozilla.org/firefox" target="_blank">Firefox</a> browser.
 		</p>
 		<div class="layout-row">
-			<a href="#" id="continueAnywayButton" class="button secondary flex-50">
+			<a data-i18n="startContinueAnywayButton" href="#" id="continueAnywayButton" class="button secondary flex-50">
 				Continue anyway
 			</a>
 			<span style="width: 1rem;"></span>
-			<a href="https://www.google.com/chrome" target="_blank" class="button flex-50">
+			<a data-i18n="startGetChrome" href="https://www.google.com/chrome" target="_blank" class="button flex-50">
 				Get Chrome
 			</a>
 		</div>
@@ -41,19 +41,19 @@
 					<label><i></i></label>
 					<span></span>
 				</div>
-				<label for="fullscreenToggle">Fullscreen</label>
+				<label data-i18n="startFullscreen" for="fullscreenToggle">Fullscreen</label>
 			</div>
 		</div>
 		<div class="submitContainer">
-			<div id="loadingStatus">Loading…</div>
+			<div data-i18n="startLoadingStatus" id="loadingStatus">Loading…</div>
 			<div id="loadingBar"></div>
 		</div>
 
 		<!-- Players online (PlayerCount.ts). Starts hidden; the first successful
 		     GET /players reveals it, so a server without the endpoint shows
 		     nothing rather than a placeholder. -->
-		<div id="playerCount" class="hidden" title="Players online">
-			<span>currently online</span>
+		<div data-i18n-attr="title:startPlayerCountTitle" id="playerCount" class="hidden" title="Players online">
+			<span data-i18n="startCurrentlyOnline">currently online</span>
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
 			     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 				<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -64,12 +64,12 @@
 
 		<!--		<a href="#changelog" id="betaStamp"><img src="./betaStamp.svg" /></a>-->
 <!--		<a href="#changelog" id="betaStamp" class="text-mode">Playtest<br />20.10.2024</a>-->
-		<a href="#changelog" id="betaStamp" class="text-mode off-season">Prototype</a>
+		<a data-i18n="startBetaStamp" href="#changelog" id="betaStamp" class="text-mode off-season">Prototype</a>
 	</div>
 
 	<div class="menu infoContainer center bottom layout-row">
-		<a href="#credits">Credits</a>
-		<a href="#changelog">Changelog</a>
+		<a data-i18n="startCredits" href="#credits">Credits</a>
+		<a data-i18n="startChangelog" href="#changelog">Changelog</a>
 <!--		<a href="http://iogames.space/" target="_blank">More IO-Games</a>-->
 	</div>
 

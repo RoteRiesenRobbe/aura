@@ -6,28 +6,28 @@
     <section id="gameSettingsPanel" class="hidden">
         <a href="#" id="closeGameSettings" class="closeButton">X</a>
 
-        <h2>Settings</h2>
+        <h2 data-i18n="settingsSettings">Settings</h2>
 
-        <h3>Audio</h3>
+        <h3 data-i18n="settingsAudio">Audio</h3>
         <div class="setting-group">
             <div>
                 <input type="checkbox" id="muteAllToggle" />
-                <label for="muteAllToggle">Mute all</label>
+                <label data-i18n="settingsMuteAll" for="muteAllToggle">Mute all</label>
             </div>
             <div>
-                <label for="masterVolume">Master</label>
+                <label data-i18n="settingsMaster" for="masterVolume">Master</label>
                 <input type="range" id="masterVolume" name="volume" min="0" max="1" step="0.01"  />
                 <span class="value">100</span>
             </div>
             <div>
-                <label for="musicVolume">Music</label>
+                <label data-i18n="settingsMusic" for="musicVolume">Music</label>
                 <input type="range" id="musicVolume" name="volume" min="0" max="1" step="0.01"  />
                 <span class="value">100</span>
             </div>
 
             <div>
                 <input type="checkbox" id="backgroundAudioToggle" />
-                <label for="backgroundAudioToggle">Play audio in background</label>
+                <label data-i18n="settingsPlayAudioInBackground" for="backgroundAudioToggle">Play audio in background</label>
             </div>
         </div>
 
@@ -38,26 +38,26 @@
           preventDefaults `mousedown` on the document, which eats the synthetic
           `click` the audio toggles would otherwise have used.
         -->
-        <h3>Graphics</h3>
+        <h3 data-i18n="settingsGraphics">Graphics</h3>
         <div class="setting-group">
             <fieldset id="vfxDensity" class="radio-row">
-                <legend>Skill effects</legend>
+                <legend data-i18n="settingsSkillEffects">Skill effects</legend>
                 <div class="radio-options">
                     <div>
                         <input type="radio" name="vfxDensity" id="vfxDensityOff" value="off" />
-                        <label for="vfxDensityOff">Off</label>
+                        <label data-i18n="settingsOff" for="vfxDensityOff">Off</label>
                     </div>
                     <div>
                         <input type="radio" name="vfxDensity" id="vfxDensityLow" value="low" />
-                        <label for="vfxDensityLow">Low</label>
+                        <label data-i18n="settingsLow" for="vfxDensityLow">Low</label>
                     </div>
                     <div>
                         <input type="radio" name="vfxDensity" id="vfxDensityFull" value="full" />
-                        <label for="vfxDensityFull">Full</label>
+                        <label data-i18n="settingsFull" for="vfxDensityFull">Full</label>
                     </div>
                 </div>
             </fieldset>
-            <p class="settingNote">
+            <p data-i18n="settingsOffKeepsHitNumbers" class="settingNote">
                 Off keeps hit numbers and the aura ring; they are information,
                 not dressing.
             </p>
@@ -87,21 +87,19 @@
           unreachable rather than guarded.
         -->
         <div id="accountSection">
-        <h3>Account</h3>
+        <h3 data-i18n="settingsAccount">Account</h3>
         <div class="setting-group" id="accountSettings">
             <div id="accountAnonymous" class="hidden">
-                <p class="settingNote">
+                <p data-i18n="settingsYouArePlayingWithout" class="settingNote">
                     You are playing without an account. Your progress lives only
                     on this device.
                 </p>
-                <a href="#" class="button" id="settingsRegisterButton">Create an account</a>
+                <a data-i18n="settingsSettingsRegisterButton" href="#" class="button" id="settingsRegisterButton">Create an account</a>
             </div>
             <div id="accountRegistered" class="hidden">
-                <p class="settingNote">
-                    Signed in as <span id="accountUsername"></span>.
-                </p>
+                <p class="settingNote" data-i18n-rich="settingsSignedInAs">Signed in as <span data-i18n-tag="user" id="accountUsername"></span>.</p>
             </div>
-            <a href="#" class="button secondary" id="leaveToCharacterSelect">
+            <a data-i18n="settingsLeaveToCharacterSelect" href="#" class="button secondary" id="leaveToCharacterSelect">
                 Leave to character select
             </a>
         </div>

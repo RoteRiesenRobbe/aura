@@ -18,7 +18,7 @@
          spellbook (the book itself left the sheet at UI pass C3) - by turning
          #leftColumn into a full-screen sheet. Glyph (☰ / ✕) comes from CSS,
          wiring from MobileMenu.ts. -->
-    <div id="mobileMenuButton" title="Menu"></div>
+    <div data-i18n-attr="title:hudMobileMenuButtonTitle" id="mobileMenuButton" title="Menu"></div>
 
     <div id="minimap">
         <div class="wrapper">
@@ -36,8 +36,8 @@
              .wrapper, like the compass, on purpose: the open-the-map listener
              sits on .wrapper, so a zoom press never also opens the map. -->
         <div class="radarZoom">
-            <button id="radarZoomIn" class="radarZoomButton" title="Zoom in">+</button>
-            <button id="radarZoomOut" class="radarZoomButton" title="Zoom out">&minus;</button>
+            <button data-i18n-attr="title:hudRadarZoomInTitle" id="radarZoomIn" class="radarZoomButton" title="Zoom in">+</button>
+            <button data-i18n-attr="title:hudRadarZoomOutTitle" id="radarZoomOut" class="radarZoomButton" title="Zoom out">&minus;</button>
         </div>
     </div>
 
@@ -46,8 +46,8 @@
          the map button has to stay reachable without opening it (the minimap
          itself is inside the sheet on mobile, so it cannot be the phone's way
          in). PO ruling 2026-08-04. -->
-    <div id="mapButton" title="Map (M)">
-        <span class="mapButtonHotkey">M</span>Map
+    <div data-i18n-attr="title:hudMapButtonTitle" id="mapButton" title="Map (M)">
+        <span class="mapButtonHotkey">M</span><span data-i18n="hudMap">Map</span>
     </div>
 
     <!-- The spellbook's desktop way in (UI pass C3): the book is a panel now,
@@ -58,8 +58,8 @@
          entry is the ☰ sheet's own row further down, and this one is hidden
          there. Both share .spellbookOpenButton, which is what Spellbook.ts
          wires. -->
-    <div id="spellbookButton" class="spellbookOpenButton" title="Spellbook (B)">
-        <span class="spellbookButtonHotkey">B</span>Spellbook<span id="skillPointsBadge" class="skillPointsBadge hidden"></span>
+    <div data-i18n-attr="title:hudSpellbookButtonTitle" id="spellbookButton" class="spellbookOpenButton" title="Spellbook (B)">
+        <span class="spellbookButtonHotkey">B</span><span data-i18n="hudSpellbook">Spellbook</span><span id="skillPointsBadge" class="skillPointsBadge hidden"></span>
     </div>
 
     <!-- Quest tracker (2026-08-23; the list rebuilt at UI pass C7 D2): the
@@ -72,21 +72,21 @@
          even though desktop hides it. Two "J Journal" affordances on purpose,
          one per layout, both wired to Journal.toggle. -->
     <div id="questTracker">
-        <div id="questTrackerJournal" title="Journal (J)">
-            <span class="journalButtonHotkey">J</span>Journal
+        <div data-i18n-attr="title:hudQuestTrackerJournalTitle" id="questTrackerJournal" title="Journal (J)">
+            <span class="journalButtonHotkey">J</span><span data-i18n="hudJournal">Journal</span>
         </div>
         <ul id="questTrackerList" class="hidden"></ul>
     </div>
 
     <div id="vitalSigns" class="layout-column">
-        <div id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
+        <div data-i18n-attr="title:hudHealthBarTitle" id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>
             <div class="shieldIndicator"></div>
             <span class="barText"></span>
         </div>
-        <div id="xpBar" class="bar flex" title="Experience — fills up to your next level">
+        <div data-i18n-attr="title:hudXpBarTitle" id="xpBar" class="bar flex" title="Experience — fills up to your next level">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>
@@ -97,7 +97,7 @@
     <!-- Combat indicator: red sword, visible only while the player is in
          combat (Character.in_combat) — the window during which loadout
          editing is locked server-side. Shown/hidden by HUD.updateCombatIndicator. -->
-    <div id="combatIndicator" class="hidden" title="In combat — loadout editing locked">
+    <div data-i18n-attr="title:hudCombatIndicatorTitle" id="combatIndicator" class="hidden" title="In combat — loadout editing locked">
         <svg viewBox="0 0 24 24">
             <path d="M14.5 3 L21 3 L21 9.5 L11 19.5 L4.5 19.5 L4.5 13 Z M14.5 3 L21 9.5"
                   fill="none" stroke="currentColor" stroke-width="2"
@@ -113,7 +113,7 @@
          badge and drives this from the same site. Hidden until an actor is
          offered; wired by Interact.setupButton, which shares Interact.trigger
          with the key so the two cannot drift. -->
-    <div id="interactButton" class="hidden" title="Talk">
+    <div data-i18n-attr="title:hudInteractButtonTitle" id="interactButton" class="hidden" title="Talk">
         <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 4 H20 A2 2 0 0 1 22 6 V15 A2 2 0 0 1 20 17 H13 L8 21 V17 H4 A2 2 0 0 1 2 15 V6 A2 2 0 0 1 4 4 Z"
                   fill="none" stroke="currentColor" stroke-width="2"
@@ -123,7 +123,7 @@
 
     <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
     <div id="zoomControl">
-        <div id="helpButton" title="How Aura works">?</div>
+        <div data-i18n-attr="title:hudHelpButtonTitle" id="helpButton" title="How Aura works">?</div>
         <div class="zoomIcon">
             <svg viewBox="0 0 24 24">
                 <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
@@ -143,8 +143,8 @@
          keeps running behind it, like the journal. -->
     <div id="worldMap" class="hidden">
         <div class="worldMapHeader">
-            <span class="worldMapTitle">Map</span>
-            <span class="worldMapClose" title="Close (M / Esc)">✕</span>
+            <span data-i18n="hudMap" class="worldMapTitle">Map</span>
+            <span data-i18n-attr="title:hudCloseMEscTitle" class="worldMapClose" title="Close (M / Esc)">✕</span>
         </div>
         <div class="wrapper">
             <!-- the minimap's pixi canvas moves in here while open -->
@@ -159,19 +159,19 @@
          rework will restyle it, so it stays deliberately plain. -->
     <div id="journal" class="hidden">
         <div class="journalHeader">
-            <span class="journalTitle">Journal</span>
-            <span class="journalClose" title="Close (J / Esc)">✕</span>
+            <span data-i18n="hudJournal" class="journalTitle">Journal</span>
+            <span data-i18n-attr="title:hudCloseJEscTitle" class="journalClose" title="Close (J / Esc)">✕</span>
         </div>
         <div class="journalBody">
             <div class="journalStatus hidden"></div>
             <div class="journalPanes hidden">
                 <div class="journalList">
                     <div class="journalRunning hidden">
-                        <div class="journalSectionTitle">Running</div>
+                        <div data-i18n="hudRunning" class="journalSectionTitle">Running</div>
                         <ul class="journalQuests"></ul>
                     </div>
                     <div class="journalCompleted hidden">
-                        <div class="journalSectionTitle">Completed</div>
+                        <div data-i18n="hudCompleted" class="journalSectionTitle">Completed</div>
                         <ul class="journalQuests"></ul>
                     </div>
                 </div>
@@ -190,19 +190,19 @@
          Deliberately plain, like the journal — §39 restyles both. -->
     <div id="help" class="hidden">
         <div class="helpHeader">
-            <span class="helpTitle">How Aura works</span>
-            <span class="helpClose" title="Close (Esc)">✕</span>
+            <span data-i18n="hudHowAuraWorks" class="helpTitle">How Aura works</span>
+            <span data-i18n-attr="title:hudCloseEscTitle" class="helpClose" title="Close (Esc)">✕</span>
         </div>
         <div class="helpBody">
             <section>
-                <h3>Moving</h3>
-                <p>Move with WASD or the arrow keys. The minimap is north-up; its
+                <h3 data-i18n="hudMoving">Moving</h3>
+                <p data-i18n="hudMoveWithWasdOr">Move with WASD or the arrow keys. The minimap is north-up; its
                     compass shows directions. The world is shared — everyone you
                     see is really there.</p>
             </section>
             <section>
-                <h3>Auras</h3>
-                <p>You fight with auras: a circle around you. No targeting, no
+                <h3 data-i18n="hudAuras">Auras</h3>
+                <p data-i18n="hudYouFightWithAuras">You fight with auras: a circle around you. No targeting, no
                     aiming — where you stand is the attack. Each aura picks its
                     own targets inside its range, and most affect only a limited
                     number at a time (usually the nearest). An active aura ticks
@@ -212,68 +212,68 @@
                     aura is active at a time. You start with Damage equipped.</p>
             </section>
             <section>
-                <h3>Focus</h3>
-                <p>The bar at the top is Focus — your health and everything you
+                <h3 data-i18n="hudFocus">Focus</h3>
+                <p data-i18n="hudTheBarAtThe">The bar at the top is Focus — your health and everything you
                     spend, in one value. At zero you die. It refills out of
                     combat; getting hit pauses that for a few seconds.</p>
             </section>
             <section>
-                <h3>Fighting and XP</h3>
-                <p>Everyone who takes part in a fight gets XP — being close with
+                <h3 data-i18n="hudFightingAndXp">Fighting and XP</h3>
+                <p data-i18n="hudEveryoneWhoTakesPart">Everyone who takes part in a fight gets XP — being close with
                     an aura on counts. The red sword means you are in combat.
                     Mobs stop regenerating for a moment after being hit.</p>
             </section>
             <section>
-                <h3>Levels and skill points</h3>
-                <p>Leveling up grants skill points. Spend them in the spellbook
+                <h3 data-i18n="hudLevelsAndSkillPoints">Levels and skill points</h3>
+                <p data-i18n="hudLevelingUpGrantsSkill">Leveling up grants skill points. Spend them in the spellbook
                     (B) with +. Higher levels cost more points; each skill has
                     its own cap.</p>
             </section>
             <section>
-                <h3>The three kinds of skills</h3>
-                <p><em>Auras</em>: slots 1–3, one active, switch with the
-                    hotkeys — also mid-fight. <em>Passives</em>: always on, all
-                    in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then
+                <h3 data-i18n="hudTheThreeKindsOf">The three kinds of skills</h3>
+                <p data-i18n-rich="hudSkillKinds"><em data-i18n-tag="em">Auras</em>: slots 1–3, one active, switch with the
+                    hotkeys — also mid-fight. <em data-i18n-tag="em">Passives</em>: always on, all
+                    in parallel. <em data-i18n-tag="em">Cooldowns</em> (Q, R, F): fire once, then
                     recharge — the cooldown belongs to the skill, not the
                     slot. Besides your skills, everyone always has two utility
-                    buttons, free and unlevelled: <em>Recall</em> takes you back
-                    to your bound campfire, and <em>Camp</em> puts down a small
+                    buttons, free and unlevelled: <em data-i18n-tag="em">Recall</em> takes you back
+                    to your bound campfire, and <em data-i18n-tag="em">Camp</em> puts down a small
                     fire that heals everyone standing in it for a short while.
                     Both cast slowly and break if you move or get hit. Camp
                     costs a charge — resting at a real campfire refills them,
                     and you carry more of them as you level.</p>
             </section>
             <section>
-                <h3>Where skills come from</h3>
-                <p>Granted at certain levels, dropped by some mobs, taught by
+                <h3 data-i18n="hudWhereSkillsComeFrom">Where skills come from</h3>
+                <p data-i18n="hudGrantedAtCertainLevels">Granted at certain levels, dropped by some mobs, taught by
                     some people (E when the badge appears), rewarded by
                     quests.</p>
             </section>
             <section>
-                <h3>Equipping</h3>
-                <p>Open the spellbook (B), click a skill, then a slot or its
+                <h3 data-i18n="hudEquipping">Equipping</h3>
+                <p data-i18n="hudOpenTheSpellbookB">Open the spellbook (B), click a skill, then a slot or its
                     hotkey. Not while in combat.</p>
             </section>
             <section>
-                <h3>Costs</h3>
-                <p>Most skills spend Focus — the tooltip states every price. The
+                <h3 data-i18n="hudCosts">Costs</h3>
+                <p data-i18n="hudMostSkillsSpendFocus">Most skills spend Focus — the tooltip states every price. The
                     basic Damage aura is always free: you are never left without
                     an option.</p>
             </section>
             <section>
-                <h3>People and quests</h3>
-                <p>Get close and press E when the badge lights up. Quests are
+                <h3 data-i18n="hudPeopleAndQuests">People and quests</h3>
+                <p data-i18n="hudGetCloseAndPress">Get close and press E when the badge lights up. Quests are
                     offered and turned in through dialogue; J opens the
                     journal.</p>
             </section>
             <section>
-                <h3>Dying</h3>
-                <p>At zero Focus you die and respawn, losing the XP you had
+                <h3 data-i18n="hudDying">Dying</h3>
+                <p data-i18n="hudAtZeroFocusYou">At zero Focus you die and respawn, losing the XP you had
                     gathered toward your next level.</p>
             </section>
             <section>
-                <h3>Dark places and other players</h3>
-                <p>Some areas are dark — bring a light aura, or a friend who
+                <h3 data-i18n="hudDarkPlacesAndOther">Dark places and other players</h3>
+                <p data-i18n="hudSomeAreasAreDark">Some areas are dark — bring a light aura, or a friend who
                     carries one while you carry the damage. Filling roles for
                     each other is the design. There is no PvP.</p>
             </section>
@@ -285,8 +285,8 @@
              this #leftColumn restyled, nothing is reparented, so the sheet
              needs this row here. The desktop journal button lives in
              #questTracker above. -->
-        <div id="journalButton" title="Journal (J)">
-            <span class="journalButtonHotkey">J</span>Journal
+        <div data-i18n-attr="title:hudJournalButtonTitle" id="journalButton" title="Journal (J)">
+            <span class="journalButtonHotkey">J</span><span data-i18n="hudJournal">Journal</span>
         </div>
 
         <!-- The phone's way into the spellbook (UI pass C3, D4), beside the
@@ -294,8 +294,8 @@
              button lives up in the map column. The book itself is no longer
              sheet content - it opens full-screen over it, and the two are
              mutually exclusive like every other family member. -->
-        <div id="spellbookSheetButton" class="spellbookOpenButton" title="Spellbook (B)">
-            <span class="spellbookButtonHotkey">B</span>Spellbook<span class="skillPointsBadge hidden"></span>
+        <div data-i18n-attr="title:hudSpellbookSheetButtonTitle" id="spellbookSheetButton" class="spellbookOpenButton" title="Spellbook (B)">
+            <span class="spellbookButtonHotkey">B</span><span data-i18n="hudSpellbook">Spellbook</span><span class="skillPointsBadge hidden"></span>
         </div>
 
         <!-- ⚑ The list stays RENDERED whether the book is open or shut, and the
@@ -303,11 +303,11 @@
              32 verify scripts read #spellbookList straight out of the DOM.
              Structure is Spellbook.ts's; the rows are HUD.updateSpellbook's. -->
         <div id="spellbook" class="hidden">
-            <div class="spellbookTitle">Spellbook<span class="skillPointsBadge hidden"></span><span id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
+            <div class="spellbookTitle"><span data-i18n="hudSpellbook">Spellbook</span><span class="skillPointsBadge hidden"></span><span data-i18n-attr="title:hudRespecButtonTitle" data-i18n="hudRespecButton" id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
             <ul id="spellbookTabs">
-                <li class="spellbookTab hidden" data-category="aura">Auras</li>
-                <li class="spellbookTab hidden" data-category="passive">Passives</li>
-                <li class="spellbookTab hidden" data-category="cooldown">Cooldowns</li>
+                <li data-i18n="hudAuras" class="spellbookTab hidden" data-category="aura">Auras</li>
+                <li data-i18n="hudPassives" class="spellbookTab hidden" data-category="passive">Passives</li>
+                <li data-i18n="hudCooldowns" class="spellbookTab hidden" data-category="cooldown">Cooldowns</li>
             </ul>
             <div id="spellbookScroll">
                 <ul id="spellbookList"></ul>
@@ -327,11 +327,11 @@
              family since C5; the name used to be the li's bare textContent. The
              span stays RENDERED (visually hidden) and keeps holding the name. -->
         <div id="passiveLoadout">
-            <div class="auraLoadoutTitle">Passives</div>
+            <div data-i18n="hudPassives" class="auraLoadoutTitle">Passives</div>
             <ul id="passiveSlotList">
-                <li class="auraSlot passiveSlot" data-slot="0" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot passiveSlot" data-slot="1" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot passiveSlot" data-slot="2" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="0" data-skill-id="0"><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="1" data-skill-id="0"><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="2" data-skill-id="0"><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span></li>
             </ul>
         </div>
     </div>
@@ -350,7 +350,7 @@
         <div id="conversation" class="hidden">
             <div class="conversationHeader">
                 <span class="conversationActor"></span>
-                <span class="conversationLeave" title="Leave (Esc)">✕</span>
+                <span data-i18n-attr="title:hudLeaveEscTitle" class="conversationLeave" title="Leave (Esc)">✕</span>
             </div>
             <!-- Only the body scrolls. The header (and its ✕) and the Back
                  footer stay pinned, so a long node can never grow a scrollbar
@@ -359,7 +359,7 @@
                 <div class="conversationLines"></div>
                 <ul class="conversationRows"></ul>
             </div>
-            <div class="conversationBack hidden">← Back</div>
+            <div data-i18n="hudBack" class="conversationBack hidden">← Back</div>
         </div>
 
         <!-- The irreversible-row confirmation (plan-ascension.md D21): the
@@ -370,8 +370,8 @@
         <div id="confirmRow" class="hidden">
             <div class="confirmRowBody"></div>
             <div class="confirmRowControls">
-                <a href="#" class="confirmRowCancel">Cancel</a>
-                <a href="#" class="button confirmRowConfirm">Confirm</a>
+                <a data-i18n="hudCancel" href="#" class="confirmRowCancel">Cancel</a>
+                <a data-i18n="hudConfirm" href="#" class="button confirmRowConfirm">Confirm</a>
             </div>
         </div>
 
@@ -414,15 +414,15 @@
         <div id="actionBars">
             <div id="abilityBar">
                 <div id="auraLoadout">
-                    <div class="auraLoadoutTitle">Aura Slots</div>
+                    <div data-i18n="hudAuraSlots" class="auraLoadoutTitle">Aura Slots</div>
                     <ul id="auraSlotList">
                         <!-- .beatPip: the N5 HUD metronome — visible on the active slot only,
                              pulsed by HUD.pulseAuraMetronome each time the aura's tick lands.
                              Since C5 it renders as the mockup's ember dot under the active
                              slot; same element, same class, same query. -->
-                        <li class="auraSlot hotkeySlot" data-slot="0" data-skill-id="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                        <li class="auraSlot hotkeySlot" data-slot="1" data-skill-id="0"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                        <li class="auraSlot hotkeySlot" data-slot="2" data-skill-id="0"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="0" data-skill-id="0"><span class="hotkey">1</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="1" data-skill-id="0"><span class="hotkey">2</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="2" data-skill-id="0"><span class="hotkey">3</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
                     </ul>
                 </div>
 
@@ -431,11 +431,11 @@
                 <span class="barDivider" aria-hidden="true"></span>
 
                 <div id="cooldownLoadout">
-                    <div class="auraLoadoutTitle">Cooldowns</div>
+                    <div data-i18n="hudCooldowns" class="auraLoadoutTitle">Cooldowns</div>
                     <ul id="cooldownSlotList">
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0" data-skill-id="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1" data-skill-id="0"><span class="hotkey">R</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2" data-skill-id="0"><span class="hotkey">F</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0" data-skill-id="0"><span class="hotkey">Q</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1" data-skill-id="0"><span class="hotkey">R</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2" data-skill-id="0"><span class="hotkey">F</span><span data-i18n="hudEmpty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
                     </ul>
                 </div>
             </div>
@@ -450,7 +450,7 @@
                  the HUD that looked like the browser instead of the game.
                  Camp's charge counter is filled by HUD.updateCampCharges. -->
             <div id="utilityBar">
-                <div class="auraLoadoutTitle">Utility</div>
+                <div data-i18n="hudUtility" class="auraLoadoutTitle">Utility</div>
                 <!-- ⚑ Order is load-bearing on MOBILE, where this becomes a
                      fixed column of round buttons anchored at its BOTTOM edge:
                      the LAST entry sits closest to the thumb. PO 2026-08-03 put
@@ -458,9 +458,9 @@
                      Talk above both. -->
                 <ul id="utilityList">
                     <li class="auraSlot utilityButton" data-utility="1"
-                        ><span class="slotLabel">Recall</span></li>
+                        ><span data-i18n="hudRecall" class="slotLabel">Recall</span></li>
                     <li class="auraSlot utilityButton" data-utility="2"
-                        ><span class="slotLabel">Camp</span><span class="utilityCharges"></span></li>
+                        ><span data-i18n="hudCamp" class="slotLabel">Camp</span><span class="utilityCharges"></span></li>
                 </ul>
             </div>
         </div>

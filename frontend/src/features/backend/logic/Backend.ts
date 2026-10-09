@@ -1,3 +1,4 @@
+import {t} from '../../i18n/logic/Locale';
 import * as Utils from '../../common/logic/Utils';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as BackendConstants from './BackendConstants';
@@ -156,7 +157,7 @@ export class Backend implements IBackend {
                 // Only announce a drop of an established session. The character
                 // is stashed server-side; a reload reconnects it.
                 if (wasInGame) {
-                    AlertBanner.show('Connection lost — reload to reconnect');
+                    AlertBanner.show(t('backendConnectionLost'));
                 }
             });
         };
@@ -325,7 +326,7 @@ export class Backend implements IBackend {
                     // with the catalog's displayName overrides.
                     const skillId = Number(entityMessage.entityId());
                     const source = entityMessage.message();
-                    const text = `New ${skillCategory(skillId)}: ${skillDisplayName(skillId)}`
+                    const text = t('unlockBanner', {category: skillCategory(skillId), name: skillDisplayName(skillId)})
                         + (source ? `\n${source}` : '');
                     AlertBanner.show(text, 'unlock');
                 }
@@ -733,9 +734,9 @@ export class Backend implements IBackend {
                 return;
             }
             if (draw.kind === 'immune') {
-                target.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('floatImmune'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else if (draw.kind === 'absorbed') {
-                target.showFloatingText('Absorbed', IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('floatAbsorbed'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else {
                 target.showFloatingNumber(hpToDisplay(event.amount), draw.kind);
             }

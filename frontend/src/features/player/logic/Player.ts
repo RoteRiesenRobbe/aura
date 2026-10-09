@@ -1,3 +1,4 @@
+import {t} from '../../i18n/logic/Locale';
 import {Character} from '../../game-objects/logic/Character';
 import {hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
@@ -140,8 +141,8 @@ export class Player {
             // "New skill" unlock banner from the same tick. The first snapshot
             // after join/respawn only seeds lastLevel — no banner.
             if (this.lastLevel !== null && entity.level > this.lastLevel) {
-                AlertBanner.show(`Level ${entity.level}!`, 'levelup');
-                this.character.showFloatingText('Level up!', LEVEL_UP_COLOR, LEVEL_UP_SIZE_FACTOR);
+                AlertBanner.show(t('playerLevelBanner', {level: entity.level}), 'levelup');
+                this.character.showFloatingText(t('playerLevelUp'), LEVEL_UP_COLOR, LEVEL_UP_SIZE_FACTOR);
             }
             this.lastLevel = entity.level;
             this.character.setLevel(entity.level);
@@ -170,7 +171,7 @@ export class Player {
         // the same dwell also refills the Camp charges (plan-downtime.md) —
         // the fire does both, so the confirmation names both (round 9).
         if (entity.campfireBound) {
-            this.character.showFloatingText('Bound and restocked', BRAND);
+            this.character.showFloatingText(t('playerBoundRestocked'), BRAND);
         }
         // In-combat indicator: shown while the recent-combat window is open
         // (also the window during which loadout editing is locked server-side).

@@ -1,3 +1,4 @@
+import {t} from '../../i18n/logic/Locale';
 /**
  * The journal panel (plan-quests.md chunk C3, D7/D16; two-pane since
  * plan-conversation-journal.md Q3).
@@ -146,11 +147,11 @@ function render() {
     // rather than render as a diary with nothing in it.
     let status = '';
     if (view.state === 'loading') {
-        status = 'Opening the journal…';
+        status = t('journalOpening');
     } else if (view.state === 'unavailable') {
-        status = 'Journal unavailable — the quest catalog could not be loaded.';
+        status = t('journalUnavailable');
     } else if (view.running.length === 0 && view.completed.length === 0) {
-        status = 'Nothing written here yet.';
+        status = t('journalEmpty');
     }
     statusElement.textContent = status;
     statusElement.classList.toggle('hidden', status === '');
@@ -210,7 +211,7 @@ function renderDetail(detail: JournalDetailView | null) {
     if (detail.running) {
         const button = document.createElement('span');
         button.className = 'journalAbandon';
-        button.textContent = 'Abandon';
+        button.textContent = t('journalAbandon');
         button.addEventListener('pointerdown', () => abandon(detail.questId));
         children.push(button);
     }

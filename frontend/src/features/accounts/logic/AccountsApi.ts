@@ -1,3 +1,4 @@
+import {t, tKey} from '../../i18n/logic/Locale';
 /**
  * The client for the eight account endpoints (plan-accounts-frontend.md §3,
  * §3a — the wire contract chunk 1c wrote down and this chunk codes against).
@@ -53,6 +54,25 @@ export const API_ERROR_CODES = [
 export type ApiErrorCode = typeof API_ERROR_CODES[number]
     // Not a server code: the request never got a reply at all.
     | 'network';
+
+/** D15: each machine code's catalog key (respond.go's player-facing strings). */
+const API_ERROR_KEYS: Partial<Record<string, string>> = {
+    invalid_credentials: 'apiErrorInvalidCredentials',
+    already_logged_in: 'apiErrorAlreadyLoggedIn',
+    username_taken: 'apiErrorUsernameTaken',
+    name_taken: 'apiErrorNameTaken',
+    slots_full: 'apiErrorSlotsFull',
+    slot_taken: 'apiErrorSlotTaken',
+    already_registered: 'apiErrorAlreadyRegistered',
+    character_playing: 'apiErrorCharacterPlaying',
+    no_identity: 'apiErrorSignedOut',
+    session_expired: 'apiErrorSignedOut',
+    database_unavailable: 'apiErrorDatabase',
+    busy: 'apiErrorBusy',
+    internal: 'accountErrorGeneric',
+    bad_request: 'apiErrorBadRequest',
+    forbidden_origin: 'apiErrorForbiddenOrigin',
+};
 
 export class ApiError extends Error {
     readonly code: ApiErrorCode;
@@ -251,7 +271,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
     }
 
     let code: ApiErrorCode = 'internal';
-    let message = 'Something went wrong. Please try again.';
+    let message = t('accountErrorGeneric');
     let ref: string | undefined;
     try {
         const refusal = await response.json();
@@ -267,6 +287,12 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
     } catch {
         // A refusal with no JSON body is a bug, not a case to model — fall
         // through to the generic message rather than inventing a code.
+    }
+    // D15 (plan-localization.md): the code picks the localized message; the
+    // server's English stays the fallback. `rule` names WHICH rule only in its
+    // English text, so it stays English until rule sub-codes exist (§8).
+    if (API_ERROR_KEYS[code]) {
+        message = tKey(API_ERROR_KEYS[code], {}, message);
     }
 
     if (code === 'busy' && !tried.busy) {
