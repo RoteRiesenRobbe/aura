@@ -1,6 +1,6 @@
 # Plan - Localization (multi-language text; English + German first)
 
-**Status:** 📋 PLANNED 2026-08-23, not started. Six chunks (C0a, C0b, C1–C4).
+**Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough, then detection on. Six chunks (C0a, C0b, C1–C4).
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -1031,3 +1031,53 @@ changing a file. The candidates, as researched 2026-10-05:
 The choice can wait until there are translators other than the PO. Until
 then, D13's pins, D18's notes and D20's translated-from record do the
 platform's checking job in the repo.
+
+---
+
+## 10. Ledger (built 2026-10-10, branch `localization`, one session)
+
+All six chunks built and committed one per chunk; NOT merged to main.
+
+- **C0a** `48131082`: `features/i18n/logic/Locale.ts` (resolve once, negotiate by
+  truncation, detection written but OFF per Q3; `t`/`tKey`/`tParts`, per-(locale,
+  key) cache, D14 fallbacks; `<html lang>` + `translate="no"`; `en-XA` pseudo).
+  ⚑ `intl-messageformat` is **10.7** (npm's resolution), not 12.x; same API.
+  Settings toggle (confirm + reload). Pins in `src/lang/catalogs.test.ts` cover the UI
+  AND content ARBs: completeness + allowlist, orphans, ICU parse + de/en argument
+  parity, notes, numeric formatting, translated-from record (`*.source.json`),
+  key-usage scan (`t('…')` literal; runtime keys use `tKey`). Style guide:
+  `docs/manual-localization-de.md`. D12 sweep: every harness context pins
+  `locale: 'en-US'`; `i18n-pseudo.mjs` (en / de / no-detection / pseudo scan).
+- **C0b** `60c1107c`: `data-i18n` / `data-i18n-attr` / `data-i18n-rich` (+
+  `data-i18n-tag` children cloned, never innerHTML) resolved in
+  `Preloading.renderPartial`; ~120 TS sites; D15 by machine code (`rule` stays English).
+- **C1** `96ff311a`: `pkg/aura/lang` (leaf): overlays (UTF-8 + key checks by file,
+  L17), `Negotiate`, marshal-once-per-locale `Handler`, Go pseudo, ICU refusal of
+  authored text (L14, `{ } < >`), key builders (D20). A `lang` stage in
+  `loadContent` (so `-validate` sees it). Catalogs localized; `/lang` born. Generated
+  `api/lang/en/*.arb` pinned fresh (`cmd/aurad/lang_content_test.go`). `api/lang` in
+  `contentSources` + cp-defs; `*.arb` eol=lf. ⚑ Faction names are not extracted:
+  nothing serves them by id (`targetFactions` are display names).
+- **C2** `775802ad`: wire `EntityMessage.key/args:[MessageArg]`,
+  `QuestProgress.objective_list:[QuestObjective]`. Server keys in
+  `lang/message.go`, pinned against `en.arb`. ⚑ The old `objectives` strings and
+  `message` stay FILLED (English fallback), deliberately. Q2's rules live in the
+  boot's lang stage, not the quest parser, so unit fixtures stay short.
+- **C3** `4261d08a`: 446 ids tagged; loader reads `{id, text}` (bare strings
+  still parse for fixtures; the lang stage refuses missing/duplicate ids in
+  shipped content). Stock phrases (`api/lang/stock.json`, 9). Wire: option
+  `text_id/reply_id/text_key/reply_key/locks/locks_any`, node `line_ids`. ⚑ Prose
+  stays on the wire (fallback); the per-tick shrink is not taken. ⚑ Memorial
+  rows' "· level N" and the travel fallback beyond its lock reason stay English.
+  Content editor keeps ids through a textarea edit (L19).
+- **C4** `5a83c1cd`: 99 tooltip templates, English byte-identical except the
+  faction list (Intl.ListFormat). `hyphens: auto` + `overflow-wrap` on body.
+  ⛔ **Exit check NOT done**: no PO German playthrough yet, so detection stays
+  OFF and the allowlists are empty but unreviewed. All German is Claude's draft
+  under D22; the PO reviews it.
+- **Verified:** vitest 1615/0 · Go full suite bar the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `i18n-de.mjs` 7/7 ·
+  `i18n-pseudo.mjs` 4/4 · content-editor smoke (only the stale-binary note).
+- **Schema:** DB NONE in every chunk · wire YES in C2 + C3 (appended only, both
+  regens) · content: mobs +`namePlural` (16), objectives +`tracker` (5), every
+  dialogue string +`id`.
