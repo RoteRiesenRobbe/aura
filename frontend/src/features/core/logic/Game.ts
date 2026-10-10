@@ -24,6 +24,7 @@ import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as RoofReveal from '../../game-objects/logic/RoofReveal';
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
 // Side effect only (plan-skill-vfx.md C3a): discovers the skill-VFX body PNGs
 // through webpack and registers them as preloads. It lives OUTSIDE SkillFx.ts
@@ -451,6 +452,7 @@ export class Game implements IGame {
         Camera.setup(this);
         GroundTextureManager.setup(this);
         DarknessOverlay.setup(this.layers.darkness, this.layers.haze);
+        RoofReveal.setup(this);
 
         GameObject.setup();
         // ⚑ AFTER GameObject.setup(), and that ordering is load-bearing: both

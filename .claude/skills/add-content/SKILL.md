@@ -180,6 +180,11 @@ the bottom. Trust the code over the manual if a path has drifted.
   (manual §1b has the table). Never author `underfoot` on an `api/props/*.json`
   file: the key is gone and refuses the boot by name. ⛔ A `crossesPaths` type's
   placements must sit in `props.underfoot`, or the boot and the Tiled save refuse.
+- **A ROOF prop authors `"roof": {}` (or `{"revealAlpha": 0.25}`) plus
+  `"blocksMovement": false`** (`plan-roof-props.md`, manual §1b). Its placements go in
+  `props.buildings`; the boot refuses one in `underfoot` or overridden to block, and
+  refuses two types of one `entityType` that disagree on `roof`. Walls are separate
+  solid props or a `structures` polygon.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
