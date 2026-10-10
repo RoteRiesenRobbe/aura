@@ -131,6 +131,24 @@ func (f *Fog) MarkAt(pos phy.Vec2f, light float32, dark *DarkMask) bool {
 	return true
 }
 
+// RevealRect reveals every cell the world rectangle overlaps, dark or not:
+// the REVEALMAP cheat's whole-map uncover. Touched chunks are dirtied like a mark,
+// so TakeDirty pushes them to the live map.
+//
+// ⚑ A rectangle with an unrepresentable corner reveals nothing, MarkAt's guard.
+func (f *Fog) RevealRect(minX, minY, maxX, maxY float32) {
+	for _, c := range []float32{minX, minY, maxX, maxY} {
+		if !representable(c) {
+			return
+		}
+	}
+	for cy := cellOf(minY); cy <= cellOf(maxY); cy++ {
+		for cx := cellOf(minX); cx <= cellOf(maxX); cx++ {
+			f.set(cx, cy)
+		}
+	}
+}
+
 // reachX / reachY are how many cells the AOI can overlap either side of the
 // cell its centre is in: ceil(half-AOI / cell). With today's numbers 5 and 3,
 // so a mark is 11 × 7 cells. Computed, not hand-written, because CellSize is a

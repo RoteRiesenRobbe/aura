@@ -215,3 +215,25 @@ func TestBitLayout_RowMajorLSBFirst(t *testing.T) {
 	assert.Equal(t, byte(0b10), bits[0])
 	assert.Equal(t, byte(0b1), bits[ChunkCells/8])
 }
+
+// The REVEALMAP cheat's rectangle: every cell the rectangle overlaps is set,
+// across the origin, darkness never consulted, and the touched chunks are
+// dirty so the live map is pushed them.
+func TestRevealRect_SetsEveryOverlappedCellAndDirtiesTheChunks(t *testing.T) {
+	f := New()
+	f.RevealRect(-3, -1, 4.5, 2)
+
+	for cy := -4; cy <= 4; cy++ {
+		for cx := -4; cx <= 4; cx++ {
+			want := cx >= -2 && cx <= 2 && cy >= -1 && cy <= 1
+			assert.Equal(t, want, f.Revealed(cx, cy), "cell (%d, %d)", cx, cy)
+		}
+	}
+	assert.Len(t, f.TakeDirty(), 4, "the rectangle straddles four chunks")
+}
+
+func TestRevealRect_IgnoresUnrepresentableCorners(t *testing.T) {
+	f := New()
+	f.RevealRect(0, 0, 1e9, 1)
+	assert.Equal(t, 0, f.Len())
+}

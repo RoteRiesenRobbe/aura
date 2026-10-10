@@ -298,7 +298,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// silently restores the pre-S3 cost rather than failing anything.
 	m.SetWakeSources(s)
 
-	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys)
+	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys, s, gc.Walls)
 	g.AddSystem(c)
 
 	eq := equip.NewEquipSystem(g)

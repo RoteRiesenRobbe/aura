@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -222,16 +223,24 @@ type Announcer interface {
 	Broadcast(text string)
 }
 
+// MapRevealer is the map reveal's owner (sys.ConnectionStateSystem), narrow
+// for Announcer's reason.
+type MapRevealer interface {
+	RevealMap(p model.PlayerEntity, zones []cfg.PlacedBounds)
+}
+
 // NewCommandSystem wires the cheat set: the static package commands plus the
-// space-bound THREAT closure (the space enables the query-nearby-mobs form)
-// and the announcer-bound ANNOUNCE closure.
-func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer Announcer) *CommandSystem {
-	cmds := make(map[string]Command, len(commands)+2)
+// space-bound THREAT closure (the space enables the query-nearby-mobs form),
+// the announcer-bound ANNOUNCE closure and the zone-bound REVEALMAP closure.
+func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer Announcer,
+	revealer MapRevealer, zones []cfg.PlacedBounds) *CommandSystem {
+	cmds := make(map[string]Command, len(commands)+3)
 	for name, action := range commands {
 		cmds[name] = action
 	}
 	cmds["THREAT"] = threatCommand(space)
 	cmds["ANNOUNCE"] = announceCommand(announcer)
+	cmds["REVEALMAP"] = revealCommand(revealer, zones)
 	return &CommandSystem{tokens: tokens, g: g, commands: cmds}
 }
 
@@ -243,6 +252,17 @@ func announceCommand(announcer Announcer) Command {
 			return fmt.Errorf("no argument, usage: 'ANNOUNCE <text>'")
 		}
 		announcer.Broadcast(*arg)
+		return nil
+	}
+}
+
+// revealCommand builds REVEALMAP: uncovers every loaded zone on the player's
+// world map, dark areas included, as if the character had seen it all. The
+// reveal persists like an explored one (it only ever grows, so there is no
+// undo short of the database).
+func revealCommand(revealer MapRevealer, zones []cfg.PlacedBounds) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		revealer.RevealMap(p, zones)
 		return nil
 	}
 }

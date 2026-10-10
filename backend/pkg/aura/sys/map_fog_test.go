@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -293,4 +294,37 @@ func TestMapFog_DarknessNeedsLight(t *testing.T) {
 
 	walkTo(s, p, distantSpot)
 	assert.False(t, s.fog[c.UUID()].RevealedAt(distantSpot), "no light, nothing mapped")
+}
+
+// The REVEALMAP cheat: every zone rectangle is uncovered at once, published to
+// the live map this tick, and carried by the next save.
+func TestMapFog_RevealMapUncoversEveryZone(t *testing.T) {
+	s, g := newStateFixture(t)
+	saves := withSaves(s)
+	p := joinPlayer(t, s, g, newFakeClient(), "Alice")
+	s.Update(0)
+	p.NoteMapFog(nil)
+
+	zones := []cfg.PlacedBounds{
+		{Bounds: cfg.Bounds{Width: 60, Height: 40}, OriginX: 30, OriginY: 20},
+		{Bounds: cfg.Bounds{Width: 20, Height: 10}, OriginX: distantSpot.X, OriginY: distantSpot.Y},
+	}
+	s.RevealMap(p, zones)
+
+	live := mapfog.New()
+	live.Seed(p.MapFog())
+	for _, pos := range []phy.Vec2f{
+		{X: 0, Y: 0}, {X: 59.9, Y: 39.9}, distantSpot,
+		{X: distantSpot.X - 10, Y: distantSpot.Y - 5}, {X: distantSpot.X + 9.9, Y: distantSpot.Y + 4.9},
+	} {
+		assert.True(t, live.RevealedAt(pos), "published: %v", pos)
+	}
+	assert.False(t, live.RevealedAt(phy.Vec2f{X: distantSpot.X + 13, Y: distantSpot.Y}), "outside every zone")
+
+	done := make(chan struct{})
+	s.FlushLiveCharacters(done)
+	s.Update(0)
+	restored := mapfog.New()
+	restored.Seed(saves.last(t).MapFog)
+	assert.True(t, restored.RevealedAt(phy.Vec2f{X: distantSpot.X - 10, Y: distantSpot.Y - 5}))
 }
