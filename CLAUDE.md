@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ LOCALIZATION: review + merge** (`docs/plan-localization.md` §10): branch `localization` holds C0a-C4. Owed: the PO reads the German (`docs/manual-localization-de.md` is the yardstick), a full German playthrough (C4's exit), then detection turns on (`Locale.ts` DETECTION_ENABLED). ⚑ Every English text edit now carries its German (D23, `add-content` skill).
+- **⭐ LOCALIZATION: review + merge** (`docs/plan-localization.md` §10): branch `localization` holds C0a-C4. Owed: the PO reads the German (`docs/manual-localization-de.md` is the yardstick), a full German playthrough (C4's exit), then detection turns on (`Locale.ts` DETECTION_ENABLED). ⚑ Every English text edit now carries its German (D23, `add-content` skill). ⭐ **C5a + C5b PLANNED 2026-10-10** (§4, D24-D27 PO-ruled): C5a moves English into `api/lang/en/` (authored; JSON keeps structure + ids; the editor writes the ARB; reverses D3/D19; dialogue ids become frozen slugs, keys `conv.<npc>.<slug>`); C5b: mob names carry their plural as ICU (`namePlural` retired), every English field editable, "German owed" panel. German stays the strict language, later ones report-only.
 
 - **⭐ NEXT: EFFECT TYPES ROUND 2, C4-C7 in any order** (`docs/plan-effect-types-round-2.md`, C0-C3 done): empower, fear, stealth, `onDeath` (C4, C6, C7 refs still as of `d35ab702`, re-verify). ⛔ PO look owed on C3's rush glide (and whether charging turnips is fine). ⚑ Thorns placeholders unruled (pip rose, 25 % / 10 s / 4 m). Also owed: the PATH CORNERS + ENDS chunk A look (`docs/plan-world-paths.md` §12).
 

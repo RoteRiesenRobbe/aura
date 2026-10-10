@@ -1,6 +1,7 @@
 # Plan - Localization (multi-language text; English + German first)
 
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough, then detection on. Six chunks (C0a, C0b, C1–C4).
+**C5a + C5b PLANNED 2026-10-10 (PO-ruled D24-D27), nothing built:** English moves into ARB with the content editor writing it (D27, reverses D3's inline English and D19's generator), every English field editable, and a mandatory mob name that carries its plural as ICU (retires `namePlural`).
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -131,6 +132,9 @@ Four facts that make it harder:
   keys (`api/lang/de/<domain>.arb`), and a generated English source file sits
   beside each (`api/lang/en/<domain>.arb`). The authored JSON stays the
   English source of truth.
+  ⛔ **Superseded 2026-10-10 by D27 (PO), from C5a:** English moves into
+  `api/lang/en/`, authored; the JSON keeps structure and ids. The sidecar
+  overlays for translations stand.
 - **D4 - font work is DEFERRED ENTIRELY to `plan-ui-font.md`.** `stone-age`
   (4.3 KB, almost certainly basic-Latin-only; ⚑ verified 2026-10-06: 91 code
   points, none of Ä Ö Ü ä ö ü ß „ “ – ’, so German quotes and dashes fall back
@@ -250,6 +254,10 @@ translator notes in the files.
   `UPDATE_…=1 go test -count=1` run as for `api/skill-vocabulary.json`, so
   there is no new tool. The staleness test compares bytes, so the ARB files
   need `eol=lf` in `.gitattributes` (L16). The generated keys follow D20.
+  ⛔ **Superseded 2026-10-10 by D27 (PO), from C5a:** the English ARB is
+  authored, no longer generated; the staleness test and the English
+  `UPDATE_LANG` step go. Required notes (D18) and the source/target pairing
+  stand.
 
 ## 3. Design decisions (mine, flag if wrong)
 
@@ -409,7 +417,9 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     content, and a tool fills them in for every string that lacks one without
     reformatting the file (the Yarn Spinner "Add Line Tags" pattern), so
     nobody types one. The loader refuses a missing or duplicate id, naming the
-    file and node. The wire carries the ids and the client looks the text up
+    file and node. ⚑ **Amended 2026-10-10 (PO, D27):** from C5a the id is a
+    readable slug unique per NPC, and the key is `conv.<npc>.<slug>`.
+    The wire carries the ids and the client looks the text up
     (C3).
   - **UI strings** keep their hand-written keys (`settingsLanguage`), named by
     meaning.
@@ -465,7 +475,143 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   join the `add-content` skill and CLAUDE.md's content rules in C1. Offered
   and not taken: English first with a German backlog, the norm for teams
   with separate translators; here that backlog would have no owner.
-
+  ⚑ From C5a (D27) the "regenerate" step is gone: the English edit itself
+  lands in `api/lang/en/` (the editor, or the extract tool); the German
+  still lands in the same change.
+- **D24 - a mob's display name is MANDATORY and carries its plural as ICU**
+  (✅ **PO 2026-10-10**; amends Q2's `namePlural`; its home is the English
+  ARB, D27).
+  - Every mob has an English `mob.<name>.name`; under D27 a content key with
+    no English refuses the boot. `name` stays the identity (keys, spawns,
+    quest targets) and is never shown. Today the English name is derived from
+    `name` (`skills.DeriveDisplayName`, "AlphaWolf" → "Alpha Wolf"), so a
+    reword meant a new identity.
+  - **English shape:** plain text (`"Farmer"`), or exactly
+    `{count, plural, one {Wolf} other {Wolves}}`. A translation may use every
+    CLDR category of its locale (Polish `one`/`few`/`many`/`other`), with the
+    argument `count` and the `plural` type only.
+  - **`namePlural` is retired:** the 16 `mob.<name>.namePlural` keys fold into
+    their `mob.<name>.name`, in English and German alike
+    (`{count, plural, one {Wolf} other {Wölfe}}`).
+  - **Q2 survives in substance:** a mob named by a kill or harvest objective
+    must author the plural form; the lang stage's finding moves from "no
+    `namePlural`" to "the name has no plural".
+  - **Formatting:** the client formats every mob name with a count: 1 for
+    nameplates, actor names and "Dropped by", `m` for a tracker line. The
+    `questObjectiveKill`/`Harvest` templates drop their plural branch
+    (`{n}/{m} {mob} slain`). The server stays locale-free (D1); its English
+    fallback strings read the `one` branch through one Go helper.
+  - Why: two fields fit only two-form languages. Polish says "2 wilki" but
+    "5 wilków", and no translator could fix that inside `name` + `namePlural`.
+    Not taken: keeping `namePlural` (cheaper now, wrong for later languages).
+  - ⚑ German case (L8) is untouched: a name is still nominative only.
+- **D25 - the content editor edits ALL English content text** (✅ **PO
+  2026-10-10**), and writes it to the English ARB (D27).
+  - Every translatable field is editable: quest title, journal and trackers,
+    dialogue lines, options, grant lines and ambient lines (all already, now
+    against the ARB), skill name and description, and the mob name as two
+    inputs, singular and plural, that compose D24's ICU (an empty plural
+    writes plain text) (new).
+  - A new string gets its key by construction: content-id keys for quests,
+    stages, skills and mobs; a slug for dialogue (D27). A key with no English
+    yet shows the key itself, greyed.
+  - After a save the editor shows **"German owed"**: the keys that now have
+    no German, and those whose English changed since translation (D20).
+    Read-only; German is still written in `api/lang/de/` (D23 unchanged).
+    `aurad` computes it with the same function the completeness test uses,
+    never a JS port.
+- **D26 - German is the strict language; later languages are not** (✅ **PO
+  2026-10-10**). D23 and the German completeness pin stay as they are. A
+  later language gets structural checks only (files, orphans, ICU parse,
+  argument parity) and a coverage report, never a red suite for a missing
+  translation; its own announcement gate is ruled when it arrives. Nothing is
+  built for it now (YAGNI), beyond D25's status reporting every locale
+  directory present.
+- **D27 - ENGLISH MOVES INTO ARB; the authored JSON keeps structure and ids**
+  (✅ **PO 2026-10-10**). Reverses D3's "English stays inline" (its sidecar
+  overlays for translations stand) and D19's generated English source (its
+  required notes, D18, and the source/target pairing stand).
+  - **What moves:** every string the C1 extractor reads: quest titles,
+    journals and trackers; mob names and plurals; dialogue lines, options,
+    shown grant lines and ambient lines; every skill's name (most are
+    derived today) and description; `api/regions/regions.json`'s titles and
+    subtitles; zone names; the stock phrases (`api/lang/stock.json` folds
+    into the `stock.*` keys of `en/mobs.arb`). Faction `displayName` stays: it
+    is not player-facing (C1's note).
+  - **What the JSON keeps:** structure and ids. A quest stage keeps its id and
+    loses its text; a dialogue line becomes `{"id": "a1b2c3"}`; options and
+    grants keep `id`, `next`, `kind` and the rest. The 28 never-shown grant
+    lines inside quest bundles (C3) are deleted, and the loader stops
+    requiring them.
+  - **Dialogue ids are readable slugs, keys `conv.<npc>.<slug>`** (✅ PO
+    2026-10-10; was random hex, `conv.<hex>`, D20). Once English leaves the
+    JSON, the id is all a raw NPC file shows of a line, and hex says
+    nothing.
+    - The slug is made from the English's first words when the line is
+      first saved with text (`{"id": "fields-need-work"}` →
+      `conv.Farmer.fields-need-work`), by the editor or the extract tool;
+      nobody has to type one, and the editor can edit it. In the editor a
+      new row starts empty, so it is minted at the save, not when the row is
+      added; until that first save it is not frozen, so typing the line
+      shapes it. A save with an empty line is refused (the boot would refuse
+      a key with no English anyway).
+    - **Frozen:** rewording the text keeps the slug (not a content-hash key,
+      which D20 rejected). Only an explicit rename changes it, and a rename
+      moves the key in every locale (L23); the editor offers "re-slug" after
+      a big reword.
+    - **Unique within the NPC**, so the key carries the NPC (`<npc>` = the
+      mob's `name`); a clash gets `-2`. Lowercase ASCII, digits and
+      hyphens, ~5 words at most. Ambient lines, options and grant lines
+      alike.
+    - **No node in the key:** moving a line between nodes, or renaming a
+      node, keeps its key; only an NPC rename (an identity, practically
+      never) changes keys. Where a line is spoken is in its translator note.
+      Not taken: `conv.<npc>.<node>.<slug>` (groups the ARB by node, but
+      every node rename or line move becomes a rename in every locale),
+      a counter per NPC (says nothing), hand-named ids (D20's "nobody types
+      an id").
+    - **Wire:** the line ids carry `<npc>.<slug>` in the same string fields
+      (built once at load), so FlatBuffers and the client's `conv.<id>`
+      lookup do not change.
+  - **`api/lang/en/*.arb` becomes authored.** Today's generated files already
+    hold every English string, so they become the source as they are. Format:
+    keys sorted, each `@key` block after its key, LF (today's `GenerateARB`
+    output); every writer keeps it.
+  - **One loader seam:** the boot's lang stage loads the English bundle and
+    fills every definition's text fields by key, so runtime code (catalogs,
+    `/lang`, wire English fallbacks, interaction) does not change. A content
+    key with no English refuses the boot, naming key and file. Shipped
+    content that still carries inline text refuses too (one home); the
+    parsers keep accepting inline text for unit fixtures (C3's precedent).
+  - **Two ways to write English, one result:** the editor (D25), or a hand
+    or Claude edit that writes the text INLINE as a draft and runs
+    `tools/lang/extract-english.mjs` (grown from `tag-dialogue.mjs`): it
+    mints missing ids, moves each inline text into the English ARB with a
+    translator note, and strips it from the JSON. The boot's inline refusal
+    is the reminder. Editor and tool share one JS module for the note
+    wording and the ARB writer.
+  - **Translator notes (D18) stay required.** The writer adds one when it
+    creates a key (field kind, quest/stage or NPC/node, placeholders for
+    trackers and counted names); a hand author may reword it. A test, not
+    the boot, fails on an English key with no note. The Go note generator is
+    deleted after the migration; today's notes stay as authored text.
+  - **Checks replacing the staleness test:** no English for a content key =
+    boot refusal · English matching no content (an orphan) = test failure,
+    as for German (D13) · ICU and the allowed arguments per key = boot (L14's
+    check, now on the ARB text). `TestLangEnglishSourcesAreFresh` and the
+    `UPDATE_LANG` step for English go; `UPDATE_LANG` stays for the German
+    translated-from record (D20).
+  - **Zone names:** `zone.<stem>.name` is authored in `en/regions.arb`. The
+    zone file's `name` stays (the zone loader requires it, and the Tiled
+    converter is left alone) as a dev label only; the Welcome wire's English
+    fallback reads the bundle. ⚑ `koboldCave.json`'s label says "Underworld".
+  - Why: the editor writes the ARB, so authoring stays in one tool; every
+    language has one home; English gets full ICU (D24 needs it); a
+    translation platform takes the source as it is; a text edit never
+    touches balance data. Cost: ~90 files lose their text, a raw JSON file
+    no longer shows what is said, and a hand edit outside the editor runs the
+    extract tool. Why D19 turned this down is unrecorded (its "authoring gets
+    worse" had no reasons; reviewed 2026-10-10).
 ---
 
 ## 4. The chunks
@@ -710,6 +856,188 @@ and the extraction sweep (C0b) are each about a session.
   and the D13/D20 allowlist is empty (completeness is hard at ship time, §8).
   Only then does language detection turn on (D2 amendment (b), Q3).
 
+### C5a - English moves into ARB (content + backend + editor plumbing, wire NONE)
+
+D27. Line refs pinned to `300e4c5e`; re-verify at entry. ~1-1.5 sessions.
+English in game must be byte-identical before and after: this chunk moves
+text, it changes none.
+
+**Entry checks:**
+
+- count the Go test fixtures that build content with inline text; C3's
+  precedent (parsers accept it, only shipped content refuses it) is the
+  default;
+- list every reader of inline text outside Go (L25) and plan each one's
+  switch;
+- ⭐ **the ARB key round-trip** (§8 "The ARB key scheme", §11 R-G2): import a
+  sample English + German ARB with every key shape into Weblate or Crowdin
+  (§9) and export it back unchanged. If dots or hyphens do not survive,
+  settle the key charset BEFORE the slug migration (a PO call).
+
+**Tests first:**
+
+- **Go:**
+  - the lang stage fills every text field from the English bundle (a quest
+    title, a stage journal, a tracker, a dialogue line, an option, a grant
+    line, an ambient line, a skill name and description, a region title, a
+    zone name);
+  - the boot refuses a content key with no English, naming key and file, and
+    shipped content that still carries inline text;
+  - an orphan English key fails the completeness test, and so does an
+    English key with no note;
+  - the ICU check runs on the ARB text (a stray brace, an argument the key
+    does not allow);
+  - dialogue keys are `conv.<npc>.<slug>`, the wire's line ids carry
+    `<npc>.<slug>`, and the boot refuses a missing id or a slug used twice
+    within one NPC;
+  - golden: every catalog serves the same bytes before and after the
+    migration, and `/lang` the same text under the renamed dialogue keys,
+    in en and de.
+- **Node** (`node --test`, the shared JS module):
+  - the extract tool moves inline text to the ARB with a note, mints missing
+    ids, strips the JSON, never changes an existing id, and leaves the rest
+    of the file byte-identical;
+  - the slug maker: first words, lowercase ASCII, punctuation dropped,
+    length capped, `-2` on a clash within the NPC, never an id in use;
+  - the ARB writer's output equals Go's canonical format for a fixture (the
+    two sides agree);
+  - an editor save writes a new key with its note, a changed text, removes
+    the keys of deleted content, and moves a renamed stage's keys in every
+    locale (L23).
+
+**Work:**
+
+1. **The shared module and the extract tool**
+   (`tools/lang/extract-english.mjs`, replacing `tag-dialogue.mjs`):
+   format-preserving JSON edits (as `tag-dialogue.mjs` does), the canonical
+   ARB writer, the note templates.
+2. **The migration is one run of that tool** over `api/mobs/`,
+   `api/quests/`, `api/skills/` (with `skills/mobs/`) and
+   `api/regions/regions.json`, with the existing English ARBs as the
+   starting point (their text and notes stay); `api/lang/stock.json` is
+   deleted, and the 28 never-shown grant lines go. The same run replaces the
+   ~430 hex ids with slugs (made from each line's current English) in the
+   NPC JSONs, and renames their keys `conv.<hex>` → `conv.<npc>.<slug>` in
+   the English ARB, the German ARB and `de/mobs.source.json`.
+3. **Go:**
+   - the English bundle loads beside the overlays (today `LoadOverlays` skips
+     `en`, `pkg/aura/lang/lang.go:139`);
+   - the lang stage fills the definitions and refuses missing English and
+     inline text;
+   - the mob and skill name derivations switch to the filled fields
+     (`items/mobs/catalog.go:108`, `model/mob/mob.go:2481`,
+     `quests/quests.go:460`, `sys/interaction.go:1533`,
+     `sys/ascension_rows.go:434`, `skills/catalog.go:141`,
+     `cmd/aurad/lang.go:93`, `lang_dialogue.go:72`); `ascension_rows.go:307`
+     keeps its fallback for a retired key;
+   - stock linkage reads the `stock.*` keys;
+   - `GenerateARB`'s generator role, the note generator and
+     `TestLangEnglishSourcesAreFresh` are deleted; the orphan and
+     note-present checks join the completeness test.
+4. **Editor:**
+   - the server reads `api/lang/<locale>/*.arb`; a save writes the content
+     JSON and the English ARB, and moves or removes keys in every locale on
+     a rename or a delete (L23);
+   - the existing text fields (quest title, journal, trackers; dialogue
+     lines, options, grants, ambient) bind to their keys; a key with no
+     English shows greyed;
+   - a new line, option or grant gets its slug from the shared module at its
+     first save with text (C3's `newLineId` hex goes; the textarea's
+     id-keeping, `keepLineIds`, stays, so an edited line keeps its slug);
+     each line shows its slug, editable, with "re-slug";
+   - `validate.mjs` reads text from the ARB where it checked inline text.
+5. **The other readers** (L25) switch, and **docs**: the `add-content`
+   skill, `manual-content-authoring.md`, the editor README and CLAUDE.md's
+   content rules (the `UPDATE_LANG` step for English becomes the extract
+   tool or the editor).
+
+**Verify:**
+
+- automated: the Go suite plus `-count=1 -run TestLang` · vitest ·
+  `i18n-de.mjs` · `i18n-pseudo.mjs` · content-editor smoke · the golden
+  catalogs;
+- an editor pass: edit a journal and a dialogue line, add a stage and a
+  line, rename a stage, save; the ARB diff is exactly those keys, and the
+  game shows them after a restart;
+- in game, en and de: a conversation, the journal, a region banner.
+
+**Schema:** DB NONE · FlatBuffers NONE (line ids carry `<npc>.<slug>`, same
+fields) · catalogs byte-identical · `/lang` dialogue keys renamed ·
+content format: text fields leave mobs, quests, skills and `regions.json`;
+dialogue lines become `{"id"}`, ids become slugs; `api/lang/stock.json`
+deleted;
+`api/lang/en/` authored.
+
+### C5b - mob names as ICU, every English field editable, "German owed" (content + backend + frontend + editor, wire NONE)
+
+D24 + D25 + D26. After C5a. ~1 session.
+
+**Tests first:**
+
+- **Go:**
+  - the English shape check on mob names (plain, or exactly `one`/`other` on
+    `count`);
+  - the singular helper returns the `one` branch or the plain text;
+  - the kill/harvest finding names a mob whose name has no plural;
+  - `/mobs` serves the name as authored per locale, with no
+    `displayNamePlural`;
+  - the status function (missing, outdated, allowlisted) on fixtures.
+- **vitest:**
+  - the mob-name formatter: en and de at counts 1 and 8; a plain name
+    ignores the count;
+  - the tracker reads "1/1 Wolf slain", "3/8 Wolves slain" and "3/8 Wölfe
+    getötet";
+  - argument parity holds between an English and a German plural name;
+  - the pseudo-locale transforms the text inside plural branches (L21).
+- **Editor** (`node --test`):
+  - `validate.mjs` checks the mob name shape and D24's plural rule, and
+    refuses a missing dialogue id or a slug used twice within one NPC.
+
+**Work:**
+
+1. **The 16 plurals:** each `mob.<name>.namePlural` merges into its
+   `mob.<name>.name` in `en/mobs.arb` and `de/mobs.arb`, and
+   `de/mobs.source.json` rewrites ONLY those 16 records (L22).
+2. **Go:** the shape check (replacing L14's brace refusal for mob names
+   only), one singular helper behind the filled name field,
+   `catalog.go`'s `DisplayNamePlural` and `pluralOf` go, and the Q2 finding
+   is reworded.
+3. **`aurad -lang-status`:** loads content and every locale, prints JSON per
+   locale (`missing`, `outdated`). `TestLangGermanIsCompleteAndCurrent` calls
+   the same function (DRY).
+4. **Client:**
+   - one `mobName(id, count = 1)` formatter in `client-data/Mobs.ts`
+     (intl-messageformat, cached per locale and name);
+   - the raw reads go through it: `client-data/Mobs.ts:86`,
+     `GameStateMessage.ts:500`, `game-objects/logic/Mobs.ts:265-266`,
+     `WireText.ts:49` and `:55` (`mobPlural` deleted);
+   - `displayNamePlural` is dropped, and `questObjectiveKill`/`Harvest` lose
+     their plural branch in `en.arb` and `de.arb` (translated-from record
+     updated).
+5. **Editor:**
+   - the mob name as singular + plural inputs (parsed from the ICU on open;
+     D24's English shape always parses), filled from the new-mob prompt;
+   - skill name + description inputs;
+   - the `validate.mjs` rules;
+   - the "German owed" panel after a save, via `-lang-status` on the built
+     binary (the `/api/validate/candidate` seam, with its stale-binary
+     caveat).
+6. **Docs:** the `add-content` skill and `manual-content-authoring.md`: the
+   ICU plural shape, `namePlural` gone.
+
+**Verify:**
+
+- automated: the Go suite plus `-count=1 -run TestLang` · vitest ·
+  `i18n-de.mjs` (tracker leg) · `i18n-pseudo.mjs` · content-editor smoke;
+- an editor pass: create a mob, a kill quest on it, and an NPC line, save,
+  and see them in game after a restart; "German owed" lists the new keys;
+- in game, en and de: nameplates, a kill tracker at 1 and at n, and the
+  "Dropped by" banner.
+
+**Schema:** DB NONE · FlatBuffers NONE · the `/mobs` HTTP catalog: the name
+may carry ICU, `displayNamePlural` removed · ARB: 16 `namePlural` keys merged
+in en + de.
+
 ---
 
 ## 5. Landmines
@@ -802,7 +1130,42 @@ and the extraction sweep (C0b) are each about a session.
   C3 changes it to one row per line that keeps its id; until then, the
   loader's refusal of a missing id is the loud failure. The same class as a
   zone converter that opens a shape it cannot write back.
-
+- ⚑ **L20 - a raw mob-name read shows ICU syntax on screen (C5b).** After
+  D24, any client site that renders `def.displayName` directly prints
+  `{count, plural, …}` for the 16 counted mobs and looks fine for every other
+  mob, so a spot check passes. Every read goes through the one formatter;
+  sweep `.displayName` on mob definitions at C5b entry, harness legs that
+  assert mob names included.
+- ⚑ **L21 - the pseudo-locale skips plural branches (C5b).** `lang.Pseudo`
+  (`pkg/aura/lang/lang.go:220`) and its `Locale.ts` twin leave everything
+  inside braces untouched, so `Wolf`/`Wolves` inside `one {…}`/`other {…}`
+  would stay unaccented and `i18n-pseudo.mjs` would flag them. Both must
+  transform literal text inside a plural branch and never `count`, `plural`
+  or a category name; pin it with a plural fixture on both sides.
+- ⚑ **L22 - the plural merge's translated-from rewrite (C5b).** Merging the
+  16 German name + plural pairs without rewriting their `mobs.source.json`
+  records shows all 16 as outdated; rewriting records beyond those 16 would
+  hide German that is really outdated. Rewrite exactly the merged keys.
+- ⚑ **L23 - a content-id rename moves keys in EVERY locale (C5a).** Quest,
+  stage, skill and mob keys are built from author ids (D20). Renaming a stage
+  in the editor changes `quest.<q>.<stage>.*`; writing only the new English
+  key orphans the German and shows the stage untranslated. The same holds
+  for a dialogue slug's rename and an NPC's `name` (inside every dialogue
+  key, `conv.<npc>.<slug>`; an identity, practically never renamed). The editor tracks
+  each object through the session and, on save, moves its keys in every
+  locale (and their translated-from records) and removes the keys of deleted
+  content. A rename by hand is caught by the orphan test, after the fact.
+- ⚑ **L24 - a text check before the lang stage sees empty text (C5a).** Once
+  shipped JSON carries no text, a parser that checks text (a quest title
+  required, a tracker's `{n}/{m}`) reads "" and refuses everything, or worse,
+  passes a check that should run on the filled text. Every text check moves
+  into, or after, the lang stage; find them at entry.
+- ⚑ **L25 - readers of inline text outside Go (C5a).** The content editor
+  (`validate.mjs` and `app.js`), `tools/lang/tag-dialogue.mjs` (replaced),
+  `tools/tiled/generate-palette.mjs`, harness fixtures such as
+  `.claude/skills/verify/chunkC3-probe-quest.json` (inline text is refused
+  in shipped content), and the broken `wiki-generator/` (unowned, left).
+  Survey at entry; each one reads the ARB or the filled catalogs instead.
 ---
 
 ## 6. Test strategy
@@ -867,6 +1230,8 @@ is the full German playthrough.
 | C2 system messages + objectives | ~1 session; ~20 Go sites + 2 tables' appends + client formatter + the server-key pin | DB NONE · **wire YES** (appended) · quest format +`tracker` on three objective kinds (required on talk_to and reach) · mob format +`namePlural` (Q2) |
 | C3 conversation surface | ~1.5 sessions; the id pass over 36 NPC files + bundle endpoint + lock reasons (with the gate mode) + ≈ 417 de strings | DB NONE · **wire YES** (appended) · content format: every dialogue string gains an `id` (D20) |
 | C4 tooltips + polish | ~1 session; template rework + length sweep + PO playthrough | DB NONE · wire NONE |
+| C5a English into ARB | ~1-1.5 sessions; the extract tool (= the migration) + the loader seam + the editor reading and writing the ARB + key moves; English byte-identical | DB NONE · FlatBuffers NONE (line ids carry `<npc>.<slug>`) · `/lang` dialogue keys renamed `conv.<npc>.<slug>` · content: text leaves mobs, quests, skills, `regions.json`; dialogue lines `{"id"}` with slug ids; `stock.json` deleted; `api/lang/en/` authored (D27) |
+| C5b mob names as ICU + editable English + "German owed" | ~1 session; 16 plural merges + the singular helper + the client formatter + editor fields, validation and `-lang-status` | DB NONE · FlatBuffers NONE · `/mobs`: the name may carry ICU, `displayNamePlural` removed · ARB: 16 `namePlural` keys merged (D24) |
 
 Total new machinery is deliberately small: one client i18n module (on one
 library, `intl-messageformat`, D16), one overlay loader, one en-source
@@ -934,7 +1299,9 @@ tooltip fragments).
   - ~~**Q2, D9's shape**~~ ✅ **RULED 2026-10-07 (PO):** no label shape.
     Kill and harvest lines use a CLDR plural over per-mob `name` +
     `namePlural`; talk_to and reach must author a `tracker`; any objective
-    may (D9, C2).
+    may (D9, C2). ⚑ **Amended 2026-10-10 (PO, D24):** the plural moves into
+    the mob name as ICU, and `namePlural` is retired at C5b; the rule (a
+    counted mob authors its plural) stands.
   - ✅ **Q3 RULED 2026-10-07 (PO): detection ships only when German is
     complete.** Was: when detection ships (D2 amendment b): at C4's exit
     (recommended), or from C0a as D2 is written.
@@ -979,6 +1346,10 @@ tooltip fragments).
   would use (§9) and check it round-trips unchanged. (The spec's own wording,
   checked 2026-10-06: an id's naming "should follow the convention for
   constant string in the target language"; it says nothing about dots.)
+  ⭐ **Still open at C0a-C4 (never run), and now C5a's entry gate** (§11
+  R-G2): run it before C5a renames ~430 dialogue keys to
+  `conv.<npc>.<slug>`, with sample keys of every shape (`conv.Farmer.ill-do-it-2`,
+  `quest.wolves-on-the-road.cull.tracker`, `skill.Aegis.name`).
 - ⚑ **The §1 survey is STALE** (taken 2026-08-23). Text surfaces added since:
   - the region banner `title`/`subtitle` in `api/regions/regions.json`
     (region identity R1);
@@ -1081,3 +1452,89 @@ All six chunks built and committed one per chunk; NOT merged to main.
 - **Schema:** DB NONE in every chunk · wire YES in C2 + C3 (appended only, both
   regens) · content: mobs +`namePlural` (16), objectives +`tracker` (5), every
   dialogue string +`id`.
+
+---
+
+## 11. Industry-standards review (2026-10-10, for PO review)
+
+A review of the whole plan, C5a/C5b and D24-D27 included, against industry
+practice. From Claude's knowledge, not a fresh web survey; the specific
+claims about other tools are worth a spot check before quoting them. **Status:
+for PO review**; only R-G1 (recorded as a known extension) and R-G2 (C5a's
+entry gate) were acted on.
+
+**Verdict:** mainstream on formats, wire design and checks; three deliberate
+home-grown pieces; two gaps worth acting on now.
+
+### R-S - standard (no action)
+
+- **Format:** ARB + ICU MessageFormat, CLDR plurals, BCP 47 tags (D16, D17):
+  Flutter/Google's format and the plural and locale rules every major
+  platform uses.
+- **Keys + typed arguments on the wire, the client formats** (D1, D8): the
+  common multiplayer design (WoW-style ids and codes, localized on the
+  client).
+- **Stable ids, never positions** (D20): universal.
+- **English in resource files, content carries keys** (D27): Android, iOS,
+  Flutter, Unity string tables. The model D27 replaces (inline source text
+  plus extraction, D3/D19) is equally standard (Unreal, Yarn Spinner,
+  gettext); narrative tools prefer it so writers see text in context, and
+  C5a keeps that context in the editor.
+- **Readable slug ids** (D27): practice is split. Unreal uses GUID keys for
+  asset text, Yarn Spinner hex line tags; Unity string tables and most
+  studios use readable keys (`NPC_Farmer_Greeting_01`). A frozen slug from
+  the text is an accepted variant; its known weakness (the key drifts from a
+  reworded text) is what "re-slug" covers.
+- **Required translator notes** (D18): best practice; platforms show them as
+  context.
+- **Pseudo-locale `en-XA`** (D21): the same name and technique as Microsoft
+  and Android.
+- **Negotiation** (`navigator.languages`, `de-AT → de → en`, D2a), **`Intl`
+  numbers, percentages and lists** (D16, C4): standard.
+- **Completeness and orphan tests** (D13): a common check, usually in CI.
+- **Style guide + glossary before translating** (D22), and **the German
+  playthrough** (C4's exit): standard; the playthrough is the LQA pass.
+
+### R-H - home-grown, deliberate (review; keep unless the PO says otherwise)
+
+- **R-H1 - the translated-from record** (`*.source.json`, D20): a small
+  version of XLIFF's translation states, gettext's "fuzzy" flag and what
+  platforms track. Fine until a platform (§9) replaces it.
+- **R-H2 - stock phrases fall back by EXACT English match at runtime** (§8):
+  nobody else does this at runtime; the industry uses a translation memory
+  that suggests the same translation while translating. It works, and a
+  line's own German still wins. A platform's memory would make it
+  redundant; then the `stock.*` keys can go.
+- **R-H3 - German lands in the same change as the English** (D23): unusual,
+  since translation normally lags. Justified here (no separate translators,
+  Claude drafts the German); D26 keeps it to German.
+
+### R-G - gaps and risks
+
+- **R-G1 - agreement beyond the plural (D24). Recorded as a KNOWN
+  EXTENSION, out of scope now.** A mob name is formatted on its own and
+  inserted into the sentence, which ICU's own guidance warns against: other
+  words can depend on the noun's grammatical gender. German "getötet" does
+  not change, but French and Polish participles do (French "tués"/"tuées").
+  D24 solves the plural, not gender. The industry fix is a grammatical gender
+  per name and per language that templates choose on with ICU `select`
+  (e.g. `mob.Wolf.gender` in a French ARB, `{gender, select, …}` in its
+  template). It is additive: the first language that needs it adds it, with
+  no English or German change. L8 (German case) is the same family. Not
+  taken: Mozilla's Fluent, which handles case and gender more completely
+  (a format switch for a problem not yet present).
+- **R-G2 - key characters vs the ARB spec. ⭐ C5a's entry gate.** The spec
+  asks for identifier-style keys; ours carry dots and hyphens, and slugs add
+  more. §8 has asked for an import round-trip test since 2026-10-06 and it
+  was never run. Run it before C5a renames ~430 keys (C5a entry checks).
+- **R-G3 - MessageFormat 2.** Unicode finalized the successor to ICU
+  MessageFormat (MF1) in 2025. ARB, Flutter and `intl-messageformat` still
+  use MF1, as does most of the industry. No action; a future migration
+  exists.
+- **R-G4 - length limits (optional).** Platforms can enforce a maximum
+  length per string from its metadata (ARB allows custom attributes). It
+  would help fixed-width slots: nameplates, buttons, HUD labels. Not
+  planned; worth it once a platform is in use.
+- **R-G5 - screenshots for translators.** Platforms attach a screenshot per
+  string as context. Out of scope until there are translators other than
+  the PO.
