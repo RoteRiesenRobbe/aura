@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4 + C7 BUILT 2026-10-11** (in-game owed); C5, C6 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4, C5, C7 BUILT 2026-10-11** (in-game owed); C6 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -470,6 +470,40 @@ does not compile.
 - Wire: EffectKind Fear; pip Fear.
 - Example: a player fear on the nearest enemy, and a mob fear (a howl) equipped
   on a debug-zone mob.
+- ⚑ **As built (2026-10-11):**
+  - `fear` authors `fearTicks` / `fearTicksPerLevel` plus stun's geometry,
+    cap and target keys; the payload reuses `StunParams` (field `Fear`).
+    Cooldown only.
+  - `fearPayload{from any}`: the fearer itself, typed `any` like
+    `DotBuff.Caster`. The holder reads `from.Position()` live each tick; a
+    removed fearer's ref still answers with its last spot, so the plan's
+    `lastPos` field was not needed. `Buffs.hardCC` is the shared ladder both
+    `ApplyStun` and `ApplyFear` step (D4); the DR window runs while neither
+    is live. `MovementFactor` ignores fear (it runs at normal speed).
+  - Doors: `Mob.ApplyFear` (ccImmune first) and `player.ApplyFear` (GOD
+    first, then CancelCast, combat, the Feared reason once on landing).
+    `model.Fearable`, pinned on both (L8).
+  - Mob: a `feared` case FIRST in the `Update` movement switch,
+    `moveAwayFrom` the fearer; mode, aura slot and aggro untouched (L3), so
+    the fight resumes. `auraSuppressed` covers fear.
+  - Player: `PlayerInputSystem.fleeStep` after `updateInput` moves a
+    feared player one walking step (`walkStep`, extracted and shared with
+    normal walking) away from the fearer every tick, input or not; their own
+    movement vector is ignored.
+  - Cast and press refusal: a new `model.HeldReason(e)` answers stunned or
+    feared and why. The SkillSystem's cast gate, every input refusal
+    (cooldowns, utilities, takeoff) and the interaction refusal read it.
+    ⚑ Wire: a new `ActivationRejection.Feared = 6` (appended), so the HUD
+    floats "Feared", not "Stunned". The plan did not list it.
+  - Wire: tray kind Fear = 32768 (bit 15, harmful), pip Fear = 2048 (bit
+    11), colour 0x7f9a5a [PLACEHOLDER].
+  - Examples, all [PLACEHOLDER]: `Terrify` (166, player, nearest enemy in
+    4 u, 4 s +0.5 s/level, cooldown 20 s, SKILL cheat only) and
+    `BroodScreech` (167, every enemy in 3 u for 3 s, a `wave`) on the
+    debug-only BroodMother (C7).
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model/
+    core, vitest 1616/0 + typecheck, `-validate` 0 both zone sets, editor
+    smoke 0. In-game owed (the combined pass), with GOD off (L10).
 
 ### C6 - stealth
 
@@ -610,7 +644,7 @@ None blocking. Raised at execution if they come up:
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-08 `fe298f70` (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | ✅ 2026-10-11 (see §6 C4 "As built"), in-game owed |
-| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
+| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip, +1 rejection reason | ✅ 2026-10-11 (see §6 C5 "As built"), in-game owed |
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
 | C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 (see §6 C7 "As built"), in-game owed |
 

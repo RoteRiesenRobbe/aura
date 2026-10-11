@@ -70,7 +70,7 @@ export const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COL
     dot_aura: 'dot', instant_dot: 'dot',
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
     shield_aura: 'shield', instant_shield: 'shield',
-    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow', instant_slow: 'slow',
+    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow', instant_slow: 'slow', fear: 'slow',
     // Coloured as damage, not as a passive's absence of colour: this table
     // tints the line by WHAT THE EFFECT DOES, so the tooltip vocabulary matches
     // the in-world rings and pips. (The server's aura_category map answers a
@@ -751,6 +751,14 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const stun = effect.stun;
             const held = prog(stun.durationTicks, stun.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             lines.push(`Holds one enemy for ${held} — it cannot move, attack or use abilities`);
+            break;
+        }
+        case 'fear': {
+            // The stun line's shape: say it runs AND that it cannot act
+            // (plan-effect-types-round-2.md C5, D22).
+            const fear = effect.fear;
+            const held = prog(fear.durationTicks, fear.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`Fears its target for ${held}: it runs from you and cannot attack or use abilities`);
             break;
         }
         case 'retaliate_slow': {

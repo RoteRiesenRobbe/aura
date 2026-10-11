@@ -68,7 +68,9 @@ export interface TrayState {
 export const HARMFUL_KINDS: number =
     AuraApi.EffectKind.Slow | AuraApi.EffectKind.Dot | AuraApi.EffectKind.Stun |
     // A negative stat bonus (plan-effect-types-round-2.md D12: the sign decides).
-    AuraApi.EffectKind.StatDown;
+    AuraApi.EffectKind.StatDown |
+    // A fear (C5).
+    AuraApi.EffectKind.Fear;
 
 export function isHarmful(kinds: number): boolean {
     return (kinds & HARMFUL_KINDS) !== 0;

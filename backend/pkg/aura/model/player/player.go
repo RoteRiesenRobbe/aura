@@ -24,6 +24,7 @@ var _ = model.Healable(&player{})
 var _ = model.StatBuffable(&player{})
 var _ = model.Reflector(&player{})
 var _ = model.Empowerable(&player{})
+var _ = model.Fearable(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -746,6 +747,26 @@ func (p *player) ApplyStun(source skills.SkillID, ticks int) bool {
 	p.NoteActivationRejected(0, model.ActivationRejectedStunned)
 	return true
 }
+
+// ApplyFear makes the player run from `from` (plan-effect-types-round-2.md
+// C5, D5): the stun door's shape. GOD refuses it (L10); the ladder is the one
+// the stun steps. The input system then moves the player away from the fearer
+// each tick, whatever they press.
+func (p *player) ApplyFear(source skills.SkillID, from any, ticks int) bool {
+	if p.IsGod() || !p.buffs.ApplyFear(source, from, ticks) {
+		return false
+	}
+	p.skills.CancelCast()
+	p.NoteCombatAction()
+	p.NoteActivationRejected(0, model.ActivationRejectedFeared)
+	return true
+}
+
+// Feared reports whether this player is running from a fear.
+func (p *player) Feared() bool { return p.buffs.Feared() }
+
+// FearSource is the fearer of a live fear, for the input system's flee step.
+func (p *player) FearSource() (any, bool) { return p.buffs.FearSource() }
 
 // Stunned reports whether this player is held: read by the SkillSystem's stun
 // gate and by the input system's press refusals.

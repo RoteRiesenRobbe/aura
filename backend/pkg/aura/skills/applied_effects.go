@@ -28,6 +28,8 @@ const (
 	// A live reflect, own or granted (plan-effect-types-round-2.md C2): thorns
 	// on an ally or a mob has to be readable before anyone hits it.
 	AppliedEffectReflect AppliedEffect = 1 << 10
+	// A live fear (plan-effect-types-round-2.md C5).
+	AppliedEffectFear AppliedEffect = 1 << 11
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
@@ -93,3 +95,6 @@ func (*charmPayload) appliedBit() AppliedEffect { return AppliedEffectCharm }
 // An empower is self-only, so the own tray is its whole read: no pip
 // (plan-effect-types-round-2.md C4).
 func (*empowerPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
+
+// Fear has its own pip (C5): a running mob has to read as feared, not fled.
+func (*fearPayload) appliedBit() AppliedEffect { return AppliedEffectFear }

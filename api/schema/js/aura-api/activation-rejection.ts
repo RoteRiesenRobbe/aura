@@ -8,5 +8,6 @@ export enum ActivationRejection {
   NoTarget = 2,
   NotEnoughResource = 3,
   NoCharges = 4,
-  Stunned = 5
+  Stunned = 5,
+  Feared = 6
 }

@@ -193,6 +193,15 @@ type empowerPayload struct {
 	armed  bool
 }
 
+// fearPayload is a live fear (plan-effect-types-round-2.md C5, D22): the
+// holder runs from `from` and cannot cast. `from` is the fearer, typed `any`
+// like DotBuff.Caster (model imports skills); the holder reads its position
+// live each tick, and a removed fearer's ref still answers with where it last
+// stood, which is the "keep the last position" rule for free.
+type fearPayload struct {
+	from any
+}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -217,6 +226,7 @@ func (*lifestealPayload) isBuffPayload() {}
 func (*reflectPayload) isBuffPayload()   {}
 func (*statPayload) isBuffPayload()      {}
 func (*empowerPayload) isBuffPayload()   {}
+func (*fearPayload) isBuffPayload()      {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -569,7 +579,7 @@ func (b *Buffs) Tick() {
 	// The DR window runs only while unstunned and is zeroed by every landed
 	// stun, so it measures time since the last landed stun ENDED (D10). Read
 	// before aging, so the tick a stun expires on is not counted as time after.
-	if b.stunSteps > 0 && !b.Stunned() {
+	if b.stunSteps > 0 && !b.Stunned() && !b.Feared() {
 		b.stunDRElapsed++
 		if b.stunDRElapsed >= StunDRResetTicks {
 			b.stunSteps, b.stunDRElapsed = 0, 0
@@ -656,12 +666,10 @@ const (
 // same source is a landed stun and a step on the ladder even when its shorter
 // duration does not extend the stream.
 func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
-	if b.stunSteps >= StunDRImmuneAfter {
+	ticks, ok := b.hardCC(ticks)
+	if !ok {
 		return false
 	}
-	ticks = max(ticks>>b.stunSteps, 1)
-	b.stunSteps++
-	b.stunDRElapsed = 0
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*stunPayload); ok {
 			b.extend(e, ticks)
@@ -670,6 +678,52 @@ func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
 	}
 	b.apply(source, &stunPayload{}, ticks)
 	return true
+}
+
+// hardCC steps the shared stun/fear ladder (plan-effect-types-round-2.md D4):
+// the duration this landing holds for, or false when the ladder refuses it.
+func (b *Buffs) hardCC(ticks int) (int, bool) {
+	if b.stunSteps >= StunDRImmuneAfter {
+		return 0, false
+	}
+	ticks = max(ticks>>b.stunSteps, 1)
+	b.stunSteps++
+	b.stunDRElapsed = 0
+	return ticks, true
+}
+
+// ApplyFear makes the holder run from `from` for ticks (C5, D22), cut by the
+// ladder it shares with stun (D4). One stream per source, extend-never-shorten
+// like stun; a refresh re-points the stream at its latest fearer.
+func (b *Buffs) ApplyFear(source SkillID, from any, ticks int) bool {
+	ticks, ok := b.hardCC(ticks)
+	if !ok {
+		return false
+	}
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*fearPayload); ok {
+			b.extend(e, ticks)
+			p.from = from
+			return true
+		}
+	}
+	b.apply(source, &fearPayload{from: from}, ticks)
+	return true
+}
+
+// Feared reports whether any fear application is live.
+func (b *Buffs) Feared() bool { return hasPayload[*fearPayload](b) }
+
+// FearSource is the fearer of a live fear: what the holder runs from.
+func (b *Buffs) FearSource() (any, bool) {
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*fearPayload); ok {
+				return p.from, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // Stunned reports whether any stun application is live. THE read for both

@@ -107,6 +107,17 @@
       "empowerFactor",
       "empowerDurationTicks"
     ],
+    "fear": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "fearTicks",
+      "fearTicksPerLevel"
+    ],
     "heal_aura": [
       "radius",
       "radiusPerLevel",
@@ -449,6 +460,9 @@
       "active_aura"
     ],
     "empower": [
+      "cooldown"
+    ],
+    "fear": [
       "cooldown"
     ],
     "heal_aura": [

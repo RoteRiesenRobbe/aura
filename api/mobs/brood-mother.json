@@ -1,5 +1,5 @@
 {
-  "_comment": "Debug-zone example for death triggers: a giant spider that splits into two Spiders when it dies. Reuses the GiantSpider art. All values placeholder.",
+  "_comment": "Debug-zone example for death triggers: a giant spider that screeches players into fear and splits into two Spiders when it dies. Reuses the GiantSpider art. All values placeholder.",
   "id": 116,
   "name": "BroodMother",
   "type": "MOB",
@@ -24,7 +24,8 @@
     "aggroRadius": 3
   },
   "skills": [
-    { "skillName": "GiantVenomSpit", "level": 1 }
+    { "skillName": "GiantVenomSpit", "level": 1 },
+    { "skillName": "BroodScreech", "level": 1 }
   ],
   "onDeath": [
     { "skillName": "BroodSplit", "level": 1 }

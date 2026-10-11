@@ -13,6 +13,7 @@ const (
 	ActivationRejectionNotEnoughResource ActivationRejection = 3
 	ActivationRejectionNoCharges         ActivationRejection = 4
 	ActivationRejectionStunned           ActivationRejection = 5
+	ActivationRejectionFeared            ActivationRejection = 6
 )
 
 var EnumNamesActivationRejection = map[ActivationRejection]string{
@@ -22,6 +23,7 @@ var EnumNamesActivationRejection = map[ActivationRejection]string{
 	ActivationRejectionNotEnoughResource: "NotEnoughResource",
 	ActivationRejectionNoCharges:         "NoCharges",
 	ActivationRejectionStunned:           "Stunned",
+	ActivationRejectionFeared:            "Feared",
 }
 
 var EnumValuesActivationRejection = map[string]ActivationRejection{
@@ -31,6 +33,7 @@ var EnumValuesActivationRejection = map[string]ActivationRejection{
 	"NotEnoughResource": ActivationRejectionNotEnoughResource,
 	"NoCharges":         ActivationRejectionNoCharges,
 	"Stunned":           ActivationRejectionStunned,
+	"Feared":            ActivationRejectionFeared,
 }
 
 func (v ActivationRejection) String() string {

@@ -74,6 +74,7 @@ const (
 	EffectTypeInstantStat
 	EffectTypeCharge
 	EffectTypeEmpower
+	EffectTypeFear
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -190,6 +191,9 @@ var effectTypeMap = map[string]EffectType{
 	// Empower next cast (plan-effect-types-round-2.md C4, D7, D20): arms the
 	// caster's next cooldown with any mix of instant, free, crit and a factor.
 	"empower": EffectTypeEmpower,
+	// Fear (plan-effect-types-round-2.md C5, D22): a moving stun. The target
+	// runs from the caster and cannot cast; it shares stun's hard-CC ladder.
+	"fear": EffectTypeFear,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -409,6 +413,9 @@ type EffectDef struct {
 	RetaliateDamage *RetaliateDamageParams `json:"retaliateDamage,omitempty"` // retaliate_damage
 	RetaliateBurst  *RetaliateBurstParams  `json:"retaliateBurst,omitempty"`  // retaliate_burst
 	Empower         *EmpowerParams         `json:"empower,omitempty"`         // empower
+	// Fear holds for a duration like a stun, so it carries the stun's payload
+	// shape under its own name (C5).
+	Fear *StunParams `json:"fear,omitempty"` // fear
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -1265,6 +1272,9 @@ type effectDef struct {
 	StunTicks         int `json:"stunTicks"`         // stun: how long the target is held
 	StunTicksPerLevel int `json:"stunTicksPerLevel"` // stun: added per skill level
 
+	FearTicks         int `json:"fearTicks"`         // fear: how long the target runs
+	FearTicksPerLevel int `json:"fearTicksPerLevel"` // fear: added per skill level
+
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
@@ -1606,6 +1616,9 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeCharge: keysGeometry,
 	// Empower (C4, D20): self-only, so no geometry, cadence or targeting.
 	EffectTypeEmpower: {"empowerInstant", "empowerFree", "empowerCrit", "empowerFactor", "empowerDurationTicks"},
+	// Fear (C5): stun's capped query circle with its own duration keys.
+	EffectTypeFear: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		[]string{"fearTicks", "fearTicksPerLevel"}),
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1684,6 +1697,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeRetaliateBurst: {SkillCategoryCooldown},
 	EffectTypeCharge:         {SkillCategoryCooldown},
 	EffectTypeEmpower:        {SkillCategoryCooldown},
+	EffectTypeFear:           {SkillCategoryCooldown},
 	EffectTypeInstantDamage:  {SkillCategoryCooldown},
 	EffectTypeInstantDot:     {SkillCategoryCooldown},
 
@@ -2076,6 +2090,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Charm, err = e.charmParams()
 	case EffectTypeEmpower:
 		def.Empower, err = e.empowerParams()
+	case EffectTypeFear:
+		def.Fear, err = e.fearParams()
 	case EffectTypeLightAura, EffectTypeRecall, EffectTypeCharge:
 		// Payload-less by design: light_aura is pure geometry (its radius
 		// streams as the wire light_radius), recall's destination is the
@@ -2733,6 +2749,14 @@ func (e *effectDef) stunParams() (*StunParams, error) {
 		return nil, fmt.Errorf("stunTicks: must be >= 1, got %v", e.StunTicks)
 	}
 	return &StunParams{DurationTicks: e.StunTicks, DurationTicksPerLevel: e.StunTicksPerLevel}, nil
+}
+
+// fearParams builds the fear payload on the stunParams rule.
+func (e *effectDef) fearParams() (*StunParams, error) {
+	if e.FearTicks < 1 {
+		return nil, fmt.Errorf("fearTicks: must be >= 1, got %v", e.FearTicks)
+	}
+	return &StunParams{DurationTicks: e.FearTicks, DurationTicksPerLevel: e.FearTicksPerLevel}, nil
 }
 
 // calmParams builds the calm payload. A calm of zero ticks is a cast that

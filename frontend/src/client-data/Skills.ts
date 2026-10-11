@@ -305,6 +305,8 @@ export interface SkillEffect {
     charm?: CharmParams;
     stun?: StunParams;
     empower?: EmpowerParams;
+    // A fear's hold has the stun's shape (plan-effect-types-round-2.md C5).
+    fear?: StunParams;
 }
 
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------
@@ -675,6 +677,8 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoCharges]: 'No camp charges — rest at a campfire',
     // Also stamped once, with skill id 0, the tick a stun lands on the player.
     [ActivationRejection.Stunned]: 'Stunned',
+    // Also stamped once, with skill id 0, the tick a fear lands on the player.
+    [ActivationRejection.Feared]: 'Feared',
 };
 
 // How many Camp charges a character of this level may hold (plan-downtime.md

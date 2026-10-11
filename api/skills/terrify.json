@@ -1,0 +1,26 @@
+{
+  "_comment": "Fears the nearest enemy within 4 units: it runs from the caster and cannot act. Shares the stun's diminishing returns. All values placeholder.",
+  "id": 166,
+  "name": "Terrify",
+  "icon": "lorc/shouting",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 600,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#9ab070" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "fear",
+      "costFractionOfMax": 0.03,
+      "radius": 4,
+      "maxTargets": 1,
+      "selector": "nearest",
+      "targetsEnemies": true,
+      "fearTicks": 120,
+      "fearTicksPerLevel": 15
+    }
+  ]
+}

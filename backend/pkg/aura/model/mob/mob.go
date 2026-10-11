@@ -19,6 +19,7 @@ var _ = model.MobEntity(&Mob{})
 var _ = model.Healable(&Mob{})
 var _ = model.StatBuffable(&Mob{})
 var _ = model.Reflector(&Mob{})
+var _ = model.Fearable(&Mob{})
 
 // processSalt randomizes every mob's RNG stream per process run so a fresh
 // server no longer re-rolls the same HP variance + first drop for the Nth
@@ -572,11 +573,11 @@ type Mob struct {
 	// its pool already does (entity-model R5; before this it was stamped once at
 	// spawn and a summon that outlived a ding stayed behind forever). 0 means
 	// "unset" and reads as neutral 1.
-	owner               model.PlayerEntity
-	ttlTicks            int
+	owner    model.PlayerEntity
+	ttlTicks int
 	// despawned marks a removal that is not a death (ExpireWithOwner), so the
 	// death triggers stay silent (plan-effect-types-round-2.md C7, D28).
-	despawned bool
+	despawned           bool
 	summonPowerPerLevel float32
 
 	// despawnOnCooldownFire marks a THROWN projectile
@@ -695,7 +696,7 @@ func (m *Mob) AuraRadius() float32 {
 // freeze (the aura must resume on the beat it was interrupted) and is the same
 // landmine plan-mob-tether D5 records for the tether's evade.
 func (m *Mob) auraSuppressed() bool {
-	return m.buffs.Stunned()
+	return m.buffs.Stunned() || m.buffs.Feared()
 }
 
 // AuraTickInterval is the active aura's first-effect effective tick interval in
@@ -1155,8 +1156,16 @@ func (m *Mob) Update(dt float32) bool {
 	if m.mode == modeFlee {
 		fleeFrom = m.highestThreatTarget()
 	}
+	fearFrom, feared := m.fearFrom()
 
 	switch {
+	// A feared mob runs from the fearer ahead of everything else
+	// (plan-effect-types-round-2.md C5, D22). The mode and the aura slot are
+	// untouched (L3): the fight resumes where it was when the fear ends.
+	case feared:
+		m.resetChaseWatchdog()
+		m.moveAwayFrom(fearFrom)
+
 	case m.mode == modeSupport && m.supportTarget != nil:
 		if m.shouldApproach(m.supportTarget) {
 			m.chaseTowards(m.supportTarget.Position())
@@ -1313,6 +1322,32 @@ func (m *Mob) ApplyStun(source skills.SkillID, ticks int) bool {
 		return false
 	}
 	return m.buffs.ApplyStun(source, ticks)
+}
+
+// ApplyFear makes the mob run from `from` (plan-effect-types-round-2.md C5,
+// D22, D23): the stun door's shape. An immune species refuses it before the
+// shared hard-CC ladder sees it; aggro is kept, like a stun's (A5).
+func (m *Mob) ApplyFear(source skills.SkillID, from any, ticks int) bool {
+	if m.ccImmune() {
+		return false
+	}
+	return m.buffs.ApplyFear(source, from, ticks)
+}
+
+// Feared reports whether this mob is running from a fear.
+func (m *Mob) Feared() bool { return m.buffs.Feared() }
+
+// fearFrom is where a live fear says to run from: the fearer's position, read
+// live, which a removed fearer still answers with its last spot.
+func (m *Mob) fearFrom() (phy.Vec2f, bool) {
+	src, ok := m.buffs.FearSource()
+	if !ok {
+		return phy.Vec2f{}, false
+	}
+	if p, ok := src.(interface{ Position() phy.Vec2f }); ok {
+		return p.Position(), true
+	}
+	return phy.Vec2f{}, false
 }
 
 // Stunned reports whether this mob is currently held. Read by the SkillSystem's

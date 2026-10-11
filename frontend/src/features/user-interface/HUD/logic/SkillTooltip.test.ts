@@ -1696,3 +1696,14 @@ describe('empower', () => {
         ]);
     });
 });
+
+describe('fear', () => {
+    it('says the target runs and cannot act', () => {
+        const terrify = skill({
+            displayName: 'Terrify', category: 'cooldown', maxLevel: 1, cooldownTicks: 600,
+            effects: [effect({type: 'fear', radius: 4, maxTargets: 1, targetsEnemies: true,
+                fear: {durationTicks: 120, durationTicksPerLevel: 0}})],
+        });
+        expect(lines(terrify, 1, 1)[0]).toBe('Fears its target for 4s: it runs from you and cannot attack or use abilities');
+    });
+});

@@ -185,6 +185,8 @@ export const EFFECT_PRESENTATION = {
   // --- CC ---
   stunTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   stunTicksPerLevel: { control: 'number', group: PAYLOAD },
+  fearTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks the target runs from the caster, unable to act. Shares the stun\'s diminishing returns.' },
+  fearTicksPerLevel: { control: 'number', group: PAYLOAD },
   calmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks out of combat; breaks on any damage.' },
   calmTicksPerLevel: { control: 'number', group: PAYLOAD },
   charmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks fighting for the charmer; ends by turning on you.' },

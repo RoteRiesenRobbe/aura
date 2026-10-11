@@ -455,8 +455,8 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 39 since plan-effect-types-round-2.md
-C4 added `empower`):
+`backend/pkg/aura/skills/definition.go`, 40 since plan-effect-types-round-2.md
+C5 added `fear`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
@@ -464,7 +464,7 @@ C4 added `empower`):
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
 `retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`,
-`stat_aura`, `instant_stat`, `charge`, `empower`.
+`stat_aura`, `instant_stat`, `charge`, `empower`, `fear`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -496,7 +496,8 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`, `empower`.
+  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`, `empower`,
+  `fear`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   seven-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`, `threat`), `resist_passive`,
@@ -735,6 +736,13 @@ authors should know:
   ladder; a cleanse does not reset it. So a design that relies on chaining
   stuns (several players, or two stun sources on one mob) will not hold a
   target down; plan around one full stun per 18 s.
+- **A fear** (`fear`, plan-effect-types-round-2.md C5) is a moving stun, both
+  ways: the target runs from the caster at its own walking speed and cannot
+  cast, press, take off or interact (the "Feared" reason). Damage does not
+  break it; the duration does. On a player the SERVER moves them and ignores
+  their movement keys. It shares the stun ladder: a stun and a fear on one
+  target are steps on the SAME 100 / 50 / 25 % ladder. `ccImmune` and GOD
+  refuse it. It has its own pip and a harmful tray circle.
 - **Slows never diminish.** An aura re-applies its slow every interval, so a
   ladder would make a player immune to the web they stand in. The strongest
   slow wins; slows from different sources do not stack.

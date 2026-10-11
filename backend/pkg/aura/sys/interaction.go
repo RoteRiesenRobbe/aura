@@ -640,9 +640,9 @@ func (s *InteractionSystem) handleInteracts() {
 		// (plan-aura-drawbacks.md C2, P3). Checked after the range match, so a
 		// stale keypress stays silent and only a press that would have worked
 		// floats the reason; a Close (above) is never refused.
-		if st, ok := p.(stunSuppressible); ok && st.Stunned() {
+		if reason, held := model.HeldReason(p); held {
 			if r, ok := p.(activationRejecter); ok {
-				r.NoteActivationRejected(0, model.ActivationRejectedStunned)
+				r.NoteActivationRejected(0, reason)
 			}
 			continue
 		}

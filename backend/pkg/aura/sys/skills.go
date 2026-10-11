@@ -236,7 +236,10 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// pass) would otherwise sit there and fire the moment the stun ends. The
 	// input system refuses presses from a stunned player; this covers the
 	// press that was already queued when the stun landed.
-	if st, ok := e.(stunSuppressible); ok && st.Stunned() {
+	//
+	// A fear holds the cast path exactly like a stun (plan-effect-types-round-2.md
+	// C5, D22), so the gate asks about both.
+	if _, held := model.HeldReason(e); held {
 		sc := e.SkillComponent()
 		sc.PendingCooldowns = sc.PendingCooldowns[:0]
 		sc.PendingUtilities = sc.PendingUtilities[:0]
@@ -2209,6 +2212,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeFear:
+			if s.applyFear(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeInstantSlow:
 			if s.applyInstantSlow(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
@@ -2875,6 +2883,35 @@ func (s *SkillSystem) applyStun(e skillEntity, source skills.SkillID, level int,
 
 	for _, c := range targets {
 		c.Shape().UserData.(stunnable).ApplyStun(source, ticks)
+	}
+	return len(targets) > 0
+}
+
+// applyFear fires a fear cooldown (plan-effect-types-round-2.md C5, D22, D23):
+// applyStun's capped query circle, each picked target made to run from the
+// caster. Each door decides who can be feared (ccImmune, GOD, the shared
+// hard-CC ladder); a refusal still counts as a hit, the stun rule, so a mob's
+// fear is consumed on a selected target, immune or not.
+func (s *SkillSystem) applyFear(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Fear == nil {
+		return false
+	}
+	ticks := effect.Fear.TicksAt(level)
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	eligible := eligibleByTargetFlags[model.Fearable](effect, e, e.Basic().ID(), true)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+
+	for _, c := range targets {
+		c.Shape().UserData.(model.Fearable).ApplyFear(source, e, ticks)
 	}
 	return len(targets) > 0
 }

@@ -132,6 +132,8 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeCharge: AuraCategoryNone,
 	// An empower changes the caster's next cast; the tray shows it.
 	EffectTypeEmpower: AuraCategoryNone,
+	// A fear's tell is the target running, and its pip.
+	EffectTypeFear: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

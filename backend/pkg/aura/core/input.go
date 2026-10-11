@@ -211,11 +211,11 @@ func (i *PlayerInputSystem) Update(dt float32) {
 		// committed flight (D11), Camp would place a mini-camp in mid-air.
 		// The press is still drained, so a stale one dies here.
 		if u := p.Client().NextUseUtility(); u != nil && p.VitalSigns().Health != 0 && !p.Flying() {
-			if stunned(p) {
+			if reason, held := model.HeldReason(p); held {
 				// Refused, not queued (plan-aura-drawbacks.md C2): see the
 				// cooldown presses in updateInput. A utility is no catalog
 				// skill, so the id slot carries 0.
-				p.NoteActivationRejected(0, model.ActivationRejectedStunned)
+				p.NoteActivationRejected(0, reason)
 			} else {
 				p.SkillComponent().RequestUtilityCast(u.Kind)
 			}
@@ -247,6 +247,7 @@ func (i *PlayerInputSystem) Update(dt float32) {
 		}
 		id := p.Basic().ID()
 		i.updateInput(p, i.pickInput(id, ibuf[id]), nil)
+		i.fleeStep(p)
 	}
 
 	// clear out buffer
@@ -391,8 +392,8 @@ func (i *PlayerInputSystem) tryStartFlight(p model.PlayerEntity, req *model.Star
 	// A stunned player cannot take off (plan-aura-drawbacks.md C2, P3). Checked
 	// LAST, so the reason floats only for a request that would otherwise have
 	// flown; an invalid one stays silent, the rule above.
-	if stunned(p) {
-		p.NoteActivationRejected(0, model.ActivationRejectedStunned)
+	if reason, held := model.HeldReason(p); held {
+		p.NoteActivationRejected(0, reason)
 		return
 	}
 
@@ -471,17 +472,18 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 	// aura switch above stays allowed while stunned (A7): it is a state flip,
 	// and the aura does not tick until the stun ends anyway.
 	sc := p.SkillComponent()
-	held := stunned(p)
+	reason, held := model.HeldReason(p)
 	for _, slot := range next.CooldownActivations {
 		if !held {
 			sc.RequestCooldownActivation(slot)
 		} else if slot >= 0 && slot < skills.MaxCooldownSlots && sc.CooldownSlots[slot] != nil {
-			p.NoteActivationRejected(sc.CooldownSlots[slot].Def.ID, model.ActivationRejectedStunned)
+			p.NoteActivationRejected(sc.CooldownSlots[slot].Def.ID, reason)
 		}
 	}
 
-	// do we even have inputs?
-	if next.Movement != nil {
+	// do we even have inputs? A feared player's own movement is ignored: the
+	// flee step moves them (plan-effect-types-round-2.md C5, D5).
+	if next.Movement != nil && reason != model.ActivationRejectedFeared {
 		// we can only move if we are still alive!
 		if p.VitalSigns().Health != 0 {
 			v := input2vec(next)
@@ -499,25 +501,54 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 			// one (speed_burst buffs vs. slows, composed in skills.Buffs);
 			// config stays untouched. The mob's stepLength applies both of the
 			// same factors (chunk 1a; Swift-as-a-cooldown).
-			speed := p.Config().WalkingSpeedPerTick *
-				p.SkillComponent().Derived.MovementSpeedFactor() *
-				p.MovementFactor()
-			if f := p.SpeedCheatFactor(); f > 0 {
-				speed *= f
-			}
-			v = v.Mult(speed)
-			next := p.Position().Add(v)
-			p.SetPosition(next)
+			p.SetPosition(p.Position().Add(v.Mult(walkStep(p))))
 		}
 	}
 }
 
-// stunned reads the player's stun through a structural assert, the house
-// pattern: model.PlayerEntity stays narrow, and an input fake that lacks the
-// read is simply never stunned.
-func stunned(p model.PlayerEntity) bool {
-	s, ok := p.(interface{ Stunned() bool })
-	return ok && s.Stunned()
+// walkStep is how far the player walks this tick: the configured pace times
+// the passive movement-speed bonus (DerivedStats) and the transient one
+// (speed_burst buffs vs. slows, composed in skills.Buffs); config stays
+// untouched. The mob's stepLength applies both of the same factors.
+func walkStep(p model.PlayerEntity) float32 {
+	speed := p.Config().WalkingSpeedPerTick *
+		p.SkillComponent().Derived.MovementSpeedFactor() *
+		p.MovementFactor()
+	if f := p.SpeedCheatFactor(); f > 0 {
+		speed *= f
+	}
+	return speed
+}
+
+// fleeStep moves a feared player one walking step away from the fearer
+// (plan-effect-types-round-2.md C5, D5, D22): the server owns player
+// movement, so the fear replaces the player's own vector wholesale, the way a
+// flight does. The fearer's position is read live; a removed fearer still
+// answers with where it last stood.
+func (i *PlayerInputSystem) fleeStep(p model.PlayerEntity) {
+	f, ok := p.(interface{ FearSource() (any, bool) })
+	if !ok || p.VitalSigns().Health == 0 {
+		return
+	}
+	src, feared := f.FearSource()
+	if !feared {
+		return
+	}
+	from, ok := src.(interface{ Position() phy.Vec2f })
+	if !ok {
+		return
+	}
+	away := p.Position().Sub(from.Position())
+	if away.Abs() < 1e-4 {
+		// Standing on the fearer: any direction is away; keep the last one.
+		away = p.LastMoveDir()
+	}
+	if away.Abs() < 1e-4 {
+		return
+	}
+	dir := away.Div(away.Abs())
+	p.SetLastMoveDir(dir)
+	p.SetPosition(p.Position().Add(dir.Mult(walkStep(p))))
 }
 
 func input2vec(i *model.PlayerInput) phy.Vec2f {

@@ -122,6 +122,7 @@ const EFFECT_FIXTURES: { [type: string]: Partial<SkillEffect> } = {
     dash: {dash: {distance: 5, distancePerLevel: 1}},
     charge: {radius: 6},
     empower: {empower: {instant: true, free: true, durationTicks: 450}},
+    fear: {fear: {durationTicks: 90, durationTicksPerLevel: 0}, radius: 4, targetsEnemies: true, maxTargets: 1},
     tick_rate: {tickRate: {factor: 0.5, durationTicks: 300}},
     calm: {calm: HELD, radius: 4, targetsEnemies: true},
     charm: {charm: HELD, radius: 4, targetsEnemies: true, maxTargets: 1},

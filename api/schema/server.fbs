@@ -313,7 +313,10 @@ enum ActivationRejection : ubyte {
   // the presser is stunned (plan-aura-drawbacks.md C2, D4): a cooldown, a
   // utility, a flight takeoff or an interaction pressed while held. Also sent
   // once when the stun LANDS, so the HUD names it before the first press.
-  Stunned = 5
+  Stunned = 5,
+  // the presser is feared (plan-effect-types-round-2.md C5): every press the
+  // stun refuses, refused the same way, and also sent once as the fear lands.
+  Feared = 6
 }
 
 struct AABB {
@@ -904,7 +907,7 @@ table MapFog {
 // (D13: Slow, Dot and Stun are harmful, the rest beneficial); nothing here
 // says so, because the server has no reason to know.
 enum EffectKind : uint (bit_flags) {
-  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm, StatUp, StatDown, Empower
+  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm, StatUp, StatDown, Empower, Fear
 }
 
 // One circle on the own player's buff tray: a skill's timed effects, with the

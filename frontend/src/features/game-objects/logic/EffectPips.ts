@@ -36,6 +36,9 @@ export enum AppliedEffectBit {
     // A live reflect, own or granted (plan-effect-types-round-2.md C2): thorns
     // on an ally or a mob reads before anyone hits it.
     Reflect = 1 << 10,
+    // A live fear (plan-effect-types-round-2.md C5): a running mob reads as
+    // feared, not as one fleeing on its own.
+    Fear = 1 << 11,
 }
 
 interface PipStyle {
@@ -60,6 +63,8 @@ interface PipStyle {
 const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.Charm, color: 0xc98ae0},
     {bit: AppliedEffectBit.Calm, color: 0xa8d8f0},
+    // [PLACEHOLDER] a sickly green-grey, apart from every ring colour.
+    {bit: AppliedEffectBit.Fear, color: 0x7f9a5a},
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},
     // [PLACEHOLDER] colours: a dull rust for a weakened stat, a gold for a raised one.

@@ -263,7 +263,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + BurstingTotem id 165 (player, SKILL cheat only) and the mob skills
 	// TotemBurst 163 + BroodSplit 164 (plan-effect-types-round-2.md C7, the
 	// death-trigger examples). 127 → 130 (86 player + 44 mob).
-	assert.Len(t, r.All(), 130)
+	// + Terrify id 166 (player, SKILL cheat only) and the mob skill
+	// BroodScreech 167 (plan-effect-types-round-2.md C5, the fear examples).
+	// 130 → 132 (87 player + 45 mob).
+	assert.Len(t, r.All(), 132)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
