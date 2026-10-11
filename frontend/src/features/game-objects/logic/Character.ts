@@ -179,6 +179,8 @@ export class Character extends GameObject
             text: this.name,
             style: TextDisplay.style({
                 fill: 'white',
+                stroke: {color: '#000000', width: 4},
+                fontWeight: '700',
             }),
         });
         text.anchor.set(0.5, 0.5);

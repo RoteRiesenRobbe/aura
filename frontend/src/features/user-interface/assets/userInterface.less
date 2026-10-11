@@ -1,5 +1,4 @@
-@import "./fonts/stoneage/stylesheet.css";
-@import "./fonts/capture-smallz/stylesheet.css";
+@import "./fonts/inter/stylesheet.css";
 @import (inline) "~simplebar/dist/simplebar.css";
 
 @import "variables";
@@ -8,9 +7,15 @@ body {
 	padding: 0;
 	margin: 0;
 
-	font-family: "stone-age", serif;
+	font-family: "Inter", Arial, sans-serif;
 	font-size: 1.5rem;
-	font-variant: small-caps;
+	// Every size in the HUD was tuned for stone-age, whose letters are all
+	// capitals. A face with lowercase is taller per em, so the same sizes
+	// overflowed their (rem-sized) panels. Pinning the x-height at 0.4 em
+	// shrinks the glyphs (~80 %) without touching any box, and adapts to
+	// whichever face is set here; it inherits into the whole DOM, phones
+	// included. Canvas text ignores it. [PLACEHOLDER] (plan-ui-font.md F3)
+	font-size-adjust: 0.4;
 
 	background-color: @land-color;
 
@@ -320,7 +325,6 @@ a.closeButton {
 		line-height: 1;
 		font: inherit;
 		width: 100%;
-		font-variant: none;
 		cursor: pointer;
 
 		border: 2px outset rgb(221, 221, 221); // Chrome default style, for all browsers
@@ -343,7 +347,6 @@ a.closeButton {
 		padding: 4px;
 		color: white;
 		font: inherit;
-		font-variant: small-caps;
 
 		&:focus {
 			outline: none;
