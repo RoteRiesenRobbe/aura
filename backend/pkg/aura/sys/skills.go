@@ -2298,6 +2298,34 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 	return hitAny
 }
 
+// FireOnDeath fires a dying mob's death triggers (plan-effect-types-round-2.md
+// C7, D27): each onDeath skill goes through fireCooldown from the dead mob,
+// where it died. No cost, no cooldown and no in-combat gate: a death is the
+// whole condition. Called by the MobSystem's sweep before the mob is removed,
+// so its collider still answers the queries (L6: nothing on this path may
+// refuse a caster at 0 HP). A despawned mob names nothing (D28).
+//
+// ⚑ No FIRED event is stamped: the mob leaves the world this tick, before the
+// snapshot that would carry it. The victims' own hit marks are the look.
+func (s *SkillSystem) FireOnDeath(m model.MobEntity) {
+	d, ok := m.(deathTriggered)
+	if !ok {
+		return
+	}
+	e, ok := m.(skillEntity)
+	if !ok {
+		return
+	}
+	for _, ms := range d.OnDeathSkills() {
+		s.fireCooldown(e, &skills.EquippedSkill{Def: ms.Def, Level: ms.Level})
+	}
+}
+
+// deathTriggered is a mob that may carry death triggers (C7).
+type deathTriggered interface {
+	OnDeathSkills() []mobs.MobSkill
+}
+
 // noteCooldownCast stamps the FIRED event for one cooldown cast
 // (plan-skill-vfx.md §5.1, PO 2026-09-19). It is what lets anyone but the
 // caster see a cast at all: GameState.cast_skill_id is own-player-only.

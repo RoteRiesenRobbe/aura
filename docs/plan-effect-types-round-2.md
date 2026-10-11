@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4 BUILT 2026-10-11** (in-game owed); C5-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4 + C7 BUILT 2026-10-11** (in-game owed); C5, C6 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -487,6 +487,36 @@ does not compile.
 - Wire: none. Content editor: the mob tab gains the list.
 - Example: a debug-zone mob that splits into two adds, and a totem that bursts
   when its timer runs out.
+- ⚑ **As built (2026-10-11):**
+  - `MobDefinition.OnDeath []MobSkill`, parsed like `skills`; an unknown name
+    or a non-cooldown skill refuses the boot.
+  - `Mob.ExpireWithOwner` also sets `despawned`, and `Mob.OnDeathSkills()`
+    returns nothing for a despawned mob (D28). The encounter `Despawn` needs
+    no flag: it calls `RemoveEntity` directly and never reaches the sweep.
+    The TTL expiry is a death (D6): it zeroes health and the sweep fires.
+  - `MobSystem.SetDeathTriggers` (wired to the SkillSystem in `core/game.go`)
+    and the sweep calls `FireOnDeath` before `onMobDeath` + `RemoveEntity`.
+    `SkillSystem.FireOnDeath` runs each skill through `fireCooldown` from the
+    dead mob. L6 pinned: a real 0-HP mob's burst lands on a real player.
+    L5 pinned: a mob-cast spawn binds no owner, so the adds survive the
+    parent's removal; they enlist on its side.
+  - No FIRED event is stamped: the mob leaves the world before the snapshot,
+    so a `fired` layer on a death skill never draws. The victims' hit marks
+    are the look. ⚑ Open for the PO if a death needs its own visual.
+  - Editor: the mob page gains an "On death" list (the skills row shape),
+    `validate.mjs` checks the names, README updated.
+  - Examples, all [PLACEHOLDER]: `BroodMother` (mob 116, GiantSpider art,
+    debug zones only at (38.5, -31.5) beside the giant spiders) splits into
+    two Spiders via `BroodSplit` (164; a spawn needs a TTL, so they leave
+    after 60 s). `BurstTotem` (mob 117, Totem art, no aura) bursts for 20
+    fire on every enemy within 3 u via `TotemBurst` (163); the player summons
+    it with `BurstingTotem` (165, 10 s, SKILL cheat only).
+  - Census bumps (L9): structures + BurstTotem, creatures 88 -> 89,
+    xpFactor-0 53 -> 54, the archetype guardrail exempts BroodMother with
+    the GiantSpider's own reason. Registry 127 -> 130.
+  - Verified: Go bar the known world prop pin, `-race` on sys/model/mob/
+    items/mobs, vitest 1615/0, `-validate` 0 both zone sets, editor smoke 0.
+    In-game owed (the combined C4-C7 pass).
 
 ## 7. Landmines
 
@@ -582,7 +612,7 @@ None blocking. Raised at execution if they come up:
 | C4 | Empower next cast | +1 kind | ✅ 2026-10-11 (see §6 C4 "As built"), in-game owed |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
-| C7 | Death triggers (`onDeath` on mobs) | none | not started |
+| C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 (see §6 C7 "As built"), in-game owed |
 
 Order: C0 first (C1, C2, C4-C6 need its room); C1 next (it builds the
 buff-kind template the rest copy); C2-C7 in any order. C3 and C7 need no wire

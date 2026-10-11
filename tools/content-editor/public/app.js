@@ -702,6 +702,7 @@ function renderMobEditor(entry) {
   editorRoot.appendChild(bodySection(mob, refreshErrors));
   editorRoot.appendChild(skillsSection(mob, refreshErrors));
   editorRoot.appendChild(mobSkillLooksSection(mob));
+  editorRoot.appendChild(skillsSection(mob, refreshErrors, 'onDeath', 'On death (cooldowns fired where it dies)', '+ Add death trigger'));
   editorRoot.appendChild(unlocksSection(mob, refreshErrors));
   editorRoot.appendChild(dialogueTreeSection(mob, refreshErrors));
 
@@ -871,26 +872,28 @@ function bodyBitmask(mob, key, onChange) {
   return wrap;
 }
 
-function skillsSection(mob, onChange) {
-  const col = statSection('Skills');
+// The loadout (`skills`) and the death triggers (`onDeath`,
+// plan-effect-types-round-2.md C7) share one row shape: a skill and a level.
+function skillsSection(mob, onChange, key = 'skills', title = 'Skills', addLabel = '+ Add skill') {
+  const col = statSection(title);
   const rowsWrap = el('div');
   function rerender() {
-    const skills = mob.skills || [];
+    const skills = mob[key] || [];
     rowsWrap.innerHTML = '';
     if (skills.length) rowsWrap.appendChild(colHeaders([{ label: 'Skill', cls: 'col-flex' }, { label: 'Level', cls: 'col-fixed-sm' }]));
-    skills.forEach((s, i) => rowsWrap.appendChild(skillRow(mob, s, i, () => { rerender(); onChange(); })));
+    skills.forEach((s, i) => rowsWrap.appendChild(skillRow(mob[key], s, i, () => { rerender(); onChange(); })));
   }
   rerender();
   col.body.appendChild(rowsWrap);
-  col.body.appendChild(el('button', { class: 'add-row', onclick: () => { mob.skills = mob.skills || []; mob.skills.push({ skillName: '', level: 1 }); rerender(); onChange(); } }, '+ Add skill'));
+  col.body.appendChild(el('button', { class: 'add-row', onclick: () => { mob[key] = mob[key] || []; mob[key].push({ skillName: '', level: 1 }); rerender(); onChange(); } }, addLabel));
   return col.section;
 }
 
-function skillRow(mob, s, i, onChange) {
+function skillRow(list, s, i, onChange) {
   const wrap = el('div', { class: 'condition-row' });
   wrap.appendChild(select(['', ...state.skillNames], s.skillName || '', (v) => { s.skillName = v; onChange(); }, (v) => v || '— skill —', 'col-flex'));
   wrap.appendChild(numberInput(s.level ?? 1, (v) => { s.level = v; onChange(); }, 'level', 'col-fixed-sm'));
-  wrap.appendChild(el('button', { class: 'danger', onclick: () => { mob.skills.splice(i, 1); onChange(); } }, '×'));
+  wrap.appendChild(el('button', { class: 'danger', onclick: () => { list.splice(i, 1); onChange(); } }, '×'));
   return wrap;
 }
 

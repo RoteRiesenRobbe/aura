@@ -332,6 +332,9 @@ var archetypeExempt = map[string]string{
 	// Recorded rather than reshaped. plan-world-replacement.md §3.8.
 	"GiantSpider": "fast/tanky/hard-hitting by prior ruling — speed is pinned >0.9 " +
 		"and both other axes undo the farm-band hardening (measured)",
+	// The death-trigger example (plan-effect-types-round-2.md C7): the
+	// GiantSpider's body, debug zones only.
+	"BroodMother": "the GiantSpider's body, a debug-only death-trigger example",
 }
 
 // TestGuardrails_ArchetypeTrade is D6. It is a pure function of the authored

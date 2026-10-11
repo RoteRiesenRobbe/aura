@@ -274,6 +274,10 @@ type MobDefinition struct {
 	Body    Body
 	Skills  []MobSkill
 	Unlocks []MobUnlock
+	// OnDeath are the cooldown skills this mob fires from where it dies
+	// (plan-effect-types-round-2.md C7, D27): an explosion, adds, a parting
+	// slow. Not part of the loadout; nothing fires them but a death.
+	OnDeath []MobSkill
 
 	// Interaction is the conversation this actor carries (chunk 3a,
 	// interaction.go); nil for the overwhelming majority that carry none. It
@@ -376,6 +380,12 @@ type mobDefinition struct {
 		SkillName string   `json:"skillName"`
 		Chance    *float32 `json:"chance"` // nil → 1.0 (guaranteed)
 	} `json:"unlocks"`
+
+	// OnDeath takes the skills shape (C7, D27).
+	OnDeath []struct {
+		SkillName string `json:"skillName"`
+		Level     int    `json:"level"` // absent → 1
+	} `json:"onDeath"`
 }
 
 // parseMobDefinition parses one authored mob definition. Unknown keys are
@@ -620,6 +630,18 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			legacyRefs = append(legacyRefs, "skill "+def.Name)
 		}
 		mob.Skills = append(mob.Skills, MobSkill{Def: def, Level: level})
+	}
+
+	// resolve death triggers: cooldowns only, because a death is one fire
+	for _, s := range m.OnDeath {
+		def, err := sr.GetByName(s.SkillName)
+		if err != nil {
+			return nil, fmt.Errorf("mob %q: onDeath skill %q not found: %w", m.Name, s.SkillName, err)
+		}
+		if def.Category != skills.SkillCategoryCooldown {
+			return nil, fmt.Errorf("mob %q: onDeath skill %q is not a cooldown", m.Name, s.SkillName)
+		}
+		mob.OnDeath = append(mob.OnDeath, MobSkill{Def: def, Level: max(s.Level, 1)})
 	}
 
 	// resolve kill unlocks

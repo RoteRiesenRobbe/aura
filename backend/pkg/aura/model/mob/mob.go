@@ -574,6 +574,9 @@ type Mob struct {
 	// "unset" and reads as neutral 1.
 	owner               model.PlayerEntity
 	ttlTicks            int
+	// despawned marks a removal that is not a death (ExpireWithOwner), so the
+	// death triggers stay silent (plan-effect-types-round-2.md C7, D28).
+	despawned bool
 	summonPowerPerLevel float32
 
 	// despawnOnCooldownFire marks a THROWN projectile
@@ -967,8 +970,21 @@ func (m *Mob) OwnedBy(id uint64) bool {
 // Idempotent: a flight takeoff calls the departure hook directly and a
 // mid-flight disconnect calls it again for the same player, so the second pass
 // must find nothing left to do.
+//
+// It also marks the mob DESPAWNED: an owner leaving is not a death, so the
+// mob's death triggers stay silent (plan-effect-types-round-2.md C7, D28).
 func (m *Mob) ExpireWithOwner() {
 	m.health = 0
+	m.despawned = true
+}
+
+// OnDeathSkills are the death triggers to fire now that this mob has died
+// (C7, D27): the definition's list, or none after a despawn (D6, D28).
+func (m *Mob) OnDeathSkills() []mobs.MobSkill {
+	if m.despawned {
+		return nil
+	}
+	return m.definition.OnDeath
 }
 
 // SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).

@@ -77,8 +77,21 @@ type MobSystem struct {
 	// fe0044d0).
 	wakePositions []phy.Vec2f
 
+	// deathTriggers fires a dying mob's onDeath skills (C7); the SkillSystem in
+	// production, nil in tests that do not need it.
+	deathTriggers DeathTriggers
+
 	initialized bool
 }
+
+// DeathTriggers is the SkillSystem as the death sweep sees it
+// (plan-effect-types-round-2.md C7, D27).
+type DeathTriggers interface {
+	FireOnDeath(m model.MobEntity)
+}
+
+// SetDeathTriggers wires the death-trigger seam, once at boot.
+func (n *MobSystem) SetDeathTriggers(d DeathTriggers) { n.deathTriggers = d }
 
 // WakeSources yields the position of everything a dormant mob must wake for
 // (plan-world-scale.md D4): the players and spectators in the world.
@@ -209,6 +222,11 @@ func (n *MobSystem) Update(dt float32) {
 		}
 	}
 	for _, mob := range dead {
+		// Death triggers first, while the mob is still in the space and the
+		// SkillSystem (plan-effect-types-round-2.md C7, D27).
+		if n.deathTriggers != nil {
+			n.deathTriggers.FireOnDeath(mob)
+		}
 		n.onMobDeath(mob)
 		n.game.RemoveEntity(mob.Basic())
 	}

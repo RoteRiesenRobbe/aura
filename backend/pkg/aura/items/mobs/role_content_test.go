@@ -59,8 +59,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// floor, harvest lock included - structures for the Turnip's reason.
 	// Seaweed is the Turnip on Saltgrass Strand, for the Miller's ring.
 	// Deadwood is the Turnip in Grandfather Knot's grove, for clear-the-grove.
+	// BurstTotem is the death-trigger example (plan-effect-types-round-2.md
+	// C7): a summoned totem with no aura that bursts when it ends.
 	assert.ElementsMatch(t, []string{
-		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "Deadwood", "FireTotem", "PoisonPool", "ProjectileBomb",
+		"Beet", "BlueMushroom", "Bramble", "BurstTotem", "Camp", "Campfire", "Deadwood", "FireTotem", "PoisonPool", "ProjectileBomb",
 		"RedMushroom", "Rockfall", "Seaweed", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
@@ -112,7 +114,8 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// creature + speed 0.
 	// 86 → 88 with the two talkable remains (DeadCarter, FallenTraveller),
 	// the same talking-object shape.
-	assert.Len(t, byRole[RoleCreature], 88, "everything else is a creature")
+	// + BroodMother (C7's debug-only splitting spider): 88 -> 89.
+	assert.Len(t, byRole[RoleCreature], 89, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

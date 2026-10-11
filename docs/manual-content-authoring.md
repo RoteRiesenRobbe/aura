@@ -179,6 +179,15 @@ faction and skills without a schema append (see §5).
      hazard (`api/mobs/poison-pool.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
+   - optional `onDeath[]`: `{skillName, level}`, the `skills[]` shape, naming
+     COOLDOWN skills the mob fires from where it dies (an `instant_damage`
+     explosion, `spawn` adds). They fire on every death, a summon's timer
+     running out included, but not when a summon is retired because its owner
+     left. No cost, no cooldown, no in-combat gate; kill credit is unchanged.
+     A `spawn` from a death needs a `ttlTicks` like any spawn, and the adds
+     belong to nobody. ⚑ The mob is gone before the snapshot, so a `fired`
+     layer on the trigger skill never draws (`api/mobs/brood-mother.json`,
+     `burst-totem.json`).
 2. **`api/schema/server.fbs`** — add the mob's name to the `EntityType` enum.
    **Append at the end** to keep the wire compatible.
 3. **Regenerate bindings:** `cd api/schema && ./make.sh` (writes **both** Go and

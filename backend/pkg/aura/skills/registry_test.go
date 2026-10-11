@@ -260,7 +260,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// example; SKILL cheat only. 125 → 126 (84 player + 42 mob).
 	// + NaturesSwiftness id 162 (plan-effect-types-round-2.md C4), the empower
 	// example; SKILL cheat only. 126 → 127 (85 player + 42 mob).
-	assert.Len(t, r.All(), 127)
+	// + BurstingTotem id 165 (player, SKILL cheat only) and the mob skills
+	// TotemBurst 163 + BroodSplit 164 (plan-effect-types-round-2.md C7, the
+	// death-trigger examples). 127 → 130 (86 player + 44 mob).
+	assert.Len(t, r.All(), 130)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
