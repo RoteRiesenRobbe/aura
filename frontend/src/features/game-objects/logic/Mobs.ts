@@ -9,6 +9,7 @@ import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from '../../core/log
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {difficultyColor, getLocalPlayerLevel, mobDefinition, TierRank} from '../../../client-data/Mobs';
+import {questMarkerColor, questMarkerFor, questMarkerGlyph} from '../../../client-data/QuestMarkers';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
@@ -106,6 +107,11 @@ const NAMEPLATE_GAP = 16;
 // player-character lavender. [PLACEHOLDER]
 const CONVERSANT_PLATE_COLOR = 0xffffff;
 
+// The quest-giver glyph (plan-quest-giver-markers.md C3): px above the art's top
+// edge (or above the E badge while that shows), and its font size. [PLACEHOLDER]
+const QUEST_GLYPH_GAP = 6;
+const QUEST_GLYPH_SIZE = 34;
+
 export abstract class Mob extends GameObject
     implements OverheadVitals, AuraDisplay, LevelDisplay, MobPlate, Interactable {
 
@@ -153,6 +159,15 @@ export abstract class Mob extends GameObject
     // plan-mob-levels.md C2); 0 = not sent yet or an old server, which falls
     // back to the species catalog value — today's behaviour exactly.
     private plateLevel: number = 0;
+    // The `!` / `?` over a quest giver's head (plan-quest-giver-markers.md C3),
+    // on the plate overlay so trees and darkness never cover it; built lazily on
+    // the first marker. questGlyphKey is the last drawn glyph + colour, so the
+    // text is only restyled when the marker or its tint actually changes.
+    private questGlyph: PIXI.Text = null;
+    private questGlyphKey = '';
+    // How far the art's top edge sits above its origin, measured once (the
+    // InteractBadge rule: the art's bounds, never the wire radius).
+    private spriteTop: number = null;
 
     protected constructor(
         id: number,
@@ -293,6 +308,7 @@ export abstract class Mob extends GameObject
         this.plate.alpha = this.shape.alpha;
         this.plate.visible = !DarknessOverlay.isHidden(
             this.shape.position.x, this.shape.position.y);
+        this.updateQuestGlyph();
 
         if (this.nameElement === null) {
             return;
@@ -320,6 +336,46 @@ export abstract class Mob extends GameObject
         }
         this.plateDifference = difference;
         this.nameElement.style.fill = difficultyColor(level);
+    }
+
+    /**
+     * Per-frame: the quest giver's `!` / `?` (plan-quest-giver-markers.md C3),
+     * read off the server's per-species markers. Recomputed rather than pushed
+     * for the plate tint's reason: the `!` colour moves with the PLAYER's level.
+     */
+    private updateQuestGlyph() {
+        const marker = this.plateMobId > 0 ? questMarkerFor(this.plateMobId) : undefined;
+        if (marker === undefined) {
+            if (this.questGlyph !== null) {
+                this.questGlyph.visible = false;
+            }
+            return;
+        }
+        if (this.questGlyph === null) {
+            this.questGlyph = new PIXI.Text({
+                text: '',
+                style: TextDisplay.style({
+                    stroke: {color: '#000000', width: 5},
+                    fontSize: QUEST_GLYPH_SIZE,
+                    fontWeight: '900',
+                }),
+            });
+            this.questGlyph.anchor.set(0.5, 1);
+            this.plate.addChild(this.questGlyph);
+        }
+        const glyph = questMarkerGlyph(marker.kind);
+        const color = questMarkerColor(marker);
+        const key = `${glyph}${color}`;
+        if (key !== this.questGlyphKey) {
+            this.questGlyphKey = key;
+            this.questGlyph.text = glyph;
+            this.questGlyph.style.fill = color;
+        }
+        if (this.spriteTop === null) {
+            this.spriteTop = Math.max(0, -this.actualShape.getLocalBounds().y);
+        }
+        this.questGlyph.y = -(this.spriteTop + QUEST_GLYPH_GAP + (this.interactBadge?.shownHeight() ?? 0));
+        this.questGlyph.visible = true;
     }
 
     /**
@@ -366,6 +422,7 @@ export abstract class Mob extends GameObject
             this.plate.destroy({children: true});
             this.plate = null;
             this.nameElement = null;
+            this.questGlyph = null;
         }
     }
 

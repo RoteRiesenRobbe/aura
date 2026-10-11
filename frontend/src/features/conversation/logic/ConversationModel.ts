@@ -64,6 +64,11 @@ export interface ConversationRow {
      * destination either and so cannot work out up-vs-down for itself.
      */
     travel: TravelDirection;
+    /**
+     * The target level of the quest an offer row hands out, which tints the row
+     * (plan-quest-giver-markers.md D4); 0 on every other row.
+     */
+    questLevel: number;
 }
 
 /**

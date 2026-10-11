@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     MapState, campfireMarkers, fixedIconScale, groundRing, isInsideDrawnMap, layerOffset, mapScale, rimPoint,
-    rescaleCoordinate, resizeTerrain, pickCampfireMarker, rosterMarkers, toZoneLocal, worldToMap,
+    rescaleCoordinate, resizeTerrain, pickCampfireMarker, questGiverMarkers, rosterMarkers, toZoneLocal, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -689,5 +689,31 @@ describe('rimPoint', () => {
         expect(rimPoint(500, 0, M, M)).toBeNull();
         expect(rimPoint(NaN, 0, R, M)).toBeNull();
         expect(rimPoint(500, 0, NaN, M)).toBeNull();
+    });
+});
+
+// plan-quest-giver-markers.md C3: the map half of the quest-giver markers.
+describe('questGiverMarkers', () => {
+    const spawns = [
+        {mob: 'Reinhard', x: 10, y: -4},
+        {mob: 'Wolf', x: 1, y: 1},
+        {mob: 'Reinhard', x: -3, y: 2},
+        {mob: 'Hermit', x: 50, y: 50},
+    ];
+    const markers: { [name: string]: string } = {Reinhard: '!', Hermit: '?'};
+    const markerFor = (name: string) => markers[name];
+
+    it('places every spawn of a marked species, zone-local, on revealed ground only', () => {
+        const got = questGiverMarkers(spawns, markerFor, (x) => x < 20, 0.5, 2);
+        expect(got).toEqual([
+            {x: 10, y: -4, marker: '!'},
+            {x: -3, y: 2, marker: '!'},
+        ]);
+    });
+
+    it('draws nothing at scale 0 or for an unmarked species', () => {
+        expect(questGiverMarkers(spawns, markerFor, () => true, 0, 2)).toEqual([]);
+        expect(questGiverMarkers([{mob: 'Wolf', x: 0, y: 0}], markerFor, () => true, 1, 1)).toEqual([]);
+        expect(questGiverMarkers([{mob: 'Hermit', x: NaN, y: 0}], markerFor, () => true, 1, 1)).toEqual([]);
     });
 });

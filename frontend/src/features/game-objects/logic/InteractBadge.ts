@@ -74,6 +74,18 @@ export class InteractBadge {
         this.container.visible = true;
     }
 
+    /**
+     * How much room the cap takes above the art while it shows, gap included,
+     * so a quest giver's `!` can stack above it (plan-quest-giver-markers.md
+     * C3); 0 while hidden.
+     */
+    shownHeight(): number {
+        if (this.container === null || !this.container.visible) {
+            return 0;
+        }
+        return this.container.height + GAP_ABOVE_SPRITE;
+    }
+
     destroy() {
         if (this.container === null) {
             return;

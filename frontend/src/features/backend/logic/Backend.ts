@@ -22,6 +22,7 @@ import {
     skillDisplayName,
 } from '../../../client-data/Skills';
 import {getLocalPlayerLevel} from '../../../client-data/Mobs';
+import {allQuestMarkers, setQuestMarkers} from '../../../client-data/QuestMarkers';
 import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -613,6 +614,19 @@ export class Backend implements IBackend {
         } else if (Utils.isDefined(snapshot.questProgress)) {
             Journal.update(snapshot.questProgress);
             QuestTracker.update(snapshot.questProgress);
+        }
+
+        // The quest-giver markers (plan-quest-giver-markers.md C3), with the
+        // journal's spectator rule: no character, no markers. The overhead
+        // glyphs read the module per frame; the map redraws on a publication.
+        if (snapshot.player?.isSpectator) {
+            if (allQuestMarkers().length > 0) {
+                setQuestMarkers([]);
+                this.game.miniMap?.refreshQuestMarkers();
+            }
+        } else if (Utils.isDefined(snapshot.questMarkers)) {
+            setQuestMarkers(snapshot.questMarkers);
+            this.game.miniMap?.refreshQuestMarkers();
         }
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that

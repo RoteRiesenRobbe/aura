@@ -260,6 +260,9 @@ export interface ZoneJSON {
     // N2): read by the darkness overlay for their static glow (chunk 4
     // follow-up) and by the map's campfire markers.
     bindPoints?: CampfireDefinition[];
+    // Placed mobs, areas folded in (flattenAreas). Only the quest-giver map
+    // markers read them (plan-quest-giver-markers.md C3): name + zone-local spot.
+    spawns?: {mob?: string, x: number, y: number}[];
     // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
     // entities, and does not read this array to draw them. It is read for what
     // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into

@@ -15,10 +15,9 @@
 > backlog §42 banner (`backlog.md:4586`) still read the old way and must be amended
 > before C1 starts.
 >
-> Chunks: C1 → C2 → C3. **Branch `quest-markers` off `main`** (PO 2026-10-11), NOT
-> off `localization`. ⚑ The survey's line refs were taken on `localization` at
-> `300e4c5e` and drift on `main`: re-verify each before editing. ⚑ Whichever of the two
-> branches merges second resolves the overlap: `ConversationOption` in `server.fbs`
+> Chunks: C1 → C2 → C3, **committed straight on `main`** (PO 2026-10-11), NOT on
+> `localization`. ⚑ The survey's line refs were taken on `localization` at
+> `300e4c5e` and drift on `main`: re-verify each before editing. ⚑ When `localization` merges into `main`, it resolves the overlap: `ConversationOption` in `server.fbs`
 > (localization appends six fields, C2 appends `quest_level`; put one after the other
 > and regenerate), the catalog entry (`quests/catalog.go` + its whitelist test), the
 > `presentOptions` quest branch, and the client's decode/title paths. This feature adds
@@ -218,3 +217,31 @@
   `i18n-de.mjs`.
 - In-game (PO): walk Reinhard's quests start to finish; judge the glyph, its size, the
   stacking with the E badge, and the map draw order.
+
+## 6. Ledger
+
+> **C1-C3 COMMITTED 2026-10-11 on `main`: C1 `d872e58a` · C2 `2b7b8803` · C3 the commit after. PO look owed.**
+>
+> - **C1** quests author `level` (loader hard-fails without it; `/quests` serves it; the
+>   catalog whitelist test widened; editor field + `validate.mjs` port; all 22 quests
+>   seeded per §3's table). GDD §8 and the backlog §42 banner amended. The planned
+>   "derive the level from the XP pin" content test was DROPPED: the split and
+>   pre-rule quests (wolves-on-the-road 400/leg, the grove pair, the lost lamp) do not
+>   follow one formula, so it could only hardcode. **Schema: DB NONE · wire NONE · HTTP
+>   +level · content +level.**
+> - **C2** `sys.QuestMarkers` (+ `Ledger.Level`, `Ledger.AwaitedStage`), computed in
+>   `NetSystem.playerSendState` only when the owner block is due; wire `QuestMarker`
+>   table, `GameState.quest_markers` (owner block), `ConversationOption.quest_level`.
+>   The trivial test mirrors the client's `Δ < 0 &&` guard. **Schema: DB NONE · wire +1
+>   table, +2 fields (appended).**
+> - **C3** `client-data/QuestMarkers.ts` (store, glyph, colour, `questTitleColor`);
+>   the glyph on the mob plate (stacks above the E badge); `MapQuestMarkers.ts` just
+>   under the campfires, gated by the new `FogReveal.isRevealedAt`; journal, tracker
+>   and offer-row tint. ⚑ Found by the harness: the tracker's render signature did not
+>   include the tint, so a level-up left it stale; fixed. **Schema: NONE.**
+>
+> Verified: Go suite green bar the known `TestPropContent_C1bMigrationPreservesLookAndCollision`
+> · vitest 1602/0 · typecheck clean · `aurad -validate` (main + debug) 0 findings ·
+> `quest-markers.mjs` 14/14 (new) · `hygiene-wire-prune` 0 errors.
+> NOT re-run: `chunkC4-quests`, `c1-kill-quests` (DEBUG-zone venues, not touched by
+> this). Owed: the PO's look at glyph size / colour / stacking / map order (D12).

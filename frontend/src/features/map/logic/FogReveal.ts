@@ -147,3 +147,27 @@ export function zoneCellMask(fog: MapFogData, zone: ZoneRect): CellMask {
     }
     return {cellX0, cellY0, cols, rows, revealed, count};
 }
+
+/**
+ * Whether the world point (x, y) lies on a revealed cell of `fog`
+ * (plan-quest-giver-markers.md D3: a quest giver is marked on the map only on
+ * ground this character has uncovered). No reveal at all reveals nothing.
+ */
+export function isRevealedAt(fog: MapFogData | null, x: number, y: number): boolean {
+    if (!fog || !Number.isFinite(x) || !Number.isFinite(y)) {
+        return false;
+    }
+    const n = fog.chunkCells;
+    const cx = Math.floor(x / fog.cellSize);
+    const cy = Math.floor(y / fog.cellSize);
+    const chunkX = Math.floor(cx / n);
+    const chunkY = Math.floor(cy / n);
+    for (const chunk of fog.chunks) {
+        if (chunk.x !== chunkX || chunk.y !== chunkY) {
+            continue;
+        }
+        const bit = (cy - chunkY * n) * n + (cx - chunkX * n);
+        return ((chunk.bits[bit >> 3] >> (bit & 7)) & 1) === 1;
+    }
+    return false;
+}

@@ -27,6 +27,7 @@
 
 import * as Journal from './Journal';
 import {questTrackerRows, QuestProgress} from './JournalModel';
+import {questTitleColor} from '../../../client-data/QuestMarkers';
 
 let trackerElement: HTMLElement;
 let listElement: HTMLElement;
@@ -51,7 +52,9 @@ export function update(progress: QuestProgress[]) {
     }
 
     const rows = questTrackerRows(progress, Journal.journalCatalog);
-    const signature = JSON.stringify(rows);
+    // The tint is part of the signature: it moves with the PLAYER's level while
+    // the rows stay identical (plan-quest-giver-markers.md D4).
+    const signature = JSON.stringify(rows) + JSON.stringify(rows.map(r => questTitleColor(r.level)));
     if (signature === renderedSignature) {
         return;
     }
@@ -69,6 +72,7 @@ export function update(progress: QuestProgress[]) {
         const title = document.createElement('div');
         title.className = 'questTrackerTitle';
         title.textContent = row.title;
+        title.style.color = questTitleColor(row.level);
         li.appendChild(title);
 
         for (const text of row.lines) {
