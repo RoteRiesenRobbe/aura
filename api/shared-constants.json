@@ -28,7 +28,8 @@
     "stun": 1024,
     "charm": 2048,
     "statUp": 4096,
-    "statDown": 8192
+    "statDown": 8192,
+    "empower": 16384
   },
   "auraCategoryBits": {
     "damage": 1,
@@ -132,7 +133,7 @@
     "calm", "charm", "speed_burst", "lifesteal_burst", "retaliate_slow",
     "retaliate_damage", "retaliate_burst", "stun", "instant_resist",
     "speed_aura", "spawn_at_anchor", "projectile", "instant_slow", "stat_aura",
-    "instant_stat", "charge"
+    "instant_stat", "charge", "empower"
   ],
   "selectors": ["nearest", "lowest_health", "all"],
   "gateKeys": ["harvest", "smash"],

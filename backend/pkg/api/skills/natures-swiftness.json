@@ -1,0 +1,18 @@
+{
+  "_comment": "Arms the caster's next cooldown: instant cast and free. All values placeholder.",
+  "id": 162,
+  "name": "NaturesSwiftness",
+  "displayName": "Nature's Swiftness",
+  "icon": "lorc/star-swirl",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 1800,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "swirl", "count": 10, "ms": 700, "tint": "#9fe08a" }
+    ]
+  },
+  "effects": [
+    { "type": "empower", "empowerInstant": true, "empowerFree": true, "empowerDurationTicks": 450 }
+  ]
+}

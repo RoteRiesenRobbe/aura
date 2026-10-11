@@ -16,5 +16,6 @@ export enum EffectKind {
   Stun = 1024,
   Charm = 2048,
   StatUp = 4096,
-  StatDown = 8192
+  StatDown = 8192,
+  Empower = 16384
 }

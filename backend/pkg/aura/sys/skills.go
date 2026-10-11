@@ -878,9 +878,25 @@ func healerThreatFactor() float32 { return combatFactors.HealerThreat() }
 //
 // Since plan-effect-types-round-2.md C1 it reads EffectiveStats, so a timed
 // damageDealt buff or debuff (a shout, a demoralize) counts beside Strong.
+//
+// An empowered cast's factor (plan-effect-types-round-2.md C4) multiplies on
+// top, for the length of that one fire only.
 func casterDamageFactor(acting any) float32 {
+	factor := empowerFactor(acting)
 	if s, ok := acting.(model.StatBuffable); ok {
-		return s.EffectiveStats().DamageFactor()
+		return s.EffectiveStats().DamageFactor() * factor
+	}
+	return factor
+}
+
+// empowerFactor is the factor of the cast spending an empower right now, 1
+// otherwise (C4, D21). The heal sites read it directly (L11: casterDamageFactor
+// never reaches a heal).
+func empowerFactor(acting any) float32 {
+	if em, ok := acting.(model.Empowerable); ok {
+		if p, firing := em.EmpoweredFire(); firing {
+			return p.DamageFactor()
+		}
 	}
 	return 1
 }
@@ -893,6 +909,12 @@ func casterDamageFactor(acting any) float32 {
 // never inherits its owner's base or stat. Non-skill test doubles simply roll
 // unboosted.
 func casterCritChance(acting any) float32 {
+	// An empowered cast crits every hit (C4, D21).
+	if em, ok := acting.(model.Empowerable); ok {
+		if p, firing := em.EmpoweredFire(); firing && p.Crit {
+			return 1
+		}
+	}
 	var chance float32
 	if p, ok := acting.(model.PlayerEntity); ok {
 		if c := p.Config(); c != nil {
@@ -1487,7 +1509,7 @@ func (s *SkillSystem) applyInstantSlow(e skillEntity, source skills.SkillID, lev
 // preemptive HoT is legitimate); the healing itself runs later in tickHotEvents.
 func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
 	// Power scale frozen at application, the dot convention (C0).
-	hp := effect.Hot.HPAt(level) * casterPowerScale(e)
+	hp := effect.Hot.HPAt(level) * casterPowerScale(e) * empowerFactor(e)
 	ticks := effect.Hot.DurationTicks()
 
 	hitAny := false
@@ -1651,7 +1673,7 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 			noteActivationRejected(e, es.Def.ID, reason)
 			continue
 		}
-		if es.EffectiveCastTicks() > 0 {
+		if es.EffectiveCastTicks() > 0 && !empoweredInstant(e, es) {
 			sc.StartCast(slot)
 			continue
 		}
@@ -1742,9 +1764,21 @@ func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 // (D8) — unlike an aura, which pays only for what it landed. No clamp here on
 // purpose; activationPrecondition has already guaranteed the caster survives
 // the payment, and D9 rejects rather than discounts.
+//
+// An empower (plan-effect-types-round-2.md C4, D21) is priced in by
+// cooldownCostHP, armed for the fire so its crit and factor reach this cast's
+// hits, and spent after it. A cancelled cast never gets here, so it spends
+// nothing.
 func (s *SkillSystem) fireAndCharge(e skillEntity, es *skills.EquippedSkill) {
 	payer, cost := cooldownCostHP(e, es)
+	em, empowered := spendableEmpower(e, es)
+	if empowered {
+		em.ArmEmpower()
+	}
 	s.fireCooldown(e, es)
+	if empowered {
+		em.ConsumeEmpower()
+	}
 	if payer != nil {
 		chargeCost(payer, cost)
 	}
@@ -2115,7 +2149,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e)), effect.SelfHeal.Variance, s.rng))
+			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e))*empowerFactor(e), effect.SelfHeal.Variance, s.rng))
 			// ⚑ Routed through Healable.Heal rather than writing Health here
 			// (plan-skill-vfx.md §12a.2/6): this was the ONE heal that wrote
 			// the pool directly and stamped its own number by hand, which is
@@ -2207,6 +2241,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeCharge:
 			if s.applyCharge(e, effect, es.Level) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeEmpower:
+			if s.applyEmpower(e, es.Def.ID, effect) {
 				hitAny = true
 			}
 
@@ -2428,6 +2467,44 @@ func (s *SkillSystem) applyTickRate(e skillEntity, source skills.SkillID, effect
 	}
 	self.ApplyTickRate(source, effect.TickRate.Factor, effect.TickRate.DurationTicks)
 	return true
+}
+
+// applyEmpower fires an empower effect: the offer stands on the caster for
+// its authored lifetime. A non-player caster is a no-op (D20).
+func (s *SkillSystem) applyEmpower(e skillEntity, source skills.SkillID, effect skills.EffectDef) bool {
+	em, ok := e.(model.Empowerable)
+	if !ok || effect.Empower == nil {
+		return false
+	}
+	em.ApplyEmpower(source, *effect.Empower, effect.Empower.DurationTicks)
+	return true
+}
+
+// spendableEmpower is the empower the cast of es would spend: the caster's
+// live offer, except on an empower skill's own cast (L1), which neither reads
+// nor spends one.
+func spendableEmpower(e skillEntity, es *skills.EquippedSkill) (model.Empowerable, bool) {
+	if es.Def.GrantsEmpower() {
+		return nil, false
+	}
+	em, ok := e.(model.Empowerable)
+	if !ok {
+		return nil, false
+	}
+	if _, live := em.Empower(); !live {
+		return nil, false
+	}
+	return em, true
+}
+
+// empoweredInstant reports whether the live empower lets es skip its cast.
+func empoweredInstant(e skillEntity, es *skills.EquippedSkill) bool {
+	em, ok := spendableEmpower(e, es)
+	if !ok {
+		return false
+	}
+	p, _ := em.Empower()
+	return p.Instant
 }
 
 // speedApplier is the movement-buff capability behind both speed forms — the

@@ -171,6 +171,7 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"charm":     uint32(skills.EffectKindCharm),
 		"statUp":    uint32(skills.EffectKindStatUp),
 		"statDown":  uint32(skills.EffectKindStatDown),
+		"empower":   uint32(skills.EffectKindEmpower),
 	}, fixture.EffectKindBits,
 		"skills.EffectKind has drifted from api/shared-constants.json: the buff tray sides and names circles off these bits")
 

@@ -23,6 +23,7 @@ var _ = model.PlayerEntity(&player{})
 var _ = model.Healable(&player{})
 var _ = model.StatBuffable(&player{})
 var _ = model.Reflector(&player{})
+var _ = model.Empowerable(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -773,6 +774,16 @@ func (p *player) ApplyTickRate(source skills.SkillID, factor float32, ticks int)
 func (p *player) TickRateFactor() float32 {
 	return p.buffs.TickRateFactor()
 }
+
+// The empower offer (plan-effect-types-round-2.md C4) lives in the buff store;
+// these delegate, the SkillSystem reads them around the next cooldown's fire.
+func (p *player) ApplyEmpower(source skills.SkillID, e skills.EmpowerParams, ticks int) {
+	p.buffs.ApplyEmpower(source, e, ticks)
+}
+func (p *player) Empower() (skills.EmpowerParams, bool)       { return p.buffs.Empower() }
+func (p *player) ArmEmpower()                                 { p.buffs.ArmEmpower() }
+func (p *player) EmpoweredFire() (skills.EmpowerParams, bool) { return p.buffs.EmpoweredFire() }
+func (p *player) ConsumeEmpower()                             { p.buffs.ConsumeEmpower() }
 
 // ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
 // (Bloodthirst, R3 / §5.6); the damage site reads the composed value when it

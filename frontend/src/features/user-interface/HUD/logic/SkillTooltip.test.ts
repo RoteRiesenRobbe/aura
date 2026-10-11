@@ -1683,3 +1683,16 @@ describe('charge', () => {
         ]);
     });
 });
+
+describe('empower', () => {
+    it('names what the next cooldown gains, in one line', () => {
+        const swiftness = skill({
+            displayName: 'Swiftness', category: 'cooldown', maxLevel: 1, cooldownTicks: 900,
+            effects: [effect({type: 'empower', empower: {instant: true, free: true, crit: true, factor: 1.5, durationTicks: 450}})],
+        });
+        expect(lines(swiftness, 1, 1)).toEqual([
+            'Your next cooldown within 15s: instant cast, free, its hits always crit, 1.5× damage and healing',
+            'Cooldown: 30s',
+        ]);
+    });
+});

@@ -89,3 +89,7 @@ func (p *statPayload) appliedBit() AppliedEffect {
 
 func (*calmPayload) appliedBit() AppliedEffect  { return AppliedEffectCalm }
 func (*charmPayload) appliedBit() AppliedEffect { return AppliedEffectCharm }
+
+// An empower is self-only, so the own tray is its whole read: no pip
+// (plan-effect-types-round-2.md C4).
+func (*empowerPayload) appliedBit() AppliedEffect { return AppliedEffectNone }

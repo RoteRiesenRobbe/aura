@@ -102,6 +102,8 @@ export const NEUTRAL_EFFECT_TYPES: string[] = [
     'stat_aura', 'instant_stat',
     // Charge (C3) is movement, like dash.
     'charge',
+    // Empower (C4) changes the caster's own next cast.
+    'empower',
 ];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -678,6 +680,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // The search distance is the generic Radius line below.
             lines.push('Charge to the nearest enemy in range');
             break;
+        case 'empower': {
+            // One line naming what the next cooldown gains. "Hits" because a
+            // DoT never crits (plan-effect-types-round-2.md L11).
+            const empower = effect.empower;
+            const gains: string[] = [];
+            if (empower.instant) gains.push('instant cast');
+            if (empower.free) gains.push('free');
+            if (empower.crit) gains.push('its hits always crit');
+            if (empower.factor) gains.push(`${fmt(empower.factor)}× damage and healing`);
+            lines.push(`Your next cooldown within ${ticksToSecs(empower.durationTicks)}: ${gains.join(', ')}`);
+            break;
+        }
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
             // damage-free nothing. The break condition (any damage ends it,

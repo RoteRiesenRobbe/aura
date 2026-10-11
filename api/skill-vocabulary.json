@@ -100,6 +100,13 @@
       "dotTicks",
       "dotTickInterval"
     ],
+    "empower": [
+      "empowerInstant",
+      "empowerFree",
+      "empowerCrit",
+      "empowerFactor",
+      "empowerDurationTicks"
+    ],
     "heal_aura": [
       "radius",
       "radiusPerLevel",
@@ -440,6 +447,9 @@
     ],
     "dot_aura": [
       "active_aura"
+    ],
+    "empower": [
+      "cooldown"
     ],
     "heal_aura": [
       "active_aura"

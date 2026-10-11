@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4 BUILT 2026-10-11** (in-game owed); C5-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -10,7 +10,15 @@ chunk · client YES (pips, tray kinds, the stealth look).** Ledger: §10.
 Line refs are as of `d35ab702`, from four code surveys run 2026-10-07. Re-verify
 them before executing a chunk. Re-pinned to `5a697d91` (2026-10-07): the C2 and
 C3 refs, the per-type checklist in §6 and the C5 ladder; C4, C6, C7 and the rest
-of §7 are still as of `d35ab702`.
+of §7 are still as of `d35ab702`. Re-verified 2026-10-11 at `6043a060` before
+C4-C7: every named symbol stands; moved lines are `fireAndCharge` `:1745`,
+`activationPrecondition` `:1762`, the cast-time branch `:1652`, `mayHarm`
+`:642`, `eligibleByTargetFlags` `:675`, `moveAwayFrom` `mob.go:1350`,
+`ccImmune` `:1314`, `findAggroTarget` `:1615`, `ForgetEntity` `:1790`, the
+mob movement switch `:1143`, the death sweep `sys/mob.go:208-215`. ⚑ The
+encounter `Despawn` (`encounter/system.go:135`) now calls `RemoveEntity`
+directly and never reaches the sweep, so D28's flag only has to mark
+`ExpireWithOwner`.
 
 **Origin.** The PO's 2026-10-07 session counted how many WoW Classic class spells
 Aura can emulate (386 spells, from the 2026-09-29 survey: 167 clean, 114 rough,
@@ -425,6 +433,33 @@ does not compile.
 - `empower` (D20, D21), `empowerPayload`.
 - Wire: EffectKind Empower. No pip (self-only, the tray shows it).
 - Example: a Nature's Swiftness (instant + free on the next cooldown).
+- ⚑ **As built (2026-10-11):**
+  - Keys `empowerInstant`, `empowerFree`, `empowerCrit` (bools),
+    `empowerFactor` (0 = none, else > 0 and not 1), `empowerDurationTicks`
+    (required); it must grant at least one of the four. Cooldown only, no
+    geometry or target keys.
+  - The store holds ONE empower at a time: a new one replaces the live one
+    from any source (two empower skills never stack into one cast). The
+    payload carries an `armed` flag, set by `fireAndCharge` around the one
+    fire that spends it, so crit and factor reach that cast's hits and never
+    an aura tick that lands while the offer merely stands. Instant and free
+    read the live offer; crit and factor read the armed one.
+  - Read sites: the cast-time branch in `processCooldowns`
+    (`empoweredInstant`), `cooldownCostHP` (covers BOTH reads, L1),
+    `casterCritChance` returns 1, `casterDamageFactor` multiplies the
+    factor (so instant damage and an instant DoT's frozen HP both get it),
+    and the new heal read `empowerFactor` at `self_heal` and `instant_hot`
+    (L11). `spendableEmpower` refuses an empower skill's own cast
+    (`SkillDefinition.GrantsEmpower`), so the offer it applies survives its
+    own fire.
+  - The capability is `model.Empowerable`, pinned on `*player` (L8); mobs
+    have none (D20) and `applyEmpower` on a mob is a no-op.
+  - Wire: tray kind Empower = 16384 (bit 14), beneficial; no pip.
+  - Example: `NaturesSwiftness` (id 162), instant + free for 15 s, cooldown
+    60 s, icon `lorc/star-swirl`, SKILL cheat only. All values [PLACEHOLDER].
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model,
+    vitest 1615/0 + typecheck, `-validate` 0 both zone sets, editor smoke 0.
+    In-game owed (the combined C4-C7 pass).
 
 ### C5 - fear
 
@@ -544,7 +579,7 @@ None blocking. Raised at execution if they come up:
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-08 `fe298f70` (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
-| C4 | Empower next cast | +1 kind | not started |
+| C4 | Empower next cast | +1 kind | ✅ 2026-10-11 (see §6 C4 "As built"), in-game owed |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
 | C7 | Death triggers (`onDeath` on mobs) | none | not started |

@@ -102,6 +102,13 @@ func cooldownCostHP(e skillEntity, es *skills.EquippedSkill) (costPayer, uint32)
 	if !pays || payer.IsGod() {
 		return nil, 0
 	}
+	// A free empower waives the whole cost, at BOTH reads (the precondition
+	// and the fire), or "free" refuses or charges anyway (C4, L1).
+	if em, ok := spendableEmpower(e, es); ok {
+		if p, _ := em.Empower(); p.Free {
+			return nil, 0
+		}
+	}
 	var total float32
 	for _, effect := range es.Def.Effects {
 		total += effectCostHP(e, payer, effect, es.Level)

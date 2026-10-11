@@ -184,6 +184,15 @@ type statPayload struct {
 	bonus float32
 }
 
+// empowerPayload is a live empower (plan-effect-types-round-2.md C4, D21):
+// the offer the caster's next cooldown spends. armed is set for the length of
+// that one fire, so crit and the factor reach the cast's own hits and never
+// an aura tick that lands while the offer merely stands.
+type empowerPayload struct {
+	params EmpowerParams
+	armed  bool
+}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -207,6 +216,7 @@ func (*charmPayload) isBuffPayload()     {}
 func (*lifestealPayload) isBuffPayload() {}
 func (*reflectPayload) isBuffPayload()   {}
 func (*statPayload) isBuffPayload()      {}
+func (*empowerPayload) isBuffPayload()   {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -700,6 +710,52 @@ func (b *Buffs) Charmed() bool { return hasPayload[*charmPayload](b) }
 // DropCharm ends the charm timer early — the charmer-left path (D10), where the
 // break is an event rather than an expiry.
 func (b *Buffs) DropCharm() { dropPayload[*charmPayload](b) }
+
+// ApplyEmpower stands an empower offer (C4). One at a time: a new one
+// replaces whatever is live, from any source, so two empower skills never
+// stack into one cast.
+func (b *Buffs) ApplyEmpower(source SkillID, p EmpowerParams, ticks int) {
+	dropPayload[*empowerPayload](b)
+	b.apply(source, &empowerPayload{params: p}, ticks)
+}
+
+// Empower is the live offer, if any: what the instant and free reads ask.
+func (b *Buffs) Empower() (EmpowerParams, bool) {
+	if p := b.empower(); p != nil {
+		return p.params, true
+	}
+	return EmpowerParams{}, false
+}
+
+// ArmEmpower marks the live offer as being spent by the fire now running.
+func (b *Buffs) ArmEmpower() {
+	if p := b.empower(); p != nil {
+		p.armed = true
+	}
+}
+
+// EmpoweredFire is the offer while a cast spends it: what the crit and factor
+// reads ask, so nothing outside that one fire sees them.
+func (b *Buffs) EmpoweredFire() (EmpowerParams, bool) {
+	if p := b.empower(); p != nil && p.armed {
+		return p.params, true
+	}
+	return EmpowerParams{}, false
+}
+
+// ConsumeEmpower spends the offer: once, after the fire that read it.
+func (b *Buffs) ConsumeEmpower() { dropPayload[*empowerPayload](b) }
+
+func (b *Buffs) empower() *empowerPayload {
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*empowerPayload); ok {
+				return p
+			}
+		}
+	}
+	return nil
+}
 
 // hasPayload reports whether any live application carries payload kind T.
 func hasPayload[T buffPayload](b *Buffs) bool {

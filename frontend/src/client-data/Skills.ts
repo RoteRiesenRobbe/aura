@@ -164,6 +164,16 @@ export interface DashParams {
     distancePerLevel: number;
 }
 
+// The empower payload (plan-effect-types-round-2.md C4): what the caster's
+// next cooldown gains. The three flags and the factor are omitted when unset.
+export interface EmpowerParams {
+    instant?: boolean;
+    free?: boolean;
+    crit?: boolean;
+    factor?: number;
+    durationTicks: number;
+}
+
 export interface TickRateParams {
     factor: number;
     durationTicks: number;
@@ -294,6 +304,7 @@ export interface SkillEffect {
     calm?: CalmParams;
     charm?: CharmParams;
     stun?: StunParams;
+    empower?: EmpowerParams;
 }
 
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------

@@ -446,8 +446,8 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 38 since plan-effect-types-round-2.md
-C3 added `charge`):
+`backend/pkg/aura/skills/definition.go`, 39 since plan-effect-types-round-2.md
+C4 added `empower`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
@@ -455,7 +455,7 @@ C3 added `charge`):
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
 `retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`,
-`stat_aura`, `instant_stat`, `charge`.
+`stat_aura`, `instant_stat`, `charge`, `empower`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -487,7 +487,7 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`.
+  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`, `empower`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   seven-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`, `threat`), `resist_passive`,
@@ -619,6 +619,12 @@ Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
   (the spawned totem also lands there, not at the dash destination). `charge`
   is the opposite case: author it FIRST, and the effects after it (Charge's
   stun) query from the landing spot.
+- `empower` (players only) arms the caster's NEXT cooldown with any mix of
+  `empowerInstant`, `empowerFree`, `empowerCrit` and `empowerFactor` (damage
+  and healing), standing for `empowerDurationTicks`. That cooldown spends it;
+  a cancelled cast does not, and an empower skill's own cast never reads one.
+  One empower at a time: a new one replaces the live one. A DoT never crits,
+  so `empowerCrit` does nothing for a DoT-only cooldown.
 - `charge` authors only `radius` / `radiusPerLevel`, the search distance. It
   always picks the nearest enemy (no selector, cap or target flags), moves the
   caster to touching it along dash's wall probe, and refuses the cast when no

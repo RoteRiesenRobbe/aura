@@ -175,6 +175,13 @@ export const EFFECT_PRESENTATION = {
   reflectDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   reflectDurationTicksPerLevel: { control: 'number', group: PAYLOAD },
 
+  // --- empower (plan-effect-types-round-2.md C4): the caster's next cooldown ---
+  empowerInstant: { control: 'bool', group: PAYLOAD, hint: 'The next cooldown skips its cast time.' },
+  empowerFree: { control: 'bool', group: PAYLOAD, hint: 'The next cooldown costs nothing.' },
+  empowerCrit: { control: 'bool', group: PAYLOAD, hint: 'Every hit of the next cooldown crits (damage over time never does).' },
+  empowerFactor: { control: 'number', unit: 'factor', group: PAYLOAD, hint: 'Multiplies the next cooldown\'s damage and healing; blank for none.' },
+  empowerDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'How long the offer stands before it runs out unspent.' },
+
   // --- CC ---
   stunTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   stunTicksPerLevel: { control: 'number', group: PAYLOAD },
