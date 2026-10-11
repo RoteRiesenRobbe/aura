@@ -1,7 +1,7 @@
 # Plan - quest dialogue: an any/all toggle on conditions, and the two-row quest shape
 
 **Status:** DESIGNED + PO-RULED 2026-10-06; **C1 + C2 + C3 BUILT
-2026-10-06/07** (§10), C3's PO walk owed. PO rulings D1-D4 and D13-D15 taken as choice prompts the same
+2026-10-06/07** (§10); **C3 PO-walked 2026-10-11, COMPLETE + archived** (the drafted "About the ..." rows and stage answers stand). PO rulings D1-D4 and D13-D15 taken as choice prompts the same
 day; D5-D12 are mine, flag if wrong. Three chunks: C1 engine + editor, C2 the rats example, C3 every
 other quest. **Schema: DB NONE · wire NONE · conf NONE · content +1 optional
 key on dialogue nodes and ascension entries (`conditionsMode`), then a content
@@ -430,7 +430,7 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   smoke 0 · PO in-game walk on the main world 2026-10-07 (all states incl.
   abandon). No harness touches the rats rows.
 - **C3 every other quest (18, the Knot excepted):** ✅ BUILT 2026-10-07
-  `8a72d8bb`, PO walk owed. As §6 "C3 detailed" says: 18 quests on 15 files moved to the
+  `8a72d8bb`, PO-walked 2026-10-11 ("all fine", translated; the drafted rows stand as written). As §6 "C3 detailed" says: 18 quests on 15 files moved to the
   two-row shape by a text-surgery script (each turn-in moved byte for byte;
   every file's grant set checked identical before/after), a `<offer>_running`
   progress node + an `<offer>_on_it` stage answer per quest, the traveller's

@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`)**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per

@@ -15,19 +15,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Prior: EFFECT TYPES ROUND 2 C2, thorns on others** ✅ 2026-10-08 `fe298f70` (ledger: `docs/plan-effect-types-round-2.md` §6 C2, §10): ⭐ `retaliate_burst` takes the speed_burst shape (`targetsSelf` / `targetsAllies`, radius iff allies); mobs wear it (`model.Reflector`, `Mob.reflect` off both touch doors, pre-mitigation). ⭐ PO D30: a reflected hit never retaliates (`Reflected` on Damage/Factors), or two wearers bounce forever. Pip Reflect = 1024. Example Thorns (161): caster + every ally in 4 u. ⚑ No mob content wears thorns yet (Go-only). **Schema: DB/conf NONE, wire +1 pip bit.** Verified: vitest 1581/0 · `c2-thorns.mjs` 4/4 · `c1-stat-buffs` 4/4 · `buff-tray` 22/22 · PO "works".
 
-- **Prior: EFFECT TYPES ROUND 2 C3, charge + the rush glide** ✅ 2026-10-07 `d9a0b2ac` (ledger: `docs/plan-effect-types-round-2.md` §6 C3, §10): ⭐ `charge` dashes to touching the nearest enemy (dash's wall probe, shared); later effects fire from the landing; none in range refuses the cast. ⭐ PO: the look is cosmetic: visual kind `rush` replays the one-tick jump on the token (the lunge's seam, `GameObject.recentJumpFrom`); the stun lands ~0.2 s before the token arrives. ⚑ It charges turnips too. **Schema: DB/wire/conf NONE.** Verified: Go bar the known prop pin · vitest 1579/0 · `c3-charge.mjs` 6/6 (debug).
+- **Prior: EFFECT TYPES ROUND 2 C3, charge + the rush glide** ✅ 2026-10-07 `d9a0b2ac` (ledger: `docs/plan-effect-types-round-2.md` §6 C3, §10): ⭐ `charge` dashes to touching the nearest enemy (dash's wall probe, shared); later effects fire from the landing; none in range refuses the cast. ⭐ PO: the look is cosmetic: visual kind `rush` replays the one-tick jump on the token (the lunge's seam, `GameObject.recentJumpFrom`); the stun lands ~0.2 s before the token arrives. It charges turnips too (PO 2026-10-11: fine; look passed). **Schema: DB/wire/conf NONE.** Verified: Go bar the known prop pin · vitest 1579/0 · `c3-charge.mjs` 6/6 (debug).
 
 ### Next
 
-- **⭐ NEXT: EFFECT TYPES ROUND 2, C4-C7 in any order** (`docs/plan-effect-types-round-2.md`, C0-C3 done): empower, fear, stealth, `onDeath` (C4, C6, C7 refs still as of `d35ab702`, re-verify). ⛔ PO look owed on C3's rush glide (and whether charging turnips is fine). ⚑ Thorns placeholders unruled (pip rose, 25 % / 10 s / 4 m). Also owed: the PATH CORNERS + ENDS chunk A look (`docs/plan-world-paths.md` §12).
+- **⭐ NEXT: EFFECT TYPES ROUND 2, C4-C7 in any order** (`docs/plan-effect-types-round-2.md`, C0-C3 done): empower, fear, stealth, `onDeath` (C4, C6, C7 refs still as of `d35ab702`, re-verify).
 
 - **⭐ BUFF TRAY: real-phone check at the next live deploy** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).
 
-- **⭐ QUEST DIALOGUE C3: PO walk owed** (`docs/plan-quest-dialogue.md` §10 C3): talk to any giver before / during / at the report / after the turn-in; reword the drafted "About the ..." rows and stage answers in the editor. Then archive the plan. ⚑ `turnip-chore` / `boars-in-the-field` journals + trackers still say "the Farmer" (outside D19).
-
 - **⭐ IMMUNE TARGETS: designed + PO-ruled 2026-10-04, nothing built** (`docs/plan-immune-targets.md`, D1-D5, ONE backend chunk): an effect that deals damage picks targets it can hurt before targets it can never hurt (authored immunity only), so a Bramble stops soaking a nearest-1 aura's hit in a fight. ⚑ Not sequenced against effect types round 2 (PO call). Schema DB NONE, wire NONE.
 
-- **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells a light covers (yours ≥ 2.5 u, or static); the server decides. Owed: PO look, wire cost.
+- **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells a light covers (yours ≥ 2.5 u, or static); the server decides. PO look passed 2026-10-11; owed: the wire cost.
 
 - **⏸ WORLD EFFECTS: narrowed, NOT approved** (`docs/plan-world-effects.md`, D1-D30, 7 chunks proposed): ⛔ approval waits for the first content (Q11); the buff tray it waited for (D30) is built; only its C2 adds tenants. ⚑ `damageDealt`'s read site unsurveyed (Q13); line refs pinned to `56ebb5a7`.
 

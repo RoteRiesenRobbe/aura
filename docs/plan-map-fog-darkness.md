@@ -217,6 +217,6 @@ maps its cell and not a dark cell 7 u off, relog restores exactly the live map, 
 the map rebuild, now derived from `world.json`) · `generate-palette.mjs` regenerates byte-identical.
 
 **Owed.**
-- ⭐ **PO look in game**, desktop and phone: walk a cave with and without a Lantern, open the map.
+- ~~**PO look in game**, desktop and phone: walk a cave with and without a Lantern, open the map.~~ **Passed 2026-10-11.**
 - ⚑ **Wire cost unmeasured** (§4 C3: ≤ 512 B per touched chunk, about every 2 u walked, owner only).
 - ⚑ `DarknessOverlay.inDarkness` still answers last-declaring-wins (D5's note); out of scope.
