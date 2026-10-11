@@ -108,9 +108,11 @@ const NAMEPLATE_GAP = 16;
 const CONVERSANT_PLATE_COLOR = 0xffffff;
 
 // The quest-giver glyph (plan-quest-giver-markers.md C3): px above the art's top
-// edge (or above the E badge while that shows), and its font size. [PLACEHOLDER]
+// edge, its font size, and the px between it and the E badge when the two share
+// the row (centred as a pair). [PLACEHOLDER]
 const QUEST_GLYPH_GAP = 6;
 const QUEST_GLYPH_SIZE = 34;
+const QUEST_ROW_GAP = 4;
 
 export abstract class Mob extends GameObject
     implements OverheadVitals, AuraDisplay, LevelDisplay, MobPlate, Interactable {
@@ -349,6 +351,7 @@ export abstract class Mob extends GameObject
             if (this.questGlyph !== null) {
                 this.questGlyph.visible = false;
             }
+            this.interactBadge?.setOffsetX(0);
             return;
         }
         if (this.questGlyph === null) {
@@ -374,7 +377,17 @@ export abstract class Mob extends GameObject
         if (this.spriteTop === null) {
             this.spriteTop = Math.max(0, -this.actualShape.getLocalBounds().y);
         }
-        this.questGlyph.y = -(this.spriteTop + QUEST_GLYPH_GAP + (this.interactBadge?.shownHeight() ?? 0));
+        // One row, centred as a pair: `!` left, E right; the `!` alone is centred.
+        const badgeWidth = this.interactBadge?.shownWidth() ?? 0;
+        if (badgeWidth > 0) {
+            const glyphWidth = this.questGlyph.width;
+            const total = glyphWidth + QUEST_ROW_GAP + badgeWidth;
+            this.questGlyph.x = (glyphWidth - total) / 2;
+            this.interactBadge.setOffsetX((total - badgeWidth) / 2);
+        } else {
+            this.questGlyph.x = 0;
+        }
+        this.questGlyph.y = -(this.spriteTop + QUEST_GLYPH_GAP);
         this.questGlyph.visible = true;
     }
 
