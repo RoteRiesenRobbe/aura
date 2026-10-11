@@ -676,6 +676,12 @@ None blocking. Raised at execution if they come up:
 | C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | ✅ 2026-10-11 (see §6 C6 "As built"), in-game owed |
 | C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 (see §6 C7 "As built"), in-game owed |
 
+C4-C7 were built in one session (PO 2026-10-11: build all four, test them
+together). Owed: the PO's combined in-game pass, then ONE headless harness
+covering C4-C7 written after the verdict, so placeholder changes do not
+rewrite it. Re-run before handover (2026-10-11): `c2-player-cc.mjs` 22 PASS
++ the documented DR INCONCLUSIVE, `buff-tray.mjs` 22/22, `c3-charge.mjs` 6/6.
+
 Order: C0 first (C1, C2, C4-C6 need its room); C1 next (it builds the
 buff-kind template the rest copy); C2-C7 in any order. C3 and C7 need no wire
 and can run before C0 if a slot opens.
