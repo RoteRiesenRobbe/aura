@@ -56,6 +56,7 @@ function irreversibleTree(skillId = 0): ConversationTree {
                 confirmSeconds: 5,
                 skillId,
                 travel: TravelDirection.None,
+                questLevel: 0,
             }],
         }],
     };

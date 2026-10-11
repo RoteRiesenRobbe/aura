@@ -131,6 +131,11 @@ type PropDefinition struct {
 	// The map reveal reads it here and the client's darkness overlay from the
 	// same file (plan-map-fog-darkness.md C1). [PLACEHOLDER] values.
 	LightFraction float32
+	// Roof marks a prop the CLIENT fades while the local player stands under it
+	// (plan-roof-props.md). The reveal opacity itself is client-only; the server
+	// keeps the flag so zone.go can refuse a placement that would re-wall a roof
+	// or draw it under the characters.
+	Roof bool
 }
 
 // Blocks reports whether placements of this type block movement unless the
@@ -203,7 +208,38 @@ func PropRegistryFromFS(fileSystem fs.FS) (PropRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := r.checkRoofAgreement(); err != nil {
+		return nil, err
+	}
 	return r, nil
+}
+
+// checkRoofAgreement refuses two definitions that share an entityType but
+// disagree on roof. ⭐ The client knows a generated prop ONLY by its streamed
+// entityType (Props.ts groups definitions that way), so it cannot tell such a
+// pair apart. PropPlaceholder is exempt: its prop_name rides the wire.
+func (r *propRegistry) checkRoofAgreement() error {
+	first := map[AuraApi.EntityType]*PropDefinition{}
+	for _, d := range r.props {
+		if d.EntityType == AuraApi.EntityTypePropPlaceholder {
+			continue
+		}
+		other, ok := first[d.EntityType]
+		if !ok {
+			first[d.EntityType] = d
+			continue
+		}
+		if other.Roof != d.Roof {
+			// Sorted so the message names the pair the same way every boot.
+			a, b := other.Name, d.Name
+			if b < a {
+				a, b = b, a
+			}
+			return fmt.Errorf("props %q and %q share entityType %s but disagree on roof — "+
+				"the client knows a prop only by its entityType", a, b, d.EntityType)
+		}
+	}
+	return nil
 }
 
 // propDefinitionDoc is the JSON shape; EntityType is a name resolved against
@@ -230,6 +266,17 @@ type propDefinitionDoc struct {
 	BlocksMovement *bool `json:"blocksMovement"`
 	// LightFraction: see PropDefinition. DisallowUnknownFields again.
 	LightFraction float32 `json:"lightFraction"`
+	// Roof: see PropDefinition. Present = a roof. DisallowUnknownFields again,
+	// and it reaches into the object too, so a typo inside refuses by name.
+	Roof *propRoofDoc `json:"roof"`
+}
+
+// propRoofDoc is the roof object. RevealAlpha is the opacity the roof eases to
+// while revealed; absent = 0 = fully hidden (PO 2026-10-10), so the Go zero
+// value IS the default. Only the client reads it; it is checked here so a bad
+// value fails at boot. [PLACEHOLDER] per prop type.
+type propRoofDoc struct {
+	RevealAlpha float32 `json:"revealAlpha"`
 }
 
 func parsePropDefinition(data []byte) (*PropDefinition, error) {
@@ -281,6 +328,17 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		return nil, fmt.Errorf("crossesPaths needs blocksMovement: false — a prop you walk " +
 			"across must not also wall its own deck (an absent blocksMovement means true)")
 	}
+	if doc.Roof != nil {
+		if a := doc.Roof.RevealAlpha; a < 0 || a > 1 {
+			return nil, fmt.Errorf("roof revealAlpha must be within [0, 1], got %g", a)
+		}
+		// ⛔ A roof that blocks is a roof nobody can stand under, so it could
+		// never reveal. The walls are separate solid props or structures.
+		if doc.BlocksMovement == nil || *doc.BlocksMovement {
+			return nil, fmt.Errorf("roof needs blocksMovement: false — a roof you cannot " +
+				"walk under never reveals (an absent blocksMovement means true)")
+		}
+	}
 	return &PropDefinition{
 		Name:           doc.Name,
 		EntityType:     entityType,
@@ -288,5 +346,6 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		CrossesPaths:   doc.CrossesPaths,
 		BlocksMovement: doc.BlocksMovement,
 		LightFraction:  doc.LightFraction,
+		Roof:           doc.Roof != nil,
 	}, nil
 }

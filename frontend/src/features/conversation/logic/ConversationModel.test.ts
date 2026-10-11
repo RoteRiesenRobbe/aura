@@ -19,6 +19,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         confirmSeconds: 0,
         skillId: 0,
         travel: TravelDirection.None,
+        questLevel: 0,
         ...partial,
     };
 }

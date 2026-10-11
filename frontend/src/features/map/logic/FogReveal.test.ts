@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {FogChunkData, MapFogData, mergeMapFog, zoneCellMask} from './FogReveal';
+import {FogChunkData, isRevealedAt, MapFogData, mergeMapFog, zoneCellMask} from './FogReveal';
 
 const N = 64;
 
@@ -135,5 +135,23 @@ describe('zoneCellMask bounded by the publication', () => {
         expect(mask.cols).toBe(4);
         expect(mask.rows).toBe(4);
         expect(isRevealed(mask, 1, 1)).toBe(true);
+    });
+});
+
+// plan-quest-giver-markers.md D3: the per-point fog query the quest-giver map
+// markers are gated by.
+describe('isRevealedAt', () => {
+    it('reads the cell under a world point, negative chunks included', () => {
+        const held = fog(chunkWith(0, 0, [[3, 5]]), chunkWith(-1, -1, [[-1, -1]]));
+        expect(isRevealedAt(held, 3 * 2 + 0.5, 5 * 2 + 1.9)).toBe(true);
+        expect(isRevealedAt(held, 4 * 2, 5 * 2)).toBe(false);
+        expect(isRevealedAt(held, -0.5, -1.5)).toBe(true);
+        expect(isRevealedAt(held, -2.5, -0.5)).toBe(false);
+    });
+
+    it('reveals nothing without a reveal, outside every chunk, or at a non-finite point', () => {
+        expect(isRevealedAt(null, 0, 0)).toBe(false);
+        expect(isRevealedAt(fog(chunkWith(0, 0, [[0, 0]])), 1000, 1000)).toBe(false);
+        expect(isRevealedAt(fog(chunkWith(0, 0, [[0, 0]])), NaN, 0)).toBe(false);
     });
 });

@@ -31,6 +31,7 @@
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {AbandonQuestMessage} from '../../backend/logic/messages/outgoing/AbandonQuestMessage';
 import {catalogState, questDefinition, stageJournal} from '../../../client-data/Quests';
+import {questTitleColor} from '../../../client-data/QuestMarkers';
 import {JournalCatalog, JournalModel, QuestProgress, JournalListRow, JournalDetailView} from './JournalModel';
 
 // The real catalog, adapted to the model's narrow port. The model takes this
@@ -39,6 +40,7 @@ import {JournalCatalog, JournalModel, QuestProgress, JournalListRow, JournalDeta
 export const journalCatalog: JournalCatalog = {
     state: () => catalogState(),
     title: (questId) => questDefinition(questId)?.title,
+    level: (questId) => questDefinition(questId)?.level,
     stageJournal,
 };
 
@@ -172,6 +174,7 @@ function renderSection(section: HTMLElement, quests: JournalListRow[]) {
         const li = document.createElement('li');
         li.className = 'journalQuest' + (quest.selected ? ' selected' : '');
         li.textContent = quest.title;
+        li.style.color = questTitleColor(quest.level);
         li.addEventListener('pointerdown', () => select(quest.questId));
         return li;
     });
@@ -183,6 +186,7 @@ function renderDetail(detail: JournalDetailView | null) {
     // behind the status line anyway — cleared so a stale diary cannot flash on
     // the next open.
     detailTitleElement.textContent = detail?.title ?? '';
+    detailTitleElement.style.color = questTitleColor(detail?.level ?? 0);
     if (detail === null) {
         detailBodyElement.replaceChildren();
         return;

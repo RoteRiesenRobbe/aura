@@ -27,7 +27,7 @@ func reachFixture(t *testing.T) (*QuestSystem, model.PlayerEntity) {
 	t.Helper()
 	s, g := newStateFixture(t)
 	q := &quests.QuestDefinition{
-		ID: "road", Title: "Road",
+		ID: "road", Title: "Road", Level: 1,
 		Stages: []*quests.Stage{
 			{ID: "road", Journal: "j", Objectives: []quests.Objective{{Kind: quests.ObjectiveReach, Region: "farm", TargetName: "Farm", Count: 1}}, Next: "meet"},
 			{ID: "meet", Journal: "j"},

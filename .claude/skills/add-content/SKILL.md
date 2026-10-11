@@ -180,6 +180,11 @@ the bottom. Trust the code over the manual if a path has drifted.
   (manual §1b has the table). Never author `underfoot` on an `api/props/*.json`
   file: the key is gone and refuses the boot by name. ⛔ A `crossesPaths` type's
   placements must sit in `props.underfoot`, or the boot and the Tiled save refuse.
+- **A ROOF prop authors `"roof": {}` (or `{"revealAlpha": 0.25}`) plus
+  `"blocksMovement": false`** (`plan-roof-props.md`, manual §1b). Its placements go in
+  `props.buildings`; the boot refuses one in `underfoot` or overridden to block, and
+  refuses two types of one `entityType` that disagree on `roof`. Walls are separate
+  solid props or a `structures` polygon.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
@@ -205,6 +210,9 @@ the bottom. Trust the code over the manual if a path has drifted.
   quest runs. `TestContent_EveryQuestTurnsInBehindAProgressRow` reddens on a
   turn-in left on root or a progress row that outlives its band; run
   `make -C backend cp-defs` first, it reads the embedded copy.
+- **Every quest authors `"level"`** (the target player level, ≥ 1; the loader
+  hard-fails without it): the level its turn-in XP is priced for. It tints the
+  giver's `!` and the quest title (`plan-quest-giver-markers.md`).
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),

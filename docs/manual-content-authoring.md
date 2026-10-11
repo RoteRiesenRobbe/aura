@@ -324,6 +324,17 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
   campfire when that is retuned. `Torch` authors `0.3`. The client punches the hole
   in the darkness from it and the server maps that pocket from the same key
   (`plan-map-fog-darkness.md` C1); negative refuses the boot. [PLACEHOLDER] values.
+- ⭐ **`roof` makes a prop type a ROOF** (`plan-roof-props.md`; absent = not a roof):
+  `"roof": {}` or `"roof": {"revealAlpha": 0.25}`. While the local player stands
+  under one, it fades to `revealAlpha` (absent = `0`, fully hidden), together with
+  every roof piece touching it, so a building of several pieces opens whole. Only
+  the local player's view changes; everyone else still sees the roof.
+  - ⛔ A roof MUST author `"blocksMovement": false` (you have to get under it), and
+    `revealAlpha` must be within `[0, 1]`; the boot refuses either otherwise.
+  - ⛔ Two types sharing an `entityType` must agree on `roof` (the client knows a
+    prop only by its entityType); `PropPlaceholder` types are exempt.
+  - The roof is only the lid. The walls are separate: solid props or a
+    `structures` polygon, leaving a doorway gap.
 - ⚑ **A prop type carries NO draw layer.** There is no `underfoot` key on a
   definition any more (`plan-prop-draw-order.md` P3, D4): where a prop draws is
   where its PLACEMENT sits (below), and a definition still authoring
@@ -357,6 +368,8 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
   - ⛔ **A `crossesPaths` placement MUST sit in `underfoot`**, and the boot (and
     the Tiled save) refuses it otherwise: a deck you walk across has to draw
     below the character on it.
+  - ⛔ **A `roof` placement must NOT sit in `underfoot`, nor override
+    `blocksMovement` to `true`**; the boot refuses both. Roofs go in `buildings`.
   - ⚑ The order is SPAWN order (layer, then file order), so a reorder shows only
     after a server restart, like any zone edit.
   - ⚑ The placement `blocksMovement` is a **tri-state OVERRIDE**: absent inherits the type.
@@ -1467,6 +1480,13 @@ talks about it (`plan-quests.md` D11), so the wiring lives on the NPCs.
 
 **Content-only.** No Go, no `.fbs`, no frontend — the vocabulary shipped with
 chunks C1–C3. `make -C backend build` (or `-content ../api`) picks it up.
+
+⭐ **Every quest authors `"level"`** (`plan-quest-giver-markers.md` C1), the
+target player level, 1 or more; the loader hard-fails without it. It is what the
+giver's `!` and the quest's title are tinted by, with the mob nameplate's rule
+(grey / green / yellow / orange / red by its distance from the player's level).
+Aim it at the level the turn-in XP is priced for (the L9 half-level rule,
+`TestContent_QuestXPBudget`): a quest priced for L6 dire wolves is level 6.
 
 ### The stage graph
 

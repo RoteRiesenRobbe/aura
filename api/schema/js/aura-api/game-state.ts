@@ -10,6 +10,7 @@ import { Entity } from '../aura-api/entity.js';
 import { MapFog } from '../aura-api/map-fog.js';
 import { OwnEffect } from '../aura-api/own-effect.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
+import { QuestMarker } from '../aura-api/quest-marker.js';
 import { QuestProgress } from '../aura-api/quest-progress.js';
 import { SkillEvent } from '../aura-api/skill-event.js';
 
@@ -276,8 +277,18 @@ ownEffectsLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+questMarkers(index: number, obj?:QuestMarker):QuestMarker|null {
+  const offset = this.bb!.__offset(this.bb_pos, 66);
+  return offset ? (obj || new QuestMarker()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+questMarkersLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 66);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(31);
+  builder.startObject(32);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -551,6 +562,22 @@ static addOwnEffects(builder:flatbuffers.Builder, ownEffectsOffset:flatbuffers.O
 
 static startOwnEffectsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(24, numElems, 8);
+}
+
+static addQuestMarkers(builder:flatbuffers.Builder, questMarkersOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(31, questMarkersOffset, 0);
+}
+
+static createQuestMarkersVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startQuestMarkersVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

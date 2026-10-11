@@ -11,7 +11,9 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/google/flatbuffers/go"
 	"github.com/google/uuid"
 )
@@ -107,6 +109,17 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		n.ownerState[clientUUID] = current
 	}
 	return sendOwner, sendConvTree
+}
+
+// questMarkers is what every quest giver shows p (plan-quest-giver-markers.md
+// C2). Called only on a tick the owner block is due: the level and the quest
+// revision it depends on are both watched by ownerStateGate, and the heartbeat
+// covers the rest.
+func (n *NetSystem) questMarkers(p model.PlayerEntity) []model.QuestMarker {
+	if n.game == nil || n.game.mobRegistry == nil {
+		return nil // a NetSystem built by struct literal (the roster tests)
+	}
+	return sys.QuestMarkers(n.game.mobRegistry.Mobs(), p, mob.KillXPConfig())
 }
 
 // forgetOwnerState drops a client's owner-state bookkeeping. Called wherever
@@ -292,6 +305,9 @@ func (n *NetSystem) playerSendState(p model.PlayerEntity, gs codec.CharacterGame
 	sendOwner, sendConvTree := n.ownerStateGate(p)
 	gs.SkipOwnerState = !sendOwner
 	gs.SkipConversationTree = !sendConvTree
+	if sendOwner {
+		gs.QuestMarkers = n.questMarkers(p)
+	}
 
 	// marshal and send state
 	builder := flatbuffers.NewBuilder(64)

@@ -128,6 +128,7 @@ export function validateQuest(quest, idx) {
   if (!quest.id) { err('quest without an id'); return errors; }
   const q = `quest "${quest.id}"`;
   if (!quest.title) err(`${q}: missing title`);
+  if (!Number.isInteger(quest.level) || quest.level < 1) err(`${q}: missing level (the target player level, 1 or more)`);
   if (!quest.stages || quest.stages.length === 0) { err(`${q}: no stages`); return errors; }
 
   const seen = new Set();

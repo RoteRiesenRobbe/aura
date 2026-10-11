@@ -21,6 +21,7 @@ func TestCatalog_ServesTitlesAndProse(t *testing.T) {
 	require.Len(t, entries, 1)
 	assert.Equal(t, "wolf-cull", entries[0].ID)
 	assert.Equal(t, "The Wolf Cull", entries[0].Title)
+	assert.Equal(t, 1, entries[0].Level)
 	require.Len(t, entries[0].Stages, 2)
 	assert.Equal(t, "cull", entries[0].Stages[0].ID)
 	assert.Equal(t, "Kill wolves.", entries[0].Stages[0].Journal)
@@ -45,8 +46,8 @@ func TestCatalog_ProjectionLeaksNothing(t *testing.T) {
 	require.NoError(t, json.Unmarshal(payload, &raw))
 	require.Len(t, raw, 1)
 
-	assert.ElementsMatch(t, []string{"id", "title", "stages"}, keysOf(raw[0]),
-		"the quest projection serves exactly id + title + stages (D14)")
+	assert.ElementsMatch(t, []string{"id", "title", "level", "stages"}, keysOf(raw[0]),
+		"the quest projection serves exactly id + title + level + stages (D14; level: plan-quest-giver-markers.md C1)")
 
 	var stages []map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(raw[0]["stages"], &stages))

@@ -20,7 +20,7 @@ import (
 // observable. A quest waiting on an authored edge stays running.
 func repeatableQuest() *QuestDefinition {
 	q := &QuestDefinition{
-		ID: "turnip-chore", Title: "The Turnip Chore", Repeatable: true,
+		ID: "turnip-chore", Title: "The Turnip Chore", Level: 1, Repeatable: true,
 		Stages: []*Stage{
 			{ID: "ask", Journal: "Ask the farmer for work."},
 			{ID: "done", Journal: "Done."},
@@ -188,7 +188,7 @@ func TestDecodeFlagsIgnoresForeignKeys(t *testing.T) {
 // has ALREADY done some of both.
 func veteranChoreQuest() *QuestDefinition {
 	return &QuestDefinition{
-		ID: "veteran-chore", Title: "The Veteran's Chore",
+		ID: "veteran-chore", Title: "The Veteran's Chore", Level: 1,
 		Stages: []*Stage{
 			{ID: "work", Journal: "Do the work.", Objectives: []Objective{
 				{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3},

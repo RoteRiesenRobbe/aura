@@ -21,6 +21,8 @@ export interface QuestStageDefinition {
 export interface QuestDefinition {
     id: string;
     title: string;
+    /** The target player level (plan-quest-giver-markers.md C1): tints the title. */
+    level: number;
     stages: QuestStageDefinition[];
 }
 

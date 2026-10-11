@@ -78,8 +78,13 @@ travel():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+questLevel():number {
+  const offset = this.bb!.__offset(this.bb_pos, 24);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(10);
+  builder.startObject(11);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -122,12 +127,16 @@ static addTravel(builder:flatbuffers.Builder, travel:number) {
   builder.addFieldInt8(9, travel, 0);
 }
 
+static addQuestLevel(builder:flatbuffers.Builder, questLevel:number) {
+  builder.addFieldInt8(10, questLevel, 0);
+}
+
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -139,6 +148,7 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addConfirmSeconds(builder, confirmSeconds);
   ConversationOption.addSkillId(builder, skillId);
   ConversationOption.addTravel(builder, travel);
+  ConversationOption.addQuestLevel(builder, questLevel);
   return ConversationOption.endConversationOption(builder);
 }
 }

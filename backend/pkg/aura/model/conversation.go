@@ -122,4 +122,8 @@ type ConversationOption struct {
 	// door is still a door. The client never starts a transition from a locked
 	// row because it gives locked rows no handler at all.
 	Travel TravelDirection
+	// QuestLevel is the target level of the quest an offer row hands out, which
+	// the panel tints the row by (plan-quest-giver-markers.md D4); 0 on every
+	// other row. Derived from the quest, never authored on the row.
+	QuestLevel uint8
 }

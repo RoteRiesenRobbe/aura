@@ -4589,6 +4589,10 @@ ruled on**, not a plan; a ruling *for* dedicated quests amends GDD §7/§8.
 > underneath. The remaining open questions below (verbs, rewards, crediting,
 > scoping, quest-turns-hostile) are all still open — this ruling settled only
 > the pillar.
+>
+> **⚑ AMENDED 2026-10-10 (PO):** quest GIVERS get WoW-style `!` / `?` markers
+> over the head and on the maps, and every quest gets a target level; objectives
+> stay unmarked. GDD §8 rewritten; design + chunks: `plan-quest-giver-markers.md`.
 
 **⚑ The reference reading cuts the pillar in half.** Both reference games have
 quests *without markers*. Gothic 1+2 have a full quest system with a

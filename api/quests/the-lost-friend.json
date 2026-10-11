@@ -2,6 +2,7 @@
   "_comment": "The Wanderer's lost friend (content-zone-2-woodland.md §3.5 quest 1): find his friend, who went into the forest for berries, and come back. The brief names only the forest: the player finds him as the FallenTraveller remains in the kobold cave's east chamber, through the den. Offered and turned in by the Wanderer (wanderer.json). Reward 311 XP on the turn-in row = the L9 half-level rule at the cave's L5 kobolds, 0.5 x 300 x 1.2^4. All values [PLACEHOLDER]; text plain.",
   "id": "the-lost-friend",
   "title": "The Lost Friend",
+  "level": 5,
   "stages": [
     {
       "id": "search",

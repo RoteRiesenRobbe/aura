@@ -520,3 +520,53 @@ export function resizeTerrain(
 function isPositive(value: number): boolean {
     return Number.isFinite(value) && value > 0;
 }
+
+/** A placed mob as the bundled zone file authors it: species name, zone-local spot. */
+export interface ZoneSpawnPoint {
+    mob?: string;
+    x: number;
+    y: number;
+}
+
+/** One quest-giver marker in layer coordinates (plan-quest-giver-markers.md C3). */
+export interface QuestGiverMapMarker<M> {
+    x: number;
+    y: number;
+    marker: M;
+}
+
+/**
+ * Where the quest-giver markers go on the map: every spawn whose species has a
+ * marker and whose spot is on revealed ground (D3).
+ *
+ * ⚑ The marker is per SPECIES (D10), so a species placed twice is marked
+ * twice, and a wanderer is marked at its spawn, not its live position — fine
+ * at map scale, and the only position the client has for an NPC out of view.
+ *
+ * ⛔ No zone-origin term in the OUTPUT, the campfireMarkers rule: spawns are
+ * zone-local. `revealed` is asked in zone-local units too; the caller adds the
+ * origin before it reads the world-space fog.
+ */
+export function questGiverMarkers<M>(
+    spawns: ZoneSpawnPoint[],
+    markerFor: (mobName: string) => M | undefined,
+    revealed: (zoneX: number, zoneY: number) => boolean,
+    scale: number,
+    worldToPx: number,
+): QuestGiverMapMarker<M>[] {
+    if (!isPositive(scale) || !spawns) {
+        return [];
+    }
+    const out: QuestGiverMapMarker<M>[] = [];
+    for (const spawn of spawns) {
+        if (!spawn || !spawn.mob || !Number.isFinite(spawn.x) || !Number.isFinite(spawn.y)) {
+            continue;
+        }
+        const marker = markerFor(spawn.mob);
+        if (marker === undefined || !revealed(spawn.x, spawn.y)) {
+            continue;
+        }
+        out.push({x: spawn.x * worldToPx * scale, y: spawn.y * worldToPx * scale, marker});
+    }
+    return out;
+}

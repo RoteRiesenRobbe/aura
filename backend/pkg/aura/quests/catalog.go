@@ -19,9 +19,13 @@ import (
 // endpoint). Accepted residual leak: the diary prose of stages this character
 // has not reached is curl-readable — with no accounts there is no per-player
 // gating to do it any better.
+//
+// The target level IS served (plan-quest-giver-markers.md C1): the journal and
+// the tracker tint a title by it, and the giver's `!` shows it anyway.
 type CatalogEntry struct {
 	ID     string         `json:"id"`
 	Title  string         `json:"title"`
+	Level  int            `json:"level"`
 	Stages []CatalogStage `json:"stages"`
 }
 
@@ -45,7 +49,7 @@ func CatalogJSON(r Registry) ([]byte, error) {
 		for _, s := range q.Stages {
 			stages = append(stages, CatalogStage{ID: s.ID, Journal: s.Journal})
 		}
-		entries = append(entries, CatalogEntry{ID: q.ID, Title: q.Title, Stages: stages})
+		entries = append(entries, CatalogEntry{ID: q.ID, Title: q.Title, Level: q.Level, Stages: stages})
 	}
 	return json.Marshal(entries)
 }

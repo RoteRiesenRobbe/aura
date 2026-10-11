@@ -87,6 +87,18 @@ export function mobDisplayName(name: string): string {
     return name;
 }
 
+// mobIdByName resolves a species' authored name (a zone spawn's `mob`) to its
+// catalog id, the key the wire uses; undefined until the fetch lands or for a
+// name the catalog does not know. Linear like mobDisplayName, same reason.
+export function mobIdByName(name: string): number | undefined {
+    for (const def of catalog.values()) {
+        if (def.name === name) {
+            return def.id;
+        }
+    }
+    return undefined;
+}
+
 // --- difficulty tint (decision 5: WoW-style nameplate colors) ---
 
 // The local player's level, mirrored here by Player.updateFromBackend — the

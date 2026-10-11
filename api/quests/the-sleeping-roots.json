@@ -2,6 +2,7 @@
   "_comment": "Grandfather Knot's second errand (docs/plan-grandfather-knot.md), offered only after clear-the-grove is completed: his roots hum the Glimmerwood calm, but three have fallen asleep, so the young treants have turned angry. Wake the three roots ONE AT A TIME, returning to him between each. The first leg starts on accept; the next two are objective stages ENTERED FROM A DIALOGUE ROW (grandfather-knot.json), so entering one re-baselines its talk_to and an early talk does not count. Turn-in: EntanglingRoots + 1000 XP. Journal text stays plain; only the tree carries a voice.",
   "id": "the-sleeping-roots",
   "title": "The Sleeping Roots",
+  "level": 14,
   "stages": [
     {
       "id": "root_one",
