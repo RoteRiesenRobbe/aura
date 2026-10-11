@@ -773,7 +773,7 @@ const (
 // completing on entry.
 func peltsQuest() *quests.QuestDefinition {
 	q := &quests.QuestDefinition{
-		ID: questID, Title: "Pelts",
+		ID: questID, Title: "Pelts", Level: 1,
 		Stages: []*quests.Stage{
 			{ID: stageHunt, Journal: "Hunt wolves.", Next: stageTurn,
 				Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 3, Count: 2}}},
@@ -1170,7 +1170,7 @@ func TestApplyGrant_TurnInAdvancesAndPaysOut(t *testing.T) {
 // plan-region-identity.md R2 (PO 2026-10-05): a turn-in hands over the next
 // quest. The trailing offer runs after the lead op, like every reward.
 func nextQuest() *quests.QuestDefinition {
-	return &quests.QuestDefinition{ID: "next", Title: "Next", Stages: []*quests.Stage{{ID: "go", Journal: "Go."}, {ID: "end", Journal: "End."}}}
+	return &quests.QuestDefinition{ID: "next", Title: "Next", Level: 1, Stages: []*quests.Stage{{ID: "go", Journal: "Go."}, {ID: "end", Journal: "End."}}}
 }
 
 func handOverRow() *mobs.Interaction {
@@ -2866,7 +2866,7 @@ func TestPresent_AGatedDestinationNamesEveryConditionItHas(t *testing.T) {
 			Quest: "thin-the-orc-line", Stage: mobs.QuestStageCompleted},
 	)
 	p := newQuestLearner(t, 12, &quests.QuestDefinition{
-		ID: "thin-the-orc-line", Title: "Thin the Orc Line",
+		ID: "thin-the-orc-line", Title: "Thin the Orc Line", Level: 1,
 		Stages: []*quests.Stage{{ID: "cull", Journal: "Cull them."}},
 	})
 

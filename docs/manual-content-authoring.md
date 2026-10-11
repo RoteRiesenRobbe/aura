@@ -1481,6 +1481,13 @@ talks about it (`plan-quests.md` D11), so the wiring lives on the NPCs.
 **Content-only.** No Go, no `.fbs`, no frontend — the vocabulary shipped with
 chunks C1–C3. `make -C backend build` (or `-content ../api`) picks it up.
 
+⭐ **Every quest authors `"level"`** (`plan-quest-giver-markers.md` C1), the
+target player level, 1 or more; the loader hard-fails without it. It is what the
+giver's `!` and the quest's title are tinted by, with the mob nameplate's rule
+(grey / green / yellow / orange / red by its distance from the player's level).
+Aim it at the level the turn-in XP is priced for (the L9 half-level rule,
+`TestContent_QuestXPBudget`): a quest priced for L6 dire wolves is level 6.
+
 ### The stage graph
 
 A stage is one of exactly two shapes, and the loader enforces it:

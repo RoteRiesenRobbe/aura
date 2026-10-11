@@ -265,6 +265,7 @@ function createNewQuest() {
   const raw = {
     id,
     title,
+    level: 1,
     stages: [{ id: 'start', journal: 'TODO: write this stage\'s journal text.', objectives: [] }],
   };
   const entry = { file, raw, isNew: true };
@@ -1216,6 +1217,7 @@ function renderQuestEditor(entry) {
 
   const topFields = el('div', { class: 'top-fields' }, [
     field('Title', textInput(quest.title || '', (v) => { quest.title = v; refresh(); })),
+    field('Level', numberInput(quest.level ?? '', (v) => { quest.level = v; refresh(); }, 'target player level')),
     field('Repeatable', checkboxInput(!!quest.repeatable, (v) => { quest.repeatable = v; refresh(); })),
   ]);
   editorRoot.appendChild(topFields);

@@ -16,7 +16,7 @@ const farmer = mobs.MobID(40)
 // dialogue stage.
 func cullQuest() *QuestDefinition {
 	return &QuestDefinition{
-		ID: "wolf-cull", Title: "The Wolf Cull",
+		ID: "wolf-cull", Title: "The Wolf Cull", Level: 1,
 		Stages: []*Stage{
 			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "report"},
 			{ID: "report", Journal: "Report back."},
@@ -29,7 +29,7 @@ func cullQuest() *QuestDefinition {
 // will register them.
 func branchQuest() *QuestDefinition {
 	q := &QuestDefinition{
-		ID: "choice", Title: "The Choice",
+		ID: "choice", Title: "The Choice", Level: 1,
 		Stages: []*Stage{
 			{ID: "choose", Journal: "Pick a side."},
 			{ID: "a-end", Journal: "Sided with A."},
@@ -46,7 +46,7 @@ func branchQuest() *QuestDefinition {
 // terminal, exactly as the interaction loader registers it at boot.
 func lampQuest() *QuestDefinition {
 	q := &QuestDefinition{
-		ID: "lamp", Title: "The Lost Lamp",
+		ID: "lamp", Title: "The Lost Lamp", Level: 1,
 		Stages: []*Stage{
 			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "bring_it_back"},
 			{ID: "bring_it_back", Journal: "Bring it back."},
@@ -112,7 +112,7 @@ func TestLedger_StageOneKillsDoNotCreditStageTwo(t *testing.T) {
 	// D4 is per STAGE ENTRY, not per accept: kills during stage 1 do not
 	// credit stage 2, even for the same species.
 	l := testLedger(t, &QuestDefinition{
-		ID: "double-cull", Title: "The Double Cull",
+		ID: "double-cull", Title: "The Double Cull", Level: 1,
 		Stages: []*Stage{
 			{ID: "first", Journal: "Kill 2 wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 2}}, Next: "second"},
 			{ID: "second", Journal: "Kill 2 more.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 2}}, Next: "done"},
@@ -160,7 +160,7 @@ func TestLedger_TalkToRequiresAFreshTalk(t *testing.T) {
 	// D4's second half: an NPC already spoken to must be spoken to AGAIN once
 	// the stage is entered — the lifetime set alone no longer satisfies.
 	l := testLedger(t, &QuestDefinition{
-		ID: "meet-again", Title: "Meet the Farmer Again",
+		ID: "meet-again", Title: "Meet the Farmer Again", Level: 1,
 		Stages: []*Stage{
 			{ID: "go", Journal: "Find the farmer.", Objectives: []Objective{{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1}}, Next: "done"},
 			{ID: "done", Journal: "Met."},
@@ -217,7 +217,7 @@ func TestLedger_KillsAdvanceARunningQuest(t *testing.T) {
 
 func TestLedger_TalkToObjectiveAdvances(t *testing.T) {
 	l := testLedger(t, &QuestDefinition{
-		ID: "meet", Title: "Meet the Farmer",
+		ID: "meet", Title: "Meet the Farmer", Level: 1,
 		Stages: []*Stage{
 			{ID: "go", Journal: "Find the farmer.", Objectives: []Objective{{Kind: ObjectiveTalkTo, Target: farmer, Count: 1}}, Next: "done"},
 			{ID: "done", Journal: "Met."},
@@ -653,7 +653,7 @@ func TestObjectiveLines_KillDerived(t *testing.T) {
 // sibling objective holds the stage is capped at its threshold.
 func TestObjectiveLines_HarvestAndTalkTo(t *testing.T) {
 	l := testLedger(t, &QuestDefinition{
-		ID: "chore", Title: "The Chore",
+		ID: "chore", Title: "The Chore", Level: 1,
 		Stages: []*Stage{
 			{ID: "work", Journal: "Work.", Objectives: []Objective{
 				{Kind: ObjectiveHarvest, Target: turnip, TargetName: "Turnip", Count: 2},
@@ -679,7 +679,7 @@ func TestObjectiveLines_HarvestAndTalkTo(t *testing.T) {
 func TestObjectiveLines_TalkToCheckmark(t *testing.T) {
 	crier := mobs.MobID(62)
 	l := testLedger(t, &QuestDefinition{
-		ID: "meet", Title: "Meet",
+		ID: "meet", Title: "Meet", Level: 1,
 		Stages: []*Stage{
 			{ID: "go", Journal: "Go.", Objectives: []Objective{
 				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1},
@@ -701,7 +701,7 @@ func TestObjectiveLines_TalkToCheckmark(t *testing.T) {
 func TestObjectiveLines_ObjectiveTrackerKeepsCheckmark(t *testing.T) {
 	crier := mobs.MobID(62)
 	l := testLedger(t, &QuestDefinition{
-		ID: "meet", Title: "Meet",
+		ID: "meet", Title: "Meet", Level: 1,
 		Stages: []*Stage{
 			{ID: "go", Journal: "Go.", Objectives: []Objective{
 				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1, Tracker: "Find Baabara"},
@@ -749,7 +749,7 @@ func TestObjectiveLines_DialogueStage(t *testing.T) {
 // The line moves when the quest moves: entering the next stage recomposes.
 func TestObjectiveLines_FollowTheCurrentStage(t *testing.T) {
 	l := testLedger(t, &QuestDefinition{
-		ID: "two-step", Title: "Two Steps",
+		ID: "two-step", Title: "Two Steps", Level: 1,
 		Stages: []*Stage{
 			{ID: "first", Journal: "j", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 1}}, Next: "second"},
 			{ID: "second", Journal: "j", Objectives: []Objective{{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1}}, Next: "end"},
@@ -922,7 +922,7 @@ func TestLedger_TitleIsTheSpellingAPlayerHasSeen(t *testing.T) {
 // that walks into a dialogue turn-in.
 func ringQuest() *QuestDefinition {
 	q := &QuestDefinition{
-		ID: "ring", Title: "The Ring",
+		ID: "ring", Title: "The Ring", Level: 1,
 		Stages: []*Stage{
 			{ID: "search", Journal: "Search.", Tracker: "Search the seaweed", Objectives: []Objective{
 				{Kind: ObjectiveHarvest, Target: turnip, TargetName: "Turnip", Count: 1, Chance: 0.06, GuaranteedAt: 12},

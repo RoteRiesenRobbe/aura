@@ -112,6 +112,7 @@ func newWirePlayerWithKillQuest(t *testing.T) (model.PlayerEntity, *wireFakeClie
 	quest := &quests.QuestDefinition{
 		ID:    "kill1",
 		Title: "Kill Quest",
+		Level: 1,
 		Stages: []*quests.Stage{{
 			ID:      "hunt",
 			Tracker: "{n}/{m} slain",
@@ -135,7 +136,7 @@ func newWirePlayerWithKillQuest(t *testing.T) (model.PlayerEntity, *wireFakeClie
 // acceptable quest), exactly the two data sources the owner-only block reads.
 func newWirePlayer(t *testing.T) (model.PlayerEntity, *wireFakeClient) {
 	t.Helper()
-	quest := &quests.QuestDefinition{ID: "q1", Title: "Test Quest", Stages: []*quests.Stage{{ID: "s1"}}}
+	quest := &quests.QuestDefinition{ID: "q1", Title: "Test Quest", Level: 1, Stages: []*quests.Stage{{ID: "s1"}}}
 
 	fg := &wireFakeGame{reg: wireRegistry{1: wireAuraDef}, qr: wireQuestRegistry{q: quest}}
 	fg.cfg.PlayerConfig = cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0, BaseHealth: 100}

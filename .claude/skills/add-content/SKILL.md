@@ -210,6 +210,9 @@ the bottom. Trust the code over the manual if a path has drifted.
   quest runs. `TestContent_EveryQuestTurnsInBehindAProgressRow` reddens on a
   turn-in left on root or a progress row that outlives its band; run
   `make -C backend cp-defs` first, it reads the embedded copy.
+- **Every quest authors `"level"`** (the target player level, ≥ 1; the loader
+  hard-fails without it): the level its turn-in XP is priced for. It tints the
+  giver's `!` and the quest title (`plan-quest-giver-markers.md`).
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),
