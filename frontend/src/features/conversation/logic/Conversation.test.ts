@@ -82,7 +82,8 @@ describe('Conversation - the armed confirm row', () => {
         const row = document.querySelector(
             '#conversation .conversationRows > li') as HTMLElement;
         expect(row).not.toBeNull();
-        row.dispatchEvent(new Event('pointerdown'));
+        // A mouse press: a touch takes the row only on the release (RowPress.ts).
+        row.dispatchEvent(Object.assign(new Event('pointerdown'), {pointerType: 'mouse'}));
         const confirmRow = document.getElementById('confirmRow');
         expect(confirmRow.classList.contains('hidden')).toBe(false);
         return confirmRow;

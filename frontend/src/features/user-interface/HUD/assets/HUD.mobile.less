@@ -342,7 +342,17 @@ html.mobile {
 	#conversation {
 		width: 100%;
 		max-width: none;
-		max-height: 45vh;
+		// Tall enough to read a node on a landscape phone (feedback 2026-10-11,
+		// PO): 45vh showed two lines. The panel grows upward from the action
+		// tiles and may cover the ☰ button and the bars while it is open (PO:
+		// overlap is fine). [PLACEHOLDER] 70vh.
+		max-height: 70vh;
+		// ...and draws OVER what it covers. Under them, the ☰ and Map buttons
+		// sat on the header and hid the speaker's name. Nothing covered is lost:
+		// the panel's own ✕ and Leave row close it, opening a sheet closes it
+		// anyway (PanelExclusivity), and combat ends the conversation.
+		position: relative;
+		z-index: (@mobile-menu-z + 4);
 
 		// D2 inked this panel on the desktop at UI pass C6; the phone keeps the
 		// pre-ink chrome, the C1 pattern.
