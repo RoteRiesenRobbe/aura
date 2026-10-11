@@ -18,5 +18,6 @@ export enum EffectKind {
   StatUp = 4096,
   StatDown = 8192,
   Empower = 16384,
-  Fear = 32768
+  Fear = 32768,
+  Stealth = 65536
 }

@@ -39,6 +39,17 @@ export enum AppliedEffectBit {
     // A live fear (plan-effect-types-round-2.md C5): a running mob reads as
     // feared, not as one fleeing on its own.
     Fear = 1 << 11,
+    // A live stealth (C6, D24): drawn as the token's alpha, never as a pip,
+    // which is why PIP_STYLES has no row for it.
+    Stealth = 1 << 12,
+}
+
+/** A stealthed token's alpha, for every viewer and its own player. [PLACEHOLDER] */
+export const STEALTH_ALPHA = 0.4;
+
+/** The token alpha an applied-effects mask asks for (plan-effect-types-round-2.md C6, D24). */
+export function tokenAlpha(mask: number): number {
+    return (mask & AppliedEffectBit.Stealth) !== 0 ? STEALTH_ALPHA : 1;
 }
 
 interface PipStyle {

@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4, C5, C7 BUILT 2026-10-11** (in-game owed); C6 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4-C7 BUILT 2026-10-11** (in-game owed, one combined pass). D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -510,6 +510,34 @@ does not compile.
 - `stealth` (D1-D3, D24, D25, D26), `stealthPayload`. Self-only.
 - Wire: EffectKind Stealth; pip Stealth, rendered as token alpha.
 - Example: a stealth cooldown with a [PLACEHOLDER] 20 s cap.
+- ⚑ **As built (2026-10-11):**
+  - `stealth` authors `stealthDurationTicks` alone (self-only, cooldown
+    only); payload `StealthParams`, store `stealthPayload{}` (calm's shape).
+  - `model.Stealther` (`ApplyStealth`, `Stealthed`, `BreakStealth`) pinned
+    on `*player` (L8); `model.IsStealthed(e)` is the one read every mob door
+    asks. GOD does not refuse it (a player tool, not CC).
+  - Doors (D25, L7): `Mob.findAggroTarget` skips a stealthed target;
+    `Mob.threatEntryFor` writes nothing for a stealthed source (heal threat
+    and taunts included); the shared `mayHarm` refuses a gated (mob) caster
+    against a stealthed target, so mob auras and cooldowns miss it too.
+  - Breaks (D1, D26): `player.takeDamage` breaks on `loss > 0` (a fully
+    absorbed hit does not); `Mob.PlayerTouches` breaks a DIRECT hit with
+    `lost > 0` before the threat is written, so the breaking hit lands and
+    writes its threat. A summon's hit is the summon's and does not break.
+  - The fan-out (D2): `SkillSystem.applyStealth` calls the new
+    `MobSystem.ForgetTarget(id)` through `SetAggroForgetter` (wired in
+    `core/game.go`): `ForgetEntity` on every mob, no charm or summon touched.
+  - Wire: pip Stealth = 4096 (bit 12), tray kind Stealth = 65536 (bit 16,
+    beneficial). The client draws the pip bit as token alpha
+    (`tokenAlpha`, `STEALTH_ALPHA` 0.4 [PLACEHOLDER]) and never as a pip; the
+    own player feeds `setTokenAlpha` from its own `applied_effects` (L12).
+    The nameplate stays opaque.
+  - Example: `Vanish` (168), 20 s cap, cooldown 60 s, icon
+    `delapouite/invisible`, SKILL cheat only. [PLACEHOLDER].
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model/
+    core, vitest 1618/0 + typecheck, `-validate` 0 both zone sets, editor
+    smoke 0. In-game owed: the combined pass, with TWO clients (the
+    translucent token as another player sees it).
 
 ### C7 - death triggers
 
@@ -645,7 +673,7 @@ None blocking. Raised at execution if they come up:
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
 | C4 | Empower next cast | +1 kind | ✅ 2026-10-11 (see §6 C4 "As built"), in-game owed |
 | C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip, +1 rejection reason | ✅ 2026-10-11 (see §6 C5 "As built"), in-game owed |
-| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
+| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | ✅ 2026-10-11 (see §6 C6 "As built"), in-game owed |
 | C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 (see §6 C7 "As built"), in-game owed |
 
 Order: C0 first (C1, C2, C4-C6 need its room); C1 next (it builds the

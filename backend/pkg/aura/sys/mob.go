@@ -543,6 +543,17 @@ func (n *MobSystem) ForgetDeparted(id uint64) {
 	}
 }
 
+// ForgetTarget makes every mob drop one entity's threat row, aggro target and
+// support target, and nothing else: no charm ends, no summon retires
+// (plan-effect-types-round-2.md C6, D2, D25). Stealth's fan-out.
+func (n *MobSystem) ForgetTarget(id uint64) {
+	for _, m := range n.mobs {
+		if f, ok := m.(targetForgetter); ok {
+			f.ForgetEntity(id)
+		}
+	}
+}
+
 // targetForgetter is a departing entity as the mobs' combat state sees it: an
 // id to match (the fan-out holds ecs ids, never entity refs) and the verb that
 // drops every latch onto it. A capability rather than a MobEntity method, like

@@ -103,7 +103,12 @@ export class Player {
         // No own pips (plan-buff-tray.md D10): the buff tray above the action
         // bars draws the own player's effects from own_effects, so the own
         // overhead bar's strip is never fed. applied_effects keeps feeding
-        // every OTHER entity's strip (EntityManager).
+        // every OTHER entity's strip (EntityManager). It still sets the own
+        // token's stealth alpha (plan-effect-types-round-2.md C6, L12), or the
+        // stealthed player would be the one person who cannot see it.
+        if (isDefined(entity.appliedEffects)) {
+            this.character.setTokenAlpha(entity.appliedEffects);
+        }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);
         }

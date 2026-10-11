@@ -414,6 +414,9 @@
       "statBonus",
       "statBonusPerLevel"
     ],
+    "stealth": [
+      "stealthDurationTicks"
+    ],
     "stun": [
       "radius",
       "radiusPerLevel",
@@ -550,6 +553,9 @@
     "stat_multiplier": [
       "active_aura",
       "passive"
+    ],
+    "stealth": [
+      "cooldown"
     ],
     "stun": [
       "cooldown"

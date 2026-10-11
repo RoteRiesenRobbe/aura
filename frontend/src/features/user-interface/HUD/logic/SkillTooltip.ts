@@ -104,6 +104,8 @@ export const NEUTRAL_EFFECT_TYPES: string[] = [
     'charge',
     // Empower (C4) changes the caster's own next cast.
     'empower',
+    // Stealth (C6) hides the caster; its look is the token's alpha.
+    'stealth',
 ];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -753,6 +755,10 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Holds one enemy for ${held} — it cannot move, attack or use abilities`);
             break;
         }
+        case 'stealth':
+            // D1 + D2 in one line: what it does, how long, and what ends it.
+            lines.push(`Hides you from monsters for up to ${ticksToSecs(effect.stealth.durationTicks)}; they forget you. Dealing or taking damage ends it`);
+            break;
         case 'fear': {
             // The stun line's shape: say it runs AND that it cannot act
             // (plan-effect-types-round-2.md C5, D22).

@@ -202,6 +202,10 @@ type fearPayload struct {
 	from any
 }
 
+// stealthPayload is a live stealth (plan-effect-types-round-2.md C6). Empty
+// like calm: the entry's remaining ticks are the cap, and a break drops it.
+type stealthPayload struct{}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -227,6 +231,7 @@ func (*reflectPayload) isBuffPayload()   {}
 func (*statPayload) isBuffPayload()      {}
 func (*empowerPayload) isBuffPayload()   {}
 func (*fearPayload) isBuffPayload()      {}
+func (*stealthPayload) isBuffPayload()   {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -710,6 +715,24 @@ func (b *Buffs) ApplyFear(source SkillID, from any, ticks int) bool {
 	b.apply(source, &fearPayload{from: from}, ticks)
 	return true
 }
+
+// ApplyStealth hides the holder from mobs for up to ticks (C6, D1). One
+// stream per source, extend-never-shorten like calm.
+func (b *Buffs) ApplyStealth(source SkillID, ticks int) {
+	for _, e := range b.entries[source] {
+		if _, ok := e.payload.(*stealthPayload); ok {
+			b.extend(e, ticks)
+			return
+		}
+	}
+	b.apply(source, &stealthPayload{}, ticks)
+}
+
+// Stealthed reports whether any stealth is live.
+func (b *Buffs) Stealthed() bool { return hasPayload[*stealthPayload](b) }
+
+// DropStealth ends every stealth early: the break (D1, D26).
+func (b *Buffs) DropStealth() { dropPayload[*stealthPayload](b) }
 
 // Feared reports whether any fear application is live.
 func (b *Buffs) Feared() bool { return hasPayload[*fearPayload](b) }

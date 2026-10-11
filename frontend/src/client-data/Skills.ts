@@ -307,6 +307,8 @@ export interface SkillEffect {
     empower?: EmpowerParams;
     // A fear's hold has the stun's shape (plan-effect-types-round-2.md C5).
     fear?: StunParams;
+    // The stealth cap (plan-effect-types-round-2.md C6).
+    stealth?: {durationTicks: number};
 }
 
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------

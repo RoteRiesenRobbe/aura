@@ -1707,3 +1707,13 @@ describe('fear', () => {
         expect(lines(terrify, 1, 1)[0]).toBe('Fears its target for 4s: it runs from you and cannot attack or use abilities');
     });
 });
+
+describe('stealth', () => {
+    it('names the cap and what breaks it', () => {
+        const vanish = skill({
+            displayName: 'Vanish', category: 'cooldown', maxLevel: 1, cooldownTicks: 1800,
+            effects: [effect({type: 'stealth', stealth: {durationTicks: 600}})],
+        });
+        expect(lines(vanish, 1, 1)[0]).toBe('Hides you from monsters for up to 20s; they forget you. Dealing or taking damage ends it');
+    });
+});

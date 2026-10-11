@@ -1061,6 +1061,7 @@ func TestEffectKind_MirrorsTheWireEnum(t *testing.T) {
 		skills.EffectKindStatDown:  AuraApi.EffectKindStatDown,
 		skills.EffectKindEmpower:   AuraApi.EffectKindEmpower,
 		skills.EffectKindFear:      AuraApi.EffectKindFear,
+		skills.EffectKindStealth:   AuraApi.EffectKindStealth,
 	}
 	for goKind, wireKind := range pairs {
 		assert.Equal(t, wireKind, AuraApi.EffectKind(goKind), "%s", wireKind)

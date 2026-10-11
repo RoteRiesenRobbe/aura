@@ -120,6 +120,10 @@ type SkillSystem struct {
 	// nil until wired, which reads as "nothing bound".
 	connState ConnState
 
+	// aggroForgetter is the stealth fan-out (plan-effect-types-round-2.md C6);
+	// nil in tests that do not need it.
+	aggroForgetter AggroForgetter
+
 	// ascension re-judges the stashed pick when the ceremony's channel
 	// completes (C2a step 5). The SAME object the InteractionSystem renders
 	// rows from, so the panel and the channel cannot disagree about what is
@@ -656,6 +660,13 @@ func mayHarm(caster any, target model.Factioned) bool {
 	gate, ok := caster.(model.HostilityGate)
 	if !ok {
 		return true
+	}
+	// No gated caster (every mob) harms a stealthed target
+	// (plan-effect-types-round-2.md C6, D25, L7): its aura and cooldowns hit
+	// any eligible collider, not only its aggro target, so acquisition alone
+	// would leave the player standing in its ring taking hits.
+	if model.IsStealthed(target) {
+		return false
 	}
 	var id uint64
 	if be, ok := target.(model.BasicEntity); ok {
@@ -2217,6 +2228,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeStealth:
+			if s.applyStealth(e, es.Def.ID, effect) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeInstantSlow:
 			if s.applyInstantSlow(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
@@ -2914,6 +2930,33 @@ func (s *SkillSystem) applyFear(e skillEntity, source skills.SkillID, level int,
 		c.Shape().UserData.(model.Fearable).ApplyFear(source, e, ticks)
 	}
 	return len(targets) > 0
+}
+
+// AggroForgetter is the MobSystem as stealth sees it
+// (plan-effect-types-round-2.md C6, D2): every mob drops one entity's threat
+// row, aggro target and support target, and nothing else.
+type AggroForgetter interface {
+	ForgetTarget(id uint64)
+}
+
+// SetAggroForgetter wires the stealth fan-out, once at boot.
+func (s *SkillSystem) SetAggroForgetter(f AggroForgetter) { s.aggroForgetter = f }
+
+// applyStealth fires a stealth effect (C6, D1-D3): the caster hides for up to
+// the authored cap and every mob forgets it, so it is also an escape. A
+// non-player caster is a no-op (stealth is a player tool).
+func (s *SkillSystem) applyStealth(e skillEntity, source skills.SkillID, effect skills.EffectDef) bool {
+	st, ok := e.(model.Stealther)
+	if !ok || effect.Stealth == nil {
+		return false
+	}
+	if !st.ApplyStealth(source, effect.Stealth.DurationTicks) {
+		return false
+	}
+	if s.aggroForgetter != nil {
+		s.aggroForgetter.ForgetTarget(e.Basic().ID())
+	}
+	return true
 }
 
 // charmable is the charm capability (plan-faction-flips chunk 3): an entity

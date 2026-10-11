@@ -75,6 +75,7 @@ const (
 	EffectTypeCharge
 	EffectTypeEmpower
 	EffectTypeFear
+	EffectTypeStealth
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -194,6 +195,9 @@ var effectTypeMap = map[string]EffectType{
 	// Fear (plan-effect-types-round-2.md C5, D22): a moving stun. The target
 	// runs from the caster and cannot cast; it shares stun's hard-CC ladder.
 	"fear": EffectTypeFear,
+	// Stealth (plan-effect-types-round-2.md C6, D1-D3): self-only, hidden from
+	// mobs until the cap runs out or damage moves HP either way.
+	"stealth": EffectTypeStealth,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -415,7 +419,14 @@ type EffectDef struct {
 	Empower         *EmpowerParams         `json:"empower,omitempty"`         // empower
 	// Fear holds for a duration like a stun, so it carries the stun's payload
 	// shape under its own name (C5).
-	Fear *StunParams `json:"fear,omitempty"` // fear
+	Fear    *StunParams    `json:"fear,omitempty"`    // fear
+	Stealth *StealthParams `json:"stealth,omitempty"` // stealth
+}
+
+// StealthParams is the stealth payload (C6, D1): the cap on how long the
+// caster stays hidden if nothing breaks it first.
+type StealthParams struct {
+	DurationTicks int `json:"durationTicks"`
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -1275,6 +1286,8 @@ type effectDef struct {
 	FearTicks         int `json:"fearTicks"`         // fear: how long the target runs
 	FearTicksPerLevel int `json:"fearTicksPerLevel"` // fear: added per skill level
 
+	StealthDurationTicks int `json:"stealthDurationTicks"` // stealth: the cap on how long it lasts
+
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
@@ -1619,6 +1632,8 @@ var effectKeys = map[EffectType][]string{
 	// Fear (C5): stun's capped query circle with its own duration keys.
 	EffectTypeFear: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
 		[]string{"fearTicks", "fearTicksPerLevel"}),
+	// Stealth (C6): self-only, its cap alone.
+	EffectTypeStealth: {"stealthDurationTicks"},
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1698,6 +1713,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeCharge:         {SkillCategoryCooldown},
 	EffectTypeEmpower:        {SkillCategoryCooldown},
 	EffectTypeFear:           {SkillCategoryCooldown},
+	EffectTypeStealth:        {SkillCategoryCooldown},
 	EffectTypeInstantDamage:  {SkillCategoryCooldown},
 	EffectTypeInstantDot:     {SkillCategoryCooldown},
 
@@ -2092,6 +2108,12 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Empower, err = e.empowerParams()
 	case EffectTypeFear:
 		def.Fear, err = e.fearParams()
+	case EffectTypeStealth:
+		if e.StealthDurationTicks < 1 {
+			err = fmt.Errorf("stealthDurationTicks: must be >= 1, got %v", e.StealthDurationTicks)
+		} else {
+			def.Stealth = &StealthParams{DurationTicks: e.StealthDurationTicks}
+		}
 	case EffectTypeLightAura, EffectTypeRecall, EffectTypeCharge:
 		// Payload-less by design: light_aura is pure geometry (its radius
 		// streams as the wire light_radius), recall's destination is the

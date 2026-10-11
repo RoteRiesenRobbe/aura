@@ -134,6 +134,8 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeEmpower: AuraCategoryNone,
 	// A fear's tell is the target running, and its pip.
 	EffectTypeFear: AuraCategoryNone,
+	// Stealth shows as the token's alpha, never a ring.
+	EffectTypeStealth: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

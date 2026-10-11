@@ -1679,6 +1679,10 @@ func (m *Mob) findAggroTarget() model.Combatant {
 		if m.aggroMask&target.Faction().Bit() == 0 {
 			continue
 		}
+		// A stealthed player is not seen (plan-effect-types-round-2.md C6, D2).
+		if model.IsStealthed(target) {
+			continue
+		}
 		if m.ignoreAcquireTicks > 0 && target.Basic().ID() == m.ignoreAcquireID {
 			// Force-leashed standoff target: not proactively re-acquired until
 			// the window lapses. Only this path is gated - threat-table
@@ -1735,6 +1739,12 @@ func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
 		return nil
 	}
 	if source.Faction() == m.faction || source.HealthRatio() == 0 {
+		return nil
+	}
+	// A stealthed source writes no threat (C6, D25): a heal or a taunt from
+	// hiding stays hidden. The hit that breaks stealth breaks it first, so it
+	// writes as usual (D26).
+	if model.IsStealthed(source) {
 		return nil
 	}
 	if m.threat == nil {
@@ -2371,6 +2381,14 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	}
 	m.reflect(hitter, damage.HP, damage.Reflected)
 	lost := m.takeDamage(damage, model.ActingSourceID(damage.Source, p), model.StatusEffectDamagedAmbient)
+	// A direct hit that moved HP breaks the player's stealth before its threat
+	// is written (plan-effect-types-round-2.md C6, D1, D26). A summon's hit is
+	// the summon's, and a fully resisted one moved nothing.
+	if lost > 0 && damage.Source == nil {
+		if s, ok := p.(interface{ BreakStealth() }); ok {
+			s.BreakStealth()
+		}
+	}
 	// Lifesteal heal-back (chunk 1, F6 §3.1/9): the living Source (a summon
 	// leeches for itself, §4.2) else the toucher, from the dealt amount.
 	model.ApplyLifesteal(lost, damage.Lifesteal, damage.SkillID, damage.Source, p)

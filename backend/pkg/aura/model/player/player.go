@@ -25,6 +25,7 @@ var _ = model.StatBuffable(&player{})
 var _ = model.Reflector(&player{})
 var _ = model.Empowerable(&player{})
 var _ = model.Fearable(&player{})
+var _ = model.Stealther(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -436,6 +437,11 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	// beaten on your shield is combat (§3.1).
 	p.NoteCombatAction()
 	dealt := absorbed + loss
+	// A hit that moved HP breaks stealth (plan-effect-types-round-2.md C6, D1,
+	// D26); one the shield ate whole did not.
+	if loss > 0 {
+		p.BreakStealth()
+	}
 	// Damage interrupt (chunk 4): dealt > 0 — absorbed hits included —
 	// cancels a running cast, but only for skills that opted in
 	// (castInterruptedByDamage; the flag check lives on the component).
@@ -761,6 +767,20 @@ func (p *player) ApplyFear(source skills.SkillID, from any, ticks int) bool {
 	p.NoteActivationRejected(0, model.ActivationRejectedFeared)
 	return true
 }
+
+// ApplyStealth hides this player from mobs for up to ticks (C6, D1-D3).
+// GOD does not refuse it: it is the player's own tool, not CC. The mobs'
+// tables are cleared by the SkillSystem's fan-out (D2), not here.
+func (p *player) ApplyStealth(source skills.SkillID, ticks int) bool {
+	p.buffs.ApplyStealth(source, ticks)
+	return true
+}
+
+// Stealthed reports whether this player is hidden from mobs.
+func (p *player) Stealthed() bool { return p.buffs.Stealthed() }
+
+// BreakStealth ends a stealth early (D26).
+func (p *player) BreakStealth() { p.buffs.DropStealth() }
 
 // Feared reports whether this player is running from a fear.
 func (p *player) Feared() bool { return p.buffs.Feared() }

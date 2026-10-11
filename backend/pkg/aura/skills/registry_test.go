@@ -266,7 +266,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Terrify id 166 (player, SKILL cheat only) and the mob skill
 	// BroodScreech 167 (plan-effect-types-round-2.md C5, the fear examples).
 	// 130 → 132 (87 player + 45 mob).
-	assert.Len(t, r.All(), 132)
+	// + Vanish id 168 (plan-effect-types-round-2.md C6, the stealth example;
+	// SKILL cheat only). 132 → 133 (88 player + 45 mob).
+	assert.Len(t, r.All(), 133)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
