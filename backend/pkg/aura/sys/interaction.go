@@ -1065,13 +1065,18 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 			if !p.QuestLedger().CanApply(&opt.Grants[0]) {
 				continue
 			}
-			rows = append(rows, model.ConversationOption{
+			row := model.ConversationOption{
 				OptionIndex: uint8(oi),
 				GrantIndex:  0,
 				Text:        opt.Text,
 				Next:        opt.Next,
 				Reply:       opt.Grants[0].Line,
-			})
+			}
+			// The offer row is tinted by its quest's level (plan-quest-giver-markers.md D4).
+			if opt.Grants[0].Kind == mobs.GrantOfferQuest {
+				row.QuestLevel = uint8(min(max(p.QuestLedger().Level(opt.Grants[0].Quest), 0), 255))
+			}
+			rows = append(rows, row)
 			continue
 		}
 

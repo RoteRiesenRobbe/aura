@@ -149,8 +149,20 @@ func (rcv *ConversationOption) MutateTravel(n byte) bool {
 	return rcv._tab.MutateByteSlot(22, n)
 }
 
+func (rcv *ConversationOption) QuestLevel() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConversationOption) MutateQuestLevel(n byte) bool {
+	return rcv._tab.MutateByteSlot(24, n)
+}
+
 func ConversationOptionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func ConversationOptionAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
 	builder.PrependByteSlot(0, optionIndex, 0)
@@ -181,6 +193,9 @@ func ConversationOptionAddSkillId(builder *flatbuffers.Builder, skillId uint16) 
 }
 func ConversationOptionAddTravel(builder *flatbuffers.Builder, travel byte) {
 	builder.PrependByteSlot(9, travel, 0)
+}
+func ConversationOptionAddQuestLevel(builder *flatbuffers.Builder, questLevel byte) {
+	builder.PrependByteSlot(10, questLevel, 0)
 }
 func ConversationOptionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

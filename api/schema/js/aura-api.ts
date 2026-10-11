@@ -35,6 +35,7 @@ export { OwnEffect } from './aura-api/own-effect.js';
 export { Player } from './aura-api/player.js';
 export { PlayerRoster } from './aura-api/player-roster.js';
 export { Pong } from './aura-api/pong.js';
+export { QuestMarker } from './aura-api/quest-marker.js';
 export { QuestProgress } from './aura-api/quest-progress.js';
 export { Resource } from './aura-api/resource.js';
 export { Respawn } from './aura-api/respawn.js';

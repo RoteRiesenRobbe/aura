@@ -316,3 +316,32 @@ func TestContent_TheCriersWolvesRowLastsTheHunt(t *testing.T) {
 	}})
 	assert.False(t, shows(), "once the word goes to the Guard or the Shaman")
 }
+
+// plan-quest-giver-markers.md C2 against the REAL content: a fresh level-1
+// character has nothing running, so every marker is a `!`, and its level is
+// the level of a quest that giver really offers.
+func TestContent_AFreshCharacterSeesOnlyOffers(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	p := newLearner(1)
+	p.ledger = quests.NewLedger(qr)
+
+	ms := QuestMarkers(mr.Mobs(), p, curve.DefaultKillXP())
+	require.NotEmpty(t, ms, "the opening arc offers something at level 1")
+	for _, m := range ms {
+		def, err := mr.Get(m.Mob)
+		require.NoError(t, err)
+		assert.Equal(t, model.QuestMarkerOffer, m.Kind, "%s: nothing is running yet", def.Name)
+
+		offered := map[int]bool{}
+		for _, node := range def.Interaction.Nodes {
+			for _, opt := range node.Options {
+				if len(opt.Grants) > 0 && opt.Grants[0].Kind == mobs.GrantOfferQuest {
+					q, err := qr.Get(opt.Grants[0].Quest)
+					require.NoError(t, err)
+					offered[q.Level] = true
+				}
+			}
+		}
+		assert.True(t, offered[m.Level], "%s: level %d is one of its offers' levels %v", def.Name, m.Level, offered)
+	}
+}

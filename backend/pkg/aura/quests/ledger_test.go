@@ -999,3 +999,34 @@ func TestChanceObjective_TrackerHidesTheCount(t *testing.T) {
 	l.NoteKill(turnip)
 	assert.Equal(t, []string{"Search the seaweed"}, l.Snapshot()[0].Objectives)
 }
+
+// plan-quest-giver-markers.md C2: the target level the giver's `!` is tinted by.
+// Unknown ids and a registry-less ledger read 0, which no authored quest can be.
+func TestLedger_LevelReadsTheAuthoredTarget(t *testing.T) {
+	q := lampQuest()
+	q.Level = 9
+	l := testLedger(t, q)
+	assert.Equal(t, 9, l.Level("lamp"))
+	assert.Equal(t, 0, l.Level("unknown-quest"))
+	assert.Equal(t, 0, NewLedger(nil).Level("lamp"))
+}
+
+// plan-quest-giver-markers.md D11: the grey `?` waits at the stage a running
+// objective stage hands over to; nothing else (not started, at a dialogue
+// stage, completed) awaits anything.
+func TestLedger_AwaitedStageIsTheRunningObjectiveStagesNext(t *testing.T) {
+	l := testLedger(t, lampQuest())
+	assert.Equal(t, "", l.AwaitedStage("lamp"), "not started")
+
+	require.NoError(t, l.Accept("lamp"))
+	assert.Equal(t, "bring_it_back", l.AwaitedStage("lamp"), "hunting: the turn-in stage is what it waits for")
+
+	for range 3 {
+		l.NoteKill(wolf)
+	}
+	assert.Equal(t, "", l.AwaitedStage("lamp"), "at the dialogue stage: the turn-in is takeable, nothing is awaited")
+
+	require.NoError(t, l.AdvanceDialogue("lamp", "bring_it_back", "lit"))
+	assert.Equal(t, "", l.AwaitedStage("lamp"), "completed")
+	assert.Equal(t, "", NewLedger(nil).AwaitedStage("lamp"))
+}

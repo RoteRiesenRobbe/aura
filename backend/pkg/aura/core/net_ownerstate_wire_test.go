@@ -395,3 +395,45 @@ func TestNetSystem_OwnEffects_ExpiryResendsTheBlockEmpty(t *testing.T) {
 	assert.True(t, got.OwnerState(), "the expiry resends the block on its tick")
 	assert.Zero(t, got.OwnEffectsLength(), "with nothing on the player")
 }
+
+// wireMobs is a mobs.Registry holding exactly the given definitions.
+type wireMobs struct {
+	mobs.Registry
+	defs []*mobs.MobDefinition
+}
+
+func (r wireMobs) Mobs() []*mobs.MobDefinition { return r.defs }
+
+// plan-quest-giver-markers.md C2: the markers ride the owner block. The first
+// send carries the giver's `!`; a steady tick carries no block at all; the
+// accept moves the quest revision, and that owner tick carries an EMPTY list,
+// which the owner_state bit makes readable as "nothing to show".
+func TestNetSystem_QuestMarkersRideTheOwnerBlock(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	giver := &mobs.MobDefinition{ID: 40, Name: "Giver", Interaction: &mobs.Interaction{Nodes: []mobs.InteractionNode{{
+		ID: "root", Lines: []string{"Hello."},
+		Options: []mobs.InteractionOption{{Text: "Yes.", Grants: []mobs.InteractionGrant{{Kind: mobs.GrantOfferQuest, Quest: "q1"}}}},
+	}}}}
+	n := &NetSystem{game: &game{Tick: 1, mobRegistry: wireMobs{defs: []*mobs.MobDefinition{giver}}}}
+	n.players = []model.PlayerEntity{p}
+
+	first := decodeGameState(t, send(n, p))
+	require.True(t, first.OwnerState())
+	require.Equal(t, 1, first.QuestMarkersLength())
+	var m AuraApi.QuestMarker
+	require.True(t, first.QuestMarkers(&m, 0))
+	assert.Equal(t, uint16(40), m.MobId())
+	assert.EqualValues(t, model.QuestMarkerOffer, m.Kind())
+	assert.Equal(t, uint8(1), m.Level())
+
+	n.game.Tick = 2
+	steady := decodeGameState(t, send(n, p))
+	assert.False(t, steady.OwnerState())
+	assert.Equal(t, 0, steady.QuestMarkersLength(), "no owner block, no markers: the client keeps its own")
+
+	require.NoError(t, p.QuestLedger().Accept("q1"))
+	n.game.Tick = 3
+	accepted := decodeGameState(t, send(n, p))
+	require.True(t, accepted.OwnerState(), "the accept moved the quest revision")
+	assert.Equal(t, 0, accepted.QuestMarkersLength(), "taken: the `!` is gone, and that is a real state")
+}
