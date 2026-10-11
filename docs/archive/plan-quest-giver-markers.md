@@ -1,6 +1,6 @@
 # Plan: Quest Levels + Quest-Giver Markers (`!` / `?`)
 
-> **Status: DESIGNED + PO-RULED 2026-10-10, nothing built.** First asked by the PO on
+> **Status: SHIPPED 2026-10-11 on `main`, C1 `d872e58a` · C2 `2b7b8803` · C3 `8e974200` · row fix `611b6b62`; PO look passed (§6). ARCHIVED.** One open item left the plan: the hail line overlapping the `!` (`docs/feedback.md` 2026-10-11). First asked by the PO on
 > 2026-09-28 (map pins for quest givers, coworker draft); widened on 2026-10-10: "We want
 > quests to have a target player level and quest giver npcs to show exclamation marks
 > above their head and on the map when they have a quest to give and question marks when
@@ -220,7 +220,7 @@
 
 ## 6. Ledger
 
-> **C1-C3 COMMITTED 2026-10-11 on `main`: C1 `d872e58a` · C2 `2b7b8803` · C3 the commit after. PO look owed.**
+> **C1-C3 COMMITTED 2026-10-11 on `main`: C1 `d872e58a` · C2 `2b7b8803` · C3 `8e974200` · row fix `611b6b62`. PO look passed 2026-10-11.**
 >
 > - **C1** quests author `level` (loader hard-fails without it; `/quests` serves it; the
 >   catalog whitelist test widened; editor field + `validate.mjs` port; all 22 quests
@@ -235,7 +235,7 @@
 >   The trivial test mirrors the client's `Δ < 0 &&` guard. **Schema: DB NONE · wire +1
 >   table, +2 fields (appended).**
 > - **C3** `client-data/QuestMarkers.ts` (store, glyph, colour, `questTitleColor`);
->   the glyph on the mob plate (stacks above the E badge); `MapQuestMarkers.ts` just
+>   the glyph on the mob plate (stacked above the E badge, until the row fix below); `MapQuestMarkers.ts` just
 >   under the campfires, gated by the new `FogReveal.isRevealedAt`; journal, tracker
 >   and offer-row tint. ⚑ Found by the harness: the tracker's render signature did not
 >   include the tint, so a level-up left it stale; fixed. **Schema: NONE.**
@@ -244,4 +244,15 @@
 > · vitest 1602/0 · typecheck clean · `aurad -validate` (main + debug) 0 findings ·
 > `quest-markers.mjs` 14/14 (new) · `hygiene-wire-prune` 0 errors.
 > NOT re-run: `chunkC4-quests`, `c1-kill-quests` (DEBUG-zone venues, not touched by
-> this). Owed: the PO's look at glyph size / colour / stacking / map order (D12).
+> this).
+>
+> - **PO look 2026-10-11** (D12): "nice"; glyph size, colours and map order stand.
+>   Two findings above the head: (1) the E badge appearing pushed the `!` up by its
+>   height. PO picked "E and ! share the same row centered", E to the right of the
+>   mark: built `611b6b62` (the `!` alone is centred; with the E the pair is centred,
+>   so the `!` shifts half a pair sideways, never up). `quest-markers.mjs` 14/14 after
+>   it. (2) The NPC's hail line overlaps the `!`: the bubble sits at
+>   `-1.2 × (size + 24)` off the WIRE radius (`_GameObject.ts` `ensureMessagesGroup`),
+>   not the art, and knows nothing of the overhead row. Options offered (bubble above
+>   the overhead row, measured from the art · hide the `!` while speaking · bubble to
+>   the side), NOT ruled: moved to `docs/feedback.md` 2026-10-11.
