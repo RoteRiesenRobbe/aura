@@ -371,8 +371,9 @@ export function campfireMarkers(
 }
 
 /**
- * Which discovered campfire a press landed on, or null (plan-flight-paths.md
- * C3 — the map click that starts a flight).
+ * Which marker a point landed on, or null: the discovered campfire a press
+ * picks (plan-flight-paths.md C3, the map click that starts a flight), and the
+ * quest giver the full-screen map's hover names.
  *
  * ⚑ THE POINT IS IN MARKER SPACE, not canvas space: markers are laid out from
  * the layer origin, which sits at the canvas centre, so the caller subtracts
@@ -387,16 +388,16 @@ export function campfireMarkers(
  * The radius is the caller's, because it is a function of the marker size,
  * which is per map state.
  */
-export function pickCampfireMarker(
-    markers: CampfireMarker[],
+export function pickNearestMarker<T extends {x: number, y: number}>(
+    markers: T[],
     point: {x: number, y: number},
     radius: number,
-): CampfireMarker | null {
+): T | null {
     if (!markers || !isPositive(radius)) {
         return null;
     }
     const radiusSq = radius * radius;
-    let best: CampfireMarker | null = null;
+    let best: T | null = null;
     let bestDistanceSq = 0;
     for (const marker of markers) {
         const dx = marker.x - point.x;
@@ -569,4 +570,41 @@ export function questGiverMarkers<M>(
         out.push({x: spawn.x * worldToPx * scale, y: spawn.y * worldToPx * scale, marker});
     }
     return out;
+}
+
+/**
+ * Where the quest hover box goes, in client px (its top-left corner). A mouse
+ * hover sits right of the glyph, vertically centred, flipping left when it
+ * would overflow; a tap (no hover on a phone) sits centred ABOVE the glyph,
+ * dropping below when there is no room. Always clamped to the viewport.
+ *
+ * @param glyph the glyph's centre in client px
+ * @param gap   the distance from the glyph centre to the box
+ */
+export function questHoverPosition(
+    glyph: {x: number, y: number},
+    box: {width: number, height: number},
+    gap: number,
+    viewport: {width: number, height: number},
+    placement: 'side' | 'above',
+): {x: number, y: number} {
+    let x: number;
+    let y: number;
+    if (placement === 'above') {
+        x = glyph.x - box.width / 2;
+        y = glyph.y - gap - box.height;
+        if (y < 0) {
+            y = glyph.y + gap;
+        }
+    } else {
+        x = glyph.x + gap;
+        if (x + box.width > viewport.width) {
+            x = glyph.x - gap - box.width;
+        }
+        y = glyph.y - box.height / 2;
+    }
+    return {
+        x: Math.max(0, Math.min(x, viewport.width - box.width)),
+        y: Math.max(0, Math.min(y, viewport.height - box.height)),
+    };
 }

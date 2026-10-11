@@ -30,4 +30,8 @@ type QuestMarker struct {
 	// Level is the offer's target level, which the `!` is tinted by; 0 on the
 	// two `?` kinds, which are not tinted.
 	Level int
+	// Quests are the ids of every quest the marker covers, whatever its kind:
+	// the steps to take here now, the offers, then the quests this NPC finishes
+	// later. The world map's hover names them (titles from the /quests catalog).
+	Quests []string
 }

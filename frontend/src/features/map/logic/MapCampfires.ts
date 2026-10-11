@@ -31,7 +31,7 @@ import {
     CampfireMarker,
     campfireMarkers,
     MapState,
-    pickCampfireMarker,
+    pickNearestMarker,
     ZoneCampfirePoint,
 } from './MapScale';
 
@@ -191,7 +191,7 @@ export class MapCampfires {
      * icon and a docked-map press stays as forgiving as it looks.
      */
     markerAt(point: {x: number, y: number}): CampfireMarker | null {
-        return pickCampfireMarker(this.drawn, point, this.markerSize);
+        return pickNearestMarker(this.drawn, point, this.markerSize);
     }
 
     /**

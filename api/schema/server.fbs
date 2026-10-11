@@ -942,6 +942,10 @@ table QuestMarker {
   kind:ubyte;
   // The offer's target level, which the `!` is tinted by; 0 on both `?`.
   level:ubyte;
+  // Every quest the marker covers, whatever its kind: the steps to take here
+  // now, the offers, then the quests this NPC finishes later. The world map's
+  // hover names them; titles come from the /quests catalog. Appended field.
+  quests:[string];
 }
 
 table GameState {

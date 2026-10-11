@@ -165,8 +165,8 @@ func TestQuestMarkers_InProgressMarksEveryFinisherOnly(t *testing.T) {
 
 	ms := markersFor(p, finisherA, finisherB, bystander)
 	require.Len(t, ms, 2)
-	assert.Equal(t, model.QuestMarker{Mob: giverID, Kind: model.QuestMarkerInProgress}, ms[0])
-	assert.Equal(t, model.QuestMarker{Mob: 41, Kind: model.QuestMarkerInProgress}, ms[1])
+	assert.Equal(t, model.QuestMarker{Mob: giverID, Kind: model.QuestMarkerInProgress, Quests: []string{questID}}, ms[0])
+	assert.Equal(t, model.QuestMarker{Mob: 41, Kind: model.QuestMarkerInProgress, Quests: []string{questID}}, ms[1])
 }
 
 // A mob with no interaction, or a conversant with nothing quest-shaped, shows
@@ -200,4 +200,35 @@ func TestPresent_OfferRowCarriesTheQuestLevel(t *testing.T) {
 	assert.EqualValues(t, 6, rows[0].QuestLevel, "the offer row")
 	assert.EqualValues(t, 0, rows[1].QuestLevel, "the turn-in row is not tinted")
 	assert.EqualValues(t, 0, rows[2].QuestLevel, "a navigation row")
+}
+
+// The world map's hover lists every quest a giver's marker covers, so the
+// marker names them whatever its kind: the steps to take here now, then the
+// offers (trivial ones too), then the quests this NPC finishes later. Each
+// quest once, a trailing reward offer never.
+func TestQuestMarkers_NameEveryQuestTheGiverCovers(t *testing.T) {
+	def := giver(
+		[]mobs.InteractionGrant{offerOf("easy")},
+		[]mobs.InteractionGrant{turnInOf(questID), offerOf("reward")},
+		[]mobs.InteractionGrant{offerOf("hard")},
+		[]mobs.InteractionGrant{{Kind: mobs.GrantAdvanceQuest, Quest: "running", FromStage: stageTurn, ToStage: stageDone}},
+	)
+	p := newQuestLearner(t, 10,
+		leveledQuest(questID, 10), leveledQuest("reward", 10), leveledQuest("running", 10),
+		leveledQuest("easy", 1), leveledQuest("hard", 12))
+	require.NoError(t, p.ledger.Accept(questID))
+	require.NoError(t, p.ledger.Accept("running"))
+	killHunt(p) // both accepted quests hunt the same target: questID AND running are at the report
+
+	m := onlyMarker(t, markersFor(p, def))
+	assert.Equal(t, model.QuestMarkerTurnIn, m.Kind)
+	assert.Equal(t, []string{questID, "running", "easy", "hard"}, m.Quests)
+}
+
+// An in-progress giver names the quest it finishes.
+func TestQuestMarkers_InProgressNamesItsQuest(t *testing.T) {
+	def := giver([]mobs.InteractionGrant{turnInOf(questID)})
+	p := newQuestLearner(t, 1, leveledQuest(questID, 1))
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.Equal(t, []string{questID}, onlyMarker(t, markersFor(p, def)).Quests)
 }

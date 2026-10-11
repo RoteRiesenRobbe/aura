@@ -1112,7 +1112,7 @@ func TestGameStateConversation_QuestLevelRoundTrips(t *testing.T) {
 // plan-quest-giver-markers.md C2: the markers in order, every field intact.
 func TestQuestMarkersMarshalFlatbuf_RoundTrip(t *testing.T) {
 	markers := []model.QuestMarker{
-		{Mob: 40, Kind: model.QuestMarkerOffer, Level: 3},
+		{Mob: 40, Kind: model.QuestMarkerOffer, Level: 3, Quests: []string{"pelts", "the-lost-lamp"}},
 		{Mob: 41, Kind: model.QuestMarkerTurnIn},
 		{Mob: 62, Kind: model.QuestMarkerInProgress},
 		{Mob: 63, Kind: model.QuestMarkerOffer, Level: 300},
@@ -1130,8 +1130,12 @@ func TestQuestMarkersMarshalFlatbuf_RoundTrip(t *testing.T) {
 	assert.Equal(t, uint16(40), m.MobId())
 	assert.EqualValues(t, model.QuestMarkerOffer, m.Kind())
 	assert.Equal(t, uint8(3), m.Level())
+	require.Equal(t, 2, m.QuestsLength())
+	assert.Equal(t, "pelts", string(m.Quests(0)), "the quest ids keep their order")
+	assert.Equal(t, "the-lost-lamp", string(m.Quests(1)))
 	require.True(t, got.QuestMarkers(&m, 1))
 	assert.Equal(t, uint16(41), m.MobId())
+	assert.Zero(t, m.QuestsLength())
 	assert.EqualValues(t, model.QuestMarkerTurnIn, m.Kind())
 	require.True(t, got.QuestMarkers(&m, 2))
 	assert.EqualValues(t, model.QuestMarkerInProgress, m.Kind())

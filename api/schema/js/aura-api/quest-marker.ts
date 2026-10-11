@@ -37,8 +37,20 @@ level():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+quests(index: number):string
+quests(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+quests(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+}
+
+questsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startQuestMarker(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(4);
 }
 
 static addMobId(builder:flatbuffers.Builder, mobId:number) {
@@ -53,16 +65,33 @@ static addLevel(builder:flatbuffers.Builder, level:number) {
   builder.addFieldInt8(2, level, 0);
 }
 
+static addQuests(builder:flatbuffers.Builder, questsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, questsOffset, 0);
+}
+
+static createQuestsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startQuestsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endQuestMarker(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createQuestMarker(builder:flatbuffers.Builder, mobId:number, kind:number, level:number):flatbuffers.Offset {
+static createQuestMarker(builder:flatbuffers.Builder, mobId:number, kind:number, level:number, questsOffset:flatbuffers.Offset):flatbuffers.Offset {
   QuestMarker.startQuestMarker(builder);
   QuestMarker.addMobId(builder, mobId);
   QuestMarker.addKind(builder, kind);
   QuestMarker.addLevel(builder, level);
+  QuestMarker.addQuests(builder, questsOffset);
   return QuestMarker.endQuestMarker(builder);
 }
 }

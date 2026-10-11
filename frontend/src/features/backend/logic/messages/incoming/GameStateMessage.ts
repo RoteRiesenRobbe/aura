@@ -297,7 +297,11 @@ function unmarshalQuestMarkers(gameState: AuraApi.GameState): QuestMarkerData[] 
     const markers: QuestMarkerData[] = [];
     for (let i = 0; i < gameState.questMarkersLength(); ++i) {
         const m = gameState.questMarkers(i);
-        markers.push({mobId: m.mobId(), kind: m.kind(), level: m.level()});
+        const quests: string[] = [];
+        for (let j = 0; j < m.questsLength(); ++j) {
+            quests.push(m.quests(j));
+        }
+        markers.push({mobId: m.mobId(), kind: m.kind(), level: m.level(), quests});
     }
     return markers;
 }

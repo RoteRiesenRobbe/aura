@@ -22,6 +22,8 @@ export interface QuestMarkerData {
     kind: number;
     // The offer's target level (kind 1 only), which the `!` is tinted by.
     level: number;
+    // Every quest the marker covers, whatever its kind (the world map's hover).
+    quests: string[];
 }
 
 // The yellow `?`. [PLACEHOLDER] — deliberately the difficulty palette's own
@@ -77,4 +79,29 @@ export function questMarkerColor(marker: QuestMarkerData): number {
         default:
             return DIFFICULTY_GRAY;
     }
+}
+
+/** One line of the world map's quest hover: a title in its quest-level tint. */
+export interface QuestHoverLine {
+    title: string;
+    color: string;
+}
+
+/**
+ * The world map's hover over a giver's marker: one title per quest the marker
+ * covers, tinted by the journal's rule (questTitleColor). A quest the catalog
+ * does not know is left out, so an unloaded catalog shows no box at all.
+ */
+export function questHoverLines(
+    marker: QuestMarkerData,
+    definitionOf: (questId: string) => {title: string, level: number} | undefined,
+): QuestHoverLine[] {
+    const lines: QuestHoverLine[] = [];
+    for (const id of marker.quests) {
+        const def = definitionOf(id);
+        if (def) {
+            lines.push({title: def.title, color: questTitleColor(def.level)});
+        }
+    }
+    return lines;
 }

@@ -77,8 +77,25 @@ func (rcv *QuestMarker) MutateLevel(n byte) bool {
 	return rcv._tab.MutateByteSlot(8, n)
 }
 
+func (rcv *QuestMarker) Quests(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *QuestMarker) QuestsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func QuestMarkerStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(4)
 }
 func QuestMarkerAddMobId(builder *flatbuffers.Builder, mobId uint16) {
 	builder.PrependUint16Slot(0, mobId, 0)
@@ -88,6 +105,12 @@ func QuestMarkerAddKind(builder *flatbuffers.Builder, kind byte) {
 }
 func QuestMarkerAddLevel(builder *flatbuffers.Builder, level byte) {
 	builder.PrependByteSlot(2, level, 0)
+}
+func QuestMarkerAddQuests(builder *flatbuffers.Builder, quests flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(quests), 0)
+}
+func QuestMarkerStartQuestsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func QuestMarkerEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

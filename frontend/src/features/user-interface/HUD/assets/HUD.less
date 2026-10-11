@@ -2327,6 +2327,24 @@
 		position: relative;
 		overflow: hidden;
 	}
+	// The hovered quest giver's titles (MapQuestMarkers.showHover): a black
+	// box beside the glyph, one title per line, each inline-tinted by its
+	// quest level. Fixed, so it is placed in client px; inside the panel, so
+	// it shares the map's z-index and hides with it.
+	> .worldMapQuestHover {
+		position: fixed;
+		padding: 4px 8px;
+		background: black;
+		border-radius: 4px;
+		font-size: 1.4rem; // [PLACEHOLDER]
+		line-height: 1.35;
+		white-space: nowrap;
+		pointer-events: none; // never steal the hover from the map
+
+		&.hidden {
+			display: none;
+		}
+	}
 }
 
 // The map button. Styled like #journalButton (same HUD vocabulary) but placed

@@ -44,12 +44,15 @@ func QuestMarkers(defs []*mobs.MobDefinition, p learner, killXP curve.KillXP) []
 		turnIn := false
 		offer := 0        // the lowest non-trivial offer level, 0 = none
 		trivialOffer := 0 // the lowest trivial offer level, 0 = none
+		var turnIns, offers []string
 		if c := present(in, p, nil, nil); c != nil {
 			for _, g := range reachableQuestGrants(in, c) {
 				switch g.Kind {
 				case mobs.GrantAdvanceQuest:
 					turnIn = true
+					turnIns = append(turnIns, g.Quest)
 				case mobs.GrantOfferQuest:
+					offers = append(offers, g.Quest)
 					level := ledger.Level(g.Quest)
 					if level < playerLevel && level <= trivialBelow {
 						trivialOffer = lowestPositive(trivialOffer, level)
@@ -60,15 +63,35 @@ func QuestMarkers(defs []*mobs.MobDefinition, p learner, killXP curve.KillXP) []
 			}
 		}
 
+		awaited := awaitedQuestsFinishedBy(in, p)
+		m := model.QuestMarker{Mob: def.ID, Quests: uniqueQuests(turnIns, offers, awaited)}
 		switch {
 		case turnIn:
-			out = append(out, model.QuestMarker{Mob: def.ID, Kind: model.QuestMarkerTurnIn})
+			m.Kind = model.QuestMarkerTurnIn
 		case offer > 0:
-			out = append(out, model.QuestMarker{Mob: def.ID, Kind: model.QuestMarkerOffer, Level: offer})
+			m.Kind, m.Level = model.QuestMarkerOffer, offer
 		case trivialOffer > 0:
-			out = append(out, model.QuestMarker{Mob: def.ID, Kind: model.QuestMarkerOffer, Level: trivialOffer})
-		case finishesAwaitedStage(in, p):
-			out = append(out, model.QuestMarker{Mob: def.ID, Kind: model.QuestMarkerInProgress})
+			m.Kind, m.Level = model.QuestMarkerOffer, trivialOffer
+		case len(awaited) > 0:
+			m.Kind = model.QuestMarkerInProgress
+		default:
+			continue
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+// uniqueQuests concatenates the lists, keeping each quest id's first place.
+func uniqueQuests(lists ...[]string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, list := range lists {
+		for _, id := range list {
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id)
+			}
 		}
 	}
 	return out
@@ -112,11 +135,12 @@ func reachableQuestGrants(in *mobs.Interaction, c *model.Conversation) []*mobs.I
 	return grants
 }
 
-// finishesAwaitedStage reports whether this conversant authors an
-// advance_quest row leaving the stage one of p's running quests is working
-// towards: the grey `?` (D11).
-func finishesAwaitedStage(in *mobs.Interaction, p learner) bool {
+// awaitedQuestsFinishedBy lists p's running quests for which this conversant
+// authors an advance_quest row leaving the stage the quest is working towards:
+// the grey `?` (D11).
+func awaitedQuestsFinishedBy(in *mobs.Interaction, p learner) []string {
 	ledger := p.QuestLedger()
+	var quests []string
 	for i := range in.Nodes {
 		for j := range in.Nodes[i].Options {
 			opt := &in.Nodes[i].Options[j]
@@ -125,11 +149,11 @@ func finishesAwaitedStage(in *mobs.Interaction, p learner) bool {
 			}
 			g := &opt.Grants[0]
 			if awaited := ledger.AwaitedStage(g.Quest); awaited != "" && awaited == g.FromStage {
-				return true
+				quests = append(quests, g.Quest)
 			}
 		}
 	}
-	return false
+	return quests
 }
 
 func lowestPositive(current, candidate int) int {

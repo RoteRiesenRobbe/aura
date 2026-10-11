@@ -18,12 +18,14 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {mobIdByName} from '../../../client-data/Mobs';
 import {
     QuestMarkerData,
+    questHoverLines,
     questMarkerColor,
     questMarkerFor,
     questMarkerGlyph,
 } from '../../../client-data/QuestMarkers';
+import {questDefinition} from '../../../client-data/Quests';
 import {isRevealedAt, MapFogData} from './FogReveal';
-import {MapState, questGiverMarkers, ZoneSpawnPoint} from './MapScale';
+import {MapState, pickNearestMarker, QuestGiverMapMarker, questGiverMarkers, questHoverPosition, ZoneSpawnPoint} from './MapScale';
 
 /** Glyph font size in canvas pixels, per state. [PLACEHOLDER] */
 const GLYPH_SIZE = {
@@ -31,11 +33,18 @@ const GLYPH_SIZE = {
     [MapState.FULLSCREEN]: 24,
 };
 
+/** Hover hit radius and box gap, as fractions of the glyph size. [PLACEHOLDER] */
+const HOVER_RADIUS_FACTOR = 0.75;
+const HOVER_GAP_FACTOR = 0.6;
+
 export class MapQuestMarkers {
     /** Add to the stage just UNDER the campfires: the fires stay the topmost markers (PO 2026-08-04). */
     readonly layer: Container;
 
     private spawns: ZoneSpawnPoint[] = [];
+    /** The markers as last drawn, at each glyph's CENTRE: what the hover picks from. */
+    private drawn: QuestGiverMapMarker<QuestMarkerData>[] = [];
+    private glyphSize = 0;
 
     constructor(zoneName: string) {
         this.layer = createNamedContainer('questMarkers');
@@ -68,6 +77,10 @@ export class MapQuestMarkers {
             meter2px(1),
         );
         const size = GLYPH_SIZE[state];
+        this.glyphSize = size;
+        // The glyph hangs above its point (anchor 0.5, 1), so its centre is
+        // about half a font size up.
+        this.drawn = drawn.map((m) => ({...m, y: m.y - size / 2}));
         for (const {x, y, marker} of drawn) {
             const glyph = new Text({
                 text: questMarkerGlyph(marker.kind),
@@ -85,7 +98,48 @@ export class MapQuestMarkers {
         }
     }
 
+    /** The marker under a point in LAYER coordinates, or null (the campfire pick). */
+    markerAt(point: {x: number, y: number}): QuestGiverMapMarker<QuestMarkerData> | null {
+        return pickNearestMarker(this.drawn, point, this.glyphSize * HOVER_RADIUS_FACTOR);
+    }
+
+    /**
+     * Fills the hover box with the marker's quest titles, each in its level
+     * tint, and places it beside the glyph (a mouse) or above it (a tap, see
+     * questHoverPosition). Hides it when no title resolves.
+     *
+     * @param glyph the glyph's centre in CLIENT (viewport) px
+     */
+    showHover(box: HTMLElement, marker: QuestMarkerData, glyph: {x: number, y: number}, placement: 'side' | 'above') {
+        const lines = questHoverLines(marker, questDefinition);
+        if (lines.length === 0) {
+            hideQuestHover(box);
+            return;
+        }
+        box.replaceChildren(...lines.map(({title, color}) => {
+            const line = document.createElement('div');
+            line.textContent = title;
+            line.style.color = color;
+            return line;
+        }));
+        box.classList.remove('hidden');
+
+        const {x, y} = questHoverPosition(
+            glyph,
+            {width: box.offsetWidth, height: box.offsetHeight},
+            this.glyphSize * HOVER_GAP_FACTOR,
+            {width: window.innerWidth, height: window.innerHeight},
+            placement,
+        );
+        box.style.left = `${x}px`;
+        box.style.top = `${y}px`;
+    }
+
     destroy() {
         this.layer.destroy({children: true});
     }
+}
+
+export function hideQuestHover(box: HTMLElement | null) {
+    box?.classList.add('hidden');
 }

@@ -23,7 +23,13 @@
 //   4  talk to Reinhard and the TownCrier (the objectives): the Hermit shows
 //      the YELLOW `?`.
 //   5  XP to level 15: the journal + tracker titles turn grey (trivial).
+//   5c the full-screen map: hovering the Hermit's yellow `?` shows a black box
+//      naming "Village Welcome" in the QUEST's tint (grey now), not the
+//      marker's yellow; moving off hides it. Real mouse.move only.
 //   6  QUEST ADVANCE village-welcome back known: no glyph over the Hermit.
+//   7  a PHONE (a second, touch context with `&mobile`, a fresh character at
+//      the spawn): a TAP on Eliza's map marker opens the box centred ABOVE the
+//      marker; a tap on open map hides it. Real touchscreen.tap only.
 //
 // ⚑ Restart aurad first and run this script ALONE (standing conversant rule).
 // Usage: node .claude/skills/verify/quest-markers.mjs [label] [url]
@@ -256,10 +262,99 @@ check('5a at level 15 the journal title is trivial grey', colors.journal.some((j
 check('5b and so is the tracker title', colors.tracker.some((j) => j.t === title && j.c === rgb(GRAY)), colors);
 await page.keyboard.press('KeyJ');
 
+// --- 5c: the map hover ---------------------------------------------------------
+await page.keyboard.press('KeyM');
+await page.waitForTimeout(1500);
+// The Hermit's glyph centre in client px: canvas + layer offset + glyph point,
+// half a font size up (the glyph hangs above its point).
+const hermitGlyph = await page.evaluate(([hx, hy]) => {
+  const mm = window.game.miniMap;
+  const layer = mm.questMarkers.layer;
+  const box = mm.application.canvas.getBoundingClientRect();
+  const g = layer.children.find((c) =>
+    Math.abs(c.position.x - hx * 120 * mm.scale) < 1 && Math.abs(c.position.y - hy * 120 * mm.scale) < 1);
+  if (!g) return null;
+  return { x: box.left + layer.position.x + g.position.x, y: box.top + layer.position.y + g.position.y - g.style.fontSize / 2 };
+}, [HERMIT.x, HERMIT.y]);
+const hoverBox = () => page.evaluate(() => {
+  const el = document.querySelector('#worldMap .worldMapQuestHover');
+  if (!el) return null;
+  return {
+    hidden: el.classList.contains('hidden'),
+    background: getComputedStyle(el).backgroundColor,
+    lines: [...el.children].map((d) => ({ t: d.textContent, c: d.style.color })),
+  };
+});
+let hover = null;
+if (hermitGlyph) {
+  await page.mouse.move(hermitGlyph.x - 40, hermitGlyph.y);
+  await page.mouse.move(hermitGlyph.x, hermitGlyph.y, { steps: 4 });
+  await page.waitForTimeout(800);
+  hover = await hoverBox();
+}
+check('5c hovering the Hermit\'s map marker names the quest in a black box, in the quest\'s (grey) tint',
+  !!hover && !hover.hidden && hover.background === 'rgb(0, 0, 0)' &&
+  hover.lines.some((l) => l.t === title && l.c === rgb(GRAY)), { hermitGlyph, hover });
+await page.screenshot({ path: join(shotDir, `qm-${label}-map-hover.png`) });
+if (hermitGlyph) {
+  await page.mouse.move(hermitGlyph.x + 150, hermitGlyph.y + 150, { steps: 4 });
+  await page.waitForTimeout(800);
+}
+const off = await hoverBox();
+check('5d moving off the marker hides the box', !!off && off.hidden, off);
+await page.keyboard.press('KeyM');
+await page.waitForTimeout(800);
+
 // --- 6: turned in --------------------------------------------------------------
 await cmd('QUEST ADVANCE village-welcome back known');
 s = await waitGlyph(names.Hermit, (g) => g?.plate && (!g.glyph || g.visible === false));
 check('6 turned in: no glyph over the Hermit', s?.plate && (!s.glyph || s.visible === false), s);
+
+// --- 7: the phone ---------------------------------------------------------------
+const phone = await (await browser.newContext({
+  viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true,
+})).newPage();
+phone.on('pageerror', (e) => consoleErrors.push('phone pageerror: ' + e.message));
+await phone.goto(url + '&mobile', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+await joinAsNewCharacter(phone, 'qmphone');
+await phone.waitForFunction(() => !!window.game?.character?.plate?.parent, null, { timeout: 120_000 });
+await phone.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
+await phone.waitForTimeout(3000);
+await phone.keyboard.press('KeyM');
+await phone.waitForTimeout(1500);
+const elizaGlyph = await phone.evaluate(([ex, ey]) => {
+  const mm = window.game.miniMap;
+  if (!mm?.isOpen()) return { open: false };
+  const layer = mm.questMarkers.layer;
+  const box = mm.application.canvas.getBoundingClientRect();
+  const g = layer.children.find((c) =>
+    Math.abs(c.position.x - ex * 120 * mm.scale) < 1 && Math.abs(c.position.y - ey * 120 * mm.scale) < 1);
+  if (!g) return { open: true, glyph: false };
+  return { open: true, x: box.left + layer.position.x + g.position.x, y: box.top + layer.position.y + g.position.y - g.style.fontSize / 2 };
+}, [ELIZA.x, ELIZA.y]);
+const phoneBox = () => phone.evaluate(() => {
+  const el = document.querySelector('#worldMap .worldMapQuestHover');
+  const r = el.getBoundingClientRect();
+  return { hidden: el.classList.contains('hidden'), lines: [...el.children].map((d) => d.textContent),
+    left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+});
+let tapBox = null;
+if (elizaGlyph?.x !== undefined) {
+  await phone.touchscreen.tap(elizaGlyph.x, elizaGlyph.y);
+  await phone.waitForTimeout(800);
+  tapBox = await phoneBox();
+}
+const centred = tapBox && Math.abs((tapBox.left + tapBox.right) / 2 - elizaGlyph.x) < 2;
+check('7a phone: a tap on Eliza\'s map marker opens the box ABOVE it, centred',
+  !!tapBox && !tapBox.hidden && tapBox.lines.length > 0 && tapBox.bottom <= elizaGlyph.y && centred,
+  { elizaGlyph, tapBox });
+await phone.screenshot({ path: join(shotDir, `qm-${label}-phone-tap.png`) });
+if (elizaGlyph?.x !== undefined) {
+  await phone.touchscreen.tap(elizaGlyph.x + 120, elizaGlyph.y + 80);
+  await phone.waitForTimeout(800);
+}
+const tapOff = await phoneBox();
+check('7b phone: a tap on open map hides it', tapOff.hidden, tapOff);
 
 const errors = consoleErrors.filter((e) => !/401|favicon/.test(e));
 check('no console errors', errors.length === 0, errors.slice(0, 5));

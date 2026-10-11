@@ -271,10 +271,22 @@ func QuestMarkersMarshalFlatbuf(markers []model.QuestMarker, builder *flatbuffer
 	}
 	offsets := make([]flatbuffers.UOffsetT, n)
 	for i, m := range markers {
+		// The quest ids nest, so they are built before the table starts.
+		quests := make([]flatbuffers.UOffsetT, len(m.Quests))
+		for j, id := range m.Quests {
+			quests[j] = builder.CreateString(id)
+		}
+		AuraApi.QuestMarkerStartQuestsVector(builder, len(quests))
+		for j := len(quests) - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(quests[j])
+		}
+		questsVector := builder.EndVector(len(quests))
+
 		AuraApi.QuestMarkerStart(builder)
 		AuraApi.QuestMarkerAddMobId(builder, uint16(m.Mob))
 		AuraApi.QuestMarkerAddKind(builder, byte(m.Kind))
 		AuraApi.QuestMarkerAddLevel(builder, uint8(min(max(m.Level, 0), 255)))
+		AuraApi.QuestMarkerAddQuests(builder, questsVector)
 		offsets[i] = AuraApi.QuestMarkerEnd(builder)
 	}
 	AuraApi.GameStateStartQuestMarkersVector(builder, n)

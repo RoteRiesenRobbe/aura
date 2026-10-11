@@ -26,7 +26,7 @@ import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
 import {MapFogData, mergeMapFog} from './FogReveal';
 import {HOME_RING_COLOR, MapCampfires} from './MapCampfires';
-import {MapQuestMarkers} from './MapQuestMarkers';
+import {hideQuestHover, MapQuestMarkers} from './MapQuestMarkers';
 import {DOT_SIZE, MapPlayers} from './MapPlayers';
 import {WHEEL_IDLE, WheelState, accumulateWheel, canStepRadar, snapRadarDiameter, stepRadar} from './RadarZoom';
 import {DevicePrefs} from '../../common/logic/DevicePrefs';
@@ -127,6 +127,12 @@ export class MiniMap {
     private radarDiameterM = snapRadarDiameter(DevicePrefs.radarDiameterM);
     /** The wheel gesture in progress over the docked disc (RadarZoom.accumulateWheel). */
     private wheel: WheelState = WHEEL_IDLE;
+    /**
+     * The mouse (or the last tap) over the full-screen map in client px, or
+     * null: what the quest hover reads. A tap places the box above the marker.
+     */
+    private lastHoverClient: {x: number, y: number, placement: 'side' | 'above'} | null = null;
+
     /** The rim chevron aimed at your bound fire (M3); see setupHomePointer. */
     private homePointer: Graphics = null;
     /** Re-greys the ± buttons; set when they are wired. */
@@ -380,6 +386,7 @@ export class MiniMap {
     public refreshQuestMarkers() {
         this.questMarkers?.draw(this.state, this.scale, this.storedFog,
             {x: px2meter(this.zoneOriginX), y: px2meter(this.zoneOriginY)});
+        this.updateQuestHover();
     }
 
     /**
@@ -660,7 +667,61 @@ export class MiniMap {
                 return;
             }
             this.pressOnMap(event);
+            // A phone has no hover, so a TAP shows a giver's quests (above the
+            // marker, where the finger does not cover it); a tap on open map
+            // hides them. It rides beside flight selection: a tap on a fire
+            // arms it as before, and hits no quest marker.
+            if (event.pointerType !== 'mouse') {
+                this.lastHoverClient = {x: event.clientX, y: event.clientY, placement: 'above'};
+                this.updateQuestHover();
+            }
         });
+
+        // The quest hover: a mouse over a giver's marker names its quests.
+        // ⚑ Mouse only, both: a lifted finger fires pointerleave, which would
+        // close a tap's box the moment it opened.
+        HUD.getWorldMapPanel()?.addEventListener('pointermove', (event: PointerEvent) => {
+            if (event.pointerType !== 'mouse') {
+                return;
+            }
+            this.lastHoverClient = {x: event.clientX, y: event.clientY, placement: 'side'};
+            this.updateQuestHover();
+        });
+        HUD.getWorldMapPanel()?.addEventListener('pointerleave', (event: PointerEvent) => {
+            if (event.pointerType !== 'mouse') {
+                return;
+            }
+            this.lastHoverClient = null;
+            this.updateQuestHover();
+        });
+    }
+
+    /**
+     * Shows the quest hover for the giver under the last mouse position (or
+     * tap), or hides it. Re-run after a marker redraw, so a turn-in that lands
+     * while the mouse rests on its giver updates without a move.
+     */
+    private updateQuestHover() {
+        const box = HUD.getWorldMapPanel()?.querySelector<HTMLElement>('.worldMapQuestHover') ?? null;
+        const point = this.lastHoverClient;
+        if (!box || !point || !this.isOpen() || !this.questMarkers) {
+            hideQuestHover(box);
+            return;
+        }
+        const canvas = this.application.canvas.getBoundingClientRect();
+        const layer = this.questMarkers.layer.position;
+        const hit = this.questMarkers.markerAt({
+            x: point.x - canvas.left - layer.x,
+            y: point.y - canvas.top - layer.y,
+        });
+        if (!hit) {
+            hideQuestHover(box);
+            return;
+        }
+        this.questMarkers.showHover(box, hit.marker, {
+            x: canvas.left + layer.x + hit.x,
+            y: canvas.top + layer.y + hit.y,
+        }, point.placement);
     }
 
     /**
@@ -897,6 +958,8 @@ export class MiniMap {
         // has to be dropped. Closing the map is "never mind" by any route.
         this.disarmFlight();
         this.flightMode = false;
+        // A tap's box would otherwise come back with the map's next opening.
+        this.lastHoverClient = null;
         this.setState(MapState.DOCKED);
     }
 
