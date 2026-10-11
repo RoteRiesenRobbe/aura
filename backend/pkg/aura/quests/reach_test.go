@@ -17,7 +17,7 @@ const farm = "reinhards-farm"
 // turned in by a row, then the terminal stage.
 func roadQuest() *QuestDefinition {
 	q := &QuestDefinition{
-		ID: "road", Title: "The Road",
+		ID: "road", Title: "The Road", Level: 1,
 		Stages: []*Stage{
 			{ID: "road", Journal: "Walk.", Objectives: []Objective{{Kind: ObjectiveReach, Region: farm, TargetName: "Reinhard's Farm", Count: 1}}, Next: "meet"},
 			{ID: "meet", Journal: "Talk.", Tracker: "Talk to Reinhard"},
@@ -29,7 +29,7 @@ func roadQuest() *QuestDefinition {
 }
 
 func TestLoad_ReachObjective(t *testing.T) {
-	r := loadOne(t, `{"id": "road", "title": "The Road", "stages": [
+	r := loadOne(t, `{"id": "road", "title": "The Road", "level": 1, "stages": [
 		{"id": "road", "journal": "Walk.", "objectives": [{"kind": "reach", "region": "reinhards-farm"}], "next": "done"},
 		{"id": "done", "journal": "Done."}]}`)
 	q, err := r.Get("road")
@@ -43,7 +43,7 @@ func TestLoad_ReachObjective(t *testing.T) {
 
 func TestLoad_ReachRejections(t *testing.T) {
 	stage := func(objectives string) string {
-		return `{"id": "q", "title": "Q", "stages": [
+		return `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "j", "objectives": [` + objectives + `], "next": "t"},
 			{"id": "t", "journal": "done"}]}`
 	}
@@ -63,7 +63,7 @@ func TestLoad_ReachRejections(t *testing.T) {
 
 // {n}/{m} count a kill/harvest objective; a reach stage has none to count.
 func TestLoad_ReachStageTrackerCannotCount(t *testing.T) {
-	err := loadErr(t, `{"id": "q", "title": "Q", "stages": [
+	err := loadErr(t, `{"id": "q", "title": "Q", "level": 1, "stages": [
 		{"id": "s", "journal": "j", "tracker": "{n}/{m}", "objectives": [{"kind": "reach", "region": "a"}], "next": "t"},
 		{"id": "t", "journal": "done"}]}`)
 	assert.Contains(t, err.Error(), "no kill/harvest objective to count")

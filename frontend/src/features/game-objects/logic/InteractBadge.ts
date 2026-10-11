@@ -46,6 +46,9 @@ const FONT_SIZE = 13;
 
 export class InteractBadge {
     private container: PIXI.Container = null;
+    // Horizontal offset from the mob's origin: 0 alone, beside a quest giver's
+    // `!` when the two share the row (plan-quest-giver-markers.md C3).
+    private offsetX = 0;
 
     /**
      * @param parent the container the cap is drawn into — the mob's whole
@@ -72,6 +75,25 @@ export class InteractBadge {
             this.build();
         }
         this.container.visible = true;
+    }
+
+    /**
+     * The cap's width while it shows, 0 while hidden, so a quest giver's `!`
+     * can share its row (plan-quest-giver-markers.md C3).
+     */
+    shownWidth(): number {
+        if (this.container === null || !this.container.visible) {
+            return 0;
+        }
+        return this.container.width;
+    }
+
+    /** Shift the cap sideways from the mob's centre (0 = centred). */
+    setOffsetX(x: number) {
+        this.offsetX = x;
+        if (this.container !== null) {
+            this.container.x = x;
+        }
     }
 
     destroy() {
@@ -106,6 +128,7 @@ export class InteractBadge {
 
         this.container.addChild(cap);
         this.container.addChild(text);
+        this.container.x = this.offsetX;
         this.container.y = -(this.spriteTopOffset() + capHeight / 2 + GAP_ABOVE_SPRITE);
 
         this.parent.addChild(this.container);

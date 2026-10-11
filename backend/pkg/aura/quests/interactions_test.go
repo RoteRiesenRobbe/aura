@@ -54,7 +54,7 @@ func advanceRow(quest, from, to string, extra ...mobs.InteractionGrant) mobs.Int
 // that waits for a turn-in row, and a terminal stage.
 func threeStage() *QuestDefinition {
 	return &QuestDefinition{
-		ID: "pelts", Title: "Pelts",
+		ID: "pelts", Title: "Pelts", Level: 1,
 		Stages: []*Stage{
 			{ID: "hunt", Journal: "Hunt wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, Count: 3}}, Next: "turn_in"},
 			{ID: "turn_in", Journal: "Bring the pelts back."},
@@ -129,7 +129,7 @@ func TestCrossValidate_RegistersDialogueEdgesSoMidQuestStagesWait(t *testing.T) 
 // content, not a feature — so it must simply validate.
 func TestCrossValidate_AcceptsTwoTurnInNPCsWithDifferentEnds(t *testing.T) {
 	q := &QuestDefinition{
-		ID: "choice", Title: "The Choice",
+		ID: "choice", Title: "The Choice", Level: 1,
 		Stages: []*Stage{
 			{ID: "choose", Journal: "Pick a side."},
 			{ID: "a-end", Journal: "Sided with A."},

@@ -103,8 +103,12 @@ type Stage struct {
 // deliberately does not know who offers or advances it — those rows live in
 // the conversants' interaction JSON and reference the quest (D9/D11).
 type QuestDefinition struct {
-	ID         string
-	Title      string
+	ID    string
+	Title string
+	// Level is the target player level (plan-quest-giver-markers.md D6): the
+	// giver's `!` and the quest's title are tinted by its distance from the
+	// player's level, the same rule as a mob's nameplate.
+	Level      int
 	Repeatable bool // schema room, unauthored (D6)
 	Stages     []*Stage
 
@@ -197,6 +201,9 @@ func validateQuest(q *QuestDefinition) error {
 	}
 	if q.Title == "" {
 		return fmt.Errorf("quest %q: missing title", q.ID)
+	}
+	if q.Level < 1 {
+		return fmt.Errorf("quest %q: missing level (the target player level, 1 or more)", q.ID)
 	}
 	if len(q.Stages) == 0 {
 		return fmt.Errorf("quest %q: no stages", q.ID)
@@ -357,6 +364,7 @@ type jsonQuest struct {
 
 	ID         string      `json:"id"`
 	Title      string      `json:"title"`
+	Level      int         `json:"level"`
 	Repeatable bool        `json:"repeatable"`
 	Stages     []jsonStage `json:"stages"`
 }
@@ -406,7 +414,7 @@ func parseQuest(data []byte, mr speciesResolver) (*QuestDefinition, error) {
 		return nil, err
 	}
 
-	q := &QuestDefinition{ID: jq.ID, Title: jq.Title, Repeatable: jq.Repeatable}
+	q := &QuestDefinition{ID: jq.ID, Title: jq.Title, Level: jq.Level, Repeatable: jq.Repeatable}
 	for _, js := range jq.Stages {
 		s := &Stage{ID: js.ID, Journal: js.Journal, Tracker: js.Tracker, Next: js.Next}
 		seen := map[string]bool{}

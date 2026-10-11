@@ -339,7 +339,7 @@ func (f *fakeQuestPlayer) Name() string                { return "tester" }
 func newFakeQuestPlayer(t *testing.T) *fakeQuestPlayer {
 	t.Helper()
 	branch := &quests.QuestDefinition{
-		ID: "choice", Title: "The Choice",
+		ID: "choice", Title: "The Choice", Level: 1,
 		Stages: []*quests.Stage{
 			{ID: "choose", Journal: "j"},
 			{ID: "a-end", Journal: "j"},

@@ -2209,7 +2209,7 @@ func TestMob_KillCreditNames_EmptyWithoutParticipants(t *testing.T) {
 // advances a running quest.
 func TestMob_KillCredit_IncrementsQuestCounterAndAdvancesQuest(t *testing.T) {
 	reg, err := quests.NewRegistry(&quests.QuestDefinition{
-		ID: "dodo-cull", Title: "The Dodo Cull",
+		ID: "dodo-cull", Title: "The Dodo Cull", Level: 1,
 		Stages: []*quests.Stage{
 			{ID: "cull", Journal: "j", Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 1, Count: 1}}, Next: "done"},
 			{ID: "done", Journal: "j"},

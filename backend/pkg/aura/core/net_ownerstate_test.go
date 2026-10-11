@@ -141,6 +141,7 @@ type oneQuestRegistry struct{}
 var testQuest = &quests.QuestDefinition{
 	ID:     "q1",
 	Title:  "Test Quest",
+	Level:  1,
 	Stages: []*quests.Stage{{ID: "s1"}},
 }
 

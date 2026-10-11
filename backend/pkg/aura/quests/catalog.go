@@ -27,9 +27,13 @@ import (
 // each objective line in its own language. That is the D5 leak the PO accepted
 // 2026-08-23 with the fact in view ("datamining is in the spirit of the
 // community discovers and shares"); do not restore the old projection.
+//
+// The target level IS served (plan-quest-giver-markers.md C1): the journal and
+// the tracker tint a title by it, and the giver's `!` shows it anyway.
 type CatalogEntry struct {
 	ID     string         `json:"id"`
 	Title  string         `json:"title"`
+	Level  int            `json:"level"`
 	Stages []CatalogStage `json:"stages"`
 	// Trackers maps each authored tracker's key (lang.QuestStageTracker /
 	// lang.QuestObjectiveTracker) to its ICU template in the served locale,
@@ -66,7 +70,7 @@ func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 			}
 			stages = append(stages, CatalogStage{ID: s.ID, Journal: journal})
 		}
-		entries = append(entries, CatalogEntry{ID: q.ID, Title: tr(lang.QuestTitle(q.ID), q.Title), Stages: stages,
+		entries = append(entries, CatalogEntry{ID: q.ID, Title: tr(lang.QuestTitle(q.ID), q.Title), Level: q.Level, Stages: stages,
 			Trackers: trackersOf(q, tr)})
 	}
 	return json.Marshal(entries)

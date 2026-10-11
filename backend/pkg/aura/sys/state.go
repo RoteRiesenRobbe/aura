@@ -9,6 +9,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
@@ -377,6 +378,19 @@ func (s *ConnectionStateSystem) trackMapFog() {
 		if touched := fog.TakeDirty(); touched != nil {
 			p.NoteMapFog(append(p.MapFog(), touched...))
 		}
+	}
+}
+
+// RevealMap uncovers every given zone rectangle in the player's reveal, dark
+// cells included: the REVEALMAP cheat. The touched chunks ride this tick's
+// GameState the way trackMapFog's do, and the save interval persists them.
+func (s *ConnectionStateSystem) RevealMap(p model.PlayerEntity, zones []cfg.PlacedBounds) {
+	fog := s.fogFor(p.Client().UUID())
+	for _, z := range zones {
+		fog.RevealRect(z.OriginX-z.Width/2, z.OriginY-z.Height/2, z.OriginX+z.Width/2, z.OriginY+z.Height/2)
+	}
+	if touched := fog.TakeDirty(); touched != nil {
+		p.NoteMapFog(append(p.MapFog(), touched...))
 	}
 }
 

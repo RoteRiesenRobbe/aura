@@ -766,6 +766,12 @@ table ConversationOption {
   // ⚑ A ubyte rather than a bool, with 0 = none so the default is the inert
   // one — the grant_index = 255 convention above. Appended at the table end.
   travel:ubyte = 0;
+
+  // The target level of the quest an offer row hands out, which the panel
+  // tints the row by (plan-quest-giver-markers.md D4, the mob nameplate's
+  // difficulty colour). 0 on every other row, the turn-in included. Derived
+  // from the quest, never authored on the row. Appended at the table end.
+  quest_level:ubyte = 0;
   // --- plan-localization.md C3 (D20), appended: the client words the row. ---
   // The stable id of the authored label / reply line: the client looks it up
   // in the /lang bundle as conv.<id>. Empty = no authored text (a teach row
@@ -974,6 +980,24 @@ struct OwnEffect {
   kinds:EffectKind;     // the union of EffectKind bits live under this circle (after total_ticks so the uint packs without padding)
   caster:ulong;         // see above; 0 = the skill's shared circle
   expires_tick:ulong;   // the server tick the longest stream ends on; GameState.tick is the clock
+}
+
+// One quest giver's marker for the owning player (plan-quest-giver-markers.md
+// C2): what every entity and every map spawn of mob_id shows over its head.
+// Keyed by the mob DEFINITION, not a placement (D10), so it carries no position
+// and nothing per zone.
+table QuestMarker {
+  // The Mob table's mob_id: the catalog key the client resolves to a species.
+  mob_id:ushort;
+  // 1 `!` (a quest to take) · 2 yellow `?` (a step to take here now) · 3 grey
+  // `?` (this NPC finishes a quest still in progress). 0 is never sent.
+  kind:ubyte;
+  // The offer's target level, which the `!` is tinted by; 0 on both `?`.
+  level:ubyte;
+  // Every quest the marker covers, whatever its kind: the steps to take here
+  // now, the offers, then the quests this NPC finishes later. The world map's
+  // hover names them; titles come from the /quests catalog. Appended field.
+  quests:[string];
 }
 
 table GameState {
@@ -1201,6 +1225,15 @@ table GameState {
   // clear (perf chunk 3's F1 rule, applied here). Appended at the table end so
   // existing field IDs stay stable.
   own_effects:[OwnEffect];
+
+  // The quest-giver markers (plan-quest-giver-markers.md C2): one QuestMarker
+  // per conversant definition with something to show this player. ⭐ RIDES THE
+  // OWNER BLOCK like own_effects: built only on a tick that carries
+  // `owner_state`, and on such a tick an ABSENT or empty vector means "no giver
+  // has anything for you" (the last offer was just accepted is a REAL empty
+  // state); on a tick without `owner_state` the client keeps what it has.
+  // Appended at the table end so existing field IDs stay stable.
+  quest_markers:[QuestMarker];
 }
 
 table Welcome {

@@ -6,7 +6,7 @@ import {IMiniMapRendered, Layer} from './MiniMapInterfaces';
 import {gameObjectId} from '../../common/logic/Types';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Character} from '../../game-objects/logic/Character';
-import {meter2px} from '../../../client-data/BasicConfig';
+import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {
     CampfireMarker,
     GROUND_RING_REACH_M,
@@ -27,6 +27,7 @@ import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
 import {MapFogData, mergeMapFog} from './FogReveal';
 import {HOME_RING_COLOR, MapCampfires} from './MapCampfires';
+import {hideQuestHover, MapQuestMarkers} from './MapQuestMarkers';
 import {DOT_SIZE, MapPlayers} from './MapPlayers';
 import {WHEEL_IDLE, WheelState, accumulateWheel, canStepRadar, snapRadarDiameter, stepRadar} from './RadarZoom';
 import {DevicePrefs} from '../../common/logic/DevicePrefs';
@@ -127,6 +128,12 @@ export class MiniMap {
     private radarDiameterM = snapRadarDiameter(DevicePrefs.radarDiameterM);
     /** The wheel gesture in progress over the docked disc (RadarZoom.accumulateWheel). */
     private wheel: WheelState = WHEEL_IDLE;
+    /**
+     * The mouse (or the last tap) over the full-screen map in client px, or
+     * null: what the quest hover reads. A tap places the box above the marker.
+     */
+    private lastHoverClient: {x: number, y: number, placement: 'side' | 'above'} | null = null;
+
     /** The rim chevron aimed at your bound fire (M3); see setupHomePointer. */
     private homePointer: Graphics = null;
     /** Re-greys the ± buttons; set when they are wired. */
@@ -167,6 +174,8 @@ export class MiniMap {
     private storedFog: MapFogData | null = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
     private campfires: MapCampfires = null;
+    /** Quest-giver markers (plan-quest-giver-markers.md C3), just under the campfires. */
+    private questMarkers: MapQuestMarkers = null;
     /**
      * The expiry timer for a pending flight arm (plan-flight-paths.md C3). The
      * armed destination ITSELF lives in MapCampfires, which draws the ring —
@@ -284,6 +293,7 @@ export class MiniMap {
         this.setupPlayers();
         this.stage.addChild(this.layerContainers[Layer.CHARACTER]);
         this.setupCampfires(zoneName);
+        this.setupQuestMarkers(zoneName);
         this.setupHomePointer();
 
         this.zoneName = zoneName;
@@ -319,6 +329,7 @@ export class MiniMap {
         this.lastFocus = null;
         // The fires move, the discovered set does not.
         this.campfires?.setZone(zoneName);
+        this.questMarkers?.setZone(zoneName);
         this.setupTerrain(zoneName);
         // Re-derives the scale for the new zone's bounds and redraws every
         // marker against the new origin.
@@ -351,6 +362,32 @@ export class MiniMap {
             ? this.stage.getChildIndex(characters) + 1
             : this.stage.children.length;
         this.stage.addChildAt(this.campfires.layer, above);
+    }
+
+    /**
+     * Installs the quest-giver marker layer (plan-quest-giver-markers.md C3)
+     * directly UNDER the campfires, anchored by the campfire layer's index for
+     * setupCampfires' reason: the fires stay the topmost markers (PO
+     * 2026-08-04), and a giver standing at a fire must not cover it.
+     */
+    private setupQuestMarkers(zoneName: string) {
+        if (this.questMarkers) {
+            this.questMarkers.destroy();
+        }
+        this.questMarkers = new MapQuestMarkers(zoneName);
+        this.questMarkers.layer.position.set(this.width / 2, this.height / 2);
+        this.stage.addChildAt(this.questMarkers.layer, this.stage.getChildIndex(this.campfires.layer));
+    }
+
+    /**
+     * Redraws the quest-giver markers: on a marker publication (Backend), a fog
+     * publication, a state toggle and a resize. The origin turns a zone-local
+     * spawn into the world point the stored reveal is keyed by.
+     */
+    public refreshQuestMarkers() {
+        this.questMarkers?.draw(this.state, this.scale, this.storedFog,
+            {x: px2meter(this.zoneOriginX), y: px2meter(this.zoneOriginY)});
+        this.updateQuestHover();
     }
 
     /**
@@ -473,6 +510,8 @@ export class MiniMap {
         }
         this.storedFog = mergeMapFog(this.storedFog, published);
         this.fogByZone.forEach(fog => fog.applyRevealed(this.application.renderer, published));
+        // A giver on ground just uncovered appears with it (D3).
+        this.refreshQuestMarkers();
     }
 
     /**
@@ -629,7 +668,61 @@ export class MiniMap {
                 return;
             }
             this.pressOnMap(event);
+            // A phone has no hover, so a TAP shows a giver's quests (above the
+            // marker, where the finger does not cover it); a tap on open map
+            // hides them. It rides beside flight selection: a tap on a fire
+            // arms it as before, and hits no quest marker.
+            if (event.pointerType !== 'mouse') {
+                this.lastHoverClient = {x: event.clientX, y: event.clientY, placement: 'above'};
+                this.updateQuestHover();
+            }
         });
+
+        // The quest hover: a mouse over a giver's marker names its quests.
+        // ⚑ Mouse only, both: a lifted finger fires pointerleave, which would
+        // close a tap's box the moment it opened.
+        HUD.getWorldMapPanel()?.addEventListener('pointermove', (event: PointerEvent) => {
+            if (event.pointerType !== 'mouse') {
+                return;
+            }
+            this.lastHoverClient = {x: event.clientX, y: event.clientY, placement: 'side'};
+            this.updateQuestHover();
+        });
+        HUD.getWorldMapPanel()?.addEventListener('pointerleave', (event: PointerEvent) => {
+            if (event.pointerType !== 'mouse') {
+                return;
+            }
+            this.lastHoverClient = null;
+            this.updateQuestHover();
+        });
+    }
+
+    /**
+     * Shows the quest hover for the giver under the last mouse position (or
+     * tap), or hides it. Re-run after a marker redraw, so a turn-in that lands
+     * while the mouse rests on its giver updates without a move.
+     */
+    private updateQuestHover() {
+        const box = HUD.getWorldMapPanel()?.querySelector<HTMLElement>('.worldMapQuestHover') ?? null;
+        const point = this.lastHoverClient;
+        if (!box || !point || !this.isOpen() || !this.questMarkers) {
+            hideQuestHover(box);
+            return;
+        }
+        const canvas = this.application.canvas.getBoundingClientRect();
+        const layer = this.questMarkers.layer.position;
+        const hit = this.questMarkers.markerAt({
+            x: point.x - canvas.left - layer.x,
+            y: point.y - canvas.top - layer.y,
+        });
+        if (!hit) {
+            hideQuestHover(box);
+            return;
+        }
+        this.questMarkers.showHover(box, hit.marker, {
+            x: canvas.left + layer.x + hit.x,
+            y: canvas.top + layer.y + hit.y,
+        }, point.placement);
     }
 
     /**
@@ -866,6 +959,8 @@ export class MiniMap {
         // has to be dropped. Closing the map is "never mind" by any route.
         this.disarmFlight();
         this.flightMode = false;
+        // A tap's box would otherwise come back with the map's next opening.
+        this.lastHoverClient = null;
         this.setState(MapState.DOCKED);
     }
 
@@ -957,6 +1052,7 @@ export class MiniMap {
         // marker size is per state, so the same canvas dimensions still need a
         // new drawing.
         this.campfires?.draw(this.state, this.scale);
+        this.refreshQuestMarkers();
         // Same reasoning for the roster dots, which are placed by the scale and
         // sized by the icon factor — both of which have just been re-derived.
         // Redrawing from the held roster keeps them on the ground they were on
@@ -997,6 +1093,7 @@ export class MiniMap {
         }
         this.terrainLayer?.position.set(offset.x, offset.y);
         this.campfires?.layer.position.set(offset.x, offset.y);
+        this.questMarkers?.layer.position.set(offset.x, offset.y);
         this.players?.layer.position.set(offset.x, offset.y);
     }
 

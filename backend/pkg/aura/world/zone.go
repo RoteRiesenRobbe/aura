@@ -1421,6 +1421,18 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 				"(a deck you walk across must draw below the character on it)",
 				z.propRef(i), p.Type, PropLayerUnderfoot)
 		}
+		// ⛔ A roof (plan-roof-props.md) must be walked under and drawn over
+		// you. The type already refuses blocking; the placement can re-wall it
+		// with an override, or put it under the characters, and either way it
+		// would never reveal.
+		if def.Roof && p.Blocks() {
+			return fmt.Errorf("prop %s: %q is a roof, so it must not also blocksMovement "+
+				"(nobody could stand under it)", z.propRef(i), p.Type)
+		}
+		if def.Roof && p.Layer == PropLayerUnderfoot {
+			return fmt.Errorf("prop %s: %q is a roof, so it must not be placed in props.%s "+
+				"(a roof draws over the characters under it)", z.propRef(i), p.Type, PropLayerUnderfoot)
+		}
 	}
 	return nil
 }

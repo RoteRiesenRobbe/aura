@@ -145,6 +145,10 @@ one; inside a layer, Raise / Lower decide.
   `canopy` with its eye to see under the trees.
 - ⛔ A **Bridge** (any `crossesPaths` type) must sit in `underfoot`; the save
   refuses it anywhere else. Any other prop may go anywhere.
+- A **roof** (any type authoring `roof`, `plan-roof-props.md`) goes in
+  `buildings`. It turns see-through while you stand under it, along with every
+  roof piece touching it, so butt the pieces of one building edge to edge. ⚑ The
+  Tiled save does not check it; the server boot refuses a roof in `underfoot`.
 - ⛔ The group holds only these four. A layer of another name inside it, a
   second group, or a prop layer dragged out of the group refuses the save,
   naming the layer — saving would lose its objects.

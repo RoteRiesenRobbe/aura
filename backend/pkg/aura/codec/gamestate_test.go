@@ -1083,3 +1083,67 @@ func TestPresenceBitfields_GoMirrorMatchesTheWireWidth(t *testing.T) {
 	assert.Equal(t, applied, reflect.TypeOf(character.AppliedEffects).Out(0).Size(), "Character.applied_effects")
 	assert.Equal(t, kind, reflect.TypeOf(own.Kinds).Out(0).Size(), "OwnEffect.kinds")
 }
+
+// plan-quest-giver-markers.md D4: an offer row's quest level rides the row;
+// every other row leaves the slot at its default 0.
+func TestGameStateConversation_QuestLevelRoundTrips(t *testing.T) {
+	c := &model.Conversation{
+		EntityID: 7, ActorName: "Reinhard", EntryNode: "root",
+		Nodes: []model.ConversationNode{{ID: "root", Options: []model.ConversationOption{
+			{OptionIndex: 0, GrantIndex: 0, Text: "I'll do it.", QuestLevel: 6},
+			{OptionIndex: 1, GrantIndex: model.ConversationNoGrant, Text: "Bye."},
+		}}},
+	}
+	b := flatbuffers.NewBuilder(256)
+	offset := ConversationMarshalFlatbuf(c, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddConversation(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	var root AuraApi.ConversationNode
+	var opt AuraApi.ConversationOption
+	require.True(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil).Nodes(&root, 0))
+	require.True(t, root.Options(&opt, 0))
+	assert.EqualValues(t, 6, opt.QuestLevel())
+	require.True(t, root.Options(&opt, 1))
+	assert.EqualValues(t, 0, opt.QuestLevel())
+}
+
+// plan-quest-giver-markers.md C2: the markers in order, every field intact.
+func TestQuestMarkersMarshalFlatbuf_RoundTrip(t *testing.T) {
+	markers := []model.QuestMarker{
+		{Mob: 40, Kind: model.QuestMarkerOffer, Level: 3, Quests: []string{"pelts", "the-lost-lamp"}},
+		{Mob: 41, Kind: model.QuestMarkerTurnIn},
+		{Mob: 62, Kind: model.QuestMarkerInProgress},
+		{Mob: 63, Kind: model.QuestMarkerOffer, Level: 300},
+	}
+	b := flatbuffers.NewBuilder(256)
+	offset := QuestMarkersMarshalFlatbuf(markers, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddQuestMarkers(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	require.Equal(t, 4, got.QuestMarkersLength())
+	var m AuraApi.QuestMarker
+	require.True(t, got.QuestMarkers(&m, 0))
+	assert.Equal(t, uint16(40), m.MobId())
+	assert.EqualValues(t, model.QuestMarkerOffer, m.Kind())
+	assert.Equal(t, uint8(3), m.Level())
+	require.Equal(t, 2, m.QuestsLength())
+	assert.Equal(t, "pelts", string(m.Quests(0)), "the quest ids keep their order")
+	assert.Equal(t, "the-lost-lamp", string(m.Quests(1)))
+	require.True(t, got.QuestMarkers(&m, 1))
+	assert.Equal(t, uint16(41), m.MobId())
+	assert.Zero(t, m.QuestsLength())
+	assert.EqualValues(t, model.QuestMarkerTurnIn, m.Kind())
+	require.True(t, got.QuestMarkers(&m, 2))
+	assert.EqualValues(t, model.QuestMarkerInProgress, m.Kind())
+	require.True(t, got.QuestMarkers(&m, 3))
+	assert.Equal(t, uint8(255), m.Level(), "a level past the byte clamps instead of wrapping")
+}
+
+func TestQuestMarkersMarshalFlatbuf_EmptyWritesNothing(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	assert.Zero(t, QuestMarkersMarshalFlatbuf(nil, b), "no markers write no vector; the owner_state bit says it was sent")
+}

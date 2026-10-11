@@ -305,6 +305,42 @@ func (l *Ledger) Title(questID string) string {
 	return q.Title
 }
 
+// Level is a quest's authored target level (plan-quest-giver-markers.md C2),
+// what the giver's `!` is tinted by; 0 for an unknown id or no registry.
+func (l *Ledger) Level(questID string) int {
+	if l == nil || l.reg == nil {
+		return 0
+	}
+	q, err := l.reg.Get(questID)
+	if err != nil || q == nil {
+		return 0
+	}
+	return q.Level
+}
+
+// AwaitedStage is the stage a running quest is working towards: its current
+// stage's `next` while that stage is an objective stage, else "". It is what
+// the grey `?` reads (plan-quest-giver-markers.md D11): the NPC whose
+// advance_quest row leaves THAT stage is where this quest will be turned in.
+func (l *Ledger) AwaitedStage(questID string) string {
+	if l == nil || l.reg == nil {
+		return ""
+	}
+	p, ok := l.quests[questID]
+	if !ok || !p.Running || len(p.Path) == 0 {
+		return ""
+	}
+	q, err := l.reg.Get(questID)
+	if err != nil || q == nil {
+		return ""
+	}
+	s := q.Stage(p.Path[len(p.Path)-1])
+	if s == nil || len(s.Objectives) == 0 {
+		return ""
+	}
+	return s.Next
+}
+
 // Progress reports one quest's walked stage path and state; an untouched quest
 // is all zero values.
 func (l *Ledger) Progress(questID string) (path []string, running, completed bool) {

@@ -2,9 +2,10 @@ import {describe, expect, it} from 'vitest';
 import {JournalCatalog, JournalCatalogState, JournalModel, QuestProgress, questTrackerRows} from './JournalModel';
 
 function catalogOf(state: JournalCatalogState = 'ready'): JournalCatalog {
-    const quests: { [id: string]: { title: string, stages: { [id: string]: string } } } = {
+    const quests: { [id: string]: { title: string, level?: number, stages: { [id: string]: string } } } = {
         'wolf-cull': {
             title: 'The Wolf Cull',
+            level: 3,
             stages: {
                 cull: 'Old Miller says the pack has taken three lambs.',
                 report: 'The pack is thinned. Miller should hear of it.',
@@ -18,6 +19,7 @@ function catalogOf(state: JournalCatalogState = 'ready'): JournalCatalog {
     return {
         state: () => state,
         title: (id) => quests[id]?.title,
+        level: (id) => quests[id]?.level,
         stageJournal: (questId, stageId) => quests[questId]?.stages[stageId],
     };
 }
@@ -42,10 +44,11 @@ describe('JournalModel', () => {
 
         const view = model.view();
         expect(view.completed).toEqual([]);
-        expect(view.running).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull', selected: true}]);
+        expect(view.running).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull', level: 3, selected: true}]);
         expect(view.detail).toEqual({
             questId: 'wolf-cull',
             title: 'The Wolf Cull',
+            level: 3,
             entries: ['Old Miller says the pack has taken three lambs.'],
             objectives: ['0/3 Wolf slain'],
             running: true,
@@ -181,8 +184,8 @@ describe('JournalModel', () => {
         model.update([{questId: 'ghost-quest', stages: ['gone'], completed: false, objectives: []}]);
 
         const view = model.view();
-        expect(view.running).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', selected: true}]);
-        expect(view.detail).toEqual({questId: 'ghost-quest', title: 'ghost-quest', entries: [], objectives: [], running: true});
+        expect(view.running).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', level: 0, selected: true}]);
+        expect(view.detail).toEqual({questId: 'ghost-quest', title: 'ghost-quest', level: 0, entries: [], objectives: [], running: true});
     });
 
     // The tracker (2026-08-23): the always-on right-side strip under the map
@@ -199,18 +202,18 @@ describe('JournalModel', () => {
         it('carries every objective line of the current stage, in order, verbatim', () => {
             const rows = questTrackerRows([{questId: 'wolf-cull', stages: ['cull'], completed: false,
                 objectives: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}], catalogOf());
-            expect(rows).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull',
+            expect(rows).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull', level: 3,
                 lines: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}]);
         });
 
         it('carries no lines for a stage with no objective lines - the title stands alone', () => {
             const rows = questTrackerRows([choiceRunning], catalogOf());
-            expect(rows).toEqual([{questId: 'choice', title: 'The Choice', lines: []}]);
+            expect(rows).toEqual([{questId: 'choice', title: 'The Choice', level: 0, lines: []}]);
         });
 
         it('keeps an unknown quest visible under its id, like the journal list', () => {
             const rows = questTrackerRows([{questId: 'ghost-quest', stages: ['gone'], completed: false, objectives: []}], catalogOf());
-            expect(rows).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', lines: []}]);
+            expect(rows).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', level: 0, lines: []}]);
         });
 
         it('shows nothing while the catalog is not ready - the journal panel owns saying why', () => {
@@ -235,5 +238,24 @@ describe('JournalModel', () => {
             {questId: 'wolf-cull', stages: ['cull', 'report'], completed: true, objectives: []},
         ]);
         expect(JSON.stringify(model.view())).toBe(first);
+    });
+});
+
+// plan-quest-giver-markers.md D4: every title view carries the quest's target
+// level, which the panel and the tracker tint the title by; unknown reads 0.
+describe('quest level on the title views', () => {
+    it('rides the list row, the detail and the tracker row', () => {
+        const model = new JournalModel(catalogOf());
+        model.update([cullRunning]);
+        const view = model.view();
+        expect(view.running[0].level).toBe(3);
+        expect(view.detail?.level).toBe(3);
+        expect(questTrackerRows([cullRunning], catalogOf())[0].level).toBe(3);
+    });
+
+    it('is 0 for a quest the catalog does not level', () => {
+        const model = new JournalModel(catalogOf());
+        model.update([{questId: 'choice', stages: ['choose'], completed: false, objectives: []}]);
+        expect(model.view().running[0].level).toBe(0);
     });
 });

@@ -81,51 +81,56 @@ travel():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+questLevel():number {
+  const offset = this.bb!.__offset(this.bb_pos, 24);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 textId():string|null
 textId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 textId(optionalEncoding?:any):string|Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
+  const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
 replyId():string|null
 replyId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 replyId(optionalEncoding?:any):string|Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
+  const offset = this.bb!.__offset(this.bb_pos, 28);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
 textKey():string|null
 textKey(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 textKey(optionalEncoding?:any):string|Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 28);
+  const offset = this.bb!.__offset(this.bb_pos, 30);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
 replyKey():string|null
 replyKey(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 replyKey(optionalEncoding?:any):string|Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 30);
+  const offset = this.bb!.__offset(this.bb_pos, 32);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
 locks(index: number, obj?:ConversationLock):ConversationLock|null {
-  const offset = this.bb!.__offset(this.bb_pos, 32);
+  const offset = this.bb!.__offset(this.bb_pos, 34);
   return offset ? (obj || new ConversationLock()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 }
 
 locksLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 32);
+  const offset = this.bb!.__offset(this.bb_pos, 34);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 locksAny():boolean {
-  const offset = this.bb!.__offset(this.bb_pos, 34);
+  const offset = this.bb!.__offset(this.bb_pos, 36);
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(16);
+  builder.startObject(17);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -168,24 +173,28 @@ static addTravel(builder:flatbuffers.Builder, travel:number) {
   builder.addFieldInt8(9, travel, 0);
 }
 
+static addQuestLevel(builder:flatbuffers.Builder, questLevel:number) {
+  builder.addFieldInt8(10, questLevel, 0);
+}
+
 static addTextId(builder:flatbuffers.Builder, textIdOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(10, textIdOffset, 0);
+  builder.addFieldOffset(11, textIdOffset, 0);
 }
 
 static addReplyId(builder:flatbuffers.Builder, replyIdOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(11, replyIdOffset, 0);
+  builder.addFieldOffset(12, replyIdOffset, 0);
 }
 
 static addTextKey(builder:flatbuffers.Builder, textKeyOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(12, textKeyOffset, 0);
+  builder.addFieldOffset(13, textKeyOffset, 0);
 }
 
 static addReplyKey(builder:flatbuffers.Builder, replyKeyOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(13, replyKeyOffset, 0);
+  builder.addFieldOffset(14, replyKeyOffset, 0);
 }
 
 static addLocks(builder:flatbuffers.Builder, locksOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(14, locksOffset, 0);
+  builder.addFieldOffset(15, locksOffset, 0);
 }
 
 static createLocksVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
@@ -201,7 +210,7 @@ static startLocksVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addLocksAny(builder:flatbuffers.Builder, locksAny:boolean) {
-  builder.addFieldInt8(15, +locksAny, +false);
+  builder.addFieldInt8(16, +locksAny, +false);
 }
 
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -209,7 +218,7 @@ static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, textIdOffset:flatbuffers.Offset, replyIdOffset:flatbuffers.Offset, textKeyOffset:flatbuffers.Offset, replyKeyOffset:flatbuffers.Offset, locksOffset:flatbuffers.Offset, locksAny:boolean):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number, textIdOffset:flatbuffers.Offset, replyIdOffset:flatbuffers.Offset, textKeyOffset:flatbuffers.Offset, replyKeyOffset:flatbuffers.Offset, locksOffset:flatbuffers.Offset, locksAny:boolean):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -221,6 +230,7 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addConfirmSeconds(builder, confirmSeconds);
   ConversationOption.addSkillId(builder, skillId);
   ConversationOption.addTravel(builder, travel);
+  ConversationOption.addQuestLevel(builder, questLevel);
   ConversationOption.addTextId(builder, textIdOffset);
   ConversationOption.addReplyId(builder, replyIdOffset);
   ConversationOption.addTextKey(builder, textKeyOffset);

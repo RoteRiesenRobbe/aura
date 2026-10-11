@@ -122,7 +122,7 @@ build.
 
 Useful additions: `&develop` (dev panel), `&start-cmds=GOD,XP,...`.
 Dev cheats in-game: `GOD`, `WARP <x·120> <y·120>`, `SPEED [factor|off]`, `XP`,
-`SKILL <name>`, `ANNOUNCE <text>`, `THREAT [id]`.
+`SKILL <name>`, `ANNOUNCE <text>`, `THREAT [id]`, `REVEALMAP` (whole world map seen, persists).
 
 ## Scope
 

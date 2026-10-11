@@ -23,6 +23,7 @@ import {IGame} from '../../core/logic/IGame';
 import {GameObject} from './_GameObject';
 import {StatusEffect} from './StatusEffect';
 import {addChildOrdered} from './OrderedLayer';
+import * as RoofReveal from './RoofReveal';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {
     LABEL_REFERENCE_FONT_SIZE,
@@ -69,8 +70,49 @@ export abstract class Resource extends GameObject {
     // that leaves the view and comes back returns to its own slot.
     show() {
         addChildOrdered(this.layer, this.shape, this.id);
+        if (this.roofFootprint !== undefined) {
+            RoofReveal.register(this);
+        }
     }
 
+    hide() {
+        super.hide();
+        if (this.roofFootprint !== undefined) {
+            RoofReveal.unregister(this);
+        }
+    }
+
+    // Roof reveal (plan-roof-props.md). Undefined = not a roof.
+    // ⚑ No initializers: the GameObject constructor calls show() before any
+    // field here exists, so the subclass constructor BODY calls makeRoof().
+    roofRevealAlpha: number;
+    private roofFootprint: PropFootprint;
+
+    /** Marks this placement a roof and starts revealing it (it is already shown). */
+    protected makeRoof(roof: PropRoofJSON | undefined, footprint: PropFootprint): void {
+        if (roof === undefined) {
+            return;
+        }
+        this.roofRevealAlpha = roof.revealAlpha ?? 0;
+        this.roofFootprint = footprint;
+        RoofReveal.register(this);
+    }
+
+    roofShape(): RoofReveal.RoofShape {
+        return {
+            id: this.id,
+            x: this.shape.position.x,
+            y: this.shape.position.y,
+            rotation: this.shape.rotation,
+            footprint: this.roofFootprint,
+        };
+    }
+}
+
+// A roof's reveal opacity, absent = 0 = fully hidden (PO 2026-10-10). The
+// server refuses anything outside [0, 1] at boot (world/props.go).
+interface PropRoofJSON {
+    revealAlpha?: number;
 }
 
 interface PropDefJSON {
@@ -86,6 +128,10 @@ interface PropDefJSON {
     // ⚑ Server-authoritative: collision is the server's, and this copy exists so
     // the in-game zone editor can COLOUR a prop by what it will actually do.
     blocksMovement?: boolean;
+    // Present = a roof the local player sees through while standing under it
+    // (plan-roof-props.md). ⚑ Read off defs[0] for a generated class: the
+    // server refuses two defs of one entityType that disagree on it.
+    roof?: PropRoofJSON;
 }
 
 type GameObjectClass = new (...args: any[]) => unknown;
@@ -218,6 +264,7 @@ defsByEntityType.forEach((defs, entityType) => {
         }
     }
     const maxSize = MAX_SIZE_OVERRIDE[entityType] ?? Math.round(maxUnits * PX_PER_UNIT);
+    const roof = defs[0].roof;
 
     class GeneratedProp extends SimpleProp {
         static svg: Texture;
@@ -230,6 +277,9 @@ defsByEntityType.forEach((defs, entityType) => {
         constructor(id: number, x: number, y: number, size: number, rotation: number,
                     _propName?: string, underfoot?: boolean) {
             super(id, propLayer(underfoot === true), x, y, size, rotation, GeneratedProp.svg);
+            // The footprint the sprite is drawn at (SimpleProp.initShape): the
+            // aspect when rect-bodied, else a circle at the streamed size.
+            this.makeRoof(roof, propFootprint(bodyAspect ?? {}, size));
         }
     }
 
@@ -335,6 +385,8 @@ export class PropPlaceholder extends Resource {
         const def = propDefsByName.get(propName);
         const footprint = propFootprint(def ? def.body : {}, size);
         this.shape.addChild(drawFootprint(footprint));
+        // By NAME, not entityType: every placeholder shares PropPlaceholder.
+        this.makeRoof(def?.roof, footprint);
 
         const label = propName ? buildLabel(propName, footprint) : null;
         if (label !== null) {

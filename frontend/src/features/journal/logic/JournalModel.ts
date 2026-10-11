@@ -37,6 +37,8 @@ export type JournalCatalogState = 'loading' | 'ready' | 'unavailable';
 export interface JournalCatalog {
     state(): JournalCatalogState;
     title(questId: string): string | undefined;
+    /** The quest's target level, which tints its title; undefined = unknown. */
+    level(questId: string): number | undefined;
     stageJournal(questId: string, stageId: string): string | undefined;
 }
 
@@ -44,6 +46,8 @@ export interface JournalCatalog {
 export interface JournalListRow {
     questId: string;
     title: string;
+    /** The target level the title is tinted by (plan-quest-giver-markers.md D4); 0 = unknown, untinted. */
+    level: number;
     selected: boolean;
 }
 
@@ -51,6 +55,8 @@ export interface JournalListRow {
 export interface JournalDetailView {
     questId: string;
     title: string;
+    /** As JournalListRow.level. */
+    level: number;
     /** The diary of the stages walked, in order. */
     entries: string[];
     /** The current stage's server-composed objective lines, verbatim (Q2). */
@@ -78,6 +84,8 @@ export interface JournalView {
 export interface QuestTrackerRow {
     questId: string;
     title: string;
+    /** As JournalListRow.level. */
+    level: number;
     /**
      * EVERY line of the current stage, server-composed and verbatim like the
      * journal's - empty when the stage has none, and the title stands alone.
@@ -104,6 +112,7 @@ export function questTrackerRows(progress: QuestProgress[], catalog: JournalCata
         questId: p.questId,
         // The id as a last-resort title, same rule as the journal list.
         title: catalog.title(p.questId) ?? p.questId,
+        level: catalog.level(p.questId) ?? 0,
         lines: p.objectives ?? [],
     }));
 }
@@ -157,6 +166,7 @@ export class JournalModel {
         return {
             questId: p.questId,
             title: this.catalog.title(p.questId) ?? p.questId,
+            level: this.catalog.level(p.questId) ?? 0,
             selected: p.questId === this.selectedQuestId,
         };
     }
@@ -178,6 +188,7 @@ export class JournalModel {
         return {
             questId: p.questId,
             title: this.catalog.title(p.questId) ?? p.questId,
+            level: this.catalog.level(p.questId) ?? 0,
             entries,
             objectives: p.objectives,
             running: !p.completed,

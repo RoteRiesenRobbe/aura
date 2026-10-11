@@ -774,7 +774,7 @@ func TestAscensionRows_TheStashedReplyUsesTheAuthoredDisplayName(t *testing.T) {
 // directly above, and as the authored displayName below.
 func TestDescribeCondition_NamesTheQuestByItsTitle(t *testing.T) {
 	p := newQuestLearner(t, 25, &quests.QuestDefinition{
-		ID: "thin-the-orc-line", Title: "Thin the Orc Line",
+		ID: "thin-the-orc-line", Title: "Thin the Orc Line", Level: 1,
 		Stages: []*quests.Stage{{ID: "cull", Journal: "Cull them."}},
 	})
 
@@ -790,7 +790,7 @@ func TestDescribeCondition_NamesTheQuestByItsTitle(t *testing.T) {
 // name). Pinned separately because it is a second format string.
 func TestDescribeCondition_AStageGateAlsoTitlesTheQuest(t *testing.T) {
 	p := newQuestLearner(t, 25, &quests.QuestDefinition{
-		ID: "lamp", Title: "The Lost Lamp",
+		ID: "lamp", Title: "The Lost Lamp", Level: 1,
 		Stages: []*quests.Stage{{ID: "bring_it_back", Journal: "Bring it back."}},
 	})
 

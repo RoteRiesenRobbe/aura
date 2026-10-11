@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
-    MapState, campfireMarkers, fixedIconScale, groundRing, isInsideDrawnMap, layerOffset, mapScale, rimPoint,
-    rescaleCoordinate, resizeTerrain, pickCampfireMarker, rosterMarkers, toZoneLocal, worldToMap,
+    MapState, campfireMarkers, questHoverPosition, fixedIconScale, groundRing, isInsideDrawnMap, layerOffset, mapScale, rimPoint,
+    rescaleCoordinate, resizeTerrain, pickNearestMarker, questGiverMarkers, rosterMarkers, toZoneLocal, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -514,7 +514,7 @@ describe('rosterMarkers', () => {
  * out from the layer origin, which is the canvas CENTRE, so every point here is
  * relative to that — the same space `campfireMarkers` returns.
  */
-describe('pickCampfireMarker', () => {
+describe('pickNearestMarker', () => {
     const MARKERS = [
         {id: 'spawnpoint-1', x: 0, y: 0, home: true},
         {id: 'spawnpoint-2', x: 100, y: 0, home: false},
@@ -523,34 +523,34 @@ describe('pickCampfireMarker', () => {
     const RADIUS = 13;
 
     it('picks the fire under the press', () => {
-        expect(pickCampfireMarker(MARKERS, {x: 3, y: -4}, RADIUS)?.id).toBe('spawnpoint-1');
+        expect(pickNearestMarker(MARKERS, {x: 3, y: -4}, RADIUS)?.id).toBe('spawnpoint-1');
     });
 
     it('picks the NEAREST when two markers overlap within one radius', () => {
         // At docked scale the whole 144-unit world is ~200 px across, so fires
         // a few units apart genuinely overlap. First-inside would make whichever
         // is drawn earlier permanently unclickable.
-        expect(pickCampfireMarker(MARKERS, {x: 107, y: 0}, RADIUS)?.id).toBe('spawnpoint-3');
-        expect(pickCampfireMarker(MARKERS, {x: 101, y: 0}, RADIUS)?.id).toBe('spawnpoint-2');
+        expect(pickNearestMarker(MARKERS, {x: 107, y: 0}, RADIUS)?.id).toBe('spawnpoint-3');
+        expect(pickNearestMarker(MARKERS, {x: 101, y: 0}, RADIUS)?.id).toBe('spawnpoint-2');
     });
 
     it('returns null for a press on open map', () => {
         // The map is not a fly-anywhere surface (D2): fire to fire only, so a
         // miss has to be nothing rather than the closest fire.
-        expect(pickCampfireMarker(MARKERS, {x: 400, y: 400}, RADIUS)).toBeNull();
+        expect(pickNearestMarker(MARKERS, {x: 400, y: 400}, RADIUS)).toBeNull();
     });
 
     it('counts a press exactly on the radius, and nothing past it', () => {
-        expect(pickCampfireMarker(MARKERS, {x: RADIUS, y: 0}, RADIUS)?.id).toBe('spawnpoint-1');
-        expect(pickCampfireMarker(MARKERS, {x: RADIUS + 0.5, y: 0}, RADIUS)).toBeNull();
+        expect(pickNearestMarker(MARKERS, {x: RADIUS, y: 0}, RADIUS)?.id).toBe('spawnpoint-1');
+        expect(pickNearestMarker(MARKERS, {x: RADIUS + 0.5, y: 0}, RADIUS)).toBeNull();
     });
 
     it('degrades to no pick on an unmeasured canvas', () => {
         // Radius comes from the marker size of the last draw, which is 0 before
         // one has happened (and a display:none canvas measures 0 × 0 — the phone
         // keeps the minimap in the layout for exactly that reason).
-        expect(pickCampfireMarker(MARKERS, {x: 0, y: 0}, 0)).toBeNull();
-        expect(pickCampfireMarker([], {x: 0, y: 0}, RADIUS)).toBeNull();
+        expect(pickNearestMarker(MARKERS, {x: 0, y: 0}, 0)).toBeNull();
+        expect(pickNearestMarker([], {x: 0, y: 0}, RADIUS)).toBeNull();
     });
 
     it('can pick an undiscovered fire only if one was drawn', () => {
@@ -561,8 +561,8 @@ describe('pickCampfireMarker', () => {
         const fromZone = campfireMarkers(
             [{id: 'spawnpoint-1', x: 0, y: 0}, {id: 'spawnpoint-2', x: 10, y: 0}],
             new Set(['spawnpoint-2']), '', 1, 1);
-        expect(pickCampfireMarker(fromZone, {x: 0, y: 0}, 5)).toBeNull();
-        expect(pickCampfireMarker(fromZone, {x: 10, y: 0}, 5)?.id).toBe('spawnpoint-2');
+        expect(pickNearestMarker(fromZone, {x: 0, y: 0}, 5)).toBeNull();
+        expect(pickNearestMarker(fromZone, {x: 10, y: 0}, 5)?.id).toBe('spawnpoint-2');
     });
 });
 
@@ -689,5 +689,59 @@ describe('rimPoint', () => {
         expect(rimPoint(500, 0, M, M)).toBeNull();
         expect(rimPoint(NaN, 0, R, M)).toBeNull();
         expect(rimPoint(500, 0, NaN, M)).toBeNull();
+    });
+});
+
+// plan-quest-giver-markers.md C3: the map half of the quest-giver markers.
+describe('questGiverMarkers', () => {
+    const spawns = [
+        {mob: 'Reinhard', x: 10, y: -4},
+        {mob: 'Wolf', x: 1, y: 1},
+        {mob: 'Reinhard', x: -3, y: 2},
+        {mob: 'Hermit', x: 50, y: 50},
+    ];
+    const markers: { [name: string]: string } = {Reinhard: '!', Hermit: '?'};
+    const markerFor = (name: string) => markers[name];
+
+    it('places every spawn of a marked species, zone-local, on revealed ground only', () => {
+        const got = questGiverMarkers(spawns, markerFor, (x) => x < 20, 0.5, 2);
+        expect(got).toEqual([
+            {x: 10, y: -4, marker: '!'},
+            {x: -3, y: 2, marker: '!'},
+        ]);
+    });
+
+    it('draws nothing at scale 0 or for an unmarked species', () => {
+        expect(questGiverMarkers(spawns, markerFor, () => true, 0, 2)).toEqual([]);
+        expect(questGiverMarkers([{mob: 'Wolf', x: 0, y: 0}], markerFor, () => true, 1, 1)).toEqual([]);
+        expect(questGiverMarkers([{mob: 'Hermit', x: NaN, y: 0}], markerFor, () => true, 1, 1)).toEqual([]);
+    });
+});
+
+// The quest hover box beside a map marker: right of it for a mouse (left when
+// that overflows), centred ABOVE it for a tap (below when that overflows).
+describe('questHoverPosition', () => {
+    const VIEW = {width: 800, height: 400};
+    const BOX = {width: 100, height: 30};
+
+    it('puts a mouse hover right of the glyph, vertically centred', () => {
+        expect(questHoverPosition({x: 200, y: 200}, BOX, 10, VIEW, 'side')).toEqual({x: 210, y: 185});
+    });
+
+    it('flips a mouse hover left at the right edge', () => {
+        expect(questHoverPosition({x: 750, y: 200}, BOX, 10, VIEW, 'side')).toEqual({x: 640, y: 185});
+    });
+
+    it('centres a tap above the glyph', () => {
+        expect(questHoverPosition({x: 200, y: 200}, BOX, 10, VIEW, 'above')).toEqual({x: 150, y: 160});
+    });
+
+    it('drops a tap below the glyph when there is no room above', () => {
+        expect(questHoverPosition({x: 200, y: 20}, BOX, 10, VIEW, 'above')).toEqual({x: 150, y: 30});
+    });
+
+    it('clamps a tap box inside the viewport sideways', () => {
+        expect(questHoverPosition({x: 10, y: 200}, BOX, 10, VIEW, 'above').x).toBe(0);
+        expect(questHoverPosition({x: 790, y: 200}, BOX, 10, VIEW, 'above').x).toBe(700);
     });
 });

@@ -261,6 +261,41 @@ func OwnEffectsMarshalFlatbuf(effects []skills.OwnEffect, tick uint64, builder *
 	return builder.EndVector(n)
 }
 
+// QuestMarkersMarshalFlatbuf serializes the owning player's quest-giver
+// markers (plan-quest-giver-markers.md C2), or 0 for none. It rides the owner
+// block, so on an owner_state tick an absent vector IS the empty state.
+func QuestMarkersMarshalFlatbuf(markers []model.QuestMarker, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := len(markers)
+	if n == 0 {
+		return 0
+	}
+	offsets := make([]flatbuffers.UOffsetT, n)
+	for i, m := range markers {
+		// The quest ids nest, so they are built before the table starts.
+		quests := make([]flatbuffers.UOffsetT, len(m.Quests))
+		for j, id := range m.Quests {
+			quests[j] = builder.CreateString(id)
+		}
+		AuraApi.QuestMarkerStartQuestsVector(builder, len(quests))
+		for j := len(quests) - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(quests[j])
+		}
+		questsVector := builder.EndVector(len(quests))
+
+		AuraApi.QuestMarkerStart(builder)
+		AuraApi.QuestMarkerAddMobId(builder, uint16(m.Mob))
+		AuraApi.QuestMarkerAddKind(builder, byte(m.Kind))
+		AuraApi.QuestMarkerAddLevel(builder, uint8(min(max(m.Level, 0), 255)))
+		AuraApi.QuestMarkerAddQuests(builder, questsVector)
+		offsets[i] = AuraApi.QuestMarkerEnd(builder)
+	}
+	AuraApi.GameStateStartQuestMarkersVector(builder, n)
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
+	}
+	return builder.EndVector(n)
+}
+
 // SpellbookLevelsMarshalFlatbuf serializes the per-skill levels as a [ubyte]
 // vector positionally parallel to the spellbook vector (same ascending-ID
 // order from Discovered()). Must be called before GameStateStart.
@@ -363,6 +398,7 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			// slots, and TravelNone is 0. That is why it is appended LAST — the
 			// Resource.rotation precedent, one table over.
 			AuraApi.ConversationOptionAddTravel(builder, byte(opt.Travel))
+			AuraApi.ConversationOptionAddQuestLevel(builder, opt.QuestLevel)
 			if textID != 0 {
 				AuraApi.ConversationOptionAddTextId(builder, textID)
 			}
@@ -554,7 +590,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// per-player-per-tick allocations, not just the bytes — SkipOwnerState's
 	// doc comment on the struct is the authority on exactly what this covers
 	// and why cooldown_remaining_ticks is excluded.
-	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress, ownEffects flatbuffers.UOffsetT
+	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress, ownEffects, questMarkers flatbuffers.UOffsetT
 	if !gs.SkipOwnerState {
 		spellbook = SpellbookMarshalFlatbuf(sc, builder)
 		spellbookLevels = SpellbookLevelsMarshalFlatbuf(sc, builder)
@@ -565,6 +601,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		// The buff tray (plan-buff-tray.md C1): gated by the buff revision
 		// through the same watch, so it rides here and nowhere else.
 		ownEffects = OwnEffectsMarshalFlatbuf(gs.Player.OwnEffects(), gs.Tick, builder)
+		// The quest-giver markers (plan-quest-giver-markers.md C2): computed by
+		// the caller behind the same gate, so they too ride here only.
+		questMarkers = QuestMarkersMarshalFlatbuf(gs.QuestMarkers, builder)
 	}
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(sc, builder)
 
@@ -684,6 +723,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// written while the player has no quests, or while unchanged.
 	if questProgress != 0 {
 		AuraApi.GameStateAddQuestProgress(builder, questProgress)
+	}
+	if questMarkers != 0 {
+		AuraApi.GameStateAddQuestMarkers(builder, questMarkers)
 	}
 	// The map's campfire markers (plan-world-map.md C2): one-shots published on
 	// entering the world and on completing a dwell, absent on every other tick.
@@ -994,6 +1036,12 @@ type CharacterGameState struct {
 	// only close signal (chunk 3, D3) and an absent tree must not be
 	// confusable with a closed panel.
 	SkipConversationTree bool
+
+	// QuestMarkers are this player's quest-giver markers
+	// (plan-quest-giver-markers.md C2), written only when SkipOwnerState is
+	// false. The CALLER computes them (sys.QuestMarkers) and only on a tick the
+	// owner block is due: present() per conversant is too dear for every tick.
+	QuestMarkers []model.QuestMarker
 }
 
 // MapFogMarshalFlatbuf builds the owning character's map reveal

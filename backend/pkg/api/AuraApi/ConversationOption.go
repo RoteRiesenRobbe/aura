@@ -149,15 +149,19 @@ func (rcv *ConversationOption) MutateTravel(n byte) bool {
 	return rcv._tab.MutateByteSlot(22, n)
 }
 
-func (rcv *ConversationOption) TextId() []byte {
+func (rcv *ConversationOption) QuestLevel() byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
 	}
-	return nil
+	return 0
 }
 
-func (rcv *ConversationOption) ReplyId() []byte {
+func (rcv *ConversationOption) MutateQuestLevel(n byte) bool {
+	return rcv._tab.MutateByteSlot(24, n)
+}
+
+func (rcv *ConversationOption) TextId() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -165,7 +169,7 @@ func (rcv *ConversationOption) ReplyId() []byte {
 	return nil
 }
 
-func (rcv *ConversationOption) TextKey() []byte {
+func (rcv *ConversationOption) ReplyId() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -173,7 +177,7 @@ func (rcv *ConversationOption) TextKey() []byte {
 	return nil
 }
 
-func (rcv *ConversationOption) ReplyKey() []byte {
+func (rcv *ConversationOption) TextKey() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -181,8 +185,16 @@ func (rcv *ConversationOption) ReplyKey() []byte {
 	return nil
 }
 
-func (rcv *ConversationOption) Locks(obj *ConversationLock, j int) bool {
+func (rcv *ConversationOption) ReplyKey() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *ConversationOption) Locks(obj *ConversationLock, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
 		x += flatbuffers.UOffsetT(j) * 4
@@ -194,7 +206,7 @@ func (rcv *ConversationOption) Locks(obj *ConversationLock, j int) bool {
 }
 
 func (rcv *ConversationOption) LocksLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -202,7 +214,7 @@ func (rcv *ConversationOption) LocksLength() int {
 }
 
 func (rcv *ConversationOption) LocksAny() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
 	}
@@ -210,11 +222,11 @@ func (rcv *ConversationOption) LocksAny() bool {
 }
 
 func (rcv *ConversationOption) MutateLocksAny(n bool) bool {
-	return rcv._tab.MutateBoolSlot(34, n)
+	return rcv._tab.MutateBoolSlot(36, n)
 }
 
 func ConversationOptionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(16)
+	builder.StartObject(17)
 }
 func ConversationOptionAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
 	builder.PrependByteSlot(0, optionIndex, 0)
@@ -246,26 +258,29 @@ func ConversationOptionAddSkillId(builder *flatbuffers.Builder, skillId uint16) 
 func ConversationOptionAddTravel(builder *flatbuffers.Builder, travel byte) {
 	builder.PrependByteSlot(9, travel, 0)
 }
+func ConversationOptionAddQuestLevel(builder *flatbuffers.Builder, questLevel byte) {
+	builder.PrependByteSlot(10, questLevel, 0)
+}
 func ConversationOptionAddTextId(builder *flatbuffers.Builder, textId flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(textId), 0)
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(textId), 0)
 }
 func ConversationOptionAddReplyId(builder *flatbuffers.Builder, replyId flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(replyId), 0)
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(replyId), 0)
 }
 func ConversationOptionAddTextKey(builder *flatbuffers.Builder, textKey flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(textKey), 0)
+	builder.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(textKey), 0)
 }
 func ConversationOptionAddReplyKey(builder *flatbuffers.Builder, replyKey flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(replyKey), 0)
+	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(replyKey), 0)
 }
 func ConversationOptionAddLocks(builder *flatbuffers.Builder, locks flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(locks), 0)
+	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(locks), 0)
 }
 func ConversationOptionStartLocksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ConversationOptionAddLocksAny(builder *flatbuffers.Builder, locksAny bool) {
-	builder.PrependBoolSlot(15, locksAny, false)
+	builder.PrependBoolSlot(16, locksAny, false)
 }
 func ConversationOptionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

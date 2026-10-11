@@ -24,6 +24,7 @@ import {QuestProgress} from '../../../../journal/logic/JournalModel';
 import {OwnEffectData} from '../../../../user-interface/HUD/logic/BuffTray';
 import {SkillEventData} from '../../SkillEventNumbers';
 import {MapFogData} from '../../../../map/logic/FogReveal';
+import {QuestMarkerData} from '../../../../../client-data/QuestMarkers';
 
 export class Spectator {
     id: number;
@@ -129,6 +130,10 @@ export class GameStateMessage {
     // (skill, caster) with an absolute expiry tick. Rides the same change-only
     // gate as the spellbook block: undefined = unchanged, [] = nothing on you.
     ownEffects: OwnEffectData[] | undefined;
+    // the quest-giver markers (plan-quest-giver-markers.md C3): one per
+    // conversant species with something for this player. Rides the same
+    // change-only gate: undefined = unchanged, [] = nothing to show.
+    questMarkers: QuestMarkerData[] | undefined;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -200,6 +205,7 @@ export class GameStateMessage {
 
             this.questProgress = unmarshalQuestProgress(gameState);
             this.ownEffects = unmarshalOwnEffects(gameState);
+            this.questMarkers = unmarshalQuestMarkers(gameState);
         } else {
             this.spellbook = undefined;
             this.spellbookLevels = undefined;
@@ -212,6 +218,7 @@ export class GameStateMessage {
             this.activeAuraSlot = undefined;
             this.questProgress = undefined;
             this.ownEffects = undefined;
+            this.questMarkers = undefined;
         }
 
         // cooldown_remaining_ticks stays always-sent (L3): it changes every
@@ -295,6 +302,23 @@ function unmarshalMapFog(gameState: AuraApi.GameState): MapFogData | undefined {
  * reaches here (undefined = unchanged). The two ulongs narrow to numbers the
  * way `tick` does; a placed area's id sits above 2^32 and is still exact.
  */
+/**
+ * The quest-giver markers (plan-quest-giver-markers.md C3). Only called inside
+ * the owner-state branch, where an EMPTY vector is the real "nothing to show".
+ */
+function unmarshalQuestMarkers(gameState: AuraApi.GameState): QuestMarkerData[] {
+    const markers: QuestMarkerData[] = [];
+    for (let i = 0; i < gameState.questMarkersLength(); ++i) {
+        const m = gameState.questMarkers(i);
+        const quests: string[] = [];
+        for (let j = 0; j < m.questsLength(); ++j) {
+            quests.push(m.quests(j));
+        }
+        markers.push({mobId: m.mobId(), kind: m.kind(), level: m.level(), quests});
+    }
+    return markers;
+}
+
 function unmarshalOwnEffects(gameState: AuraApi.GameState): OwnEffectData[] {
     const effects: OwnEffectData[] = [];
     const e = new AuraApi.OwnEffect();
@@ -485,6 +509,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 confirmSeconds: o.confirmSeconds(),
                 skillId: o.skillId(),
                 travel: o.travel() as TravelDirection,
+                questLevel: o.questLevel(),
             });
         }
 

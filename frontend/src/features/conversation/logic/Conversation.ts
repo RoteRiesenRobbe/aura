@@ -23,6 +23,7 @@ import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountd
 import {attachSkillTooltips, hideTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {beginCrossing} from '../../zones/logic/ZoneCurtain';
+import {questTitleColor} from '../../../client-data/QuestMarkers';
 import {
     ConversationModel,
     ConversationRow,
@@ -290,6 +291,8 @@ function render() {
 
         const label = document.createElement('span');
         label.textContent = row.text;
+        // An offer row is tinted by its quest's level (plan-quest-giver-markers.md D4).
+        label.style.color = questTitleColor(row.questLevel);
         li.appendChild(label);
 
         // D20: name the wall on a locked row, so the panel reads as a signpost

@@ -1002,7 +1002,7 @@ func TestReconnect_LiveTokenDegradesToFreshJoin(t *testing.T) {
 func stateTestQuestRegistry(t *testing.T) quests.Registry {
 	t.Helper()
 	r, err := quests.NewRegistry(&quests.QuestDefinition{
-		ID: "cull", Title: "Cull",
+		ID: "cull", Title: "Cull", Level: 1,
 		Stages: []*quests.Stage{
 			{ID: "kill", Journal: "j", Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 7, Count: 5}}, Next: "done"},
 			{ID: "done", Journal: "j"},
