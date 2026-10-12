@@ -258,8 +258,9 @@ const spellbook = () => page.evaluate(() =>
   [...document.querySelectorAll('#spellbookList li')].map((li) => li.textContent.trim()));
 // "XP 150/300" → 150. Within-level progress, so a level-up resets it.
 const xpInLevel = () => page.evaluate(() => {
-  const m = /XP\s+(\d+)\s*\/\s*(\d+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
-  return m ? Number(m[1]) : -1;
+  // Numbers are locale-formatted (plan-localization.md D16): "XP 1,234 / 5,600".
+  const m = /XP\s+([\d.,\s  ]+?)\s*\/\s*([\d.,\s  ]+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
+  return m ? Number(m[1].replace(/\D/g, '')) : -1;
 });
 
 // Copied from chunkP-presence: click the skill NAME (never the row centre — the

@@ -430,6 +430,9 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 		if c.SpeciesID != 0 {
 			killed = p.QuestLedger().KillCount(c.SpeciesID)
 		}
+		// The derived name is only the old-client fallback: the client words the
+		// lock from the wire's species id in its own language (plan-localization.md
+		// C3), so this line never needed the authored English name.
 		return fmt.Sprintf("slay %d × %s this life (%d/%d)",
 			c.Value, skills.DeriveDisplayName(c.Species), killed, c.Value)
 	default:

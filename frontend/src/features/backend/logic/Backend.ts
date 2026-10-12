@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 import * as Utils from '../../common/logic/Utils';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as BackendConstants from './BackendConstants';
@@ -25,7 +25,7 @@ import {
 import {getLocalPlayerLevel} from '../../../client-data/Mobs';
 import {allQuestMarkers, setQuestMarkers} from '../../../client-data/QuestMarkers';
 import {AuraApi} from './AuraApi';
-import {wireMessageText} from '../../i18n/logic/WireText';
+import {wireMessageText} from '../../localization/logic/WireText';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";

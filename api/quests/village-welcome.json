@@ -1,26 +1,21 @@
 {
   "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb. (Originally also the showcase for D3's retroactive credit — a veteran cascaded straight to the report stage on accepting; N4/D4 reversed that, so a fresh talk after accepting is required even for targets already spoken to.) Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "village-welcome",
-  "title": "Village Welcome",
   "level": 1,
   "stages": [
     {
       "id": "meet",
-      "journal": "Talk to Reinhard and the Town Crier.",
       "objectives": [
-        { "kind": "talk_to", "npc": "Reinhard", "tracker": "Talk to Reinhard" },
-        { "kind": "talk_to", "npc": "TownCrier", "tracker": "Talk to the Town Crier" }
+        { "kind": "talk_to", "npc": "Reinhard" },
+        { "kind": "talk_to", "npc": "TownCrier" }
       ],
       "next": "back"
     },
     {
-      "id": "back",
-      "journal": "Reinhard and the Town Crier have been met; the Hermit waits nearby.",
-      "tracker": "Return to the Hermit"
+      "id": "back"
     },
     {
-      "id": "known",
-      "journal": "Done. Reported back to the Hermit."
+      "id": "known"
     }
   ]
 }

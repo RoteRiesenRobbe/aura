@@ -1,24 +1,18 @@
 {
   "_comment": "plan-quests.md C4, quest 2 of 4 — the harvest verb. D2: harvest-N is kill-N of a harvest species, so this rides the same lifetime counters as a wolf cull; the Turnip is damageable ONLY by a `harvest`-tagged aura, which is the one the Farmer teaches in the same conversation. Six turnips stand in the row north of him and respawn on 600 ticks, so five is a chore rather than a wait. Reward: 150 XP. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "turnip-chore",
-  "title": "Turnip Chore",
   "level": 1,
   "stages": [
     {
       "id": "pull",
-      "journal": "Harvest 5 turnips from the row north of the Farmer.",
-      "tracker": "{n}/{m} turnips harvested",
       "objectives": [{ "kind": "harvest", "species": "Turnip", "count": 5 }],
       "next": "handover"
     },
     {
-      "id": "handover",
-      "journal": "The turnips are gathered; the Farmer waits by his field.",
-      "tracker": "Return to the Farmer"
+      "id": "handover"
     },
     {
-      "id": "paid",
-      "journal": "Done. Reported back to the Farmer."
+      "id": "paid"
     }
   ]
 }

@@ -1535,7 +1535,7 @@ func teachLabel(a Conversant) lang.Message {
 // authored-name-vs-sprite-name fallback — a definition has exactly one name.
 func actorName(a Conversant) string {
 	if def := a.MobDefinition(); def != nil {
-		return skills.DeriveDisplayName(def.Name)
+		return def.Display()
 	}
 	return "an NPC"
 }

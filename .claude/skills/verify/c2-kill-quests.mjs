@@ -210,8 +210,9 @@ const waitForJournal = async (predicate, timeout = 15_000) => {
 };
 
 const xpInLevel = () => page.evaluate(() => {
-  const m = /XP\s+(\d+)\s*\/\s*(\d+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
-  return m ? Number(m[1]) : -1;
+  // Numbers are locale-formatted (plan-localization.md D16): "XP 1,234 / 5,600".
+  const m = /XP\s+([\d.,\s  ]+?)\s*\/\s*([\d.,\s  ]+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
+  return m ? Number(m[1].replace(/\D/g, '')) : -1;
 });
 
 const equipAndActivateAura = async (skillRe) => {

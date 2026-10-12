@@ -26,8 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a97476", "text": "A dead traveller in a grey cloak, deep in the kobold den."},
-          {"id": "57b945", "text": "His pack has been emptied. A broken walking staff lies beside him."}
+          {"id": "a_dead_traveller"},
+          {"id": "his_pack_has_been_emptied"}
         ]
       }
     ]

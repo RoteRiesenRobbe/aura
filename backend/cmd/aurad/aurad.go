@@ -30,13 +30,14 @@ import (
 func main() {
 	logging.SetupLogging()
 
-	var dev, help, validate, debugZones bool
+	var dev, help, validate, langStatusFlag, debugZones bool
 	var contentDir, startZone, profileAddr string
 
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.BoolVar(&validate, "validate", false, "Load all content, print every finding to stdout and exit (0 clean, 1 findings); starts no server and needs no database")
+	flag.BoolVar(&langStatusFlag, "lang-status", false, "Load all content and print every locale's translation state (missing, outdated, allowlisted, too long) as JSON, then exit; the content editor's German-owed panel reads it (plan-localization.md D25). Needs no database")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&startZone, "start-zone", "", "Name the PRIMARY zone by file stem (e.g. 'world' for world.json) — where fresh characters spawn; overrides game.startZone. Every zone file in the directory loads regardless")
 	flag.BoolVar(&debugZones, "debug-zones", false, "Load the zone set from zones/.debug/ instead of zones/, with world_debug as the primary zone (unless -start-zone names another); every other content directory is unchanged")
@@ -56,6 +57,9 @@ func main() {
 	// also writes nothing: no conf.json, no tokens.list.
 	if validate {
 		os.Exit(validateMain(os.Stdout, contentDir, startZone, debugZones))
+	}
+	if langStatusFlag {
+		os.Exit(langStatusMain(os.Stdout, contentDir, startZone, debugZones))
 	}
 
 	content := embeddedContent()

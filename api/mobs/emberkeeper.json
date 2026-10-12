@@ -26,31 +26,29 @@
       {
         "id": "root",
         "lines": [
-          {"id": "c867b9", "text": "You can rest at my fire."}
+          {"id": "you_can_rest_at_my"}
         ],
         "options": [
-          { "id": "73ed98","text": "Do you have a task for me?", "next": "bandits"},
-          { "id": "8bf174", "text": "About the bandits...", "next": "bandits_running" },
-          { "id": "fea139","text": "Teach me something.", "next": "teachings"},
-          { "id": "9c99e3","text": "Anything new around here?", "next": "news"},
-          { "id": "41655f","text": "Where can I find...", "next": "directions"}
+          { "stock": "ask_task","next": "bandits"},
+          { "id": "about_the_bandits", "next": "bandits_running" },
+          { "stock": "ask_teach","next": "teachings"},
+          { "id": "anything_new_around_here","next": "news"},
+          { "id": "where_can_i_find","next": "directions"}
         ]
       },
       {
         "id": "bandits",
         "lines": [
-          {"id": "46f094", "text": "Kill 6 bandits from the camp east of here, then come back to me."}
+          {"id": "kill_6_bandits"}
         ],
         "options": [
           {
-            "id": "d5a7ea",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "224c66",
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "bandits-at-the-shrine",
-                "line": "Good."
+                "quest": "bandits-at-the-shrine"
               }
             ]
           }
@@ -59,32 +57,27 @@
       {
         "id": "bandits_running",
         "lines": [
-          {"id": "82f1f4", "text": "The bandits?"}
+          {"id": "the_bandits"}
         ],
         "options": [
           {
-            "id": "e20299",
-            "text": "I killed the 6 bandits.",
+            "id": "i_killed_the_6_bandits",
             "grants": [
               {
-                "id": "b1e46c",
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "bandits-at-the-shrine",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
+                "toStage": "done"
               },
               {
-                "id": "3c4be7",
                 "kind": "grant_xp",
-                "xp": 1250,
-                "line": "Here is your reward."
+                "xp": 1250
               }
             ]
           },
           {
-            "id": "a84fb7",
-            "text": "I am on it.",
+            "stock": "quest_progress",
             "next": "bandits_on_it"
           }
         ]
@@ -99,64 +92,56 @@
           }
         ],
         "lines": [
-          {"id": "dc8434", "text": "Kill 6 bandits from the camp east of here, then come back to me."}
+          {"id": "kill_6_bandits_2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "77ba7d", "text": "What do you want to learn?"}
+          {"stock": "offer_teach"}
         ],
         "options": [
           {
-            "id": "e6ef7e",
-            "text": "Torch",
+            "id": "torch",
             "grants": [
               {
-                "id": "1d3532",
+                "id": "ill_teach_you_torch",
                 "kind": "teach_skill",
                 "skill": "Torch",
-                "requiredLevel": 1,
-                "line": "I'll teach you Torch."
+                "requiredLevel": 1
               }
             ]
           },
           {
-            "id": "b4aad3",
-            "text": "Ignite",
+            "id": "ignite",
             "grants": [
               {
-                "id": "f82987",
+                "id": "ill_teach_you_ignite",
                 "kind": "teach_skill",
                 "skill": "Ignite",
-                "requiredLevel": 7,
-                "line": "I'll teach you Ignite."
+                "requiredLevel": 7
               }
             ]
           },
           {
-            "id": "13e348",
-            "text": "Immolate",
+            "id": "immolate",
             "grants": [
               {
-                "id": "c7daee",
+                "id": "ill_teach_you_immolate",
                 "kind": "teach_skill",
                 "skill": "Immolate",
-                "requiredLevel": 12,
-                "line": "I'll teach you Immolate."
+                "requiredLevel": 12
               }
             ]
           },
           {
-            "id": "18c49e",
-            "text": "Bind Elemental",
+            "id": "bind_elemental",
             "grants": [
               {
-                "id": "34e1e7",
+                "id": "ill_teach_you_bind_elemental",
                 "kind": "teach_skill",
                 "skill": "BindElemental",
-                "requiredLevel": 15,
-                "line": "I'll teach you Bind Elemental."
+                "requiredLevel": 15
               }
             ]
           }
@@ -165,33 +150,33 @@
       {
         "id": "news",
         "lines": [
-          {"id": "ba8482", "text": "Bandits hide in the dark forest."},
-          {"id": "0b8e1e", "text": "The camp is east of here."}
+          {"id": "bandits_hide_in_the_dark"},
+          {"id": "the_camp_is_east"}
         ]
       },
       {
         "id": "directions",
-        "lines": [{"id": "b45e30", "text": "Ask about a place."}],
+        "lines": [{"id": "ask_about_a_place"}],
         "options": [
-          { "id": "5f2a00","text": "The mill.", "next": "dir_mill"},
-          { "id": "4b7347","text": "The tunnel north.", "next": "dir_tunnel"},
-          { "id": "c78507","text": "Other fires like yours.", "next": "dir_fires"}
+          { "id": "the_mill","next": "dir_mill"},
+          { "id": "the_tunnel_north","next": "dir_tunnel"},
+          { "id": "other_fires_like_yours","next": "dir_fires"}
         ]
       },
       {
         "id": "dir_mill",
-        "lines": [{"id": "942602", "text": "Downhill, past the broken fence."}]
+        "lines": [{"id": "downhill_past_the_broken_fence"}]
       },
       {
         "id": "dir_tunnel",
         "lines": [
-          {"id": "b8664d", "text": "North, where the hills close in. Take a light."}
+          {"id": "north_where_the_hills_close"}
         ]
       },
       {
         "id": "dir_fires",
         "lines": [
-          {"id": "242045", "text": "Campfires are scattered around. Sit at one and you respawn there."}
+          {"id": "campfires_are_scattered_around"}
         ]
       }
     ]

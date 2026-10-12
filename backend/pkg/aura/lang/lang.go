@@ -4,12 +4,12 @@
 // sentence for a player. What it does own is the CONTENT text, served over
 // HTTP per locale:
 //
-//   - the English source is extracted from the authored api/ JSON at boot and
-//     written, with generated translator notes, to api/lang/en/<domain>.arb
-//     (D19; never hand-edited, L15);
+//   - the English is AUTHORED in api/lang/en/<domain>.arb (D27, C5a), and the
+//     content JSON keeps structure and ids; EnglishFS joins the two as the
+//     loaders read a file (english.go);
 //   - translations are ARB overlays in api/lang/<locale>/<domain>.arb (D3, D17),
-//     keyed by the content's own stable ids (D20); a missing key falls back to
-//     English at serve time (D13);
+//     keyed by the content's own stable ids (D20) in identifier-safe keys
+//     (D29); a missing key falls back to English at serve time (D13);
 //   - every catalog is marshaled once PER LOCALE at boot (D6), and `?lang=`
 //     picks one by BCP 47 truncation, unknown → en (D2 amendment (a)).
 //
@@ -18,14 +18,12 @@
 package lang
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"path"
 	"regexp"
-	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -69,21 +67,15 @@ type Tr func(key, english string) string
 // Identity is the English translator.
 func Identity(_ string, english string) string { return english }
 
-// Bundle holds every loaded overlay: locale → key → text.
+// Bundle holds every loaded ARB: locale → key → text, English included (D27).
 type Bundle struct {
 	overlays map[string]map[string]string
-	// stock links a dialogue key to its shared stock-phrase key (§8): a line
-	// whose own German is missing falls back to the phrase's German.
-	stock map[string]string
 }
 
-// NewBundle is an empty bundle (English only), for tests and tools.
+// NewBundle is an empty bundle, for tests and tools.
 func NewBundle() *Bundle {
-	return &Bundle{overlays: map[string]map[string]string{}, stock: map[string]string{}}
+	return &Bundle{overlays: map[string]map[string]string{}}
 }
-
-// LinkStock records that key's English is the shared phrase stockName (§8).
-func (b *Bundle) LinkStock(key, stockName string) { b.stock[key] = StockPhrase(stockName) }
 
 // Set adds one translation (tests, tools).
 func (b *Bundle) Set(locale, key, text string) {
@@ -93,7 +85,8 @@ func (b *Bundle) Set(locale, key, text string) {
 	b.overlays[locale][key] = text
 }
 
-// Overlay returns a locale's loaded keys (read-only use).
+// Overlay returns a locale's loaded keys (read-only use); Overlay(Source) is
+// the English.
 func (b *Bundle) Overlay(locale string) map[string]string { return b.overlays[locale] }
 
 // For is the translator for one served locale.
@@ -109,22 +102,17 @@ func (b *Bundle) For(locale string) Tr {
 		if s, ok := overlay[key]; ok && s != "" {
 			return s
 		}
-		if stockKey, ok := b.stock[key]; ok {
-			if s, ok := overlay[stockKey]; ok && s != "" {
-				return s
-			}
-		}
 		return english
 	}
 }
 
-var keyPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.\-]*$`)
+var keyPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
 
-// ValidKey reports whether key is a well-formed content key.
+// ValidKey reports whether key is a well-formed, identifier-safe content key
+// (D29): letters, digits and underscores, a letter first.
 func ValidKey(key string) bool { return keyPattern.MatchString(key) }
 
-// LoadOverlays reads every api/lang/<locale>/*.arb except the generated
-// English. A file that is not valid UTF-8 (L17: an ANSI save on Windows would
+// LoadOverlays reads every api/lang/<locale>/*.arb, English included. A file that is not valid UTF-8 (L17: an ANSI save on Windows would
 // otherwise load as U+FFFD with boot green), malformed JSON, a non-string
 // message or a malformed key refuses the boot, naming the file. A key that
 // matches no content (an orphan) is NOT a boot failure: it is never looked up,
@@ -136,7 +124,7 @@ func LoadOverlays(fsys fs.FS) (*Bundle, error) {
 		return nil, err
 	}
 	for _, dir := range entries {
-		if !dir.IsDir() || dir.Name() == Source {
+		if !dir.IsDir() {
 			continue
 		}
 		locale := dir.Name()
@@ -217,104 +205,138 @@ var pseudoMap = map[rune]rune{
 }
 
 // Pseudo is English with accented letters, ~35 % padding and brackets (D21),
-// the Go twin of Locale.ts's pseudo(). ICU syntax ({placeholders}, <tags>) is
-// left untouched, so a pseudo message still formats.
+// the Go twin of Locale.ts's pseudo(). ICU syntax is left untouched, so a
+// pseudo message still formats: an argument ({n, number}), a plural or select's
+// keyword and category names, and <tags>. The TEXT inside a plural or select
+// branch is transformed like any other text (L21: a mob name's
+// {count, plural, one {Wolf} other {Wolves}} is words a player reads).
 func Pseudo(text string) string {
 	if text == "" {
 		return text
 	}
 	var b strings.Builder
-	depth := 0
-	inTag := false
-	for _, r := range text {
-		switch {
-		case r == '{':
-			depth++
-		case r == '}' && depth > 0:
-			depth--
-		case r == '<' && depth == 0:
-			inTag = true
-		case r == '>' && inTag:
-			inTag = false
-			b.WriteRune(r)
-			continue
+	rs := []rune(text)
+	for i := 0; i < len(rs); {
+		i = pseudoMessage(&b, rs, i)
+		if i < len(rs) { // a stray '}' at the top: keep it and go on
+			b.WriteRune(rs[i])
+			i++
 		}
-		if depth == 0 && !inTag {
-			if m, ok := pseudoMap[r]; ok {
-				r = m
-			}
-		}
-		b.WriteRune(r)
 	}
 	pad := (utf8.RuneCountInString(text)*35 + 99) / 100
 	return "[" + b.String() + strings.Repeat("·", pad) + "]"
 }
 
-// ---------------------------------------------------------------- the source
-
-// Placeholder is one ICU argument's translator note (D18).
-type Placeholder struct {
-	Name        string
-	Type        string
-	Description string
-	Example     string
-}
-
-// Entry is one translatable content string: its key (D20), its English as an
-// ICU message, and its generated note.
-type Entry struct {
-	Key          string
-	Text         string
-	Description  string
-	Placeholders []Placeholder
-	// Stock is the shared phrase this line's English matches (§8), or "".
-	Stock string
-}
-
-// GenerateARB writes a domain's English source file (D19): `@@locale` first,
-// then each message followed by its `@` metadata, in key order, LF only, no
-// HTML escaping, so the bytes are stable across runs and machines (L16).
-func GenerateARB(entries []Entry) []byte {
-	sorted := append([]Entry(nil), entries...)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Key < sorted[j].Key })
-	var buf bytes.Buffer
-	buf.WriteString("{\n  \"@@locale\": \"en\"")
-	for _, e := range sorted {
-		buf.WriteString(",\n  ")
-		buf.WriteString(quote(e.Key))
-		buf.WriteString(": ")
-		buf.WriteString(quote(e.Text))
-		buf.WriteString(",\n  ")
-		buf.WriteString(quote("@" + e.Key))
-		buf.WriteString(": {\n    \"description\": ")
-		buf.WriteString(quote(e.Description))
-		if e.Stock != "" {
-			buf.WriteString(",\n    \"x_stock\": ")
-			buf.WriteString(quote(e.Stock))
-		}
-		if len(e.Placeholders) > 0 {
-			buf.WriteString(",\n    \"placeholders\": {")
-			for i, p := range e.Placeholders {
-				if i > 0 {
-					buf.WriteString(",")
-				}
-				fmt.Fprintf(&buf, "\n      %s: {\"type\": %s, \"description\": %s, \"example\": %s}",
-					quote(p.Name), quote(p.Type), quote(p.Description), quote(p.Example))
+// pseudoMessage writes message text from rs[i:] until an unmatched '}' (the
+// end of a branch) and returns the index of that '}' (or len(rs)).
+func pseudoMessage(b *strings.Builder, rs []rune, i int) int {
+	inTag := false
+	for i < len(rs) {
+		r := rs[i]
+		switch {
+		case r == '}':
+			return i
+		case r == '{':
+			i = pseudoArgument(b, rs, i)
+			continue
+		case r == '<':
+			inTag = true
+		case r == '>' && inTag:
+			inTag = false
+		case !inTag:
+			if m, ok := pseudoMap[r]; ok {
+				r = m
 			}
-			buf.WriteString("\n    }")
 		}
-		buf.WriteString("\n  }")
+		b.WriteRune(r)
+		i++
 	}
-	buf.WriteString("\n}\n")
-	return buf.Bytes()
+	return i
 }
 
-func quote(s string) string {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	_ = enc.Encode(s)
-	return strings.TrimSuffix(buf.String(), "\n")
+// pseudoArgument copies one {argument ...} starting at rs[i] == '{' and returns
+// the index after its closing '}'. A plural or select argument's branches are
+// messages and are transformed; anything else is copied verbatim.
+func pseudoArgument(b *strings.Builder, rs []rune, i int) int {
+	start := i
+	depth := 0
+	commas := 0
+	j := i
+	for ; j < len(rs); j++ {
+		if rs[j] == '{' {
+			depth++
+		} else if rs[j] == '}' {
+			depth--
+			if depth == 0 {
+				break
+			}
+		} else if rs[j] == ',' && depth == 1 {
+			commas++
+			if commas == 2 {
+				break
+			}
+		}
+	}
+	if j >= len(rs) || rs[j] == '}' {
+		// A simple argument ({mob}, {n, number}): syntax only.
+		end := j + 1
+		if end > len(rs) {
+			end = len(rs)
+		}
+		b.WriteString(string(rs[start:end]))
+		return end
+	}
+	kind := strings.TrimSpace(string(rs[start+1 : j]))
+	if c := strings.Index(kind, ","); c >= 0 {
+		kind = strings.TrimSpace(kind[c+1:])
+	}
+	if kind != "plural" && kind != "select" && kind != "selectordinal" {
+		// Not a branching argument: copy through its closing brace.
+		depth = 0
+		for k := start; k < len(rs); k++ {
+			if rs[k] == '{' {
+				depth++
+			} else if rs[k] == '}' {
+				depth--
+				if depth == 0 {
+					b.WriteString(string(rs[start : k+1]))
+					return k + 1
+				}
+			}
+		}
+		b.WriteString(string(rs[start:]))
+		return len(rs)
+	}
+	// {name, plural, <cat> {msg} <cat> {msg} ...}
+	b.WriteString(string(rs[start : j+1]))
+	k := j + 1
+	for k < len(rs) {
+		switch rs[k] {
+		case '}':
+			b.WriteRune('}')
+			return k + 1
+		case '{':
+			b.WriteRune('{')
+			k = pseudoMessage(b, rs, k+1)
+			if k < len(rs) {
+				b.WriteRune('}')
+				k++
+			}
+		default:
+			b.WriteRune(rs[k]) // a category name, an offset, whitespace
+			k++
+		}
+	}
+	return k
+}
+
+// ---------------------------------------------------------------- entries
+
+// Entry is one translatable content string: its key (D20, D29) and its English
+// as an ICU message.
+type Entry struct {
+	Key  string
+	Text string
 }
 
 // ---------------------------------------------------------------- ICU (L14)
@@ -359,24 +381,40 @@ func NumberPlaceholders(text string, names ...string) string {
 
 // ---------------------------------------------------------------- keys (D20)
 
-// The content keys, one builder per field, so a catalog and the generator can
-// never spell one differently.
-func QuestTitle(questID string) string { return "quest." + questID + ".title" }
+// keyPart makes one id identifier-safe (D29): anything but an ASCII letter or
+// digit becomes '_'. Content ids themselves do not change.
+func keyPart(id string) string {
+	return strings.Map(func(r rune) rune {
+		if r < 128 && (r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9') {
+			return r
+		}
+		return '_'
+	}, id)
+}
+
+// The content keys, one builder per field, so a catalog, a hydration and a
+// check can never spell one differently. tools/lang/content-text.mjs is the JS
+// twin (the editor and the extract tool).
+func QuestTitle(questID string) string { return "quest_" + keyPart(questID) + "_title" }
 func QuestJournal(questID, stageID string) string {
-	return "quest." + questID + "." + stageID + ".journal"
+	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_journal"
 }
 func QuestStageTracker(questID, stageID string) string {
-	return "quest." + questID + "." + stageID + ".tracker"
+	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_tracker"
 }
 func QuestObjectiveTracker(questID, stageID, kind, target string) string {
-	return "quest." + questID + "." + stageID + "." + kind + "." + target + ".tracker"
+	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_" + keyPart(kind) + "_" + keyPart(target) + "_tracker"
 }
-func MobName(mob string) string            { return "mob." + mob + ".name" }
-func MobNamePlural(mob string) string      { return "mob." + mob + ".namePlural" }
-func SkillName(skill string) string        { return "skill." + skill + ".name" }
-func SkillDescription(skill string) string { return "skill." + skill + ".description" }
-func RegionTitle(region string) string     { return "region." + region + ".title" }
-func RegionSubtitle(region string) string  { return "region." + region + ".subtitle" }
-func ZoneName(zone string) string          { return "zone." + zone + ".name" }
-func Conversation(id string) string        { return "conv." + id }
-func StockPhrase(name string) string       { return "stock." + name }
+func MobName(mob string) string            { return "mob_" + keyPart(mob) + "_name" }
+func SkillName(skill string) string        { return "skill_" + keyPart(skill) + "_name" }
+func SkillDescription(skill string) string { return "skill_" + keyPart(skill) + "_description" }
+func RegionTitle(region string) string     { return "region_" + keyPart(region) + "_title" }
+func RegionSubtitle(region string) string  { return "region_" + keyPart(region) + "_subtitle" }
+func ZoneName(zone string) string          { return "zone_" + keyPart(zone) + "_name" }
+
+// Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
+// unique within that NPC (D27).
+func Conversation(npc, slug string) string { return "conv_" + keyPart(npc) + "_" + slug }
+
+// StockPhrase is a shared phrase's key (D28).
+func StockPhrase(name string) string { return "stock_" + name }

@@ -1,4 +1,4 @@
-import {formatList, formatNumber, t} from '../../../i18n/logic/Locale';
+import {formatList, formatNumber, t} from '../../../localization/logic/Locale';
 // Ability hover tooltips (plan-ui-polish chunk 1): stats-only condensed
 // info, auto-generated from the skill catalog so it stays correct through
 // every balance retune. PO rulings 2026-07-21: FULL detail — every authored

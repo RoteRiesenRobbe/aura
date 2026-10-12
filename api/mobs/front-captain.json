@@ -25,30 +25,28 @@
       {
         "id": "root",
         "lines": [
-          {"id": "f8f07f", "text": "This is the southern front."}
+          {"id": "this_is_the_southern_front"}
         ],
         "options": [
-          { "id": "220b70", "text": "Do you have a task for me?", "next": "orcs" },
-          { "id": "d8a14d", "text": "About the orcs...", "next": "orcs_running" },
-          { "id": "fbe5c8", "text": "How do I bring down the Orc Commander?", "next": "commander" },
-          { "id": "66321f", "text": "Teach me something.", "next": "teachings" }
+          { "stock": "ask_task", "next": "orcs" },
+          { "id": "about_the_orcs", "next": "orcs_running" },
+          { "id": "how_do_i_bring_down", "next": "commander" },
+          { "stock": "ask_teach", "next": "teachings" }
         ]
       },
       {
         "id": "orcs",
         "lines": [
-          {"id": "3ddfc3", "text": "Kill 5 orcs on the front line south of here, then come back to me."}
+          {"id": "kill_5_orcs"}
         ],
         "options": [
           {
-            "id": "5337f3",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "96d9dd",
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "thin-the-orc-line",
-                "line": "Good."
+                "quest": "thin-the-orc-line"
               }
             ]
           }
@@ -57,32 +55,27 @@
       {
         "id": "orcs_running",
         "lines": [
-          {"id": "67bdb1", "text": "The orcs?"}
+          {"id": "the_orcs"}
         ],
         "options": [
           {
-            "id": "62bb06",
-            "text": "I killed the 5 orcs.",
+            "id": "i_killed_the_5_orcs",
             "grants": [
               {
-                "id": "a1ab5d",
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "thin-the-orc-line",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
+                "toStage": "done"
               },
               {
-                "id": "9ab713",
                 "kind": "grant_xp",
-                "xp": 4800,
-                "line": "Here is your reward."
+                "xp": 4800
               }
             ]
           },
           {
-            "id": "c6ed72",
-            "text": "I am on it.",
+            "stock": "quest_progress",
             "next": "orcs_on_it"
           }
         ]
@@ -97,25 +90,23 @@
           }
         ],
         "lines": [
-          {"id": "f7803c", "text": "Kill 5 orcs on the front line south of here, then come back to me."}
+          {"id": "kill_5_orcs_2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "3dd309", "text": "What do you want to learn?"}
+          {"stock": "offer_teach"}
         ],
         "options": [
           {
-            "id": "726dfc",
-            "text": "Vanguard",
+            "id": "vanguard",
             "grants": [
               {
-                "id": "8e1b31",
+                "id": "ill_teach_you_vanguard",
                 "kind": "teach_skill",
                 "skill": "Vanguard",
-                "requiredLevel": 15,
-                "line": "I'll teach you Vanguard."
+                "requiredLevel": 15
               }
             ]
           }
@@ -124,8 +115,8 @@
       {
         "id": "commander",
         "lines": [
-          {"id": "98c585", "text": "He cannot be hurt while his war banners stand."},
-          {"id": "93ec7f", "text": "Break the banners in his camp west of here, then kill him."}
+          {"id": "he_cannot_be_hurt_while"},
+          {"id": "break_the_banners_in_his"}
         ]
       }
     ]

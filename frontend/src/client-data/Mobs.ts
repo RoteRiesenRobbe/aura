@@ -7,7 +7,9 @@
 // Until the fetch lands (or if it fails) the accessors report "unknown" and
 // the nameplate simply does not render. The game never blocks on the catalog.
 
+import IntlMessageFormat from 'intl-messageformat';
 import {contentCatalogUrl} from '../features/backend/logic/Urls';
+import {formatLocale} from '../features/localization/logic/Locale';
 
 // Wire `Mob.tier` rank ↔ meaning, mirroring the backend's mobs.TierRank —
 // pinned on both sides by api/shared-constants.json (§35 C4c), so a renumber
@@ -22,9 +24,12 @@ export enum TierRank {
 export interface MobDefinition {
     id: number;
     name: string;
+    /**
+     * The name as authored in the chosen locale: plain text, or its plural
+     * forms as ICU on `count` (plan-localization.md D24). Never render it raw:
+     * read it through mobName / formatMobName (L20).
+     */
     displayName: string;
-    /** The plural, where content authors one (plan-localization.md Q2). */
-    displayNamePlural?: string;
     // Authored combat level (cL) — the nameplate tint reads its distance from
     // the local player's level.
     curveLevel: number;
@@ -83,10 +88,48 @@ export function mobDefinition(id: number): MobDefinition | undefined {
 export function mobDisplayName(name: string): string {
     for (const def of catalog.values()) {
         if (def.name === name) {
-            return def.displayName;
+            return formatMobName(def.displayName);
         }
     }
     return name;
+}
+
+// plan-localization.md D24: a mob name is plain text or carries its plural
+// forms as ICU on `count`. One compiled message per (locale, name), because a
+// nameplate re-renders often.
+const nameFormats = new Map<string, IntlMessageFormat | null>();
+
+/** A mob name for a count: 1 for a nameplate, an actor or a banner; the
+ *  required count on a kill/harvest tracker line. */
+export function formatMobName(text: string, count = 1): string {
+    if (text.indexOf('{') < 0) {
+        return text;
+    }
+    const tag = formatLocale();
+    const cacheKey = tag + '\u0000' + text;
+    let message = nameFormats.get(cacheKey);
+    if (message === undefined) {
+        try {
+            message = new IntlMessageFormat(text, tag);
+        } catch (e) {
+            message = null;
+        }
+        nameFormats.set(cacheKey, message);
+    }
+    if (message === null) {
+        return text; // D14: readable, never blank
+    }
+    try {
+        return String(message.format({count}));
+    } catch (e) {
+        return text;
+    }
+}
+
+/** A species' display name by its wire id, formatted for a count (D24). */
+export function mobName(id: number, count = 1): string {
+    const def = catalog.get(id);
+    return def ? formatMobName(def.displayName, count) : String(id);
 }
 
 // mobIdByName resolves a species' authored name (a zone spawn's `mob`) to its

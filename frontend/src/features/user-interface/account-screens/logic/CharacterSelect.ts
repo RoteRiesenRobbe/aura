@@ -1,4 +1,4 @@
-import {t, formatList} from '../../../i18n/logic/Locale';
+import {t, formatList} from '../../../localization/logic/Locale';
 import {
     AccountsApi, ApiError, Character, CharacterList, SessionState, SlotBloodline,
 } from '../../../accounts/logic/AccountsApi';

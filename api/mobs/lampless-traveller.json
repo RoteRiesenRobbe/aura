@@ -29,35 +29,33 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
         ],
         "lines": [
-          {"id": "4c6e6c", "text": "You have the lamp now."}
+          {"id": "you_have_the_lamp_now"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "58d0f5", "text": "What are you doing out here?"}
+          {"id": "what_are_you_doing_out"}
         ],
         "options": [
-          { "id": "787347", "text": "Do you have a task for me?", "next": "lamp" },
-          { "id": "905a85", "text": "About your lamp...", "next": "lamp_running" }
+          { "stock": "ask_task", "next": "lamp" },
+          { "id": "about_your_lamp", "next": "lamp_running" }
         ]
       },
       {
         "id": "lamp",
         "lines": [
-          {"id": "e0018d", "text": "Kill 6 kobolds north of the tunnel, then come back to me."},
-          {"id": "06fe52", "text": "You get my lamp when it is done."}
+          {"id": "kill_6_kobolds_north"},
+          {"id": "you_get_my_lamp_when"}
         ],
         "options": [
           {
-            "id": "3840da",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "8602b4",
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "the-lost-lamp",
-                "line": "Good."
+                "quest": "the-lost-lamp"
               }
             ]
           }
@@ -66,41 +64,34 @@
       {
         "id": "lamp_running",
         "lines": [
-          {"id": "287406", "text": "My lamp?"}
+          {"id": "my_lamp"}
         ],
         "options": [
           {
-            "id": "1fc6b9",
-            "text": "The 6 kobolds are dead.",
+            "id": "the_6_kobolds_are_dead",
             "grants": [
               {
-                "id": "775259",
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "the-lost-lamp",
                 "fromStage": "bring_it_back",
-                "toStage": "lit",
-                "line": "Good."
+                "toStage": "lit"
               },
               {
-                "id": "733dad",
                 "kind": "teach_skill",
-                "skill": "Lantern",
-                "line": "I'll teach you Lantern."
+                "skill": "Lantern"
               },
               {
-                "id": "a17c8d",
                 "kind": "grant_xp",
-                "xp": 700,
-                "line": "Here is your reward."
+                "xp": 700
               }
             ]
           },
           {
-            "id": "cac932",
-            "text": "I am on it.",
+            "stock": "quest_progress",
             "next": "lamp_on_it"
           },
-          { "id": "b42645", "text": "Where do they nest?", "next": "lamp_where" }
+          { "id": "where_do_they_nest", "next": "lamp_where" }
         ]
       },
       {
@@ -113,7 +104,7 @@
           }
         ],
         "lines": [
-          {"id": "fa496e", "text": "Kill 6 kobolds north of the tunnel, then come back to me."}
+          {"id": "kill_6_kobolds_north_2"}
         ]
       },
       {
@@ -122,7 +113,7 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "running" }
         ],
         "lines": [
-          {"id": "01f837", "text": "North of the tunnel."}
+          {"id": "north_of_the_tunnel"}
         ]
       }
     ]

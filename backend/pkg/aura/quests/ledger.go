@@ -753,9 +753,13 @@ func (l *Ledger) objectiveViews(questID string, p *Progress, s *Stage) []Objecti
 // id for reach, else the authored target name without spaces. The loader
 // refuses two objectives of one kind + target in a stage, so it is unique.
 func ObjectiveTargetKey(o *Objective) string {
-	if o.Region != "" {
+	switch {
+	case o.Region != "":
 		return o.Region
+	case o.TargetID != "":
+		return o.TargetID
 	}
+	// An in-memory fixture names only its display name.
 	return strings.ReplaceAll(o.TargetName, " ", "")
 }
 

@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "conv_Farmer_shoo": "Shoo! <not a tag> & \"quotes\"",
+  "@conv_Farmer_shoo": {
+    "description": "Farmer calls this out to a player walking past (speech bubble)."
+  },
+  "plain": "No note at all",
+  "quest_q_cull_tracker": "{n, number}/{m, number} wolves slain",
+  "@quest_q_cull_tracker": {
+    "description": "Tracker line.",
+    "x-maxLength": 40,
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    },
+    "x-other": "kept"
+  },
+  "zone_uber_name": "Ünter"
+}

@@ -32,13 +32,12 @@
           }
         ],
         "lines": [
-          {"id": "6c08f6", "text": "You are max level, so you can spend this character here."},
-          {"id": "5b1ab2", "text": "You pick one reward. It stays unlocked for every future character in this slot."}
+          {"id": "you_are_max_level_so"},
+          {"id": "you_pick_one_reward_it"}
         ],
         "options": [
           {
-            "id": "244d79",
-            "text": "Show me the rewards.",
+            "stock": "show_rewards",
             "next": "catalog"
           }
         ]
@@ -63,20 +62,19 @@
           "Lantern"
         ],
         "lines": [
-          {"id": "0315cd", "text": "Pick one reward. It unlocks permanently for this character slot."},
-          {"id": "7eaa1b", "text": "Confirming ends this character. Its name goes on the memorial."}
+          {"id": "pick_one_reward_it_unlocks"},
+          {"id": "confirming_ends_this_character"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "cf269a", "text": "Ascension stone. A life can be laid down here."},
-          {"id": "c6911c", "text": "Spending one here unlocks a permanent reward for its character slot."}
+          {"id": "ascension_stone_a_life_can"},
+          {"id": "spending_one_here_unlocks"}
         ],
         "options": [
           {
-            "id": "da7b38",
-            "text": "Show me the rewards.",
+            "stock": "show_rewards",
             "next": "catalog",
             "lockedWhenGated": true
           }

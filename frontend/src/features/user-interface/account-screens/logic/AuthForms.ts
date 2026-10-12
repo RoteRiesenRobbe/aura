@@ -1,4 +1,4 @@
-import {t} from '../../../i18n/logic/Locale';
+import {t} from '../../../localization/logic/Locale';
 import {AccountsApi, ApiError} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
 

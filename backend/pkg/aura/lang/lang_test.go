@@ -1,8 +1,10 @@
 package lang
 
 import (
+	"encoding/json"
 	"io"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -27,6 +29,30 @@ func TestPseudo_AccentsTextButNotICUSyntax(t *testing.T) {
 	assert.True(t, strings.HasSuffix(out, "·]"), out)
 }
 
+// L21: a plural branch is TEXT, so the pseudo-locale marks it; the argument,
+// the `plural` keyword and the category names are syntax and stay.
+func TestPseudo_TransformsTheTextInsidePluralBranches(t *testing.T) {
+	out := Pseudo("{count, plural, one {Wolf} other {Wolves}}")
+	assert.True(t, strings.HasPrefix(out, "[{count, plural, one {Ŵóļƒ} other {Ŵóļṽéš}}"), out)
+	nested := Pseudo("{n, number} {m, plural, =0 {none} other {{mob} slain}}")
+	assert.Contains(t, nested, "{n, number} {m, plural, =0 {ñóñé} other {{mob} šļáíñ}}")
+}
+
+func TestMobNames_TheEnglishShape(t *testing.T) {
+	// D24: plain text, or exactly one/other on `count`.
+	assert.NoError(t, CheckMobName("Farmer"))
+	assert.NoError(t, CheckMobName("{count, plural, one {Wolf} other {Wolves}}"))
+	assert.Error(t, CheckMobName("{count, plural, one {Wolf} few {Wolfs} other {Wolves}}"), "English has two forms")
+	assert.Error(t, CheckMobName("{n, plural, one {Wolf} other {Wolves}}"), "the argument is count")
+	assert.Error(t, CheckMobName("{count, select, one {Wolf} other {Wolves}}"))
+	assert.Error(t, CheckMobName("A {stray} brace"))
+
+	assert.Equal(t, "Wolf", Singular("{count, plural, one {Wolf} other {Wolves}}"))
+	assert.Equal(t, "Farmer", Singular("Farmer"))
+	assert.True(t, HasPlural("{count, plural, one {Wolf} other {Wolves}}"))
+	assert.False(t, HasPlural("Farmer"))
+}
+
 func TestLoadOverlays_RefusesNonUTF8ByFileName(t *testing.T) {
 	fsys := fstest.MapFS{"de/quests.arb": {Data: []byte("{\"a.b\": \"W\xf6lfe\"}")}}
 	_, err := LoadOverlays(fsys)
@@ -42,29 +68,19 @@ func TestLoadOverlays_RefusesAMalformedKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "bad key")
 }
 
-func TestLoadOverlays_SkipsTheGeneratedEnglishAndMetadata(t *testing.T) {
+func TestLoadOverlays_LoadsEveryLocaleIncludingEnglish(t *testing.T) {
 	fsys := fstest.MapFS{
-		"en/quests.arb": {Data: []byte(`{"q.title": "Wolves"}`)},
-		"de/quests.arb": {Data: []byte(`{"@@locale": "de", "q.title": "Wölfe", "@q.title": {"description": "x"}}`)},
+		"en/quests.arb": {Data: []byte(`{"@@locale": "en", "q_title": "Wolves", "@q_title": {"description": "x"}}`)},
+		"de/quests.arb": {Data: []byte(`{"@@locale": "de", "q_title": "Wölfe", "@q_title": {"description": "x"}}`)},
 		// An orphan is not a boot failure (PO 2026-10-07): it is never looked up.
-		"de/other.arb": {Data: []byte(`{"gone.key": "Weg"}`)},
+		"de/other.arb": {Data: []byte(`{"gone_key": "Weg"}`)},
 	}
 	b, err := LoadOverlays(fsys)
 	require.NoError(t, err)
-	assert.Equal(t, "Wölfe", b.For("de")("q.title", "Wolves"))
-	assert.Equal(t, "Wolves", b.For("en")("q.title", "Wolves"))
-	assert.Equal(t, "Missing", b.For("de")("q.other", "Missing"), "a missing key falls back to English (D13)")
-	assert.Nil(t, b.Overlay("en"))
-}
-
-func TestBundle_StockPhraseFallback(t *testing.T) {
-	b := NewBundle()
-	b.Set("de", StockPhrase("quest-accept"), "Mach ich.")
-	b.LinkStock(Conversation("a1"), "quest-accept")
-	b.LinkStock(Conversation("a2"), "quest-accept")
-	b.Set("de", Conversation("a2"), "Wird erledigt.")
-	assert.Equal(t, "Mach ich.", b.For("de")(Conversation("a1"), "I'll do it."))
-	assert.Equal(t, "Wird erledigt.", b.For("de")(Conversation("a2"), "I'll do it."), "a line's own German overrides the phrase")
+	assert.Equal(t, "Wölfe", b.For("de")("q_title", "Wolves"))
+	assert.Equal(t, "Wolves", b.For("en")("q_title", "Wolves"))
+	assert.Equal(t, "Missing", b.For("de")("q_other", "Missing"), "a missing key falls back to English (D13)")
+	assert.Equal(t, map[string]string{"q_title": "Wolves"}, b.Overlay(Source), "D27: English is authored in its ARB")
 }
 
 func TestHandler_MarshalsOncePerLocaleAndNegotiates(t *testing.T) {
@@ -99,15 +115,59 @@ func TestCheckAuthoredText(t *testing.T) {
 	assert.Error(t, CheckAuthoredText("a <tag> here"))
 }
 
-func TestGenerateARB_IsStableAndUnescaped(t *testing.T) {
-	entries := []Entry{
-		{Key: "b.key", Text: "<x> & \"y\"", Description: "B"},
-		{Key: "a.key", Text: "{n, number} wolves", Description: "A",
-			Placeholders: []Placeholder{{Name: "n", Type: "int", Description: "count", Example: "3"}}},
+func TestKeys_AreIdentifierSafe(t *testing.T) {
+	// D29: letters, digits and underscores; a hyphen in an id becomes `_`.
+	for key, want := range map[string]string{
+		QuestTitle("wolves-on-the-road"):                                               "quest_wolves_on_the_road_title",
+		QuestJournal("wolves-on-the-road", "cull"):                                     "quest_wolves_on_the_road_cull_journal",
+		QuestStageTracker("q", "report-back"):                                          "quest_q_report_back_tracker",
+		QuestObjectiveTracker("dinner-for-the-family", "gather", "talk_to", "Hendrik"): "quest_dinner_for_the_family_gather_talk_to_Hendrik_tracker",
+		MobName("AlphaWolf"):                                                           "mob_AlphaWolf_name",
+		SkillName("Aegis"):                                                             "skill_Aegis_name",
+		SkillDescription("Aegis"):                                                      "skill_Aegis_description",
+		RegionTitle("saltgrass"):                                                       "region_saltgrass_title",
+		RegionSubtitle("saltgrass"):                                                    "region_saltgrass_subtitle",
+		ZoneName("koboldCave"):                                                         "zone_koboldCave_name",
+		Conversation("Farmer", "ill_do_it"):                                            "conv_Farmer_ill_do_it",
+		StockPhrase("quest_accept"):                                                    "stock_quest_accept",
+	} {
+		assert.Equal(t, want, key)
+		assert.True(t, ValidKey(key), key)
 	}
-	out := string(GenerateARB(entries))
-	assert.Equal(t, out, string(GenerateARB(entries)))
-	assert.True(t, strings.Index(out, "a.key") < strings.Index(out, "b.key"), "key order")
-	assert.Contains(t, out, `"<x> & \"y\""`, "no HTML escaping")
-	assert.NotContains(t, out, "\r")
+	assert.False(t, ValidKey("quest.q.title"), "the dotted form is gone (D29)")
+	assert.False(t, ValidKey("conv_a-b"))
+	assert.False(t, ValidKey("_lead"))
+}
+
+// The JS twin (tools/lang/content-text.mjs, the editor and the extract tool)
+// spells every key from the same fixture, so the two cannot drift apart.
+func TestKeys_AgreeWithTheJSTwin(t *testing.T) {
+	raw, err := os.ReadFile("../../../../tools/lang/testdata/keys.json")
+	require.NoError(t, err)
+	var fixture []struct {
+		Builder string
+		Args    []string
+		Key     string
+	}
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	builders := map[string]func(a []string) string{
+		"questTitle":            func(a []string) string { return QuestTitle(a[0]) },
+		"questJournal":          func(a []string) string { return QuestJournal(a[0], a[1]) },
+		"questStageTracker":     func(a []string) string { return QuestStageTracker(a[0], a[1]) },
+		"questObjectiveTracker": func(a []string) string { return QuestObjectiveTracker(a[0], a[1], a[2], a[3]) },
+		"mobName":               func(a []string) string { return MobName(a[0]) },
+		"skillName":             func(a []string) string { return SkillName(a[0]) },
+		"skillDescription":      func(a []string) string { return SkillDescription(a[0]) },
+		"regionTitle":           func(a []string) string { return RegionTitle(a[0]) },
+		"regionSubtitle":        func(a []string) string { return RegionSubtitle(a[0]) },
+		"zoneName":              func(a []string) string { return ZoneName(a[0]) },
+		"conversation":          func(a []string) string { return Conversation(a[0], a[1]) },
+		"stock":                 func(a []string) string { return StockPhrase(a[0]) },
+	}
+	require.Len(t, fixture, len(builders), "every builder is in the fixture")
+	for _, f := range fixture {
+		build, ok := builders[f.Builder]
+		require.True(t, ok, f.Builder)
+		assert.Equal(t, f.Key, build(f.Args), f.Builder)
+	}
 }

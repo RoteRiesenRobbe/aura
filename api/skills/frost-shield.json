@@ -6,7 +6,6 @@
   "packIcon": "ice-rune-shield",
   "category": "passive",
   "maxLevel": 5,
-  "description": "Being hit is enough - it fires even when the hit is fully absorbed.",
   "effects": [
     {
       "type": "retaliate_slow",

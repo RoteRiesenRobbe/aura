@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 // Baseline utilities (plan-downtime.md D1): a small class of always-present
 // abilities outside the skill catalog and the spellbook — Recall now, the
 // mini-campfire with C2. The buttons live in #utilityBar between the aura and

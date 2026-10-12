@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 /**
  * The journal panel (plan-quests.md chunk C3, D7/D16; two-pane since
  * plan-conversation-journal.md Q3).

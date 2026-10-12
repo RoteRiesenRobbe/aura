@@ -17,20 +17,26 @@ import (
 	"github.com/stretchr/testify/require"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
+// embeddedEnglish is the embedded api/lang/en: the shipped content files keep
+// only structure and ids, and are read with their English (plan-localization.md D27).
+var embeddedEnglish = lang.EnglishFrom(alang.Lang)
+
 func contentRegistry(t *testing.T) Registry {
 	t.Helper()
-	sr, err := skills.RegistryFromFS(askills.Skills, mustFactions(t))
+	sr, err := skills.RegistryFromFS(lang.EnglishFS(askills.Skills, lang.DomainSkill, embeddedEnglish), mustFactions(t))
 	require.NoError(t, err)
 	fr, err := factions.RegistryFromFS(afactions.Factions)
 	require.NoError(t, err)
-	mr, err := RegistryFromFS(sr, fr, curve.Default(), amobs.Mobs)
+	mr, err := RegistryFromFS(sr, fr, curve.Default(), lang.EnglishFS(amobs.Mobs, lang.DomainMob, embeddedEnglish))
 	require.NoError(t, err)
 	return mr
 }

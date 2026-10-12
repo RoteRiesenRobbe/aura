@@ -1,4 +1,4 @@
-import {contentLocale} from '../../i18n/logic/Locale';
+import {contentLocale} from '../../localization/logic/Locale';
 import {BasicConfig as Constants} from "../../../client-data/BasicConfig";
 import {QueryParameters} from '../../internal-tools/logic/QueryParameters';
 

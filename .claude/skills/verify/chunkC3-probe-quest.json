@@ -1,12 +1,19 @@
 {
-  "_comment": "Harness fixture for chunkC3-journal.mjs (plan-quests.md C3). NOT shipped content — copy it into api/quests/ for a full journal run and delete it afterwards, or leave it out and the content-driven legs report SKIP. Its stage-1 objective is talk_to Emberkeeper because talking is a reliable headless event (the interact verb's own harness proves that venue) and it needs no combat.",
+  "_comment": "Harness fixture for chunkC3-journal.mjs (plan-quests.md C3). NOT shipped content — copy it into api/quests/ and run node tools/lang/extract-english.mjs for a full journal run, then delete it and git checkout api/lang/en/quests.arb afterwards, or leave it out and the content-driven legs report SKIP. Its stage-1 objective is talk_to Emberkeeper because talking is a reliable headless event (the interact verb's own harness proves that venue) and it needs no combat.",
   "id": "harness-probe",
   "title": "A Word with the Emberkeeper",
+  "level": 1,
   "stages": [
     {
       "id": "seek",
       "journal": "Someone said the Emberkeeper keeps the old fire east of here. I should speak with them.",
-      "objectives": [{"kind": "talk_to", "npc": "Emberkeeper"}],
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "Emberkeeper",
+          "tracker": "Speak with the Emberkeeper"
+        }
+      ],
       "next": "spoken"
     },
     {

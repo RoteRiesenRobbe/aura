@@ -1,555 +1,681 @@
 {
   "@@locale": "en",
-  "skill.Aegis.name": "Aegis",
-  "@skill.Aegis.name": {
-    "description": "Name of the skill Aegis: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Aegis_name": "Aegis",
+  "@skill_Aegis_name": {
+    "description": "Name of the skill Aegis: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.AlphaBoarGore.name": "Alpha Boar Gore",
-  "@skill.AlphaBoarGore.name": {
-    "description": "Name of the skill AlphaBoarGore: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_AlphaBoarGore_name": "Alpha Boar Gore",
+  "@skill_AlphaBoarGore_name": {
+    "description": "Name of the skill AlphaBoarGore: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.AngryMammothAura.name": "Angry Mammoth Aura",
-  "@skill.AngryMammothAura.name": {
-    "description": "Name of the skill AngryMammothAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_AngryMammothAura_name": "Angry Mammoth Aura",
+  "@skill_AngryMammothAura_name": {
+    "description": "Name of the skill AngryMammothAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.AngryMammothStomp.name": "Angry Mammoth Stomp",
-  "@skill.AngryMammothStomp.name": {
-    "description": "Name of the skill AngryMammothStomp: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_AngryMammothStomp_name": "Angry Mammoth Stomp",
+  "@skill_AngryMammothStomp_name": {
+    "description": "Name of the skill AngryMammothStomp: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Antivenom.name": "Antivenom",
-  "@skill.Antivenom.name": {
-    "description": "Name of the skill Antivenom: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Antivenom_name": "Antivenom",
+  "@skill_Antivenom_name": {
+    "description": "Name of the skill Antivenom: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BanditBlades.name": "Bandit Blades",
-  "@skill.BanditBlades.name": {
-    "description": "Name of the skill BanditBlades: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BanditBlades_name": "Bandit Blades",
+  "@skill_BanditBlades_name": {
+    "description": "Name of the skill BanditBlades: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BanditHeal.name": "Bandit Heal",
-  "@skill.BanditHeal.name": {
-    "description": "Name of the skill BanditHeal: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BanditHeal_name": "Bandit Heal",
+  "@skill_BanditHeal_name": {
+    "description": "Name of the skill BanditHeal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BanditVolley.name": "Bandit Volley",
-  "@skill.BanditVolley.name": {
-    "description": "Name of the skill BanditVolley: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BanditVolley_name": "Bandit Volley",
+  "@skill_BanditVolley_name": {
+    "description": "Name of the skill BanditVolley: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Barrier.name": "Barrier",
-  "@skill.Barrier.name": {
-    "description": "Name of the skill Barrier: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Barrier_name": "Barrier",
+  "@skill_Barrier_name": {
+    "description": "Name of the skill Barrier: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BearSwipe.name": "Bear Swipe",
-  "@skill.BearSwipe.name": {
-    "description": "Name of the skill BearSwipe: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BearSwipe_name": "Bear Swipe",
+  "@skill_BearSwipe_name": {
+    "description": "Name of the skill BearSwipe: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Berserker.name": "Berserker",
-  "@skill.Berserker.name": {
-    "description": "Name of the skill Berserker: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Berserker_name": "Berserker",
+  "@skill_Berserker_name": {
+    "description": "Name of the skill Berserker: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BindElemental.description": "It keeps its own level, and turns on you when the charm ends.",
-  "@skill.BindElemental.description": {
+  "skill_BindElemental_description": "It keeps its own level, and turns on you when the charm ends.",
+  "@skill_BindElemental_description": {
     "description": "Tooltip prose block of the skill BindElemental."
   },
-  "skill.BindElemental.name": "Bind Elemental",
-  "@skill.BindElemental.name": {
-    "description": "Name of the skill BindElemental: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BindElemental_name": "Bind Elemental",
+  "@skill_BindElemental_name": {
+    "description": "Name of the skill BindElemental: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Blight.name": "Blight",
-  "@skill.Blight.name": {
-    "description": "Name of the skill Blight: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Blight_name": "Blight",
+  "@skill_Blight_name": {
+    "description": "Name of the skill Blight: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Bloodthirst.description": "Works with whichever aura you have on.",
-  "@skill.Bloodthirst.description": {
+  "skill_Bloodthirst_description": "Works with whichever aura you have on.",
+  "@skill_Bloodthirst_description": {
     "description": "Tooltip prose block of the skill Bloodthirst."
   },
-  "skill.Bloodthirst.name": "Bloodthirst",
-  "@skill.Bloodthirst.name": {
-    "description": "Name of the skill Bloodthirst: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Bloodthirst_name": "Bloodthirst",
+  "@skill_Bloodthirst_name": {
+    "description": "Name of the skill Bloodthirst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BoarGore.name": "Boar Gore",
-  "@skill.BoarGore.name": {
-    "description": "Name of the skill BoarGore: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BoarGore_name": "Boar Gore",
+  "@skill_BoarGore_name": {
+    "description": "Name of the skill BoarGore: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.BombBurst.name": "Bomb Burst",
-  "@skill.BombBurst.name": {
-    "description": "Name of the skill BombBurst: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_BombBurst_name": "Bomb Burst",
+  "@skill_BombBurst_name": {
+    "description": "Name of the skill BombBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Bulwark.name": "Bulwark",
-  "@skill.Bulwark.name": {
-    "description": "Name of the skill Bulwark: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Bulwark_name": "Bulwark",
+  "@skill_Bulwark_name": {
+    "description": "Name of the skill Bulwark: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.CallForAid.name": "Call for Aid",
-  "@skill.CallForAid.name": {
-    "description": "Name of the skill CallForAid: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_CallForAid_name": "Call for Aid",
+  "@skill_CallForAid_name": {
+    "description": "Name of the skill CallForAid: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Calm.description": "Any damage breaks it, including your own aura.",
-  "@skill.Calm.description": {
+  "skill_Calm_description": "Any damage breaks it, including your own aura.",
+  "@skill_Calm_description": {
     "description": "Tooltip prose block of the skill Calm."
   },
-  "skill.Calm.name": "Calm",
-  "@skill.Calm.name": {
-    "description": "Name of the skill Calm: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Calm_name": "Calm",
+  "@skill_Calm_name": {
+    "description": "Name of the skill Calm: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.CampAura.name": "Camp Aura",
-  "@skill.CampAura.name": {
-    "description": "Name of the skill CampAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_CampAura_name": "Camp Aura",
+  "@skill_CampAura_name": {
+    "description": "Name of the skill CampAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.CampfireAura.name": "Campfire Aura",
-  "@skill.CampfireAura.name": {
-    "description": "Name of the skill CampfireAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_CampfireAura_name": "Campfire Aura",
+  "@skill_CampfireAura_name": {
+    "description": "Name of the skill CampfireAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Charge.name": "Charge",
-  "@skill.Charge.name": {
-    "description": "Name of the skill Charge: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Charge_name": "Charge",
+  "@skill_Charge_name": {
+    "description": "Name of the skill Charge: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.CharmBeast.description": "It keeps its own level, and turns on you when the charm ends.",
-  "@skill.CharmBeast.description": {
+  "skill_CharmBeast_description": "It keeps its own level, and turns on you when the charm ends.",
+  "@skill_CharmBeast_description": {
     "description": "Tooltip prose block of the skill CharmBeast."
   },
-  "skill.CharmBeast.name": "Charm Beast",
-  "@skill.CharmBeast.name": {
-    "description": "Name of the skill CharmBeast: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_CharmBeast_name": "Charm Beast",
+  "@skill_CharmBeast_name": {
+    "description": "Name of the skill CharmBeast: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.CompanionAura.name": "Companion Aura",
-  "@skill.CompanionAura.name": {
-    "description": "Name of the skill CompanionAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_CompanionAura_name": "Companion Aura",
+  "@skill_CompanionAura_name": {
+    "description": "Name of the skill CompanionAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Damage.name": "Damage",
-  "@skill.Damage.name": {
-    "description": "Name of the skill Damage: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_DamageBurst_name": "Damage-Burst",
+  "@skill_DamageBurst_name": {
+    "description": "Name of the skill DamageBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.DamageBurst.name": "Damage-Burst",
-  "@skill.DamageBurst.name": {
-    "description": "Name of the skill DamageBurst: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Damage_name": "Damage",
+  "@skill_Damage_name": {
+    "description": "Name of the skill Damage: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Dash.name": "Dash",
-  "@skill.Dash.name": {
-    "description": "Name of the skill Dash: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Dash_name": "Dash",
+  "@skill_Dash_name": {
+    "description": "Name of the skill Dash: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Demoralize.name": "Demoralize",
-  "@skill.Demoralize.name": {
-    "description": "Name of the skill Demoralize: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Demoralize_name": "Demoralize",
+  "@skill_Demoralize_name": {
+    "description": "Name of the skill Demoralize: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Discipline.name": "Discipline",
-  "@skill.Discipline.name": {
-    "description": "Name of the skill Discipline: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Discipline_name": "Discipline",
+  "@skill_Discipline_name": {
+    "description": "Name of the skill Discipline: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.DodoAura.name": "Dodo Aura",
-  "@skill.DodoAura.name": {
-    "description": "Name of the skill DodoAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_DodoAura_name": "Dodo Aura",
+  "@skill_DodoAura_name": {
+    "description": "Name of the skill DodoAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.EliteBanditSlash.name": "Elite Bandit Slash",
-  "@skill.EliteBanditSlash.name": {
-    "description": "Name of the skill EliteBanditSlash: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_EliteBanditSlash_name": "Elite Bandit Slash",
+  "@skill_EliteBanditSlash_name": {
+    "description": "Name of the skill EliteBanditSlash: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.EliteWolfBite.name": "Elite Wolf Bite",
-  "@skill.EliteWolfBite.name": {
-    "description": "Name of the skill EliteWolfBite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_EliteWolfBite_name": "Elite Wolf Bite",
+  "@skill_EliteWolfBite_name": {
+    "description": "Name of the skill EliteWolfBite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.EmberAura.name": "Ember Aura",
-  "@skill.EmberAura.name": {
-    "description": "Name of the skill EmberAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_EmberAura_name": "Ember Aura",
+  "@skill_EmberAura_name": {
+    "description": "Name of the skill EmberAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.EntanglingRoots.description": "Rooted enemies cannot move, but they still fight.",
-  "@skill.EntanglingRoots.description": {
+  "skill_EntanglingRoots_description": "Rooted enemies cannot move, but they still fight.",
+  "@skill_EntanglingRoots_description": {
     "description": "Tooltip prose block of the skill EntanglingRoots."
   },
-  "skill.EntanglingRoots.name": "Entangling Roots",
-  "@skill.EntanglingRoots.name": {
-    "description": "Name of the skill EntanglingRoots: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_EntanglingRoots_name": "Entangling Roots",
+  "@skill_EntanglingRoots_name": {
+    "description": "Name of the skill EntanglingRoots: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Envenom.name": "Envenom",
-  "@skill.Envenom.name": {
-    "description": "Name of the skill Envenom: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Envenom_name": "Envenom",
+  "@skill_Envenom_name": {
+    "description": "Name of the skill Envenom: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Fade.name": "Fade",
-  "@skill.Fade.name": {
-    "description": "Name of the skill Fade: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Fade_name": "Fade",
+  "@skill_Fade_name": {
+    "description": "Name of the skill Fade: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FieldMedics.name": "Field Medics",
-  "@skill.FieldMedics.name": {
-    "description": "Name of the skill FieldMedics: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FieldMedics_name": "Field Medics",
+  "@skill_FieldMedics_name": {
+    "description": "Name of the skill FieldMedics: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireElementalAura.name": "Fire Elemental Aura",
-  "@skill.FireElementalAura.name": {
-    "description": "Name of the skill FireElementalAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireElementalAura_name": "Fire Elemental Aura",
+  "@skill_FireElementalAura_name": {
+    "description": "Name of the skill FireElementalAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireShield.description": "Being hit is enough - it fires even when the hit is fully absorbed.",
-  "@skill.FireShield.description": {
+  "skill_FireShield_description": "Being hit is enough - it fires even when the hit is fully absorbed.",
+  "@skill_FireShield_description": {
     "description": "Tooltip prose block of the skill FireShield."
   },
-  "skill.FireShield.name": "Fire Shield",
-  "@skill.FireShield.name": {
-    "description": "Name of the skill FireShield: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireShield_name": "Fire Shield",
+  "@skill_FireShield_name": {
+    "description": "Name of the skill FireShield: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireTotem.name": "Fire Totem",
-  "@skill.FireTotem.name": {
-    "description": "Name of the skill FireTotem: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireTotemAura_name": "Fire Totem Aura",
+  "@skill_FireTotemAura_name": {
+    "description": "Name of the skill FireTotemAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireTotemAura.name": "Fire Totem Aura",
-  "@skill.FireTotemAura.name": {
-    "description": "Name of the skill FireTotemAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireTotem_name": "Fire Totem",
+  "@skill_FireTotem_name": {
+    "description": "Name of the skill FireTotem: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireVulnerability.name": "Fire Vulnerability",
-  "@skill.FireVulnerability.name": {
-    "description": "Name of the skill FireVulnerability: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireVulnerability_name": "Fire Vulnerability",
+  "@skill_FireVulnerability_name": {
+    "description": "Name of the skill FireVulnerability: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FireWard.name": "Fire Ward",
-  "@skill.FireWard.name": {
-    "description": "Name of the skill FireWard: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FireWard_name": "Fire Ward",
+  "@skill_FireWard_name": {
+    "description": "Name of the skill FireWard: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Firebolt.name": "Firebolt",
-  "@skill.Firebolt.name": {
-    "description": "Name of the skill Firebolt: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Firebolt_name": "Firebolt",
+  "@skill_Firebolt_name": {
+    "description": "Name of the skill Firebolt: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FirstAid.name": "First Aid",
-  "@skill.FirstAid.name": {
-    "description": "Name of the skill FirstAid: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FirstAid_name": "First Aid",
+  "@skill_FirstAid_name": {
+    "description": "Name of the skill FirstAid: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FlyYouFools.name": "Fly, You Fools!",
-  "@skill.FlyYouFools.name": {
-    "description": "Name of the skill FlyYouFools: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FlyYouFools_name": "Fly, You Fools!",
+  "@skill_FlyYouFools_name": {
+    "description": "Name of the skill FlyYouFools: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.FrostShield.description": "Being hit is enough - it fires even when the hit is fully absorbed.",
-  "@skill.FrostShield.description": {
+  "skill_FrostShield_description": "Being hit is enough - it fires even when the hit is fully absorbed.",
+  "@skill_FrostShield_description": {
     "description": "Tooltip prose block of the skill FrostShield."
   },
-  "skill.FrostShield.name": "Frost Shield",
-  "@skill.FrostShield.name": {
-    "description": "Name of the skill FrostShield: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_FrostShield_name": "Frost Shield",
+  "@skill_FrostShield_name": {
+    "description": "Name of the skill FrostShield: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Frostbite.name": "Frostbite",
-  "@skill.Frostbite.name": {
-    "description": "Name of the skill Frostbite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Frostbite_name": "Frostbite",
+  "@skill_Frostbite_name": {
+    "description": "Name of the skill Frostbite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.GiantVenomSpit.name": "Giant Venom Spit",
-  "@skill.GiantVenomSpit.name": {
-    "description": "Name of the skill GiantVenomSpit: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_GiantVenomSpit_name": "Giant Venom Spit",
+  "@skill_GiantVenomSpit_name": {
+    "description": "Name of the skill GiantVenomSpit: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.GruntSlash.name": "Grunt Slash",
-  "@skill.GruntSlash.name": {
-    "description": "Name of the skill GruntSlash: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_GruntSlash_name": "Grunt Slash",
+  "@skill_GruntSlash_name": {
+    "description": "Name of the skill GruntSlash: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Hardy.name": "Hardy",
-  "@skill.Hardy.name": {
-    "description": "Name of the skill Hardy: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Hardy_name": "Hardy",
+  "@skill_Hardy_name": {
+    "description": "Name of the skill Hardy: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Harvest.name": "Harvest",
-  "@skill.Harvest.name": {
-    "description": "Name of the skill Harvest: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Harvest_name": "Harvest",
+  "@skill_Harvest_name": {
+    "description": "Name of the skill Harvest: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Haste.name": "Haste",
-  "@skill.Haste.name": {
-    "description": "Name of the skill Haste: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Haste_name": "Haste",
+  "@skill_Haste_name": {
+    "description": "Name of the skill Haste: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Heal.name": "Heal",
-  "@skill.Heal.name": {
-    "description": "Name of the skill Heal: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Heal_name": "Heal",
+  "@skill_Heal_name": {
+    "description": "Name of the skill Heal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.HealerAura.name": "Healer Aura",
-  "@skill.HealerAura.name": {
-    "description": "Name of the skill HealerAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_HealerAura_name": "Healer Aura",
+  "@skill_HealerAura_name": {
+    "description": "Name of the skill HealerAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Hoarfrost.name": "Hoarfrost",
-  "@skill.Hoarfrost.name": {
-    "description": "Name of the skill Hoarfrost: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Hoarfrost_name": "Hoarfrost",
+  "@skill_Hoarfrost_name": {
+    "description": "Name of the skill Hoarfrost: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.HoldTheLine.name": "Hold the Line",
-  "@skill.HoldTheLine.name": {
-    "description": "Name of the skill HoldTheLine: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_HoldTheLine_name": "Hold the Line",
+  "@skill_HoldTheLine_name": {
+    "description": "Name of the skill HoldTheLine: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Ignite.name": "Ignite",
-  "@skill.Ignite.name": {
-    "description": "Name of the skill Ignite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Ignite_name": "Ignite",
+  "@skill_Ignite_name": {
+    "description": "Name of the skill Ignite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Immolate.name": "Immolate",
-  "@skill.Immolate.name": {
-    "description": "Name of the skill Immolate: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Immolate_name": "Immolate",
+  "@skill_Immolate_name": {
+    "description": "Name of the skill Immolate: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.KeenEye.name": "Keen Eye",
-  "@skill.KeenEye.name": {
-    "description": "Name of the skill KeenEye: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_KeenEye_name": "Keen Eye",
+  "@skill_KeenEye_name": {
+    "description": "Name of the skill KeenEye: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.KoboldStab.name": "Kobold Stab",
-  "@skill.KoboldStab.name": {
-    "description": "Name of the skill KoboldStab: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_KoboldStab_name": "Kobold Stab",
+  "@skill_KoboldStab_name": {
+    "description": "Name of the skill KoboldStab: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.KoboldVolley.name": "Kobold Volley",
-  "@skill.KoboldVolley.name": {
-    "description": "Name of the skill KoboldVolley: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_KoboldVolley_name": "Kobold Volley",
+  "@skill_KoboldVolley_name": {
+    "description": "Name of the skill KoboldVolley: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Lantern.name": "Lantern",
-  "@skill.Lantern.name": {
-    "description": "Name of the skill Lantern: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Lantern_name": "Lantern",
+  "@skill_Lantern_name": {
+    "description": "Name of the skill Lantern: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Lifewarden.name": "Lifewarden",
-  "@skill.Lifewarden.name": {
-    "description": "Name of the skill Lifewarden: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Lifewarden_name": "Lifewarden",
+  "@skill_Lifewarden_name": {
+    "description": "Name of the skill Lifewarden: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.LightningStrike.name": "Lightning Strike",
-  "@skill.LightningStrike.name": {
-    "description": "Name of the skill LightningStrike: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_LightningStrike_name": "Lightning Strike",
+  "@skill_LightningStrike_name": {
+    "description": "Name of the skill LightningStrike: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.LongRangeStrike.name": "Long-Range Strike",
-  "@skill.LongRangeStrike.name": {
-    "description": "Name of the skill LongRangeStrike: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_LongRangeStrike_name": "Long-Range Strike",
+  "@skill_LongRangeStrike_name": {
+    "description": "Name of the skill LongRangeStrike: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.MammothAura.name": "Mammoth Aura",
-  "@skill.MammothAura.name": {
-    "description": "Name of the skill MammothAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_MammothAura_name": "Mammoth Aura",
+  "@skill_MammothAura_name": {
+    "description": "Name of the skill MammothAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.NovaBurst.name": "Nova Burst",
-  "@skill.NovaBurst.name": {
-    "description": "Name of the skill NovaBurst: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_NovaBurst_name": "Nova Burst",
+  "@skill_NovaBurst_name": {
+    "description": "Name of the skill NovaBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OmniAura.name": "Omni Aura",
-  "@skill.OmniAura.name": {
-    "description": "Name of the skill OmniAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OmniAura_name": "Omni Aura",
+  "@skill_OmniAura_name": {
+    "description": "Name of the skill OmniAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OmniPassive.description": "Cheat-only test rig. Its retaliates fire on any hit, even one that is fully absorbed.",
-  "@skill.OmniPassive.description": {
+  "skill_OmniPassive_description": "Cheat-only test rig. Its retaliates fire on any hit, even one that is fully absorbed.",
+  "@skill_OmniPassive_description": {
     "description": "Tooltip prose block of the skill OmniPassive."
   },
-  "skill.OmniPassive.name": "Omni Passive",
-  "@skill.OmniPassive.name": {
-    "description": "Name of the skill OmniPassive: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OmniPassive_name": "Omni Passive",
+  "@skill_OmniPassive_name": {
+    "description": "Name of the skill OmniPassive: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OmniStrike.description": "Cheat-only test rig. Its calm breaks on any damage, its stun does not, a charm keeps the mob's own level and ends by turning on you, its leech follows whatever aura is on, and its reflect shares the hit as thrown.",
-  "@skill.OmniStrike.description": {
+  "skill_OmniStrike_description": "Cheat-only test rig. Its calm breaks on any damage, its stun does not, a charm keeps the mob's own level and ends by turning on you, its leech follows whatever aura is on, and its reflect shares the hit as thrown.",
+  "@skill_OmniStrike_description": {
     "description": "Tooltip prose block of the skill OmniStrike."
   },
-  "skill.OmniStrike.name": "Omni Strike",
-  "@skill.OmniStrike.name": {
-    "description": "Name of the skill OmniStrike: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OmniStrike_name": "Omni Strike",
+  "@skill_OmniStrike_name": {
+    "description": "Name of the skill OmniStrike: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Onward.name": "Onward",
-  "@skill.Onward.name": {
-    "description": "Name of the skill Onward: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Onward_name": "Onward",
+  "@skill_Onward_name": {
+    "description": "Name of the skill Onward: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OpenPortal.name": "Open Portal",
-  "@skill.OpenPortal.name": {
-    "description": "Name of the skill OpenPortal: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OpenPortal_name": "Open Portal",
+  "@skill_OpenPortal_name": {
+    "description": "Name of the skill OpenPortal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OrcCleave.name": "Orc Cleave",
-  "@skill.OrcCleave.name": {
-    "description": "Name of the skill OrcCleave: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OrcCleave_name": "Orc Cleave",
+  "@skill_OrcCleave_name": {
+    "description": "Name of the skill OrcCleave: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.OverchargeAura.name": "Overcharge Aura",
-  "@skill.OverchargeAura.name": {
-    "description": "Name of the skill OverchargeAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_OverchargeAura_name": "Overcharge Aura",
+  "@skill_OverchargeAura_name": {
+    "description": "Name of the skill OverchargeAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Paladin.name": "Paladin",
-  "@skill.Paladin.name": {
-    "description": "Name of the skill Paladin: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Paladin_name": "Paladin",
+  "@skill_Paladin_name": {
+    "description": "Name of the skill Paladin: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Paralyze.description": "Damage does not break it, your own aura included.",
-  "@skill.Paralyze.description": {
+  "skill_Paralyze_description": "Damage does not break it, your own aura included.",
+  "@skill_Paralyze_description": {
     "description": "Tooltip prose block of the skill Paralyze."
   },
-  "skill.Paralyze.name": "Paralyze",
-  "@skill.Paralyze.name": {
-    "description": "Name of the skill Paralyze: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Paralyze_name": "Paralyze",
+  "@skill_Paralyze_name": {
+    "description": "Name of the skill Paralyze: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Pickaxe.name": "Pickaxe",
-  "@skill.Pickaxe.name": {
-    "description": "Name of the skill Pickaxe: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Pickaxe_name": "Pickaxe",
+  "@skill_Pickaxe_name": {
+    "description": "Name of the skill Pickaxe: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.PoisonPoolAura.name": "Poison Pool Aura",
-  "@skill.PoisonPoolAura.name": {
-    "description": "Name of the skill PoisonPoolAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_PoisonPoolAura_name": "Poison Pool Aura",
+  "@skill_PoisonPoolAura_name": {
+    "description": "Name of the skill PoisonPoolAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.PullThrough.name": "Pull Through",
-  "@skill.PullThrough.name": {
-    "description": "Name of the skill PullThrough: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_PullThrough_name": "Pull Through",
+  "@skill_PullThrough_name": {
+    "description": "Name of the skill PullThrough: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.RallyDrum.name": "Rally Drum",
-  "@skill.RallyDrum.name": {
-    "description": "Name of the skill RallyDrum: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_RallyDrum_name": "Rally Drum",
+  "@skill_RallyDrum_name": {
+    "description": "Name of the skill RallyDrum: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.RatBite.name": "Rat Bite",
-  "@skill.RatBite.name": {
-    "description": "Name of the skill RatBite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_RatBite_name": "Rat Bite",
+  "@skill_RatBite_name": {
+    "description": "Name of the skill RatBite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Reaper.name": "Reaper",
-  "@skill.Reaper.name": {
-    "description": "Name of the skill Reaper: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Reaper_name": "Reaper",
+  "@skill_Reaper_name": {
+    "description": "Name of the skill Reaper: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Recall.name": "Recall",
-  "@skill.Recall.name": {
-    "description": "Name of the skill Recall: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Recall_name": "Recall",
+  "@skill_Recall_name": {
+    "description": "Name of the skill Recall: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Recover.name": "Recover",
-  "@skill.Recover.name": {
-    "description": "Name of the skill Recover: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Recover_name": "Recover",
+  "@skill_Recover_name": {
+    "description": "Name of the skill Recover: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Rejuvenation.name": "Rejuvenation",
-  "@skill.Rejuvenation.name": {
-    "description": "Name of the skill Rejuvenation: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Rejuvenation_name": "Rejuvenation",
+  "@skill_Rejuvenation_name": {
+    "description": "Name of the skill Rejuvenation: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Retribution.description": "The share is of the hit as thrown, before your own mitigation.",
-  "@skill.Retribution.description": {
+  "skill_Retribution_description": "The share is of the hit as thrown, before your own mitigation.",
+  "@skill_Retribution_description": {
     "description": "Tooltip prose block of the skill Retribution."
   },
-  "skill.Retribution.name": "Retribution",
-  "@skill.Retribution.name": {
-    "description": "Name of the skill Retribution: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Retribution_name": "Retribution",
+  "@skill_Retribution_name": {
+    "description": "Name of the skill Retribution: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Revive.name": "Revive",
-  "@skill.Revive.name": {
-    "description": "Name of the skill Revive: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Revive_name": "Revive",
+  "@skill_Revive_name": {
+    "description": "Name of the skill Revive: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.RimeBurst.name": "Rime-Burst",
-  "@skill.RimeBurst.name": {
-    "description": "Name of the skill RimeBurst: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_RimeBurst_name": "Rime-Burst",
+  "@skill_RimeBurst_name": {
+    "description": "Name of the skill RimeBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SaberToothCatAura.name": "Saber Tooth Cat Aura",
-  "@skill.SaberToothCatAura.name": {
-    "description": "Name of the skill SaberToothCatAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SaberToothCatAura_name": "Saber Tooth Cat Aura",
+  "@skill_SaberToothCatAura_name": {
+    "description": "Name of the skill SaberToothCatAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Sanctuary.name": "Sanctuary",
-  "@skill.Sanctuary.name": {
-    "description": "Name of the skill Sanctuary: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Sanctuary_name": "Sanctuary",
+  "@skill_Sanctuary_name": {
+    "description": "Name of the skill Sanctuary: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Shockwave.name": "Shockwave",
-  "@skill.Shockwave.name": {
-    "description": "Name of the skill Shockwave: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Shockwave_name": "Shockwave",
+  "@skill_Shockwave_name": {
+    "description": "Name of the skill Shockwave: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Slow.name": "Slow",
-  "@skill.Slow.name": {
-    "description": "Name of the skill Slow: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Slow_name": "Slow",
+  "@skill_Slow_name": {
+    "description": "Name of the skill Slow: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SoldierBlades.name": "Soldier Blades",
-  "@skill.SoldierBlades.name": {
-    "description": "Name of the skill SoldierBlades: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SoldierBlades_name": "Soldier Blades",
+  "@skill_SoldierBlades_name": {
+    "description": "Name of the skill SoldierBlades: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Spearhead.name": "Spearhead",
-  "@skill.Spearhead.name": {
-    "description": "Name of the skill Spearhead: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Spearhead_name": "Spearhead",
+  "@skill_Spearhead_name": {
+    "description": "Name of the skill Spearhead: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SpiderBite.name": "Spider Bite",
-  "@skill.SpiderBite.name": {
-    "description": "Name of the skill SpiderBite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SpiderBite_name": "Spider Bite",
+  "@skill_SpiderBite_name": {
+    "description": "Name of the skill SpiderBite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SpiderWebAura.name": "Spider Web Aura",
-  "@skill.SpiderWebAura.name": {
-    "description": "Name of the skill SpiderWebAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SpiderWebAura_name": "Spider Web Aura",
+  "@skill_SpiderWebAura_name": {
+    "description": "Name of the skill SpiderWebAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SpikeBarricadeAura.name": "Spike Barricade Aura",
-  "@skill.SpikeBarricadeAura.name": {
-    "description": "Name of the skill SpikeBarricadeAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SpikeBarricadeAura_name": "Spike Barricade Aura",
+  "@skill_SpikeBarricadeAura_name": {
+    "description": "Name of the skill SpikeBarricadeAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SpinWeb.name": "Spin Web",
-  "@skill.SpinWeb.name": {
-    "description": "Name of the skill SpinWeb: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SpinWeb_name": "Spin Web",
+  "@skill_SpinWeb_name": {
+    "description": "Name of the skill SpinWeb: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.StagKick.name": "Stag Kick",
-  "@skill.StagKick.name": {
-    "description": "Name of the skill StagKick: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_StagKick_name": "Stag Kick",
+  "@skill_StagKick_name": {
+    "description": "Name of the skill StagKick: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Strong.name": "Strong",
-  "@skill.Strong.name": {
-    "description": "Name of the skill Strong: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Strong_name": "Strong",
+  "@skill_Strong_name": {
+    "description": "Name of the skill Strong: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SummonCompanion.name": "Summon Companion",
-  "@skill.SummonCompanion.name": {
-    "description": "Name of the skill SummonCompanion: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SummonCompanion_name": "Summon Companion",
+  "@skill_SummonCompanion_name": {
+    "description": "Name of the skill SummonCompanion: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SummonSpider.name": "Summon Spider",
-  "@skill.SummonSpider.name": {
-    "description": "Name of the skill SummonSpider: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SummonSpider_name": "Summon Spider",
+  "@skill_SummonSpider_name": {
+    "description": "Name of the skill SummonSpider: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.SummonTotem.name": "Summon Totem",
-  "@skill.SummonTotem.name": {
-    "description": "Name of the skill SummonTotem: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_SummonTotem_name": "Summon Totem",
+  "@skill_SummonTotem_name": {
+    "description": "Name of the skill SummonTotem: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Suppression.name": "Suppression",
-  "@skill.Suppression.name": {
-    "description": "Name of the skill Suppression: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Suppression_name": "Suppression",
+  "@skill_Suppression_name": {
+    "description": "Name of the skill Suppression: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Swift.name": "Swift",
-  "@skill.Swift.name": {
-    "description": "Name of the skill Swift: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Swift_name": "Swift",
+  "@skill_Swift_name": {
+    "description": "Name of the skill Swift: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Taunt.name": "Taunt",
-  "@skill.Taunt.name": {
-    "description": "Name of the skill Taunt: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Taunt_name": "Taunt",
+  "@skill_Taunt_name": {
+    "description": "Name of the skill Taunt: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.ThickHide.name": "Thick Hide",
-  "@skill.ThickHide.name": {
-    "description": "Name of the skill ThickHide: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_ThickHide_name": "Thick Hide",
+  "@skill_ThickHide_name": {
+    "description": "Name of the skill ThickHide: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Thorns.description": "The share is of the hit as thrown, before the wearer's own mitigation.",
-  "@skill.Thorns.description": {
+  "skill_Thorns_description": "The share is of the hit as thrown, before the wearer's own mitigation.",
+  "@skill_Thorns_description": {
     "description": "Tooltip prose block of the skill Thorns."
   },
-  "skill.Thorns.name": "Thorns",
-  "@skill.Thorns.name": {
-    "description": "Name of the skill Thorns: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Thorns_name": "Thorns",
+  "@skill_Thorns_name": {
+    "description": "Name of the skill Thorns: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.ThrowBomb.name": "Throw Bomb",
-  "@skill.ThrowBomb.name": {
-    "description": "Name of the skill ThrowBomb: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_ThrowBomb_name": "Throw Bomb",
+  "@skill_ThrowBomb_name": {
+    "description": "Name of the skill ThrowBomb: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.ThrowMine.name": "Throw Mine",
-  "@skill.ThrowMine.name": {
-    "description": "Name of the skill ThrowMine: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_ThrowMine_name": "Throw Mine",
+  "@skill_ThrowMine_name": {
+    "description": "Name of the skill ThrowMine: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Torch.name": "Torch",
-  "@skill.Torch.name": {
-    "description": "Name of the skill Torch: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Torch_name": "Torch",
+  "@skill_Torch_name": {
+    "description": "Name of the skill Torch: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.TotemAura.name": "Totem Aura",
-  "@skill.TotemAura.name": {
-    "description": "Name of the skill TotemAura: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_TotemAura_name": "Totem Aura",
+  "@skill_TotemAura_name": {
+    "description": "Name of the skill TotemAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Tough.name": "Tough",
-  "@skill.Tough.name": {
-    "description": "Name of the skill Tough: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Tough_name": "Tough",
+  "@skill_Tough_name": {
+    "description": "Name of the skill Tough: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.TrollSmash.name": "Troll Smash",
-  "@skill.TrollSmash.name": {
-    "description": "Name of the skill TrollSmash: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_TrollSmash_name": "Troll Smash",
+  "@skill_TrollSmash_name": {
+    "description": "Name of the skill TrollSmash: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Vanguard.name": "Vanguard",
-  "@skill.Vanguard.name": {
-    "description": "Name of the skill Vanguard: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Vanguard_name": "Vanguard",
+  "@skill_Vanguard_name": {
+    "description": "Name of the skill Vanguard: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.VenomSpit.name": "Venom Spit",
-  "@skill.VenomSpit.name": {
-    "description": "Name of the skill VenomSpit: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_VenomSpit_name": "Venom Spit",
+  "@skill_VenomSpit_name": {
+    "description": "Name of the skill VenomSpit: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Venomward.name": "Venomward",
-  "@skill.Venomward.name": {
-    "description": "Name of the skill Venomward: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Venomward_name": "Venomward",
+  "@skill_Venomward_name": {
+    "description": "Name of the skill Venomward: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Warbanner.name": "Warbanner",
-  "@skill.Warbanner.name": {
-    "description": "Name of the skill Warbanner: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_WarbannerShield_name": "Warbanner Shield",
+  "@skill_WarbannerShield_name": {
+    "description": "Name of the skill WarbannerShield: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.WarbannerShield.name": "Warbanner Shield",
-  "@skill.WarbannerShield.name": {
-    "description": "Name of the skill WarbannerShield: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Warbanner_name": "Warbanner",
+  "@skill_Warbanner_name": {
+    "description": "Name of the skill Warbanner: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.WarlordCleave.name": "Warlord Cleave",
-  "@skill.WarlordCleave.name": {
-    "description": "Name of the skill WarlordCleave: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_WarlordCleave_name": "Warlord Cleave",
+  "@skill_WarlordCleave_name": {
+    "description": "Name of the skill WarlordCleave: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.WarlordFrenzy.name": "Warlord Frenzy",
-  "@skill.WarlordFrenzy.name": {
-    "description": "Name of the skill WarlordFrenzy: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_WarlordFrenzy_name": "Warlord Frenzy",
+  "@skill_WarlordFrenzy_name": {
+    "description": "Name of the skill WarlordFrenzy: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.WhirlingAxes.name": "Whirling Axes",
-  "@skill.WhirlingAxes.name": {
-    "description": "Name of the skill WhirlingAxes: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_WhirlingAxes_name": "Whirling Axes",
+  "@skill_WhirlingAxes_name": {
+    "description": "Name of the skill WhirlingAxes: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Wild.name": "Wild",
-  "@skill.Wild.name": {
-    "description": "Name of the skill Wild: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Wild_name": "Wild",
+  "@skill_Wild_name": {
+    "description": "Name of the skill Wild: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.Wildfire.name": "Wildfire",
-  "@skill.Wildfire.name": {
-    "description": "Name of the skill Wildfire: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_Wildfire_name": "Wildfire",
+  "@skill_Wildfire_name": {
+    "description": "Name of the skill Wildfire: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   },
-  "skill.WolfBite.name": "Wolf Bite",
-  "@skill.WolfBite.name": {
-    "description": "Name of the skill WolfBite: spellbook, ability bar, tooltip title, unlock banner."
+  "skill_WolfBite_name": "Wolf Bite",
+  "@skill_WolfBite_name": {
+    "description": "Name of the skill WolfBite: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
   }
 }

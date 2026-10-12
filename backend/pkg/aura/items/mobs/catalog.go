@@ -26,12 +26,13 @@ import (
 // four facts, and since C2b the one aura id behind a mob's ambient VFX (see
 // AuraSkillID, which states why an id is not a hint).
 type CatalogEntry struct {
-	ID          MobID  `json:"id"`
-	Name        string `json:"name"`
+	ID   MobID  `json:"id"`
+	Name string `json:"name"`
+	// DisplayName is the name as authored in the served locale: plain text, or
+	// its plural forms as ICU on `count` (plan-localization.md D24), which the
+	// client formats with 1 for a nameplate and the required count on a
+	// kill/harvest tracker line.
 	DisplayName string `json:"displayName"`
-	// DisplayNamePlural is the plural, served where content authors one
-	// (plan-localization.md Q2: the kill/harvest objective lines).
-	DisplayNamePlural string `json:"displayNamePlural,omitempty"`
 	// CurveLevel is the authored combat level (cL) — the client tints the
 	// nameplate by its distance from the player's own level.
 	CurveLevel int `json:"curveLevel"`
@@ -103,12 +104,11 @@ func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 	entries := make([]CatalogEntry, 0, len(defs))
 	for _, d := range defs {
 		entries = append(entries, CatalogEntry{
-			ID:                d.ID,
-			Name:              d.Name,
-			DisplayName:       tr(lang.MobName(d.Name), skills.DeriveDisplayName(d.Name)),
-			DisplayNamePlural: pluralOf(d, tr),
-			CurveLevel:        d.CurveLevel,
-			Tier:              d.Rank(),
+			ID:          d.ID,
+			Name:        d.Name,
+			DisplayName: tr(lang.MobName(d.Name), d.NameMessage()),
+			CurveLevel:  d.CurveLevel,
+			Tier:        d.Rank(),
 			// Re-derived from xpFactor when the formula replaced the absolute
 			// experience value (plan-xp-formula.md L1): "pays kill XP at all"
 			// is still the test for "is prey", it is just spelled differently.
@@ -123,13 +123,6 @@ func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in dev
 // the client runs on :2001 against aurad on :2000, and the catalog is public
 // read-only content. Mirrors skills.CatalogHandler.
-func pluralOf(d *MobDefinition, tr lang.Tr) string {
-	if d.NamePlural == "" {
-		return ""
-	}
-	return tr(lang.MobNamePlural(d.Name), d.NamePlural)
-}
-
 func CatalogHandler(r Registry, b *lang.Bundle) (http.Handler, error) {
 	return lang.Handler(b, func(tr lang.Tr) ([]byte, error) { return CatalogJSONIn(r, tr) })
 }

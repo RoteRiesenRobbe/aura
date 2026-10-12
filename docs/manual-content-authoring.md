@@ -27,6 +27,24 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
 - **Sync gotcha:** always check the boot log counts after a restart
   (`Loaded skill definitions count=…`). A stale `aurad` process silently
   masks new content — `pkill aurad`, rebuild, re-check.
+- **⭐ Player-visible English lives in `api/lang/en/*.arb`, not in the content
+  JSON** (plan-localization.md D27). A mob, quest, skill or region file keeps
+  structure and ids; its text (names, titles, journals, trackers, dialogue
+  lines, options, grant lines, skill descriptions, region titles) sits in the
+  English ARB under an identifier-safe key (`quest_<id>_<stage>_journal`,
+  `mob_<Name>_name`, `conv_<NPC>_<slug>`). The boot refuses inline text in a
+  content file. **The examples in this manual show text INLINE, as a draft:**
+  write it like that, then run `node tools/lang/extract-english.mjs`, which
+  moves it into the ARB with a translator note, gives every dialogue line a
+  frozen slug (`{"id": "fields_need_work"}`) or names the shared phrase its
+  English matches (`{"stock": "quest_accept"}`), and strips the JSON. The
+  content editor does the same on save, and moves a renamed id's keys in every
+  language. German goes into `api/lang/de/` in the same change (D23); see the
+  `add-content` skill for the steps and `docs/manual-localization-de.md` for
+  the style.
+- **A mob a kill or harvest objective counts carries its plural in its name**
+  (D24): `"mob_Wolf_name": "{count, plural, one {Wolf} other {Wolves}}"`. Every
+  other mob name is plain text. The old `namePlural` field is retired.
 
 ---
 

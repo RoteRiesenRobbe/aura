@@ -25,29 +25,27 @@
       {
         "id": "root",
         "lines": [
-          {"id": "4e20aa", "text": "What do you need?"}
+          {"id": "what_do_you_need"}
         ],
         "options": [
-          { "id": "af7e39", "text": "Do you have a task for me?", "next": "welcome" },
-          { "id": "10c5f5", "text": "About the village...", "next": "welcome_running" },
-          { "id": "e700fe", "text": "Teach me something.", "next": "teachings" }
+          { "stock": "ask_task", "next": "welcome" },
+          { "id": "about_the_village", "next": "welcome_running" },
+          { "stock": "ask_teach", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          {"id": "1fcacb", "text": "Talk to Reinhard and the Town Crier, then come back to me."}
+          {"id": "talk_to_reinhard"}
         ],
         "options": [
           {
-            "id": "6fd054",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "eb6918",
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "village-welcome",
-                "line": "Good."
+                "quest": "village-welcome"
               }
             ]
           }
@@ -56,32 +54,27 @@
       {
         "id": "welcome_running",
         "lines": [
-          {"id": "ff69ff", "text": "The village?"}
+          {"id": "the_village"}
         ],
         "options": [
           {
-            "id": "631eb2",
-            "text": "I talked to Reinhard and the Town Crier.",
+            "id": "i_talked_to_reinhard",
             "grants": [
               {
-                "id": "458d56",
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "village-welcome",
                 "fromStage": "back",
-                "toStage": "known",
-                "line": "Good."
+                "toStage": "known"
               },
               {
-                "id": "13eeb1",
                 "kind": "grant_xp",
-                "xp": 150,
-                "line": "Here is your reward."
+                "xp": 150
               }
             ]
           },
           {
-            "id": "ff87a4",
-            "text": "I am on it.",
+            "stock": "quest_progress",
             "next": "welcome_on_it"
           }
         ]
@@ -96,64 +89,56 @@
           }
         ],
         "lines": [
-          {"id": "2979bb", "text": "Talk to Reinhard and the Town Crier, then come back to me."}
+          {"id": "talk_to_reinhard_2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "8af3bf", "text": "What do you want to learn?"}
+          {"stock": "offer_teach"}
         ],
         "options": [
           {
-            "id": "225ce5",
-            "text": "First Aid",
+            "id": "first_aid",
             "grants": [
               {
-                "id": "acd3e8",
+                "id": "ill_teach_you_first_aid",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
-                "requiredLevel": 2,
-                "line": "I'll teach you First Aid."
+                "requiredLevel": 2
               }
             ]
           },
           {
-            "id": "14bd6b",
-            "text": "Heal",
+            "id": "heal",
             "grants": [
               {
-                "id": "96bdac",
+                "id": "ill_teach_you_heal",
                 "kind": "teach_skill",
                 "skill": "Heal",
-                "requiredLevel": 3,
-                "line": "I'll teach you Heal."
+                "requiredLevel": 3
               }
             ]
           },
           {
-            "id": "712422",
-            "text": "Calm",
+            "id": "calm",
             "grants": [
               {
-                "id": "9dee2f",
+                "id": "ill_teach_you_calm",
                 "kind": "teach_skill",
                 "skill": "Calm",
-                "requiredLevel": 10,
-                "line": "I'll teach you Calm."
+                "requiredLevel": 10
               }
             ]
           },
           {
-            "id": "0e534e",
-            "text": "Charm Beast",
+            "id": "charm_beast",
             "grants": [
               {
-                "id": "f280ef",
+                "id": "ill_teach_you_charm_beast",
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
-                "requiredLevel": 10,
-                "line": "I'll teach you Charm Beast."
+                "requiredLevel": 10
               }
             ]
           }

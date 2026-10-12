@@ -129,7 +129,7 @@ describe('localization catalogs', () => {
         for (const p of all) {
             const de = messages(p.de);
             Object.keys(messages(p.en)).forEach(key => {
-                if (!(key in de) && p.allowlist.indexOf(key) < 0 && !isStockCovered(p, key)) {
+                if (!(key in de) && p.allowlist.indexOf(key) < 0) {
                     missing.push(p.name + ': ' + key);
                 }
             });
@@ -213,13 +213,41 @@ describe('localization catalogs', () => {
         expect(problems).toEqual([]);
     });
 
+    // D30: a key may carry a maximum length (`x-maxLength` in its @ block, and
+    // in its note's words); English and German are held to it. Characters are a
+    // proxy, the face is proportional. A plural message counts its longest form.
+    it('no English or German text is over its length limit (D30)', () => {
+        const tooLong: string[] = [];
+        for (const p of all) {
+            const en = messages(p.en);
+            const de = messages(p.de);
+            Object.keys(en).forEach(key => {
+                const max = p.en['@' + key] && p.en['@' + key]['x-maxLength'];
+                if (typeof max !== 'number') {
+                    return;
+                }
+                for (const [loc, text] of [['en', en[key]], ['de', de[key]]] as Array<[string, string | undefined]>) {
+                    if (text !== undefined && visibleLength(text) > max) {
+                        tooLong.push(`${p.name}: ${loc} ${key} is ${visibleLength(text)} characters, at most ${max}: ${JSON.stringify(text)}`);
+                    }
+                }
+            });
+        }
+        expect(tooLong).toEqual([]);
+    });
+
+    it('a text over its limit is caught (D30)', () => {
+        expect(visibleLength('{count, plural, one {Wolf} other {Wolves}}')).toBe(6);
+        expect(visibleLength('Abklingfähigkeiten')).toBe(18);
+    });
+
     it('no German translation is outdated against its English (D20)', () => {
         const outdated: string[] = [];
         for (const p of all) {
             if (!Object.keys(p.de).length) {
                 continue;
             }
-            const sourcePath = p.dePath.replace(/\.arb$/, '.source.json');
+            const recordPath = p.dePath.replace(/\.arb$/, '.translated-from.json');
             const en = messages(p.en);
             const de = messages(p.de);
             if (UPDATE) {
@@ -229,10 +257,10 @@ describe('localization catalogs', () => {
                         record[key] = en[key];
                     }
                 });
-                writeFileSync(sourcePath, JSON.stringify(record, null, 2) + '\n');
+                writeFileSync(recordPath, JSON.stringify(record, null, 2) + '\n');
                 continue;
             }
-            const record: Record<string, string> = existsSync(sourcePath) ? readJson(sourcePath) : {};
+            const record: Record<string, string> = existsSync(recordPath) ? readJson(recordPath) : {};
             Object.keys(de).forEach(key => {
                 if (!(key in en) || p.allowlist.indexOf(key) >= 0) {
                     return;
@@ -285,12 +313,6 @@ describe('localization catalogs', () => {
     });
 });
 
-/** A dialogue line whose English is a stock phrase is covered by the phrase's German (§8). */
-function isStockCovered(p: Pair, key: string): boolean {
-    const links = p.en['@' + key] && p.en['@' + key].x_stock;
-    return !!links && ('stock.' + links) in messages(p.de);
-}
-
 function walkFiles(dir: string): string[] {
     const out: string[] = [];
     readdirSync(dir).forEach(name => {
@@ -302,4 +324,16 @@ function walkFiles(dir: string): string[] {
         }
     });
     return out;
+}
+
+/** What a player reads, in characters: a plural message's longest form (D30). */
+function visibleLength(text: string): number {
+    if (!text.startsWith('{count, plural,')) {
+        return Array.from(text).length;
+    }
+    let longest = 0;
+    for (const m of text.matchAll(/\{([^{}]*)\}/g)) {
+        longest = Math.max(longest, Array.from(m[1]).length);
+    }
+    return longest;
 }

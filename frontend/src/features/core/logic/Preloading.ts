@@ -4,7 +4,7 @@ import {PreloadingProgressedEvent, PreloadingStartedEvent, StartScreenDomReadyEv
 import {Assets, Texture} from 'pixi.js';
 import {ISvgContainer} from "./ISvgContainer";
 import {packIconTexture, packIconsReady} from '../../../client-data/icons/PackIconFiles';
-import {applyI18n} from '../../i18n/logic/DomI18n';
+import {applyI18n} from '../../localization/logic/DomI18n';
 
 /**
  * A portrait source that may be OVERRIDDEN by an icon-pack portrait: `file` is

@@ -129,6 +129,10 @@ func TestContentFS_MissingSubdirectoriesFailLoudly(t *testing.T) {
 
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "props"), 0o755))
 	_, err = contentFS(dir)
+	require.Error(t, err, "...nor one without lang/, the English the mob files are read with (D27)")
+
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "lang"), 0o755))
+	_, err = contentFS(dir)
 	require.NoError(t, err)
 
 	// The dirs exist but are empty: the battery must still refuse rather than
@@ -173,7 +177,7 @@ func copyContentDir(t *testing.T, src, dst string) {
 // simply full of NPCs.
 func TestLoadPlacements_ZoneWithoutCombatSpawnsFailsLoudly(t *testing.T) {
 	dir := t.TempDir()
-	for _, name := range []string{"skills", "factions", "mobs", "props"} {
+	for _, name := range []string{"skills", "factions", "mobs", "props", "lang"} {
 		copyContentDir(t, filepath.Join(repoAPIDir(t), name), filepath.Join(dir, name))
 	}
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "zones"), 0o755))

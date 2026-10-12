@@ -107,3 +107,16 @@ describe('the page language', () => {
         expect(document.documentElement.getAttribute('translate')).toBe('no');
     });
 });
+
+// L21 (C5b): the pseudo-locale marks the TEXT of a plural branch, because it
+// runs on the formatted message; the syntax never reaches it.
+describe('pseudo inside plural branches (L21)', () => {
+    it('accents the chosen branch of a plural message', () => {
+        setLocaleForTest(PSEUDO_LOCALE);
+        try {
+            expect(t('questObjectiveKill', {n: 3, m: 8, mob: 'Wolves'})).toMatch(/^\[3\/8 Ŵóļṽéš šļáíñ·+\]$/);
+        } finally {
+            setLocaleForTest('en');
+        }
+    });
+});

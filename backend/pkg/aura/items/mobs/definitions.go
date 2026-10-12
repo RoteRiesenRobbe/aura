@@ -7,6 +7,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -227,11 +228,15 @@ type MobUnlock struct {
 type MobDefinition struct {
 	ID   MobID
 	Name string
-	// NamePlural is the English plural display name (plan-localization.md
-	// Q2): required on a mob a kill or harvest objective names, so the line
-	// reads "3/8 Wolves slain"; the quest loader enforces it. Absent elsewhere.
-	NamePlural string
-	Type       string
+	// DisplayName is the English name players see (plan-localization.md D24,
+	// D27): authored in api/lang/en/mobs.arb and filled in as the file is read,
+	// plain ("Farmer") or with its plural forms as ICU
+	// ("{count, plural, one {Wolf} other {Wolves}}"). Name stays the identity
+	// (keys, spawns, quest targets) and is never shown. Read it through
+	// NameMessage (the catalog, which the client formats with a count) or
+	// Display (the English singular, for the server's fallback strings).
+	DisplayName string
+	Type        string
 
 	// EntityType optionally decouples the wire EntityType from the def name
 	// (chunk 9 content): a throwaway/variant def (e.g. an encounter boss)
@@ -300,6 +305,20 @@ type MobDefinition struct {
 	FriendlyToPlayers bool
 }
 
+// NameMessage is the mob's English display name as authored (D24, D27): plain
+// text or an ICU plural on count. An in-memory fixture without one gets the
+// name split CamelCase→spaces.
+func (d *MobDefinition) NameMessage() string {
+	if d.DisplayName != "" {
+		return d.DisplayName
+	}
+	return skills.DeriveDisplayName(d.Name)
+}
+
+// Display is the mob's English name in the singular, for the server's own
+// fallback strings ("Dropped by: Wolf"); the client formats NameMessage.
+func (d *MobDefinition) Display() string { return lang.Singular(d.NameMessage()) }
+
 type mobDefinition struct {
 	// Comment is parsed and discarded: the _comment key is the content
 	// convention for authoring notes (the factions precedent), and it has to be
@@ -307,16 +326,16 @@ type mobDefinition struct {
 	// carry one.
 	Comment string `json:"_comment"`
 
-	Id         uint64 `json:"id"`
-	Name       string `json:"name"`
-	NamePlural string `json:"namePlural"`
-	Type       string `json:"type"`
-	EntityType string `json:"entityType"` // absent → the name resolves the wire type
-	Faction    string `json:"faction"`    // absent → the built-in hostile default
-	Tier       string `json:"tier"`       // absent → "normal" (label only, C0)
-	Role       string `json:"role"`       // absent → "creature" (chunk 2)
-	CurveLevel int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
-	Legacy     bool   `json:"legacy"`     // absent → live content (step-7 A.5)
+	Id          uint64 `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"` // from api/lang/en (D27); a fixture may omit it
+	Type        string `json:"type"`
+	EntityType  string `json:"entityType"` // absent → the name resolves the wire type
+	Faction     string `json:"faction"`    // absent → the built-in hostile default
+	Tier        string `json:"tier"`       // absent → "normal" (label only, C0)
+	Role        string `json:"role"`       // absent → "creature" (chunk 2)
+	CurveLevel  int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
+	Legacy      bool   `json:"legacy"`     // absent → live content (step-7 A.5)
 
 	// Interaction is the authored conversation (chunk 3a); absent → nil, which
 	// is every mob that is not an NPC.
@@ -576,7 +595,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	mob := &MobDefinition{
 		ID:                MobID(m.Id),
 		Name:              m.Name,
-		NamePlural:        m.NamePlural,
+		DisplayName:       m.DisplayName,
 		Type:              m.Type,
 		EntityType:        m.EntityType,
 		Faction:           faction,

@@ -11,18 +11,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
-// plan-localization.md C1, the content pins:
-//   - the generated English source files are not stale (D19, L15);
+// plan-localization.md C1 + C5a, the content pins:
+//   - every English key belongs to content, in its domain's file, and carries
+//     a translator note (D27, D18); a content string without English refuses
+//     the boot itself;
 //   - every English key has its German, except the allowlist (D13);
 //   - no German key is an orphan (D13, a TEST failure, never a boot failure);
 //   - no German translation is outdated against its English (D20).
 //
-// Regenerate the English sources after a content edit, and the translated-from
-// records after checking the German:
+// After checking the German, rewrite the translated-from records:
 //
 //	UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/
 //
@@ -42,22 +41,43 @@ func loadLangContent(t *testing.T) loadedContent {
 
 var updateLang = os.Getenv("UPDATE_LANG") != ""
 
-func TestLangEnglishSourcesAreFresh(t *testing.T) {
+func TestLangEnglishBelongsToContentAndCarriesNotes(t *testing.T) {
 	loaded := loadLangContent(t)
+	inDomain := map[string]string{}
 	for _, d := range langDomains {
-		file := filepath.Join(langDir, "en", d.name+".arb")
-		want := lang.GenerateARB(loaded.langEntries[d.name])
-		if updateLang {
-			require.NoError(t, os.MkdirAll(filepath.Dir(file), 0o755))
-			require.NoError(t, os.WriteFile(file, want, 0o644))
-			continue
+		for _, e := range loaded.langEntries[d.name] {
+			inDomain[e.Key] = d.name
 		}
-		got, err := os.ReadFile(file)
-		require.NoError(t, err, "api/lang/en/%s.arb is missing; run UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/", d.name)
-		got = bytes.ReplaceAll(got, []byte("\r\n"), []byte("\n"))
-		require.True(t, bytes.Equal(want, got),
-			"api/lang/en/%s.arb is stale (never hand-edit it, L15); run UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/", d.name)
 	}
+	var orphans, misplaced, unnoted []string
+	for _, d := range langDomains {
+		raw, err := os.ReadFile(filepath.Join(langDir, "en", d.name+".arb"))
+		require.NoError(t, err)
+		var doc map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(raw, &doc))
+		for k := range doc {
+			if strings.HasPrefix(k, "@") {
+				continue
+			}
+			if domain, ok := inDomain[k]; !ok {
+				orphans = append(orphans, d.name+": "+k)
+			} else if domain != d.name {
+				misplaced = append(misplaced, fmt.Sprintf("%s is in en/%s.arb, its content is %s", k, d.name, domain))
+			}
+			var meta struct {
+				Description string `json:"description"`
+			}
+			if note, ok := doc["@"+k]; !ok || json.Unmarshal(note, &meta) != nil || meta.Description == "" {
+				unnoted = append(unnoted, d.name+": "+k)
+			}
+		}
+	}
+	sort.Strings(orphans)
+	sort.Strings(misplaced)
+	sort.Strings(unnoted)
+	require.Empty(t, orphans, "English keys that match no content (deleted content, a renamed id, or a typo); remove them")
+	require.Empty(t, misplaced, "English keys in the wrong domain file")
+	require.Empty(t, unnoted, "English keys without a translator note (D18)")
 }
 
 func readAllowlist(t *testing.T, locale string) map[string]bool {
@@ -78,54 +98,43 @@ func readAllowlist(t *testing.T, locale string) map[string]bool {
 
 func TestLangGermanIsCompleteAndCurrent(t *testing.T) {
 	loaded := loadLangContent(t)
-	allow := readAllowlist(t, "de")
+	src, err := diskContent("../../../api")
+	require.NoError(t, err)
+	// ONE status function for this pin and the editor's "German owed" panel
+	// (aurad -lang-status, D25): German is the strict language (D26).
+	status, err := langStatus(loaded, src.lang)
+	require.NoError(t, err)
+	de := status["de"]
+	require.NotNil(t, de)
+
 	german := loaded.langBundle.Overlay("de")
-	var missing, orphans, outdated []string
 	allKeys := map[string]bool{}
 	for _, d := range langDomains {
-		domainKeys := map[string]bool{}
-		sourcePath := filepath.Join(langDir, "de", d.name+".source.json")
-		record := map[string]string{}
-		if raw, err := os.ReadFile(sourcePath); err == nil {
-			require.NoError(t, json.Unmarshal(raw, &record))
-		}
 		fresh := map[string]string{}
 		for _, e := range loaded.langEntries[d.name] {
 			allKeys[e.Key] = true
-			domainKeys[e.Key] = true
-			own, hasOwn := german[e.Key]
-			stockGerman := e.Stock != "" && german[lang.StockPhrase(e.Stock)] != ""
-			if !hasOwn && !stockGerman {
-				if !allow[e.Key] {
-					missing = append(missing, e.Key)
-				}
-				continue
-			}
-			if hasOwn && own != "" {
+			if german[e.Key] != "" {
 				fresh[e.Key] = e.Text
-				if record[e.Key] != e.Text && !allow[e.Key] {
-					outdated = append(outdated, fmt.Sprintf("%s: was %q, now %q", e.Key, record[e.Key], e.Text))
-				}
 			}
 		}
 		if updateLang && len(fresh) > 0 {
-			writeSortedJSON(t, sourcePath, fresh)
+			writeSortedJSON(t, filepath.Join(langDir, "de", d.name+".translated-from.json"), fresh)
 		}
 	}
+	var orphans []string
 	for k := range german {
-		if !allKeys[k] && !strings.HasPrefix(k, "stock.") {
+		if !allKeys[k] {
 			orphans = append(orphans, k)
 		}
 	}
-	sort.Strings(missing)
 	sort.Strings(orphans)
-	sort.Strings(outdated)
-	if updateLang {
-		outdated = nil
-	}
 	require.Empty(t, orphans, "German keys that match no content (deleted content or a typo)")
-	require.Empty(t, outdated, "German translated from an older English (D20); check it, then UPDATE_LANG=1")
-	require.Empty(t, missing, "English keys with no German and not on api/lang/de/allowlist.json (D13)")
+	if !updateLang {
+		require.Empty(t, de.Outdated, "German translated from an older English (D20); check it, then UPDATE_LANG=1")
+	}
+	require.Empty(t, de.Missing, "English keys with no German and not on api/lang/de/allowlist.json (D13)")
+	require.Empty(t, de.TooLong, "German over its length limit (D30)")
+	require.Empty(t, status["en"].TooLong, "English over its length limit (D30)")
 }
 
 func writeSortedJSON(t *testing.T, file string, m map[string]string) {

@@ -7,7 +7,6 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,
-  "description": "Damage does not break it, your own aura included.",
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#ffe066" }

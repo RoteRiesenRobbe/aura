@@ -98,7 +98,8 @@
   },
   "hudAuras": "Auras",
   "@hudAuras": {
-    "description": "HUD: text of the <li> element in #spellbookTabs in #spellbook."
+    "description": "HUD: text of the <li> element in #spellbookTabs in #spellbook. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
   },
   "hudYouFightWithAuras": "You fight with auras: a circle around you. No targeting, no aiming — where you stand is the attack. Each aura picks its own targets inside its range, and most affect only a limited number at a time (usually the nearest). An active aura ticks on a steady rhythm — every tick applies its effect; the ring pulse and the pip on the slot show the beat. Enemy auras tick too: stepping out between beats is real play. Exactly one aura is active at a time. You start with Damage equipped.",
   "@hudYouFightWithAuras": {
@@ -106,7 +107,8 @@
   },
   "hudFocus": "Focus",
   "@hudFocus": {
-    "description": "HUD: text of the <h3> element in #help in #gameUI."
+    "description": "HUD: text of the <h3> element in #help in #gameUI. At most 10 characters: it labels the Focus bar.",
+    "x-maxLength": 10
   },
   "hudTheBarAtThe": "The bar at the top is Focus — your health and everything you spend, in one value. At zero you die. It refills out of combat; getting hit pauses that for a few seconds.",
   "@hudTheBarAtThe": {
@@ -134,19 +136,23 @@
   },
   "hudPassives": "Passives",
   "@hudPassives": {
-    "description": "HUD: text of the <div> element in #passiveLoadout in #leftColumn."
+    "description": "HUD: text of the <div> element in #passiveLoadout in #leftColumn. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
   },
   "hudCooldowns": "Cooldowns",
   "@hudCooldowns": {
-    "description": "HUD: text of the <div> element in #cooldownLoadout in #abilityBar."
+    "description": "HUD: text of the <div> element in #cooldownLoadout in #abilityBar. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
   },
   "hudRecall": "Recall",
   "@hudRecall": {
-    "description": "HUD: text of the <span> element in #utilityList in #utilityBar."
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar. At most 12 characters: it is a utility bar button.",
+    "x-maxLength": 12
   },
   "hudCamp": "Camp",
   "@hudCamp": {
-    "description": "HUD: text of the <span> element in #utilityList in #utilityBar."
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar. At most 12 characters: it is a utility bar button.",
+    "x-maxLength": 12
   },
   "hudWhereSkillsComeFrom": "Where skills come from",
   "@hudWhereSkillsComeFrom": {
@@ -206,7 +212,8 @@
   },
   "hudRespecButton": "Reset",
   "@hudRespecButton": {
-    "description": "HUD: text of the <span id=respecButton> element in #spellbook in #leftColumn."
+    "description": "HUD: text of the <span id=respecButton> element in #spellbook in #leftColumn. At most 14 characters: it is a small button.",
+    "x-maxLength": 14
   },
   "hudRespecButtonTitle": "Reset every skill to level 1 and refund all points",
   "@hudRespecButtonTitle": {
@@ -234,11 +241,13 @@
   },
   "hudAuraSlots": "Aura Slots",
   "@hudAuraSlots": {
-    "description": "HUD: text of the <div> element in #auraLoadout in #abilityBar."
+    "description": "HUD: text of the <div> element in #auraLoadout in #abilityBar. At most 16 characters: it heads the aura slots.",
+    "x-maxLength": 16
   },
   "hudUtility": "Utility",
   "@hudUtility": {
-    "description": "HUD: text of the <div> element in #utilityBar in #actionBars."
+    "description": "HUD: text of the <div> element in #utilityBar in #actionBars. At most 16 characters: it heads the utility bar.",
+    "x-maxLength": 16
   },
   "accountCreateYourCharacter": "Create your character",
   "@accountCreateYourCharacter": {
@@ -513,7 +522,8 @@
   },
   "hudRespecConfirm": "Confirm?",
   "@hudRespecConfirm": {
-    "description": "The skill reset button after the first press; a second press confirms."
+    "description": "The skill reset button after the first press; a second press confirms. At most 14 characters: it replaces the reset button text.",
+    "x-maxLength": 14
   },
   "hudFocusBar": "Focus {health, number}/{max, number}",
   "@hudFocusBar": {
@@ -614,11 +624,13 @@
   },
   "floatImmune": "Immune",
   "@floatImmune": {
-    "description": "Floating text over a target that ignored an effect."
+    "description": "Floating text over a target that ignored an effect. At most 14 characters: it floats over a target.",
+    "x-maxLength": 14
   },
   "floatAbsorbed": "Absorbed",
   "@floatAbsorbed": {
-    "description": "Floating text over a target whose shield absorbed a hit."
+    "description": "Floating text over a target whose shield absorbed a hit. At most 14 characters: it floats over a target.",
+    "x-maxLength": 14
   },
   "graphicsContextLost": "Graphics context lost — please reload the page.",
   "@graphicsContextLost": {
@@ -711,7 +723,7 @@
   },
   "selectContinueBloodlineOf": "Continue the bloodline of {name}",
   "@selectContinueBloodlineOf": {
-    "description": "Empty slot card that continues a sacrificed character's bloodline. The name is not inflected.",
+    "description": "Empty slot card that continues a sacrificed character's bloodline. The name is not inflected. {name} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {name}\") (D31).",
     "placeholders": {
       "name": {
         "type": "String",
@@ -889,7 +901,7 @@
   },
   "unlockDroppedBy": "Dropped by: {mob}",
   "@unlockDroppedBy": {
-    "description": "Unlock banner, second line: the skill came from a slain mob.",
+    "description": "Unlock banner, second line: the skill came from a slain mob. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "mob": {
         "type": "String",
@@ -915,7 +927,7 @@
   },
   "unlockTaughtBy": "Taught by: {mob}",
   "@unlockTaughtBy": {
-    "description": "Unlock banner, second line: an NPC taught the skill.",
+    "description": "Unlock banner, second line: an NPC taught the skill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "mob": {
         "type": "String",
@@ -952,7 +964,7 @@
   },
   "warlordFallen": "{count, plural, =0 {The Orc Warlord has fallen to brave nameless heroes!} other {The Orc Warlord has fallen to {names}!}}",
   "@warlordFallen": {
-    "description": "Server-wide banner when the Orc Warlord boss dies. {names} is the list of player names who took part, already joined (\"A, B and 2 others\").",
+    "description": "Server-wide banner when the Orc Warlord boss dies. {names} is the list of player names who took part, already joined (\"A, B and 2 others\"). {names} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {names}\") (D31).",
     "placeholders": {
       "names": {
         "type": "String",
@@ -989,9 +1001,9 @@
       }
     }
   },
-  "questObjectiveKill": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} slain",
+  "questObjectiveKill": "{n, number}/{m, number} {mob} slain",
   "@questObjectiveKill": {
-    "description": "Quest tracker line for a kill objective. {mob} and {mobPlural} are the singular and plural forms of the mob name; the plural branch picks one by the required count {m}. Do not inflect them.",
+    "description": "Quest tracker line for a kill objective. {mob} is the mob name already in its form for the required count {m} (each language authors its plural forms in the mob name, D24). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "n": {
         "type": "int",
@@ -1005,19 +1017,14 @@
       },
       "mob": {
         "type": "String",
-        "description": "Mob name, singular",
-        "example": "Wolf"
-      },
-      "mobPlural": {
-        "type": "String",
-        "description": "Mob name, plural",
+        "description": "Mob name, in its form for the required count {m}",
         "example": "Wolves"
       }
     }
   },
-  "questObjectiveHarvest": "{n, number}/{m, number} {m, plural, one {{mob}} other {{mobPlural}}} harvested",
+  "questObjectiveHarvest": "{n, number}/{m, number} {mob} harvested",
   "@questObjectiveHarvest": {
-    "description": "Quest tracker line for a harvest objective; as questObjectiveKill.",
+    "description": "Quest tracker line for a harvest objective; as questObjectiveKill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "n": {
         "type": "int",
@@ -1031,12 +1038,7 @@
       },
       "mob": {
         "type": "String",
-        "description": "Plant or object name, singular",
-        "example": "Turnip"
-      },
-      "mobPlural": {
-        "type": "String",
-        "description": "Plural",
+        "description": "Mob name, in its form for the required count {m}",
         "example": "Turnips"
       }
     }
@@ -1162,7 +1164,7 @@
   },
   "lockKills": "slay {value, number} × {mob} this life ({have, number}/{value, number})",
   "@lockKills": {
-    "description": "Lock reason: kill a number of one species in this life. {mob} is the singular name and is not inflected (the \"×\" form avoids the plural).",
+    "description": "Lock reason: kill a number of one species in this life. {mob} is the singular name and is not inflected (the \"×\" form avoids the plural). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "value": {
         "type": "int",
@@ -1653,7 +1655,7 @@
   },
   "ttVulnerable": "Vulnerable to {subject}: +{amount} damage taken{duration}{refresh}",
   "@ttVulnerable": {
-    "description": "Skill tooltip. A vulnerability line.",
+    "description": "Skill tooltip. A vulnerability line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
     "placeholders": {
       "subject": {
         "type": "String",
@@ -1679,7 +1681,7 @@
   },
   "ttImmune": "Immune to {subject}{duration}{refresh}",
   "@ttImmune": {
-    "description": "Skill tooltip. An immunity line.",
+    "description": "Skill tooltip. An immunity line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
     "placeholders": {
       "subject": {
         "type": "String",
@@ -1700,7 +1702,7 @@
   },
   "ttResist": "Resist {subject}: −{amount} damage taken{duration}{refresh}",
   "@ttResist": {
-    "description": "Skill tooltip. A resistance line.",
+    "description": "Skill tooltip. A resistance line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
     "placeholders": {
       "subject": {
         "type": "String",
@@ -1797,7 +1799,7 @@
   },
   "ttSummons": "Summons {count}{mob}{where} for {duration}",
   "@ttSummons": {
-    "description": "Skill tooltip. A summon line. {mob} is not inflected.",
+    "description": "Skill tooltip. A summon line. {mob} is not inflected. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "count": {
         "type": "String",
@@ -1838,7 +1840,7 @@
   },
   "ttThrows": "Throws {mob} {distance} m ahead for {duration}",
   "@ttThrows": {
-    "description": "Skill tooltip. A thrown object line.",
+    "description": "Skill tooltip. A thrown object line. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
     "placeholders": {
       "mob": {
         "type": "String",

@@ -38,7 +38,7 @@ const API = path.join(ROOT, 'api');
 // tree gets. api/schema/ (FlatBuffers sources) and the loose fixture jsons
 // beside it (shared-constants.json, skill-vocabulary.json) are not content and
 // the loader never reads them.
-export const CONTENT_SUBDIRS = ['mobs', 'skills', 'recipes', 'zones', 'props', 'factions', 'milestones', 'quests', 'ascension', 'skill-fx', 'areas', 'regions', 'atmospheres'];
+export const CONTENT_SUBDIRS = ['mobs', 'skills', 'recipes', 'zones', 'props', 'factions', 'milestones', 'quests', 'ascension', 'skill-fx', 'areas', 'regions', 'atmospheres', 'lang'];
 
 export const MISSING_BINARY_MESSAGE = 'build aurad first: make -C backend build';
 
@@ -127,12 +127,14 @@ export function assertAuradFresh(bin, backendDir = BACKEND) {
 /**
  * Runs the loader over the content tree with `raw` substituted in at `file`.
  * Call with no arguments to validate the tree exactly as it sits on disk.
+ * `langFiles` ({absolute path under api/: content}) substitutes the candidate's
+ * language files too: the English a save would write (plan-localization.md D27).
  *
  * Returns `{ ok, findings, status, stderr }`. A THROW means the validator
  * itself could not answer (missing or stale binary, a crash, a timeout) - never
  * confuse that with `ok: false`, which is the loader refusing the content.
  */
-export function validateCandidate({ file, raw } = {}) {
+export function validateCandidate({ file, raw, langFiles } = {}) {
   const bin = findAuradBinary();
   assertAuradFresh(bin);
 
@@ -146,6 +148,11 @@ export function validateCandidate({ file, raw } = {}) {
       const target = path.join(tmp, ...segments);
       mkdirSync(path.dirname(target), { recursive: true });
       writeFileSync(target, prettyJson(raw) + '\n', 'utf8');
+    }
+    for (const [abs, content] of Object.entries(langFiles || {})) {
+      const rel = path.relative(API, abs);
+      if (rel.startsWith('..') || path.isAbsolute(rel)) throw new Error(`invalid language file ${abs}`);
+      writeFileSync(path.join(tmp, rel), content, 'utf8');
     }
 
     // cwd is backend/ so the run resolves ./conf.json the way a dev boot does
@@ -169,4 +176,22 @@ export function parseFindings(stdout) {
     .split('\n')
     .map((line) => line.trimEnd())
     .filter((line) => line.length > 0 && !/^\d+ finding\(s\)$/.test(line));
+}
+
+/**
+ * Every locale's translation state, from the REAL loader (plan-localization.md
+ * D25): `aurad -lang-status -content api/` over the tree as it sits on disk, so
+ * call it after a save has written. Answers {locale: {missing, outdated,
+ * allowlisted, tooLong}}. A THROW means it could not answer (a missing or stale
+ * binary, content that does not load), exactly as validateCandidate.
+ */
+export function langStatus() {
+  const bin = findAuradBinary();
+  assertAuradFresh(bin);
+  const result = spawnSync(bin, ['-lang-status', '-content', API], { cwd: BACKEND, timeout: 30_000, encoding: 'utf8' });
+  if (result.error) throw new Error(`could not run ${bin}: ${result.error.message}`);
+  if (result.status !== 0) {
+    throw new Error(`${bin} -lang-status exited ${result.status}: ${(result.stdout || result.stderr || '').trim().split('\n').slice(0, 3).join(' | ')}`);
+  }
+  return JSON.parse(result.stdout);
 }

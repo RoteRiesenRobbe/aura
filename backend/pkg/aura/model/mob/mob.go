@@ -1,8 +1,8 @@
 package mob
 
 import (
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 	"math/rand"
 	"sort"
@@ -2474,9 +2474,8 @@ func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 	p.ApplyRecipeCascade()
 }
 
-// dropSourceName is the friendly mob name for a "Dropped by: X" unlock label —
-// the CamelCase definition name spaced out (the same derivation the /mobs
-// nameplate catalog uses).
+// dropSourceName is the friendly mob name for a "Dropped by: X" unlock label:
+// the definition's English display name, the one the /mobs catalog serves.
 func (m *Mob) dropSourceName() string {
-	return skills.DeriveDisplayName(m.definition.Name)
+	return m.definition.Display()
 }

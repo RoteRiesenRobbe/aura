@@ -26,19 +26,17 @@
       {
         "id": "root",
         "lines": [
-          {"id": "57575d", "text": "A narrow shaft, and daylight at the top of it."},
-          {"id": "0c8ba3", "text": "The climb looks manageable."}
+          {"id": "a_narrow_shaft_and_daylight"},
+          {"id": "the_climb_looks_manageable"}
         ],
         "options": [
           {
-            "id": "60126e",
-            "text": "Climb up.",
+            "id": "climb_up",
             "grants": [
               {
-                "id": "2bdf06",
+                "id": "you_climb_back_into",
                 "kind": "travel_to",
-                "mode": "anchor",
-                "line": "You climb back into the light."
+                "mode": "anchor"
               }
             ]
           }

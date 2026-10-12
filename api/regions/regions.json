@@ -1,133 +1,82 @@
 {
   "regions": [
     {
-      "id": "farmlands",
-      "title": "Farmlands",
-      "subtitle": ""
+      "id": "farmlands"
     },
     {
-      "id": "saltgrass",
-      "title": "Saltgrass Strand",
-      "subtitle": "Sea and Salt"
+      "id": "saltgrass"
     },
     {
-      "id": "brackenfold",
-      "title": "Brackenfold Meadows",
-      "subtitle": "Plough and Bramble"
+      "id": "brackenfold"
     },
     {
-      "id": "deep-woods",
-      "title": "Deep Woods",
-      "subtitle": "City Outskirts"
+      "id": "deep-woods"
     },
     {
-      "id": "southgate",
-      "title": "Southgate Sprawl",
-      "subtitle": "Coin and Steel"
+      "id": "southgate"
     },
     {
-      "id": "umberwood",
-      "title": "The Umberwood",
-      "subtitle": "The Frontline"
+      "id": "umberwood"
     },
     {
-      "id": "brunnstedt",
-      "title": "Brunnstedt",
-      "subtitle": "Walls and Wells"
+      "id": "brunnstedt"
     },
     {
-      "id": "grimwatch",
-      "title": "Fort Grimwatch",
-      "subtitle": "The Last Watch"
+      "id": "grimwatch"
     },
     {
-      "id": "ashen-fields",
-      "title": "The Ashen Fields",
-      "subtitle": "Cinder and Bone"
+      "id": "ashen-fields"
     },
     {
-      "id": "cinder-conclave",
-      "title": "The Cinder Conclave",
-      "subtitle": "Kindled Faith"
+      "id": "cinder-conclave"
     },
     {
-      "id": "wreckers-bluff",
-      "title": "Wrecker's Bluff",
-      "subtitle": "Wind and Wreckage"
+      "id": "wreckers-bluff"
     },
     {
-      "id": "greyspine",
-      "title": "The Greyspine",
-      "subtitle": "Stone Teeth"
+      "id": "greyspine"
     },
     {
-      "id": "netmenders-coast",
-      "title": "Netmender's Coast",
-      "subtitle": "Tide and Tar"
+      "id": "netmenders-coast"
     },
     {
-      "id": "northgate",
-      "title": "Northgate Commons",
-      "subtitle": "Field and Wall"
+      "id": "northgate"
     },
     {
-      "id": "sorrowfen",
-      "title": "Sorrowfen",
-      "subtitle": "Still Water"
+      "id": "sorrowfen"
     },
     {
-      "id": "sunscar",
-      "title": "The Sunscar",
-      "subtitle": "Road's End"
+      "id": "sunscar"
     },
     {
-      "id": "fallow-reach",
-      "title": "The Fallow Reach",
-      "subtitle": "Barren Earth"
+      "id": "fallow-reach"
     },
     {
-      "id": "glimmerwood",
-      "title": "The Glimmerwood",
-      "subtitle": "Whispering Boughs"
+      "id": "glimmerwood"
     },
     {
-      "id": "rimefrost",
-      "title": "Rimefrost",
-      "subtitle": "Ice and Silence"
+      "id": "rimefrost"
     },
     {
-      "id": "hollow-marsh",
-      "title": "Hollow Marsh",
-      "subtitle": "Empty Hearths"
+      "id": "hollow-marsh"
     },
     {
-      "id": "moonveil",
-      "title": "Moonveil Grove"
+      "id": "moonveil"
     },
     {
-      "id": "witherwood",
-      "title": "The Witherwood",
-      "subtitle": "Root to Rot"
+      "id": "witherwood"
     },
     {
-      "id": "wyrmhold",
-      "title": "Mount Wyrmhold",
-      "subtitle": "The Dragon's Throne"
+      "id": "wyrmhold"
     },
     {
-      "id": "den-of-evil",
-      "title": "Den of Evil",
-      "subtitle": "Kobold Hideout"
+      "id": "den-of-evil"
     },
     {
-      "id": "homestead",
-      "title": "Homestead",
-      "subtitle": "Farmlands"
+      "id": "homestead"
     },
     {
-      "id": "farmreinhard",
-      "title": "Reinhard's Farm",
-      "subtitle": "Farmlands"
+      "id": "farmreinhard"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import {t} from '../../../i18n/logic/Locale';
+import {t} from '../../../localization/logic/Locale';
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
 import {Countdown, startConfirmCountdown} from '../../../common/logic/ConfirmCountdown';
 import * as AccountScreens from './AccountScreens';

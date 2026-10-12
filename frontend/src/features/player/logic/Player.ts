@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 import {Character} from '../../game-objects/logic/Character';
 import {hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';

@@ -25,14 +25,20 @@ import (
 	"github.com/stretchr/testify/require"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
+
+// embeddedEnglish is the embedded api/lang/en: the shipped content files keep
+// only structure and ids, and are read with their English (plan-localization.md D27).
+var embeddedEnglish = lang.EnglishFrom(alang.Lang)
 
 // contentRegistries reproduces the BOOT SEQUENCE, cross-validation included, and
 // the last part is not ceremony.
@@ -49,11 +55,11 @@ func contentRegistries(t *testing.T) (mobs.Registry, Registry) {
 
 	fr, err := factions.RegistryFromFS(afactions.Factions)
 	require.NoError(t, err)
-	sr, err := skills.RegistryFromFS(askills.Skills, fr)
+	sr, err := skills.RegistryFromFS(lang.EnglishFS(askills.Skills, lang.DomainSkill, embeddedEnglish), fr)
 	require.NoError(t, err)
-	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), amobs.Mobs)
+	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), lang.EnglishFS(amobs.Mobs, lang.DomainMob, embeddedEnglish))
 	require.NoError(t, err)
-	qr, err := RegistryFromFS(aquests.Quests, mr)
+	qr, err := RegistryFromFS(lang.EnglishFS(aquests.Quests, lang.DomainQuest, embeddedEnglish), mr)
 	require.NoError(t, err)
 	_, err = CrossValidate(mr, qr)
 	require.NoError(t, err)

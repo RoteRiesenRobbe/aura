@@ -4,7 +4,6 @@
   "name": "WhirlingAxes",
   "icon": "lorc/scythe",
   "packIcon": "spinning-slash",
-  "displayName": "Whirling Axes",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 240,

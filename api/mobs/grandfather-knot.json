@@ -33,117 +33,97 @@
           }
         ],
         "lines": [
-          {"id": "f8af32", "text": "Come back in about a century, little walker. Tell me how your journey went."}
+          {"id": "come_back_in_about"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "b35c04", "text": "Ah. A little walker. You move so... quickly."}
+          {"id": "ah_a_little_walker_you"}
         ],
         "options": [
           {
-            "id": "4cea71",
-            "text": "Do you have a task for me?",
+            "stock": "ask_task",
             "next": "grove_brief"
           },
           {
-            "id": "4beeb8",
-            "text": "About the deadwood.",
+            "id": "about_the_deadwood",
             "next": "deadwood"
           },
           {
-            "id": "701a95",
-            "text": "The grove is clear.",
+            "id": "the_grove_is_clear",
             "grants": [
               {
-                "id": "7afefe",
+                "id": "ah_i_can_breathe_again",
                 "kind": "advance_quest",
                 "quest": "clear-the-grove",
                 "fromStage": "tidied",
-                "toStage": "cleared",
-                "line": "Ah. I can breathe again."
+                "toStage": "cleared"
               },
               {
-                "id": "4b5596",
                 "kind": "grant_xp",
-                "xp": 600,
-                "line": "Take this, little walker. Slowly. There is no hurry."
+                "xp": 600
               }
             ]
           },
           {
-            "id": "a45cf1",
-            "text": "Do you have another task?",
+            "id": "do_you_have_another_task",
             "next": "roots_brief"
           },
           {
-            "id": "c0a145",
-            "text": "The root by the stream is awake.",
+            "id": "the_root_by_the_stream",
             "grants": [
               {
-                "id": "a54da9",
+                "id": "hm_that_one_was_awake",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_one",
-                "toStage": "root_two",
-                "line": "Hm. That one was awake already. Or it is now. Try the one by the stones, to the south."
+                "toStage": "root_two"
               }
             ]
           },
           {
-            "id": "0c9bc4",
-            "text": "The root by the stones is awake.",
+            "id": "the_root_by_the_stones",
             "grants": [
               {
-                "id": "b829ea",
+                "id": "was_it_warm_no_then",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_two",
-                "toStage": "root_three",
-                "line": "Was it warm? No? Then it was asleep. Good. The last one lies east, where the wisps gather."
+                "toStage": "root_three"
               }
             ]
           },
           {
-            "id": "1965dd",
-            "text": "The last root is awake.",
+            "id": "the_last_root_is_awake",
             "grants": [
               {
-                "id": "65e380",
+                "id": "there_do_you_feel_it",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_three",
-                "toStage": "rooted",
-                "line": "There. Do you feel it? You have walked my roots end to end."
+                "toStage": "rooted"
               },
               {
-                "id": "740967",
                 "kind": "teach_skill",
-                "skill": "EntanglingRoots",
-                "line": "They know your hand now. Ask them to hold, and they will."
+                "skill": "EntanglingRoots"
               },
               {
-                "id": "08dc2c",
                 "kind": "grant_xp",
-                "xp": 1000,
-                "line": "The young ones will not calm in a day. A tree's day is long. Take this as well."
+                "xp": 1000
               }
             ]
           },
           {
-            "id": "d5b73d",
-            "text": "Which root was it again?",
+            "stock": "which_root",
             "next": "where_one"
           },
           {
-            "id": "0578d2",
-            "text": "Which root was it again?",
+            "stock": "which_root",
             "next": "where_two"
           },
           {
-            "id": "7abcf3",
-            "text": "Which root was it again?",
+            "stock": "which_root",
             "next": "where_three"
           }
         ]
@@ -158,18 +138,16 @@
           }
         ],
         "lines": [
-          {"id": "b23a53", "text": "My grove is choked with deadwood, little walker. Clear it for an old tree?"}
+          {"id": "my_grove_is_choked"}
         ],
         "options": [
           {
-            "id": "525c50",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "50e661",
+                "id": "good_i_will_wait_i",
                 "kind": "offer_quest",
-                "quest": "clear-the-grove",
-                "line": "Good. I will wait. I am good at waiting."
+                "quest": "clear-the-grove"
               }
             ]
           }
@@ -185,7 +163,7 @@
           }
         ],
         "lines": [
-          {"id": "a93655", "text": "Six heaps will do. The rest can wait a winter."}
+          {"id": "six_heaps_will_do"}
         ]
       },
       {
@@ -203,20 +181,18 @@
           }
         ],
         "lines": [
-          {"id": "fd54eb", "text": "The young trees of this wood have grown angry, little walker. Have you met them?"},
-          {"id": "ac3efc", "text": "My roots run beneath all of it. Through them I hum the wood to rest. But three of my roots have fallen asleep."},
-          {"id": "576bfe", "text": "Wake them for me. One sleeps by the stream, to the west. Lay a hand on it."}
+          {"id": "the_young_trees_of_this"},
+          {"id": "my_roots_run_beneath_all"},
+          {"id": "wake_them_for_me_one"}
         ],
         "options": [
           {
-            "id": "621296",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "3ce9f1",
+                "id": "good_west_to_the_stream",
                 "kind": "offer_quest",
-                "quest": "the-sleeping-roots",
-                "line": "Good. West, to the stream. I will be here."
+                "quest": "the-sleeping-roots"
               }
             ]
           }
@@ -232,7 +208,7 @@
           }
         ],
         "lines": [
-          {"id": "5df924", "text": "West, little walker. The root by the stream."}
+          {"id": "west_little_walker_the_root"}
         ]
       },
       {
@@ -245,7 +221,7 @@
           }
         ],
         "lines": [
-          {"id": "d38a57", "text": "South. The root by the stones. Take your time. I do."}
+          {"id": "south_the_root"}
         ]
       },
       {
@@ -258,7 +234,7 @@
           }
         ],
         "lines": [
-          {"id": "2d5dbd", "text": "East, where the wisps gather. The last one. Probably."}
+          {"id": "east_where_the_wisps_gather"}
         ]
       }
     ]

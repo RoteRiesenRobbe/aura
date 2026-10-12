@@ -1,10 +1,10 @@
-import {contentText, conversationKey} from '../../../../../client-data/LangBundle';
-import {formatList, t, tKey} from '../../../../i18n/logic/Locale';
-import {mobName} from '../../../../i18n/logic/WireText';
+import {contentText} from '../../../../../client-data/LangBundle';
+import {formatList, t, tKey} from '../../../../localization/logic/Locale';
+import {mobName} from '../../../../localization/logic/WireText';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
 import {questDefinition} from '../../../../../client-data/Quests';
-import {decodeObjectives, objectiveLine} from '../../../../i18n/logic/WireText';
+import {decodeObjectives, objectiveLine} from '../../../../localization/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
@@ -423,7 +423,7 @@ function rowText(o: AuraApi.ConversationOption): string {
     const skillName = o.skillId() ? skillDisplayName(o.skillId()) : '';
     let base: string | null = null;
     if (o.textId()) {
-        base = contentText(conversationKey(o.textId()), '');
+        base = contentText(o.textId(), '');
     } else if (o.textKey()) {
         base = tKey(o.textKey(), {skill: skillName}, '');
     } else if (skillName) {
@@ -445,7 +445,7 @@ function rowText(o: AuraApi.ConversationOption): string {
 function rowReply(o: AuraApi.ConversationOption): string {
     const english = o.reply() ?? '';
     if (o.replyId()) {
-        return contentText(conversationKey(o.replyId()), english);
+        return contentText(o.replyId(), english);
     }
     if (o.replyKey()) {
         return tKey(o.replyKey(), {skill: o.skillId() ? skillDisplayName(o.skillId()) : ''}, english);
@@ -485,11 +485,12 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
         const node = c.nodes(i);
 
         // plan-localization.md C3: each line by its stable id from the /lang
-        // bundle, the server's English as the fallback (D13).
+        // bundle, the server's English as the fallback (D13). The id IS the
+        // line's full key (D27).
         const lines: string[] = [];
         for (let j = 0; j < node.linesLength(); ++j) {
             const lineId = j < node.lineIdsLength() ? node.lineIds(j) : '';
-            lines.push(lineId ? contentText(conversationKey(lineId), node.lines(j)) : node.lines(j));
+            lines.push(lineId ? contentText(lineId, node.lines(j)) : node.lines(j));
         }
 
         const rows: ConversationRow[] = [];
@@ -522,7 +523,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
     const actorMobId = actorMobIds.get(Number(c.entityId()));
     return {
         entityId: Number(c.entityId()),
-        actorName: (actorMobId !== undefined && mobDefinition(actorMobId)?.displayName) || (c.actorName() ?? ''),
+        actorName: (actorMobId !== undefined && mobDefinition(actorMobId) && mobName(actorMobId)) || (c.actorName() ?? ''),
         entryNode: c.entryNode() ?? '',
         nodes,
     };

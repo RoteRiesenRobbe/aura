@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 
 /**

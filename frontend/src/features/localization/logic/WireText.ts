@@ -9,11 +9,11 @@
 import IntlMessageFormat from 'intl-messageformat';
 import {AuraApi} from '../../backend/logic/AuraApi';
 import {formatList, formatLocale, t, tKey} from './Locale';
-import {mobDefinition} from '../../../client-data/Mobs';
+import {mobName} from '../../../client-data/Mobs';
 import {skillDisplayName} from '../../../client-data/Skills';
 import {questDefinition} from '../../../client-data/Quests';
 import {PLACES} from '../../regions/logic/RegionNames';
-import {contentText, conversationKey} from '../../../client-data/LangBundle';
+import {contentText} from '../../../client-data/LangBundle';
 
 /** One decoded MessageArg, plain data (the unit-testable shape). */
 export interface WireArg {
@@ -45,15 +45,7 @@ export function decodeArgs(message: AuraApi.EntityMessage): WireArg[] {
     return out;
 }
 
-export function mobName(id: number): string {
-    return mobDefinition(id)?.displayName ?? String(id);
-}
-
-/** The plural where content authors one (Q2), else the singular. */
-export function mobPlural(id: number): string {
-    const def = mobDefinition(id);
-    return def?.displayNamePlural || def?.displayName || String(id);
-}
+export {mobName};
 
 /**
  * The args as ICU values. A List arg next to a Number arg named `count` that
@@ -104,10 +96,11 @@ export function wireMessageText(message: AuraApi.EntityMessage): string {
     }
     const args = decodeArgs(message);
     if (key === 'contentLines') {
-        // C3: authored lines by their stable ids, each from the /lang bundle.
+        // C3: authored lines by their stable ids (each its full key, D27), from
+        // the /lang bundle.
         const english = fallback.split('\n');
         const ids = args.find(a => a.name === 'ids')?.items ?? [];
-        return ids.map((id, i) => contentText(conversationKey(id), english[i] ?? '')).join('\n');
+        return ids.map((id, i) => contentText(id, english[i] ?? '')).join('\n');
     }
     return tKey(key, resolveArgs(args), fallback);
 }
@@ -186,10 +179,10 @@ export function objectiveLine(questId: string, o: ObjectiveData): string {
                 line = t('questObjectiveReach', {place: PLACES.get(o.region)?.title ?? o.region});
                 break;
             case AuraApi.QuestObjectiveKind.Harvest:
-                line = t('questObjectiveHarvest', {n: o.n, m: o.m, mob: mobName(o.target), mobPlural: mobPlural(o.target)});
+                line = t('questObjectiveHarvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
                 break;
             default:
-                line = t('questObjectiveKill', {n: o.n, m: o.m, mob: mobName(o.target), mobPlural: mobPlural(o.target)});
+                line = t('questObjectiveKill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
         }
     }
     if (!o.stage && o.kind === AuraApi.QuestObjectiveKind.TalkTo && o.done) {

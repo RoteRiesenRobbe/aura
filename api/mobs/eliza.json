@@ -18,16 +18,15 @@
         "id": "root_fed",
         "conditions": [ { "kind": "quest_at_stage", "quest": "dinner-for-the-family", "stage": "completed" } ],
         "lines": [
-          {"id": "a8af0a", "text": "You ate everything. Good. You'll need it."},
-          {"id": "37b36a", "text": "Reinhard's farm is east, down the road. He's a fair man, and he'll give you work."},
-          {"id": "ebc230", "text": "Stay on the road, and come home when you can. I mean that."}
+          {"id": "you_ate_everything_good_youll"},
+          {"id": "reinhards_farm_is_east_down"},
+          {"id": "stay_on_the_road"}
         ],
         "options": [
           {
-            "id": "de667b",
-            "text": "Do you have a task for me?",
+            "stock": "ask_task",
             "grants": [
-              { "id": "b9dc67", "kind": "offer_quest", "quest": "eliza-sends-me", "line": "Go on, then. Stay on the road." }
+              { "id": "go_on_then_stay", "kind": "offer_quest", "quest": "eliza-sends-me" }
             ]
           }
         ]
@@ -35,32 +34,30 @@
       {
         "id": "root",
         "lines": [
-          {"id": "07247f", "text": "There you are. Come here, let me look at you."},
-          {"id": "666025", "text": "Taller than your father already. I don't know when that happened."}
+          {"id": "there_you_are_come_here"},
+          {"id": "taller_than_your_father_already"}
         ],
         "options": [
-          { "id": "40f4c9", "text": "Do you have a task for me?", "next": "dinner" },
-          { "id": "8e3c30", "text": "About the dinner...", "next": "dinner_running" }
+          { "stock": "ask_task", "next": "dinner" },
+          { "id": "about_the_dinner", "next": "dinner_running" }
         ]
       },
       {
         "id": "dinner",
         "lines": [
-          {"id": "41a43e", "text": "One last dinner at home before you go. I want to do this properly."},
-          {"id": "487dfc", "text": "Your father is out hunting down south by the lake. Help him find his game."},
-          {"id": "998c3c", "text": "And your uncle Benjamin has beets. Six. Don't let him talk your ear off."},
-          {"id": "59c912", "text": "Come back to me when you have both. Then we eat."}
+          {"id": "one_last_dinner_at_home"},
+          {"id": "your_father_is_out_hunting"},
+          {"id": "and_your_uncle_benjamin_has"},
+          {"id": "come_back_to_me_when"}
         ],
         "options": [
           {
-            "id": "f0d4ce",
-            "text": "I'll do it.",
+            "stock": "quest_accept",
             "grants": [
               {
-                "id": "618fbe",
+                "id": "thank_you_go_on_before",
                 "kind": "offer_quest",
-                "quest": "dinner-for-the-family",
-                "line": "Thank you. Go on, before I change my mind about letting you out of the house."
+                "quest": "dinner-for-the-family"
               }
             ]
           }
@@ -69,34 +66,29 @@
       {
         "id": "dinner_running",
         "lines": [
-          {"id": "b833b2", "text": "The dinner?"}
+          {"id": "the_dinner"}
         ],
         "options": [
           {
-            "id": "da5df7",
-            "text": "I have the meat and the beets.",
+            "id": "i_have_the_meat",
             "grants": [
               {
-                "id": "f56f0d",
+                "id": "look_at_that_sit_sit",
                 "kind": "advance_quest",
                 "quest": "dinner-for-the-family",
                 "fromStage": "home",
-                "toStage": "done",
-                "line": "Look at that. Sit, sit. It's nearly ready."
+                "toStage": "done"
               },
               {
-                "id": "c6e085",
                 "kind": "teach_skill",
-                "skill": "FirstAid",
-                "line": "Before you go anywhere: I'll teach you First Aid. You won't have me out there to patch you up."
+                "skill": "FirstAid"
               },
-              { "id": "aa95dd", "kind": "grant_xp", "xp": 150, "line": "Now eat. Slowly. I want to remember this." },
-              { "id": "0759cc", "kind": "offer_quest", "quest": "eliza-sends-me", "line": "Go on, then. Stay on the road." }
+              { "kind": "grant_xp", "xp": 150 },
+              { "kind": "offer_quest", "quest": "eliza-sends-me" }
             ]
           },
           {
-            "id": "6e37fb",
-            "text": "I am on it.",
+            "stock": "quest_progress",
             "next": "dinner_on_it"
           }
         ]
@@ -111,7 +103,7 @@
           }
         ],
         "lines": [
-          {"id": "fe09a2", "text": "Help your father with his game down by the lake, and get the six beets from Benjamin. Then we eat."}
+          {"id": "help_your_father_with_his"}
         ]
       }
     ]

@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // ObjectiveKind is what an objective stage counts. Kill and harvest share the
@@ -49,9 +48,9 @@ func (k ObjectiveKind) String() string {
 // against the ledger's lifetime state (D3: thresholds are lifetime totals, L7).
 // Target is the authored species' / conversant's MobID — never EntityType, and
 // never a process-local entity id (L12). TargetName is its display name,
-// resolved at LOAD through the one display-name path (§35 C3:
-// skills.DeriveDisplayName, the same rule /mobs serves) so the Q2 objective
-// line never touches the mob registry at runtime.
+// resolved at LOAD through the one display-name path (MobDefinition.Display,
+// the name /mobs serves) so the Q2 objective line never touches the mob
+// registry at runtime.
 //
 // Tracker optionally rewords a talk_to objective's derived "Talk to the X"
 // line while keeping its ✓ — the per-objective counterpart of Stage.Tracker,
@@ -71,8 +70,11 @@ func (k ObjectiveKind) String() string {
 // (BindRegions), because the region list is not the quest loader's input; until
 // then it holds the id, so an unbound registry still reads "Go to <id>".
 type Objective struct {
-	Kind         ObjectiveKind
-	Target       mobs.MobID
+	Kind   ObjectiveKind
+	Target mobs.MobID
+	// TargetID is the target's authored name (its identity, which keys the
+	// objective's tracker, D20); TargetName is what a player reads.
+	TargetID     string
 	Region       string
 	TargetName   string
 	Count        uint64
@@ -465,7 +467,7 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if err != nil {
 		return Objective{}, fmt.Errorf("objective %q: unknown target %q", jo.Kind, name)
 	}
-	displayName := skills.DeriveDisplayName(def.Name)
+	displayName := def.Display()
 	// L12: a legacy: true definition is retired content the live world never
 	// spawns (none ship since zone-editor C3, 2026-08-16). Naming one boots
 	// green and produces a quest no player
@@ -482,7 +484,7 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if count == 0 {
 		count = 1
 	}
-	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count, Tracker: jo.Tracker,
+	return Objective{Kind: kind, Target: def.ID, TargetID: def.Name, TargetName: displayName, Count: count, Tracker: jo.Tracker,
 		Chance: jo.Chance, GuaranteedAt: jo.GuaranteedAt}, nil
 }
 

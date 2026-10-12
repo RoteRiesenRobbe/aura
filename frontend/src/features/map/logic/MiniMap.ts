@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 import {Application, Container, ContainerChild, Graphics, Sprite, ViewContainer} from 'pixi.js';
 import {registerPreload} from '../../core/logic/Preloading';
 import * as HUD from '../../user-interface/HUD/logic/HUD';

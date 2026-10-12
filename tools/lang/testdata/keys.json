@@ -1,0 +1,14 @@
+[
+  {"builder": "questTitle", "args": ["wolves-on-the-road"], "key": "quest_wolves_on_the_road_title"},
+  {"builder": "questJournal", "args": ["wolves-on-the-road", "cull"], "key": "quest_wolves_on_the_road_cull_journal"},
+  {"builder": "questStageTracker", "args": ["q", "report-back"], "key": "quest_q_report_back_tracker"},
+  {"builder": "questObjectiveTracker", "args": ["dinner-for-the-family", "gather", "talk_to", "Hendrik"], "key": "quest_dinner_for_the_family_gather_talk_to_Hendrik_tracker"},
+  {"builder": "mobName", "args": ["AlphaWolf"], "key": "mob_AlphaWolf_name"},
+  {"builder": "skillName", "args": ["LongRangeStrike"], "key": "skill_LongRangeStrike_name"},
+  {"builder": "skillDescription", "args": ["Aegis"], "key": "skill_Aegis_description"},
+  {"builder": "regionTitle", "args": ["saltgrass"], "key": "region_saltgrass_title"},
+  {"builder": "regionSubtitle", "args": ["wreckers-bluff"], "key": "region_wreckers_bluff_subtitle"},
+  {"builder": "zoneName", "args": ["koboldCave"], "key": "zone_koboldCave_name"},
+  {"builder": "conversation", "args": ["Farmer", "ill_do_it"], "key": "conv_Farmer_ill_do_it"},
+  {"builder": "stock", "args": ["quest_accept"], "key": "stock_quest_accept"}
+]

@@ -37,13 +37,12 @@
           }
         ],
         "lines": [
-          {"id": "d4c655", "text": "You held the line, and you are far enough along the road. You can spend this character here."},
-          {"id": "eb35b3", "text": "You pick one reward. It stays unlocked for every future character in this slot."}
+          {"id": "you_held_the_line"},
+          {"id": "you_pick_one_reward_it"}
         ],
         "options": [
           {
-            "id": "d29850",
-            "text": "Show me the rewards.",
+            "stock": "show_rewards",
             "next": "catalog"
           }
         ]
@@ -68,20 +67,19 @@
           "RimeBurst"
         ],
         "lines": [
-          {"id": "152f32", "text": "Pick one reward. It unlocks permanently for this character slot."},
-          {"id": "af2ca9", "text": "Confirming ends this character. Its name goes on the memorial."}
+          {"id": "pick_one_reward_it_unlocks"},
+          {"id": "confirming_ends_this_character"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "bb687a", "text": "Front stone. A life can be laid down here."},
-          {"id": "c21309", "text": "Spending a character here unlocks a permanent reward for its character slot."}
+          {"id": "front_stone_a_life_can"},
+          {"id": "spending_a_character_here"}
         ],
         "options": [
           {
-            "id": "4743b6",
-            "text": "Show me the rewards.",
+            "stock": "show_rewards",
             "next": "catalog",
             "lockedWhenGated": true
           }

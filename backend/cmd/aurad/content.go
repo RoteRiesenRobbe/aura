@@ -178,30 +178,21 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		fail("quest regions", err)
 	}
 
-	// Localization (plan-localization.md C1): the content text as keyed
-	// entries, refused where authored English would not survive as ICU (L14),
-	// and the translation overlays, refused when not UTF-8 or malformed (L17).
+	// Localization (plan-localization.md C1, C5a): every ARB, English included,
+	// refused when not UTF-8 or malformed (L17), and the content text as keyed
+	// entries, refused where it would not survive as ICU (L14) or where two
+	// strings share a key (D29). The English itself reached the registries as
+	// their files were read (withEnglish, D27).
 	// A LEAF stage: it reads the registries above and nothing reads it back.
-	stock, stockErr := loadStockPhrases(src.lang)
-	if stockErr != nil {
-		fail("lang", stockErr)
-	}
-	if zoneNames, err := zoneNamesFrom(src.zones); err != nil {
+	if out.langBundle, err = lang.LoadOverlays(src.lang); err != nil {
+		fail("lang", err)
+	} else if zoneNames, zoneFindings, err := zoneNamesFrom(src.zones, out.langBundle.Overlay(lang.Source), src.debugZones); err != nil {
 		fail("lang", err)
 	} else {
 		var langFindings []string
-		out.langEntries, langFindings = langEntries(out, zoneNames, stock)
+		out.langEntries, langFindings = langEntries(out, zoneNames)
+		findings = append(findings, zoneFindings...)
 		findings = append(findings, langFindings...)
-	}
-	if out.langBundle, err = lang.LoadOverlays(src.lang); err != nil {
-		fail("lang", err)
-	} else {
-		// §8: a dialogue line matching a stock phrase falls back to its German.
-		for _, e := range out.langEntries["mobs"] {
-			if e.Stock != "" {
-				out.langBundle.LinkStock(e.Key, e.Stock)
-			}
-		}
 	}
 
 	return out, findings

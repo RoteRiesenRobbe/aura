@@ -1,4 +1,4 @@
-import {t, tKey} from '../../i18n/logic/Locale';
+import {t, tKey} from '../../localization/logic/Locale';
 /**
  * The client for the eight account endpoints (plan-accounts-frontend.md §3,
  * §3a — the wire contract chunk 1c wrote down and this chunk codes against).

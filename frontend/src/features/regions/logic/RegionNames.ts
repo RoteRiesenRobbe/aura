@@ -4,8 +4,9 @@
  * (RegionBanner) feeds it positions and `now`.
  *
  * ⭐ A NAME IS PER PLACEMENT, not per profile. A region authors an optional
- * `id` naming its place (plan-region-identity.md R1); the title and subtitle
- * come from api/regions/regions.json (D2). A region without an id is
+ * `id` naming its place (plan-region-identity.md R1); the place list is
+ * api/regions/regions.json (D2), its title and subtitle the English in
+ * api/lang/en/regions.arb (plan-localization.md D27). A region without an id is
  * transparent to this lookup, exactly as a profile that omits a property is
  * transparent to `resolveIn` (D0). So a small unnamed blob inside "Ashen
  * Fields" leaves you in Ashen Fields, and the LAST containing region with an
@@ -13,7 +14,7 @@
  */
 import {pointInPolygon, Region, RegionPoint} from './Regions';
 import regionListJson from '../../../../../api/regions/regions.json';
-import {contentText, onLangBundle, regionSubtitleKey, regionTitleKey} from '../../../client-data/LangBundle';
+import {contentText, onLangBundle, REGIONS_ENGLISH, regionSubtitleKey, regionTitleKey} from '../../../client-data/LangBundle';
 
 /** Stay this long before a place is announced, so skimming a border (or a
  *  warp passing through one) says nothing. [PLACEHOLDER] */
@@ -31,7 +32,7 @@ export interface PlaceName {
     subtitle?: string;
 }
 
-/** One entry of api/regions/regions.json. */
+/** One listed place: its id (api/regions/regions.json) with its English. */
 export interface ListedPlace {
     id: string;
     title: string;
@@ -46,15 +47,26 @@ export function placeTable(list: ListedPlace[]): Map<string, PlaceName> {
         : {id: p.id, title: p.title}]));
 }
 
-/** The shipped list (D2), bundled like the zones themselves. */
-const LISTED: ListedPlace[] = (regionListJson as {regions: ListedPlace[]}).regions;
+/** The shipped list (D2) with its English (D27), both bundled like the zones
+ *  themselves. */
+export function listedPlaces(
+    ids: {id: string}[], english: Readonly<Record<string, string>> = REGIONS_ENGLISH,
+): ListedPlace[] {
+    return ids.map(({id}) => {
+        const subtitle = english[regionSubtitleKey(id)];
+        const title = english[regionTitleKey(id)] || id;
+        return subtitle ? {id, title, subtitle} : {id, title};
+    });
+}
+
+const LISTED: ListedPlace[] = listedPlaces((regionListJson as {regions: {id: string}[]}).regions);
 
 export const PLACES: Map<string, PlaceName> = placeTable(LISTED);
 
 /**
  * plan-localization.md C1: the banner text comes from the served /lang bundle
- * in the chosen locale; regions.json keeps the geometry ids and the English
- * fallback. Entries are updated in place, so every holder of PLACES sees it.
+ * in the chosen locale; the bundled English ARB is the fallback. Entries are
+ * updated in place, so every holder of PLACES sees it.
  */
 export function localizePlaces(
     list: ListedPlace[], places: Map<string, PlaceName>,

@@ -1,4 +1,4 @@
-import {t} from '../../i18n/logic/Locale';
+import {t} from '../../localization/logic/Locale';
 /**
  * The conversation panel (plan-entity-model.md chunk 3b-ii).
  *

@@ -211,8 +211,9 @@ const waitForJournal = async (predicate, timeout = 15_000) => {
 };
 
 const xpInLevel = () => page.evaluate(() => {
-  const m = /XP\s+(\d+)\s*\/\s*(\d+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
-  return m ? Number(m[1]) : -1;
+  // Numbers are locale-formatted (plan-localization.md D16): "XP 1,234 / 5,600".
+  const m = /XP\s+([\d.,\s  ]+?)\s*\/\s*([\d.,\s  ]+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
+  return m ? Number(m[1].replace(/\D/g, '')) : -1;
 });
 
 // Copied from chunkC4-quests: equip by clicking the NAME, activate with retries.
@@ -260,11 +261,12 @@ const prose = (questId, stageId) => {
   const q = Array.isArray(catalog) ? catalog.find((x) => x.id === questId) : null;
   return q?.stages.find((s) => s.id === stageId)?.journal ?? `??${questId}/${stageId}`;
 };
-// Trackers are not in the /quests catalog (it serves the journal prose only),
-// so read the authored stage off disk: the check follows the content.
+// A stage's tracker is authored English in api/lang/en/quests.arb
+// (plan-localization.md D27); read it off disk so the check follows the content.
 const trackerOf = (questId, stageId) => {
-  const q = JSON.parse(readFileSync(new URL(`../../../api/quests/${questId}.json`, import.meta.url), 'utf8'));
-  return q.stages.find((s) => s.id === stageId)?.tracker ?? `??${questId}/${stageId}`;
+  const en = JSON.parse(readFileSync(new URL('../../../api/lang/en/quests.arb', import.meta.url), 'utf8'));
+  const key = `quest_${questId.replace(/[^A-Za-z0-9]/g, '_')}_${stageId.replace(/[^A-Za-z0-9]/g, '_')}_tracker`;
+  return en[key] ?? `??${questId}/${stageId}`;
 };
 const titleOf = (questId) => (Array.isArray(catalog) ? catalog.find((x) => x.id === questId)?.title : null) ?? `??${questId}`;
 

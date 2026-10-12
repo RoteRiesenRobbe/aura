@@ -41,6 +41,42 @@ outside `[1, that skill's maxLevel]`, a milestone entry's unknown
 `backend/pkg/aura/skills/recipe.go`, and
 `backend/pkg/aura/skills/milestones.go`.
 
+## Text: English in `api/lang/en/`, every locale kept in step
+
+Since plan-localization.md C5a (D25, D27, D28) a mob, quest or skill file keeps
+structure and ids only; its English lives in `api/lang/en/<domain>.arb`
+(`content-lang.mjs`, shared rules in `tools/lang/content-text.mjs`):
+
+- **On read** every file is HYDRATED: its text filled in from the ARB (a tracker
+  in the `{n}/{m}` form you type), every renameable id remembered in a `_was`
+  marker. The forms and `validate.mjs` see one object with its text in it.
+- **On save** a new dialogue line, row text or grant line gets a readable slug
+  (`fields_need_work`, unique within the NPC) or, when its English matches a
+  shared phrase exactly, names that phrase (`{"stock": "quest_accept"}`); the
+  text goes into the English ARB (a translator note when the key is new); a
+  renamed stage, quest, re-slugged line or renamed NPC MOVES its keys in every
+  locale, the translated-from records and the allowlist (L23); the keys of
+  deleted content are removed everywhere; the JSON is written without text.
+- **Dialogue rows:** each line is "own text" or "shared: `name`". Its slug
+  shows beside it (click to rename it) with a **re-slug** button for after a
+  big reword; a slug is frozen otherwise, so a reworded line keeps its German.
+  Editing a shared phrase's text edits it for every line that names it (the
+  row says how many). A quest bundle's follower grants carry no line.
+- **Mob name:** Name + Plural. A plural is needed when a kill or harvest
+  objective counts the mob (D24); it is written as
+  `{count, plural, one {…} other {…}}`, an empty plural writes plain text.
+- **Skill name and description** are the Identity section's `displayName` and
+  `description`, read from and written to `api/lang/en/skills.arb`.
+- **"German owed"** appears under the header after every mob, quest or skill
+  save: what each translation now lacks, what was translated from an older
+  English, what is over its length limit, as the BUILT `aurad -lang-status`
+  computes it (the same function the Go completeness test runs, D25; a stale
+  binary says so instead of answering).
+- A field with no English shows its key, greyed, as its placeholder.
+
+A hand edit outside the editor drafts the text inline and runs
+`node tools/lang/extract-english.mjs` (the boot refuses inline text).
+
 ## Scope
 
 **In:** every mob stat field on any `api/mobs/*.json` file (identity, tier/
@@ -48,7 +84,7 @@ role/faction/curveLevel/entityType, factors incl. resistances/gateKeys as
 fixed-vocabulary pickers, body incl. collision layer/mask as bitmask
 checkboxes, skills[], unlocks[]); NPC `interaction.nodes[]` / `.ambient` /
 `.range` on any mob that carries one; quest `stages[]`/`objectives[]`/`next`
-on `api/quests/*.json` (an objective's `tracker` on a talk_to, `chance` +
+on `api/quests/*.json` (an objective's `tracker` (any kind, Q2), `chance` +
 `guaranteedAt` on a kill/harvest), including a clickable "referenced by" panel showing
 which NPCs' grants offer/advance each quest stage (click a reference to jump
 straight to that dialogue node); faction `displayName`/`friendlyToPlayers`/

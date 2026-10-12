@@ -26,27 +26,25 @@
       {
         "id": "root",
         "lines": [
-          {"id": "aba989", "text": "Woof."}
+          {"id": "woof"}
         ],
         "options": [
-          { "id": "00dd17", "text": "Teach me something.", "next": "teachings" }
+          { "stock": "ask_teach", "next": "teachings" }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "2668da", "text": "Woof?"}
+          {"id": "woof_2"}
         ],
         "options": [
           {
-            "id": "5d9171",
-            "text": "Summon Companion",
+            "id": "summon_companion",
             "grants": [
               {
-                "id": "c5038b",
+                "id": "woof_3",
                 "kind": "teach_skill",
-                "skill": "SummonCompanion",
-                "line": "Woof!"
+                "skill": "SummonCompanion"
               }
             ]
           }

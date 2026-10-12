@@ -7,7 +7,7 @@ import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
 import * as AccountSettings from './AccountSettings';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {BackendState} from '../../backend/logic/IBackend';
-import * as Locale from '../../i18n/logic/Locale';
+import * as Locale from '../../localization/logic/Locale';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;

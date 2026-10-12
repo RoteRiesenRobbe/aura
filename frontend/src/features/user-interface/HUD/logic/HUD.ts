@@ -1,4 +1,4 @@
-import {t} from '../../../i18n/logic/Locale';
+import {t} from '../../../localization/logic/Locale';
 import '../assets/HUD.less';
 import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';

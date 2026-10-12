@@ -73,24 +73,40 @@ does not drift. The PO reviews all German text; this file is the yardstick.
   → "Salzgrasstrand"), coined ones stay ("Brunnstedt", "Wrecker's Bluff" →
   "Strandräuberklippe" only if descriptive; decided name by name in
   `api/lang/de/regions.arb`, the glossary of record for place names).
-- Mob names carry `name` + `namePlural` wherever a kill or harvest
-  objective names them (Q2); the plural is a real German plural ("Wölfe",
-  "Keiler", "Rüben").
+- A mob a kill or harvest objective counts carries its plural INSIDE its
+  name (D24): `{count, plural, one {Wolf} other {Wölfe}}`. The plural is a
+  real German plural ("Wölfe", "Keiler", "Rüben"); German needs only `one`
+  and `other`. A mob nobody counts stays plain text.
+- Some names have a length limit (D30, in the key's English note and its
+  `x-maxLength`): mob names 26 characters, skill names 30, quest titles 30,
+  region titles 24 [PLACEHOLDER]s. German is held to the same limit; the
+  completeness test names a German text that is over it.
 - Player-authored character names are never translated.
 
 ## 5. Grammar the templates cannot do
 
-A shared template only ever uses the forms a name carries (`name`,
-`namePlural`). Anything that needs an article, a case or a preposition
+A shared template only ever uses the forms a name carries (its plural forms,
+D24). Anything that needs an article, a case or a preposition
 ("mit der Stadtwache sprechen", "nach Brunnstedt gehen") is an authored
-per-objective `tracker` (L8).
+per-objective `tracker` (L8). A UI template that inserts a name says so in
+its note (D31); German keeps the name nominative and words the line around it
+("Fallen gelassen von: {mob}"), and a later language that would inflect the name
+phrases the line as a label.
 
 ## 6. Workflow
 
-- English is authored in `api/` JSON; `api/lang/en/` is generated (never
-  edit it, L15). German goes in `api/lang/de/<domain>.arb` (content) and
-  `frontend/src/lang/de.arb` (UI).
+- English is authored in `api/lang/en/<domain>.arb` (D27, C5a): the content
+  editor writes it, or a hand edit drafts text inline in the content JSON and
+  runs `node tools/lang/extract-english.mjs`. German goes in
+  `api/lang/de/<domain>.arb` (content) and `frontend/src/lang/de.arb` (UI),
+  under the same identifier-safe keys (D29).
+- A dialogue line's key carries its NPC and a frozen slug
+  (`conv_Farmer_fields_need_work`); a shared phrase (`stock_quest_accept`) is
+  ONE German line for every NPC that says it (D28). An NPC that should say it
+  differently gets its own line, with its own German.
 - After checking German against its English, refresh the translated-from
   records (D20): `UPDATE_LANG_SOURCE=1 npx vitest run src/lang` (UI) and
-  `UPDATE_LANG=1 go test -count=1 ./pkg/aura/lang/` (content).
+  `cd backend && UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/`
+  (content). The content editor shows what is owed after every save
+  ("German owed", `aurad -lang-status`).
 - After launch, an English edit carries its German in the same change (D23).

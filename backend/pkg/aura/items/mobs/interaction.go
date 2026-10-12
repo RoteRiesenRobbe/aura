@@ -554,10 +554,11 @@ type jsonInteractionNode struct {
 	Rewards *[]string `json:"rewards"`
 }
 
-// jsonDialogueLine is one authored line: {"id": "a1b2c3", "text": "…"}
-// (plan-localization.md D20, tagged by tools/lang/tag-dialogue.mjs). A bare
-// string still parses, with no id, so a unit fixture stays short; shipped
-// content without ids is refused by the boot's lang stage.
+// jsonDialogueLine is one line as the loader reads it: {"id": key, "text": "…"}.
+// Shipped content authors only {"id": slug} or {"stock": name}, and
+// lang.EnglishFS fills in the full key and the English (plan-localization.md
+// D27, D28). A bare string still parses, with no id, so a unit fixture stays
+// short; shipped content without ids is refused by the boot's lang stage.
 type jsonDialogueLine struct {
 	ID   string
 	Text string
@@ -578,6 +579,13 @@ func (l *jsonDialogueLine) UnmarshalJSON(data []byte) error {
 	}
 	l.ID, l.Text = v.ID, v.Text
 	return nil
+}
+
+func firstGrantKind(grants []jsonInteractionGrant) string {
+	if len(grants) == 0 {
+		return ""
+	}
+	return grants[0].Kind
 }
 
 func splitDialogue(lines []jsonDialogueLine) (texts, ids []string) {
@@ -803,13 +811,16 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				return nil, err
 			}
 			opt := InteractionOption{ID: jo.ID, Text: jo.Text, Next: jo.Next, LockedWhenGated: jo.LockedWhenGated}
+			// Only a quest bundle's LEAD grant is ever spoken (presentOptions), so
+			// the grants that ride behind it carry no line (plan-localization.md C5a).
+			lead, _ := ParseGrantKind(firstGrantKind(jo.Grants))
 			for k, jg := range jo.Grants {
 				kind, ok := ParseGrantKind(jg.Kind)
 				if !ok {
 					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: kind %q must be one of %s",
 						m.Name, jn.ID, j, k, jg.Kind, names(grantKinds))
 				}
-				if strings.TrimSpace(jg.Line) == "" {
+				if strings.TrimSpace(jg.Line) == "" && !(k > 0 && lead.IsQuestKind()) {
 					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: line must not be empty",
 						m.Name, jn.ID, j, k)
 				}

@@ -17,29 +17,27 @@
       {
         "id": "root",
         "lines": [
-          {"id": "e907eb", "text": "Your mother wants meat. Then you'll earn it, not be handed it."},
-          {"id": "bf5185", "text": "Ask what you need to ask. I'll answer straight."}
+          {"id": "your_mother_wants_meat_then"},
+          {"id": "ask_what_you_need"}
         ],
         "options": [
-          { "id": "f778d3", "text": "Teach me something.", "next": "teachings" },
-          { "id": "9441a7", "text": "How do I hunt a stag?", "next": "stags" },
-          { "id": "866178", "text": "What should I know before I leave?", "next": "advice" }
+          { "stock": "ask_teach", "next": "teachings" },
+          { "id": "how_do_i_hunt", "next": "stags" },
+          { "id": "what_should_i_know_before", "next": "advice" }
         ]
       },
       {
         "id": "teachings",
-        "lines": [ {"id": "0a80aa", "text": "I'll teach you one thing. Learn it properly."} ],
+        "lines": [ {"id": "ill_teach_you_one_thing"} ],
         "options": [
           {
-            "id": "180506",
-            "text": "Wild",
+            "id": "wild",
             "grants": [
               {
-                "id": "789efd",
+                "id": "ill_teach_you_wild_it",
                 "kind": "teach_skill",
                 "skill": "Wild",
-                "requiredLevel": 1,
-                "line": "I'll teach you Wild. It reaches further than what you have now, and every blow costs you a little of yourself. Only one aura burns at a time, so choose it when the reach is worth the price."
+                "requiredLevel": 1
               }
             ]
           }
@@ -48,18 +46,18 @@
       {
         "id": "stags",
         "lines": [
-          {"id": "289572", "text": "A stag will start to run the moment you hurt it."},
-          {"id": "b305e7", "text": "You won't win by hitting harder. You win by staying close."},
-          {"id": "9c7025", "text": "Don't give up the chase, and don't be cruel about it."}
+          {"id": "a_stag_will_start"},
+          {"id": "you_wont_win_by_hitting"},
+          {"id": "dont_give_up_the_chase"}
         ],
         "options": []
       },
       {
         "id": "advice",
         "lines": [
-          {"id": "2fd8df", "text": "Take only what you need, from the land or from anyone."},
-          {"id": "80d251", "text": "Pay what you owe, even when nobody is counting."},
-          {"id": "c431fa", "text": "And when you're wrong, say so quickly. It costs less that way."}
+          {"id": "take_only_what_you_need"},
+          {"id": "pay_what_you_owe_even"},
+          {"id": "and_when_youre_wrong_say"}
         ],
         "options": []
       }
