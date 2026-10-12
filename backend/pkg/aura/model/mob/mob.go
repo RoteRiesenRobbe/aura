@@ -1998,6 +1998,22 @@ func (m *Mob) Invulnerable() bool {
 // toucher otherwise; it is what the recorded hit event is attributed to
 // (plan-skill-vfx.md D9). The *Touches wrappers resolve it, because only they
 // can see both the payload's Source and the toucher.
+// NeverHurtBy reports whether this species can never be damaged by a hit with
+// these tags and this gate key (model.SpeciesImmunity, plan-immune-targets.md).
+// It is takeDamage's math on the definition alone: never m.buffs, never
+// m.invulnerable (L1, D2), and only an exact zero counts (D3).
+//
+// The pin below is L3: a drifted signature breaks the build instead of
+// silently demoting nobody behind the selector's type assertion.
+var _ model.SpeciesImmunity = (*Mob)(nil)
+
+func (m *Mob) NeverHurtBy(tags []string, gateKey string) bool {
+	if gateKey != "" && !skills.GateOpensFor(gateKey, m.definition.Factors.GateKeys) {
+		return true
+	}
+	return skills.ResistMultiplier(tags, m.definition.Factors.Resistances) == 0
+}
+
 func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffect) vitals.VitalSign {
 	// Conditional immunity (encounter-controller chunk 9b): while set, every
 	// hit is a non-event exactly like a fully resisted tag — no HP loss, no

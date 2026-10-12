@@ -79,6 +79,27 @@ func effectCollisions(collisions phy.ColliderSet, casterPos phy.Vec2f, sensorRad
 // required for fixed-seed reproducibility in the sim harness
 // (plan-sim-harness §3, chunk 3) and harmless in-game.
 func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool) []phy.Collider {
+	return pickTargets(collisions, casterPos, sel, maxTargets, eligible, nil)
+}
+
+// damageHit is what the damage selector asks a candidate about: the hit's
+// tags and gate key (plan-immune-targets.md).
+type damageHit struct {
+	tags    []string
+	gateKey string
+}
+
+// selectDamageTargets is selectTargets for an effect that deals damage
+// (plan-immune-targets.md C1, D1): when the cap drops someone, targets the hit
+// can hurt are picked before targets their species file makes immune to it.
+// An immune target stays valid and fills a slot nobody else takes (D4).
+func selectDamageTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool, tags []string, gateKey string) []phy.Collider {
+	return pickTargets(collisions, casterPos, sel, maxTargets, eligible, &damageHit{tags: tags, gateKey: gateKey})
+}
+
+// pickTargets is the shared pipeline; hit is nil for effects that deal no
+// damage.
+func pickTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool, hit *damageHit) []phy.Collider {
 	candidates := make([]phy.Collider, 0, len(collisions))
 	for c := range collisions {
 		if eligible(c) {
@@ -98,7 +119,29 @@ func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.S
 	}
 
 	sortBySelector(candidates, casterPos, sel)
+	if hit != nil {
+		hurtableFirst(candidates, maxTargets, hit)
+	}
 	return candidates[:maxTargets]
+}
+
+// hurtableFirst moves the first maxTargets candidates the hit can hurt to the
+// front, in place and stably, so the selector's order and the fixed-seed roll
+// order survive (L5). Immune candidates keep their relative order behind them.
+// It allocates nothing and stops once the cap is filled.
+func hurtableFirst(candidates []phy.Collider, maxTargets int, hit *damageHit) {
+	front := 0
+	for i, c := range candidates {
+		if s, ok := c.Shape().UserData.(model.SpeciesImmunity); ok && s.NeverHurtBy(hit.tags, hit.gateKey) {
+			continue
+		}
+		copy(candidates[front+1:i+1], candidates[front:i])
+		candidates[front] = c
+		front++
+		if front == maxTargets {
+			return
+		}
+	}
 }
 
 // stableOrderKey is a collider's deterministic sort key: the entity ID behind

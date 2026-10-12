@@ -475,7 +475,8 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	// No caster skip, matching the damage path's long-standing semantics
 	// (only relevant if content ever sets targetsAllies on a dot).
 	eligible := eligibleByTargetFlags[dotBuffable](effect, e, 0, false)
-	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	// A dot carries no gate key; its own tags decide immunity (plan-immune-targets.md §4).
+	targets := selectDamageTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Dot.Tags, "")
 	ignitedAny := false
 	for _, c := range targets {
 		if c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks) {
@@ -793,7 +794,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	// replacing it, the critChance rule — an aura that already leeches leeches
 	// more while the burst is up.
 	lifesteal := effect.Damage.LifestealFraction + casterLifesteal(acting)
-	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	targets := selectDamageTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Damage.Tags, effect.Damage.GateKey)
 	for _, c := range targets {
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
@@ -847,7 +848,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, id skills.S
 	}
 
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(caster)
-	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	targets := selectDamageTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Damage.Tags, effect.Damage.GateKey)
 	for _, c := range targets {
 		// Per-hit execute × crit × variance, same as the player path.
 		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng, critChance)

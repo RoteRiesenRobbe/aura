@@ -69,6 +69,15 @@ type Interacter interface {
 	PlayerTouches(p PlayerEntity, damage Damage)
 }
 
+// SpeciesImmunity is a target whose species file can rule a hit out for good:
+// a gate key it does not list, or resistances that multiply the hit's tags to
+// exactly 0 (plan-immune-targets.md). The damage selector picks such a target
+// last (D1). It is never asked about temporary state (D2): a bubble or a
+// scripted invulnerability keeps the target first in line.
+type SpeciesImmunity interface {
+	NeverHurtBy(tags []string, gateKey string) bool
+}
+
 // AreaSource is a hit that came from a PLACE rather than from an entity — the
 // lava pool, the bog, the miasma (plan-area-effects.md E2/D13).
 //
