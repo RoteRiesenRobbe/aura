@@ -32,7 +32,7 @@ var langDomains = []struct {
 }
 
 // langEntries reads every domain's entries. Findings name authored text that
-// would not survive as ICU (L14), two strings mapping to one key (D29), and the
+// would not survive as ICU (L14), two strings sharing one key, and the
 // Q2 rules, by domain and key.
 func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lang.Entry, []string) {
 	out := map[string][]lang.Entry{}
@@ -40,7 +40,7 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 	seen := map[string]string{}
 	addChecked := func(domain, where string, e lang.Entry, check func(string) error) {
 		if prev, dup := seen[e.Key]; dup {
-			findings = append(findings, fmt.Sprintf("lang %s: %s and %s both map to the key %s; rename one (plan-localization.md D29)", domain, prev, where, e.Key))
+			findings = append(findings, fmt.Sprintf("lang %s: %s and %s both map to the key %s; rename one", domain, prev, where, e.Key))
 			return
 		}
 		seen[e.Key] = where
@@ -191,7 +191,7 @@ func langBundleHandler(b *lang.Bundle, entries map[string][]lang.Entry) (http.Ha
 				continue
 			}
 			for _, e := range entries[d.name] {
-				if strings.HasPrefix(e.Key, "mob_") {
+				if strings.HasPrefix(e.Key, "mob.") {
 					continue // names ride /mobs
 				}
 				flat[e.Key] = tr(e.Key, e.Text)

@@ -32,12 +32,12 @@
           }
         ],
         "lines": [
-          {"id": "you_are_max_level_so"},
-          {"id": "you_pick_one_reward_it"}
+          {"id": "you-are-max-level-so"},
+          {"id": "you-pick-one-reward-it"}
         ],
         "options": [
           {
-            "stock": "show_rewards",
+            "stock": "show-rewards",
             "next": "catalog"
           }
         ]
@@ -62,19 +62,19 @@
           "Lantern"
         ],
         "lines": [
-          {"id": "pick_one_reward_it_unlocks"},
-          {"id": "confirming_ends_this_character"}
+          {"id": "pick-one-reward-it-unlocks"},
+          {"id": "confirming-ends-this-character"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "ascension_stone_a_life_can"},
-          {"id": "spending_one_here_unlocks"}
+          {"id": "ascension-stone-a-life-can"},
+          {"id": "spending-one-here-unlocks"}
         ],
         "options": [
           {
-            "stock": "show_rewards",
+            "stock": "show-rewards",
             "next": "catalog",
             "lockedWhenGated": true
           }

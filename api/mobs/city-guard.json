@@ -25,11 +25,11 @@
       {
         "id": "root",
         "lines": [
-          {"id": "the_gate_is_closed"}
+          {"id": "the-gate-is-closed"}
         ],
         "options": [
           {
-            "id": "the_8_wolves",
+            "id": "the-8-wolves",
             "grants": [
               {
                 "stock": "good",
@@ -48,20 +48,20 @@
               }
             ]
           },
-          { "stock": "ask_task", "next": "bears" },
-          { "id": "about_the_bears", "next": "bears_running" },
-          { "stock": "ask_teach", "next": "teachings" },
-          { "id": "where_can_i_make_myself", "next": "front" }
+          { "stock": "ask-task", "next": "bears" },
+          { "id": "about-the-bears", "next": "bears_running" },
+          { "stock": "ask-teach", "next": "teachings" },
+          { "id": "where-can-i-make-myself", "next": "front" }
         ]
       },
       {
         "id": "bears",
         "lines": [
-          {"id": "kill_5_bears_near"}
+          {"id": "kill-5-bears-near"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -75,11 +75,11 @@
       {
         "id": "bears_running",
         "lines": [
-          {"id": "the_bears"}
+          {"id": "the-bears"}
         ],
         "options": [
           {
-            "id": "i_killed_the_5_bears",
+            "id": "i-killed-the-5-bears",
             "grants": [
               {
                 "stock": "good",
@@ -95,7 +95,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "bears_on_it"
           }
         ]
@@ -110,20 +110,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_5_bears_near_2"}
+          {"id": "kill-5-bears-near-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "strong",
             "grants": [
               {
-                "id": "ill_teach_you_strong",
+                "id": "ill-teach-you-strong",
                 "kind": "teach_skill",
                 "skill": "Strong",
                 "requiredLevel": 3
@@ -135,7 +135,7 @@
       {
         "id": "front",
         "lines": [
-          {"id": "the_front_is"}
+          {"id": "the-front-is"}
         ]
       }
     ]

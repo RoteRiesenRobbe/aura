@@ -181,7 +181,7 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	// Localization (plan-localization.md C1, C5a): every ARB, English included,
 	// refused when not UTF-8 or malformed (L17), and the content text as keyed
 	// entries, refused where it would not survive as ICU (L14) or where two
-	// strings share a key (D29). The English itself reached the registries as
+	// strings share a key. The English itself reached the registries as
 	// their files were read (withEnglish, D27).
 	// A LEAF stage: it reads the registries above and nothing reads it back.
 	if out.langBundle, err = lang.LoadOverlays(src.lang); err != nil {

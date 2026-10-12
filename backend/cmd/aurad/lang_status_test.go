@@ -55,13 +55,13 @@ func TestVisibleLength_CountsAPluralNamesLongestForm(t *testing.T) {
 // debug zone set (-debug-zones, a dev tool) speaks its file's dev label.
 func TestZoneNames_ShippedNeedEnglishDebugFallsBackToTheLabel(t *testing.T) {
 	zones := fstest.MapFS{"world.json": {Data: []byte(`{"name": "World label"}`)}, "cave.json": {Data: []byte(`{"name": "Cave label"}`)}}
-	english := map[string]string{"zone_world_name": "World"}
+	english := map[string]string{"zone.world.name": "World"}
 
 	names, findings, err := zoneNamesFrom(zones, english, false)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]string{"world": "World"}, names)
 	require.Len(t, findings, 1)
-	assert.Contains(t, findings[0], "zone_cave_name")
+	assert.Contains(t, findings[0], "zone.cave.name")
 
 	names, findings, err = zoneNamesFrom(zones, english, true)
 	require.NoError(t, err)

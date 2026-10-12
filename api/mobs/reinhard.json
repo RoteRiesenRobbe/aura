@@ -26,14 +26,14 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i_work_this_field"}
+          {"id": "i-work-this-field"}
         ],
         "options": [
           {
-            "id": "eliza_sends_me",
+            "id": "eliza-sends-me",
             "grants": [
               {
-                "id": "elizas_child_then_youll_work",
+                "id": "elizas-child-then-youll-work",
                 "kind": "advance_quest",
                 "quest": "eliza-sends-me",
                 "fromStage": "meet",
@@ -42,31 +42,31 @@
             ]
           },
           {
-            "stock": "ask_task",
+            "stock": "ask-task",
             "next": "turnips"
           },
           {
-            "id": "about_the_turnips",
+            "id": "about-the-turnips",
             "next": "turnips_running"
           },
           {
-            "id": "anything_else_that_needs_doing",
+            "id": "anything-else-that-needs-doing",
             "next": "boars"
           },
           {
-            "id": "about_the_boars",
+            "id": "about-the-boars",
             "next": "boars_running"
           },
           {
-            "id": "anything_in_the_barn",
+            "id": "anything-in-the-barn",
             "next": "rats"
           },
           {
-            "id": "about_the_rats",
+            "id": "about-the-rats",
             "next": "rats_running"
           },
           {
-            "stock": "ask_teach",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -74,12 +74,12 @@
       {
         "id": "turnips",
         "lines": [
-          {"id": "harvest_5_turnips"},
-          {"id": "you_need_the_harvest_skill"}
+          {"id": "harvest-5-turnips"},
+          {"id": "you-need-the-harvest-skill"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -93,11 +93,11 @@
       {
         "id": "turnips_running",
         "lines": [
-          {"id": "the_turnips"}
+          {"id": "the-turnips"}
         ],
         "options": [
           {
-            "id": "i_harvested_the_5_turnips",
+            "id": "i-harvested-the-5-turnips",
             "grants": [
               {
                 "stock": "good",
@@ -113,7 +113,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "turnips_on_it"
           }
         ]
@@ -128,17 +128,17 @@
           }
         ],
         "lines": [
-          {"id": "harvest_5_turnips_2"}
+          {"id": "harvest-5-turnips-2"}
         ]
       },
       {
         "id": "boars",
         "lines": [
-          {"id": "kill_6_boars"}
+          {"id": "kill-6-boars"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -152,11 +152,11 @@
       {
         "id": "boars_running",
         "lines": [
-          {"id": "the_boars"}
+          {"id": "the-boars"}
         ],
         "options": [
           {
-            "id": "i_killed_the_6_boars",
+            "id": "i-killed-the-6-boars",
             "grants": [
               {
                 "stock": "good",
@@ -172,7 +172,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "boars_on_it"
           }
         ]
@@ -187,18 +187,18 @@
           }
         ],
         "lines": [
-          {"id": "kill_6_boars_2"}
+          {"id": "kill-6-boars-2"}
         ]
       },
       {
         "id": "rats",
         "lines": [
-          {"id": "giant_rats_in_my_barn"},
-          {"id": "kill_8_of_them"}
+          {"id": "giant-rats-in-my-barn"},
+          {"id": "kill-8-of-them"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -212,11 +212,11 @@
       {
         "id": "rats_running",
         "lines": [
-          {"id": "the_rats"}
+          {"id": "the-rats"}
         ],
         "options": [
           {
-            "id": "i_killed_the_8_rats",
+            "id": "i-killed-the-8-rats",
             "grants": [
               {
                 "stock": "good",
@@ -232,11 +232,11 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "rats_on_it"
           },
           {
-            "id": "tell_me_more_about_rats",
+            "id": "tell-me-more-about-rats",
             "next": "rats_more"
           }
         ]
@@ -251,7 +251,7 @@
           }
         ],
         "lines": [
-          {"id": "kill_8_of_them_2"}
+          {"id": "kill-8-of-them-2"}
         ]
       },
       {
@@ -264,20 +264,20 @@
           }
         ],
         "lines": [
-          {"id": "they_came"}
+          {"id": "they-came"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "harvest",
             "grants": [
               {
-                "id": "ill_teach_you_harvest",
+                "id": "ill-teach-you-harvest",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1

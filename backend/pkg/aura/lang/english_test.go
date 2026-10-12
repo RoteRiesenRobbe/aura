@@ -24,11 +24,11 @@ func hydrated(t *testing.T, domain Domain, file string, en map[string]string) ma
 
 func TestHydrate_FillsEveryQuestTextField(t *testing.T) {
 	en := map[string]string{
-		"quest_wolves_on_the_road_title":                         "Wolves on the Road",
-		"quest_wolves_on_the_road_cull_journal":                  "Kill the wolves.",
-		"quest_wolves_on_the_road_cull_tracker":                  "{n, number}/{m, number} wolves slain",
-		"quest_wolves_on_the_road_report_journal":                "Report back.",
-		"quest_wolves_on_the_road_report_talk_to_Farmer_tracker": "Talk to the Farmer",
+		"quest.wolves-on-the-road.title":                         "Wolves on the Road",
+		"quest.wolves-on-the-road.cull.journal":                  "Kill the wolves.",
+		"quest.wolves-on-the-road.cull.tracker":                  "{n, number}/{m, number} wolves slain",
+		"quest.wolves-on-the-road.report.journal":                "Report back.",
+		"quest.wolves-on-the-road.report.talk_to.Farmer.tracker": "Talk to the Farmer",
 	}
 	q := hydrated(t, DomainQuest, `{"id": "wolves-on-the-road", "level": 3, "stages": [
 		{"id": "cull", "objectives": [{"kind": "kill", "species": "Wolf", "count": 8}], "next": "report"},
@@ -48,33 +48,33 @@ func TestHydrate_FillsEveryQuestTextField(t *testing.T) {
 
 func TestHydrate_FillsDialogueAndCarriesTheFullKeyAsTheID(t *testing.T) {
 	en := map[string]string{
-		"mob_Farmer_name":               "Farmer",
-		"conv_Farmer_i_work_this_field": "I work this field.",
-		"conv_Farmer_about_the_boars":   "About the boars...",
-		"conv_Farmer_good_hunting":      "Good hunting.",
-		"conv_Farmer_shoo":              "Shoo!",
-		"stock_ask_task":                "Do you have a task for me?",
-		"stock_good":                    "Good.",
+		"mob.Farmer.name":               "Farmer",
+		"conv.Farmer.i-work-this-field": "I work this field.",
+		"conv.Farmer.about-the-boars":   "About the boars...",
+		"conv.Farmer.good-hunting":      "Good hunting.",
+		"conv.Farmer.shoo":              "Shoo!",
+		"stock.ask-task":                "Do you have a task for me?",
+		"stock.good":                    "Good.",
 	}
 	m := hydrated(t, DomainMob, `{"name": "Farmer", "interaction": {
 		"ambient": [{"id": "shoo"}],
 		"nodes": [{"id": "root",
-			"lines": [{"id": "i_work_this_field"}, {"stock": "good"}],
+			"lines": [{"id": "i-work-this-field"}, {"stock": "good"}],
 			"options": [
-				{"stock": "ask_task", "next": "root"},
-				{"id": "about_the_boars", "grants": [{"id": "good_hunting", "kind": "offer_quest", "quest": "q"}, {"kind": "grant_xp", "xp": 5}]},
+				{"stock": "ask-task", "next": "root"},
+				{"id": "about-the-boars", "grants": [{"id": "good-hunting", "kind": "offer_quest", "quest": "q"}, {"kind": "grant_xp", "xp": 5}]},
 				{"next": "root"}]}]}}`, en)
 	assert.Equal(t, "Farmer", m["displayName"])
 	inter := m["interaction"].(map[string]any)
-	assert.Equal(t, []any{map[string]any{"id": "conv_Farmer_shoo", "text": "Shoo!"}}, inter["ambient"])
+	assert.Equal(t, []any{map[string]any{"id": "conv.Farmer.shoo", "text": "Shoo!"}}, inter["ambient"])
 	node := inter["nodes"].([]any)[0].(map[string]any)
 	assert.Equal(t, []any{
-		map[string]any{"id": "conv_Farmer_i_work_this_field", "text": "I work this field."},
-		map[string]any{"id": "stock_good", "text": "Good."},
+		map[string]any{"id": "conv.Farmer.i-work-this-field", "text": "I work this field."},
+		map[string]any{"id": "stock.good", "text": "Good."},
 	}, node["lines"])
 	opts := node["options"].([]any)
 	stock := opts[0].(map[string]any)
-	assert.Equal(t, "stock_ask_task", stock["id"])
+	assert.Equal(t, "stock.ask-task", stock["id"])
 	assert.Equal(t, "Do you have a task for me?", stock["text"])
 	_, hasStock := stock["stock"]
 	assert.False(t, hasStock, "the loader sees an id, never the stock reference")
@@ -82,7 +82,7 @@ func TestHydrate_FillsDialogueAndCarriesTheFullKeyAsTheID(t *testing.T) {
 	assert.Equal(t, "About the boars...", own["text"])
 	grants := own["grants"].([]any)
 	assert.Equal(t, "Good hunting.", grants[0].(map[string]any)["line"])
-	assert.Equal(t, "conv_Farmer_good_hunting", grants[0].(map[string]any)["id"])
+	assert.Equal(t, "conv.Farmer.good-hunting", grants[0].(map[string]any)["id"])
 	_, followerLine := grants[1].(map[string]any)["line"]
 	assert.False(t, followerLine, "a bundle's follower grant is never spoken and carries no line")
 	_, plainText := opts[2].(map[string]any)["text"]
@@ -91,12 +91,12 @@ func TestHydrate_FillsDialogueAndCarriesTheFullKeyAsTheID(t *testing.T) {
 
 func TestHydrate_SkillsAndRegions(t *testing.T) {
 	en := map[string]string{
-		"skill_LongRangeStrike_name":        "Long-Range Strike",
-		"skill_LongRangeStrike_description": "Hits far.",
-		"skill_Heal_name":                   "Heal",
-		"region_saltgrass_title":            "Saltgrass Strand",
-		"region_saltgrass_subtitle":         "Sea and Salt",
-		"region_farmlands_title":            "Farmlands",
+		"skill.LongRangeStrike.name":        "Long-Range Strike",
+		"skill.LongRangeStrike.description": "Hits far.",
+		"skill.Heal.name":                   "Heal",
+		"region.saltgrass.title":            "Saltgrass Strand",
+		"region.saltgrass.subtitle":         "Sea and Salt",
+		"region.farmlands.title":            "Farmlands",
 	}
 	s := hydrated(t, DomainSkill, `{"id": 1, "name": "LongRangeStrike"}`, en)
 	assert.Equal(t, "Long-Range Strike", s["displayName"])
@@ -111,20 +111,20 @@ func TestHydrate_SkillsAndRegions(t *testing.T) {
 }
 
 func TestHydrate_RefusesInlineEnglishAndMissingEnglish(t *testing.T) {
-	en := map[string]string{"quest_q_title": "Q", "mob_Farmer_name": "Farmer"}
+	en := map[string]string{"quest.q.title": "Q", "mob.Farmer.name": "Farmer"}
 	for name, c := range map[string]struct {
 		domain Domain
 		file   string
 		want   []string
 	}{
 		"inline title":         {DomainQuest, `{"id": "q", "title": "Q", "stages": []}`, []string{"inline English", "title", "extract-english"}},
-		"missing journal":      {DomainQuest, `{"id": "q", "stages": [{"id": "s"}]}`, []string{"no English", "quest_q_s_journal"}},
+		"missing journal":      {DomainQuest, `{"id": "q", "stages": [{"id": "s"}]}`, []string{"no English", "quest.q.s.journal"}},
 		"inline line":          {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": [{"id": "x", "text": "Hi"}]}]}}`, []string{"inline English", "root"}},
 		"bare string line":     {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": ["Hi"]}]}}`, []string{"inline English"}},
-		"line without English": {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": [{"id": "hello"}]}]}}`, []string{"no English", "conv_Farmer_hello"}},
-		"unknown stock":        {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": [{"stock": "nope"}]}]}}`, []string{"no English", "stock_nope"}},
+		"line without English": {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": [{"id": "hello"}]}]}}`, []string{"no English", "conv.Farmer.hello"}},
+		"unknown stock":        {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "lines": [{"stock": "nope"}]}]}}`, []string{"no English", "stock.nope"}},
 		"id and stock":         {DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root", "options": [{"id": "a", "stock": "b"}]}]}}`, []string{"both"}},
-		"mob without a name":   {DomainMob, `{"name": "Wolf"}`, []string{"no English", "mob_Wolf_name"}},
+		"mob without a name":   {DomainMob, `{"name": "Wolf"}`, []string{"no English", "mob.Wolf.name"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Hydrate(c.domain, []byte(c.file), en)
@@ -150,7 +150,7 @@ func TestEnglishFS_HydratesJSONOnReadAndPassesTheRestThrough(t *testing.T) {
 		"sub/x.json":  {Data: []byte(`{"id": "x", "stages": []}`)},
 	}
 	langFS := fstest.MapFS{"en/quests.arb": {Data: []byte(`{"@@locale": "en",
-		"quest_wolves_title": "Wolves", "quest_wolves_cull_journal": "Cull.", "quest_x_title": "X"}`)}}
+		"quest.wolves.title": "Wolves", "quest.wolves.cull.journal": "Cull.", "quest.x.title": "X"}`)}}
 	fsys := EnglishFS(content, DomainQuest, EnglishFrom(langFS))
 	raw, err := fs.ReadFile(fsys, "wolves.json")
 	require.NoError(t, err)

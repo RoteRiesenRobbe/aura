@@ -1,669 +1,669 @@
 {
   "@@locale": "en",
-  "quest_alpha_wolves_at_the_village_cull_journal": "Kill 5 alpha wolves around the village.",
-  "@quest_alpha_wolves_at_the_village_cull_journal": {
+  "quest.alpha-wolves-at-the-village.cull.journal": "Kill 5 alpha wolves around the village.",
+  "@quest.alpha-wolves-at-the-village.cull.journal": {
     "description": "Journal (diary) entry of quest \"alpha-wolves-at-the-village\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_alpha_wolves_at_the_village_cull_tracker": "{n, number}/{m, number} alpha wolves killed",
-  "@quest_alpha_wolves_at_the_village_cull_tracker": {
+  "quest.alpha-wolves-at-the-village.cull.tracker": "{n, number}/{m, number} alpha wolves killed",
+  "@quest.alpha-wolves-at-the-village.cull.tracker": {
     "description": "Tracker line of quest \"alpha-wolves-at-the-village\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_alpha_wolves_at_the_village_done_journal": "Done. Reported back to the Village Healer.",
-  "@quest_alpha_wolves_at_the_village_done_journal": {
+  "quest.alpha-wolves-at-the-village.done.journal": "Done. Reported back to the Village Healer.",
+  "@quest.alpha-wolves-at-the-village.done.journal": {
     "description": "Journal (diary) entry of quest \"alpha-wolves-at-the-village\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_alpha_wolves_at_the_village_report_journal": "The alpha wolves are dealt with; the Village Healer waits by the campfire.",
-  "@quest_alpha_wolves_at_the_village_report_journal": {
+  "quest.alpha-wolves-at-the-village.report.journal": "The alpha wolves are dealt with; the Village Healer waits by the campfire.",
+  "@quest.alpha-wolves-at-the-village.report.journal": {
     "description": "Journal (diary) entry of quest \"alpha-wolves-at-the-village\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_alpha_wolves_at_the_village_report_tracker": "Return to the Village Healer",
-  "@quest_alpha_wolves_at_the_village_report_tracker": {
+  "quest.alpha-wolves-at-the-village.report.tracker": "Return to the Village Healer",
+  "@quest.alpha-wolves-at-the-village.report.tracker": {
     "description": "Tracker line of quest \"alpha-wolves-at-the-village\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_alpha_wolves_at_the_village_title": "Alpha Wolves at the Village",
-  "@quest_alpha_wolves_at_the_village_title": {
+  "quest.alpha-wolves-at-the-village.title": "Alpha Wolves at the Village",
+  "@quest.alpha-wolves-at-the-village.title": {
     "description": "Quest title of \"alpha-wolves-at-the-village\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_bandits_at_the_shrine_cull_journal": "Kill 6 bandits at the camp east of the shrine.",
-  "@quest_bandits_at_the_shrine_cull_journal": {
+  "quest.bandits-at-the-shrine.cull.journal": "Kill 6 bandits at the camp east of the shrine.",
+  "@quest.bandits-at-the-shrine.cull.journal": {
     "description": "Journal (diary) entry of quest \"bandits-at-the-shrine\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_bandits_at_the_shrine_cull_tracker": "{n, number}/{m, number} bandits killed",
-  "@quest_bandits_at_the_shrine_cull_tracker": {
+  "quest.bandits-at-the-shrine.cull.tracker": "{n, number}/{m, number} bandits killed",
+  "@quest.bandits-at-the-shrine.cull.tracker": {
     "description": "Tracker line of quest \"bandits-at-the-shrine\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_bandits_at_the_shrine_done_journal": "Done. Reported back to the Emberkeeper.",
-  "@quest_bandits_at_the_shrine_done_journal": {
+  "quest.bandits-at-the-shrine.done.journal": "Done. Reported back to the Emberkeeper.",
+  "@quest.bandits-at-the-shrine.done.journal": {
     "description": "Journal (diary) entry of quest \"bandits-at-the-shrine\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_bandits_at_the_shrine_report_journal": "The bandits are dealt with; the Emberkeeper waits at the shrine.",
-  "@quest_bandits_at_the_shrine_report_journal": {
+  "quest.bandits-at-the-shrine.report.journal": "The bandits are dealt with; the Emberkeeper waits at the shrine.",
+  "@quest.bandits-at-the-shrine.report.journal": {
     "description": "Journal (diary) entry of quest \"bandits-at-the-shrine\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_bandits_at_the_shrine_report_tracker": "Return to the Emberkeeper",
-  "@quest_bandits_at_the_shrine_report_tracker": {
+  "quest.bandits-at-the-shrine.report.tracker": "Return to the Emberkeeper",
+  "@quest.bandits-at-the-shrine.report.tracker": {
     "description": "Tracker line of quest \"bandits-at-the-shrine\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_bandits_at_the_shrine_title": "Bandits at the Shrine",
-  "@quest_bandits_at_the_shrine_title": {
+  "quest.bandits-at-the-shrine.title": "Bandits at the Shrine",
+  "@quest.bandits-at-the-shrine.title": {
     "description": "Quest title of \"bandits-at-the-shrine\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_bears_at_the_walls_cull_journal": "Kill 5 bears near the city walls.",
-  "@quest_bears_at_the_walls_cull_journal": {
+  "quest.bears-at-the-walls.cull.journal": "Kill 5 bears near the city walls.",
+  "@quest.bears-at-the-walls.cull.journal": {
     "description": "Journal (diary) entry of quest \"bears-at-the-walls\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_bears_at_the_walls_cull_tracker": "{n, number}/{m, number} bears killed",
-  "@quest_bears_at_the_walls_cull_tracker": {
+  "quest.bears-at-the-walls.cull.tracker": "{n, number}/{m, number} bears killed",
+  "@quest.bears-at-the-walls.cull.tracker": {
     "description": "Tracker line of quest \"bears-at-the-walls\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_bears_at_the_walls_done_journal": "Done. Reported back to the City Guard.",
-  "@quest_bears_at_the_walls_done_journal": {
+  "quest.bears-at-the-walls.done.journal": "Done. Reported back to the City Guard.",
+  "@quest.bears-at-the-walls.done.journal": {
     "description": "Journal (diary) entry of quest \"bears-at-the-walls\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_bears_at_the_walls_report_journal": "The bears are dealt with; the City Guard waits at the gate.",
-  "@quest_bears_at_the_walls_report_journal": {
+  "quest.bears-at-the-walls.report.journal": "The bears are dealt with; the City Guard waits at the gate.",
+  "@quest.bears-at-the-walls.report.journal": {
     "description": "Journal (diary) entry of quest \"bears-at-the-walls\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_bears_at_the_walls_report_tracker": "Return to the City Guard",
-  "@quest_bears_at_the_walls_report_tracker": {
+  "quest.bears-at-the-walls.report.tracker": "Return to the City Guard",
+  "@quest.bears-at-the-walls.report.tracker": {
     "description": "Tracker line of quest \"bears-at-the-walls\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_bears_at_the_walls_title": "Bears at the Walls",
-  "@quest_bears_at_the_walls_title": {
+  "quest.bears-at-the-walls.title": "Bears at the Walls",
+  "@quest.bears-at-the-walls.title": {
     "description": "Quest title of \"bears-at-the-walls\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_boars_in_the_field_cull_journal": "Kill 6 boars in the fields around the farm.",
-  "@quest_boars_in_the_field_cull_journal": {
+  "quest.boars-in-the-field.cull.journal": "Kill 6 boars in the fields around the farm.",
+  "@quest.boars-in-the-field.cull.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_boars_in_the_field_cull_tracker": "{n, number}/{m, number} boars killed",
-  "@quest_boars_in_the_field_cull_tracker": {
+  "quest.boars-in-the-field.cull.tracker": "{n, number}/{m, number} boars killed",
+  "@quest.boars-in-the-field.cull.tracker": {
     "description": "Tracker line of quest \"boars-in-the-field\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_boars_in_the_field_done_journal": "Done. Reported back to the Farmer.",
-  "@quest_boars_in_the_field_done_journal": {
+  "quest.boars-in-the-field.done.journal": "Done. Reported back to the Farmer.",
+  "@quest.boars-in-the-field.done.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_boars_in_the_field_report_journal": "The boars are dealt with; the Farmer waits by his field.",
-  "@quest_boars_in_the_field_report_journal": {
+  "quest.boars-in-the-field.report.journal": "The boars are dealt with; the Farmer waits by his field.",
+  "@quest.boars-in-the-field.report.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_boars_in_the_field_report_tracker": "Return to the Farmer",
-  "@quest_boars_in_the_field_report_tracker": {
+  "quest.boars-in-the-field.report.tracker": "Return to the Farmer",
+  "@quest.boars-in-the-field.report.tracker": {
     "description": "Tracker line of quest \"boars-in-the-field\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_boars_in_the_field_title": "Boars in the Field",
-  "@quest_boars_in_the_field_title": {
+  "quest.boars-in-the-field.title": "Boars in the Field",
+  "@quest.boars-in-the-field.title": {
     "description": "Quest title of \"boars-in-the-field\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_clear_the_grove_cleared_journal": "Done. Grandfather Knot's grove is clear.",
-  "@quest_clear_the_grove_cleared_journal": {
+  "quest.clear-the-grove.cleared.journal": "Done. Grandfather Knot's grove is clear.",
+  "@quest.clear-the-grove.cleared.journal": {
     "description": "Journal (diary) entry of quest \"clear-the-grove\", stage \"cleared\": written in the player's voice, first person."
   },
-  "quest_clear_the_grove_tidied_journal": "The grove is clear. Grandfather Knot waits in the Glimmerwood.",
-  "@quest_clear_the_grove_tidied_journal": {
+  "quest.clear-the-grove.tidied.journal": "The grove is clear. Grandfather Knot waits in the Glimmerwood.",
+  "@quest.clear-the-grove.tidied.journal": {
     "description": "Journal (diary) entry of quest \"clear-the-grove\", stage \"tidied\": written in the player's voice, first person."
   },
-  "quest_clear_the_grove_tidied_tracker": "Return to Grandfather Knot",
-  "@quest_clear_the_grove_tidied_tracker": {
+  "quest.clear-the-grove.tidied.tracker": "Return to Grandfather Knot",
+  "@quest.clear-the-grove.tidied.tracker": {
     "description": "Tracker line of quest \"clear-the-grove\", stage \"tidied\": the one objective line shown under the quest title."
   },
-  "quest_clear_the_grove_tidy_journal": "Clear the deadwood from Grandfather Knot's grove with Harvest.",
-  "@quest_clear_the_grove_tidy_journal": {
+  "quest.clear-the-grove.tidy.journal": "Clear the deadwood from Grandfather Knot's grove with Harvest.",
+  "@quest.clear-the-grove.tidy.journal": {
     "description": "Journal (diary) entry of quest \"clear-the-grove\", stage \"tidy\": written in the player's voice, first person."
   },
-  "quest_clear_the_grove_tidy_tracker": "{n, number}/{m, number} deadwood cleared",
-  "@quest_clear_the_grove_tidy_tracker": {
+  "quest.clear-the-grove.tidy.tracker": "{n, number}/{m, number} deadwood cleared",
+  "@quest.clear-the-grove.tidy.tracker": {
     "description": "Tracker line of quest \"clear-the-grove\", stage \"tidy\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_clear_the_grove_title": "Clear the Grove",
-  "@quest_clear_the_grove_title": {
+  "quest.clear-the-grove.title": "Clear the Grove",
+  "@quest.clear-the-grove.title": {
     "description": "Quest title of \"clear-the-grove\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_dinner_for_the_family_done_journal": "Dinner. Afterwards Eliza points east down the road, to Reinhard's farm.",
-  "@quest_dinner_for_the_family_done_journal": {
+  "quest.dinner-for-the-family.done.journal": "Dinner. Afterwards Eliza points east down the road, to Reinhard's farm.",
+  "@quest.dinner-for-the-family.done.journal": {
     "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_dinner_for_the_family_gather_journal": "Eliza needs meat and beets for dinner. Hendrik hunts; Benjamin grows beets.",
-  "@quest_dinner_for_the_family_gather_journal": {
+  "quest.dinner-for-the-family.gather.journal": "Eliza needs meat and beets for dinner. Hendrik hunts; Benjamin grows beets.",
+  "@quest.dinner-for-the-family.gather.journal": {
     "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"gather\": written in the player's voice, first person."
   },
-  "quest_dinner_for_the_family_gather_talk_to_Benjamin_tracker": "Talk to Benjamin",
-  "@quest_dinner_for_the_family_gather_talk_to_Benjamin_tracker": {
+  "quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": "Talk to Benjamin",
+  "@quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": {
     "description": "Tracker line of one talk_to objective (Benjamin) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_dinner_for_the_family_gather_talk_to_Hendrik_tracker": "Talk to Hendrik",
-  "@quest_dinner_for_the_family_gather_talk_to_Hendrik_tracker": {
+  "quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": "Talk to Hendrik",
+  "@quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": {
     "description": "Tracker line of one talk_to objective (Hendrik) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_dinner_for_the_family_home_journal": "Meat and beets. Eliza is waiting on the pot.",
-  "@quest_dinner_for_the_family_home_journal": {
+  "quest.dinner-for-the-family.home.journal": "Meat and beets. Eliza is waiting on the pot.",
+  "@quest.dinner-for-the-family.home.journal": {
     "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"home\": written in the player's voice, first person."
   },
-  "quest_dinner_for_the_family_home_tracker": "Bring the food home to Eliza",
-  "@quest_dinner_for_the_family_home_tracker": {
+  "quest.dinner-for-the-family.home.tracker": "Bring the food home to Eliza",
+  "@quest.dinner-for-the-family.home.tracker": {
     "description": "Tracker line of quest \"dinner-for-the-family\", stage \"home\": the one objective line shown under the quest title."
   },
-  "quest_dinner_for_the_family_title": "Dinner for the Family",
-  "@quest_dinner_for_the_family_title": {
+  "quest.dinner-for-the-family.title": "Dinner for the Family",
+  "@quest.dinner-for-the-family.title": {
     "description": "Quest title of \"dinner-for-the-family\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_dire_wolves_at_the_camp_cull_journal": "Kill 6 dire wolves around the Shaman's camp.",
-  "@quest_dire_wolves_at_the_camp_cull_journal": {
+  "quest.dire-wolves-at-the-camp.cull.journal": "Kill 6 dire wolves around the Shaman's camp.",
+  "@quest.dire-wolves-at-the-camp.cull.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-at-the-camp\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_at_the_camp_cull_tracker": "{n, number}/{m, number} dire wolves killed",
-  "@quest_dire_wolves_at_the_camp_cull_tracker": {
+  "quest.dire-wolves-at-the-camp.cull.tracker": "{n, number}/{m, number} dire wolves killed",
+  "@quest.dire-wolves-at-the-camp.cull.tracker": {
     "description": "Tracker line of quest \"dire-wolves-at-the-camp\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_dire_wolves_at_the_camp_done_journal": "Done. Reported back to the Shaman.",
-  "@quest_dire_wolves_at_the_camp_done_journal": {
+  "quest.dire-wolves-at-the-camp.done.journal": "Done. Reported back to the Shaman.",
+  "@quest.dire-wolves-at-the-camp.done.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-at-the-camp\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_at_the_camp_report_journal": "The dire wolves are dealt with; the Shaman waits at his fire.",
-  "@quest_dire_wolves_at_the_camp_report_journal": {
+  "quest.dire-wolves-at-the-camp.report.journal": "The dire wolves are dealt with; the Shaman waits at his fire.",
+  "@quest.dire-wolves-at-the-camp.report.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-at-the-camp\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_at_the_camp_report_tracker": "Return to the Shaman",
-  "@quest_dire_wolves_at_the_camp_report_tracker": {
+  "quest.dire-wolves-at-the-camp.report.tracker": "Return to the Shaman",
+  "@quest.dire-wolves-at-the-camp.report.tracker": {
     "description": "Tracker line of quest \"dire-wolves-at-the-camp\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_dire_wolves_at_the_camp_title": "Dire Wolves at the Camp",
-  "@quest_dire_wolves_at_the_camp_title": {
+  "quest.dire-wolves-at-the-camp.title": "Dire Wolves at the Camp",
+  "@quest.dire-wolves-at-the-camp.title": {
     "description": "Quest title of \"dire-wolves-at-the-camp\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_dire_wolves_in_the_forest_cull_journal": "Kill 4 dire wolves in the dark forest.",
-  "@quest_dire_wolves_in_the_forest_cull_journal": {
+  "quest.dire-wolves-in-the-forest.cull.journal": "Kill 4 dire wolves in the dark forest.",
+  "@quest.dire-wolves-in-the-forest.cull.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-in-the-forest\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_in_the_forest_cull_tracker": "{n, number}/{m, number} dire wolves killed",
-  "@quest_dire_wolves_in_the_forest_cull_tracker": {
+  "quest.dire-wolves-in-the-forest.cull.tracker": "{n, number}/{m, number} dire wolves killed",
+  "@quest.dire-wolves-in-the-forest.cull.tracker": {
     "description": "Tracker line of quest \"dire-wolves-in-the-forest\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_dire_wolves_in_the_forest_done_journal": "Done. Reported back to the Lamplighter.",
-  "@quest_dire_wolves_in_the_forest_done_journal": {
+  "quest.dire-wolves-in-the-forest.done.journal": "Done. Reported back to the Lamplighter.",
+  "@quest.dire-wolves-in-the-forest.done.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-in-the-forest\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_in_the_forest_report_journal": "The dire wolves are dealt with; the Lamplighter waits at the forest edge.",
-  "@quest_dire_wolves_in_the_forest_report_journal": {
+  "quest.dire-wolves-in-the-forest.report.journal": "The dire wolves are dealt with; the Lamplighter waits at the forest edge.",
+  "@quest.dire-wolves-in-the-forest.report.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-in-the-forest\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_dire_wolves_in_the_forest_report_tracker": "Return to the Lamplighter",
-  "@quest_dire_wolves_in_the_forest_report_tracker": {
+  "quest.dire-wolves-in-the-forest.report.tracker": "Return to the Lamplighter",
+  "@quest.dire-wolves-in-the-forest.report.tracker": {
     "description": "Tracker line of quest \"dire-wolves-in-the-forest\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_dire_wolves_in_the_forest_title": "Dire Wolves in the Forest",
-  "@quest_dire_wolves_in_the_forest_title": {
+  "quest.dire-wolves-in-the-forest.title": "Dire Wolves in the Forest",
+  "@quest.dire-wolves-in-the-forest.title": {
     "description": "Quest title of \"dire-wolves-in-the-forest\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_eliza_sends_me_done_journal": "I told Reinhard that Eliza sent me. He looked me over and nodded: there is work.",
-  "@quest_eliza_sends_me_done_journal": {
+  "quest.eliza-sends-me.done.journal": "I told Reinhard that Eliza sent me. He looked me over and nodded: there is work.",
+  "@quest.eliza-sends-me.done.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_eliza_sends_me_meet_journal": "I have reached Reinhard's farm. Now to find the man himself.",
-  "@quest_eliza_sends_me_meet_journal": {
+  "quest.eliza-sends-me.meet.journal": "I have reached Reinhard's farm. Now to find the man himself.",
+  "@quest.eliza-sends-me.meet.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"meet\": written in the player's voice, first person."
   },
-  "quest_eliza_sends_me_meet_tracker": "Talk to Reinhard",
-  "@quest_eliza_sends_me_meet_tracker": {
+  "quest.eliza-sends-me.meet.tracker": "Talk to Reinhard",
+  "@quest.eliza-sends-me.meet.tracker": {
     "description": "Tracker line of quest \"eliza-sends-me\", stage \"meet\": the one objective line shown under the quest title."
   },
-  "quest_eliza_sends_me_road_journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
-  "@quest_eliza_sends_me_road_journal": {
+  "quest.eliza-sends-me.road.journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
+  "@quest.eliza-sends-me.road.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"road\": written in the player's voice, first person."
   },
-  "quest_eliza_sends_me_road_reach_farmreinhard_tracker": "Go to Reinhard's farm",
-  "@quest_eliza_sends_me_road_reach_farmreinhard_tracker": {
+  "quest.eliza-sends-me.road.reach.farmreinhard.tracker": "Go to Reinhard's farm",
+  "@quest.eliza-sends-me.road.reach.farmreinhard.tracker": {
     "description": "Tracker line of one reach objective (Reinhard's Farm) in quest \"eliza-sends-me\", stage \"road\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_eliza_sends_me_title": "Eliza Sends Me",
-  "@quest_eliza_sends_me_title": {
+  "quest.eliza-sends-me.title": "Eliza Sends Me",
+  "@quest.eliza-sends-me.title": {
     "description": "Quest title of \"eliza-sends-me\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_giant_rats_in_the_barn_clear_journal": "Kill 8 giant rats in Reinhard's barn.",
-  "@quest_giant_rats_in_the_barn_clear_journal": {
+  "quest.giant-rats-in-the-barn.clear.journal": "Kill 8 giant rats in Reinhard's barn.",
+  "@quest.giant-rats-in-the-barn.clear.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"clear\": written in the player's voice, first person."
   },
-  "quest_giant_rats_in_the_barn_clear_tracker": "{n, number}/{m, number} giant rats killed",
-  "@quest_giant_rats_in_the_barn_clear_tracker": {
+  "quest.giant-rats-in-the-barn.clear.tracker": "{n, number}/{m, number} giant rats killed",
+  "@quest.giant-rats-in-the-barn.clear.tracker": {
     "description": "Tracker line of quest \"giant-rats-in-the-barn\", stage \"clear\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_giant_rats_in_the_barn_done_journal": "Done. The barn is Reinhard's again.",
-  "@quest_giant_rats_in_the_barn_done_journal": {
+  "quest.giant-rats-in-the-barn.done.journal": "Done. The barn is Reinhard's again.",
+  "@quest.giant-rats-in-the-barn.done.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_giant_rats_in_the_barn_report_journal": "The barn is quiet. Reinhard is out in his field.",
-  "@quest_giant_rats_in_the_barn_report_journal": {
+  "quest.giant-rats-in-the-barn.report.journal": "The barn is quiet. Reinhard is out in his field.",
+  "@quest.giant-rats-in-the-barn.report.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_giant_rats_in_the_barn_report_tracker": "Return to Reinhard",
-  "@quest_giant_rats_in_the_barn_report_tracker": {
+  "quest.giant-rats-in-the-barn.report.tracker": "Return to Reinhard",
+  "@quest.giant-rats-in-the-barn.report.tracker": {
     "description": "Tracker line of quest \"giant-rats-in-the-barn\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_giant_rats_in_the_barn_title": "Giant Rats in the Barn",
-  "@quest_giant_rats_in_the_barn_title": {
+  "quest.giant-rats-in-the-barn.title": "Giant Rats in the Barn",
+  "@quest.giant-rats-in-the-barn.title": {
     "description": "Quest title of \"giant-rats-in-the-barn\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_kobolds_on_the_road_cull_journal": "Kill 8 kobolds near the road.",
-  "@quest_kobolds_on_the_road_cull_journal": {
+  "quest.kobolds-on-the-road.cull.journal": "Kill 8 kobolds near the road.",
+  "@quest.kobolds-on-the-road.cull.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_kobolds_on_the_road_cull_tracker": "{n, number}/{m, number} kobolds killed",
-  "@quest_kobolds_on_the_road_cull_tracker": {
+  "quest.kobolds-on-the-road.cull.tracker": "{n, number}/{m, number} kobolds killed",
+  "@quest.kobolds-on-the-road.cull.tracker": {
     "description": "Tracker line of quest \"kobolds-on-the-road\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_kobolds_on_the_road_done_journal": "Done. Reported back to the Wanderer.",
-  "@quest_kobolds_on_the_road_done_journal": {
+  "quest.kobolds-on-the-road.done.journal": "Done. Reported back to the Wanderer.",
+  "@quest.kobolds-on-the-road.done.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_kobolds_on_the_road_report_journal": "The kobolds are thinned; the Wanderer is on the road nearby.",
-  "@quest_kobolds_on_the_road_report_journal": {
+  "quest.kobolds-on-the-road.report.journal": "The kobolds are thinned; the Wanderer is on the road nearby.",
+  "@quest.kobolds-on-the-road.report.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_kobolds_on_the_road_report_tracker": "Return to the Wanderer",
-  "@quest_kobolds_on_the_road_report_tracker": {
+  "quest.kobolds-on-the-road.report.tracker": "Return to the Wanderer",
+  "@quest.kobolds-on-the-road.report.tracker": {
     "description": "Tracker line of quest \"kobolds-on-the-road\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_kobolds_on_the_road_title": "Kobolds on the Road",
-  "@quest_kobolds_on_the_road_title": {
+  "quest.kobolds-on-the-road.title": "Kobolds on the Road",
+  "@quest.kobolds-on-the-road.title": {
     "description": "Quest title of \"kobolds-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_spiders_in_the_diggings_cull_journal": "Kill 6 spiders in the tunnel diggings.",
-  "@quest_spiders_in_the_diggings_cull_journal": {
+  "quest.spiders-in-the-diggings.cull.journal": "Kill 6 spiders in the tunnel diggings.",
+  "@quest.spiders-in-the-diggings.cull.journal": {
     "description": "Journal (diary) entry of quest \"spiders-in-the-diggings\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_spiders_in_the_diggings_cull_tracker": "{n, number}/{m, number} spiders killed",
-  "@quest_spiders_in_the_diggings_cull_tracker": {
+  "quest.spiders-in-the-diggings.cull.tracker": "{n, number}/{m, number} spiders killed",
+  "@quest.spiders-in-the-diggings.cull.tracker": {
     "description": "Tracker line of quest \"spiders-in-the-diggings\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_spiders_in_the_diggings_done_journal": "Done. Reported back to the Miner.",
-  "@quest_spiders_in_the_diggings_done_journal": {
+  "quest.spiders-in-the-diggings.done.journal": "Done. Reported back to the Miner.",
+  "@quest.spiders-in-the-diggings.done.journal": {
     "description": "Journal (diary) entry of quest \"spiders-in-the-diggings\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_spiders_in_the_diggings_report_journal": "The spiders are dealt with; the Miner waits at the tunnel's west mouth.",
-  "@quest_spiders_in_the_diggings_report_journal": {
+  "quest.spiders-in-the-diggings.report.journal": "The spiders are dealt with; the Miner waits at the tunnel's west mouth.",
+  "@quest.spiders-in-the-diggings.report.journal": {
     "description": "Journal (diary) entry of quest \"spiders-in-the-diggings\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_spiders_in_the_diggings_report_tracker": "Return to the Miner",
-  "@quest_spiders_in_the_diggings_report_tracker": {
+  "quest.spiders-in-the-diggings.report.tracker": "Return to the Miner",
+  "@quest.spiders-in-the-diggings.report.tracker": {
     "description": "Tracker line of quest \"spiders-in-the-diggings\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_spiders_in_the_diggings_title": "Spiders in the Diggings",
-  "@quest_spiders_in_the_diggings_title": {
+  "quest.spiders-in-the-diggings.title": "Spiders in the Diggings",
+  "@quest.spiders-in-the-diggings.title": {
     "description": "Quest title of \"spiders-in-the-diggings\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_lost_friend_done_journal": "Done. The Wanderer knows his friend is dead.",
-  "@quest_the_lost_friend_done_journal": {
+  "quest.the-lost-friend.done.journal": "Done. The Wanderer knows his friend is dead.",
+  "@quest.the-lost-friend.done.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_the_lost_friend_return_journal": "The Wanderer's friend lies dead at the back of the kobold cave.",
-  "@quest_the_lost_friend_return_journal": {
+  "quest.the-lost-friend.return.journal": "The Wanderer's friend lies dead at the back of the kobold cave.",
+  "@quest.the-lost-friend.return.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"return\": written in the player's voice, first person."
   },
-  "quest_the_lost_friend_return_tracker": "Tell the Wanderer",
-  "@quest_the_lost_friend_return_tracker": {
+  "quest.the-lost-friend.return.tracker": "Tell the Wanderer",
+  "@quest.the-lost-friend.return.tracker": {
     "description": "Tracker line of quest \"the-lost-friend\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest_the_lost_friend_search_journal": "The Wanderer's friend went into the forest to collect berries and did not come back. He wears a grey cloak and carries a walking staff.",
-  "@quest_the_lost_friend_search_journal": {
+  "quest.the-lost-friend.search.journal": "The Wanderer's friend went into the forest to collect berries and did not come back. He wears a grey cloak and carries a walking staff.",
+  "@quest.the-lost-friend.search.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"search\": written in the player's voice, first person."
   },
-  "quest_the_lost_friend_search_talk_to_FallenTraveller_tracker": "Find the Wanderer's friend in the forest",
-  "@quest_the_lost_friend_search_talk_to_FallenTraveller_tracker": {
+  "quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": "Find the Wanderer's friend in the forest",
+  "@quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": {
     "description": "Tracker line of one talk_to objective (Fallen Traveller) in quest \"the-lost-friend\", stage \"search\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_lost_friend_title": "The Lost Friend",
-  "@quest_the_lost_friend_title": {
+  "quest.the-lost-friend.title": "The Lost Friend",
+  "@quest.the-lost-friend.title": {
     "description": "Quest title of \"the-lost-friend\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_lost_lamp_bring_it_back_journal": "The kobolds are dealt with; the Traveller waits at the tunnel mouth.",
-  "@quest_the_lost_lamp_bring_it_back_journal": {
+  "quest.the-lost-lamp.bring_it_back.journal": "The kobolds are dealt with; the Traveller waits at the tunnel mouth.",
+  "@quest.the-lost-lamp.bring_it_back.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"bring_it_back\": written in the player's voice, first person."
   },
-  "quest_the_lost_lamp_bring_it_back_tracker": "Return to the Traveller",
-  "@quest_the_lost_lamp_bring_it_back_tracker": {
+  "quest.the-lost-lamp.bring_it_back.tracker": "Return to the Traveller",
+  "@quest.the-lost-lamp.bring_it_back.tracker": {
     "description": "Tracker line of quest \"the-lost-lamp\", stage \"bring_it_back\": the one objective line shown under the quest title."
   },
-  "quest_the_lost_lamp_cull_journal": "Kill 6 kobolds north of the tunnel.",
-  "@quest_the_lost_lamp_cull_journal": {
+  "quest.the-lost-lamp.cull.journal": "Kill 6 kobolds north of the tunnel.",
+  "@quest.the-lost-lamp.cull.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_the_lost_lamp_cull_tracker": "{n, number}/{m, number} kobolds killed",
-  "@quest_the_lost_lamp_cull_tracker": {
+  "quest.the-lost-lamp.cull.tracker": "{n, number}/{m, number} kobolds killed",
+  "@quest.the-lost-lamp.cull.tracker": {
     "description": "Tracker line of quest \"the-lost-lamp\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_the_lost_lamp_lit_journal": "Done. Learned Lantern.",
-  "@quest_the_lost_lamp_lit_journal": {
+  "quest.the-lost-lamp.lit.journal": "Done. Learned Lantern.",
+  "@quest.the-lost-lamp.lit.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"lit\": written in the player's voice, first person."
   },
-  "quest_the_lost_lamp_title": "The Lost Lamp",
-  "@quest_the_lost_lamp_title": {
+  "quest.the-lost-lamp.title": "The Lost Lamp",
+  "@quest.the-lost-lamp.title": {
     "description": "Quest title of \"the-lost-lamp\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_millers_ring_done_journal": "Done. The Miller has his ring back.",
-  "@quest_the_millers_ring_done_journal": {
+  "quest.the-millers-ring.done.journal": "Done. The Miller has his ring back.",
+  "@quest.the-millers-ring.done.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_the_millers_ring_return_journal": "The ring was tangled in a heap of seaweed. The Miller will want it back.",
-  "@quest_the_millers_ring_return_journal": {
+  "quest.the-millers-ring.return.journal": "The ring was tangled in a heap of seaweed. The Miller will want it back.",
+  "@quest.the-millers-ring.return.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"return\": written in the player's voice, first person."
   },
-  "quest_the_millers_ring_return_tracker": "Return the ring to the Miller",
-  "@quest_the_millers_ring_return_tracker": {
+  "quest.the-millers-ring.return.tracker": "Return the ring to the Miller",
+  "@quest.the-millers-ring.return.tracker": {
     "description": "Tracker line of quest \"the-millers-ring\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest_the_millers_ring_search_journal": "The Miller lost his wedding ring on the beach north of the farmland. It must be tangled in the seaweed washed up along the shore.",
-  "@quest_the_millers_ring_search_journal": {
+  "quest.the-millers-ring.search.journal": "The Miller lost his wedding ring on the beach north of the farmland. It must be tangled in the seaweed washed up along the shore.",
+  "@quest.the-millers-ring.search.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"search\": written in the player's voice, first person."
   },
-  "quest_the_millers_ring_search_tracker": "Search the seaweed on the beach for the ring",
-  "@quest_the_millers_ring_search_tracker": {
+  "quest.the-millers-ring.search.tracker": "Search the seaweed on the beach for the ring",
+  "@quest.the-millers-ring.search.tracker": {
     "description": "Tracker line of quest \"the-millers-ring\", stage \"search\": the one objective line shown under the quest title."
   },
-  "quest_the_millers_ring_title": "The Miller's Ring",
-  "@quest_the_millers_ring_title": {
+  "quest.the-millers-ring.title": "The Miller's Ring",
+  "@quest.the-millers-ring.title": {
     "description": "Quest title of \"the-millers-ring\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_sleeping_roots_back_one_journal": "The root by the stream is awake.",
-  "@quest_the_sleeping_roots_back_one_journal": {
+  "quest.the-sleeping-roots.back_one.journal": "The root by the stream is awake.",
+  "@quest.the-sleeping-roots.back_one.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_one\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_back_one_tracker": "Return to Grandfather Knot",
-  "@quest_the_sleeping_roots_back_one_tracker": {
+  "quest.the-sleeping-roots.back_one.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back_one.tracker": {
     "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_one\": the one objective line shown under the quest title."
   },
-  "quest_the_sleeping_roots_back_three_journal": "The last root is awake.",
-  "@quest_the_sleeping_roots_back_three_journal": {
+  "quest.the-sleeping-roots.back_three.journal": "The last root is awake.",
+  "@quest.the-sleeping-roots.back_three.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_three\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_back_three_tracker": "Return to Grandfather Knot",
-  "@quest_the_sleeping_roots_back_three_tracker": {
+  "quest.the-sleeping-roots.back_three.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back_three.tracker": {
     "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_three\": the one objective line shown under the quest title."
   },
-  "quest_the_sleeping_roots_back_two_journal": "The root by the stones is awake.",
-  "@quest_the_sleeping_roots_back_two_journal": {
+  "quest.the-sleeping-roots.back_two.journal": "The root by the stones is awake.",
+  "@quest.the-sleeping-roots.back_two.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_two\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_back_two_tracker": "Return to Grandfather Knot",
-  "@quest_the_sleeping_roots_back_two_tracker": {
+  "quest.the-sleeping-roots.back_two.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back_two.tracker": {
     "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_two\": the one objective line shown under the quest title."
   },
-  "quest_the_sleeping_roots_root_one_journal": "Grandfather Knot's roots calm the treants of the Glimmerwood, but three of them have fallen asleep. Wake the root by the stream, west of him.",
-  "@quest_the_sleeping_roots_root_one_journal": {
+  "quest.the-sleeping-roots.root_one.journal": "Grandfather Knot's roots calm the treants of the Glimmerwood, but three of them have fallen asleep. Wake the root by the stream, west of him.",
+  "@quest.the-sleeping-roots.root_one.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_one\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_root_one_talk_to_StreamRoot_tracker": "Wake the root by the stream",
-  "@quest_the_sleeping_roots_root_one_talk_to_StreamRoot_tracker": {
+  "quest.the-sleeping-roots.root_one.talk_to.StreamRoot.tracker": "Wake the root by the stream",
+  "@quest.the-sleeping-roots.root_one.talk_to.StreamRoot.tracker": {
     "description": "Tracker line of one talk_to objective (Stream Root) in quest \"the-sleeping-roots\", stage \"root_one\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_sleeping_roots_root_three_journal": "Wake the last root, east of Grandfather Knot where the wisps gather.",
-  "@quest_the_sleeping_roots_root_three_journal": {
+  "quest.the-sleeping-roots.root_three.journal": "Wake the last root, east of Grandfather Knot where the wisps gather.",
+  "@quest.the-sleeping-roots.root_three.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_three\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_root_three_talk_to_GladeRoot_tracker": "Wake the last root",
-  "@quest_the_sleeping_roots_root_three_talk_to_GladeRoot_tracker": {
+  "quest.the-sleeping-roots.root_three.talk_to.GladeRoot.tracker": "Wake the last root",
+  "@quest.the-sleeping-roots.root_three.talk_to.GladeRoot.tracker": {
     "description": "Tracker line of one talk_to objective (Glade Root) in quest \"the-sleeping-roots\", stage \"root_three\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_sleeping_roots_root_two_journal": "Wake the root by the stones, south of Grandfather Knot.",
-  "@quest_the_sleeping_roots_root_two_journal": {
+  "quest.the-sleeping-roots.root_two.journal": "Wake the root by the stones, south of Grandfather Knot.",
+  "@quest.the-sleeping-roots.root_two.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_two\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_root_two_talk_to_StoneRoot_tracker": "Wake the root by the stones",
-  "@quest_the_sleeping_roots_root_two_talk_to_StoneRoot_tracker": {
+  "quest.the-sleeping-roots.root_two.talk_to.StoneRoot.tracker": "Wake the root by the stones",
+  "@quest.the-sleeping-roots.root_two.talk_to.StoneRoot.tracker": {
     "description": "Tracker line of one talk_to objective (Stone Root) in quest \"the-sleeping-roots\", stage \"root_two\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_sleeping_roots_rooted_journal": "Done. Learned Entangling Roots.",
-  "@quest_the_sleeping_roots_rooted_journal": {
+  "quest.the-sleeping-roots.rooted.journal": "Done. Learned Entangling Roots.",
+  "@quest.the-sleeping-roots.rooted.journal": {
     "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"rooted\": written in the player's voice, first person."
   },
-  "quest_the_sleeping_roots_title": "The Sleeping Roots",
-  "@quest_the_sleeping_roots_title": {
+  "quest.the-sleeping-roots.title": "The Sleeping Roots",
+  "@quest.the-sleeping-roots.title": {
     "description": "Quest title of \"the-sleeping-roots\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_sounder_at_the_mill_cull_journal": "Kill the alpha boar leading the sounder by the mill.",
-  "@quest_the_sounder_at_the_mill_cull_journal": {
+  "quest.the-sounder-at-the-mill.cull.journal": "Kill the alpha boar leading the sounder by the mill.",
+  "@quest.the-sounder-at-the-mill.cull.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_the_sounder_at_the_mill_cull_tracker": "Kill the alpha boar ({n, number}/{m, number})",
-  "@quest_the_sounder_at_the_mill_cull_tracker": {
+  "quest.the-sounder-at-the-mill.cull.tracker": "Kill the alpha boar ({n, number}/{m, number})",
+  "@quest.the-sounder-at-the-mill.cull.tracker": {
     "description": "Tracker line of quest \"the-sounder-at-the-mill\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_the_sounder_at_the_mill_done_journal": "Done. Reported back to the Miller.",
-  "@quest_the_sounder_at_the_mill_done_journal": {
+  "quest.the-sounder-at-the-mill.done.journal": "Done. Reported back to the Miller.",
+  "@quest.the-sounder-at-the-mill.done.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_the_sounder_at_the_mill_report_journal": "The alpha boar is dead; the Miller waits by his mill.",
-  "@quest_the_sounder_at_the_mill_report_journal": {
+  "quest.the-sounder-at-the-mill.report.journal": "The alpha boar is dead; the Miller waits by his mill.",
+  "@quest.the-sounder-at-the-mill.report.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_the_sounder_at_the_mill_report_tracker": "Return to the Miller",
-  "@quest_the_sounder_at_the_mill_report_tracker": {
+  "quest.the-sounder-at-the-mill.report.tracker": "Return to the Miller",
+  "@quest.the-sounder-at-the-mill.report.tracker": {
     "description": "Tracker line of quest \"the-sounder-at-the-mill\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_the_sounder_at_the_mill_title": "The Sounder at the Mill",
-  "@quest_the_sounder_at_the_mill_title": {
+  "quest.the-sounder-at-the-mill.title": "The Sounder at the Mill",
+  "@quest.the-sounder-at-the-mill.title": {
     "description": "Quest title of \"the-sounder-at-the-mill\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_the_strays_done_journal": "Done. Reported back to the Shepherd.",
-  "@quest_the_strays_done_journal": {
+  "quest.the-strays.done.journal": "Done. Reported back to the Shepherd.",
+  "@quest.the-strays.done.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_the_strays_find_journal": "The shepherd's three sheep — Baabara, Woolliam and Lambert — have wandered off across the pasture, and his dog with them.",
-  "@quest_the_strays_find_journal": {
+  "quest.the-strays.find.journal": "The shepherd's three sheep — Baabara, Woolliam and Lambert — have wandered off across the pasture, and his dog with them.",
+  "@quest.the-strays.find.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"find\": written in the player's voice, first person."
   },
-  "quest_the_strays_find_talk_to_Baabara_tracker": "Find Baabara",
-  "@quest_the_strays_find_talk_to_Baabara_tracker": {
+  "quest.the-strays.find.talk_to.Baabara.tracker": "Find Baabara",
+  "@quest.the-strays.find.talk_to.Baabara.tracker": {
     "description": "Tracker line of one talk_to objective (Baabara) in quest \"the-strays\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_strays_find_talk_to_Dog_tracker": "Find the shepherd's dog",
-  "@quest_the_strays_find_talk_to_Dog_tracker": {
+  "quest.the-strays.find.talk_to.Dog.tracker": "Find the shepherd's dog",
+  "@quest.the-strays.find.talk_to.Dog.tracker": {
     "description": "Tracker line of one talk_to objective (Dog) in quest \"the-strays\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_strays_find_talk_to_Lambert_tracker": "Find Lambert",
-  "@quest_the_strays_find_talk_to_Lambert_tracker": {
+  "quest.the-strays.find.talk_to.Lambert.tracker": "Find Lambert",
+  "@quest.the-strays.find.talk_to.Lambert.tracker": {
     "description": "Tracker line of one talk_to objective (Lambert) in quest \"the-strays\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_strays_find_talk_to_Woolliam_tracker": "Find Woolliam",
-  "@quest_the_strays_find_talk_to_Woolliam_tracker": {
+  "quest.the-strays.find.talk_to.Woolliam.tracker": "Find Woolliam",
+  "@quest.the-strays.find.talk_to.Woolliam.tracker": {
     "description": "Tracker line of one talk_to objective (Woolliam) in quest \"the-strays\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_the_strays_report_journal": "Baabara, Woolliam and Lambert are found and the shepherd's dog is with them; the Shepherd waits on the pasture.",
-  "@quest_the_strays_report_journal": {
+  "quest.the-strays.report.journal": "Baabara, Woolliam and Lambert are found and the shepherd's dog is with them; the Shepherd waits on the pasture.",
+  "@quest.the-strays.report.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_the_strays_report_tracker": "Return to the Shepherd",
-  "@quest_the_strays_report_tracker": {
+  "quest.the-strays.report.tracker": "Return to the Shepherd",
+  "@quest.the-strays.report.tracker": {
     "description": "Tracker line of quest \"the-strays\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_the_strays_title": "The Strays",
-  "@quest_the_strays_title": {
+  "quest.the-strays.title": "The Strays",
+  "@quest.the-strays.title": {
     "description": "Quest title of \"the-strays\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_thin_the_orc_line_cull_journal": "Kill 5 orcs on the front line to the south.",
-  "@quest_thin_the_orc_line_cull_journal": {
+  "quest.thin-the-orc-line.cull.journal": "Kill 5 orcs on the front line to the south.",
+  "@quest.thin-the-orc-line.cull.journal": {
     "description": "Journal (diary) entry of quest \"thin-the-orc-line\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest_thin_the_orc_line_cull_tracker": "{n, number}/{m, number} orcs killed",
-  "@quest_thin_the_orc_line_cull_tracker": {
+  "quest.thin-the-orc-line.cull.tracker": "{n, number}/{m, number} orcs killed",
+  "@quest.thin-the-orc-line.cull.tracker": {
     "description": "Tracker line of quest \"thin-the-orc-line\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_thin_the_orc_line_done_journal": "Done. Reported back to the Front Captain.",
-  "@quest_thin_the_orc_line_done_journal": {
+  "quest.thin-the-orc-line.done.journal": "Done. Reported back to the Front Captain.",
+  "@quest.thin-the-orc-line.done.journal": {
     "description": "Journal (diary) entry of quest \"thin-the-orc-line\", stage \"done\": written in the player's voice, first person."
   },
-  "quest_thin_the_orc_line_report_journal": "The orc line is thinned; the Front Captain waits at the staging area.",
-  "@quest_thin_the_orc_line_report_journal": {
+  "quest.thin-the-orc-line.report.journal": "The orc line is thinned; the Front Captain waits at the staging area.",
+  "@quest.thin-the-orc-line.report.journal": {
     "description": "Journal (diary) entry of quest \"thin-the-orc-line\", stage \"report\": written in the player's voice, first person."
   },
-  "quest_thin_the_orc_line_report_tracker": "Return to the Front Captain",
-  "@quest_thin_the_orc_line_report_tracker": {
+  "quest.thin-the-orc-line.report.tracker": "Return to the Front Captain",
+  "@quest.thin-the-orc-line.report.tracker": {
     "description": "Tracker line of quest \"thin-the-orc-line\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest_thin_the_orc_line_title": "Thin the Orc Line",
-  "@quest_thin_the_orc_line_title": {
+  "quest.thin-the-orc-line.title": "Thin the Orc Line",
+  "@quest.thin-the-orc-line.title": {
     "description": "Quest title of \"thin-the-orc-line\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_turnip_chore_handover_journal": "The turnips are gathered; the Farmer waits by his field.",
-  "@quest_turnip_chore_handover_journal": {
+  "quest.turnip-chore.handover.journal": "The turnips are gathered; the Farmer waits by his field.",
+  "@quest.turnip-chore.handover.journal": {
     "description": "Journal (diary) entry of quest \"turnip-chore\", stage \"handover\": written in the player's voice, first person."
   },
-  "quest_turnip_chore_handover_tracker": "Return to the Farmer",
-  "@quest_turnip_chore_handover_tracker": {
+  "quest.turnip-chore.handover.tracker": "Return to the Farmer",
+  "@quest.turnip-chore.handover.tracker": {
     "description": "Tracker line of quest \"turnip-chore\", stage \"handover\": the one objective line shown under the quest title."
   },
-  "quest_turnip_chore_paid_journal": "Done. Reported back to the Farmer.",
-  "@quest_turnip_chore_paid_journal": {
+  "quest.turnip-chore.paid.journal": "Done. Reported back to the Farmer.",
+  "@quest.turnip-chore.paid.journal": {
     "description": "Journal (diary) entry of quest \"turnip-chore\", stage \"paid\": written in the player's voice, first person."
   },
-  "quest_turnip_chore_pull_journal": "Harvest 5 turnips from the row north of the Farmer.",
-  "@quest_turnip_chore_pull_journal": {
+  "quest.turnip-chore.pull.journal": "Harvest 5 turnips from the row north of the Farmer.",
+  "@quest.turnip-chore.pull.journal": {
     "description": "Journal (diary) entry of quest \"turnip-chore\", stage \"pull\": written in the player's voice, first person."
   },
-  "quest_turnip_chore_pull_tracker": "{n, number}/{m, number} turnips harvested",
-  "@quest_turnip_chore_pull_tracker": {
+  "quest.turnip-chore.pull.tracker": "{n, number}/{m, number} turnips harvested",
+  "@quest.turnip-chore.pull.tracker": {
     "description": "Tracker line of quest \"turnip-chore\", stage \"pull\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_turnip_chore_title": "Turnip Chore",
-  "@quest_turnip_chore_title": {
+  "quest.turnip-chore.title": "Turnip Chore",
+  "@quest.turnip-chore.title": {
     "description": "Quest title of \"turnip-chore\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_village_welcome_back_journal": "Reinhard and the Town Crier have been met; the Hermit waits nearby.",
-  "@quest_village_welcome_back_journal": {
+  "quest.village-welcome.back.journal": "Reinhard and the Town Crier have been met; the Hermit waits nearby.",
+  "@quest.village-welcome.back.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"back\": written in the player's voice, first person."
   },
-  "quest_village_welcome_back_tracker": "Return to the Hermit",
-  "@quest_village_welcome_back_tracker": {
+  "quest.village-welcome.back.tracker": "Return to the Hermit",
+  "@quest.village-welcome.back.tracker": {
     "description": "Tracker line of quest \"village-welcome\", stage \"back\": the one objective line shown under the quest title."
   },
-  "quest_village_welcome_known_journal": "Done. Reported back to the Hermit.",
-  "@quest_village_welcome_known_journal": {
+  "quest.village-welcome.known.journal": "Done. Reported back to the Hermit.",
+  "@quest.village-welcome.known.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"known\": written in the player's voice, first person."
   },
-  "quest_village_welcome_meet_journal": "Talk to Reinhard and the Town Crier.",
-  "@quest_village_welcome_meet_journal": {
+  "quest.village-welcome.meet.journal": "Talk to Reinhard and the Town Crier.",
+  "@quest.village-welcome.meet.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"meet\": written in the player's voice, first person."
   },
-  "quest_village_welcome_meet_talk_to_Reinhard_tracker": "Talk to Reinhard",
-  "@quest_village_welcome_meet_talk_to_Reinhard_tracker": {
+  "quest.village-welcome.meet.talk_to.Reinhard.tracker": "Talk to Reinhard",
+  "@quest.village-welcome.meet.talk_to.Reinhard.tracker": {
     "description": "Tracker line of one talk_to objective (Reinhard) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_village_welcome_meet_talk_to_TownCrier_tracker": "Talk to the Town Crier",
-  "@quest_village_welcome_meet_talk_to_TownCrier_tracker": {
+  "quest.village-welcome.meet.talk_to.TownCrier.tracker": "Talk to the Town Crier",
+  "@quest.village-welcome.meet.talk_to.TownCrier.tracker": {
     "description": "Tracker line of one talk_to objective (Town Crier) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest_village_welcome_title": "Village Welcome",
-  "@quest_village_welcome_title": {
+  "quest.village-welcome.title": "Village Welcome",
+  "@quest.village-welcome.title": {
     "description": "Quest title of \"village-welcome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_wolves_on_the_road_carry_word_journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east, or the Shaman at his fire east along the road.",
-  "@quest_wolves_on_the_road_carry_word_journal": {
+  "quest.wolves-on-the-road.carry_word.journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east, or the Shaman at his fire east along the road.",
+  "@quest.wolves-on-the-road.carry_word.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"carry_word\": written in the player's voice, first person."
   },
-  "quest_wolves_on_the_road_carry_word_tracker": "Report to the City Guard or the Shaman",
-  "@quest_wolves_on_the_road_carry_word_tracker": {
+  "quest.wolves-on-the-road.carry_word.tracker": "Report to the City Guard or the Shaman",
+  "@quest.wolves-on-the-road.carry_word.tracker": {
     "description": "Tracker line of quest \"wolves-on-the-road\", stage \"carry_word\": the one objective line shown under the quest title."
   },
-  "quest_wolves_on_the_road_thin_journal": "Kill 8 wolves on the west road.",
-  "@quest_wolves_on_the_road_thin_journal": {
+  "quest.wolves-on-the-road.thin.journal": "Kill 8 wolves on the west road.",
+  "@quest.wolves-on-the-road.thin.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"thin\": written in the player's voice, first person."
   },
-  "quest_wolves_on_the_road_thin_tracker": "{n, number}/{m, number} wolves killed",
-  "@quest_wolves_on_the_road_thin_tracker": {
+  "quest.wolves-on-the-road.thin.tracker": "{n, number}/{m, number} wolves killed",
+  "@quest.wolves-on-the-road.thin.tracker": {
     "description": "Tracker line of quest \"wolves-on-the-road\", stage \"thin\": the one objective line shown under the quest title.",
     "placeholders": {
       "n": {"type": "int", "description": "Count done so far", "example": "3"},
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest_wolves_on_the_road_title": "Wolves on the Road",
-  "@quest_wolves_on_the_road_title": {
+  "quest.wolves-on-the-road.title": "Wolves on the Road",
+  "@quest.wolves-on-the-road.title": {
     "description": "Quest title of \"wolves-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest_wolves_on_the_road_told_militia_journal": "Done. Reported to the City Guard. Learned Taunt.",
-  "@quest_wolves_on_the_road_told_militia_journal": {
+  "quest.wolves-on-the-road.told_militia.journal": "Done. Reported to the City Guard. Learned Taunt.",
+  "@quest.wolves-on-the-road.told_militia.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told_militia\": written in the player's voice, first person."
   },
-  "quest_wolves_on_the_road_told_shaman_journal": "Done. Reported to the Shaman. Learned Slow.",
-  "@quest_wolves_on_the_road_told_shaman_journal": {
+  "quest.wolves-on-the-road.told_shaman.journal": "Done. Reported to the Shaman. Learned Slow.",
+  "@quest.wolves-on-the-road.told_shaman.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told_shaman\": written in the player's voice, first person."
   }
 }

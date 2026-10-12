@@ -55,7 +55,7 @@ describe('placeAt', () => {
     });
 
     it('takes each title and subtitle from the English ARB (D27)', () => {
-        const english = {region_salt_grass_title: 'Saltgrass Strand', region_salt_grass_subtitle: 'Sea and Salt', region_farm_title: 'Farmlands'};
+        const english = {'region.salt-grass.title': 'Saltgrass Strand', 'region.salt-grass.subtitle': 'Sea and Salt', 'region.farm.title': 'Farmlands'};
         expect(listedPlaces([{id: 'salt-grass'}, {id: 'farm'}, {id: 'nowhere'}], english)).toEqual([
             {id: 'salt-grass', title: 'Saltgrass Strand', subtitle: 'Sea and Salt'},
             {id: 'farm', title: 'Farmlands'},
@@ -174,7 +174,7 @@ describe('localizePlaces (plan-localization.md C1)', () => {
     it('replaces title and subtitle from the bundle, English as fallback', () => {
         const list = [{id: 'a', title: 'Saltgrass Strand', subtitle: 'Sea and Salt'}, {id: 'b', title: 'Brunnstedt'}];
         const places = placeTable(list);
-        const de: Record<string, string> = {'region_a_title': 'Salzgrasstrand'};
+        const de: Record<string, string> = {'region.a.title': 'Salzgrasstrand'};
         localizePlaces(list, places, (key, fallback) => de[key] ?? fallback);
         expect(places.get('a')).toEqual({id: 'a', title: 'Salzgrasstrand', subtitle: 'Sea and Salt'});
         expect(places.get('b')).toEqual({id: 'b', title: 'Brunnstedt'});

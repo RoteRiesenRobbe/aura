@@ -29,31 +29,31 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i_am_passing_through"}
+          {"id": "i-am-passing-through"}
         ],
         "options": [
-          { "id": "which_way_is_safe", "next": "roads" },
-          { "stock": "ask_task", "next": "kobolds" },
-          { "id": "about_the_kobolds", "next": "kobolds_running" },
-          { "id": "are_you_travelling_alone", "next": "friend" },
-          { "id": "about_your_friend", "next": "friend_running" }
+          { "id": "which-way-is-safe", "next": "roads" },
+          { "stock": "ask-task", "next": "kobolds" },
+          { "id": "about-the-kobolds", "next": "kobolds_running" },
+          { "id": "are-you-travelling-alone", "next": "friend" },
+          { "id": "about-your-friend", "next": "friend_running" }
         ]
       },
       {
         "id": "roads",
         "lines": [
-          {"id": "north_through_the_tunnel_bring"},
-          {"id": "east_is_dangerous_bandits_watch"}
+          {"id": "north-through-the-tunnel-bring"},
+          {"id": "east-is-dangerous-bandits-watch"}
         ]
       },
       {
         "id": "kobolds",
         "lines": [
-          {"id": "kill_8_kobolds_near"}
+          {"id": "kill-8-kobolds-near"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -67,11 +67,11 @@
       {
         "id": "kobolds_running",
         "lines": [
-          {"id": "the_kobolds"}
+          {"id": "the-kobolds"}
         ],
         "options": [
           {
-            "id": "i_killed_the_8_kobolds",
+            "id": "i-killed-the-8-kobolds",
             "grants": [
               {
                 "stock": "good",
@@ -87,7 +87,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "kobolds_on_it"
           }
         ]
@@ -102,21 +102,21 @@
           }
         ],
         "lines": [
-          {"id": "kill_8_kobolds_near_2"}
+          {"id": "kill-8-kobolds-near-2"}
         ]
       },
       {
         "id": "friend",
         "lines": [
-          {"id": "not_by_choice_my_friend"},
-          {"id": "he_wears_a_grey_cloak"}
+          {"id": "not-by-choice-my-friend"},
+          {"id": "he-wears-a-grey-cloak"}
         ],
         "options": [
           {
-            "id": "ill_look_for_him",
+            "id": "ill-look-for-him",
             "grants": [
               {
-                "id": "thank_you",
+                "id": "thank-you",
                 "kind": "offer_quest",
                 "quest": "the-lost-friend"
               }
@@ -127,14 +127,14 @@
       {
         "id": "friend_running",
         "lines": [
-          {"id": "my_friend"}
+          {"id": "my-friend"}
         ],
         "options": [
           {
-            "id": "i_found_him_he_is",
+            "id": "i-found-him-he-is",
             "grants": [
               {
-                "id": "i_feared_as_much_thank",
+                "id": "i-feared-as-much-thank",
                 "kind": "advance_quest",
                 "quest": "the-lost-friend",
                 "fromStage": "return",
@@ -147,7 +147,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "friend_on_it"
           }
         ]
@@ -162,7 +162,7 @@
           }
         ],
         "lines": [
-          {"id": "he_went_into_the_forest"}
+          {"id": "he-went-into-the-forest"}
         ]
       }
     ]

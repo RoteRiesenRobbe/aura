@@ -18,15 +18,15 @@
         "id": "root_fed",
         "conditions": [ { "kind": "quest_at_stage", "quest": "dinner-for-the-family", "stage": "completed" } ],
         "lines": [
-          {"id": "you_ate_everything_good_youll"},
-          {"id": "reinhards_farm_is_east_down"},
-          {"id": "stay_on_the_road"}
+          {"id": "you-ate-everything-good-youll"},
+          {"id": "reinhards-farm-is-east-down"},
+          {"id": "stay-on-the-road"}
         ],
         "options": [
           {
-            "stock": "ask_task",
+            "stock": "ask-task",
             "grants": [
-              { "id": "go_on_then_stay", "kind": "offer_quest", "quest": "eliza-sends-me" }
+              { "id": "go-on-then-stay", "kind": "offer_quest", "quest": "eliza-sends-me" }
             ]
           }
         ]
@@ -34,28 +34,28 @@
       {
         "id": "root",
         "lines": [
-          {"id": "there_you_are_come_here"},
-          {"id": "taller_than_your_father_already"}
+          {"id": "there-you-are-come-here"},
+          {"id": "taller-than-your-father-already"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "dinner" },
-          { "id": "about_the_dinner", "next": "dinner_running" }
+          { "stock": "ask-task", "next": "dinner" },
+          { "id": "about-the-dinner", "next": "dinner_running" }
         ]
       },
       {
         "id": "dinner",
         "lines": [
-          {"id": "one_last_dinner_at_home"},
-          {"id": "your_father_is_out_hunting"},
-          {"id": "and_your_uncle_benjamin_has"},
-          {"id": "come_back_to_me_when"}
+          {"id": "one-last-dinner-at-home"},
+          {"id": "your-father-is-out-hunting"},
+          {"id": "and-your-uncle-benjamin-has"},
+          {"id": "come-back-to-me-when"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
-                "id": "thank_you_go_on_before",
+                "id": "thank-you-go-on-before",
                 "kind": "offer_quest",
                 "quest": "dinner-for-the-family"
               }
@@ -66,14 +66,14 @@
       {
         "id": "dinner_running",
         "lines": [
-          {"id": "the_dinner"}
+          {"id": "the-dinner"}
         ],
         "options": [
           {
-            "id": "i_have_the_meat",
+            "id": "i-have-the-meat",
             "grants": [
               {
-                "id": "look_at_that_sit_sit",
+                "id": "look-at-that-sit-sit",
                 "kind": "advance_quest",
                 "quest": "dinner-for-the-family",
                 "fromStage": "home",
@@ -88,7 +88,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "dinner_on_it"
           }
         ]
@@ -103,7 +103,7 @@
           }
         ],
         "lines": [
-          {"id": "help_your_father_with_his"}
+          {"id": "help-your-father-with-his"}
         ]
       }
     ]

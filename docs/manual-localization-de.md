@@ -99,9 +99,9 @@ phrases the line as a label.
   editor writes it, or a hand edit drafts text inline in the content JSON and
   runs `node tools/lang/extract-english.mjs`. German goes in
   `api/lang/de/<domain>.arb` (content) and `frontend/src/lang/de.arb` (UI),
-  under the same identifier-safe keys (D29).
+  under the same dotted keys (D29).
 - A dialogue line's key carries its NPC and a frozen slug
-  (`conv_Farmer_fields_need_work`); a shared phrase (`stock_quest_accept`) is
+  (`conv.Farmer.fields-need-work`); a shared phrase (`stock.quest-accept`) is
   ONE German line for every NPC that says it (D28). An NPC that should say it
   differently gets its own line, with its own German.
 - After checking German against its English, refresh the translated-from

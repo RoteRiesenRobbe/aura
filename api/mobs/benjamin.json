@@ -17,26 +17,26 @@
       {
         "id": "root",
         "lines": [
-          {"id": "ah_my_brothers_child_eliza"},
-          {"id": "a_beet_is_a_very"}
+          {"id": "ah-my-brothers-child-eliza"},
+          {"id": "a-beet-is-a-very"}
         ],
         "options": [
-          { "stock": "ask_teach", "next": "teachings" },
-          { "id": "cant_i_just_pull_them", "next": "beets" },
-          { "id": "any_advice", "next": "advice" }
+          { "stock": "ask-teach", "next": "teachings" },
+          { "id": "cant-i-just-pull-them", "next": "beets" },
+          { "id": "any-advice", "next": "advice" }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "oh_a_student_wonderful_sit"}
+          {"id": "oh-a-student-wonderful-sit"}
         ],
         "options": [
           {
             "id": "harvest",
             "grants": [
               {
-                "id": "ill_teach_you_harvest_swinging",
+                "id": "ill-teach-you-harvest-swinging",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1
@@ -48,18 +48,18 @@
       {
         "id": "beets",
         "lines": [
-          {"id": "pull_them_up_with_those"},
-          {"id": "learn_harvest_then_make_it"},
-          {"id": "stand_close_harvest_reaches"}
+          {"id": "pull-them-up-with-those"},
+          {"id": "learn-harvest-then-make-it"},
+          {"id": "stand-close-harvest-reaches"}
         ],
         "options": []
       },
       {
         "id": "advice",
         "lines": [
-          {"id": "if_youre_lost_follow"},
-          {"id": "never_trust_a_man_who"},
-          {"id": "and_write_to_your_mother"}
+          {"id": "if-youre-lost-follow"},
+          {"id": "never-trust-a-man-who"},
+          {"id": "and-write-to-your-mother"}
         ],
         "options": []
       }

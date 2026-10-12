@@ -52,7 +52,7 @@ structure and ids only; its English lives in `api/lang/en/<domain>.arb`
   marker. The forms and `validate.mjs` see one object with its text in it.
 - **On save** a new dialogue line, row text or grant line gets a readable slug
   (`fields_need_work`, unique within the NPC) or, when its English matches a
-  shared phrase exactly, names that phrase (`{"stock": "quest_accept"}`); the
+  shared phrase exactly, names that phrase (`{"stock": "quest-accept"}`); the
   text goes into the English ARB (a translator note when the key is new); a
   renamed stage, quest, re-slugged line or renamed NPC MOVES its keys in every
   locale, the translated-from records and the allowlist (L23); the keys of

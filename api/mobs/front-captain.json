@@ -25,23 +25,23 @@
       {
         "id": "root",
         "lines": [
-          {"id": "this_is_the_southern_front"}
+          {"id": "this-is-the-southern-front"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "orcs" },
-          { "id": "about_the_orcs", "next": "orcs_running" },
-          { "id": "how_do_i_bring_down", "next": "commander" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-task", "next": "orcs" },
+          { "id": "about-the-orcs", "next": "orcs_running" },
+          { "id": "how-do-i-bring-down", "next": "commander" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "orcs",
         "lines": [
-          {"id": "kill_5_orcs"}
+          {"id": "kill-5-orcs"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -55,11 +55,11 @@
       {
         "id": "orcs_running",
         "lines": [
-          {"id": "the_orcs"}
+          {"id": "the-orcs"}
         ],
         "options": [
           {
-            "id": "i_killed_the_5_orcs",
+            "id": "i-killed-the-5-orcs",
             "grants": [
               {
                 "stock": "good",
@@ -75,7 +75,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "orcs_on_it"
           }
         ]
@@ -90,20 +90,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_5_orcs_2"}
+          {"id": "kill-5-orcs-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "vanguard",
             "grants": [
               {
-                "id": "ill_teach_you_vanguard",
+                "id": "ill-teach-you-vanguard",
                 "kind": "teach_skill",
                 "skill": "Vanguard",
                 "requiredLevel": 15
@@ -115,8 +115,8 @@
       {
         "id": "commander",
         "lines": [
-          {"id": "he_cannot_be_hurt_while"},
-          {"id": "break_the_banners_in_his"}
+          {"id": "he-cannot-be-hurt-while"},
+          {"id": "break-the-banners-in-his"}
         ]
       }
     ]

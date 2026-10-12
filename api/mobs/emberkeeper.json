@@ -26,24 +26,24 @@
       {
         "id": "root",
         "lines": [
-          {"id": "you_can_rest_at_my"}
+          {"id": "you-can-rest-at-my"}
         ],
         "options": [
-          { "stock": "ask_task","next": "bandits"},
-          { "id": "about_the_bandits", "next": "bandits_running" },
-          { "stock": "ask_teach","next": "teachings"},
-          { "id": "anything_new_around_here","next": "news"},
-          { "id": "where_can_i_find","next": "directions"}
+          { "stock": "ask-task","next": "bandits"},
+          { "id": "about-the-bandits", "next": "bandits_running" },
+          { "stock": "ask-teach","next": "teachings"},
+          { "id": "anything-new-around-here","next": "news"},
+          { "id": "where-can-i-find","next": "directions"}
         ]
       },
       {
         "id": "bandits",
         "lines": [
-          {"id": "kill_6_bandits"}
+          {"id": "kill-6-bandits"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -57,11 +57,11 @@
       {
         "id": "bandits_running",
         "lines": [
-          {"id": "the_bandits"}
+          {"id": "the-bandits"}
         ],
         "options": [
           {
-            "id": "i_killed_the_6_bandits",
+            "id": "i-killed-the-6-bandits",
             "grants": [
               {
                 "stock": "good",
@@ -77,7 +77,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "bandits_on_it"
           }
         ]
@@ -92,20 +92,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_6_bandits_2"}
+          {"id": "kill-6-bandits-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "torch",
             "grants": [
               {
-                "id": "ill_teach_you_torch",
+                "id": "ill-teach-you-torch",
                 "kind": "teach_skill",
                 "skill": "Torch",
                 "requiredLevel": 1
@@ -116,7 +116,7 @@
             "id": "ignite",
             "grants": [
               {
-                "id": "ill_teach_you_ignite",
+                "id": "ill-teach-you-ignite",
                 "kind": "teach_skill",
                 "skill": "Ignite",
                 "requiredLevel": 7
@@ -127,7 +127,7 @@
             "id": "immolate",
             "grants": [
               {
-                "id": "ill_teach_you_immolate",
+                "id": "ill-teach-you-immolate",
                 "kind": "teach_skill",
                 "skill": "Immolate",
                 "requiredLevel": 12
@@ -135,10 +135,10 @@
             ]
           },
           {
-            "id": "bind_elemental",
+            "id": "bind-elemental",
             "grants": [
               {
-                "id": "ill_teach_you_bind_elemental",
+                "id": "ill-teach-you-bind-elemental",
                 "kind": "teach_skill",
                 "skill": "BindElemental",
                 "requiredLevel": 15
@@ -150,33 +150,33 @@
       {
         "id": "news",
         "lines": [
-          {"id": "bandits_hide_in_the_dark"},
-          {"id": "the_camp_is_east"}
+          {"id": "bandits-hide-in-the-dark"},
+          {"id": "the-camp-is-east"}
         ]
       },
       {
         "id": "directions",
-        "lines": [{"id": "ask_about_a_place"}],
+        "lines": [{"id": "ask-about-a-place"}],
         "options": [
-          { "id": "the_mill","next": "dir_mill"},
-          { "id": "the_tunnel_north","next": "dir_tunnel"},
-          { "id": "other_fires_like_yours","next": "dir_fires"}
+          { "id": "the-mill","next": "dir_mill"},
+          { "id": "the-tunnel-north","next": "dir_tunnel"},
+          { "id": "other-fires-like-yours","next": "dir_fires"}
         ]
       },
       {
         "id": "dir_mill",
-        "lines": [{"id": "downhill_past_the_broken_fence"}]
+        "lines": [{"id": "downhill-past-the-broken-fence"}]
       },
       {
         "id": "dir_tunnel",
         "lines": [
-          {"id": "north_where_the_hills_close"}
+          {"id": "north-where-the-hills-close"}
         ]
       },
       {
         "id": "dir_fires",
         "lines": [
-          {"id": "campfires_are_scattered_around"}
+          {"id": "campfires-are-scattered-around"}
         ]
       }
     ]

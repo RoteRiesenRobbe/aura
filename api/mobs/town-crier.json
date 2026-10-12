@@ -21,28 +21,28 @@
   "skills": [],
   "interaction": {
     "range": 2.0,
-    "ambient": [{"id": "hail_adventurer"}],
+    "ambient": [{"id": "hail-adventurer"}],
     "nodes": [
       {
         "id": "root",
         "lines": [
-          {"id": "i_call_out_the_news"}
+          {"id": "i-call-out-the-news"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "wolves" },
-          { "id": "about_the_wolves", "next": "wolves_running" },
-          { "id": "who_else_should_i_speak", "next": "news_who" }
+          { "stock": "ask-task", "next": "wolves" },
+          { "id": "about-the-wolves", "next": "wolves_running" },
+          { "id": "who-else-should-i-speak", "next": "news_who" }
         ]
       },
       {
         "id": "wolves",
         "lines": [
-          {"id": "kill_8_wolves"},
-          {"id": "then_report_to_the_city"}
+          {"id": "kill-8-wolves"},
+          {"id": "then-report-to-the-city"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -56,11 +56,11 @@
       {
         "id": "wolves_running",
         "lines": [
-          {"id": "the_wolves"}
+          {"id": "the-wolves"}
         ],
         "options": [
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "wolves_on_it"
           }
         ]
@@ -75,13 +75,13 @@
           }
         ],
         "lines": [
-          {"id": "kill_8_wolves_2"}
+          {"id": "kill-8-wolves-2"}
         ]
       },
       {
         "id": "news_who",
         "lines": [
-          {"id": "talk_to_the_hermit"}
+          {"id": "talk-to-the-hermit"}
         ]
       }
     ]

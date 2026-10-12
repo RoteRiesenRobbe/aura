@@ -80,7 +80,7 @@ const bundle = await page.evaluate(async () => {
   const u = new URL(location.href);
   const r = await fetch(`${u.protocol}//${u.hostname}:2000/lang?lang=de`);
   const j = await r.json();
-  return Object.keys(j).filter(k => k.startsWith('conv_')).length + ' ' + (j.stock_ask_task || '');
+  return Object.keys(j).filter(k => k.startsWith('conv.')).length + ' ' + (j['stock.ask-task'] || '');
 });
 check('/lang serves German dialogue', /Hast du eine Aufgabe/.test(bundle), bundle.slice(0, 80));
 

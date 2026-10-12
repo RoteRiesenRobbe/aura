@@ -228,7 +228,7 @@ export function validateQuest(quest, idx) {
 /**
  * The dialogue reference rules (plan-localization.md D27, D28): every line,
  * option text and grant line names its own slug ({"id"}) or a shared phrase
- * ({"stock"}), never both; a slug is lowercase ASCII words joined by _ and
+ * ({"stock"}), never both; a slug is lowercase ASCII words joined by - and
  * unique within the NPC; a shared phrase exists (idx.sharedPhrases, when
  * known). The Go boot refuses the same (lang.EnglishFS, the lang stage).
  */
@@ -248,7 +248,7 @@ export function dialogueIdProblems(mob, idx = {}) {
       return;
     }
     if (!item.id) { if (hasText) out.push(`${where} has no id`); return; }
-    if (!SLUG_PATTERN.test(item.id)) out.push(`${where}: id "${item.id}" must be lowercase ASCII words joined by _`);
+    if (!SLUG_PATTERN.test(item.id)) out.push(`${where}: id "${item.id}" must be lowercase ASCII words joined by -`);
     if (seen.has(item.id)) out.push(`${where} reuses the id "${item.id}" (also ${seen.get(item.id)}); a slug is unique within the NPC`);
     seen.set(item.id, where);
   };

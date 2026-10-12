@@ -1,7 +1,7 @@
 # Plan - Localization (multi-language text; English + German first)
 
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough, then detection on. Six chunks (C0a, C0b, C1–C4).
-**✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), identifier-safe keys (D29), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
+**✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -632,7 +632,25 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   - Why now: §8 rejected this on 2026-10-07 because authoring and the editor
     would change; with English in ARB and the editor writing it (D27), that
     cost is gone.
-- **D29 - IDENTIFIER-SAFE keys** (✅ **PO 2026-10-11**, §11 R-G2 option D).
+- ⭐ **D29 REVISED 2026-10-12 (PO): DOTTED keys, ids as authored.** The
+  round-trip §8 had asked for since 2026-10-06 was finally run, against the
+  PO's local Weblate 6.0.8 (WSL, `F:\WSL`), on the real `mobs` + `quests`
+  ARBs (561 strings) in both forms side by side (§11 R-G2 has the table):
+  dotted keys survived import, download (byte-identical), an ICU edit, a
+  file upload and a new string exactly as the underscore control did. The
+  underscores protected against nothing, so the readable form is back:
+  `quest.<id>.<stage>.journal`, `quest.<id>.<stage>.<kind>.<target>.tracker`,
+  `mob.<Name>.name`, `skill.<Name>.name|description`, `region.<id>.title`,
+  `zone.<stem>.name`, `conv.<NPC>.<slug>`, `stock.<name>`. Each id goes in
+  verbatim (no `keyPart` mapping), so the hyphen collision below cannot
+  happen; the duplicate-key finding stays as a plain guard. Slugs and shared
+  phrase names are hyphenated (`ah-my-brothers-child-eliza`, `ask-teach`,
+  clash suffix `-2`). A few stage ids and the `talk_to` kind carry `_`
+  (`bring_it_back`): they are persisted ids and go in as authored. Key
+  characters: dot-separated parts of letters, digits, `-` and `_`, a letter
+  first. The text below is the superseded ruling.
+- ~~**D29 - IDENTIFIER-SAFE keys**~~ (✅ **PO 2026-10-11**, §11 R-G2 option D;
+  ⛔ superseded 2026-10-12, above).
   - Content keys use letters, digits and underscores only, `_` as the
     separator: `quest_wolves_on_the_road_cull_tracker`,
     `mob_AlphaWolf_name`, `skill_Aegis_description`,
@@ -1651,6 +1669,42 @@ All six chunks built and committed one per chunk; NOT merged to main.
   items are `{"id": slug}` or `{"stock": name}`; `api/lang/en/` is authored,
   with `x-maxLength` on name keys; `api/lang/stock.json` deleted.
 
+### Dotted keys (built 2026-10-12, D29 revised after the Weblate round-trip)
+
+- **Why:** §11 R-G2's round-trip, run at last against the PO's local Weblate,
+  showed dotted keys survive everything the underscore form does (table in
+  R-G2). PO: switch back, slugs hyphenated.
+- **Also in this session, committed with C5a + C5b (`38bd612c`):** the
+  translated-from records renamed `*.source.json` → `*.translated-from.json`,
+  and `frontend/src/features/i18n` → `features/localization`.
+- **Migration:** one run of a throwaway script (not kept) that read every
+  field's OLD key through `textFields` and computed the new one from the
+  content ids: 914 keys renamed in en + de ARBs, the records and the
+  allowlist (all rewritten by `formatArb`, still canonical); 285 dialogue
+  slugs and 83 `{"stock"}` references hyphenated in 34 NPC files, by span
+  (`JsonEdits`), nothing else touched.
+- **Code:** the builders in `lang.go`, `content-text.mjs` and `LangBundle.ts`
+  take ids verbatim (`keyPart` gone, both sides); `ValidKey`/`KEY_PATTERN`
+  accept dotted parts; `StockPrefix`/`STOCK_PREFIX` replace the `stock_`
+  literals (Go dialogue entries, the extract tool, the editor); `slugify`
+  joins with `-` (clash `-2`), `SLUG_PATTERN` and the editor's slug prompts
+  follow. The duplicate-key finding stays, now only a guard.
+- **Tests + harnesses:** `keys.json` and `canonical.arb` fixtures, Go
+  `lang`/`english`/`lang_status` tests, the JS tool tests, two region vitest
+  cases; `i18n-de`, `content-editor-lang` and `c1-kill-quests` read the new
+  keys and slugs.
+- **Verified:** Go full suite bar the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate`
+  0 findings (main + debug) · `aurad -lang-status`: de 0 missing / 0 outdated
+  (every German followed its key) · extract tool: 0 files to extract · vitest
+  1650/0 · typecheck clean · Node 21/0 · `i18n-de` 7/7 · `i18n-pseudo` 4/4 ·
+  `content-editor-lang` 7/7 · `c1-kill-quests` (DEBUG zones) 20 PASS, 0
+  console errors.
+- **Schema:** DB NONE · FlatBuffers NONE (line ids carry the new keys in the
+  same fields) · HTTP: `/lang` and the catalogs serve the dotted keys ·
+  content format: dialogue slugs and shared phrase names are hyphenated.
+- ⚑ A running content editor needs a restart (it caches the old keys).
+
 ---
 
 ## 11. Industry-standards review (2026-10-10, for PO review)
@@ -1734,6 +1788,27 @@ home-grown pieces; two gaps worth acting on now.
   asks for identifier-style keys; ours carry dots and hyphens, and slugs add
   more. §8 has asked for an import round-trip test since 2026-10-06 and it
   was never run. Run it before C5a renames ~430 keys (C5a entry checks).
+  ⭐ **RUN 2026-10-12, dotted keys PASS; D29 revised to dots (PO).** Weblate
+  6.0.8 (the PO's local install, Docker in WSL on `F:\WSL`), driven over its
+  REST API. Input: the real `en` + `de` `mobs.arb` (415 strings) and
+  `quests.arb` (146), once with the underscore keys (control) and once with
+  dotted keys (`quest.alpha-wolves-at-the-village-cull.journal`,
+  `conv.Benjamin.ah-my-brothers-child-eliza`, `mob.AlphaWolf.name`,
+  `stock.ask-task`), one component each (`rt-a-*`, left in that Weblate).
+
+  | step | underscore | dotted |
+  | --- | --- | --- |
+  | import (zip): every key one unit, matched exactly | 561/561 | 561/561 |
+  | download untouched | byte-identical | byte-identical |
+  | edit an ICU unit (API), download | only that key changed | only that key changed |
+  | upload a changed `de` file (offline translator) | accepted, keys intact | accepted, keys intact |
+  | add a new string (needs `manage_units` + `edit_template`) | written under its key | written under its key |
+  | `@key` metadata (descriptions, placeholders, `x-maxLength`) | all kept | all kept |
+
+  ⚑ For both forms alike: once Weblate REWRITES a file (any edit) it indents
+  with 4 spaces and appends a new key at the END, not in canonical order. A
+  platform needs its JSON indent / sort-keys file-format options set, or a
+  normalize pass (`formatArb`) after each pull. Not a key question.
 - **R-G3 - MessageFormat 2.** ✅ **PO 2026-10-11: stay on MF1.** Unicode finalized the successor to ICU
   MessageFormat (MF1) in 2025. ARB, Flutter and `intl-messageformat` still
   use MF1, as does most of the industry. No action; a future migration

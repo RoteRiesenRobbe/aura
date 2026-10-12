@@ -26,28 +26,28 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i_grind_what_the_farm"}
+          {"id": "i-grind-what-the-farm"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "sounder" },
-          { "id": "about_the_boars", "next": "sounder_running" },
-          { "id": "anything_else", "next": "ring" },
-          { "id": "about_your_ring", "next": "ring_running" }
+          { "stock": "ask-task", "next": "sounder" },
+          { "id": "about-the-boars", "next": "sounder_running" },
+          { "id": "anything-else", "next": "ring" },
+          { "id": "about-your-ring", "next": "ring_running" }
         ]
       },
       {
         "id": "ring",
         "lines": [
-          {"id": "i_lost_my_heirloom_my"},
-          {"id": "for_many_days_i_have"},
-          {"id": "please_help_me_search"}
+          {"id": "i-lost-my-heirloom-my"},
+          {"id": "for-many-days-i-have"},
+          {"id": "please-help-me-search"}
         ],
         "options": [
           {
-            "id": "ill_look_for_it",
+            "id": "ill-look-for-it",
             "grants": [
               {
-                "id": "thank_you",
+                "id": "thank-you",
                 "kind": "offer_quest",
                 "quest": "the-millers-ring"
               }
@@ -58,14 +58,14 @@
       {
         "id": "ring_running",
         "lines": [
-          {"id": "my_ring"}
+          {"id": "my-ring"}
         ],
         "options": [
           {
-            "id": "i_found_your_ring",
+            "id": "i-found-your-ring",
             "grants": [
               {
-                "id": "thats_it_thank_you",
+                "id": "thats-it-thank-you",
                 "kind": "advance_quest",
                 "quest": "the-millers-ring",
                 "fromStage": "return",
@@ -78,7 +78,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "ring_on_it"
           }
         ]
@@ -93,19 +93,19 @@
           }
         ],
         "lines": [
-          {"id": "on_the_beach_north"}
+          {"id": "on-the-beach-north"}
         ]
       },
       {
         "id": "sounder",
         "lines": [
-          {"id": "a_sounder_of_boars_has"},
-          {"id": "the_big_one_leads_them"},
-          {"id": "it_is_bigger_than_anything"}
+          {"id": "a-sounder-of-boars-has"},
+          {"id": "the-big-one-leads-them"},
+          {"id": "it-is-bigger-than-anything"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -119,11 +119,11 @@
       {
         "id": "sounder_running",
         "lines": [
-          {"id": "the_sounder"}
+          {"id": "the-sounder"}
         ],
         "options": [
           {
-            "id": "i_killed_the_alpha_boar",
+            "id": "i-killed-the-alpha-boar",
             "grants": [
               {
                 "stock": "good",
@@ -139,7 +139,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "sounder_on_it"
           }
         ]
@@ -154,7 +154,7 @@
           }
         ],
         "lines": [
-          {"id": "kill_the_big_one"}
+          {"id": "kill-the-big-one"}
         ]
       }
     ]

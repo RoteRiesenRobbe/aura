@@ -115,27 +115,28 @@ func TestCheckAuthoredText(t *testing.T) {
 	assert.Error(t, CheckAuthoredText("a <tag> here"))
 }
 
-func TestKeys_AreIdentifierSafe(t *testing.T) {
-	// D29: letters, digits and underscores; a hyphen in an id becomes `_`.
+func TestKeys_AreDottedWithIdsAsAuthored(t *testing.T) {
+	// D29 (revised 2026-10-12): dotted parts, each id exactly as authored.
 	for key, want := range map[string]string{
-		QuestTitle("wolves-on-the-road"):                                               "quest_wolves_on_the_road_title",
-		QuestJournal("wolves-on-the-road", "cull"):                                     "quest_wolves_on_the_road_cull_journal",
-		QuestStageTracker("q", "report-back"):                                          "quest_q_report_back_tracker",
-		QuestObjectiveTracker("dinner-for-the-family", "gather", "talk_to", "Hendrik"): "quest_dinner_for_the_family_gather_talk_to_Hendrik_tracker",
-		MobName("AlphaWolf"):                                                           "mob_AlphaWolf_name",
-		SkillName("Aegis"):                                                             "skill_Aegis_name",
-		SkillDescription("Aegis"):                                                      "skill_Aegis_description",
-		RegionTitle("saltgrass"):                                                       "region_saltgrass_title",
-		RegionSubtitle("saltgrass"):                                                    "region_saltgrass_subtitle",
-		ZoneName("koboldCave"):                                                         "zone_koboldCave_name",
-		Conversation("Farmer", "ill_do_it"):                                            "conv_Farmer_ill_do_it",
-		StockPhrase("quest_accept"):                                                    "stock_quest_accept",
+		QuestTitle("wolves-on-the-road"):                                               "quest.wolves-on-the-road.title",
+		QuestJournal("wolves-on-the-road", "cull"):                                     "quest.wolves-on-the-road.cull.journal",
+		QuestStageTracker("q", "report-back"):                                          "quest.q.report-back.tracker",
+		QuestObjectiveTracker("dinner-for-the-family", "gather", "talk_to", "Hendrik"): "quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker",
+		MobName("AlphaWolf"):                                                           "mob.AlphaWolf.name",
+		SkillName("Aegis"):                                                             "skill.Aegis.name",
+		SkillDescription("Aegis"):                                                      "skill.Aegis.description",
+		RegionTitle("saltgrass"):                                                       "region.saltgrass.title",
+		RegionSubtitle("saltgrass"):                                                    "region.saltgrass.subtitle",
+		ZoneName("koboldCave"):                                                         "zone.koboldCave.name",
+		Conversation("Farmer", "ill-do-it"):                                            "conv.Farmer.ill-do-it",
+		StockPhrase("quest-accept"):                                                    "stock.quest-accept",
 	} {
 		assert.Equal(t, want, key)
 		assert.True(t, ValidKey(key), key)
 	}
-	assert.False(t, ValidKey("quest.q.title"), "the dotted form is gone (D29)")
-	assert.False(t, ValidKey("conv_a-b"))
+	assert.False(t, ValidKey("quest..title"), "an empty part")
+	assert.False(t, ValidKey("quest.q."), "a trailing dot")
+	assert.False(t, ValidKey("conv.a b"), "a space")
 	assert.False(t, ValidKey("_lead"))
 }
 

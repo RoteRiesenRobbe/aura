@@ -26,9 +26,9 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a_dead_carter_lies_face"},
-          {"id": "his_purse_is_gone"},
-          {"id": "bandits_did_this"}
+          {"id": "a-dead-carter-lies-face"},
+          {"id": "his-purse-is-gone"},
+          {"id": "bandits-did-this"}
         ]
       }
     ]

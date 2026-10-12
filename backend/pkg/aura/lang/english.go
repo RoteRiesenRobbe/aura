@@ -217,8 +217,8 @@ func (h *hydrator) ref(obj map[string]any, field, npc, where string) {
 	obj[field] = text
 }
 
-// refKey is the key a dialogue item names: its own line (conv_<npc>_<slug>)
-// or a shared phrase (stock_<name>, D28). The stock reference is consumed: the
+// refKey is the key a dialogue item names: its own line (conv.<npc>.<slug>)
+// or a shared phrase (stock.<name>, D28). The stock reference is consumed: the
 // loader sees the key as the item's id (the wire carries it, D27).
 func (h *hydrator) refKey(obj map[string]any, npc, where string) (string, bool) {
 	id, stock := str(obj["id"]), str(obj["stock"])

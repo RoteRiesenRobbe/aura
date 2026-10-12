@@ -33,28 +33,28 @@
           }
         ],
         "lines": [
-          {"id": "come_back_in_about"}
+          {"id": "come-back-in-about"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "ah_a_little_walker_you"}
+          {"id": "ah-a-little-walker-you"}
         ],
         "options": [
           {
-            "stock": "ask_task",
+            "stock": "ask-task",
             "next": "grove_brief"
           },
           {
-            "id": "about_the_deadwood",
+            "id": "about-the-deadwood",
             "next": "deadwood"
           },
           {
-            "id": "the_grove_is_clear",
+            "id": "the-grove-is-clear",
             "grants": [
               {
-                "id": "ah_i_can_breathe_again",
+                "id": "ah-i-can-breathe-again",
                 "kind": "advance_quest",
                 "quest": "clear-the-grove",
                 "fromStage": "tidied",
@@ -67,14 +67,14 @@
             ]
           },
           {
-            "id": "do_you_have_another_task",
+            "id": "do-you-have-another-task",
             "next": "roots_brief"
           },
           {
-            "id": "the_root_by_the_stream",
+            "id": "the-root-by-the-stream",
             "grants": [
               {
-                "id": "hm_that_one_was_awake",
+                "id": "hm-that-one-was-awake",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_one",
@@ -83,10 +83,10 @@
             ]
           },
           {
-            "id": "the_root_by_the_stones",
+            "id": "the-root-by-the-stones",
             "grants": [
               {
-                "id": "was_it_warm_no_then",
+                "id": "was-it-warm-no-then",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_two",
@@ -95,10 +95,10 @@
             ]
           },
           {
-            "id": "the_last_root_is_awake",
+            "id": "the-last-root-is-awake",
             "grants": [
               {
-                "id": "there_do_you_feel_it",
+                "id": "there-do-you-feel-it",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
                 "fromStage": "back_three",
@@ -115,15 +115,15 @@
             ]
           },
           {
-            "stock": "which_root",
+            "stock": "which-root",
             "next": "where_one"
           },
           {
-            "stock": "which_root",
+            "stock": "which-root",
             "next": "where_two"
           },
           {
-            "stock": "which_root",
+            "stock": "which-root",
             "next": "where_three"
           }
         ]
@@ -138,14 +138,14 @@
           }
         ],
         "lines": [
-          {"id": "my_grove_is_choked"}
+          {"id": "my-grove-is-choked"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
-                "id": "good_i_will_wait_i",
+                "id": "good-i-will-wait-i",
                 "kind": "offer_quest",
                 "quest": "clear-the-grove"
               }
@@ -163,7 +163,7 @@
           }
         ],
         "lines": [
-          {"id": "six_heaps_will_do"}
+          {"id": "six-heaps-will-do"}
         ]
       },
       {
@@ -181,16 +181,16 @@
           }
         ],
         "lines": [
-          {"id": "the_young_trees_of_this"},
-          {"id": "my_roots_run_beneath_all"},
-          {"id": "wake_them_for_me_one"}
+          {"id": "the-young-trees-of-this"},
+          {"id": "my-roots-run-beneath-all"},
+          {"id": "wake-them-for-me-one"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
-                "id": "good_west_to_the_stream",
+                "id": "good-west-to-the-stream",
                 "kind": "offer_quest",
                 "quest": "the-sleeping-roots"
               }
@@ -208,7 +208,7 @@
           }
         ],
         "lines": [
-          {"id": "west_little_walker_the_root"}
+          {"id": "west-little-walker-the-root"}
         ]
       },
       {
@@ -221,7 +221,7 @@
           }
         ],
         "lines": [
-          {"id": "south_the_root"}
+          {"id": "south-the-root"}
         ]
       },
       {
@@ -234,7 +234,7 @@
           }
         ],
         "lines": [
-          {"id": "east_where_the_wisps_gather"}
+          {"id": "east-where-the-wisps-gather"}
         ]
       }
     ]

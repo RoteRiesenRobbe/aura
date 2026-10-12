@@ -8,8 +8,8 @@
 //     content JSON keeps structure and ids; EnglishFS joins the two as the
 //     loaders read a file (english.go);
 //   - translations are ARB overlays in api/lang/<locale>/<domain>.arb (D3, D17),
-//     keyed by the content's own stable ids (D20) in identifier-safe keys
-//     (D29); a missing key falls back to English at serve time (D13);
+//     keyed by the content's own stable ids (D20) in dotted keys (D29); a
+//     missing key falls back to English at serve time (D13);
 //   - every catalog is marshaled once PER LOCALE at boot (D6), and `?lang=`
 //     picks one by BCP 47 truncation, unknown → en (D2 amendment (a)).
 //
@@ -106,10 +106,10 @@ func (b *Bundle) For(locale string) Tr {
 	}
 }
 
-var keyPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
+var keyPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$`)
 
-// ValidKey reports whether key is a well-formed, identifier-safe content key
-// (D29): letters, digits and underscores, a letter first.
+// ValidKey reports whether key is a well-formed content key (D29): dot-separated
+// parts of letters, digits, '-' and '_', a letter first.
 func ValidKey(key string) bool { return keyPattern.MatchString(key) }
 
 // LoadOverlays reads every api/lang/<locale>/*.arb, English included. A file that is not valid UTF-8 (L17: an ANSI save on Windows would
@@ -381,40 +381,33 @@ func NumberPlaceholders(text string, names ...string) string {
 
 // ---------------------------------------------------------------- keys (D20)
 
-// keyPart makes one id identifier-safe (D29): anything but an ASCII letter or
-// digit becomes '_'. Content ids themselves do not change.
-func keyPart(id string) string {
-	return strings.Map(func(r rune) rune {
-		if r < 128 && (r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9') {
-			return r
-		}
-		return '_'
-	}, id)
-}
-
 // The content keys, one builder per field, so a catalog, a hydration and a
-// check can never spell one differently. tools/lang/content-text.mjs is the JS
-// twin (the editor and the extract tool).
-func QuestTitle(questID string) string { return "quest_" + keyPart(questID) + "_title" }
+// check can never spell one differently: dotted parts, each id exactly as
+// authored (D29, revised 2026-10-12). tools/lang/content-text.mjs is the JS twin
+// (the editor and the extract tool).
+func QuestTitle(questID string) string { return "quest." + questID + ".title" }
 func QuestJournal(questID, stageID string) string {
-	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_journal"
+	return "quest." + questID + "." + stageID + ".journal"
 }
 func QuestStageTracker(questID, stageID string) string {
-	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_tracker"
+	return "quest." + questID + "." + stageID + ".tracker"
 }
 func QuestObjectiveTracker(questID, stageID, kind, target string) string {
-	return "quest_" + keyPart(questID) + "_" + keyPart(stageID) + "_" + keyPart(kind) + "_" + keyPart(target) + "_tracker"
+	return "quest." + questID + "." + stageID + "." + kind + "." + target + ".tracker"
 }
-func MobName(mob string) string            { return "mob_" + keyPart(mob) + "_name" }
-func SkillName(skill string) string        { return "skill_" + keyPart(skill) + "_name" }
-func SkillDescription(skill string) string { return "skill_" + keyPart(skill) + "_description" }
-func RegionTitle(region string) string     { return "region_" + keyPart(region) + "_title" }
-func RegionSubtitle(region string) string  { return "region_" + keyPart(region) + "_subtitle" }
-func ZoneName(zone string) string          { return "zone_" + keyPart(zone) + "_name" }
+func MobName(mob string) string            { return "mob." + mob + ".name" }
+func SkillName(skill string) string        { return "skill." + skill + ".name" }
+func SkillDescription(skill string) string { return "skill." + skill + ".description" }
+func RegionTitle(region string) string     { return "region." + region + ".title" }
+func RegionSubtitle(region string) string  { return "region." + region + ".subtitle" }
+func ZoneName(zone string) string          { return "zone." + zone + ".name" }
 
 // Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
 // unique within that NPC (D27).
-func Conversation(npc, slug string) string { return "conv_" + keyPart(npc) + "_" + slug }
+func Conversation(npc, slug string) string { return "conv." + npc + "." + slug }
+
+// StockPrefix starts every shared phrase's key (D28).
+const StockPrefix = "stock."
 
 // StockPhrase is a shared phrase's key (D28).
-func StockPhrase(name string) string { return "stock_" + name }
+func StockPhrase(name string) string { return StockPrefix + name }

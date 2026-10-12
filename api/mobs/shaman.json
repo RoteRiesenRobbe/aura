@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          {"id": "let_nature_guide_you"}
+          {"id": "let-nature-guide-you"}
         ],
         "options": [
           {
-            "id": "the_8_wolves",
+            "id": "the-8-wolves",
             "grants": [
               {
                 "stock": "good",
@@ -49,19 +49,19 @@
               }
             ]
           },
-          { "stock": "ask_task", "next": "direwolves" },
-          { "id": "about_the_dire_wolves", "next": "direwolves_running" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-task", "next": "direwolves" },
+          { "id": "about-the-dire-wolves", "next": "direwolves_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "direwolves",
         "lines": [
-          {"id": "kill_6_dire_wolves_around"}
+          {"id": "kill-6-dire-wolves-around"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -75,11 +75,11 @@
       {
         "id": "direwolves_running",
         "lines": [
-          {"id": "the_dire_wolves"}
+          {"id": "the-dire-wolves"}
         ],
         "options": [
           {
-            "id": "i_killed_the_6_dire",
+            "id": "i-killed-the-6-dire",
             "grants": [
               {
                 "stock": "good",
@@ -95,7 +95,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "direwolves_on_it"
           }
         ]
@@ -110,20 +110,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_6_dire_wolves_around_2"}
+          {"id": "kill-6-dire-wolves-around-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "recover",
             "grants": [
               {
-                "id": "ill_teach_you_recover",
+                "id": "ill-teach-you-recover",
                 "kind": "teach_skill",
                 "skill": "Recover",
                 "requiredLevel": 4
@@ -131,10 +131,10 @@
             ]
           },
           {
-            "id": "summon_totem",
+            "id": "summon-totem",
             "grants": [
               {
-                "id": "ill_teach_you_summon_totem",
+                "id": "ill-teach-you-summon-totem",
                 "kind": "teach_skill",
                 "skill": "SummonTotem",
                 "requiredLevel": 5

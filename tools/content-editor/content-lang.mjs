@@ -22,7 +22,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
-  formatArb, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, plainPlaceholders, slugify, spaced, textFields,
+  formatArb, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, plainPlaceholders, slugify, spaced, STOCK_PREFIX, textFields,
 } from '../lang/content-text.mjs';
 
 /** The ARB a domain's English lives in. */
@@ -60,7 +60,7 @@ export function english(lang, key) {
 export function sharedPhrases(lang) {
   const out = {};
   for (const [k, v] of lang.locales.en.arbs.mobs.entries) {
-    if (k.startsWith('stock_')) out[k.slice('stock_'.length)] = v.text;
+    if (k.startsWith(STOCK_PREFIX)) out[k.slice(STOCK_PREFIX.length)] = v.text;
   }
   return out;
 }
@@ -191,7 +191,7 @@ export function planSave(domain, raw, diskRaw, lang) {
   const renames = new Map();
   now.forEach((f, i) => {
     const prev = before[i] && before[i].key;
-    if (prev && f.key && prev !== f.key && !prev.startsWith('stock_')) renames.set(prev, f.key);
+    if (prev && f.key && prev !== f.key && !prev.startsWith(STOCK_PREFIX)) renames.set(prev, f.key);
   });
   for (const [from, to] of renames) {
     if (!english(lang, from)) continue;
@@ -232,7 +232,7 @@ export function planSave(domain, raw, diskRaw, lang) {
   if (diskRaw && raw._hydrated) {
     for (const f of textFields(domain, diskRaw)) {
       const key = renames.get(f.key) || f.key;
-      if (!key || kept.has(key) || key.startsWith('stock_') || !english(lang, key)) continue;
+      if (!key || kept.has(key) || key.startsWith(STOCK_PREFIX) || !english(lang, key)) continue;
       if (domain === 'mob' && f.key === keys.mobName(diskRaw.name)) continue;
       removeKey(lang, key, touched);
       removed.push(key);

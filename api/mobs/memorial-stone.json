@@ -27,8 +27,8 @@
         "id": "root",
         "rows": "memorial_names",
         "lines": [
-          {"id": "memorial_stone"},
-          {"id": "every_character_spent"}
+          {"id": "memorial-stone"},
+          {"id": "every-character-spent"}
         ]
       }
     ]

@@ -17,24 +17,24 @@
       {
         "id": "root",
         "lines": [
-          {"id": "your_mother_wants_meat_then"},
-          {"id": "ask_what_you_need"}
+          {"id": "your-mother-wants-meat-then"},
+          {"id": "ask-what-you-need"}
         ],
         "options": [
-          { "stock": "ask_teach", "next": "teachings" },
-          { "id": "how_do_i_hunt", "next": "stags" },
-          { "id": "what_should_i_know_before", "next": "advice" }
+          { "stock": "ask-teach", "next": "teachings" },
+          { "id": "how-do-i-hunt", "next": "stags" },
+          { "id": "what-should-i-know-before", "next": "advice" }
         ]
       },
       {
         "id": "teachings",
-        "lines": [ {"id": "ill_teach_you_one_thing"} ],
+        "lines": [ {"id": "ill-teach-you-one-thing"} ],
         "options": [
           {
             "id": "wild",
             "grants": [
               {
-                "id": "ill_teach_you_wild_it",
+                "id": "ill-teach-you-wild-it",
                 "kind": "teach_skill",
                 "skill": "Wild",
                 "requiredLevel": 1
@@ -46,18 +46,18 @@
       {
         "id": "stags",
         "lines": [
-          {"id": "a_stag_will_start"},
-          {"id": "you_wont_win_by_hitting"},
-          {"id": "dont_give_up_the_chase"}
+          {"id": "a-stag-will-start"},
+          {"id": "you-wont-win-by-hitting"},
+          {"id": "dont-give-up-the-chase"}
         ],
         "options": []
       },
       {
         "id": "advice",
         "lines": [
-          {"id": "take_only_what_you_need"},
-          {"id": "pay_what_you_owe_even"},
-          {"id": "and_when_youre_wrong_say"}
+          {"id": "take-only-what-you-need"},
+          {"id": "pay-what-you-owe-even"},
+          {"id": "and-when-youre-wrong-say"}
         ],
         "options": []
       }

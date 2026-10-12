@@ -265,7 +265,7 @@ const prose = (questId, stageId) => {
 // (plan-localization.md D27); read it off disk so the check follows the content.
 const trackerOf = (questId, stageId) => {
   const en = JSON.parse(readFileSync(new URL('../../../api/lang/en/quests.arb', import.meta.url), 'utf8'));
-  const key = `quest_${questId.replace(/[^A-Za-z0-9]/g, '_')}_${stageId.replace(/[^A-Za-z0-9]/g, '_')}_tracker`;
+  const key = `quest.${questId}.${stageId}.tracker`;
   return en[key] ?? `??${questId}/${stageId}`;
 };
 const titleOf = (questId) => (Array.isArray(catalog) ? catalog.find((x) => x.id === questId)?.title : null) ?? `??${questId}`;

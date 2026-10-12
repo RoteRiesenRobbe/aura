@@ -25,23 +25,23 @@
       {
         "id": "root",
         "lines": [
-          {"id": "the_tunnel_is_overrun"}
+          {"id": "the-tunnel-is-overrun"}
         ],
         "options": [
-          { "id": "what_happened_down_there", "next": "tunnel" },
-          { "stock": "ask_task", "next": "spiders" },
-          { "id": "about_the_spiders", "next": "spiders_running" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "id": "what-happened-down-there", "next": "tunnel" },
+          { "stock": "ask-task", "next": "spiders" },
+          { "id": "about-the-spiders", "next": "spiders_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "spiders",
         "lines": [
-          {"id": "kill_6_spiders"}
+          {"id": "kill-6-spiders"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -55,11 +55,11 @@
       {
         "id": "spiders_running",
         "lines": [
-          {"id": "the_spiders"}
+          {"id": "the-spiders"}
         ],
         "options": [
           {
-            "id": "i_killed_the_6_spiders",
+            "id": "i-killed-the-6-spiders",
             "grants": [
               {
                 "stock": "good",
@@ -75,7 +75,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "spiders_on_it"
           }
         ]
@@ -90,20 +90,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_6_spiders_2"}
+          {"id": "kill-6-spiders-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "pickaxe",
             "grants": [
               {
-                "id": "ill_teach_you_pickaxe",
+                "id": "ill-teach-you-pickaxe",
                 "kind": "teach_skill",
                 "skill": "Pickaxe",
                 "requiredLevel": 4
@@ -115,7 +115,7 @@
       {
         "id": "tunnel",
         "lines": [
-          {"id": "first_the_kobolds_now"}
+          {"id": "first-the-kobolds-now"}
         ]
       }
     ]

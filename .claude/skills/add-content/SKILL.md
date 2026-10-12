@@ -224,8 +224,9 @@ the bottom. Trust the code over the manual if a path has drifted.
   (plan-localization.md D27, C5a).** A mob, quest, skill or region file keeps
   structure and ids only; its text (quest titles, journals, trackers, mob
   names, dialogue lines, options, grant lines, skill names and descriptions,
-  region titles) is in the English ARB under an identifier-safe key (D29:
-  `quest_<id>_<stage>_journal`, `mob_<Name>_name`, `conv_<NPC>_<slug>`, ...).
+  region titles) is in the English ARB under a dotted key with the ids as
+  authored (D29: `quest.<id>.<stage>.journal`, `mob.<Name>.name`,
+  `conv.<NPC>.<slug>`, ...).
   The boot REFUSES inline text in a content file and a string with no English,
   naming file and key. Two ways to write English, one result:
   1. **the content editor** (`tools/content-editor/`), which writes the JSON and

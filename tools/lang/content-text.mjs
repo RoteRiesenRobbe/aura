@@ -10,41 +10,40 @@
 
 // ------------------------------------------------------------------ keys (D29)
 
-/** One id inside a key: anything but an ASCII letter or digit becomes `_`. */
-export function keyPart(id) {
-  return String(id).replace(/[^A-Za-z0-9]/g, '_');
-}
+/** A shared phrase's key is this prefix plus its name (D28). */
+export const STOCK_PREFIX = 'stock.';
 
+/** Every content key: dotted parts, each id exactly as authored (D29, revised 2026-10-12). */
 export const keys = {
-  questTitle: (q) => `quest_${keyPart(q)}_title`,
-  questJournal: (q, s) => `quest_${keyPart(q)}_${keyPart(s)}_journal`,
-  questStageTracker: (q, s) => `quest_${keyPart(q)}_${keyPart(s)}_tracker`,
-  questObjectiveTracker: (q, s, kind, target) => `quest_${keyPart(q)}_${keyPart(s)}_${keyPart(kind)}_${keyPart(target)}_tracker`,
-  mobName: (mob) => `mob_${keyPart(mob)}_name`,
-  skillName: (skill) => `skill_${keyPart(skill)}_name`,
-  skillDescription: (skill) => `skill_${keyPart(skill)}_description`,
-  regionTitle: (r) => `region_${keyPart(r)}_title`,
-  regionSubtitle: (r) => `region_${keyPart(r)}_subtitle`,
-  zoneName: (stem) => `zone_${keyPart(stem)}_name`,
-  conversation: (npc, slug) => `conv_${keyPart(npc)}_${slug}`,
-  stock: (name) => `stock_${name}`,
+  questTitle: (q) => `quest.${q}.title`,
+  questJournal: (q, s) => `quest.${q}.${s}.journal`,
+  questStageTracker: (q, s) => `quest.${q}.${s}.tracker`,
+  questObjectiveTracker: (q, s, kind, target) => `quest.${q}.${s}.${kind}.${target}.tracker`,
+  mobName: (mob) => `mob.${mob}.name`,
+  skillName: (skill) => `skill.${skill}.name`,
+  skillDescription: (skill) => `skill.${skill}.description`,
+  regionTitle: (r) => `region.${r}.title`,
+  regionSubtitle: (r) => `region.${r}.subtitle`,
+  zoneName: (stem) => `zone.${stem}.name`,
+  conversation: (npc, slug) => `conv.${npc}.${slug}`,
+  stock: (name) => `${STOCK_PREFIX}${name}`,
 };
 
-/** A content key is identifier-safe (D29). */
-export const KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+/** A content key: dot-separated parts of letters, digits, `-` and `_`, a letter first (D29). */
+export const KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$/;
 
 // ------------------------------------------------------------------ slugs (D27)
 
 const SLUG_MAX_WORDS = 5;
 const SLUG_MAX_LENGTH = 32;
 const TRAILING_FILLER = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'from', 'with', 'and', 'or', 'but', 'by']);
-/** A slug, or a stock phrase name: lowercase ASCII, digits and underscores. */
-export const SLUG_PATTERN = /^[a-z0-9]+(_[a-z0-9]+)*$/;
+/** A slug, or a stock phrase name: lowercase ASCII words and digits joined by `-`. */
+export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
  * A readable slug from a line's English (D27): its first words, lowercase
  * ASCII, punctuation dropped ("I'll" reads "ill"), at most five words and 32
- * characters, `_2`, `_3`, ... on a clash with `taken` (the NPC's ids in use).
+ * characters, `-2`, `-3`, ... on a clash with `taken` (the NPC's ids in use).
  */
 export function slugify(text, taken = new Set()) {
   const words = String(text)
@@ -58,19 +57,19 @@ export function slugify(text, taken = new Set()) {
     .filter(Boolean);
   const picked = [];
   for (const w of words.slice(0, SLUG_MAX_WORDS)) {
-    if ([...picked, w].join('_').length > SLUG_MAX_LENGTH) {
+    if ([...picked, w].join('-').length > SLUG_MAX_LENGTH) {
       if (!picked.length) picked.push(w.slice(0, SLUG_MAX_LENGTH));
       break;
     }
     picked.push(w);
   }
-  // "about_the_rats_in_the" reads as cut off: a slug never ends on a filler word.
+  // "about-the-rats-in-the" reads as cut off: a slug never ends on a filler word.
   while (picked.length > 1 && TRAILING_FILLER.has(picked[picked.length - 1])) picked.pop();
-  let base = picked.join('_');
+  let base = picked.join('-');
   if (!base) base = 'line';
   if (!taken.has(base)) return base;
   for (let n = 2; ; n++) {
-    const candidate = `${base}_${n}`;
+    const candidate = `${base}-${n}`;
     if (!taken.has(candidate)) return candidate;
   }
 }

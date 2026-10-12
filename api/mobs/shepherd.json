@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i_keep_the_flock"}
+          {"id": "i-keep-the-flock"}
         ],
         "options": [
           {
-            "stock": "ask_task",
+            "stock": "ask-task",
             "next": "strays"
           },
           {
-            "id": "about_your_sheep",
+            "id": "about-your-sheep",
             "next": "strays_running"
           }
         ]
@@ -42,13 +42,13 @@
       {
         "id": "strays",
         "lines": [
-          {"id": "three_of_my_sheep_wandered"},
-          {"id": "baabara_woolliam_and_lambert"},
-          {"id": "nothing_out_there_will_trouble"}
+          {"id": "three-of-my-sheep-wandered"},
+          {"id": "baabara-woolliam-and-lambert"},
+          {"id": "nothing-out-there-will-trouble"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -62,11 +62,11 @@
       {
         "id": "strays_running",
         "lines": [
-          {"id": "my_sheep"}
+          {"id": "my-sheep"}
         ],
         "options": [
           {
-            "id": "i_found_baabara_woolliam",
+            "id": "i-found-baabara-woolliam",
             "grants": [
               {
                 "stock": "good",
@@ -82,7 +82,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "strays_on_it"
           }
         ]
@@ -97,7 +97,7 @@
           }
         ],
         "lines": [
-          {"id": "baabara_woolliam_and_lambert_2"}
+          {"id": "baabara-woolliam-and-lambert-2"}
         ]
       }
     ]

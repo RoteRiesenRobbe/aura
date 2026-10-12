@@ -26,8 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a_dead_traveller"},
-          {"id": "his_pack_has_been_emptied"}
+          {"id": "a-dead-traveller"},
+          {"id": "his-pack-has-been-emptied"}
         ]
       }
     ]

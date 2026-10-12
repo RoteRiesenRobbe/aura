@@ -54,11 +54,11 @@ const dialogue = await page.evaluate(() => {
   return {
     rows: rows.length,
     first: rows[0] ? { text: rows[0].querySelector('input[type=text]')?.value, slug: rows[0].querySelector('.slug')?.textContent } : null,
-    shared: [...document.querySelectorAll('.option-card select')].some((s) => [...s.options].some((o) => o.textContent === 'shared: ask_task') && s.value === 'ask_task'),
+    shared: [...document.querySelectorAll('.option-card select')].some((s) => [...s.options].some((o) => o.textContent === 'shared: ask-task') && s.value === 'ask-task'),
   };
 });
 check('an NPC line renders as a row with its text and its slug',
-  dialogue.rows > 0 && dialogue.first?.text === 'I work this field.' && dialogue.first?.slug === 'id: i_work_this_field', JSON.stringify(dialogue.first));
+  dialogue.rows > 0 && dialogue.first?.text === 'I work this field.' && dialogue.first?.slug === 'id: i-work-this-field', JSON.stringify(dialogue.first));
 check('a row naming a shared phrase shows the phrase in its picker', dialogue.shared);
 
 // 2. quest

@@ -26,22 +26,22 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i_can_teach_you"}
+          {"id": "i-can-teach-you"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "wolves" },
-          { "id": "about_the_dire_wolves", "next": "wolves_running" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-task", "next": "wolves" },
+          { "id": "about-the-dire-wolves", "next": "wolves_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "wolves",
         "lines": [
-          {"id": "kill_4_dire_wolves"}
+          {"id": "kill-4-dire-wolves"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -55,11 +55,11 @@
       {
         "id": "wolves_running",
         "lines": [
-          {"id": "the_dire_wolves"}
+          {"id": "the-dire-wolves"}
         ],
         "options": [
           {
-            "id": "i_killed_the_4_dire",
+            "id": "i-killed-the-4-dire",
             "grants": [
               {
                 "stock": "good",
@@ -75,7 +75,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "wolves_on_it"
           }
         ]
@@ -90,20 +90,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_4_dire_wolves_2"}
+          {"id": "kill-4-dire-wolves-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "id": "torch",
             "grants": [
               {
-                "id": "ill_teach_you_torch",
+                "id": "ill-teach-you-torch",
                 "kind": "teach_skill",
                 "skill": "Torch"
               }

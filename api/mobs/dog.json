@@ -29,20 +29,20 @@
           {"id": "woof"}
         ],
         "options": [
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "woof_2"}
+          {"id": "woof-2"}
         ],
         "options": [
           {
-            "id": "summon_companion",
+            "id": "summon-companion",
             "grants": [
               {
-                "id": "woof_3",
+                "id": "woof-3",
                 "kind": "teach_skill",
                 "skill": "SummonCompanion"
               }

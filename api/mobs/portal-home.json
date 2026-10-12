@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a_portal_stands_open"},
-          {"id": "it_leads_to_the_campfire"}
+          {"id": "a-portal-stands-open"},
+          {"id": "it-leads-to-the-campfire"}
         ],
         "options": [
           {
-            "id": "step_through",
+            "id": "step-through",
             "grants": [
               {
-                "id": "you_step_through",
+                "id": "you-step-through",
                 "kind": "travel_to",
                 "mode": "home_campfire"
               }

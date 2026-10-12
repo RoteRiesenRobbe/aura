@@ -51,13 +51,12 @@ export function onLangBundle(listener: () => void) {
 /** The bundled English of the region and zone names (api/lang/en/regions.arb). */
 export const REGIONS_ENGLISH: Readonly<Record<string, string>> = parseArb(regionsEnglishArb);
 
-// The keys, spelled exactly as lang.go's builders spell them (D20, D29: an id
-// becomes identifier-safe, anything but a letter or digit reads `_`). A
-// dialogue line needs no builder: the wire carries its full key (D27).
-const keyPart = (id: string) => id.replace(/[^A-Za-z0-9]/g, '_');
-export const regionTitleKey = (id: string) => `region_${keyPart(id)}_title`;
-export const regionSubtitleKey = (id: string) => `region_${keyPart(id)}_subtitle`;
-export const zoneNameKey = (stem: string) => `zone_${keyPart(stem)}_name`;
+// The keys, spelled exactly as lang.go's builders spell them (D20, D29: dotted
+// parts, the id as authored). A dialogue line needs no builder: the wire
+// carries its full key (D27).
+export const regionTitleKey = (id: string) => `region.${id}.title`;
+export const regionSubtitleKey = (id: string) => `region.${id}.subtitle`;
+export const zoneNameKey = (stem: string) => `zone.${stem}.name`;
 
 // Loaded with the catalogs, before the game starts: the first region banner
 // must already speak the chosen language.

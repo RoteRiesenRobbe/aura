@@ -31,8 +31,8 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
   JSON** (plan-localization.md D27). A mob, quest, skill or region file keeps
   structure and ids; its text (names, titles, journals, trackers, dialogue
   lines, options, grant lines, skill descriptions, region titles) sits in the
-  English ARB under an identifier-safe key (`quest_<id>_<stage>_journal`,
-  `mob_<Name>_name`, `conv_<NPC>_<slug>`). The boot refuses inline text in a
+  English ARB under a dotted key (`quest.<id>.<stage>.journal`,
+  `mob.<Name>.name`, `conv.<NPC>.<slug>`). The boot refuses inline text in a
   content file. **The examples in this manual show text INLINE, as a draft:**
   write it like that, then run `node tools/lang/extract-english.mjs`, which
   moves it into the ARB with a translator note, gives every dialogue line a

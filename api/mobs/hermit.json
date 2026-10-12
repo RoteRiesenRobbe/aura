@@ -25,22 +25,22 @@
       {
         "id": "root",
         "lines": [
-          {"id": "what_do_you_need"}
+          {"id": "what-do-you-need"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "welcome" },
-          { "id": "about_the_village", "next": "welcome_running" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-task", "next": "welcome" },
+          { "id": "about-the-village", "next": "welcome_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          {"id": "talk_to_reinhard"}
+          {"id": "talk-to-reinhard"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -54,11 +54,11 @@
       {
         "id": "welcome_running",
         "lines": [
-          {"id": "the_village"}
+          {"id": "the-village"}
         ],
         "options": [
           {
-            "id": "i_talked_to_reinhard",
+            "id": "i-talked-to-reinhard",
             "grants": [
               {
                 "stock": "good",
@@ -74,7 +74,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "welcome_on_it"
           }
         ]
@@ -89,20 +89,20 @@
           }
         ],
         "lines": [
-          {"id": "talk_to_reinhard_2"}
+          {"id": "talk-to-reinhard-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
-            "id": "first_aid",
+            "id": "first-aid",
             "grants": [
               {
-                "id": "ill_teach_you_first_aid",
+                "id": "ill-teach-you-first-aid",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2
@@ -113,7 +113,7 @@
             "id": "heal",
             "grants": [
               {
-                "id": "ill_teach_you_heal",
+                "id": "ill-teach-you-heal",
                 "kind": "teach_skill",
                 "skill": "Heal",
                 "requiredLevel": 3
@@ -124,7 +124,7 @@
             "id": "calm",
             "grants": [
               {
-                "id": "ill_teach_you_calm",
+                "id": "ill-teach-you-calm",
                 "kind": "teach_skill",
                 "skill": "Calm",
                 "requiredLevel": 10
@@ -132,10 +132,10 @@
             ]
           },
           {
-            "id": "charm_beast",
+            "id": "charm-beast",
             "grants": [
               {
-                "id": "ill_teach_you_charm_beast",
+                "id": "ill-teach-you-charm-beast",
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
                 "requiredLevel": 10

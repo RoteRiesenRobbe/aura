@@ -25,22 +25,22 @@
       {
         "id": "root",
         "lines": [
-          {"id": "rest_by_the_fire"}
+          {"id": "rest-by-the-fire"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "alphawolves" },
-          { "id": "about_the_alpha_wolves", "next": "alphawolves_running" },
-          { "stock": "ask_teach", "next": "teachings" }
+          { "stock": "ask-task", "next": "alphawolves" },
+          { "id": "about-the-alpha-wolves", "next": "alphawolves_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "alphawolves",
         "lines": [
-          {"id": "kill_5_alpha_wolves_around"}
+          {"id": "kill-5-alpha-wolves-around"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -54,11 +54,11 @@
       {
         "id": "alphawolves_running",
         "lines": [
-          {"id": "the_alpha_wolves"}
+          {"id": "the-alpha-wolves"}
         ],
         "options": [
           {
-            "id": "i_killed_the_5_alpha",
+            "id": "i-killed-the-5-alpha",
             "grants": [
               {
                 "stock": "good",
@@ -74,7 +74,7 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "alphawolves_on_it"
           }
         ]
@@ -89,20 +89,20 @@
           }
         ],
         "lines": [
-          {"id": "kill_5_alpha_wolves_around_2"}
+          {"id": "kill-5-alpha-wolves-around-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"stock": "offer_teach"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
-            "id": "first_aid",
+            "id": "first-aid",
             "grants": [
               {
-                "id": "ill_teach_you_first_aid",
+                "id": "ill-teach-you-first-aid",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2
@@ -113,7 +113,7 @@
             "id": "revive",
             "grants": [
               {
-                "id": "ill_teach_you_revive",
+                "id": "ill-teach-you-revive",
                 "kind": "teach_skill",
                 "skill": "Revive",
                 "requiredLevel": 8

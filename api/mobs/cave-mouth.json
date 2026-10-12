@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a_dark_opening"},
-          {"id": "cold_air_rises_out"}
+          {"id": "a-dark-opening"},
+          {"id": "cold-air-rises-out"}
         ],
         "options": [
           {
-            "id": "climb_down",
+            "id": "climb-down",
             "grants": [
               {
-                "id": "you_climb_down_into",
+                "id": "you-climb-down-into",
                 "kind": "travel_to",
                 "mode": "anchor"
               }

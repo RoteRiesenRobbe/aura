@@ -3131,9 +3131,9 @@ function dialogueTextControls(mob, item, field, placeholder, onChange, onStructu
   note.title = 'Click to rename the slug. A rename moves its text in every language.';
   note.classList.add('editable');
   note.onclick = () => {
-    const next = prompt('Slug (lowercase words joined by _):', item.id);
+    const next = prompt('Slug (lowercase words joined by -):', item.id);
     if (!next || next === item.id) return;
-    if (!SLUG_PATTERN.test(next)) { alert(`"${next}" is not a slug: lowercase ASCII words joined by _.`); return; }
+    if (!SLUG_PATTERN.test(next)) { alert(`"${next}" is not a slug: lowercase ASCII words joined by -.`); return; }
     if (npcSlugsOf(mob, item).has(next)) { alert(`"${next}" is already used by this NPC.`); return; }
     item.id = next;
     onStructuralChange();

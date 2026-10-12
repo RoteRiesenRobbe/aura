@@ -29,28 +29,28 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
         ],
         "lines": [
-          {"id": "you_have_the_lamp_now"}
+          {"id": "you-have-the-lamp-now"}
         ]
       },
       {
         "id": "root",
         "lines": [
-          {"id": "what_are_you_doing_out"}
+          {"id": "what-are-you-doing-out"}
         ],
         "options": [
-          { "stock": "ask_task", "next": "lamp" },
-          { "id": "about_your_lamp", "next": "lamp_running" }
+          { "stock": "ask-task", "next": "lamp" },
+          { "id": "about-your-lamp", "next": "lamp_running" }
         ]
       },
       {
         "id": "lamp",
         "lines": [
-          {"id": "kill_6_kobolds_north"},
-          {"id": "you_get_my_lamp_when"}
+          {"id": "kill-6-kobolds-north"},
+          {"id": "you-get-my-lamp-when"}
         ],
         "options": [
           {
-            "stock": "quest_accept",
+            "stock": "quest-accept",
             "grants": [
               {
                 "stock": "good",
@@ -64,11 +64,11 @@
       {
         "id": "lamp_running",
         "lines": [
-          {"id": "my_lamp"}
+          {"id": "my-lamp"}
         ],
         "options": [
           {
-            "id": "the_6_kobolds_are_dead",
+            "id": "the-6-kobolds-are-dead",
             "grants": [
               {
                 "stock": "good",
@@ -88,10 +88,10 @@
             ]
           },
           {
-            "stock": "quest_progress",
+            "stock": "quest-progress",
             "next": "lamp_on_it"
           },
-          { "id": "where_do_they_nest", "next": "lamp_where" }
+          { "id": "where-do-they-nest", "next": "lamp_where" }
         ]
       },
       {
@@ -104,7 +104,7 @@
           }
         ],
         "lines": [
-          {"id": "kill_6_kobolds_north_2"}
+          {"id": "kill-6-kobolds-north-2"}
         ]
       },
       {
@@ -113,7 +113,7 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "running" }
         ],
         "lines": [
-          {"id": "north_of_the_tunnel"}
+          {"id": "north-of-the-tunnel"}
         ]
       }
     ]

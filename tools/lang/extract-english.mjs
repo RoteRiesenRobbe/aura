@@ -23,7 +23,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { formatArb, JsonEdits, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, parseWithSpans, slugify, spaced, textFields } from './content-text.mjs';
+import { formatArb, JsonEdits, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, parseWithSpans, slugify, spaced, STOCK_PREFIX, textFields } from './content-text.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -47,11 +47,11 @@ export function contentFiles(root) {
   ];
 }
 
-/** The shared phrases (D28): their English → name, from en/mobs.arb's `stock_*` keys. */
+/** The shared phrases (D28): their English → name, from en/mobs.arb's `stock.*` keys. */
 export function stockByText(mobsArb) {
   const out = new Map();
   for (const [k, v] of mobsArb.entries) {
-    if (k.startsWith('stock_')) out.set(v.text, k.slice('stock_'.length));
+    if (k.startsWith(STOCK_PREFIX)) out.set(v.text, k.slice(STOCK_PREFIX.length));
   }
   return out;
 }

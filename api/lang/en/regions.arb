@@ -1,249 +1,249 @@
 {
   "@@locale": "en",
-  "region_ashen_fields_subtitle": "Cinder and Bone",
-  "@region_ashen_fields_subtitle": {
+  "region.ashen-fields.subtitle": "Cinder and Bone",
+  "@region.ashen-fields.subtitle": {
     "description": "Region banner subtitle under \"The Ashen Fields\"."
   },
-  "region_ashen_fields_title": "The Ashen Fields",
-  "@region_ashen_fields_title": {
+  "region.ashen-fields.title": "The Ashen Fields",
+  "@region.ashen-fields.title": {
     "description": "Region banner title of the place \"ashen-fields\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_brackenfold_subtitle": "Plough and Bramble",
-  "@region_brackenfold_subtitle": {
+  "region.brackenfold.subtitle": "Plough and Bramble",
+  "@region.brackenfold.subtitle": {
     "description": "Region banner subtitle under \"Brackenfold Meadows\"."
   },
-  "region_brackenfold_title": "Brackenfold Meadows",
-  "@region_brackenfold_title": {
+  "region.brackenfold.title": "Brackenfold Meadows",
+  "@region.brackenfold.title": {
     "description": "Region banner title of the place \"brackenfold\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_brunnstedt_subtitle": "Walls and Wells",
-  "@region_brunnstedt_subtitle": {
+  "region.brunnstedt.subtitle": "Walls and Wells",
+  "@region.brunnstedt.subtitle": {
     "description": "Region banner subtitle under \"Brunnstedt\"."
   },
-  "region_brunnstedt_title": "Brunnstedt",
-  "@region_brunnstedt_title": {
+  "region.brunnstedt.title": "Brunnstedt",
+  "@region.brunnstedt.title": {
     "description": "Region banner title of the place \"brunnstedt\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_cinder_conclave_subtitle": "Kindled Faith",
-  "@region_cinder_conclave_subtitle": {
+  "region.cinder-conclave.subtitle": "Kindled Faith",
+  "@region.cinder-conclave.subtitle": {
     "description": "Region banner subtitle under \"The Cinder Conclave\"."
   },
-  "region_cinder_conclave_title": "The Cinder Conclave",
-  "@region_cinder_conclave_title": {
+  "region.cinder-conclave.title": "The Cinder Conclave",
+  "@region.cinder-conclave.title": {
     "description": "Region banner title of the place \"cinder-conclave\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_deep_woods_subtitle": "City Outskirts",
-  "@region_deep_woods_subtitle": {
+  "region.deep-woods.subtitle": "City Outskirts",
+  "@region.deep-woods.subtitle": {
     "description": "Region banner subtitle under \"Deep Woods\"."
   },
-  "region_deep_woods_title": "Deep Woods",
-  "@region_deep_woods_title": {
+  "region.deep-woods.title": "Deep Woods",
+  "@region.deep-woods.title": {
     "description": "Region banner title of the place \"deep-woods\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_den_of_evil_subtitle": "Kobold Hideout",
-  "@region_den_of_evil_subtitle": {
+  "region.den-of-evil.subtitle": "Kobold Hideout",
+  "@region.den-of-evil.subtitle": {
     "description": "Region banner subtitle under \"Den of Evil\"."
   },
-  "region_den_of_evil_title": "Den of Evil",
-  "@region_den_of_evil_title": {
+  "region.den-of-evil.title": "Den of Evil",
+  "@region.den-of-evil.title": {
     "description": "Region banner title of the place \"den-of-evil\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_fallow_reach_subtitle": "Barren Earth",
-  "@region_fallow_reach_subtitle": {
+  "region.fallow-reach.subtitle": "Barren Earth",
+  "@region.fallow-reach.subtitle": {
     "description": "Region banner subtitle under \"The Fallow Reach\"."
   },
-  "region_fallow_reach_title": "The Fallow Reach",
-  "@region_fallow_reach_title": {
+  "region.fallow-reach.title": "The Fallow Reach",
+  "@region.fallow-reach.title": {
     "description": "Region banner title of the place \"fallow-reach\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_farmlands_title": "Farmlands",
-  "@region_farmlands_title": {
+  "region.farmlands.title": "Farmlands",
+  "@region.farmlands.title": {
     "description": "Region banner title of the place \"farmlands\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_farmreinhard_subtitle": "Farmlands",
-  "@region_farmreinhard_subtitle": {
+  "region.farmreinhard.subtitle": "Farmlands",
+  "@region.farmreinhard.subtitle": {
     "description": "Region banner subtitle under \"Reinhard's Farm\"."
   },
-  "region_farmreinhard_title": "Reinhard's Farm",
-  "@region_farmreinhard_title": {
+  "region.farmreinhard.title": "Reinhard's Farm",
+  "@region.farmreinhard.title": {
     "description": "Region banner title of the place \"farmreinhard\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_glimmerwood_subtitle": "Whispering Boughs",
-  "@region_glimmerwood_subtitle": {
+  "region.glimmerwood.subtitle": "Whispering Boughs",
+  "@region.glimmerwood.subtitle": {
     "description": "Region banner subtitle under \"The Glimmerwood\"."
   },
-  "region_glimmerwood_title": "The Glimmerwood",
-  "@region_glimmerwood_title": {
+  "region.glimmerwood.title": "The Glimmerwood",
+  "@region.glimmerwood.title": {
     "description": "Region banner title of the place \"glimmerwood\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_greyspine_subtitle": "Stone Teeth",
-  "@region_greyspine_subtitle": {
+  "region.greyspine.subtitle": "Stone Teeth",
+  "@region.greyspine.subtitle": {
     "description": "Region banner subtitle under \"The Greyspine\"."
   },
-  "region_greyspine_title": "The Greyspine",
-  "@region_greyspine_title": {
+  "region.greyspine.title": "The Greyspine",
+  "@region.greyspine.title": {
     "description": "Region banner title of the place \"greyspine\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_grimwatch_subtitle": "The Last Watch",
-  "@region_grimwatch_subtitle": {
+  "region.grimwatch.subtitle": "The Last Watch",
+  "@region.grimwatch.subtitle": {
     "description": "Region banner subtitle under \"Fort Grimwatch\"."
   },
-  "region_grimwatch_title": "Fort Grimwatch",
-  "@region_grimwatch_title": {
+  "region.grimwatch.title": "Fort Grimwatch",
+  "@region.grimwatch.title": {
     "description": "Region banner title of the place \"grimwatch\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_hollow_marsh_subtitle": "Empty Hearths",
-  "@region_hollow_marsh_subtitle": {
+  "region.hollow-marsh.subtitle": "Empty Hearths",
+  "@region.hollow-marsh.subtitle": {
     "description": "Region banner subtitle under \"Hollow Marsh\"."
   },
-  "region_hollow_marsh_title": "Hollow Marsh",
-  "@region_hollow_marsh_title": {
+  "region.hollow-marsh.title": "Hollow Marsh",
+  "@region.hollow-marsh.title": {
     "description": "Region banner title of the place \"hollow-marsh\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_homestead_subtitle": "Farmlands",
-  "@region_homestead_subtitle": {
+  "region.homestead.subtitle": "Farmlands",
+  "@region.homestead.subtitle": {
     "description": "Region banner subtitle under \"Homestead\"."
   },
-  "region_homestead_title": "Homestead",
-  "@region_homestead_title": {
+  "region.homestead.title": "Homestead",
+  "@region.homestead.title": {
     "description": "Region banner title of the place \"homestead\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_moonveil_title": "Moonveil Grove",
-  "@region_moonveil_title": {
+  "region.moonveil.title": "Moonveil Grove",
+  "@region.moonveil.title": {
     "description": "Region banner title of the place \"moonveil\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_netmenders_coast_subtitle": "Tide and Tar",
-  "@region_netmenders_coast_subtitle": {
+  "region.netmenders-coast.subtitle": "Tide and Tar",
+  "@region.netmenders-coast.subtitle": {
     "description": "Region banner subtitle under \"Netmender's Coast\"."
   },
-  "region_netmenders_coast_title": "Netmender's Coast",
-  "@region_netmenders_coast_title": {
+  "region.netmenders-coast.title": "Netmender's Coast",
+  "@region.netmenders-coast.title": {
     "description": "Region banner title of the place \"netmenders-coast\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_northgate_subtitle": "Field and Wall",
-  "@region_northgate_subtitle": {
+  "region.northgate.subtitle": "Field and Wall",
+  "@region.northgate.subtitle": {
     "description": "Region banner subtitle under \"Northgate Commons\"."
   },
-  "region_northgate_title": "Northgate Commons",
-  "@region_northgate_title": {
+  "region.northgate.title": "Northgate Commons",
+  "@region.northgate.title": {
     "description": "Region banner title of the place \"northgate\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_rimefrost_subtitle": "Ice and Silence",
-  "@region_rimefrost_subtitle": {
+  "region.rimefrost.subtitle": "Ice and Silence",
+  "@region.rimefrost.subtitle": {
     "description": "Region banner subtitle under \"Rimefrost\"."
   },
-  "region_rimefrost_title": "Rimefrost",
-  "@region_rimefrost_title": {
+  "region.rimefrost.title": "Rimefrost",
+  "@region.rimefrost.title": {
     "description": "Region banner title of the place \"rimefrost\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_saltgrass_subtitle": "Sea and Salt",
-  "@region_saltgrass_subtitle": {
+  "region.saltgrass.subtitle": "Sea and Salt",
+  "@region.saltgrass.subtitle": {
     "description": "Region banner subtitle under \"Saltgrass Strand\"."
   },
-  "region_saltgrass_title": "Saltgrass Strand",
-  "@region_saltgrass_title": {
+  "region.saltgrass.title": "Saltgrass Strand",
+  "@region.saltgrass.title": {
     "description": "Region banner title of the place \"saltgrass\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_sorrowfen_subtitle": "Still Water",
-  "@region_sorrowfen_subtitle": {
+  "region.sorrowfen.subtitle": "Still Water",
+  "@region.sorrowfen.subtitle": {
     "description": "Region banner subtitle under \"Sorrowfen\"."
   },
-  "region_sorrowfen_title": "Sorrowfen",
-  "@region_sorrowfen_title": {
+  "region.sorrowfen.title": "Sorrowfen",
+  "@region.sorrowfen.title": {
     "description": "Region banner title of the place \"sorrowfen\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_southgate_subtitle": "Coin and Steel",
-  "@region_southgate_subtitle": {
+  "region.southgate.subtitle": "Coin and Steel",
+  "@region.southgate.subtitle": {
     "description": "Region banner subtitle under \"Southgate Sprawl\"."
   },
-  "region_southgate_title": "Southgate Sprawl",
-  "@region_southgate_title": {
+  "region.southgate.title": "Southgate Sprawl",
+  "@region.southgate.title": {
     "description": "Region banner title of the place \"southgate\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_sunscar_subtitle": "Road's End",
-  "@region_sunscar_subtitle": {
+  "region.sunscar.subtitle": "Road's End",
+  "@region.sunscar.subtitle": {
     "description": "Region banner subtitle under \"The Sunscar\"."
   },
-  "region_sunscar_title": "The Sunscar",
-  "@region_sunscar_title": {
+  "region.sunscar.title": "The Sunscar",
+  "@region.sunscar.title": {
     "description": "Region banner title of the place \"sunscar\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_umberwood_subtitle": "The Frontline",
-  "@region_umberwood_subtitle": {
+  "region.umberwood.subtitle": "The Frontline",
+  "@region.umberwood.subtitle": {
     "description": "Region banner subtitle under \"The Umberwood\"."
   },
-  "region_umberwood_title": "The Umberwood",
-  "@region_umberwood_title": {
+  "region.umberwood.title": "The Umberwood",
+  "@region.umberwood.title": {
     "description": "Region banner title of the place \"umberwood\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_witherwood_subtitle": "Root to Rot",
-  "@region_witherwood_subtitle": {
+  "region.witherwood.subtitle": "Root to Rot",
+  "@region.witherwood.subtitle": {
     "description": "Region banner subtitle under \"The Witherwood\"."
   },
-  "region_witherwood_title": "The Witherwood",
-  "@region_witherwood_title": {
+  "region.witherwood.title": "The Witherwood",
+  "@region.witherwood.title": {
     "description": "Region banner title of the place \"witherwood\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_wreckers_bluff_subtitle": "Wind and Wreckage",
-  "@region_wreckers_bluff_subtitle": {
+  "region.wreckers-bluff.subtitle": "Wind and Wreckage",
+  "@region.wreckers-bluff.subtitle": {
     "description": "Region banner subtitle under \"Wrecker's Bluff\"."
   },
-  "region_wreckers_bluff_title": "Wrecker's Bluff",
-  "@region_wreckers_bluff_title": {
+  "region.wreckers-bluff.title": "Wrecker's Bluff",
+  "@region.wreckers-bluff.title": {
     "description": "Region banner title of the place \"wreckers-bluff\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region_wyrmhold_subtitle": "The Dragon's Throne",
-  "@region_wyrmhold_subtitle": {
+  "region.wyrmhold.subtitle": "The Dragon's Throne",
+  "@region.wyrmhold.subtitle": {
     "description": "Region banner subtitle under \"Mount Wyrmhold\"."
   },
-  "region_wyrmhold_title": "Mount Wyrmhold",
-  "@region_wyrmhold_title": {
+  "region.wyrmhold.title": "Mount Wyrmhold",
+  "@region.wyrmhold.title": {
     "description": "Region banner title of the place \"wyrmhold\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "zone_barn_name": "Barn",
-  "@zone_barn_name": {
+  "zone.barn.name": "Barn",
+  "@zone.barn.name": {
     "description": "Name of the zone \"barn\", shown on the crossing curtain when no region names the arrival point."
   },
-  "zone_koboldCave_name": "Underworld",
-  "@zone_koboldCave_name": {
+  "zone.koboldCave.name": "Underworld",
+  "@zone.koboldCave.name": {
     "description": "Name of the zone \"koboldCave\", shown on the crossing curtain when no region names the arrival point."
   },
-  "zone_tunnel_name": "Tunnel",
-  "@zone_tunnel_name": {
+  "zone.tunnel.name": "Tunnel",
+  "@zone.tunnel.name": {
     "description": "Name of the zone \"tunnel\", shown on the crossing curtain when no region names the arrival point."
   },
-  "zone_underworld_name": "Underworld",
-  "@zone_underworld_name": {
+  "zone.underworld.name": "Underworld",
+  "@zone.underworld.name": {
     "description": "Name of the zone \"underworld\", shown on the crossing curtain when no region names the arrival point."
   },
-  "zone_world_name": "World",
-  "@zone_world_name": {
+  "zone.world.name": "World",
+  "@zone.world.name": {
     "description": "Name of the zone \"world\", shown on the crossing curtain when no region names the arrival point."
   }
 }
