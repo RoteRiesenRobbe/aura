@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-12, the effect types round 2 C4-C7 wrap: the C3 charge entry fell off the cap of three and moved here verbatim. Its plan is archived: `docs/archive/plan-effect-types-round-2.md`.)*
+
+- **Prior: EFFECT TYPES ROUND 2 C3, charge + the rush glide** ✅ 2026-10-07 `d9a0b2ac` (ledger: `docs/archive/plan-effect-types-round-2.md` §6 C3, §10): ⭐ `charge` dashes to touching the nearest enemy (dash's wall probe, shared); later effects fire from the landing; none in range refuses the cast. ⭐ PO: the look is cosmetic: visual kind `rush` replays the one-tick jump on the token (the lunge's seam, `GameObject.recentJumpFrom`); the stun lands ~0.2 s before the token arrives. It charges turnips too (PO 2026-10-11: fine; look passed). **Schema: DB/wire/conf NONE.** Verified: Go bar the known prop pin · vitest 1579/0 · `c3-charge.mjs` 6/6 (debug).
+
 - **Prior: EFFECT TYPES ROUND 2 C0 + C1, the wider wire and stat buffs on others** ✅ 2026-10-07 C1 `4df74931` · C0 `25668fd7` (ledger: same plan §6 C0/C1): ⭐ `applied_effects` ushort, `EffectKind` uint, `OwnEffect` kept at 24 bytes by reordering. ⭐ `stat_aura` + `instant_stat` buff or debuff `damageDealt` / `damageReduction` / `critChance` / `threat` on others (sign picks the side); every read goes through `model.StatBuffable.EffectiveStats()`. **Schema: wire YES, DB/conf NONE.** Verified: vitest 1567/0 · `c1-stat-buffs.mjs` 4/4 · `buff-tray.mjs` 22/22.
 
 *(2026-10-11, the quest-giver markers wrap: the effect types round 2 C0 + C1 entry fell off the cap of three and moved here verbatim. Its plan is live: `docs/plan-effect-types-round-2.md`, C4-C7 next.)*

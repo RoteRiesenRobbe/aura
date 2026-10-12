@@ -1,5 +1,5 @@
 // c3-charge.mjs: the charge effect type at the game surface
-// (docs/plan-effect-types-round-2.md C3), with the example skill Charge
+// (docs/archive/plan-effect-types-round-2.md C3), with the example skill Charge
 // (a charge to the nearest enemy + a 1 s stun):
 //
 //   1  with nothing in range the press is REFUSED: the "No valid target"

@@ -1,5 +1,5 @@
 // c2-thorns.mjs: thorns on others at the game surface
-// (docs/plan-effect-types-round-2.md C2), with the example skill Thorns
+// (docs/archive/plan-effect-types-round-2.md C2), with the example skill Thorns
 // (retaliate_burst, the caster and every ally in 4 u) and Retribution
 // (the shipped self-only form) as the regression leg:
 //

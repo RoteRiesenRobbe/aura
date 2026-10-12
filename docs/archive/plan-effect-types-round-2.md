@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4-C7 BUILT 2026-10-11** (in-game owed, one combined pass). D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4-C7 BUILT 2026-10-11, PO-passed 2026-10-12 in the combined in-game pass** (C7's linger fix `665dd08b`). **✅ COMPLETE + archived 2026-10-12**; harness `c4-c7-effects.mjs` (§10). D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -686,16 +686,34 @@ None blocking. Raised at execution if they come up:
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-08 `fe298f70` (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
-| C4 | Empower next cast | +1 kind | ✅ 2026-10-11 (see §6 C4 "As built"), in-game owed |
-| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip, +1 rejection reason | ✅ 2026-10-11 (see §6 C5 "As built"), in-game owed |
-| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | ✅ 2026-10-11 (see §6 C6 "As built"), in-game owed |
-| C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 (see §6 C7 "As built"), in-game owed |
+| C4 | Empower next cast | +1 kind | ✅ 2026-10-11 `3361f81c` (see §6 C4 "As built"), PO-passed 2026-10-12 |
+| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip, +1 rejection reason | ✅ 2026-10-11 `e1ec7a95` (see §6 C5 "As built"), PO-passed 2026-10-12 |
+| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | ✅ 2026-10-11 `0e40e04b` (see §6 C6 "As built"), PO-passed 2026-10-12 |
+| C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 `c5b945f6` + linger fix `665dd08b` (see §6 C7 "As built"), PO-passed 2026-10-12 |
 
 C4-C7 were built in one session (PO 2026-10-11: build all four, test them
 together). Owed: the PO's combined in-game pass, then ONE headless harness
 covering C4-C7 written after the verdict, so placeholder changes do not
 rewrite it. Re-run before handover (2026-10-11): `c2-player-cc.mjs` 22 PASS
 + the documented DR INCONCLUSIVE, `buff-tray.mjs` 22/22, `c3-charge.mjs` 6/6.
+
+⚑ **C4-C7 closed 2026-10-12.** The PO's combined pass ran in two sittings:
+the first (2026-10-11) found the totem burst drew nothing, fixed by the linger
+(§6 C7, `665dd08b`, with the 3 s / 45 damage retune and the "When it ends"
+tooltip); the second (2026-10-12) signed off all four chunks. Verified at
+`665dd08b`: Go bar the known world prop pin, vitest 1621/0 + typecheck.
+The harness `.claude/skills/verify/c4-c7-effects.mjs` (two clients, debug
+zones) was written after the verdict: empower circle, empower survives its
+own cast, Vanish's Stealth circle, Vanish spends the empower, own token at
+alpha 0.4, the second client sees it at 0.4, the totem's burst `wave`, the
+Fear pip on a mob, the BroodScreech's Fear circle on a player, and "Feared"
+on a press. Final runs 10/10 and 9/10 + 1 INCONCLUSIVE; over seven runs the
+Terrify leg was INCONCLUSIVE three times (no refusal float: the boar off or
+the press lost). Two venue findings recorded in the script: a bare `GOD`
+only ever turns god mode ON (`GOD off` turns it off), and the BroodMother
+stands in a level-14/15 pack that kills a fresh character in ~2 s, so the
+fear legs max the second client's level first. The §8 questions (stealth
+alpha, mob charge) never came up; they stay open ideas, not owed work.
 
 Order: C0 first (C1, C2, C4-C6 need its room); C1 next (it builds the
 buff-kind template the rest copy); C2-C7 in any order. C3 and C7 need no wire
