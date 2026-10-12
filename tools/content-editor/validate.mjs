@@ -18,6 +18,7 @@ const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', '
 const CONDITIONS_MODES = ['all', 'any']; // mobs.ConditionModeAll/Any, hand-synced (plan-quest-dialogue.md L2)
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
 const QUEST_KINDS = ['offer_quest', 'advance_quest'];
+const QUEST_ID_PATTERN = /^[a-z0-9-]+$/; // quests.idPattern: a quest or stage id is a slug
 // The closed destination vocabulary of a travel_to grant (interaction.go
 // travelModes). `anchor` (underworld U3b, 2026-09-08) delivers to the zone
 // anchor named on the PLACEMENT (world.Spawn.Anchor); the grant's own `anchor`
@@ -133,6 +134,7 @@ export function validateQuest(quest, idx) {
 
   if (!quest.id) { err('quest without an id'); return errors; }
   const q = `quest "${quest.id}"`;
+  if (!QUEST_ID_PATTERN.test(quest.id)) err(`${q}: id must be a slug of a-z, 0-9 and '-' (e.g. "wolves-on-the-road")`);
   if (!quest.title) err(`${q}: missing title`);
   if (!Number.isInteger(quest.level) || quest.level < 1) err(`${q}: missing level (the target player level, 1 or more)`);
   if (!quest.stages || quest.stages.length === 0) { err(`${q}: no stages`); return errors; }
@@ -140,6 +142,7 @@ export function validateQuest(quest, idx) {
   const seen = new Set();
   for (const s of quest.stages) {
     if (!s.id) { err(`${q}: stage without an id`); continue; }
+    if (!QUEST_ID_PATTERN.test(s.id)) err(`${q}: stage id "${s.id}" must be a slug of a-z, 0-9 and '-' (e.g. "bring-it-back")`);
     if (seen.has(s.id)) err(`${q}: duplicate stage id "${s.id}"`);
     seen.add(s.id);
     if (!s.journal) err(`${q} stage "${s.id}": missing journal prose`);

@@ -197,7 +197,7 @@ func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing
 				for _, g := range opt.Grants {
 					switch g.Kind {
 					case mobs.GrantAdvanceQuest:
-						if g.Quest != q.ID || g.FromStage != "carry_word" {
+						if g.Quest != q.ID || g.FromStage != "carry-word" {
 							continue
 						}
 						l.toStage = g.ToStage
@@ -478,14 +478,14 @@ func TestContent_GrandfatherKnotsQuestsWalkEndToEnd(t *testing.T) {
 	require.NoError(t, l.Accept("the-sleeping-roots"))
 	l.NoteTalkedTo(id("StoneRoot")) // too early: it is the second leg's root
 	l.NoteTalkedTo(id("StreamRoot"))
-	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_one", "root_two"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back-one", "root-two"))
 
 	path, _, _ = l.Progress("the-sleeping-roots")
-	assert.Equal(t, "root_two", path[len(path)-1], "the early talk does not carry into the stone leg")
+	assert.Equal(t, "root-two", path[len(path)-1], "the early talk does not carry into the stone leg")
 	l.NoteTalkedTo(id("StoneRoot"))
-	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_two", "root_three"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back-two", "root-three"))
 	l.NoteTalkedTo(id("GladeRoot"))
-	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_three", "rooted"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back-three", "rooted"))
 
 	_, running, completed := l.Progress("the-sleeping-roots")
 	assert.False(t, running)
@@ -564,16 +564,16 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 
 	l.NoteKill(wolf.ID)
 	path, running, _ = l.Progress("wolves-on-the-road")
-	assert.Equal(t, []string{"thin", "carry_word"}, path, "the eighth kill advances off the counters alone")
+	assert.Equal(t, []string{"thin", "carry-word"}, path, "the eighth kill advances off the counters alone")
 	assert.True(t, running, "and stops at the dialogue stage, waiting for a turn-in row")
 
-	require.NoError(t, l.AdvanceDialogue("wolves-on-the-road", "carry_word", "told_militia"))
+	require.NoError(t, l.AdvanceDialogue("wolves-on-the-road", "carry-word", "told-militia"))
 	path, running, completed = l.Progress("wolves-on-the-road")
-	assert.Equal(t, []string{"thin", "carry_word", "told_militia"}, path, "the journal renders the path walked, not a position (L6)")
+	assert.Equal(t, []string{"thin", "carry-word", "told-militia"}, path, "the journal renders the path walked, not a position (L6)")
 	assert.False(t, running)
 	assert.True(t, completed)
 
-	assert.False(t, l.MatchesStage("wolves-on-the-road", "told_militia"),
+	assert.False(t, l.MatchesStage("wolves-on-the-road", "told-militia"),
 		"a completed quest must not still match its terminal stage, or the other leg's turn-in row stays clickable forever")
 	assert.True(t, l.MatchesStage("wolves-on-the-road", mobs.QuestStageCompleted))
 }

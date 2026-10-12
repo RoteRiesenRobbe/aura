@@ -6,10 +6,10 @@
     {
       "id": "cull",
       "objectives": [{ "kind": "kill", "species": "Kobold", "count": 6 }],
-      "next": "bring_it_back"
+      "next": "bring-it-back"
     },
     {
-      "id": "bring_it_back"
+      "id": "bring-it-back"
     },
     {
       "id": "lit"

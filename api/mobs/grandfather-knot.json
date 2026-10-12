@@ -77,8 +77,8 @@
                 "id": "hm-that-one-was-awake",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
-                "fromStage": "back_one",
-                "toStage": "root_two"
+                "fromStage": "back-one",
+                "toStage": "root-two"
               }
             ]
           },
@@ -89,8 +89,8 @@
                 "id": "was-it-warm-no-then",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
-                "fromStage": "back_two",
-                "toStage": "root_three"
+                "fromStage": "back-two",
+                "toStage": "root-three"
               }
             ]
           },
@@ -101,7 +101,7 @@
                 "id": "there-do-you-feel-it",
                 "kind": "advance_quest",
                 "quest": "the-sleeping-roots",
-                "fromStage": "back_three",
+                "fromStage": "back-three",
                 "toStage": "rooted"
               },
               {
@@ -204,7 +204,7 @@
           {
             "kind": "quest_at_stage",
             "quest": "the-sleeping-roots",
-            "stage": "root_one"
+            "stage": "root-one"
           }
         ],
         "lines": [
@@ -217,7 +217,7 @@
           {
             "kind": "quest_at_stage",
             "quest": "the-sleeping-roots",
-            "stage": "root_two"
+            "stage": "root-two"
           }
         ],
         "lines": [
@@ -230,7 +230,7 @@
           {
             "kind": "quest_at_stage",
             "quest": "the-sleeping-roots",
-            "stage": "root_three"
+            "stage": "root-three"
           }
         ],
         "lines": [

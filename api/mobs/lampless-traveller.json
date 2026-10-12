@@ -74,7 +74,7 @@
                 "stock": "good",
                 "kind": "advance_quest",
                 "quest": "the-lost-lamp",
-                "fromStage": "bring_it_back",
+                "fromStage": "bring-it-back",
                 "toStage": "lit"
               },
               {

@@ -1,21 +1,21 @@
 {
-  "_comment": "plan-quests.md C4, quest 3 of 4 — the kill verb, and D9's PROOF: one dialogue stage (carry_word) with TWO authored turn-in rows on two different NPCs, each walking to a DIFFERENT terminal stage with different journal text and a different reward. The branch is pure content — no code knows there is a choice. Geographically it is also the trade: the Shaman's fire sits by the road at (18, 6), the city gate at (62, 10) is most of the map further east, and the crier names both so the player chooses with written directions and no marker (GDD 8). Rewards: 400 XP either way, plus Taunt (militia) or Slow (shaman) — both drop-only before, so each leg is a real new source rather than a re-teach. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
+  "_comment": "plan-quests.md C4, quest 3 of 4 — the kill verb, and D9's PROOF: one dialogue stage (carry-word) with TWO authored turn-in rows on two different NPCs, each walking to a DIFFERENT terminal stage with different journal text and a different reward. The branch is pure content — no code knows there is a choice. Geographically it is also the trade: the Shaman's fire sits by the road at (18, 6), the city gate at (62, 10) is most of the map further east, and the crier names both so the player chooses with written directions and no marker (GDD 8). Rewards: 400 XP either way, plus Taunt (militia) or Slow (shaman) — both drop-only before, so each leg is a real new source rather than a re-teach. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "wolves-on-the-road",
   "level": 3,
   "stages": [
     {
       "id": "thin",
       "objectives": [{ "kind": "kill", "species": "Wolf", "count": 8 }],
-      "next": "carry_word"
+      "next": "carry-word"
     },
     {
-      "id": "carry_word"
+      "id": "carry-word"
     },
     {
-      "id": "told_militia"
+      "id": "told-militia"
     },
     {
-      "id": "told_shaman"
+      "id": "told-shaman"
     }
   ]
 }

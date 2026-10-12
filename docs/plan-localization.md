@@ -645,8 +645,11 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   verbatim (no `keyPart` mapping), so the hyphen collision below cannot
   happen; the duplicate-key finding stays as a plain guard. Slugs and shared
   phrase names are hyphenated (`ah-my-brothers-child-eliza`, `ask-teach`,
-  clash suffix `-2`). A few stage ids and the `talk_to` kind carry `_`
-  (`bring_it_back`): they are persisted ids and go in as authored. Key
+  clash suffix `-2`). Quest and stage ids are slugs (a-z, 0-9, `-`), enforced
+  at load since 2026-10-13 (PO, "saves don't matter yet"): the ten underscored
+  stage ids (`bring_it_back`, `root_one` ... `told_shaman`) were renamed, with
+  their keys. Only the objective kind `talk_to`, a code value, still puts a `_`
+  into a key (`quest.<id>.<stage>.talk_to.<NPC>.tracker`). Key
   characters: dot-separated parts of letters, digits, `-` and `_`, a letter
   first. The text below is the superseded ruling.
 - ~~**D29 - IDENTIFIER-SAFE keys**~~ (✅ **PO 2026-10-11**, §11 R-G2 option D;

@@ -369,13 +369,13 @@
     "description": "Quest title of \"the-lost-friend\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-lost-lamp.bring_it_back.journal": "The kobolds are dealt with; the Traveller waits at the tunnel mouth.",
-  "@quest.the-lost-lamp.bring_it_back.journal": {
-    "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"bring_it_back\": written in the player's voice, first person."
+  "quest.the-lost-lamp.bring-it-back.journal": "The kobolds are dealt with; the Traveller waits at the tunnel mouth.",
+  "@quest.the-lost-lamp.bring-it-back.journal": {
+    "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"bring-it-back\": written in the player's voice, first person."
   },
-  "quest.the-lost-lamp.bring_it_back.tracker": "Return to the Traveller",
-  "@quest.the-lost-lamp.bring_it_back.tracker": {
-    "description": "Tracker line of quest \"the-lost-lamp\", stage \"bring_it_back\": the one objective line shown under the quest title."
+  "quest.the-lost-lamp.bring-it-back.tracker": "Return to the Traveller",
+  "@quest.the-lost-lamp.bring-it-back.tracker": {
+    "description": "Tracker line of quest \"the-lost-lamp\", stage \"bring-it-back\": the one objective line shown under the quest title."
   },
   "quest.the-lost-lamp.cull.journal": "Kill 6 kobolds north of the tunnel.",
   "@quest.the-lost-lamp.cull.journal": {
@@ -423,53 +423,53 @@
     "description": "Quest title of \"the-millers-ring\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-sleeping-roots.back_one.journal": "The root by the stream is awake.",
-  "@quest.the-sleeping-roots.back_one.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_one\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.back-one.journal": "The root by the stream is awake.",
+  "@quest.the-sleeping-roots.back-one.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back-one\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.back_one.tracker": "Return to Grandfather Knot",
-  "@quest.the-sleeping-roots.back_one.tracker": {
-    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_one\": the one objective line shown under the quest title."
+  "quest.the-sleeping-roots.back-one.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back-one.tracker": {
+    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back-one\": the one objective line shown under the quest title."
   },
-  "quest.the-sleeping-roots.back_three.journal": "The last root is awake.",
-  "@quest.the-sleeping-roots.back_three.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_three\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.back-three.journal": "The last root is awake.",
+  "@quest.the-sleeping-roots.back-three.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back-three\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.back_three.tracker": "Return to Grandfather Knot",
-  "@quest.the-sleeping-roots.back_three.tracker": {
-    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_three\": the one objective line shown under the quest title."
+  "quest.the-sleeping-roots.back-three.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back-three.tracker": {
+    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back-three\": the one objective line shown under the quest title."
   },
-  "quest.the-sleeping-roots.back_two.journal": "The root by the stones is awake.",
-  "@quest.the-sleeping-roots.back_two.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back_two\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.back-two.journal": "The root by the stones is awake.",
+  "@quest.the-sleeping-roots.back-two.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"back-two\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.back_two.tracker": "Return to Grandfather Knot",
-  "@quest.the-sleeping-roots.back_two.tracker": {
-    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back_two\": the one objective line shown under the quest title."
+  "quest.the-sleeping-roots.back-two.tracker": "Return to Grandfather Knot",
+  "@quest.the-sleeping-roots.back-two.tracker": {
+    "description": "Tracker line of quest \"the-sleeping-roots\", stage \"back-two\": the one objective line shown under the quest title."
   },
-  "quest.the-sleeping-roots.root_one.journal": "Grandfather Knot's roots calm the treants of the Glimmerwood, but three of them have fallen asleep. Wake the root by the stream, west of him.",
-  "@quest.the-sleeping-roots.root_one.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_one\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.root-one.journal": "Grandfather Knot's roots calm the treants of the Glimmerwood, but three of them have fallen asleep. Wake the root by the stream, west of him.",
+  "@quest.the-sleeping-roots.root-one.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root-one\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.root_one.talk_to.StreamRoot.tracker": "Wake the root by the stream",
-  "@quest.the-sleeping-roots.root_one.talk_to.StreamRoot.tracker": {
-    "description": "Tracker line of one talk_to objective (Stream Root) in quest \"the-sleeping-roots\", stage \"root_one\". Write the whole line: articles, case and prepositions belong here (L8)."
+  "quest.the-sleeping-roots.root-one.talk_to.StreamRoot.tracker": "Wake the root by the stream",
+  "@quest.the-sleeping-roots.root-one.talk_to.StreamRoot.tracker": {
+    "description": "Tracker line of one talk_to objective (Stream Root) in quest \"the-sleeping-roots\", stage \"root-one\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest.the-sleeping-roots.root_three.journal": "Wake the last root, east of Grandfather Knot where the wisps gather.",
-  "@quest.the-sleeping-roots.root_three.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_three\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.root-three.journal": "Wake the last root, east of Grandfather Knot where the wisps gather.",
+  "@quest.the-sleeping-roots.root-three.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root-three\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.root_three.talk_to.GladeRoot.tracker": "Wake the last root",
-  "@quest.the-sleeping-roots.root_three.talk_to.GladeRoot.tracker": {
-    "description": "Tracker line of one talk_to objective (Glade Root) in quest \"the-sleeping-roots\", stage \"root_three\". Write the whole line: articles, case and prepositions belong here (L8)."
+  "quest.the-sleeping-roots.root-three.talk_to.GladeRoot.tracker": "Wake the last root",
+  "@quest.the-sleeping-roots.root-three.talk_to.GladeRoot.tracker": {
+    "description": "Tracker line of one talk_to objective (Glade Root) in quest \"the-sleeping-roots\", stage \"root-three\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest.the-sleeping-roots.root_two.journal": "Wake the root by the stones, south of Grandfather Knot.",
-  "@quest.the-sleeping-roots.root_two.journal": {
-    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root_two\": written in the player's voice, first person."
+  "quest.the-sleeping-roots.root-two.journal": "Wake the root by the stones, south of Grandfather Knot.",
+  "@quest.the-sleeping-roots.root-two.journal": {
+    "description": "Journal (diary) entry of quest \"the-sleeping-roots\", stage \"root-two\": written in the player's voice, first person."
   },
-  "quest.the-sleeping-roots.root_two.talk_to.StoneRoot.tracker": "Wake the root by the stones",
-  "@quest.the-sleeping-roots.root_two.talk_to.StoneRoot.tracker": {
-    "description": "Tracker line of one talk_to objective (Stone Root) in quest \"the-sleeping-roots\", stage \"root_two\". Write the whole line: articles, case and prepositions belong here (L8)."
+  "quest.the-sleeping-roots.root-two.talk_to.StoneRoot.tracker": "Wake the root by the stones",
+  "@quest.the-sleeping-roots.root-two.talk_to.StoneRoot.tracker": {
+    "description": "Tracker line of one talk_to objective (Stone Root) in quest \"the-sleeping-roots\", stage \"root-two\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
   "quest.the-sleeping-roots.rooted.journal": "Done. Learned Entangling Roots.",
   "@quest.the-sleeping-roots.rooted.journal": {
@@ -633,13 +633,13 @@
     "description": "Quest title of \"village-welcome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.wolves-on-the-road.carry_word.journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east, or the Shaman at his fire east along the road.",
-  "@quest.wolves-on-the-road.carry_word.journal": {
-    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"carry_word\": written in the player's voice, first person."
+  "quest.wolves-on-the-road.carry-word.journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east, or the Shaman at his fire east along the road.",
+  "@quest.wolves-on-the-road.carry-word.journal": {
+    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"carry-word\": written in the player's voice, first person."
   },
-  "quest.wolves-on-the-road.carry_word.tracker": "Report to the City Guard or the Shaman",
-  "@quest.wolves-on-the-road.carry_word.tracker": {
-    "description": "Tracker line of quest \"wolves-on-the-road\", stage \"carry_word\": the one objective line shown under the quest title."
+  "quest.wolves-on-the-road.carry-word.tracker": "Report to the City Guard or the Shaman",
+  "@quest.wolves-on-the-road.carry-word.tracker": {
+    "description": "Tracker line of quest \"wolves-on-the-road\", stage \"carry-word\": the one objective line shown under the quest title."
   },
   "quest.wolves-on-the-road.thin.journal": "Kill 8 wolves on the west road.",
   "@quest.wolves-on-the-road.thin.journal": {
@@ -658,12 +658,12 @@
     "description": "Quest title of \"wolves-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.wolves-on-the-road.told_militia.journal": "Done. Reported to the City Guard. Learned Taunt.",
-  "@quest.wolves-on-the-road.told_militia.journal": {
-    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told_militia\": written in the player's voice, first person."
+  "quest.wolves-on-the-road.told-militia.journal": "Done. Reported to the City Guard. Learned Taunt.",
+  "@quest.wolves-on-the-road.told-militia.journal": {
+    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told-militia\": written in the player's voice, first person."
   },
-  "quest.wolves-on-the-road.told_shaman.journal": "Done. Reported to the Shaman. Learned Slow.",
-  "@quest.wolves-on-the-road.told_shaman.journal": {
-    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told_shaman\": written in the player's voice, first person."
+  "quest.wolves-on-the-road.told-shaman.journal": "Done. Reported to the Shaman. Learned Slow.",
+  "@quest.wolves-on-the-road.told-shaman.journal": {
+    "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told-shaman\": written in the player's voice, first person."
   }
 }

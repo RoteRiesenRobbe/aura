@@ -1506,6 +1506,13 @@ giver's `!` and the quest's title are tinted by, with the mob nameplate's rule
 Aim it at the level the turn-in XP is priced for (the L9 half-level rule,
 `TestContent_QuestXPBudget`): a quest priced for L6 dire wolves is level 6.
 
+⭐ **Quest and stage ids are slugs**: lowercase letters, digits and `-`
+(`wolves-on-the-road`, `bring-it-back`), the rule region and area ids follow; the
+loader and the editor refuse anything else. Both go verbatim into the dotted
+text keys (`quest.<id>.<stage>.journal`), and a stage id is stored in every
+character's quest progress, so renaming one after release strands a quest
+mid-way for anyone standing on it.
+
 ### The stage graph
 
 A stage is one of exactly two shapes, and the loader enforces it:

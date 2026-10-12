@@ -318,7 +318,7 @@ func TestContent_TheCriersWolvesRowLastsTheHunt(t *testing.T) {
 	require.NoError(t, p.ledger.Accept("wolves-on-the-road"))
 	assert.True(t, shows(), "while the wolves are hunted")
 	p.ledger.Restore(quests.LedgerState{Quests: map[string]quests.Progress{
-		"wolves-on-the-road": {Path: []string{"thin", "carry_word"}, Running: true},
+		"wolves-on-the-road": {Path: []string{"thin", "carry-word"}, Running: true},
 	}})
 	assert.False(t, shows(), "once the word goes to the Guard or the Shaman")
 }

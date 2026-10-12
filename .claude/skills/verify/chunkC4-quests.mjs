@@ -673,7 +673,7 @@ try {
       'to walk it at the surface.');
   } else {
     check('C3 eight real wolf kills advance the cull off the counters',
-      hunted.entries[1] === prose('wolves-on-the-road', 'carry_word'), `entries=${JSON.stringify(hunted.entries)}`);
+      hunted.entries[1] === prose('wolves-on-the-road', 'carry-word'), `entries=${JSON.stringify(hunted.entries)}`);
     check('C4 ...and the carry stage shows its authored tracker (the choice, in the journal)',
       (hunted.objectives ?? []).some((o) => /Report to the City Guard or the Shaman/.test(o)),
       `objectives=${JSON.stringify(hunted.objectives)}`);
@@ -698,7 +698,7 @@ try {
     const doneDetail = await detailOf(titleOf('wolves-on-the-road'));
     check('C7 taking the militia leg completes the quest on ITS terminal stage, with its own diary entry',
       inList(done?.completed ?? [], titleOf('wolves-on-the-road'))
-      && doneDetail?.entries.slice(-1)[0] === prose('wolves-on-the-road', 'told_militia'),
+      && doneDetail?.entries.slice(-1)[0] === prose('wolves-on-the-road', 'told-militia'),
       `entries=${JSON.stringify(doneDetail?.entries)}`);
     check('C8 ...and pays the militia leg\'s own reward — Taunt, which the shaman leg does not teach',
       !bookBefore.some((r) => /taunt/i.test(r)) && bookAfter.some((r) => /taunt/i.test(r)),

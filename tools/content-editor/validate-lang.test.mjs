@@ -27,6 +27,15 @@ test('a kill or harvest objective counts a mob whose name has its plural (D24)',
   assert.match(messages(validateQuest(quest('Farmer'), idx)), /counts Farmer, whose name has no plural/);
 });
 
+test('quest and stage ids are slugs, as the Go loader requires (D29)', () => {
+  const quest = (id, stageId) => ({ id, title: 'Q', level: 1, stages: [{ id: stageId, journal: 'j' }] });
+  const idx = buildIndex([], [], []);
+  assert.doesNotMatch(messages(validateQuest(quest('lost-lamp', 'bring-it-back'), idx)), /slug/);
+  assert.match(messages(validateQuest(quest('lost_lamp', 's'), idx)), /quest "lost_lamp": id must be a slug/);
+  assert.match(messages(validateQuest(quest('q', 'bring_it_back'), idx)), /stage id "bring_it_back" must be a slug/);
+  assert.match(messages(validateQuest(quest('q', 'Report'), idx)), /stage id "Report" must be a slug/);
+});
+
 test('every dialogue string names its own slug or a shared phrase, its slug unique within the NPC (D27, D28)', () => {
   const npc = (lines, options = []) => ({ name: 'Farmer', interaction: { nodes: [{ id: 'root', lines, options }] } });
   assert.deepEqual(dialogueIdProblems(npc([{ id: 'hello', text: 'Hi' }, { stock: 'good', text: 'Good.' }])), []);

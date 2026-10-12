@@ -4,43 +4,43 @@
   "level": 14,
   "stages": [
     {
-      "id": "root_one",
+      "id": "root-one",
       "objectives": [
         {
           "kind": "talk_to",
           "npc": "StreamRoot"
         }
       ],
-      "next": "back_one"
+      "next": "back-one"
     },
     {
-      "id": "back_one"
+      "id": "back-one"
     },
     {
-      "id": "root_two",
+      "id": "root-two",
       "objectives": [
         {
           "kind": "talk_to",
           "npc": "StoneRoot"
         }
       ],
-      "next": "back_two"
+      "next": "back-two"
     },
     {
-      "id": "back_two"
+      "id": "back-two"
     },
     {
-      "id": "root_three",
+      "id": "root-three",
       "objectives": [
         {
           "kind": "talk_to",
           "npc": "GladeRoot"
         }
       ],
-      "next": "back_three"
+      "next": "back-three"
     },
     {
-      "id": "back_three"
+      "id": "back-three"
     },
     {
       "id": "rooted"

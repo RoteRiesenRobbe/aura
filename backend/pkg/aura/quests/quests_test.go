@@ -169,6 +169,13 @@ func TestLoad_Rejections(t *testing.T) {
 		"missing journal": `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "s"}]}`,
 		"duplicate stage id": `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "a"}, {"id": "s", "journal": "b"}]}`,
+		// Quest and stage ids are slugs, like region and area ids: both go
+		// verbatim into the dotted lang keys (plan-localization.md D29).
+		"quest id with an underscore": `{"id": "lost_lamp", "title": "Q", "level": 1, "stages": [{"id": "s", "journal": "j"}]}`,
+		"quest id with a dot":         `{"id": "lost.lamp", "title": "Q", "level": 1, "stages": [{"id": "s", "journal": "j"}]}`,
+		"stage id with an underscore": `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "bring_it_back", "journal": "j"}]}`,
+		"stage id with a capital":     `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "Report", "journal": "j"}]}`,
+		"stage id with a space":       `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "go home", "journal": "j"}]}`,
 		"unknown species": `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Ghost", "count": 1}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,

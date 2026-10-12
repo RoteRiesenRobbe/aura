@@ -539,7 +539,7 @@ if (!wolvesLoaded) {
         const line = lineOf(j);
         const n = Number(/^(\d+)\/8 wolves killed$/.exec(line)?.[1] ?? NaN);
         if (Number.isInteger(n) && n > startCount) return { line, n };
-        // 8/8 advances the stage: the counter line gives way to carry_word's
+        // 8/8 advances the stage: the counter line gives way to carry-word's
         // authored tracker (Q4), and the second diary entry is the proof.
         if (entriesOf(j).length >= 2) return { line: '(stage advanced)', n: 8 };
         await page.evaluate(() => document.activeElement?.blur());

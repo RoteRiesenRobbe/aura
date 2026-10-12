@@ -763,13 +763,13 @@ func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 const (
 	questID   = "pelts"
 	stageHunt = "hunt"
-	stageTurn = "turn_in"
+	stageTurn = "turn-in"
 	stageDone = "done"
 )
 
 // peltsQuest is the three-stage shape C4 authors: an objective stage, a dialogue
 // stage a turn-in row leaves, and a terminal stage. The edge is registered the way
-// quests.CrossValidate registers it at boot, so `turn_in` waits instead of
+// quests.CrossValidate registers it at boot, so `turn-in` waits instead of
 // completing on entry.
 func peltsQuest() *quests.QuestDefinition {
 	q := &quests.QuestDefinition{
@@ -816,7 +816,7 @@ func TestPresent_QuestOptionIsOneRow(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID))
 	p.ledger.NoteKill(3)
-	p.ledger.NoteKill(3) // waiting at turn_in, so the show-rule lets the row through
+	p.ledger.NoteKill(3) // waiting at turn-in, so the show-rule lets the row through
 	rows := rowsOf(t, present(in, p, noRows, noTravel), "root")
 
 	require.Len(t, rows, 1, "three grants, ONE row — the option is the atomic unit")
@@ -833,7 +833,7 @@ func TestPresent_QuestRowShownRegardlessOfRewardsAlreadyKnown(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID))
 	p.ledger.NoteKill(3)
-	p.ledger.NoteKill(3) // waiting at turn_in, so the edge is walkable
+	p.ledger.NoteKill(3) // waiting at turn-in, so the edge is walkable
 	p.sc.Discover(1)     // already knows the reward skill
 
 	rows := rowsOf(t, present(in, p, noRows, noTravel), "root")
@@ -1150,7 +1150,7 @@ func TestApplyGrant_TurnInAdvancesAndPaysOut(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID))
 	p.ledger.NoteKill(3)
-	p.ledger.NoteKill(3) // now waiting at turn_in
+	p.ledger.NoteKill(3) // now waiting at turn-in
 
 	reply, taught, ok := applyGrant(in, p, noRows, noTravel, "root", 0, 0)
 
@@ -1230,7 +1230,7 @@ func TestApplyGrant_RefusesATeachRewardAddressedDirectly(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID))
 	p.ledger.NoteKill(3)
-	p.ledger.NoteKill(3) // waiting at turn_in: the row itself would be takeable
+	p.ledger.NoteKill(3) // waiting at turn-in: the row itself would be takeable
 
 	_, taught, ok := applyGrant(in, p, noRows, noTravel, "root", 0, 1)
 

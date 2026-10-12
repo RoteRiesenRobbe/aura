@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -197,9 +198,18 @@ func NewRegistry(defs ...*QuestDefinition) (Registry, error) {
 	return r, nil
 }
 
+// idPattern is the slug a quest or stage id must be: lowercase letters, digits
+// and '-', the rule region and area ids follow (world.areaIDPattern). Both ids
+// go verbatim into the dotted lang keys (plan-localization.md D29), and a stage
+// id is persisted in the quest ledger, so a rename is a save migration.
+var idPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+
 func validateQuest(q *QuestDefinition) error {
 	if q.ID == "" {
 		return fmt.Errorf("quest without an id")
+	}
+	if !idPattern.MatchString(q.ID) {
+		return fmt.Errorf("quest %q: id must be a slug of a-z, 0-9 and '-' (e.g. \"wolves-on-the-road\")", q.ID)
 	}
 	if q.Title == "" {
 		return fmt.Errorf("quest %q: missing title", q.ID)
@@ -214,6 +224,9 @@ func validateQuest(q *QuestDefinition) error {
 	for _, s := range q.Stages {
 		if s.ID == "" {
 			return fmt.Errorf("quest %q: stage without an id", q.ID)
+		}
+		if !idPattern.MatchString(s.ID) {
+			return fmt.Errorf("quest %q: stage id %q must be a slug of a-z, 0-9 and '-' (e.g. \"bring-it-back\")", q.ID, s.ID)
 		}
 		if seen[s.ID] {
 			return fmt.Errorf("quest %q: duplicate stage id %q", q.ID, s.ID)

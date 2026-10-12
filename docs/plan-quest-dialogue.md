@@ -81,7 +81,7 @@ kinds, the same sentinels.
   to ask about it; the C3 walk test exempts it by name, beside the Knot.
 - **D18 (PO 2026-10-07) - a foreign turn-in stays on root.** The City Guard's
   and the Shaman's `wolves-on-the-road` turn-ins (neither gave the quest) keep
-  the manual's rule and sit directly on root, shown only at `carry_word`. Only
+  the manual's rule and sit directly on root, shown only at `carry-word`. Only
   the Town Crier, the giver, gets a progress row. This amends §6's "progress
   rows on the City Guard and the Shaman".
 - **D19 (PO 2026-10-07) - "Farmer" becomes "Reinhard" in C3.** The Hermit's
@@ -442,7 +442,7 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   `TestContent_EveryQuestTurnsInBehindAProgressRow`,
   `TestContent_EveryQuestOfferRowLeavesWithTheAccept` and
   `TestContent_TheCriersWolvesRowLastsTheHunt` (mutation-checked: the Crier's
-  gate on `carry_word` → red), stages placed through `Ledger.Restore`.
+  gate on `carry-word` → red), stages placed through `Ledger.Restore`.
   Harnesses: `chunkC4-quests`, `c1-kill-quests`, `c2-kill-quests`,
   `remains-lost-friend` click the progress row before each turn-in and assert
   the root swap. ⚑ **Fixed on the way:** chunkC4's seven `undefined` journal

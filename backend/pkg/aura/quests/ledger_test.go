@@ -42,18 +42,18 @@ func branchQuest() *QuestDefinition {
 
 // lampQuest is the-lost-lamp's shape: an objective stage that walks into a
 // dialogue turn-in stage, which is the only authored quest today that rests on
-// TWO running stages. The dialogue edge is what keeps bring_it_back from being
+// TWO running stages. The dialogue edge is what keeps bring-it-back from being
 // terminal, exactly as the interaction loader registers it at boot.
 func lampQuest() *QuestDefinition {
 	q := &QuestDefinition{
 		ID: "lamp", Title: "The Lost Lamp", Level: 1,
 		Stages: []*Stage{
-			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "bring_it_back"},
-			{ID: "bring_it_back", Journal: "Bring it back."},
+			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "bring-it-back"},
+			{ID: "bring-it-back", Journal: "Bring it back."},
 			{ID: "lit", Journal: "Lit."},
 		},
 	}
-	q.NoteDialogueEdgeFrom("bring_it_back")
+	q.NoteDialogueEdgeFrom("bring-it-back")
 	return q
 }
 
@@ -443,11 +443,11 @@ func TestLedger_MatchesStage_RunningSpansEveryStage(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		l.NoteKill(wolf)
 	}
-	require.True(t, l.MatchesStage("lamp", "bring_it_back"), "the counters walked it forward")
+	require.True(t, l.MatchesStage("lamp", "bring-it-back"), "the counters walked it forward")
 	assert.True(t, l.MatchesStage("lamp", mobs.QuestStageRunning),
 		"still running one stage later — a per-stage gate would have gone dark here")
 
-	require.NoError(t, l.AdvanceDialogue("lamp", "bring_it_back", "lit"))
+	require.NoError(t, l.AdvanceDialogue("lamp", "bring-it-back", "lit"))
 	assert.False(t, l.MatchesStage("lamp", mobs.QuestStageRunning), "the turn-in ends it")
 }
 
@@ -1019,14 +1019,14 @@ func TestLedger_AwaitedStageIsTheRunningObjectiveStagesNext(t *testing.T) {
 	assert.Equal(t, "", l.AwaitedStage("lamp"), "not started")
 
 	require.NoError(t, l.Accept("lamp"))
-	assert.Equal(t, "bring_it_back", l.AwaitedStage("lamp"), "hunting: the turn-in stage is what it waits for")
+	assert.Equal(t, "bring-it-back", l.AwaitedStage("lamp"), "hunting: the turn-in stage is what it waits for")
 
 	for range 3 {
 		l.NoteKill(wolf)
 	}
 	assert.Equal(t, "", l.AwaitedStage("lamp"), "at the dialogue stage: the turn-in is takeable, nothing is awaited")
 
-	require.NoError(t, l.AdvanceDialogue("lamp", "bring_it_back", "lit"))
+	require.NoError(t, l.AdvanceDialogue("lamp", "bring-it-back", "lit"))
 	assert.Equal(t, "", l.AwaitedStage("lamp"), "completed")
 	assert.Equal(t, "", NewLedger(nil).AwaitedStage("lamp"))
 }
