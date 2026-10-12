@@ -1,6 +1,6 @@
 # Plan - Localization (multi-language text; English + German first)
 
-**Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough, then detection on. Six chunks (C0a, C0b, C1–C4).
+**Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
@@ -1423,7 +1423,10 @@ tooltip fragments).
     counted mob authors its plural) stands.
   - ✅ **Q3 RULED 2026-10-07 (PO): detection ships only when German is
     complete.** Was: when detection ships (D2 amendment b): at C4's exit
-    (recommended), or from C0a as D2 is written.
+    (recommended), or from C0a as D2 is written. ⭐ **Detection switched ON
+    2026-10-13 (PO)** (`Locale.ts` `DETECTION_ENABLED`): `aurad -lang-status`
+    reports German with 0 missing / 0 outdated and the allowlist is empty;
+    the PO's German review and playthrough are still owed.
   - ✅ **Q4 RULED 2026-10-07 (PO): yes, German in the same change.** Was:
     after launch (D23): an English content edit carries its German in
     the same change (recommended), or English first with a German backlog.

@@ -20,11 +20,11 @@ export const PSEUDO_LOCALE = 'en-XA';
 export const STORAGE_KEY = 'aura.locale';
 
 /**
- * ⛔ Q3 (PO 2026-10-07): browser-language detection turns on only when German
- * is complete (C4's exit check: a full German playthrough and an empty
- * allowlist). Until then German is opt-in through the settings toggle.
+ * Browser-language detection (Q3): ON since 2026-10-13 (PO). A language chosen
+ * in the settings still wins; with none chosen, the first supported language
+ * in `navigator.languages` is used, else English.
  */
-export const DETECTION_ENABLED = false;
+export const DETECTION_ENABLED = true;
 
 export type Messages = Record<string, string>;
 
