@@ -1,5 +1,5 @@
 {
-  "_comment": "BurstTotem's death trigger: fire damage on every enemy within 3 units of where the totem ends. All values placeholder.",
+  "_comment": "BurstTotem's death trigger: fire damage on every enemy within 3 units of where the totem ends; a summon takes its owner's level, so it scales like the owner's own damage. All values placeholder.",
   "id": 163,
   "name": "TotemBurst",
   "category": "cooldown",
@@ -7,14 +7,14 @@
   "cooldownTicks": 30,
   "visual": {
     "layers": [
-      { "kind": "beam", "on": "hit", "curve": "flash", "ms": 260, "width": 5 }
+      { "kind": "wave", "on": "fired", "ms": 450, "count": 2 }
     ]
   },
   "effects": [
     {
       "type": "instant_damage",
       "radius": 3,
-      "damageHP": 20,
+      "damageHP": 45,
       "damageTags": ["fire"],
       "targetsEnemies": true,
       "selector": "all"

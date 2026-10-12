@@ -16,15 +16,17 @@ import (
 func onDeathSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
-		"dodo-aura.json": {Data: testAuraSkillJSON},
-		"death-burst.json": {Data: []byte(`{
-		  "id": 102, "name": "DeathBurst", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 30,
-		  "effects": [{"type": "instant_damage", "radius": 2, "damageHP": 5, "targetsEnemies": true, "selector": "all"}]
-		}`)},
+		"dodo-aura.json":   {Data: testAuraSkillJSON},
+		"death-burst.json": {Data: deathBurstSkillJSON},
 	}, nil)
 	require.NoError(t, err)
 	return r
 }
+
+var deathBurstSkillJSON = []byte(`{
+  "id": 102, "name": "DeathBurst", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 30,
+  "effects": [{"type": "instant_damage", "radius": 2, "damageHP": 5, "targetsEnemies": true, "selector": "all"}]
+}`)
 
 func mapOnDeath(t *testing.T, onDeath string) (*MobDefinition, error) {
 	t.Helper()

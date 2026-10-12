@@ -77,6 +77,43 @@ func TestRegistryFromFS_SpawnEffectCarriesSummonLoadout(t *testing.T) {
 	assert.Contains(t, string(marshaled), `"summonLoadout":[{"skillId":101,"level":2}]`)
 }
 
+// A summon's death triggers ride the spawn payload beside its loadout
+// (plan-effect-types-round-2.md C7 follow-up, PO 2026-10-11), so the tooltip
+// can say what a bursting totem does when it ends.
+func TestRegistryFromFS_SpawnEffectCarriesSummonOnDeath(t *testing.T) {
+	summonJSON := []byte(`{
+	  "id": 23, "name": "SummonBurster", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+	  "effects": [{"type": "spawn", "spawnMob": "Burster", "ttlTicks": 90}]
+	}`)
+	sr, err := skills.RegistryFromFS(fstest.MapFS{
+		"dodo-aura.json":   {Data: testAuraSkillJSON},
+		"death-burst.json": {Data: deathBurstSkillJSON},
+		"summon.json":      {Data: summonJSON},
+	}, nil)
+	require.NoError(t, err)
+
+	_, err = RegistryFromFS(sr, nil, testCurve(), fstest.MapFS{
+		"burster.json": {Data: []byte(`{
+		  "id": 9, "name": "Burster", "type": "MOB", "entityType": "Totem",
+		  "body": {"radius": 0.25, "aggroRadius": 0.1},
+		  "onDeath": [{"skillName": "DeathBurst", "level": 2}]
+		}`)},
+	})
+	require.NoError(t, err)
+
+	summon, err := sr.GetByName("SummonBurster")
+	require.NoError(t, err)
+	spawn := summon.Effects[0].Spawn
+	assert.Empty(t, spawn.SummonLoadout, "no loadout: the burst is not an aura")
+	require.Len(t, spawn.SummonOnDeath, 1)
+	assert.Equal(t, skills.SkillID(102), spawn.SummonOnDeath[0].SkillID)
+	assert.Equal(t, 2, spawn.SummonOnDeath[0].Level)
+
+	marshaled, err := json.Marshal(spawn)
+	require.NoError(t, err)
+	assert.Contains(t, string(marshaled), `"summonOnDeath":[{"skillId":102,"level":2}]`)
+}
+
 // --- the follows rule (plan-summon-follows.md §3.2) ---
 
 // followsFixture builds a skill registry with one spawn effect and a mob

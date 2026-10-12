@@ -1031,6 +1031,11 @@ type SpawnParams struct {
 	// authored levels are a floor: the spawn site raises them to the summon
 	// skill's level (RaiseLoadoutLevels).
 	SummonLoadout []SummonSkillRef `json:"summonLoadout,omitempty"`
+	// SummonOnDeath is the summon's death triggers, attached beside the
+	// loadout for the same reason (plan-effect-types-round-2.md C7): the
+	// tooltip says what a bursting totem does when it ends. Authored levels,
+	// never raised: a death trigger fires at the level its mob file names.
+	SummonOnDeath []SummonSkillRef `json:"summonOnDeath,omitempty"`
 }
 
 // SummonSkillRef points a spawn payload at one of its summon's skills by

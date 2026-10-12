@@ -79,6 +79,8 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 			require.NoError(t, err, "skill %q: spawnMob %q", sk.Name, effect.Spawn.MobName)
 			assert.Len(t, effect.Spawn.SummonLoadout, len(summoned.Skills),
 				"skill %q: spawn %q must carry the summon's loadout", sk.Name, effect.Spawn.MobName)
+			assert.Len(t, effect.Spawn.SummonOnDeath, len(summoned.OnDeath),
+				"skill %q: spawn %q must carry the summon's death triggers", sk.Name, effect.Spawn.MobName)
 			if len(effect.Spawn.SummonLoadout) > 0 {
 				withLoadout++
 			}

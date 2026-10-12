@@ -185,8 +185,9 @@ faction and skills without a schema append (see §5).
      running out included, but not when a summon is retired because its owner
      left. No cost, no cooldown, no in-combat gate; kill credit is unchanged.
      A `spawn` from a death needs a `ttlTicks` like any spawn, and the adds
-     belong to nobody. ⚑ The mob is gone before the snapshot, so a `fired`
-     layer on the trigger skill never draws (`api/mobs/brood-mother.json`,
+     belong to nobody. A mob whose triggers fired stays one more snapshot,
+     so a `fired` layer on the trigger skill draws at the spot it died, with
+     hit marks and the owner's damage numbers (`api/mobs/brood-mother.json`,
      `burst-totem.json`).
 2. **`api/schema/server.fbs`** — add the mob's name to the `EntityType` enum.
    **Append at the end** to keep the wire compatible.

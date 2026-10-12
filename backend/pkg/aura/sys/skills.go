@@ -202,6 +202,15 @@ func (s *SkillSystem) Update(dt float32) {
 }
 
 func (s *SkillSystem) processEntity(e skillEntity) {
+	// A dead mob acts no more. It can stay in the world for a tick after its
+	// death (a death trigger's linger, plan-effect-types-round-2.md C7), and
+	// nothing it carries may tick or fire meanwhile.
+	if _, mob := e.(model.MobEntity); mob {
+		if h, ok := e.(healthRatioer); ok && h.HealthRatio() == 0 {
+			return
+		}
+	}
+
 	// Acting buff payloads first: dots on this entity deal their due damage and
 	// hots restore their due healing (effect foundations Step 2, HoT chunk 3).
 	// Pure buff AGING stays on ResetTickNumbers at tick start; acting lives here
@@ -2329,20 +2338,27 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 // so its collider still answers the queries (L6: nothing on this path may
 // refuse a caster at 0 HP). A despawned mob names nothing (D28).
 //
-// ⚑ No FIRED event is stamped: the mob leaves the world this tick, before the
-// snapshot that would carry it. The victims' own hit marks are the look.
-func (s *SkillSystem) FireOnDeath(m model.MobEntity) {
+// Each trigger stamps its FIRED event, and the report says whether anything
+// fired: the sweep then keeps the mob for one more snapshot (PO 2026-10-11),
+// so the client still holds its position and owner when these events arrive
+// and the hit marks, the authored look and the owner's numbers all draw.
+func (s *SkillSystem) FireOnDeath(m model.MobEntity) bool {
 	d, ok := m.(deathTriggered)
 	if !ok {
-		return
+		return false
 	}
 	e, ok := m.(skillEntity)
 	if !ok {
-		return
+		return false
 	}
+	fired := false
 	for _, ms := range d.OnDeathSkills() {
-		s.fireCooldown(e, &skills.EquippedSkill{Def: ms.Def, Level: ms.Level})
+		es := &skills.EquippedSkill{Def: ms.Def, Level: ms.Level}
+		s.fireCooldown(e, es)
+		noteCooldownCast(e, es)
+		fired = true
 	}
+	return fired
 }
 
 // deathTriggered is a mob that may carry death triggers (C7).

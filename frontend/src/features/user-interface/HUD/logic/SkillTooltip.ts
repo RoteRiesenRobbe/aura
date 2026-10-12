@@ -18,6 +18,7 @@ import {
     DamageParams,
     SkillDefinition,
     SkillEffect,
+    SummonSkillRef,
     getLocalPlayerCostFactor,
     getLocalPlayerDamageFactor,
     getLocalPlayerMaxHealth,
@@ -904,18 +905,34 @@ const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 // previewMax is pinned to the level so no nested "→" renders — the loadout
 // levels only move through the summon skill, whose own lines keep the preview.
 // An unresolvable ref (catalog gap) degrades to the bare Summons line.
+//
+// The summon's death triggers (plan-effect-types-round-2.md C7) follow under a
+// "When it ends:" line, at their AUTHORED levels: the server fires them at the
+// level the mob file names and never raises them.
 function summonLoadoutLines(spawn: SkillEffect['spawn'], skillLevel: number, powerScale: number,
                             playerLevel: number,
                             resolveSkill: (id: number) => SkillDefinition | undefined): TooltipLine[] {
-    const out: TooltipLine[] = [];
     const summonPower = playerLevel > 0 ? scaled(1, spawn.powerPerOwnerLevel, playerLevel) : 1;
-    for (const ref of spawn.summonLoadout ?? []) {
+    const out = summonSkillLines(spawn.summonLoadout ?? [], skillLevel, powerScale * summonPower, resolveSkill);
+    const onDeath = summonSkillLines(spawn.summonOnDeath ?? [], 0, powerScale * summonPower, resolveSkill);
+    if (onDeath.length > 0) {
+        out.push({text: '↳ When it ends:'}, ...onDeath);
+    }
+    return out;
+}
+
+// summonSkillLines renders summon skill refs through effectBlock. raiseTo is
+// the summon skill's level the loadout is raised to (0 = authored level only).
+function summonSkillLines(refs: SummonSkillRef[], raiseTo: number, scale: number,
+                          resolveSkill: (id: number) => SkillDefinition | undefined): TooltipLine[] {
+    const out: TooltipLine[] = [];
+    for (const ref of refs) {
         const def = resolveSkill(ref.skillId);
         if (!def) continue;
-        const level = Math.max(ref.level, Math.min(skillLevel, def.maxLevel));
+        const level = Math.max(ref.level, Math.min(raiseTo, def.maxLevel));
         for (const effect of def.effects) {
             if (effect.type === 'spawn') continue; // a summon summoning: render one level deep only
-            const block = effectBlock(effect, level, level, powerScale * summonPower, false, false);
+            const block = effectBlock(effect, level, level, scale, false, false);
             for (const line of block.lines) {
                 out.push({text: `↳ ${line.text}`, labelColor: line.labelColor});
             }

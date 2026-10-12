@@ -80,14 +80,19 @@ type MobSystem struct {
 	// deathTriggers fires a dying mob's onDeath skills (C7); the SkillSystem in
 	// production, nil in tests that do not need it.
 	deathTriggers DeathTriggers
+	// lingering are the dead mobs whose death triggers fired last tick: kept for
+	// that tick's snapshot so the client could draw the burst from them, removed
+	// at the start of this one (PO 2026-10-11).
+	lingering []model.MobEntity
 
 	initialized bool
 }
 
 // DeathTriggers is the SkillSystem as the death sweep sees it
-// (plan-effect-types-round-2.md C7, D27).
+// (plan-effect-types-round-2.md C7, D27). The report says whether any trigger
+// fired, which is what makes the mob linger a tick.
 type DeathTriggers interface {
-	FireOnDeath(m model.MobEntity)
+	FireOnDeath(m model.MobEntity) bool
 }
 
 // SetDeathTriggers wires the death-trigger seam, once at boot.
@@ -205,6 +210,12 @@ func (n *MobSystem) Update(dt float32) {
 	// while no seam is installed.
 	n.wakePositions = n.collectWakePositions(n.wakePositions[:0])
 
+	// Last tick's lingering dead leave first, before anything iterates n.mobs.
+	for _, mob := range n.lingering {
+		n.game.RemoveEntity(mob.Basic())
+	}
+	n.lingering = n.lingering[:0]
+
 	// Update every mob, collecting the dead. Removal is deferred until after the
 	// loop: game.RemoveEntity → MobSystem.Remove shifts n.mobs' backing array
 	// synchronously, so removing inside `range n.mobs` would skip the survivor
@@ -223,11 +234,14 @@ func (n *MobSystem) Update(dt float32) {
 	}
 	for _, mob := range dead {
 		// Death triggers first, while the mob is still in the space and the
-		// SkillSystem (plan-effect-types-round-2.md C7, D27).
-		if n.deathTriggers != nil {
-			n.deathTriggers.FireOnDeath(mob)
-		}
+		// SkillSystem (plan-effect-types-round-2.md C7, D27). A mob whose
+		// triggers fired stays for this tick's snapshot and leaves next tick.
+		fired := n.deathTriggers != nil && n.deathTriggers.FireOnDeath(mob)
 		n.onMobDeath(mob)
+		if fired {
+			n.lingering = append(n.lingering, mob)
+			continue
+		}
 		n.game.RemoveEntity(mob.Basic())
 	}
 

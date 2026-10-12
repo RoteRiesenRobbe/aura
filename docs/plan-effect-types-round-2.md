@@ -562,17 +562,32 @@ does not compile.
     dead mob. L6 pinned: a real 0-HP mob's burst lands on a real player.
     L5 pinned: a mob-cast spawn binds no owner, so the adds survive the
     parent's removal; they enlist on its side.
-  - No FIRED event is stamped: the mob leaves the world before the snapshot,
-    so a `fired` layer on a death skill never draws. The victims' hit marks
-    are the look. ⚑ Open for the PO if a death needs its own visual.
+  - The look (PO 2026-10-11, after the first in-game pass found the burst
+    drew NOTHING): the mob left in the tick it burst, so the client dropped
+    every landing whose caster it could not find (`SkillFxPlan.ts`), no
+    FIRED event existed, and the owner's numbers could not resolve the
+    summon's `owner_id`. Ruled: a mob whose triggers FIRED lingers one
+    snapshot. `FireOnDeath` stamps each trigger's FIRED event and reports
+    whether anything fired; the sweep parks such a mob in
+    `MobSystem.lingering` and removes it at the start of the next tick (a
+    mob whose triggers fired nothing leaves at once, as before). The
+    SkillSystem skips a 0-HP mob in `processEntity`, so nothing it carries
+    ticks during the linger. `TotemBurst` now draws a `wave` on `fired`.
   - Editor: the mob page gains an "On death" list (the skills row shape),
     `validate.mjs` checks the names, README updated.
   - Examples, all [PLACEHOLDER]: `BroodMother` (mob 116, GiantSpider art,
     debug zones only at (38.5, -31.5) beside the giant spiders) splits into
     two Spiders via `BroodSplit` (164; a spawn needs a TTL, so they leave
-    after 60 s). `BurstTotem` (mob 117, Totem art, no aura) bursts for 20
-    fire on every enemy within 3 u via `TotemBurst` (163); the player summons
-    it with `BurstingTotem` (165, 10 s, SKILL cheat only).
+    after 60 s). `BurstTotem` (mob 117, Totem art, no aura) bursts for 45
+    fire (× f(owner level), the summon's level is its owner's) on every enemy
+    within 3 u via `TotemBurst` (163); the player summons it with
+    `BurstingTotem` (165, 3 s, SKILL cheat only). PO 2026-10-11 after the
+    first look: 10 s -> 3 s, 20 -> 45 damage, and a tooltip description.
+  - PO 2026-10-11: a summon's tooltip lists its death triggers like its
+    loadout. `SpawnParams.SummonOnDeath` (wire name `summonOnDeath`) is
+    attached beside `SummonLoadout` in `validateSpawnEffects`; the tooltip
+    renders it under "↳ When it ends:" at the authored levels (never raised).
+    Pinned in `registry_test.go`, `loaders_test.go` and `SkillTooltip.test.ts`.
   - Census bumps (L9): structures + BurstTotem, creatures 88 -> 89,
     xpFactor-0 53 -> 54, the archetype guardrail exempts BroodMother with
     the GiantSpider's own reason. Registry 127 -> 130.

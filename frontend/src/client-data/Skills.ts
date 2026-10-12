@@ -114,6 +114,9 @@ export interface SpawnParams {
     // only way to say what the summon does. The levels are a floor: the spawn
     // site raises them to the summon skill's level.
     summonLoadout?: SummonSkillRef[];
+    // The summon's death triggers (plan-effect-types-round-2.md C7), at their
+    // authored levels; omitted when it has none.
+    summonOnDeath?: SummonSkillRef[];
     // The spell's statement that this summon is a PET (plan-summon-follows.md
     // D1): it trails its caster and takes its fights. A hand mirror of the Go
     // struct with no completeness pin behind it (plan L5).
