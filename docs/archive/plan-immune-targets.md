@@ -1,9 +1,8 @@
 # Plan - an aura prefers targets it can hurt
 
-**Status:** DESIGNED + PO-RULED 2026-10-04 (planning session, docs only,
-nothing built). One chunk, backend only. **Schema: DB NONE · wire NONE ·
-conf NONE · content NONE · client NONE.** Not scheduled yet: where it sits
-relative to buff tray C3 is the PO's call. Ledger: §9.
+**Status:** COMPLETE 2026-10-12, one chunk (C1 `863f3884`), PO in-game
+pass "works" the same day. Designed + PO-ruled 2026-10-04. One chunk, backend only. **Schema: DB NONE · wire NONE ·
+conf NONE · content NONE · client NONE.** Ledger: §9.
 
 **PO feedback 2026-10-04** (`docs/feedback.md`): *"damage attacks
 harvestables. that makes sense based on how the game works but feels bad in
@@ -57,6 +56,7 @@ at the back of the line.
 | Poison aura, Skeleton nearer than a Ghoul | Skeleton soaks it | Ghoul gets the hit |
 | Sanctuary, Aegis, the Warlord with banners up | targeted, "Immune" shows | unchanged |
 | Bear (`frost: 0.5`) nearer than a Drakeling (`frost: 1.5`) | Bear is hit | unchanged |
+| A summon's or charmed mob's bite, Bramble nearer than the enemy | Bramble soaks it | the enemy gets the hit (§4, "every caster"; an ordinary hostile mob never targeted the hostile-loaded Bramble) |
 
 ## 3. PO rulings (2026-10-04)
 
@@ -109,20 +109,27 @@ at the back of the line.
 - **A "prefer the weakest resistance" selector.** Not built (D3). If content
   ever wants it, it is an authorable selector on single skills.
 
-## 6. The change (line refs as of 2026-10-04, `c032424c` + working tree)
+## 6. The change (as built in C1, line refs at `7a304813` + working tree)
 
-- **`model/mob`**: one method on `Mob` that answers "can this species ever be
-  damaged by this hit" from `m.definition.Factors` alone: gate key present and
-  `!skills.GateOpensFor(...)`, else `skills.ResistMultiplier(tags,
-  Factors.Resistances) == 0`. `takeDamage` keeps its behaviour byte for byte.
-- **`sys/targeting.go`**: `selectTargets` takes the demotion predicate and
-  applies it as a STABLE partition after the selector sort and before the cap,
-  so ties and application order stay deterministic.
-- **`sys/skills.go`**: the three damage call sites pass the predicate:
-  `applyDotEffect` (:460), `applyPlayerDamageAura` (:771),
-  `applyMobDamageAura` (:825). The instant variants reach the same appliers
-  (:2175, :2183). Every other `selectTargets` caller (heal, hot, shield,
-  resist, slow, stun, speed, calm, charm, threat) passes none.
+- **`model/interactable.go`**: `model.SpeciesImmunity { NeverHurtBy(tags, gateKey) bool }`.
+- **`model/mob/mob.go`**: `(*Mob).NeverHurtBy`, right above `takeDamage`:
+  gate key present and `!skills.GateOpensFor(...)`, else
+  `skills.ResistMultiplier(tags, Factors.Resistances) == 0`, both read from
+  `m.definition.Factors`. `takeDamage` is untouched.
+- **`sys/targeting.go`**: `selectTargets` keeps its signature and delegates
+  to `pickTargets`; the new sibling `selectDamageTargets` passes the hit's
+  tags and gate key. In the capped branch only, after `sortBySelector`,
+  `hurtableFirst` runs an in-place stable partition that allocates nothing
+  and stops once the cap is full. (Deviation from the design text: a sibling
+  instead of a new `selectTargets` parameter, so the 17 non-damage callers
+  stay untouched.)
+- **`sys/skills.go`**: `applyDotEffect` (dot tags, no gate key),
+  `applyPlayerDamageAura` and `applyMobDamageAura` call
+  `selectDamageTargets`. Instant damage and instant dot (`fireCooldown`) and
+  the C7 death triggers reach the same appliers. `chargeTarget` (:2484) deals
+  no damage and stays on `selectTargets`.
+- **Compile-time pin (L3)**: `var _ model.SpeciesImmunity = (*Mob)(nil)`
+  beside the method in `model/mob/mob.go`, so `go build` catches drift.
 
 ## 7. Landmines
 
@@ -180,4 +187,20 @@ In-game, DEBUG zones (`world_debug.json` places 4 Brambles, 6 Turnips,
 
 ## 9. Chunk ledger
 
-- **C1 - the ordering rule**: not built.
+- **C1 - the ordering rule** ✅ 2026-10-12 `863f3884`. PO in-game pass
+  on the DEBUG world the same day (§8's three legs): "works". Tests: `model/mob/never_hurt_test.go`
+  (3), `sys/immune_targets_test.go` (13); the 9 legs that should change
+  failed against a no-op stub first, for the right reason (the immune mob was
+  picked). Tail: `go build ./...` clean; `go test -count=1 ./...` green apart
+  from the known `TestPropContent_C1bMigrationPreservesLookAndCollision` pin
+  (DB tests skipped, no `AURA_` env; schema untouched);
+  `immune-feedback.mjs` PASS on the debug zones with a fresh binary (8
+  "Immune" labels at the wall, 0 damage numbers). Performance: the check runs
+  only where the cap cuts the list, once per candidate, with no allocation
+  (PO waived a benchmark; `-gcflags=-m` shows `&damageHit{...}` does not
+  escape). **Schema: DB NONE · wire NONE · conf NONE ·
+  content NONE · client NONE.** Findings: an ordinary hostile mob never
+  targeted a Bramble (both load `FactionHostile`), so for mob casters the
+  rule only reaches summons, charmed and aligned mobs (§2 row added).
+  `dev-restart.sh` does not rebuild `aurad`: the first harness run hit a
+  stale binary and was re-run after `make -C backend build`.
