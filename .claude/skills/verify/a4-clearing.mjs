@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// ⛔ STRUCTURAL LEGS STALE since plan-lightmap.md L1 (2026-10-13): the darkness
-// layer is a lightmap, so a clearing there PAINTS WHITE (blend `normal`) and
-// lights SCREEN; only the haze clearing still erases. The erase counts below
-// read the old build. The PIXEL legs still hold (L1 is pixel-identical).
 // A4 of plan-region-atmosphere.md — a CLEARING is its own class, and it cuts a
 // real hole in the air at the real game surface.
+//
+// ⭐ Since plan-lightmap.md L1 (2026-10-13) the darkness layer is a LIGHTMAP
+// (white = lit), so a darkness clearing PAINTS WHITE with blend `normal` (D4)
+// rather than erasing; only a haze clearing still erases. Leg 2 asks for that.
 //
 // What only a browser can show here, and it is not the picture:
 //
@@ -17,8 +17,8 @@
 //      lit pocket. Nothing throws and no screenshot shows it. That is the whole
 //      reason this script exists.
 //
-//   2. The erase actually LANDS in the darkness layer's own render target
-//      rather than punching through the ground beneath it.
+//   2. The hole actually LANDS in the darkness layer's own render target
+//      rather than on the ground beneath it.
 //
 // ⚑ IT IS AN A/B AND ONLY THE A/B PROVES ANYTHING. A single "I was lit" reading
 // cannot tell a working clearing from a zone that is not dark anywhere. Every
@@ -306,31 +306,48 @@ function venue() {
     // ⭐ This is the leg that actually proves the hole is DRAWN, and it is
     // structural rather than photographic for a reason the pixel A/B below
     // explains at length: on this zone's geometry the camera cannot see the
-    // difference. An erase-blended Graphics in the scene graph is what
-    // `cutHole` produces and nothing else in this feature does.
-    const erase = await page.evaluate(() => {
-      const root = window.game && window.game.character
-        && window.game.character.plate && window.game.character.plate.parent
-        && window.game.character.plate.parent.parent;
-      if (!root) { return null; }
-      const stage = (function top(c) { return c && c.parent ? top(c.parent) : c; })(root);
-      let erase = 0, graphics = 0;
+    // difference.
+    //
+    // ⚑ What `cutHole` leaves in the darkness layer's ATMOSPHERE container is a
+    // DIRECT child that draws (a ramped Sprite, or a Graphics on the hard-edge
+    // fallback) with blend `normal`. A bank is never a direct drawing child:
+    // `paintAir` wraps every bank in its own group Container. The container is
+    // the layer's only plain Container (the base quad, dark circles and lights
+    // are all Sprites).
+    //
+    // ⛔ And NO erase anywhere in the darkness layer (plan-lightmap.md D4): an
+    // erase leaves transparent, which multiplies as lit and which a coloured
+    // light screened on top can no longer colour without tinting daylight.
+    const drawn = await page.evaluate(() => {
+      const dk = window.game && window.game.layers && window.game.layers.darkness;
+      if (!dk) { return null; }
+      const air = (dk.children || []).find(c => !c.context && !c.texture);
+      let erase = 0;
       (function walk(node) {
-        if (node.context) { graphics++; if (node.blendMode === 'erase') { erase++; } }
+        if (node.blendMode === 'erase') { erase++; }
         (node.children || []).forEach(walk);
-      })(stage);
-      return { erase, graphics };
+      })(dk);
+      const holes = air ? air.children.filter(c => c.context || c.texture) : [];
+      return {
+        foundAir: !!air,
+        holes: holes.length,
+        normal: holes.filter(c => c.blendMode === 'normal').length,
+        erase,
+      };
     });
-    if (erase === null) {
-      skip('could not reach the scene graph', 'window.game.character is not armed');
-    } else if (mode === 'on' && erase.erase > 0) {
-      pass('an erase-blended Graphics is in the scene graph — the hole was cut',
-        `${erase.erase} erase of ${erase.graphics} Graphics`);
+    if (drawn === null || !drawn.foundAir) {
+      skip('could not reach the darkness layer', 'window.game.layers is not armed');
+    } else if (drawn.erase > 0) {
+      fail('⛔ an ERASE survives in the darkness layer — the lightmap has a transparent hole',
+        JSON.stringify(drawn));
+    } else if (mode === 'on' && drawn.holes > 0 && drawn.normal === drawn.holes) {
+      pass('the clearing is painted WHITE into the lightmap — the hole was cut',
+        `${drawn.holes} normal-blended hole(s), no erase in the layer`);
     } else if (mode === 'on') {
-      fail('⛔ NO erase-blended Graphics anywhere — cutHole never ran',
-        JSON.stringify(erase));
+      fail('⛔ no normal-blended hole in the atmosphere container — cutHole never ran',
+        JSON.stringify(drawn));
     } else {
-      console.log(`  (off half: ${erase.erase} erase Graphics — campfire glows and the player's own light)`);
+      console.log(`  (off half: ${drawn.holes} hole(s), ${drawn.erase} erase in the darkness layer)`);
     }
 
     // --- 3. THE PIXEL A/B: what the camera can and cannot settle -----------
@@ -367,7 +384,7 @@ function venue() {
       console.log(`  A/B at one fixed point: on ${readings.on.toFixed(1)} vs off ${readings.off.toFixed(1)} (×${ratio.toFixed(2)})`);
       if (ratio > 1.10) {
         pass('⭐ THE SAME TILE is brighter with the clearing than without it',
-          `×${ratio.toFixed(2)} — the erase landed, and terrain cannot explain it`);
+          `×${ratio.toFixed(2)} — the hole landed, and terrain cannot explain it`);
       } else if (readings.depth !== undefined && readings.depth <= OWN_LIGHT_U) {
         // ⛔⛔ THE CAMERA CANNOT SETTLE THIS ON THIS GEOMETRY, and saying so is
         // the only honest outcome. The clearing has to OVERLAP a darkness bank

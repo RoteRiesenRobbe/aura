@@ -1,7 +1,7 @@
 # Plan - coloured light (the darkness layer becomes a lightmap)
 
 **Status:** BUILT 2026-10-13, L1-L3 in one session on branch `lightmap`
-(PO ask: "implement it fully"); pixel-verified, ⛔ PO in-game look owed (§9).
+(PO ask: "implement it fully"); pixel-verified, PO in-game look OK 2026-10-13 (§9).
 Designed + PO-ruled 2026-10-12. Three chunks: L1 client-only, L2 content + wire + server +
 client + editor, L3 content + one loader rule (blue-black partial darkness,
 full darkness locked black). D1-D5 PO-approved as
@@ -11,8 +11,8 @@ fields (L2) · content +1 optional effect key, +1 optional prop key (L2),
 profile colours (L3).** Line refs as of `38bd612c`. Ledger: §9.
 
 The performance knobs on the same layer (filter resolution, `filterArea`,
-culling) are **not** in this plan: they are `docs/cleanup.md` entry 5, and
-they are independent of it in either order.
+culling) are **not** in this plan: they were `docs/cleanup.md` entry 5, CLOSED
+2026-10-13 as measured and not worth it (§9's ledger notes).
 
 ---
 
@@ -131,7 +131,7 @@ playtest-1 Pass C removed (`DarknessOverlay.ts:36-44`, GDD §6.5). Hence:
 - **Editor fields for props and atmosphere profiles.** The content editor
   edits neither (Q4's rule: a field only where the editor already edits the
   thing).
-- **Performance knobs.** `cleanup.md` entry 5.
+- **Performance knobs.** `cleanup.md` entry 5, closed 2026-10-13.
 - **Day/night.** Still OFF. A lightmap is the natural home for a night ambient
   later, but nothing here turns it on.
 
@@ -316,13 +316,22 @@ reads.
   loader too (`DisallowUnknownFields` would otherwise refuse the boot), via the
   now-exported `skills.ParseLightColor`. A colour on a prop with no
   `lightFraction` is refused.
-- **Stale harness legs:** `a4-clearing.mjs` and `a5-darkness-blend.mjs` count
-  ERASE sprites in the darkness layer; a darkness clearing now paints white
-  (D4). Both carry a header note; no zone authors a clearing today, so neither
-  ran.
+- **Harness legs rewritten (2026-10-13, follow-up):** `a4-clearing.mjs` and
+  `a5-darkness-blend.mjs` now ask for a WHITE normal-blended hole (D4) and fail
+  on any erase left in the darkness layer. Full A/Bs green with a temporary
+  clearing probe (reverted): a5 bank 4 → 117 px (×29.3), rim 4 → 135 px
+  (×33.8); a4 seam + structure + pixels ×1.96.
+- **`l1-lightmap.mjs parity` is now 2/5 BY DESIGN:** its baseline is the white
+  erase build, and L2's warm campfire drops G/B at core/near/edge (R Δ 0.0).
+  `colour` 4/4 is the live leg; parity is only meaningful on unauthored lights.
 - **Go suite:** green bar the known `TestPropContent_C1bMigrationPreservesLookAndCollision`
   (Tree/Boulder, CLAUDE.md known-inconclusive list).
-- **Owed:** the PO's in-game look (campfire, torch prop, Torch, Lantern, fire
-  elemental in a cave; Gloom and Storm Sky side by side with the old colours);
-  the editor smoke against a rebuilt `backend/aurad` (its only finding was the
-  stale binary); cleanup.md entry 5 is untouched.
+- **Editor smoke:** 0 findings against a rebuilt binary. ⚑ Its earlier failure
+  was a seam bug, not the content: on Windows a spawn of `backend/aurad` runs
+  `aurad.exe` (a main-branch build), while the freshness guard checked the
+  extensionless file. `aurad-validate.mjs` now uses `aurad.exe` there.
+- **Performance (cleanup.md entry 5, closed):** GPU time per frame,
+  `darkness-frametime.mjs`, RTX 5070 Ti 1920×1080: the base quad (D3) costs
+  ≈ 0.03 ms in daylight; the whole layer 0.04 ms at DPR 1, 0.1-0.2 ms at DPR 2.
+  Filter resolution 0.5 measured nothing and was reverted.
+- **PO in-game look: OK** (2026-10-13). Nothing owed but the merge.

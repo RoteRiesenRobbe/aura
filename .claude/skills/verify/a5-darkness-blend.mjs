@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// ⛔ STRUCTURAL LEGS STALE since plan-lightmap.md L1 (2026-10-13): the darkness
-// layer is a lightmap, so a clearing there PAINTS WHITE (blend `normal`) and
-// lights SCREEN; only the haze clearing still erases. The erase counts below
-// read the old build. The PIXEL legs still hold (L1 is pixel-identical).
+// ⭐ Since plan-lightmap.md L1 (2026-10-13) the darkness layer is a LIGHTMAP
+// (white = lit): a clearing there PAINTS WHITE with blend `normal` (D4) and
+// lights SCREEN, so leg 1's clearing subject asks for a ramped WHITE sprite and
+// for no erase anywhere in the layer. The pixel leg is unchanged (L1 is
+// pixel-identical to the erase build).
+//
 // `blend` on the DARKNESS half of an atmosphere — the soft border, measured as a
 // NUMBER rather than eyeballed (2026-09-17, PO ask: "its border is too sharp").
 //
@@ -26,14 +28,16 @@
 // A vertical edge is what lets every column be averaged down a tall strip, and
 // that averaging is what takes the ground texture out of the reading.
 //
-// ⛔ IT NEEDS A TEMPORARY PROBE SHAPE, and that is not an accident of the
-// current content: nothing shipped authors an axis-aligned atmosphere, and the
-// underworld's own `Cave Air` quad is LARGER THAN ITS ZONE — its edges sit
-// outside the walkable area, where the camera clamps at the map boundary and
-// the player is drawn hundreds of px off centre with the edge off screen
-// entirely. Shrink it to a rect well inside the bounds (x 0..20, y -12..12
-// works), add a clearing rect inside that for the clearing subject, restart the
-// server, and restore api/zones/underworld.json afterwards.
+// ⚑ The AIR subject needs no probe since the rebuilt main world: its Gloom bank
+// at x 10.35..72.65 is an axis-aligned rect (2026-10-13). Shapes larger than
+// their zone (the underworld's `Cave Air`, the barn's Gloom) are skipped: their
+// edges sit where the camera clamps at the map boundary.
+// ⛔ The CLEARING subject still needs a TEMPORARY PROBE: no zone authors a
+// clearing. A darkness clearing rect inside that Gloom bank (x 36..48,
+// y -22..-10 in world.json's top-level `clearings`) works, and serves
+// a4-clearing too; restart the server and `git checkout api/zones/world.json`
+// afterwards. ⛔ Keep it clear of Fort Grimwatch's two campfires (26.4, 0.4)
+// and (56.4, 0.4): their 7 u glow lights the whole rim and the ramp reads 0 px.
 // ⚑ [[project-zone-edit-half-live]] — the client HMRs a zone edit, the server
 // reads it once at boot.
 //
@@ -104,9 +108,22 @@ function venue() {
     if (!file.endsWith('.json')) { continue; }
     const zone = readZone(join(root, 'api/zones', file));
     const origin = zone.origin || { x: 0, y: 0 };
+    // ⚑ An edge OUTSIDE the zone (the underworld's Cave Air, the barn's Gloom)
+    // sits where the camera clamps and leaves the screen, so it is skipped
+    // rather than picked first and refused later. Zone-local bounds are
+    // centred on 0; 3 u of margin keeps the probe's stand point walkable.
+    const w = zone.bounds ? zone.bounds.width / 2 - 3 : Infinity;
+    const h = zone.bounds ? zone.bounds.height / 2 - 3 : Infinity;
+    const onMap = (a, b) => Math.abs(a.x) <= w && Math.abs((a.y + b.y) / 2) <= h;
     for (const atm of (zone.atmospheres || [])) {
       const p = air[atm.profile];
       if (!p || !(p.darkness > 0)) { continue; }
+      // ⛔ A profile authoring `sight` (Canopy: 2 u) widens the player's OWN
+      // light to that radius, which then reaches an edge STAND_OFF_U away and
+      // its falloff is what gets measured: blend 2 and blend 0 both read
+      // ~210 px (measured 2026-10-13). Only a sub-unit sight leaves the band
+      // alone.
+      if ((p.sight || 0) >= 1) { continue; }
       if (subject === 'clearing') {
         // The rim of a hole rather than the edge of a bank. ⚑ Inside the hole
         // is the LIT half and outside it is the dark bank, so the luminance
@@ -120,6 +137,7 @@ function venue() {
             if (Math.abs(a.y - b.y) < 8) { continue; }
             const cxs = c.points.map(q => q.x);
             if (a.x !== Math.min(...cxs)) { continue; }
+            if (!onMap(a, b)) { continue; }
             return {
               zone: file, profile: atm.profile + ' (clearing rim)',
               blend: 'CLEARING_FADE', darkness: p.darkness,
@@ -141,6 +159,7 @@ function venue() {
         // inside is where the darkness is, so the probe's own tile is the dark
         // half and the lit half is what it looks across at.
         if (a.x !== Math.min(...xs)) { continue; }
+        if (!onMap(a, b)) { continue; }
         return {
           zone: file, profile: atm.profile, blend: p.blend,
           darkness: p.darkness,
@@ -308,40 +327,50 @@ function rampWidth(cols, centre, halfWindow) {
         }
         (node.children || []).forEach(walk);
       })(dk);
-      // ⛔ SCOPED TO THE ATMOSPHERE CONTAINER for the erase counts, never to the
-      // whole layer: the layer also holds the campfire glows and the player's
-      // own lantern, which are erase-blended sprites too and would be counted as
-      // clearings. The container is DarknessOverlay's own child — the only
-      // plain Container among the layer's children.
+      // ⛔ SCOPED TO THE ATMOSPHERE CONTAINER for the hole counts, never to the
+      // whole layer: the layer also holds the white base quad, the campfire
+      // glows and the player's own lantern, which are sprites too and would be
+      // counted as clearings. The container is DarknessOverlay's own child —
+      // the only plain Container among the layer's children. A hole is one of
+      // its DIRECT drawing children; every bank sits in its own group Container
+      // (`paintAir`).
       const air = (dk.children || []).find(c => !c.context && !c.texture);
-      let eraseSprite = 0, eraseGraphics = 0;
+      let holeSprite = 0, holeGraphics = 0, erase = 0;
       if (air) {
-        (function walk(node) {
-          if (node.blendMode === 'erase') {
-            if (node.context) { eraseGraphics++; } else { eraseSprite++; }
-          }
-          (node.children || []).forEach(walk);
-        })(air);
+        air.children.forEach((node) => {
+          if (node.blendMode !== 'normal') { return; }
+          if (node.context) { holeGraphics++; } else if (node.texture) { holeSprite++; }
+        });
       }
-      return { masked, plain, eraseSprite, eraseGraphics, foundAir: !!air };
+      // ⛔ No erase ANYWHERE in the lightmap (D4): an erase leaves transparent,
+      // which a coloured light screened on top cannot colour without tinting
+      // daylight.
+      (function walk(node) {
+        if (node.blendMode === 'erase') { erase++; }
+        (node.children || []).forEach(walk);
+      })(dk);
+      return { masked, plain, holeSprite, holeGraphics, erase, foundAir: !!air };
     });
     if (surfaces === null) {
       skip('could not reach the darkness layer', 'window.game.layers is not armed');
+    } else if (surfaces.erase > 0) {
+      fail('⛔ an ERASE survives in the darkness layer — the lightmap has a transparent hole',
+        JSON.stringify(surfaces));
     } else if (subject === 'clearing') {
-      // ⚑ A clearing's hole is an ERASE, and the structural question is WHICH
-      // KIND: a feathered hole is an erase-blended SPRITE (the blurred
-      // silhouette drawn directly), a hard one is an erase-blended GRAPHICS.
-      // ⛔ It is deliberately NOT "is the erase masked" — the first build did
+      // ⚑ A clearing's hole is WHITE paint (D4), and the structural question is
+      // WHICH KIND: a feathered hole is a SPRITE (the blurred silhouette drawn
+      // directly), a hard one is a GRAPHICS.
+      // ⛔ It is deliberately NOT "is the hole masked" — the first build did
       // mask it, that assertion passed, and the hole did not exist on screen at
       // all, because a masked object loses its blend mode in PixiJS.
-      if (mode === 'on' && surfaces.eraseSprite > 0 && surfaces.eraseGraphics === 0) {
-        pass("the clearing's hole is a RAMPED erase SPRITE — CLEARING_FADE reached cutHole",
-          `${surfaces.eraseSprite} erase sprite, ${surfaces.eraseGraphics} hard erase Graphics`);
+      if (mode === 'on' && surfaces.holeSprite > 0 && surfaces.holeGraphics === 0) {
+        pass("the clearing's hole is a RAMPED white SPRITE — CLEARING_FADE reached cutHole",
+          `${surfaces.holeSprite} sprite, ${surfaces.holeGraphics} hard Graphics, no erase`);
       } else if (mode === 'on') {
-        fail("⛔ the clearing's hole is not a ramped erase sprite",
+        fail("⛔ the clearing's hole is not a ramped white sprite",
           JSON.stringify(surfaces));
-      } else if (surfaces.eraseGraphics > 0 && surfaces.eraseSprite === 0) {
-        pass('(off half) the hole is a HARD erase Graphics, as a zero band should produce',
+      } else if (surfaces.holeGraphics > 0 && surfaces.holeSprite === 0) {
+        pass('(off half) the hole is a HARD white Graphics, as a zero band should produce',
           JSON.stringify(surfaces));
       } else {
         console.log(`  (off half: ${JSON.stringify(surfaces)})`);

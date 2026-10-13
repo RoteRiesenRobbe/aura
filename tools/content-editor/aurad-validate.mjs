@@ -66,7 +66,8 @@ export function candidateSegments(file) {
 
 /**
  * Where the aurad binary is: AURAD_BIN if set, else backend/aurad, else
- * backend/aurad.exe (the Windows dev-restart script builds that one).
+ * backend/aurad.exe (the Windows dev-restart script builds that one; on
+ * Windows it is the only candidate).
  */
 export function findAuradBinary() {
   const override = process.env.AURAD_BIN;
@@ -75,7 +76,13 @@ export function findAuradBinary() {
     if (!existsSync(abs)) throw new Error(`AURAD_BIN=${override} does not exist: ${MISSING_BINARY_MESSAGE}`);
     return abs;
   }
-  for (const name of ['aurad', 'aurad.exe']) {
+  // ⛔ On Windows a spawn of the extensionless `backend/aurad` RUNS
+  // `aurad.exe` (CreateProcess appends .exe), so finding the extensionless one
+  // there would freshness-check one file and execute another. Measured
+  // 2026-10-13: a fresh `aurad` passed the guard while a main-branch
+  // `aurad.exe` answered the seam.
+  const names = process.platform === 'win32' ? ['aurad.exe'] : ['aurad', 'aurad.exe'];
+  for (const name of names) {
     const abs = path.join(BACKEND, name);
     if (existsSync(abs)) return abs;
   }

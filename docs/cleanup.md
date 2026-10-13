@@ -160,14 +160,7 @@ identity R2 closed (`docs/archive/plan-region-identity.md`).
 | **Trigger** | ⭐ **The next chunk that touches the Tiled palette or `AuraRegion`**, or the first time the label misleads someone in Tiled. |
 | **Closes when** | The region's placeholder says what it means (delete this row), or the PO rules the shared label fine. |
 
-### 5. The darkness layer's render target, never tuned for cost
-
-⚑ Not a superseded implementation: a performance tidy-up the PO parked here
-(2026-10-12) beside `docs/plan-lightmap.md`, which changes what this layer
-draws but not what it costs. Independent of that plan in either order.
-
-| | |
-|---|---|
+---|---|
 | **What** | `DarknessOverlay.ts` (as of `38bd612c`). (a) The `AlphaFilter` (169) renders the layer at the full canvas resolution, though everything in it is a soft gradient. (b) The layer has no `filterArea`, so Pixi walks the bounds of every child each frame, including every static campfire and torch glow in the zone (`punchStaticLight`, 291). (c) No light sprite is `cullable`, so off-screen glows are still submitted. The haze layer's filter (174) has (a) and (b) too. |
 | **Fix** | (a) `resolution: 0.5` on both filters (try 0.25 on mobile). The upscale blurs a gradient, which is invisible. ⭐ The big one: fill rate is the phone's ceiling. (b) A `filterArea` clamped to the viewport. ⚑ Check which space v8 reads it in, given the camera transform on `cameraGroup`. (c) `cullable = true` on static glows. All three are client-only, no wire, no schema. |
 | **Proof** | Pixels, never structure: re-run `a5-darkness-blend.mjs`, `a4-clearing.mjs` and `d-map-fog-darkness.mjs`. At 0.5 the band readings move by blur only. Frame time measured in the underworld before and after, desktop and phone. |
@@ -193,4 +186,13 @@ C7/C8 plan its delivery).
 
 ## Closed
 
-*(Nothing yet.)*
+- **5. The darkness layer's render target** (closed 2026-10-13, measured and judged
+  not worth it). `.claude/skills/verify/darkness-frametime.mjs` read GPU time per
+  frame (timer queries; rAF deltas were noise at 1-2 ms frames) on an RTX 5070 Ti,
+  1920×1080, daylight on the main world and the underworld: the WHOLE layer costs
+  0.04 ms at DPR 1 and 0.1-0.2 ms at DPR 2, about 1 % of a 60 fps frame, which bounds
+  (a), (b) and (c) together. (a) itself measured nothing (0.36 → 0.35, 1.02 → 1.05 ms):
+  its premise was wrong, since Pixi 8.4's `Filter` resolution defaults to an ABSOLUTE
+  1, not the canvas's, and the multiply composite covers every screen pixel whatever
+  the filter's resolution. ⚑ The phone was not measured; reopen on a frame-rate
+  complaint there.
