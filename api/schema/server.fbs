@@ -278,7 +278,10 @@ enum EntityType : ushort {
   // quest rows (lore at the burnt cart, the Wanderer's lost friend); RemainsProp
   // is the same art as a silent, non-blocking prop for set dressing.
   Remains = 116,
-  RemainsProp = 117
+  RemainsProp = 117,
+  // The Ashen Fields fire pair: the Firelord hits, the Fire Stirer marks.
+  Firelord = 118,
+  FireStirer = 119
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

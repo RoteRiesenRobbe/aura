@@ -1,0 +1,30 @@
+{
+  "_comment": "Fire Stirer, normal tier: half of an Ashen Fields fire pair. Weak sparks of its own, but its Kindle mark doubles the fire damage its targets take, which is what makes the Firelord beside it dangerous. 2x wolf HP paid for with 0.79x speed. All values placeholder.",
+  "id": 119,
+  "name": "FireStirer",
+  "type": "MOB",
+  "faction": "elemental",
+  "tier": "normal",
+  "curveLevel": 22,
+  "factors": {
+    "resistances": {"fire": 0.25, "frost": 1.5},
+    "baseMaxHealth": 110,
+    "maxHealthVariance": 0.1,
+    "xpFactor": 1,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2.5,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    { "skillName": "FireStirerAura", "level": 1 },
+    { "skillName": "FireStirerKindle", "level": 1 }
+  ]
+}

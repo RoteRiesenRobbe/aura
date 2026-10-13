@@ -1,0 +1,29 @@
+{
+  "_comment": "Firelord, normal tier: half of an Ashen Fields fire pair. A slow walking furnace whose burst hits everyone near it for medium fire damage; manageable alone, very strong on targets the Fire Stirer has marked. 2x wolf HP paid for with 0.79x speed. All values placeholder.",
+  "id": 118,
+  "name": "Firelord",
+  "type": "MOB",
+  "faction": "elemental",
+  "tier": "normal",
+  "curveLevel": 22,
+  "factors": {
+    "resistances": {"fire": 0.25, "frost": 1.5},
+    "baseMaxHealth": 110,
+    "maxHealthVariance": 0.1,
+    "xpFactor": 1,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2.5,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.45,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    { "skillName": "FirelordAura", "level": 1 }
+  ]
+}

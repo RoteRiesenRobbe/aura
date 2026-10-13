@@ -8037,6 +8037,126 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "level": 23
+        },
+        {
+          "mob": "Firelord",
+          "x": 139.24,
+          "y": -18.26,
+          "angle": 4.6,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 25
+        },
+        {
+          "mob": "FireStirer",
+          "x": 139.19,
+          "y": -19.76,
+          "angle": 1.92,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 25
+        },
+        {
+          "mob": "Firelord",
+          "x": 140.61,
+          "y": 12.46,
+          "angle": 4.32,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 20
+        },
+        {
+          "mob": "FireStirer",
+          "x": 139.81,
+          "y": 13.73,
+          "angle": 5.14,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 20
+        },
+        {
+          "mob": "Firelord",
+          "x": 111.34,
+          "y": -22.56,
+          "angle": 4.05,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 27
+        },
+        {
+          "mob": "FireStirer",
+          "x": 110.14,
+          "y": -23.46,
+          "angle": 0.29,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 27
+        },
+        {
+          "mob": "Firelord",
+          "x": 102.75,
+          "y": 10.92,
+          "angle": 4.2,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 22
+        },
+        {
+          "mob": "FireStirer",
+          "x": 101.25,
+          "y": 11.05,
+          "angle": 0.44,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 22
+        },
+        {
+          "mob": "Firelord",
+          "x": 128.88,
+          "y": 26.52,
+          "angle": 2.84,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 28
+        },
+        {
+          "mob": "FireStirer",
+          "x": 127.39,
+          "y": 26.65,
+          "angle": 6.26,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 28
+        },
+        {
+          "mob": "Firelord",
+          "x": 129.26,
+          "y": -4.15,
+          "angle": 5.67,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 26
+        },
+        {
+          "mob": "FireStirer",
+          "x": 127.77,
+          "y": -4.38,
+          "angle": 5.06,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2.5,
+          "level": 26
         }
       ],
       "bindPoints": [

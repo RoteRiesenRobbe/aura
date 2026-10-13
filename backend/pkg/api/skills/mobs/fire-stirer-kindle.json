@@ -1,0 +1,27 @@
+{
+  "_comment": "The Fire Stirer's mark: every enemy within 2.5 units takes 2x fire damage for 150 ticks, recast every 150 ticks while anyone is in range. Pairs with the Firelord's burst. All values placeholder.",
+  "id": 171,
+  "name": "FireStirerKindle",
+  "icon": "carl-olsen/flame",
+  "packIcon": "fire-skull",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 150,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 12, "ms": 600, "tint": "#ff7a2e" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "instant_resist",
+      "radius": 2.5,
+      "resistTags": ["fire"],
+      "resistFactor": 2.0,
+      "resistDurationTicks": 150,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "all"
+    }
+  ]
+}

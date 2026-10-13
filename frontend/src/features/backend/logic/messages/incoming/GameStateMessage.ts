@@ -740,6 +740,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.DireBear]: Mobs.DireBear,
     [AuraApi.EntityType.FireElemental]: Mobs.FireElemental,
     [AuraApi.EntityType.GreaterFireElemental]: Mobs.GreaterFireElemental,
+    [AuraApi.EntityType.Firelord]: Mobs.Firelord,
+    [AuraApi.EntityType.FireStirer]: Mobs.FireStirer,
     [AuraApi.EntityType.FireTotem]: Mobs.FireTotem,
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
     [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,

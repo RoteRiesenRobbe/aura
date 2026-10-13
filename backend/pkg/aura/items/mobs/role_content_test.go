@@ -115,7 +115,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// 86 → 88 with the two talkable remains (DeadCarter, FallenTraveller),
 	// the same talking-object shape.
 	// + BroodMother (C7's debug-only splitting spider): 88 -> 89.
-	assert.Len(t, byRole[RoleCreature], 89, "everything else is a creature")
+	// + Firelord and FireStirer (the Ashen Fields fire pair, walking,
+	// fighting creatures): 89 -> 91.
+	assert.Len(t, byRole[RoleCreature], 91, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 
