@@ -26,8 +26,33 @@
       {
         "id": "root",
         "lines": [
-          "Blrrf."
+          "Baa."
+        ],
+        "options": [
+          {
+            "text": "Are you Woolliam?",
+            "next": "asked"
+          }
         ]
+      },
+      {
+        "id": "asked",
+        "lines": [
+          "*grazes*"
+        ],
+        "options": [
+          {
+            "text": "Go home, Woolliam ...",
+            "next": "quip"
+          }
+        ]
+      },
+      {
+        "id": "quip",
+        "lines": [
+          "*keeps grazing*"
+        ],
+        "options": []
       }
     ]
   }

@@ -286,14 +286,14 @@ try {
   check('A1 the Reinhard carries BOTH quest rows at root (the first two-offer giver)',
     reinhard?.actor === 'Reinhard'
     && reinhard.rows.some((r) => r.includes('Do you have a task for me'))
-    && reinhard.rows.some((r) => r.includes('Anything else that needs doing')),
+    && reinhard.rows.some((r) => r.includes('The problematic boars')),
     `actor=${reinhard?.actor} rows=${JSON.stringify(reinhard?.rows)}`);
 
-  await clickRow('Anything else that needs doing');
+  await clickRow('The problematic boars');
   const node = await panel();
   check('A2 the boar node speaks the brief and offers Accept (turn-in hidden before the deed)',
     node?.rows.some((r) => r.includes("I'll do it"))
-    && !node.rows.some((r) => r.includes('I killed the 6 boars')),
+    && !node.rows.some((r) => r.includes("I've killed the boars")),
     `lines="${node?.lines}" rows=${JSON.stringify(node?.rows)}`);
 
   await clickRow("I'll do it");
@@ -312,7 +312,7 @@ try {
   const reOpened = await talkTo('Reinhard');
   check('A4 the root rows SWAPPED with the accept: the offer row left, "About the boars..." came (two-row shape)',
     reOpened !== null
-    && !reOpened.rows.some((r) => r.includes('Anything else that needs doing'))
+    && !reOpened.rows.some((r) => r.includes('The problematic boars'))
     && reOpened.rows.some((r) => r.includes('About the boars')),
     `rows=${JSON.stringify(reOpened?.rows)}`);
   await leave();
@@ -350,12 +350,12 @@ try {
     await clickRow('About the boars');
     const turnIn = await panel();
     check('A8 the turn-in row appeared behind the progress row, exactly when walkable (show-rule)',
-      turnIn?.rows.some((r) => r.includes('I killed the 6 boars'))
+      turnIn?.rows.some((r) => r.includes("I've killed the boars"))
       && !turnIn.rows.some((r) => r.includes("I'll do it")),
       `rows=${JSON.stringify(turnIn?.rows)}`);
 
     const xpBefore = await xpInLevel();
-    await clickRow('I killed the 6 boars');
+    await clickRow("I've killed the boars");
     const done = await waitForJournal((j) => inList(j.completed, titleOf('boars-in-the-field')));
     const xpAfter = await xpInLevel();
     check('A9 the turn-in completes the quest and pays EXACTLY the authored 180 XP',
@@ -367,7 +367,7 @@ try {
     const after = await talkTo('Reinhard');
     check('A10 BOTH boar rows are gone after the turn-in: no re-accept, no second payment (D15/D16)',
       after !== null
-      && !after.rows.some((r) => r.includes('Anything else that needs doing'))
+      && !after.rows.some((r) => r.includes('The problematic boars'))
       && !after.rows.some((r) => r.includes('About the boars')),
       `rows=${JSON.stringify(after?.rows)}`);
     await leave();

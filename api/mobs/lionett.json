@@ -1,0 +1,111 @@
+{
+  "_comment": "Herbalist Lionett, north of the Town Crier towards the seaweed shore. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `a-healthy-brew`; teaches FirstAid on its turn-in. Dialogue from the PO's quest sheet. entityType VillageHealer is placeholder art. All values [PLACEHOLDER].",
+  "id": 120,
+  "name": "Lionett",
+  "type": "MOB",
+  "entityType": "VillageHealer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "Ohh ... a new face around here."
+        ],
+        "options": [
+          {
+            "text": "Do you have work for me?",
+            "next": "brew"
+          },
+          {
+            "text": "About the seaweed...",
+            "next": "brew_running"
+          }
+        ]
+      },
+      {
+        "id": "brew",
+        "lines": [
+          "Indeed I do! I'm about to brew a special tea that helps you regain focus.",
+          "If you help me gather the ingredients, I'll let you in on the recipe."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "a-healthy-brew",
+                "line": "I'd hoped you'd say that. You need to harvest seaweed from the shore up north. 8 strands should suffice."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "brew_running",
+        "lines": [
+          "The seaweed?"
+        ],
+        "options": [
+          {
+            "text": "Here's your seaweed.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "a-healthy-brew",
+                "fromStage": "back",
+                "toStage": "done",
+                "line": "And here's your tea."
+              },
+              {
+                "kind": "teach_skill",
+                "skill": "FirstAid",
+                "requiredLevel": 1,
+                "line": "I'll teach you how to use it, so you can use it in the future if you're short on focus."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180,
+                "line": "Thank you, dear."
+              }
+            ]
+          },
+          {
+            "text": "Any assistance for the task?",
+            "next": "brew_on_it"
+          }
+        ]
+      },
+      {
+        "id": "brew_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "a-healthy-brew",
+            "stage": "gather"
+          }
+        ],
+        "lines": [
+          "You'll find seaweed to the north, close to the shore. Once you're there, use your Harvest aura to gather it."
+        ]
+      }
+    ]
+  }
+}

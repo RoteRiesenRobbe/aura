@@ -171,7 +171,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// every other NPC.
 	// 51 → 53 with the two talkable remains (DeadCarter, FallenTraveller).
 	// + BurstTotem (plan-effect-types-round-2.md C7, a summoned totem): 53 -> 54.
-	assert.Len(t, free, 54, "every xpFactor-0 species: %v", free)
+	// + Lionett, Tobias and the Governor (the quest sheet's newcomers): 54 -> 57.
+	assert.Len(t, free, 57, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
 	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —

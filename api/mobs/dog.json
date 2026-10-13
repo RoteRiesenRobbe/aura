@@ -29,7 +29,38 @@
           "Woof."
         ],
         "options": [
-          { "text": "Teach me something.", "next": "teachings" }
+          {
+            "text": "Are you the shepherd's lost dog?",
+            "next": "lost"
+          },
+          {
+            "text": "Teach me something.",
+            "next": "teachings"
+          }
+        ]
+      },
+      {
+        "id": "lost",
+        "lines": [
+          "Woof! Woof!"
+        ],
+        "options": [
+          {
+            "text": "Where's your herd, dog?",
+            "next": "herd"
+          }
+        ]
+      },
+      {
+        "id": "herd",
+        "lines": [
+          "*whimpers*"
+        ],
+        "options": [
+          {
+            "text": "Maybe it's time for a new profession ...",
+            "next": "teachings"
+          }
         ]
       },
       {

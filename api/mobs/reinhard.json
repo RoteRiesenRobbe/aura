@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). ⛑ RENAMED Farmer → Reinhard 2026-09-23 (PO): the def NAME is what zone spawns and quest talk_to targets resolve against, and it was ALSO what resolved his sprite — so the rename broke art resolution and the explicit entityType override above is the repair. The wire enum value `Farmer` is unchanged; it could not be reclaimed anyway. All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row — and `boars-in-the-field` (plan-generic-kill-quests.md C1), the first second quest on one giver, and `giant-rats-in-the-barn` (2026-09-23), which makes him the first THREE-offer giver and the zone's first AGGRESSIVE fight — his boars are prey faction and wait to be provoked, a GiantRat hunts you; each quest sits behind its own root row per the Q4 tree shape. ⭐ The rats are the worked example of the TWO-ROW quest shape (plan-quest-dialogue.md D11): 'Anything in the barn?' leads to the offer node (brief + Accept), 'About the rats in the barn...' to the progress node (turn-in, 'I am on it.', a question); the question node is gated `running`, so the whole progress row leaves at the turn-in (PO 2026-10-07: the norm for most quests). Drafted texts, PO rewords. ⚑ He turns in `eliza-sends-me` (plan-region-identity.md R2) on a root 'Eliza sends me.' row, shown only while that quest waits at `meet` (the Q1 show-rule). ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
+  "_comment": "Miller Reinhard, at his farm east of Flora's. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `eliza-sends-me` (Off to the Mill) on a root row (the D17 exception). Offers and turns in `giant-rats-in-the-barn` (The Pest in the Granary), `the-millers-ring` (Lost and Found, the seaweed search), `boars-in-the-field`, `the-sounder-at-the-mill` (The Beast of the Farmlands, gated on the boars completing) and `turnip-chore`; offers `a-lost-shipment` (gated on the beast completing), which ends at Tobias. Two-row shape on every quest. Teaches Harvest. Dialogue from the PO's quest sheet. The def name also resolved his sprite, hence the entityType override. All values [PLACEHOLDER].",
   "id": 51,
   "name": "Reinhard",
   "entityType": "Farmer",
@@ -26,20 +26,60 @@
       {
         "id": "root",
         "lines": [
-          "I work this field."
+          "Plenty of work around here, stranger."
         ],
         "options": [
           {
-            "text": "Eliza sends me.",
+            "text": "Flora sends me. I'm looking for work.",
             "grants": [
               {
                 "kind": "advance_quest",
                 "quest": "eliza-sends-me",
                 "fromStage": "meet",
                 "toStage": "done",
-                "line": "Eliza's child. Then you'll work. Ask me for a task."
+                "line": "Flora's a good judge of people. Plenty of work around here, stranger."
               }
             ]
+          },
+          {
+            "text": "The pest in the granary",
+            "next": "rats"
+          },
+          {
+            "text": "About the rats in the granary...",
+            "next": "rats_running"
+          },
+          {
+            "text": "Lost and found",
+            "next": "ring"
+          },
+          {
+            "text": "About your ring...",
+            "next": "ring_running"
+          },
+          {
+            "text": "The problematic boars",
+            "next": "boars"
+          },
+          {
+            "text": "About the boars...",
+            "next": "boars_running"
+          },
+          {
+            "text": "The beast of the farmlands",
+            "next": "beast"
+          },
+          {
+            "text": "About the beast...",
+            "next": "beast_running"
+          },
+          {
+            "text": "A lost shipment",
+            "next": "shipment"
+          },
+          {
+            "text": "About Tobias...",
+            "next": "shipment_running"
           },
           {
             "text": "Do you have a task for me?",
@@ -50,32 +90,340 @@
             "next": "turnips_running"
           },
           {
-            "text": "Anything else that needs doing?",
-            "next": "boars"
-          },
-          {
-            "text": "About the boars...",
-            "next": "boars_running"
-          },
-          {
-            "text": "Anything in the barn?",
-            "next": "rats"
-          },
-          {
-            "text": "About the rats in the barn...",
-            "next": "rats_running"
-          },
-          {
             "text": "Teach me something.",
             "next": "teachings"
           }
         ]
       },
       {
+        "id": "rats",
+        "lines": [
+          "These darn rats have taken over the granary. Large as my forearm they are.",
+          "Go inside the granary, kill 8 of the beasts and come back to me."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "giant-rats-in-the-barn",
+                "line": "The granary's right behind you. Good luck!"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rats_running",
+        "lines": [
+          "The rats?"
+        ],
+        "options": [
+          {
+            "text": "I've killed the rats.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "giant-rats-in-the-barn",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "And you're still in one piece? You're sturdier than you look. Good job."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180,
+                "line": "Here is your reward."
+              }
+            ]
+          },
+          {
+            "text": "Any assistance for the task?",
+            "next": "rats_on_it"
+          },
+          {
+            "text": "Tell me more about rats.",
+            "next": "rats_more"
+          }
+        ]
+      },
+      {
+        "id": "rats_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "clear"
+          }
+        ],
+        "lines": [
+          "Go to the granary and climb down the ladder.",
+          "Be careful! It's dark in there and the rats are nasty beasts. Don't attract too many at once."
+        ]
+      },
+      {
+        "id": "rats_more",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          "They came in with the grain sacks. Big as a cat, and they bite."
+        ]
+      },
+      {
+        "id": "ring",
+        "lines": [
+          "I have a ... delicate task for you.",
+          "Whilst fishing on the beach, I seem to have lost my wedding ring.",
+          "My wife hasn't noticed yet and I'd prefer it stays this way. So please ... would you mind looking for it at the beach?"
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "the-millers-ring",
+                "line": "Great! It must be tangled in the seaweed somewhere on the shore."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ring_running",
+        "lines": [
+          "My ring?"
+        ],
+        "options": [
+          {
+            "text": "I've found your ring.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-millers-ring",
+                "fromStage": "return",
+                "toStage": "done",
+                "line": "And not a scratch on it. You're an honest one, aren't you?"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 216,
+                "line": "Here is your reward."
+              }
+            ]
+          },
+          {
+            "text": "Any assistance for the task?",
+            "next": "ring_on_it"
+          }
+        ]
+      },
+      {
+        "id": "ring_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-millers-ring",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          "It should be somewhere in the seaweed on the beach, north from here.",
+          "Mind the boars, though. They usually don't attack unless provoked."
+        ]
+      },
+      {
+        "id": "boars",
+        "lines": [
+          "The fields where I plant the grain for the mill are overrun with boars. They destroy the harvest!",
+          "Kill 6 of them, then report back to me. You'll find my fields north and south of the farm."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "boars-in-the-field",
+                "line": "Good."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boars_running",
+        "lines": [
+          "The boars?"
+        ],
+        "options": [
+          {
+            "text": "I've killed the boars.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "boars-in-the-field",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Already? Very good, this will teach them to come after my grain!"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180,
+                "line": "Here is your reward."
+              }
+            ]
+          },
+          {
+            "text": "Any assistance for the task?",
+            "next": "boars_on_it"
+          }
+        ]
+      },
+      {
+        "id": "boars_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "boars-in-the-field",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "The boars can put up quite a fight. Be careful not to attract too many at a time.",
+          "They usually don't attack unless provoked."
+        ]
+      },
+      {
+        "id": "beast",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "boars-in-the-field",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          "The fields are safe for now, but the darn boars will return.",
+          "They have a den south of this farm. It's protected by a real beast! Kill it, and our crops will finally be safe!"
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "the-sounder-at-the-mill",
+                "line": "Bless you!"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "beast_running",
+        "lines": [
+          "The beast?"
+        ],
+        "options": [
+          {
+            "text": "I've killed the beast.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-sounder-at-the-mill",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "You rid these lands of a nasty beast. Maybe you're not a farmer after all ... maybe you're a warrior!"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 370,
+                "line": "Here is your reward."
+              }
+            ]
+          },
+          {
+            "text": "Any assistance for the task?",
+            "next": "beast_on_it"
+          }
+        ]
+      },
+      {
+        "id": "beast_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sounder-at-the-mill",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          "Be careful once you get close to their den. The beast will not be the only boar you'll encounter there."
+        ]
+      },
+      {
+        "id": "shipment",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sounder-at-the-mill",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          "Since I know now that you have a fierce heart and know how to fight, I have another task for you.",
+          "Two days ago, I sent my farmhand Tobias east to the city of Dionsburg with a shipment ... and a special letter for someone in the city.",
+          "He hasn't returned yet and I fear for him. Could you travel east and look for him? I'm afraid some harm has come to him."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "a-lost-shipment",
+                "line": "Thank you! I knew I could count on you."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "shipment_running",
+        "lines": [
+          "Tobias?"
+        ],
+        "options": [
+          {
+            "text": "Any assistance for the task?",
+            "next": "shipment_on_it"
+          }
+        ]
+      },
+      {
+        "id": "shipment_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "a-lost-shipment",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          "Just follow the road and cross the bridge that leads to the forest. That's the road Tobias has taken."
+        ]
+      },
+      {
         "id": "turnips",
         "lines": [
           "Harvest 5 turnips from the row north of here, then come back to me.",
-          "You need the Harvest skill for that — ask me to teach you first."
+          "You need the Harvest skill for that. Ask me to teach you first."
         ],
         "options": [
           {
@@ -130,144 +478,6 @@
         ],
         "lines": [
           "Harvest 5 turnips from the row north of here, then come back to me."
-        ]
-      },
-      {
-        "id": "boars",
-        "lines": [
-          "Kill 6 boars in the fields around the farm, then come back to me."
-        ],
-        "options": [
-          {
-            "text": "I'll do it.",
-            "grants": [
-              {
-                "kind": "offer_quest",
-                "quest": "boars-in-the-field",
-                "line": "Good."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "boars_running",
-        "lines": [
-          "The boars?"
-        ],
-        "options": [
-          {
-            "text": "I killed the 6 boars.",
-            "grants": [
-              {
-                "kind": "advance_quest",
-                "quest": "boars-in-the-field",
-                "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 180,
-                "line": "Here is your reward."
-              }
-            ]
-          },
-          {
-            "text": "I am on it.",
-            "next": "boars_on_it"
-          }
-        ]
-      },
-      {
-        "id": "boars_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "boars-in-the-field",
-            "stage": "cull"
-          }
-        ],
-        "lines": [
-          "Kill 6 boars in the fields around the farm, then come back to me."
-        ]
-      },
-      {
-        "id": "rats",
-        "lines": [
-          "Giant rats in my barn. They are not shy and they do not run.",
-          "Kill 8 of them in there, then come back to me."
-        ],
-        "options": [
-          {
-            "text": "I'll do it.",
-            "grants": [
-              {
-                "kind": "offer_quest",
-                "quest": "giant-rats-in-the-barn",
-                "line": "Good."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "rats_running",
-        "lines": [
-          "The rats?"
-        ],
-        "options": [
-          {
-            "text": "I killed the 8 rats.",
-            "grants": [
-              {
-                "kind": "advance_quest",
-                "quest": "giant-rats-in-the-barn",
-                "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 180,
-                "line": "Here is your reward."
-              }
-            ]
-          },
-          {
-            "text": "I am on it.",
-            "next": "rats_on_it"
-          },
-          {
-            "text": "Tell me more about rats.",
-            "next": "rats_more"
-          }
-        ]
-      },
-      {
-        "id": "rats_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "giant-rats-in-the-barn",
-            "stage": "clear"
-          }
-        ],
-        "lines": [
-          "Kill 8 of them in there, then come back to me."
-        ]
-      },
-      {
-        "id": "rats_more",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "giant-rats-in-the-barn",
-            "stage": "running"
-          }
-        ],
-        "lines": [
-          "They came in with the grain sacks. Big as a cat, and they bite."
         ]
       },
       {

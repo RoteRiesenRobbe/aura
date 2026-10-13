@@ -26,8 +26,33 @@
       {
         "id": "root",
         "lines": [
-          "Baa! Baa!"
+          "Baa."
+        ],
+        "options": [
+          {
+            "text": "Are you Lambert?",
+            "next": "asked"
+          }
         ]
+      },
+      {
+        "id": "asked",
+        "lines": [
+          "Bööööhh."
+        ],
+        "options": [
+          {
+            "text": "Why am I even talking to a sheep?",
+            "next": "quip"
+          }
+        ]
+      },
+      {
+        "id": "quip",
+        "lines": [
+          "Bööh."
+        ],
+        "options": []
       }
     ]
   }

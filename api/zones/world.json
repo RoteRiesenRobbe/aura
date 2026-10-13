@@ -2299,25 +2299,25 @@
           "angle": 0
         },
         {
-          "mob": "Miller",
+          "mob": "ReinhardsWife",
           "x": -187.12,
           "y": 21.54,
           "angle": 0
         },
         {
-          "mob": "Shepherd",
+          "mob": "Hans",
           "x": -239.44,
           "y": -2.03,
           "angle": 0
         },
         {
-          "mob": "Hendrik",
+          "mob": "Henrik",
           "x": -238.76,
           "y": 24.42,
           "angle": 0
         },
         {
-          "mob": "Eliza",
+          "mob": "Flora",
           "x": -237.98,
           "y": 15.65,
           "angle": 0
@@ -3183,6 +3183,12 @@
           "respawnTicks": 600,
           "respawnVariancePct": 0.2,
           "level": 1
+        },
+        {
+          "mob": "Lionett",
+          "x": -200,
+          "y": -28,
+          "angle": 0
         },
         {
           "mob": "Seaweed",
@@ -5791,6 +5797,12 @@
           "level": 30
         },
         {
+          "mob": "Governor",
+          "x": -93.76,
+          "y": 5.2,
+          "angle": 0
+        },
+        {
           "mob": "Wanderer",
           "x": -144.06,
           "y": 2.77,
@@ -5798,6 +5810,12 @@
           "wanderRadius": 5,
           "idleSpeedFactor": 0.2,
           "level": 30
+        },
+        {
+          "mob": "Tobias",
+          "x": -142.5,
+          "y": 4.5,
+          "angle": 0
         },
         {
           "mob": "Hermit",

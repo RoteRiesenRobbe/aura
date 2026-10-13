@@ -1,0 +1,65 @@
+{
+  "_comment": "Tobias, Reinhard's farmhand, resting at the Wanderer's fire in the woods. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `a-lost-shipment` behind his progress row. His lines are drafted, the sheet has none. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "id": 121,
+  "name": "Tobias",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "Stay back! ... Oh. You're not one of them."
+        ],
+        "options": [
+          {
+            "text": "Reinhard sent me to look for you.",
+            "next": "found"
+          }
+        ]
+      },
+      {
+        "id": "found",
+        "lines": [
+          "Reinhard? Thank the light."
+        ],
+        "options": [
+          {
+            "text": "Are you all right? What happened?",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "a-lost-shipment",
+                "fromStage": "search",
+                "toStage": "found",
+                "line": "Bandits. They took the cart and burned it up the road. I barely got away, but I still have the letter."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 311,
+                "line": "Tell Reinhard I'm alive. Here, for your trouble."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

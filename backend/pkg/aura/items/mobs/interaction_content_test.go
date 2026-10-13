@@ -101,15 +101,13 @@ var expectedConversants = []string{
 	//
 	// All four are unattackable by the standing two knobs, which is what makes
 	// that quest zero-combat by construction rather than by convention.
-	"Shepherd",
+	"Hans",
 	"Baabara",
 	"Woolliam",
 	"Lambert",
-	// The Mill on the river (content-zone-design-guide.md §2.4): the POI is a
-	// soft dead end, so the Miller IS its reason to walk down there. Same
-	// talkable-NPC shape as the Shepherd above, and he offers the zone's only
-	// elite fight.
-	"Miller",
+	// Reinhard's wife, the Miller's old spawn re-cast as a bark NPC when the
+	// quest sheet (2026-10-13) moved his quests to Reinhard.
+	"ReinhardsWife",
 	// The farmland's flavour NPC, and the only conversant in the game that asks
 	// for nothing: one root node, no options — the baabara.json terminal-node
 	// shape. The Farmer beside him already carries two quests and a teaching.
@@ -117,22 +115,27 @@ var expectedConversants = []string{
 	// route), which is why the census below is worth re-reading: every other
 	// entry here authors speed 0, and nothing in this file requires that.
 	"Farmhand",
-	// ⭐ THE OPENING CAST (content-zone-design-guide.md §2.0) — the three NPCs a
-	// new character meets before the village exists to them. Eliza the mother
-	// offers and turns in `dinner-for-the-family`; her husband Hendrik and his
-	// brother Benjamin carry NO quest rows at all, because the arc reaches them
-	// through `talk_to` objectives — opening the panel IS the objective. What they
-	// carry instead is a teaching each, and between the three of them they hand
-	// over the player's entire starting kit: Wild, Harvest, FirstAid.
+	// ⭐ THE OPENING CAST (content-zone-design-guide.md §2.0, re-cast by the
+	// quest sheet 2026-10-13). Farmer Flora offers and turns in
+	// `ready-for-harvest` and `meat-for-dinner`; her husband Henrik and Benjamin
+	// carry NO quest rows, because the quests reach them through `talk_to`
+	// objectives: opening the panel IS the objective. Each teaches instead
+	// (Wild, Harvest).
 	//
 	// ⚑ Benjamin is the first conversant in the game the player cannot skip: a
 	// Beet authors the Turnip's harvest lock, so the beet objective is
 	// unfinishable until Harvest is learned — from him, or from Reinhard down
 	// the road, which is the only thing keeping a lost Benjamin from
 	// soft-locking the opening.
-	"Eliza",
-	"Hendrik",
+	"Flora",
+	"Henrik",
 	"Benjamin",
+	// The quest sheet's newcomers (2026-10-13): Herbalist Lionett gives
+	// `a-healthy-brew`, Tobias at the Wanderer's fire ends `a-lost-shipment`,
+	// and the Governor of Dionsburg turns in `he-who-cried-wolf`.
+	"Lionett",
+	"Tobias",
+	"Governor",
 	// Grandfather Knot (docs/plan-grandfather-knot.md) offers and turns in
 	// `clear-the-grove`, then `the-sleeping-roots`, whose talk_to targets are
 	// his three sleeping roots, one definition each for the sheep's reason

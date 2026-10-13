@@ -53,11 +53,11 @@ func optionTexts(rows []model.ConversationOption) []string {
 
 const (
 	ratsQuest    = "giant-rats-in-the-barn"
-	ratsOffer    = "Anything in the barn?"
-	ratsProgress = "About the rats in the barn..."
+	ratsOffer    = "The pest in the granary"
+	ratsProgress = "About the rats in the granary..."
 	ratsAccept   = "I'll do it."
-	ratsTurnIn   = "I killed the 8 rats."
-	ratsOnIt     = "I am on it."
+	ratsTurnIn   = "I've killed the rats."
+	ratsOnIt     = "Any assistance for the task?"
 	ratsMore     = "Tell me more about rats."
 )
 
@@ -145,12 +145,23 @@ func TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack(t *testing.T) {
 // Exempt by name, each a PO ruling: the Grandfather Knot's two quests keep their
 // flow (D13); `eliza-sends-me` has no brief and turns in on Reinhard's root
 // (D17); `wolves-on-the-road` turns in on root at two NPCs that did not give it
-// (D18; its giver, the Town Crier, is walked by the offer half).
+// (D18; its giver, the Town Crier, is walked by the offer half);
+// `he-who-cried-wolf` is carried from its giver Hans to the Town Crier and
+// turned in by the Governor, who did not give it (the same foreign shape; Hans
+// is walked by the offer half).
 var twoRowExempt = map[string]bool{
 	"clear-the-grove":    true,
 	"the-sleeping-roots": true,
 	"eliza-sends-me":     true,
 	"wolves-on-the-road": true,
+	"he-who-cried-wolf":  true,
+}
+
+// walkedByOfferHalf names the exempt quests whose giver still walks the offer
+// half of the two-row shape.
+var walkedByOfferHalf = map[string]bool{
+	"wolves-on-the-road": true,
+	"he-who-cried-wolf":  true,
 }
 
 type questSite struct {
@@ -265,7 +276,7 @@ func TestContent_EveryQuestOfferRowLeavesWithTheAccept(t *testing.T) {
 	for _, s := range offers {
 		q, err := qr.Get(s.grant.Quest)
 		require.NoError(t, err)
-		if twoRowExempt[q.ID] && q.ID != "wolves-on-the-road" {
+		if twoRowExempt[q.ID] && !walkedByOfferHalf[q.ID] {
 			continue
 		}
 		t.Run(s.mob.Name+"/"+q.ID, func(t *testing.T) {
@@ -275,6 +286,19 @@ func TestContent_EveryQuestOfferRowLeavesWithTheAccept(t *testing.T) {
 			p := newLearner(30)
 			p.ledger = quests.NewLedger(qr)
 			shows := func() bool { return rowsInto(present(in, p, noRows, noTravel), s.nodeID) }
+
+			// A quest chained behind another gates its offer node on the
+			// earlier quest's completion (manual §6, "Gating one quest on
+			// another"): complete those prerequisites first.
+			done := map[string]quests.Progress{}
+			for _, c := range in.Nodes[nodeIndex(t, in, s.nodeID)].Gate.Conditions {
+				if c.Kind == mobs.ConditionQuestAtStage && c.Stage == mobs.QuestStageCompleted {
+					done[c.Quest] = quests.Progress{Path: []string{"done"}, Completed: true}
+				}
+			}
+			if len(done) > 0 {
+				p.ledger.Restore(quests.LedgerState{Quests: done})
+			}
 
 			assert.True(t, shows(), "before the accept the offer row shows")
 			require.NoError(t, p.ledger.Accept(q.ID))

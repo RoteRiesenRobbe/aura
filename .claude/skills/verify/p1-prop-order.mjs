@@ -2,7 +2,7 @@
 // plan-prop-draw-order.md P1 + P3: props stack in SPAWN order, every time —
 // prop layer bottom to top, then zone-file order inside a layer.
 //
-// Venue: Eliza's farmhouse (Farmlands), the PO's original report. Since P3 the
+// Venue: Flora's farmhouse (Farmlands), the PO's original report. Since P3 the
 // OakTree beside her Cottage sits in props.canopy and the Cottage in
 // props.buildings, so the oak draws OVER the cottage by its LAYER, with no
 // hand-ordering — and keeps doing so.
@@ -17,7 +17,7 @@
 //   3. Walk away and come back (a WARP far enough that both leave the
 //      snapshot, then back): legs 1 and 2 again. ⭐ This is the case that used
 //      to reshuffle: a returning prop was rebuilt and APPENDED on top.
-//   4. Container order: npcs < characters < props.standing, and Eliza's own
+//   4. Container order: npcs < characters < props.standing, and Flora's own
 //      sprite is on `mobs.npcs` (D9: NPCs under the player).
 //
 // ⚑ Expectations are DERIVED from api/zones/world.json, never typed in. The
@@ -47,7 +47,7 @@ const parts = [{ id: '', ...world }, ...(world.areas || [])];
 const props = RANK.flatMap((layer) => parts.flatMap((a) => ((a.props && a.props[layer]) || [])
   .map((p, n) => ({ layer, n, p, area: a.id }))))
   .map(({ layer, n, p, area }, i) => ({ i, where: `${area ? area + '/' : ''}${layer}[${n}]`, type: p.type, x: p.x * 120, y: p.y * 120 }));
-const eliza = parts.flatMap((a) => a.spawns || []).find((s) => s.mob === 'Eliza');
+const eliza = parts.flatMap((a) => a.spawns || []).find((s) => s.mob === 'Flora');
 const nearEliza = (type) => props
   .filter((p) => p.type === type)
   .sort((a, b) => Math.hypot(a.x / 120 - eliza.x, a.y / 120 - eliza.y) - Math.hypot(b.x / 120 - eliza.x, b.y / 120 - eliza.y))[0];
@@ -123,7 +123,7 @@ await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_
 await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
 await cmd('GOD');
 
-console.log(`venue: Eliza (${eliza.x}, ${eliza.y}); cottage ${cottage.where}, oak ${oak.where}`);
+console.log(`venue: Flora (${eliza.x}, ${eliza.y}); cottage ${cottage.where}, oak ${oak.where}`);
 await warp(HOME);
 const arrived = await waitFor(async () => (await standingHas(cottage)) && (await standingHas(oak)));
 if (!arrived) {
@@ -139,7 +139,7 @@ const e = { x: eliza.x * 120, y: eliza.y * 120 };
 const elizaOnNpcs = first.npcChildren.some((c) => Math.hypot(c.x - e.x, c.y - e.y) < 6 * 120);
 check(first.npcIdx >= 0 && first.npcIdx < first.charIdx && first.charIdx < first.standingIdx,
   'npcs < characters < props.standing', `npcs ${first.npcIdx}, characters ${first.charIdx}, standing ${first.standingIdx}`);
-check(elizaOnNpcs, 'an NPC near Eliza draws on mobs.npcs', `${first.npcChildren.length} child(ren) on npcs`);
+check(elizaOnNpcs, 'an NPC near Flora draws on mobs.npcs', `${first.npcChildren.length} child(ren) on npcs`);
 
 // Leg 3: walk away until both leave the snapshot, then come back.
 await warp(AWAY);
