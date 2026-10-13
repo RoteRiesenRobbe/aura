@@ -39,10 +39,10 @@ discussion (`plan-xp-progression.md` §8).
 
 ### As built vs. this doc (census 2026-09-30, re-read 2026-10-02)
 
-**Built:** the homestead with Eliza, Hendrik and Benjamin, the starting
+**Built:** the homestead with Flora, Henrik and Benjamin, the starting
 campfire, level 1–2 stags and a beet patch (§2.0) · Reinhard, the `Barn` prop
-and the barn interior · the mill with the Miller · Town Crier, Shepherd,
-Farmhand, the three sheep and the Dog · fence paths, gates, wheat and
+and the barn interior · Reinhard's wife (the Miller's old spawn) · Town Crier,
+Hans, Lionett, Farmhand, the three sheep and the Dog · fence paths, gates, wheat and
 ploughed-field polygons · `BrokenFence`, `BurntCart`, `RuinedHouse` props ·
 the Memorial Stone · 20 Seaweed heaps on the Strand.
 
@@ -62,50 +62,40 @@ Re-run `node scripts/zone-census.mjs` instead of trusting this table.
 **Level range** 1–6 [PLACEHOLDER]. **Theme**: open, bright, legible. The zone
 whose job is to teach, not to threaten.
 
-### 2.0 The opening arc — home, before the village exists
+### 2.0 The opening arc — Flora's farm
 
 ⭐ **This is the first five minutes of the game, and it is a POI the player
 starts *inside*, not one they walk to.** A homestead west of Reinhard's farm,
-off the road's west end. Three relatives live here, and between them they hand
-over the entire starting kit. The quest is `dinner-for-the-family`.
+off the road's west end. Since the PO's quest sheet (built 2026-10-13,
+`82044c23`) the player arrives as a **stranger looking for work**, not as the
+family's child: the dinner quest is split into two chained errands for
+**Farmer Flora**, and First Aid moved to **Herbalist Lionett** (§2.6a).
 
 **The design problem it solves.** Before this existed a new character spawned in
 the village square holding exactly one skill — the level-1 `Damage` milestone —
-and every teacher was optional scenery. Nothing in the world *required* the
-player to learn anything, so the first hour taught by accident or not at all.
-The arc makes the three foundational verbs — **fight, gather, heal** — into
-three errands for three people you are related to.
+and every teacher was optional scenery. The arc makes the foundational verbs
+into errands that walk the player to the teacher of each.
 
-The quest has **one objective stage, and both errands run in parallel inside it**:
-
-| Stage | Objective | Who | What it teaches | Why it cannot be skipped |
+| Quest | Giver | Objectives | Teaches | Why it cannot be skipped |
 |---|---|---|---|---|
-| `gather` | talk | **Hendrik**, your father, a hunter | **Wild** @L1 | Soft — a `talk_to` objective. You must open his panel; taking the skill is your choice |
-| | kill 3× **Stag** | | that a fleeing target is a *positioning* problem | — |
-| | talk | **Benjamin**, your uncle | **Harvest** @L1 | Soft — a `talk_to` objective |
-| | harvest 6× **Beet** | | that not everything is killed | ⛔ **Hard.** A Beet carries the Turnip's `{"*": 0}` + `gateKeys: ["harvest"]` lock, so **no combat aura can touch one** until Harvest is learned |
-| `home` | talk | **Eliza**, your mother | **FirstAid** + 150 XP on the turn-in | — |
-| `done` | — | — | — | Her completed-greeting points east to Reinhard |
+| `ready-for-harvest` *(Ready for Harvest)* | **Flora** | talk to **Benjamin**, harvest 10× **Beet** | **Harvest** @L1 (Benjamin) | ⛔ **Hard.** A Beet carries the Turnip's `{"*": 0}` + `gateKeys: ["harvest"]` lock, so **no combat aura can touch one** until Harvest is learned |
+| `meat-for-dinner` *(Meat for Dinner)*, after the harvest | **Flora** | talk to **Henrik**, kill 5× **Stag** | **Wild** @L1 (Henrik, her husband) | Soft — a `talk_to` objective; taking the skill is the player's choice |
+| `eliza-sends-me` *(Off to the Mill)*, after the meat | **Flora** | reach `farmreinhard`, talk to Reinhard | — | — |
+
+Each pays 150 XP (the L9 rule at L1); Off to the Mill pays nothing, it is a
+handoff. The later quest's offer node is gated on the earlier one completing
+(manual §6, "Gating one quest behind another"), so the chain needs no new
+mechanism.
 
 ⭐ **The two lessons are deliberately asymmetric, and that asymmetry is the
-teaching.** Hendrik's Wild is an *upgrade you may decline* — `Damage` alone
-kills a stag, so the lesson is "there is a wider ring, and it costs resource."
-Benjamin's Harvest is a *key*: swinging at a beet does literally nothing. The
-player meets an optional trade and an absolute lock inside the same five
-minutes, which is the whole shape of the game's skill economy in miniature.
+teaching.** Henrik's Wild is an *upgrade you may decline* — `Damage` alone
+kills a stag. Benjamin's Harvest is a *key*: swinging at a beet does literally
+nothing. The player meets an absolute lock first and an optional trade second.
 
-⚑ **Parallel means unordered.** A stage's objectives are AND-ed with no order,
-so the player can do either errand first — and can kill the stags *before*
-visiting Hendrik (the talk still has to happen before the stage completes).
-The beets need no ordering rule: the harvest lock orders them by itself.
-
-⚑ **`gather` authors no `tracker`, and must not.** A stage tracker replaces
-every derived line with ONE, and substitutes `{n}/{m}` from the **first
-countable** objective only — it could show the stags or the beets, never both.
-Left underived, the journal shows one line per objective, each with its own
-live count and a ✓ on a finished talk. ⚑ The cost is the deriver's wording:
-`Talk to the Hendrik`, `0/3 Stag slain`, `0/6 Beet harvested`. Fixing that
-needs a per-objective tracker in the quest format, which does not exist yet.
+⚑ **Parallel means unordered inside each quest.** The talk and the deed are
+AND-ed with no order, so a player can kill stags before visiting Henrik (the
+talk still has to happen). Each talk objective authors its own `tracker`
+("Talk to Benjamin"), which avoids the deriver's "Talk to the Benjamin".
 
 **The stag is the right first target and the reason is mechanical.** It authors
 `fleeBelowHealthRatio: 1`, so it bolts the instant it is hurt and **never
@@ -130,18 +120,17 @@ A level-14 stag is killable at level 1 — it cannot hurt you — but it is
 first fight. The pasture herd stays where it is; the homestead needs its own
 low-level spawns (**3–4**, for a count of 3), plus a **Beet patch of 8–10** (for 6).
 
-⚑ **Cast the homestead with three reskins, not three sprites.** Eliza reuses
-`VillageHealer`, Hendrik reuses `Wanderer`, Benjamin reuses `Farmer`, and the
+⚑ **Cast the homestead with three reskins, not three sprites.** Flora reuses
+`VillageHealer`, Henrik reuses `Wanderer`, Benjamin reuses `Farmer`, and the
 Beet reuses `Turnip` — the standing placeholder-art call (Shepherd / Miller /
 Farmhand precedent). Four bespoke sprites for the tutorial would spend four
 wire enum values that can never be reclaimed, before anyone has seen whether
 the arc works.
 
-⭐ **The handoff is content, not a corridor.** Eliza's greeting after dinner is
-a `quest_at_stage … completed` node sitting **above** her unconditional root
-(L3: a conditional node must outrank the greeting), and it says to follow the
-road east to Reinhard. That is the seam between §2.0 and the rest of the zone:
-the arc does not gate the road, it *aims* the player down it.
+⭐ **The handoff is content, not a corridor.** Flora's last offer is Off to the
+Mill ("talk to miller Reinhard, who lives further east"), a `reach` quest done
+on arriving at his farm. The arc does not gate the road, it *aims* the player
+down it.
 
 ### 2.1 Story beat, restated as a *spatial* problem
 
@@ -239,27 +228,30 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 
 | POI | Purpose | Contents |
 |---|---|---|
-| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Eliza, Hendrik, Benjamin; the `startingSpawn` campfire; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
-| **Village square** | Hub, respawn, quest wall | Campfire, 4–6 Houses, Reinhard, Town Crier, village healer. ⚑ This row used to put the `startingSpawn` fire here, contradicting §2.0; the homestead owns it, as the built map does |
+| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Flora, Henrik, Benjamin; the `startingSpawn` campfire; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
+| **Village square** | Hub, respawn, quest wall | Campfire, 4–6 Houses, Reinhard (the miller) and his wife, Town Crier, village healer. ⚑ This row used to put the `startingSpawn` fire here, contradicting §2.0; the homestead owns it, as the built map does |
 | **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Reinhard's chore quest |
-| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` on Reinhard. ⭐ Built as an **interior**: the rats live in `barn.json`, entered through a `CaveMouth` at the barn door (the underworld's door mechanism, `plan-underworld.md`). ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
+| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` (The Pest in the Granary) on Reinhard. ⭐ Built as an **interior**: the rats live in `barn.json`, entered through a `CaveMouth` at the barn door (the underworld's door mechanism, `plan-underworld.md`). ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
 | **North pasture** | Teaches *neutral* | Stags + boars, zero hostiles, a herder NPC |
 | **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in through a `BrokenFence`; visible from the road |
 | **Burnt cart / looted wagon** | The bandit breadcrumb | Prop dressing + a corpse + a signpost. No mob. |
-| **Mill on the river** | Soft dead end, side reward | Miller NPC, a boar sounder, a chest-equivalent |
+| **Mill on the river** | Soft dead end, side reward | A boar sounder, a chest-equivalent (the Miller NPC became Reinhard's wife at his farm, 2026-10-13) |
 | **Treeline gate** | The door | Signpost, a guard or wanderer who warns you, the Zone 2 quest giver |
 
 ### 2.5 Cast (zone 1)
 
 Existing: `Turnip`, `Beet`, `Boar`, `Stag`, `Wolf`, `GiantRat`, `Bandit` (traces only),
-`Reinhard` (the Farmer, **renamed 2026-09-23**), `Eliza`, `Hendrik`, `Benjamin`,
-`TownCrier`, `VillageHealer`, `Wanderer`, `Dog`, `Campfire`.
+`Reinhard` (the Farmer, **renamed 2026-09-23**; the miller since 2026-10-13),
+`Flora` (was `Eliza`), `Henrik` (was `Hendrik`), `Benjamin`, `Hans` (was
+`Shepherd`), `ReinhardsWife` (was `Miller`), `Lionett`, `TownCrier`,
+`VillageHealer`, `Wanderer`, `Dog`, `Campfire`. Outside the zone, the sheet
+added `Tobias` (at the Wanderer's fire) and the `Governor` of Dionsburg.
 
 ⚑ **`Farmer` is now two different things and the distinction bites.** `Reinhard`
 is the DEFINITION NAME — what zone spawns, quest `talk_to` targets and
 `GetByName` resolve against. `Farmer` survives as the **wire EntityType**, worn
-as an `entityType` override by Reinhard himself, Benjamin, the Miller, the
-Shepherd and the Farmhand. Renaming the def silently broke his sprite, because
+as an `entityType` override by Reinhard himself, Benjamin, Reinhard's wife,
+Hans, the Farmhand and Tobias. Renaming the def silently broke his sprite, because
 a def with no override resolves its art BY NAME; the override is the repair.
 
 ~~**Missing and needed**: an **Alpha Boar** … and a **Herder/Shepherd** NPC~~ —
@@ -273,13 +265,16 @@ decide to avoid from across the field. Its POI partner, the **`Miller`**, is a
 Farmer reskin like the Shepherd and offers `the-sounder-at-the-mill`.
 ✅ **Both are placed** in the rebuilt world: the Miller at the mill in the
 Farmlands, the Alpha Boar across the river in Brackenfold Meadows (census
-2026-09-30).
+2026-09-30). Since the quest sheet (2026-10-13) the Shepherd is `Hans`, and the
+Miller's def is `ReinhardsWife`, standing beside Reinhard, who took over the
+mill's two quests.
 
 ### 2.6 Quests (from the bible, mapped to what exists)
 
-0. ⭐ **The opening arc** — `dinner-for-the-family.json` ships (§2.0). It runs
-   *before* everything below and is the only quest in the zone that exists to
-   hand over skills rather than to reward a deed. It ends by pointing at (2).
+0. ⭐ **The opening arc** — `ready-for-harvest`, `meat-for-dinner` and
+   `eliza-sends-me` (§2.0; `dinner-for-the-family` was retired 2026-10-13).
+   They run *before* everything below and hand over skills as much as they
+   reward deeds. They end by pointing at (2).
 1. **MAIN: Report to the City** — accepted in the village, completes three zones
    later. Its Zone 1 leg is simply "reach the treeline"; the map does the rest.
 2. **Tend to the Farm** — `turnip-chore.json` ships; keep it.
@@ -308,16 +303,28 @@ here — killing the antagonist in the tutorial zone spends him.
 
 ### 2.6a Quests that shipped after the list above
 
-The list above is the bible's mapping. Three more Zone 1 quests ship:
+The list above is the bible's mapping. The PO's **quest sheet** (a Google Sheet
+of dialogue per quest; built 2026-10-13, `82044c23`) retitled and re-cast the
+rest of the zone, with its dialogue in the NPC files nearly verbatim:
 
-- **`the-strays`** — the Shepherd: find the three sheep and the Dog (four
-  talks, one ticked line each). 180 XP.
-- **`the-sounder-at-the-mill`** — the Miller: kill the Alpha Boar, Zone 1's one
-  elite. 370 XP. ⚑ Its target stands in Brackenfold Meadows today; it stays
-  in Zone 1 and is re-placed in the Farmlands by the map fix (PO 2026-10-02).
-- **`the-millers-ring`** — the Miller: search the Seaweed on Saltgrass Strand
-  for his ring, the game's first chance objective (6 % a harvest, the 12th
-  always finds). 216 XP.
+| Quest (title) | Giver → turn-in | Work | XP (L9 rule) |
+|---|---|---|---|
+| `giant-rats-in-the-barn` *(The Pest in the Granary)* | Reinhard | 8 GiantRat in the barn | 180 |
+| `the-millers-ring` *(Lost and Found)* | Reinhard | search the Seaweed on Saltgrass Strand for his wedding ring (6 % a harvest, the 12th always finds) | 216 |
+| `boars-in-the-field` *(The Problematic Boars)* | Reinhard | 6 Boar | 180 |
+| `the-sounder-at-the-mill` *(The Beast of the Farmlands)*, after the boars | Reinhard | the Alpha Boar, Zone 1's one elite | 370 |
+| `a-lost-shipment` *(A Lost Shipment)*, after the beast | Reinhard → **Tobias** at the Wanderer's fire | find his farmhand on the road east | 311 (L5) |
+| `the-strays` *(A Herd Astray)* | **Hans** | find the three sheep and the Dog (four talks) | 180 |
+| `he-who-cried-wolf` *(He Who Cried Wolf)* | Hans → Town Crier → **Governor** of Dionsburg | 6 Wolf, then carry the word | 216 (L3) |
+| `a-healthy-brew` *(A Healthy Brew)* | **Lionett**, on the north shore | 8 Seaweed | 180 + **FirstAid** |
+
+`turnip-chore`, `village-welcome` and `wolves-on-the-road` stay beside them
+(PO 2026-10-13). The Town Crier also carries the Dionsburg lore chain (the
+Order of Divine Light, its paladin Papath) and a "who has work" line naming
+Flora, Reinhard, Lionett and Hans; Brunnstedt's region title is now Dionsburg.
+⚑ Tobias's and the Governor's lines are drafted (the sheet has none), and the
+den the sheet calls underground is the Alpha Boar's open-air spot until a cave
+is built.
 
 ⚑ **Two quests cross the zone line today.** `village-welcome` is offered by
 the Hermit, who stands in the Deep Woods (Zone 2), and `wolves-on-the-road` is
@@ -342,6 +349,10 @@ split (PO 2026-10-02): about 80 % from quests, 20 % from kills** →
 once, no grinding; respawns are an overflow valve, not budget).
 
 #### 2.7.1 What the map pays today (2026-10-02, Farmlands + Strand + barn)
+
+⚑ **Measured before the quest sheet (2026-10-13)**: the opening now pays two
+150 XP quests instead of one, and Hans's wolves and Lionett's brew are new.
+Re-run the simulation before quoting these numbers.
 
 Simulated at today's numbers (`killXP` base 20, the L9 half-level quest rule),
 quests in story order, each kill paid at the player's level at that moment:
@@ -386,8 +397,8 @@ The draft follows the three campfires the Farmlands already has:
 
 | Area | Hub | Band | Budget | Quests (80 %) | Kills (20 %) | Quests there today | Quest XP today | Gap |
 |---|---|---|---|---|---|---|---|---|
-| **A1 The homestead** | `spawnpoint-1`, Eliza | 1 → 2 | 300 | 240 | 60 | `dinner-for-the-family` | 150 | −90 |
-| **A2 Reinhard's farm + the village** | `spawnpoint-3`, Reinhard, Town Crier, Miller | 2 → 4 | 792 | 634 | 158 | `turnip-chore`, `boars-in-the-field`, `giant-rats-in-the-barn`, `village-welcome` | 660 | +26 |
+| **A1 The homestead** | `spawnpoint-1`, Flora | 1 → 2 | 300 | 240 | 60 | `dinner-for-the-family` | 150 | −90 |
+| **A2 Reinhard's farm + the village** | `spawnpoint-3`, Reinhard, Town Crier, Reinhard's wife | 2 → 4 | 792 | 634 | 158 | `turnip-chore`, `boars-in-the-field`, `giant-rats-in-the-barn`, `village-welcome` | 660 | +26 |
 | **A3 The north fields + the Strand** | `spawnpoint-31`, by the beach | 4 → 6 | 1140 | 912 | 228 | `the-strays`, `the-millers-ring`, `wolves-on-the-road`, `the-sounder-at-the-mill` | 1166 | +254 |
 | **Zone 1** | | **1 → 6** | **2232** | **1786** | **446** | | **1976** | **+190** |
 
@@ -413,8 +424,8 @@ What the draft says, read off the gaps:
   the 1.6 per level D2 set. A3 holds about three at that price, so one of the
   four moves or shrinks. The re-price waits for the spawn-level pass, because
   the rule prices the target's level.
-- **Givers vs. hubs.** The Shepherd stands at the homestead and the Miller in
-  the village, but their quests send you north. A quest belongs to the area
+- **Givers vs. hubs.** Hans stands at the homestead and Reinhard in the
+  village, but some of their quests send you north. A quest belongs to the area
   where its work happens; whether the givers move is a placement call.
 
 Open for the PO: the area split itself (three areas, these boundaries), the

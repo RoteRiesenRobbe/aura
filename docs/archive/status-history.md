@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-14, the quest sheet wrap: the quest levels + markers entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: QUEST LEVELS + QUEST-GIVER MARKERS C1-C3** ✅ 2026-10-11 on `main`, C1 `d872e58a` · C2 `2b7b8803` · C3 `8e974200` · row fix `611b6b62` (ledger: `docs/archive/plan-quest-giver-markers.md` §6; archived): ⭐ every quest authors a target `level` (hard-fail without it; editor field). ⭐ Givers show `!` / yellow `?` / grey `?` over the head and on both maps (revealed ground only); the server decides from `present()` per conversant DEFINITION (keyed by mob id) on the owner-block gate. GDD §8 amended: givers are marked, objectives are not. The `!`, journal, tracker and offer-row titles take the mob con colour of the quest level; the E badge shares the `!`'s row (PO look). **Schema: DB NONE · wire +1 table +2 fields (appended) · HTTP/content +level.** Verified: vitest 1602/0 · Go bar the known C1b test · `quest-markers.mjs` 14/14 · PO look "nice". ⚑ Open: the hail line overlaps the `!` (`docs/feedback.md` 2026-10-11).
+
 *(2026-10-12, the immune targets C1 wrap: the effect types round 2 C2 thorns entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: EFFECT TYPES ROUND 2 C2, thorns on others** ✅ 2026-10-08 `fe298f70` (ledger: `docs/archive/plan-effect-types-round-2.md` §6 C2, §10): ⭐ `retaliate_burst` takes the speed_burst shape (`targetsSelf` / `targetsAllies`, radius iff allies); mobs wear it (`model.Reflector`, `Mob.reflect` off both touch doors, pre-mitigation). ⭐ PO D30: a reflected hit never retaliates (`Reflected` on Damage/Factors), or two wearers bounce forever. Pip Reflect = 1024. Example Thorns (161): caster + every ally in 4 u. ⚑ No mob content wears thorns yet (Go-only). **Schema: DB/conf NONE, wire +1 pip bit.** Verified: vitest 1581/0 · `c2-thorns.mjs` 4/4 · `c1-stat-buffs` 4/4 · `buff-tray` 22/22 · PO "works".
