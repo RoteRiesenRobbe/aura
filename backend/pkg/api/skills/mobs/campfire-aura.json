@@ -20,6 +20,7 @@
     },
     {
       "type": "light_aura",
+      "color": "#ffb060",
       "radius": 7.0
     }
   ]

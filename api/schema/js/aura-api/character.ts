@@ -190,8 +190,13 @@ flightArrivalTick():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+lightColor():number {
+  const offset = this.bb!.__offset(this.bb_pos, 76);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(36);
+  builder.startObject(37);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -324,6 +329,10 @@ static addFlightDest(builder:flatbuffers.Builder, flightDestOffset:flatbuffers.O
 
 static addFlightArrivalTick(builder:flatbuffers.Builder, flightArrivalTick:bigint) {
   builder.addFieldInt64(34, flightArrivalTick, BigInt('0'));
+}
+
+static addLightColor(builder:flatbuffers.Builder, lightColor:number) {
+  builder.addFieldInt32(36, lightColor, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

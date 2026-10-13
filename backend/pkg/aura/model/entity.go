@@ -130,6 +130,9 @@ type MobEntity interface {
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).
 	LightRadius() float32
+	// LightColor is that light's colour, 0xRRGGBB, 0 = unauthored white (wire
+	// light_color; plan-lightmap.md L2).
+	LightColor() uint32
 	// DwellRadius is the bind radius of a campfire respawn anchor, 0 for
 	// everything that is not one (wire dwell_radius — the client draws the
 	// inner dwell circle from it, so the server's bind factor is the single

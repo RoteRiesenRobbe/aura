@@ -13,6 +13,7 @@ import {
     resolveIn, resolveSight,
 } from '../../regions/logic/Regions';
 import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
+import {authoredLightColor, lightTint, WHITE_LIGHT} from './LightColor';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -20,14 +21,29 @@ import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
  * Dark areas are authored per zone (`zone.darkAreas`, circles in server
  * units) and are constantly dark — independent of the day/night cycle (§6.5),
  * which is why this layer is deliberately NOT in the DayCycle filtered set.
- * Light sources (wire `light_radius` on Character/Mob) punch soft holes into
- * the darkness via erase-blend sprites.
  *
- * The AlphaFilter forces the layer to render into its own texture, which
- * (a) confines the erase blending to the darkness instead of the world
- * beneath, and (b) flattens overlapping dark circles to one uniform opacity
- * before the alpha applies — chained circles ("tunnels") show no darker
- * intersections.
+ * ⭐ THE LAYER IS A LIGHTMAP (plan-lightmap.md L1). It renders how LIT each
+ * pixel is — white = fully lit, black = nothing seen — and the AlphaFilter
+ * composites the finished texture over the world with `multiply`:
+ *   1. a white base quad over the whole zone (D3: the map is opaque, so a
+ *      coloured light can never tint daylight around it);
+ *   2. dark circles and the darkness atmospheres paint toward their colour;
+ *   3. clearings paint WHITE (D4);
+ *   4. light sources (wire `light_radius` on Character/Mob, the static
+ *      campfire and torch glows) SCREEN in their own colour (D2).
+ *
+ * ⭐ Screen is `1 - (1-ambient)(1-light)`, which is exactly what the erase holes
+ * this replaced computed (`1 - d(1-a)` under a darkness d): white lights are
+ * pixel-identical to the old build, partial darkness and soft rims included.
+ *
+ * The filter also forces the layer into its own render texture, which flattens
+ * overlapping dark circles to one uniform value before the composite —
+ * chained circles ("tunnels") show no darker intersections.
+ *
+ * ⛔ FULL DARKNESS SHOWS NOTHING (PO 2026-10-13, "no shine through ever"): a
+ * black lightmap pixel multiplies the world to exactly 0. That holds only while
+ * MAX_ALPHA is 1 and a darkness-1 profile is black, and the Go loader refuses
+ * any other colour there (plan-lightmap.md D7).
  */
 
 const DarknessVisuals = {
@@ -42,7 +58,14 @@ const DarknessVisuals = {
     // placeholder. Vision now comes exclusively from the light holes, of which
     // the player's own sight floor (Regions.SELF_SIGHT_FLOOR_PX, authorable
     // per profile since A2) is the guaranteed minimum.
+    // ⛔ Under the multiply composite (plan-lightmap.md D1) anything below 1
+    // mixes the world back in under every black pixel: shine-through.
     MAX_ALPHA: 1,
+    // How far past the zone's bounds the white base quad reaches, in world
+    // units: lights near the edge glow over the zone's outer ground, and a
+    // light outside the base would screen onto transparent and tint daylight
+    // (plan-lightmap.md D3).
+    BASE_MARGIN: 64,
     // Width (world units) of the soft edge appended OUTSIDE the authored
     // radius — the authored circle itself is guaranteed fully dark, so
     // overlapping circles chain without bright seams. [PLACEHOLDER]
@@ -68,8 +91,11 @@ const DarknessVisuals = {
 // bundling the zone data uses — so retuning the content value cannot desync
 // the static glow from the wire-driven hole.
 const campfireAura = require('../../../../../api/skills/mobs/campfire-aura.json');
-const CAMPFIRE_LIGHT_RADIUS: number =
-    campfireAura.effects.find((e) => e.type === 'light_aura')?.radius ?? 0;
+const campfireLight = campfireAura.effects.find((e) => e.type === 'light_aura');
+const CAMPFIRE_LIGHT_RADIUS: number = campfireLight?.radius ?? 0;
+// The glow's colour from the same effect (plan-lightmap.md D6): one file, both
+// numbers, so the static glow and the wire-driven one cannot disagree.
+const CAMPFIRE_LIGHT_COLOR: number = authoredLightColor(campfireLight?.color, WHITE_LIGHT);
 
 /**
  * The static light each prop TYPE casts, in world units, keyed by the prop's
@@ -85,11 +111,17 @@ const CAMPFIRE_LIGHT_RADIUS: number =
  * _GameObject, which imports this module, and that cycle would run a class
  * `extends` before its base exists.
  */
-const PROP_LIGHT_RADIUS = new Map<string, number>(
+const PROP_LIGHTS = new Map<string, { radius: number, color: number }>(
     (requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as
-        { name: string, lightFraction?: number }[])
+        { name: string, lightFraction?: number, lightColor?: string }[])
         .filter(def => (def.lightFraction ?? 0) > 0)
-        .map(def => [def.name, CAMPFIRE_LIGHT_RADIUS * def.lightFraction] as [string, number]),
+        // ⚑ A prop is a light SOURCE of its own (PO 2026-10-12, "one colour
+        // per source"), so it authors `lightColor`; absent, it reads as a small
+        // campfire. Client-only: the server's map fog reads the radius alone.
+        .map(def => [def.name, {
+            radius: CAMPFIRE_LIGHT_RADIUS * def.lightFraction,
+            color: authoredLightColor(def.lightColor, CAMPFIRE_LIGHT_COLOR),
+        }] as [string, { radius: number, color: number }]),
 );
 
 interface LightSource {
@@ -116,10 +148,10 @@ interface Circle {
 let layer: Container = null;
 // ⭐ THE HAZE LAYER IS A SEPARATE FILTERED CONTAINER, and that separation is the
 // whole feature (PO 2026-09-14). The darkness layer's AlphaFilter forces it into
-// its own render texture, and an erase sprite removes alpha from everything
-// already in that texture — which is exactly why a lantern cuts fog today. A
-// sibling container INSIDE the darkness layer would not help: it composites into
-// the same target before the holes are punched.
+// its own render texture, and a light lifts everything already in that texture
+// toward white — so fog painted there would be cut by every lantern. A sibling
+// container INSIDE the darkness layer would not help: it composites into the
+// same target before the lights are drawn.
 //
 // ⛔ So haze lives outside the darkness layer entirely, with a filter of its own,
 // and nothing in the darkness layer can reach it. A lamp shows you the fog; it
@@ -133,17 +165,17 @@ let layer: Container = null;
 let hazeLayer: Container = null;
 let hazeActive = false;
 // The atmosphere shapes' own child container, inserted BETWEEN the dark
-// circles and the erase holes (plan-region-atmosphere.md A1).
+// circles and the lights (plan-region-atmosphere.md A1).
 //
 // ⭐ A child container rather than shapes added straight to the layer, and the
-// reason is ORDER. Three things share this layer and the order is load-bearing:
-// dark circles, then the DARKNESS shapes, then every erase hole (static campfire glows and
+// reason is ORDER. Four things share this layer and the order is load-bearing:
+// the white base, dark circles, then the DARKNESS shapes, then every light (static campfire glows and
 // the wire-driven lights that `setLightRadius` appends later). Game repaints
 // the atmospheres a SECOND time when the zone's ground tiles land, and a repaint
 // that re-added them to the layer would put the fog on top of the campfire
 // glows and quietly seal them shut. Emptying one container in place cannot.
 let atmosphereLayer: Container = null;
-const radialTextures = new Map<number, Texture>();
+const radialTextures = new Map<string, Texture>();
 let active = false;
 /** The local player's unaided sight radius in world PX, easing across
  *  boundaries rather than snapping (A2). Starts at the shipped floor, which is
@@ -166,7 +198,10 @@ export function atmosphereContainer(): Container {
 
 export function setup(darknessLayer: Container, hazeContainer: Container) {
     layer = darknessLayer;
-    layer.filters = [new AlphaFilter({alpha: DarknessVisuals.MAX_ALPHA})];
+    // ⭐ `multiply` composites the lightmap over the world (plan-lightmap.md D1):
+    // a native blend on WebGL and WebGPU, set on the filter because the filter
+    // is what draws the layer's texture back onto the screen.
+    layer.filters = [new AlphaFilter({alpha: DarknessVisuals.MAX_ALPHA, blendMode: 'multiply'})];
     layer.visible = false;
     // ⚑ Full alpha, unlike the darkness: MAX_ALPHA is how much of the world a
     // DARK AREA hides, and a fog bank's thickness is its own `haze` value. The
@@ -225,6 +260,20 @@ export function loadZone(zoneName: string) {
     hazeActive = air.some(a => declaresHaze(a));
     if (hazeLayer !== null) { hazeLayer.visible = hazeActive; }
 
+    // ⭐ The lightmap's white base (plan-lightmap.md D3), first child, so
+    // everything after it paints toward dark or back toward light. Without it
+    // the render target clears to transparent, which multiplies as "lit" too —
+    // but a coloured light screened onto transparent would tint daylight.
+    // ⚑ The whole zone plus a margin, never just the dark shapes: a light can
+    // stand anywhere in the zone.
+    const bounds = getZoneData(zoneName)?.bounds;
+    const base = new Sprite(Texture.WHITE);
+    base.anchor.set(0.5);
+    base.position.set(meter2px(ox), meter2px(oy));
+    base.width = meter2px((bounds ? bounds.width : 0) + 2 * DarknessVisuals.BASE_MARGIN);
+    base.height = meter2px((bounds ? bounds.height : 0) + 2 * DarknessVisuals.BASE_MARGIN);
+    layer.addChild(base);
+
     darkAreas.forEach((area) => {
         // Fully dark up to the authored radius; the fade lives outside it.
         const fadeRadius = area.radius + DarknessVisuals.EDGE_FADE;
@@ -244,20 +293,20 @@ export function loadZone(zoneName: string) {
     });
 
     // The atmosphere shapes' container, added AFTER the circles and BEFORE
-    // every erase hole. Empty here: Game paints into it, and repaints it when
+    // every light. Empty here: Game paints into it, and repaints it when
     // the zone's ground tiles land (fog can name a texture too).
     atmosphereLayer = new Container();
     layer.addChild(atmosphereLayer);
 
-    // Static campfire glow — erase sprites appended after the dark sprites so
-    // they render on top within this layer's own texture. The wire-driven
-    // hole for an in-range fire overlaps this one; double-erase clamps, the
-    // result is identical.
+    // Static campfire glow — screen sprites appended after the dark sprites
+    // so they render on top within this layer's own texture. The wire-driven
+    // light for an in-range fire overlaps this one; two screens of a full
+    // core stay white, exactly as the two erases this replaced did.
     if (active) {
         const zone = getZoneData(zoneName);
         const campfires = zone?.bindPoints || [];
         campfires.forEach((fire) => {
-            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS);
+            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS, CAMPFIRE_LIGHT_COLOR);
         });
         // Torches (PO 2026-09-20) — a small permanent fire, lighting half as
         // far as a campfire. ⭐ They are read from `zone.props` rather than
@@ -274,28 +323,26 @@ export function loadZone(zoneName: string) {
         // verbatim (see the comment on `inDarkness`). `punchStaticLight` does
         // both, which is why it exists rather than two call sites.
         flattenProps(zone?.props).forEach((prop) => {
-            const radius = PROP_LIGHT_RADIUS.get(prop.type);
-            if (radius !== undefined) {
-                punchStaticLight(prop.x + ox, prop.y + oy, radius);
+            const light = PROP_LIGHTS.get(prop.type);
+            if (light !== undefined) {
+                punchStaticLight(prop.x + ox, prop.y + oy, light.radius, light.color);
             }
         });
     }
 }
 
 /**
- * One authored, never-moving light: the erase hole the player SEES and the
+ * One authored, never-moving light: the glow the player SEES and the
  * circle `isHidden` ANSWERS FROM, written together so neither can be added
  * without the other. Positions are world units; the caller has already
  * applied the zone origin.
  */
-function punchStaticLight(x: number, y: number, radius: number) {
+function punchStaticLight(x: number, y: number, radius: number, color: number) {
     const px = meter2px(x);
     const py = meter2px(y);
     const radiusPx = meter2px(radius);
 
-    const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
-    sprite.anchor.set(0.5);
-    sprite.blendMode = 'erase';
+    const sprite = lightSprite(color);
     sprite.position.set(px, py);
     sprite.width = sprite.height = 2 * radiusPx;
     layer.addChild(sprite);
@@ -304,15 +351,16 @@ function punchStaticLight(x: number, y: number, radius: number) {
 }
 
 /**
- * Sizes (or removes, radiusPx <= 0) the light hole an entity punches into
- * the darkness. Wire light_radius is already in px. Erase sprites are
- * appended after the dark sprites, so they always render on top of them
- * within this layer's own render texture.
+ * Sizes (or removes, radiusPx <= 0) the light an entity casts into the
+ * darkness. Wire light_radius is already in px; wire light_color is 0 when
+ * unauthored (white). Light sprites are appended after the dark sprites, so
+ * they always render on top of them within this layer's own render texture.
  */
 export function setLightRadius(
     object: { id: gameObjectId, shape: Container },
     radiusPx: number,
     own = false,
+    color = 0,
 ) {
     if (!active) {
         return;
@@ -329,9 +377,7 @@ export function setLightRadius(
         return;
     }
     if (!light) {
-        const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
-        sprite.anchor.set(0.5);
-        sprite.blendMode = 'erase';
+        const sprite = lightSprite(color);
         layer.addChild(sprite);
         light = {object, sprite, wireRadiusPx: 0, own};
         lights.set(object.id, light);
@@ -339,7 +385,26 @@ export function setLightRadius(
     light.object = object;
     light.own = light.own || own;
     light.wireRadiusPx = Math.max(radiusPx, 0);
+    light.sprite.tint = lightTint(color);
     applyRadius(light);
+}
+
+/**
+ * One light's sprite (plan-lightmap.md D2): the WHITE radial ramp, tinted, and
+ * SCREENED onto the lightmap. Screen is `1 - (1-ambient)(1-light)`: it can only
+ * lift a pixel toward the light's colour, never past white, so a light over
+ * lit ground changes nothing and two overlapping lights combine exactly as the
+ * erase holes this replaced did.
+ *
+ * ⛔ Never masked: a masked sprite draws through a filter pass and loses its
+ * blend mode (the clearing build of 2026-09-17 read solid black for it).
+ */
+function lightSprite(color: number): Sprite {
+    const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION, true));
+    sprite.anchor.set(0.5);
+    sprite.blendMode = 'screen';
+    sprite.tint = lightTint(color);
+    return sprite;
 }
 
 /**
@@ -527,14 +592,15 @@ function clear() {
 
 /**
  * Soft radial gradient textures (opaque up to `coreFraction` of the radius,
- * transparent rim), generated on a canvas and cached per fraction — used for
- * the dark circles (normal blend, fraction depends on the authored radius so
- * the fade width stays constant in world units) and the light holes (erase
- * blend, alpha = erase strength → soft light edge).
+ * transparent rim), generated on a canvas and cached per fraction and colour —
+ * BLACK for the dark circles (normal blend, fraction depends on the authored
+ * radius so the fade width stays constant in world units) and WHITE for the
+ * lights (screen blend, tinted per source; alpha = strength → soft rim).
  */
-function texture(coreFraction: number): Texture {
+function texture(coreFraction: number, white = false): Texture {
     // Round the cache key so near-identical fractions share a texture.
-    const key = Math.round(coreFraction * 100) / 100;
+    const fraction = Math.round(coreFraction * 100) / 100;
+    const key = (white ? 'w' : 'k') + fraction;
     let cached = radialTextures.get(key);
     if (!cached) {
         const size = DarknessVisuals.TEXTURE_SIZE;
@@ -542,11 +608,12 @@ function texture(coreFraction: number): Texture {
         canvas.width = canvas.height = size;
         const ctx = canvas.getContext('2d');
         const gradient = ctx.createRadialGradient(
-            size / 2, size / 2, (size / 2) * key,
+            size / 2, size / 2, (size / 2) * fraction,
             size / 2, size / 2, size / 2,
         );
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        const rgb = white ? '255, 255, 255' : '0, 0, 0';
+        gradient.addColorStop(0, `rgba(${rgb}, 1)`);
+        gradient.addColorStop(1, `rgba(${rgb}, 0)`);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
         cached = Texture.from(canvas);

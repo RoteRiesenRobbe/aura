@@ -525,6 +525,14 @@ table Mob {
   // FlatBuffers omits defaults, so only summons pay for it. Appended at the
   // table end so existing field IDs stay stable.
   owner_id:ulong = 0;
+
+  // colour of the light light_radius reports, 0xRRGGBB (plan-lightmap.md
+  // L2): the client tints the mob's light with it. 0 = unauthored, drawn
+  // white; a black light is refused at load, so 0 never means black. The
+  // colour of the light_aura effect that won the radius (D5). Mirrors
+  // Character.light_color. Appended at the table end so existing field IDs
+  // stay stable; omitted for every unlit or uncoloured mob.
+  light_color:uint = 0;
 }
 
 table Character {
@@ -666,6 +674,11 @@ table Character {
   // Mob.immune_hit. Appended at the table end so existing field IDs stay
   // stable.
   immune_hit:bool = false (deprecated);
+
+  // colour of the light light_radius reports, 0xRRGGBB (plan-lightmap.md
+  // L2), 0 = unauthored white. Mirrors Mob.light_color. Appended at the table
+  // end so existing field IDs stay stable.
+  light_color:uint = 0;
 }
 
 table Spectator {

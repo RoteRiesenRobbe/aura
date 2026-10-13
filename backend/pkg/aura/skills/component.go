@@ -73,21 +73,31 @@ func (es *EquippedSkill) EffectiveRadius() float32 {
 	return max
 }
 
-// LightRadius is the level-scaled light radius: the maximum over the skill's
-// light_aura effects; 0 = the skill emits no light. Streams as the wire
-// light_radius so the client can hole-punch the darkness overlay.
-func (es *EquippedSkill) LightRadius() float32 {
-	var max float32
+// Light is the level-scaled light radius — the maximum over the skill's
+// light_aura effects, 0 = the skill emits no light — and the colour of the
+// effect that supplied it (0 = unauthored white; plan-lightmap.md D5). The
+// first effect keeps a tie. Streams as the wire light_radius / light_color.
+func (es *EquippedSkill) Light() (radius float32, color uint32) {
 	for _, e := range es.Def.Effects {
 		if e.Type != EffectTypeLightAura {
 			continue
 		}
 		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
-		if r > max {
-			max = r
+		if r > radius {
+			radius = r
+			color = 0
+			if e.Light != nil {
+				color = e.Light.Color
+			}
 		}
 	}
-	return max
+	return radius, color
+}
+
+// LightRadius is Light's radius alone (the map fog reads only this).
+func (es *EquippedSkill) LightRadius() float32 {
+	r, _ := es.Light()
+	return r
 }
 
 // SkillComponent holds all skill slots and spellbook state for one entity.
@@ -774,19 +784,32 @@ func (sc *SkillComponent) AuraCategories() AuraCategory {
 // a combat aura holds the one active slot; GDD §7 trade-off). Max, not sum —
 // light sources overlap, they don't amplify. 0 = no light.
 func (sc *SkillComponent) LightRadius() float32 {
-	var max float32
+	r, _ := sc.Light()
+	return r
+}
+
+// Light is LightRadius plus the colour of the source that won it
+// (plan-lightmap.md D5): one colour per entity, never a blend of two. A tie
+// keeps the earlier source — the active aura, then the passive slots in order.
+func (sc *SkillComponent) Light() (radius float32, color uint32) {
 	if slot := sc.ActiveAuraSlot; slot >= 0 && sc.AuraSlots[slot] != nil {
-		max = sc.AuraSlots[slot].LightRadius()
+		radius, color = sc.AuraSlots[slot].Light()
 	}
 	for _, es := range sc.PassiveSlots {
 		if es == nil {
 			continue
 		}
-		if r := es.LightRadius(); r > max {
-			max = r
+		if r, c := es.Light(); r > radius {
+			radius, color = r, c
 		}
 	}
-	return max
+	return radius, color
+}
+
+// LightColor is Light's colour alone (wire light_color).
+func (sc *SkillComponent) LightColor() uint32 {
+	_, c := sc.Light()
+	return c
 }
 
 // Discover marks a skill as discovered at level 1. Re-discovering (idempotent

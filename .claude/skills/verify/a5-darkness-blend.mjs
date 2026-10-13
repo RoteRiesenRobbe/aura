@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// ⛔ STRUCTURAL LEGS STALE since plan-lightmap.md L1 (2026-10-13): the darkness
+// layer is a lightmap, so a clearing there PAINTS WHITE (blend `normal`) and
+// lights SCREEN; only the haze clearing still erases. The erase counts below
+// read the old build. The PIXEL legs still hold (L1 is pixel-identical).
 // `blend` on the DARKNESS half of an atmosphere — the soft border, measured as a
 // NUMBER rather than eyeballed (2026-09-17, PO ask: "its border is too sharp").
 //

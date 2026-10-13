@@ -1,7 +1,8 @@
 # Plan - coloured light (the darkness layer becomes a lightmap)
 
-**Status:** DESIGNED + PO-RULED 2026-10-12 (planning session, docs only,
-nothing built). Three chunks: L1 client-only, L2 content + wire + server +
+**Status:** BUILT 2026-10-13, L1-L3 in one session on branch `lightmap`
+(PO ask: "implement it fully"); pixel-verified, ⛔ PO in-game look owed (§9).
+Designed + PO-ruled 2026-10-12. Three chunks: L1 client-only, L2 content + wire + server +
 client + editor, L3 content + one loader rule (blue-black partial darkness,
 full darkness locked black). D1-D5 PO-approved as
 drafted, D6 amended by the PO's per-source ruling, D7 new (§8 has the
@@ -301,6 +302,27 @@ reads.
 
 | Chunk | State | Commit | Verified |
 | --- | --- | --- | --- |
-| L1 lightmap, white lights | not started | | |
-| L2 colour | not started | | |
-| L3 blue-black partial, full locked | not started | | |
+| L1 lightmap, white lights | built 2026-10-13 | branch `lightmap` | `l1-lightmap.mjs parity` 5/5, Δ 0.0 on every sample vs the pre-L1 baseline (core, near, edge, lit), dark exactly 0,0,0 |
+| L2 colour | built 2026-10-13 | branch `lightmap` | `l1-lightmap.mjs colour` 4/4: campfire core R/B 1.09 → 1.77, daylight beside it Δ 0.0, dark 0,0,0 · Go skills/codec/world tests green · vitest 1626/0 · tsc clean |
+| L3 blue-black partial, full locked | built 2026-10-13 | branch `lightmap` | loader lock tests green (`#03050c` at darkness 1 refused, black / bare accepted) |
+
+**Ledger notes (2026-10-13).**
+
+- **Baseline** (`.claude/skills/verify/l1-lightmap-baseline.json`, pre-L1
+  build, tunnel zone, the campfire's static glow): core 141/140/129.7 · near
+  139.8/133.5/127.7 · edge 94/90/86.9 · dark 0/0/0 · lit 123.6/118.6/112.6.
+  L1 reproduced every value exactly, which is D2's maths holding in pixels.
+- **Beyond the plan:** `api/props/`'s `lightColor` is validated by the Go prop
+  loader too (`DisallowUnknownFields` would otherwise refuse the boot), via the
+  now-exported `skills.ParseLightColor`. A colour on a prop with no
+  `lightFraction` is refused.
+- **Stale harness legs:** `a4-clearing.mjs` and `a5-darkness-blend.mjs` count
+  ERASE sprites in the darkness layer; a darkness clearing now paints white
+  (D4). Both carry a header note; no zone authors a clearing today, so neither
+  ran.
+- **Go suite:** green bar the known `TestPropContent_C1bMigrationPreservesLookAndCollision`
+  (Tree/Boulder, CLAUDE.md known-inconclusive list).
+- **Owed:** the PO's in-game look (campfire, torch prop, Torch, Lantern, fire
+  elemental in a cave; Gloom and Storm Sky side by side with the old colours);
+  the editor smoke against a rebuilt `backend/aurad` (its only finding was the
+  stale binary); cleanup.md entry 5 is untouched.

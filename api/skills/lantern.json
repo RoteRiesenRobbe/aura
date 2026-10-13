@@ -14,6 +14,7 @@
   "effects": [
     {
       "type": "light_aura",
+      "color": "#ffe6c2",
       "radius": 4.0,
       "radiusPerLevel": 0.5
     }

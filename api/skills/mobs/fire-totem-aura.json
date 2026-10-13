@@ -28,6 +28,7 @@
     },
     {
       "type": "light_aura",
+      "color": "#ff9a48",
       "radius": 3.0,
       "radiusPerLevel": 0.0
     }

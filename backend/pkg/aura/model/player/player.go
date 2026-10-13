@@ -1245,6 +1245,12 @@ func (p *player) LightRadius() float32 {
 	return p.skills.LightRadius()
 }
 
+// LightColor is the colour of the light LightRadius reports, 0xRRGGBB, 0 =
+// unauthored white (plan-lightmap.md L2). Serialized as Character.light_color.
+func (p *player) LightColor() uint32 {
+	return p.skills.LightColor()
+}
+
 // AuraCategories is the active aura's ring-colour bitmask, 0 while none is
 // active. Serialized as Character.aura_category — the client colours the ring
 // from it instead of matching hardcoded skill IDs (triage item 7).

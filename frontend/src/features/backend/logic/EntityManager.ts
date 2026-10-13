@@ -209,7 +209,7 @@ export class EntityManager {
         // Light hole in the darkness overlay (chunk 3): characters and mobs
         // alike; 0 removes the hole. No-op while the zone has no dark areas.
         if (isDefined(entity.lightRadius)) {
-            DarknessOverlay.setLightRadius(gameObject, entity.lightRadius);
+            DarknessOverlay.setLightRadius(gameObject, entity.lightRadius, false, entity.lightColor ?? 0);
         }
 
         if (Array.isArray(entity.statusEffects)) {

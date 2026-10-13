@@ -129,6 +129,9 @@ type PlayerEntity interface {
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).
 	LightRadius() float32
+	// LightColor is that light's colour, 0xRRGGBB, 0 = unauthored white (wire
+	// light_color; plan-lightmap.md L2).
+	LightColor() uint32
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32

@@ -148,8 +148,13 @@ ownerId():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+lightColor():number {
+  const offset = this.bb!.__offset(this.bb_pos, 58);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(27);
+  builder.startObject(28);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -250,6 +255,10 @@ static addLevel(builder:flatbuffers.Builder, level:number) {
 
 static addOwnerId(builder:flatbuffers.Builder, ownerId:bigint) {
   builder.addFieldInt64(26, ownerId, BigInt('0'));
+}
+
+static addLightColor(builder:flatbuffers.Builder, lightColor:number) {
+  builder.addFieldInt32(27, lightColor, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

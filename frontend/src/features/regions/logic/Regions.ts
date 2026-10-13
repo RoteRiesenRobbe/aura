@@ -338,7 +338,7 @@ export const DEFAULT_PROFILE: Required<Profile> = {
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
  *  reads; PixiJS wants a number. An unparseable colour is dropped rather than
  *  turned into NaN, so it falls through to the default like any other miss. */
-function parseColor(raw: unknown): number | undefined {
+export function parseColor(raw: unknown): number | undefined {
     if (typeof raw !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(raw)) {
         return undefined;
     }

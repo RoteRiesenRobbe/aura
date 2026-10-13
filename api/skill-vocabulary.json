@@ -265,7 +265,8 @@
     ],
     "light_aura": [
       "radius",
-      "radiusPerLevel"
+      "radiusPerLevel",
+      "color"
     ],
     "projectile": [
       "spawnMob",

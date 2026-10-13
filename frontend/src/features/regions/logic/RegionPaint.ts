@@ -896,9 +896,9 @@ export function paintAtmospheres(
     // construction, which is the property D3 had and A4 must not lose.
     clearings.forEach((clearing) => {
         if (clearsDarkness(clearing)) {
-            cutHole(darknessContainer, clearing, renderer, out);
+            cutHole(darknessContainer, clearing, renderer, out, 'normal');
         }
-        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out); }
+        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out, 'erase'); }
     });
     return out;
 }
@@ -915,6 +915,13 @@ const CLEARING_FADE = 2;
 
 /**
  * One clearing's hole in one layer.
+ *
+ * ⭐ TWO BLENDS, one per layer (plan-lightmap.md D4). The darkness layer is a
+ * LIGHTMAP since L1 (white = lit), so its clearing PAINTS WHITE, `normal`: the
+ * same picture an erase used to give, and a coloured light drawn after it can
+ * still colour it — an erase would leave transparent, which the light's screen
+ * cannot tint without also tinting daylight. The haze layer is still an overlay,
+ * so its clearing still ERASES.
  *
  * ⭐ A stencil-shaped erase, exactly like a light hole — the same blend mode the
  * campfire glow and the player's own lantern already use, so nothing new
@@ -946,6 +953,7 @@ function cutHole(
     clearing: Clearing,
     renderer: Renderer,
     out: PaintedSurfaces,
+    blendMode: 'normal' | 'erase',
 ): void {
     const draw: DrawSurface = (g, style) => g.poly(clearing.points).fill(style);
     const ramp = buildBlendMask(renderer, clearing.points, CLEARING_FADE,
@@ -954,11 +962,11 @@ function cutHole(
         // Sub-texel band or a degenerate shape — take the hard edge honestly,
         // exactly as buildBlendMask's own bail-out intends.
         const hole = draw(new Graphics(), {color: 0xffffff});
-        hole.blendMode = 'erase';
+        hole.blendMode = blendMode;
         container.addChild(hole);
         return;
     }
-    ramp.sprite.blendMode = 'erase';
+    ramp.sprite.blendMode = blendMode;
     container.addChild(ramp.sprite);
     // ⚑ Ours to free, on the same schedule as every other blend mask: the sprite
     // dies with its container, the RenderTexture behind it does not.
