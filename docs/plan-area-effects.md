@@ -284,6 +284,12 @@ axis-aligned, at 45°, or on a grid line.
 ⚑ The two terrain profiles and their tiles **shipped 2026-09-16** and are inert
 until a zone draws one.
 
+⚑ **Path containment and the per-tick refresh churn are now owned by
+`plan-road-pace.md`** (2026-10-14): E2's point-in-polygon is wrong for a path,
+and re-applying every tick bumps the buff revision, so the owner block would
+resend 30 times a second for anyone standing in an area. Road pace is the first
+content on a path and proposes the fix for both (its D4 beat, D5 raster).
+
 ---
 
 ## 4. Schema impact
