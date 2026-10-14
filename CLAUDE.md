@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ LOCALIZATION: review + merge** (`docs/plan-localization.md` §10): branch `localization` holds C0a-C6, main merged 2026-10-14; German complete (`aurad -lang-status` 0/0), detection ON, no allowlist (D13). Owed: the PO's German read + playthrough (C4's exit), the D30 length limits, then merge.
+- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). Unbuilt: C7 notes out of the bundle (any time), C8 catalogs on demand (trigger: a third locale), C9 spreadsheet round-trip.
 
 - **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 - **⭐ BUFF TRAY: real-phone check, now possible (live since the 2026-10-14 deploy of `82044c23`)** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).

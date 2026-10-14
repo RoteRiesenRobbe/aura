@@ -1,6 +1,7 @@
 # Plan - Localization (multi-language text; English + German first)
 
-**Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
+**⭐ C0a-C6 MERGED to main 2026-10-14 (PO; §10 ledger, "Merge").** The German review and playthrough happen on main.
+**Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (§10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
 **⭐ C7 + C8 + C9 PLANNED 2026-10-14 (PO), not built:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
@@ -2050,6 +2051,21 @@ All six chunks built and committed one per chunk; NOT merged to main.
   conversation key fields carry the new strings) · UI catalog moved and
   renamed. An old client receiving a new server key shows the English
   `message` (D10, D14).
+
+### Merge (2026-10-14, PO)
+
+- `origin/main` merged into the branch (docs only, nothing to translate),
+  then the branch into main. Detection stays ON before the PO's review (PO).
+- **German at the branch head:** `aurad -lang-status` de 0 missing / 0
+  outdated / 0 too long; a style-guide lint over all 1221 German strings
+  (glossary, du, „“ and ’, no "Fremdling") found nothing; the 35 strings
+  identical to English are personal names, coined places, "Tunnel", "Wild",
+  and symbol-only templates.
+- **Verified:** Go full suite incl. the DB packages, bar the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · vitest 1667/0 ·
+  typecheck · webpack prod build · `i18n-de` 7/7 · `i18n-pseudo` 5/5 ·
+  `round4-tooltip` passed · `chunk2-accounts` 24/24.
+- **Schema:** DB NONE · FlatBuffers NONE (the merge adds nothing past C6).
 
 ---
 
