@@ -21,7 +21,7 @@ GameSettingChangedEvent.subscribe(payload => {
 function setup() {
     const settings = GameSettings.get().audio;
     currentMusic = Sound.from({
-        url: require('../assets/derpy-berryhunter.mp3'),
+        url: require('../assets/Aura - Main Title.mp3'),
         autoPlay: true,
         singleInstance: true,
         loop: true,
