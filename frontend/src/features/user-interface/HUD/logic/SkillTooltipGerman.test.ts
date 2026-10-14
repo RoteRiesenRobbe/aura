@@ -43,4 +43,21 @@ describe('the skill tooltip in German (C4)', () => {
         expect(text).toContain('Ziele: alle Verbündete in Reichweite');
         expect(text).toContain('Wirkzeit: 1,5 s (wird durch Schaden unterbrochen)');
     });
+
+    // The damage types are a closed code list (skills.DamageTypes in Go), so
+    // their names live in the UI catalog under damage-type.<code>; a list is
+    // joined by the locale, never by a hand-written comma.
+    it('names damage types in German and joins them by the locale', async () => {
+        const {formatSkillTooltip} = await import('./SkillTooltip');
+        const skill = (e: SkillEffect): SkillDefinition => ({...rejuvenation, category: 'cooldown', effects: [e]});
+        const dot = formatSkillTooltip(skill(effect({type: 'instant_dot', targetsEnemies: true,
+            dot: {hp: 3, hpPerLevel: 0, tags: ['fire', 'poison'], variance: 0, tickCount: 3, interval: 60}})), 1, 1, 0, 1, true);
+        expect(dot.lines.map(l => l.text)).toContain('Schadensart: Feuer und Gift');
+        const immune = formatSkillTooltip(skill(effect({type: 'resist_passive',
+            resist: {tags: ['poison'], factor: 0, factorPerLevel: 0, targetsSelf: true, durationTicks: 0, buffLifetimeMatchesInterval: false}})), 1, 1, 0, 1, true);
+        expect(immune.lines.map(l => l.text).some(l => l.startsWith('Immun gegen Gift'))).toBe(true);
+        const unknown = formatSkillTooltip(skill(effect({type: 'instant_dot', targetsEnemies: true,
+            dot: {hp: 3, hpPerLevel: 0, tags: ['arcane'], variance: 0, tickCount: 3, interval: 60}})), 1, 1, 0, 1, true);
+        expect(unknown.lines.map(l => l.text), 'an unknown code degrades to itself (D14)').toContain('Schadensart: arcane');
+    });
 });

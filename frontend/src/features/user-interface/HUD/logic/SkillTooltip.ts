@@ -1,4 +1,4 @@
-import {formatList, formatNumber, t} from '../../../localization/logic/Locale';
+import {formatList, formatNumber, t, tKey} from '../../../localization/logic/Locale';
 // Ability hover tooltips (plan-ui-polish chunk 1): stats-only condensed
 // info, auto-generated from the skill catalog so it stays correct through
 // every balance retune. PO rulings 2026-07-21: FULL detail — every authored
@@ -230,6 +230,13 @@ function gatedLine(key: string): string {
     return GATE_KEY_LINES[key] ?? t('tooltip.gate.other', {key});
 }
 
+// Damage type codes are a closed list (skills.DamageTypes, whose Go test pins
+// a damage-type.<code> name for each); several join as a locale list
+// ("fire and poison", "Feuer und Gift"). An unknown code shows as itself.
+function damageTypes(tags: string[]): string {
+    return formatList(tags.map(tag => tKey('damage-type.' + tag, undefined, tag)));
+}
+
 // Aura-form effects with a real tick cadence; every other type's
 // tickInterval is just the parse default and means nothing.
 // ⚑ Hand-maintained, and nothing fails when it is short: an aura type missing
@@ -350,7 +357,7 @@ function damageExtraLines(damage: DamageParams, level: number, maxLevel: number,
     } else {
         const nonPhysical = damage.tags.length > 1 || damage.tags[0] !== 'physical';
         if (nonPhysical) {
-            lines.push(t('tooltip.damage-type', {types: damage.tags.join(', ')}));
+            lines.push(t('tooltip.damage-type', {types: damageTypes(damage.tags)}));
         }
     }
     if (damage.variance > 0) {
@@ -530,7 +537,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // type: it covers every tag there is, so it must never reach the
             // player as the literal symbol.
             const subject = resist.tags.length === 1 && resist.tags[0] === '*'
-                ? t('tooltip.all-damage') : resist.tags.join(', ');
+                ? t('tooltip.all-damage') : damageTypes(resist.tags);
             // Only the instant form carries its own lifetime, the instant_shield
             // shape; the aura form's cadence rides `refresh` instead.
             const duration = effect.type === 'instant_resist' ? t('tooltip.for-duration', {duration: ticksToSecs(resist.durationTicks)}) : '';
@@ -592,7 +599,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const duration = ticksToSecs(dot.tickCount * dot.interval);
             lines.push(t('tooltip.dot', {amount: prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor), hits: fmt(dot.tickCount), duration, refresh}));
             const nonPhysical = dot.tags.length > 1 || dot.tags[0] !== 'physical';
-            if (nonPhysical) lines.push(t('tooltip.damage-type', {types: dot.tags.join(', ')}));
+            if (nonPhysical) lines.push(t('tooltip.damage-type', {types: damageTypes(dot.tags)}));
             if (dot.variance > 0) lines.push(t('tooltip.variance', {pct: pct(dot.variance)}));
             break;
         }
@@ -799,7 +806,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // ruling prose, on the description since C8 (D1).
             lines.push(t('tooltip.reflect', {amount}));
             if (reflect.tags.length > 1 || reflect.tags[0] !== 'physical') {
-                lines.push(t('tooltip.damage-type', {types: reflect.tags.join(', ')}));
+                lines.push(t('tooltip.damage-type', {types: damageTypes(reflect.tags)}));
             }
             break;
         }
@@ -825,7 +832,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
                 lines.push(t('tooltip.thorns.self', {window, share}));
             }
             if (burst.tags.length > 1 || burst.tags[0] !== 'physical') {
-                lines.push(t('tooltip.damage-type', {types: burst.tags.join(', ')}));
+                lines.push(t('tooltip.damage-type', {types: damageTypes(burst.tags)}));
             }
             break;
         }

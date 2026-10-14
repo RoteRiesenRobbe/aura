@@ -232,6 +232,30 @@
       "reasons": {"type": "String", "description": "The lock reasons, joined", "example": "level 30 (12/30)"}
     }
   },
+  "damage-type.bleed": "bleed",
+  "@damage-type.bleed": {
+    "description": "Name of the damage type \"bleed\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.fire": "fire",
+  "@damage-type.fire": {
+    "description": "Name of the damage type \"fire\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.frost": "frost",
+  "@damage-type.frost": {
+    "description": "Name of the damage type \"frost\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.nature": "nature",
+  "@damage-type.nature": {
+    "description": "Name of the damage type \"nature\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.physical": "physical",
+  "@damage-type.physical": {
+    "description": "Name of the damage type \"physical\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.poison": "poison",
+  "@damage-type.poison": {
+    "description": "Name of the damage type \"poison\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
   "end.respawn-button": "Respawn",
   "@end.respawn-button": {
     "description": "Death screen: the value attribute of the <input> element in #endForm in #endScreen."
@@ -1031,9 +1055,9 @@
   },
   "tooltip.damage-type": "Damage type: {types}",
   "@tooltip.damage-type": {
-    "description": "Skill tooltip. Damage types (internal words such as fire, ice).",
+    "description": "Skill tooltip. The damage types a hit deals: one or more damage-type.* names, already joined as a list in your language.",
     "placeholders": {
-      "types": {"type": "String", "description": "Already formatted types", "example": "…"}
+      "types": {"type": "String", "description": "The damage type names, joined", "example": "fire and poison"}
     }
   },
   "tooltip.dash": "Dash {distance} m in your movement direction",

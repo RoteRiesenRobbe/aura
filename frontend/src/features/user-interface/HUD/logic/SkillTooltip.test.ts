@@ -711,6 +711,10 @@ describe('retaliate damage', () => {
         const out = lines(fireShield, 1, 1);
         expect(out).toContain('Reflects 3 → 4 damage onto anything that damages you');
         expect(out).toContain('Damage type: fire');
+        const bleeding = skill({...fireShield, effects: [effect({
+            type: 'retaliate_damage', retaliateDamage: {hp: 3, hpPerLevel: 1, tags: ['physical', 'bleed']},
+        })]});
+        expect(lines(bleeding, 1, 1), 'several types are a locale list').toContain('Damage type: physical and bleed');
         expect(formatSkillTooltip(fireShield, 1, 1).description)
             .toBe('Being hit is enough — it fires even when the hit is fully absorbed');
         expect(out).not.toContain('Being hit is enough — it fires even when the hit is fully absorbed');
