@@ -278,7 +278,10 @@ enum EntityType : ushort {
   // quest rows (lore at the burnt cart, the Wanderer's lost friend); RemainsProp
   // is the same art as a silent, non-blocking prop for set dressing.
   Remains = 116,
-  RemainsProp = 117
+  RemainsProp = 117,
+  // The Ashen Fields fire pair: the Firelord hits, the Fire Stirer marks.
+  Firelord = 118,
+  FireStirer = 119
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -313,7 +316,10 @@ enum ActivationRejection : ubyte {
   // the presser is stunned (plan-aura-drawbacks.md C2, D4): a cooldown, a
   // utility, a flight takeoff or an interaction pressed while held. Also sent
   // once when the stun LANDS, so the HUD names it before the first press.
-  Stunned = 5
+  Stunned = 5,
+  // the presser is feared (plan-effect-types-round-2.md C5): every press the
+  // stun refuses, refused the same way, and also sent once as the fear lands.
+  Feared = 6
 }
 
 struct AABB {
@@ -956,7 +962,7 @@ table MapFog {
 // (D13: Slow, Dot and Stun are harmful, the rest beneficial); nothing here
 // says so, because the server has no reason to know.
 enum EffectKind : uint (bit_flags) {
-  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm, StatUp, StatDown
+  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm, StatUp, StatDown, Empower, Fear, Stealth
 }
 
 // One circle on the own player's buff tray: a skill's timed effects, with the

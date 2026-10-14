@@ -77,8 +77,26 @@ type MobSystem struct {
 	// fe0044d0).
 	wakePositions []phy.Vec2f
 
+	// deathTriggers fires a dying mob's onDeath skills (C7); the SkillSystem in
+	// production, nil in tests that do not need it.
+	deathTriggers DeathTriggers
+	// lingering are the dead mobs whose death triggers fired last tick: kept for
+	// that tick's snapshot so the client could draw the burst from them, removed
+	// at the start of this one (PO 2026-10-11).
+	lingering []model.MobEntity
+
 	initialized bool
 }
+
+// DeathTriggers is the SkillSystem as the death sweep sees it
+// (plan-effect-types-round-2.md C7, D27). The report says whether any trigger
+// fired, which is what makes the mob linger a tick.
+type DeathTriggers interface {
+	FireOnDeath(m model.MobEntity) bool
+}
+
+// SetDeathTriggers wires the death-trigger seam, once at boot.
+func (n *MobSystem) SetDeathTriggers(d DeathTriggers) { n.deathTriggers = d }
 
 // WakeSources yields the position of everything a dormant mob must wake for
 // (plan-world-scale.md D4): the players and spectators in the world.
@@ -192,6 +210,12 @@ func (n *MobSystem) Update(dt float32) {
 	// while no seam is installed.
 	n.wakePositions = n.collectWakePositions(n.wakePositions[:0])
 
+	// Last tick's lingering dead leave first, before anything iterates n.mobs.
+	for _, mob := range n.lingering {
+		n.game.RemoveEntity(mob.Basic())
+	}
+	n.lingering = n.lingering[:0]
+
 	// Update every mob, collecting the dead. Removal is deferred until after the
 	// loop: game.RemoveEntity → MobSystem.Remove shifts n.mobs' backing array
 	// synchronously, so removing inside `range n.mobs` would skip the survivor
@@ -209,7 +233,15 @@ func (n *MobSystem) Update(dt float32) {
 		}
 	}
 	for _, mob := range dead {
+		// Death triggers first, while the mob is still in the space and the
+		// SkillSystem (plan-effect-types-round-2.md C7, D27). A mob whose
+		// triggers fired stays for this tick's snapshot and leaves next tick.
+		fired := n.deathTriggers != nil && n.deathTriggers.FireOnDeath(mob)
 		n.onMobDeath(mob)
+		if fired {
+			n.lingering = append(n.lingering, mob)
+			continue
+		}
 		n.game.RemoveEntity(mob.Basic())
 	}
 
@@ -521,6 +553,17 @@ func (n *MobSystem) ForgetDeparted(id uint64) {
 		}
 		if o, ok := m.(ownedSummon); ok && o.OwnedBy(id) {
 			o.ExpireWithOwner()
+		}
+	}
+}
+
+// ForgetTarget makes every mob drop one entity's threat row, aggro target and
+// support target, and nothing else: no charm ends, no summon retires
+// (plan-effect-types-round-2.md C6, D2, D25). Stealth's fan-out.
+func (n *MobSystem) ForgetTarget(id uint64) {
+	for _, m := range n.mobs {
+		if f, ok := m.(targetForgetter); ok {
+			f.ForgetEntity(id)
 		}
 	}
 }

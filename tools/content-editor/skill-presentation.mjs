@@ -175,9 +175,19 @@ export const EFFECT_PRESENTATION = {
   reflectDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   reflectDurationTicksPerLevel: { control: 'number', group: PAYLOAD },
 
+  // --- empower (plan-effect-types-round-2.md C4): the caster's next cooldown ---
+  empowerInstant: { control: 'bool', group: PAYLOAD, hint: 'The next cooldown skips its cast time.' },
+  empowerFree: { control: 'bool', group: PAYLOAD, hint: 'The next cooldown costs nothing.' },
+  empowerCrit: { control: 'bool', group: PAYLOAD, hint: 'Every hit of the next cooldown crits (damage over time never does).' },
+  empowerFactor: { control: 'number', unit: 'factor', group: PAYLOAD, hint: 'Multiplies the next cooldown\'s damage and healing; blank for none.' },
+  empowerDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'How long the offer stands before it runs out unspent.' },
+
   // --- CC ---
   stunTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   stunTicksPerLevel: { control: 'number', group: PAYLOAD },
+  fearTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks the target runs from the caster, unable to act. Shares the stun\'s diminishing returns.' },
+  fearTicksPerLevel: { control: 'number', group: PAYLOAD },
+  stealthDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'The cap: how long the caster stays hidden if no damage, dealt or taken, ends it first.' },
   calmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks out of combat; breaks on any damage.' },
   calmTicksPerLevel: { control: 'number', group: PAYLOAD },
   charmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks fighting for the charmer; ends by turning on you.' },

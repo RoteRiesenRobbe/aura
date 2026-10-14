@@ -430,6 +430,6 @@ and this entry records it so the plan stops saying "nothing built".
 - Later commits are PO authoring passes on the same files.
 - ⭐ PO 2026-09-30: this world IS the release map. Zone 1 = Farmlands,
   Brackenfold Meadows, Saltgrass Strand; Zone 2 = Deep Woods; the City =
-  Brunnstedt (`content-world.md`).
+  Dionsburg (`content-world.md`).
 - ⛔ Not built: §3's camps and pledges, and §3.4's content pin.
 - Schema: NONE.

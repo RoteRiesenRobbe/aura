@@ -258,7 +258,19 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// SKILL cheat only. 124 → 125 (83 player + 42 mob).
 	// + Thorns id 161 (plan-effect-types-round-2.md C2), the thorns-on-an-ally
 	// example; SKILL cheat only. 125 → 126 (84 player + 42 mob).
-	assert.Len(t, r.All(), 126)
+	// + NaturesSwiftness id 162 (plan-effect-types-round-2.md C4), the empower
+	// example; SKILL cheat only. 126 → 127 (85 player + 42 mob).
+	// + BurstingTotem id 165 (player, SKILL cheat only) and the mob skills
+	// TotemBurst 163 + BroodSplit 164 (plan-effect-types-round-2.md C7, the
+	// death-trigger examples). 127 → 130 (86 player + 44 mob).
+	// + Terrify id 166 (player, SKILL cheat only) and the mob skill
+	// BroodScreech 167 (plan-effect-types-round-2.md C5, the fear examples).
+	// 130 → 132 (87 player + 45 mob).
+	// + Vanish id 168 (plan-effect-types-round-2.md C6, the stealth example;
+	// SKILL cheat only). 132 → 133 (88 player + 45 mob).
+	// + the Ashen Fields fire pair's mob skills FirelordAura 169,
+	// FireStirerAura 170 and FireStirerKindle 171. 133 -> 136 (88 player + 48 mob).
+	assert.Len(t, r.All(), 136)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

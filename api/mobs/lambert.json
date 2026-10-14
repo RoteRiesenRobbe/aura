@@ -26,8 +26,33 @@
       {
         "id": "root",
         "lines": [
-          {"id": "baa-baa"}
+          {"id": "baa"}
+        ],
+        "options": [
+          {
+            "id": "are-you-lambert",
+            "next": "asked"
+          }
         ]
+      },
+      {
+        "id": "asked",
+        "lines": [
+          {"id": "boooohh"}
+        ],
+        "options": [
+          {
+            "id": "why-am-i-even-talking",
+            "next": "quip"
+          }
+        ]
+      },
+      {
+        "id": "quip",
+        "lines": [
+          {"id": "booh"}
+        ],
+        "options": []
       }
     ]
   }

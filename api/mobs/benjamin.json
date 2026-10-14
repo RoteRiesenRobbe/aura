@@ -1,5 +1,5 @@
 {
-  "_comment": "The player's UNCLE and the game's first gathering teacher (content-zone-design-guide.md §2.0), one of the two parallel errands in the opening arc `dinner-for-the-family`. Standing talkable-NPC shape from miller.json — faction townsfolk, collisionLayer 97 (deliberately NOT Action(2)), mask 16, role creature + speed 0 (D4), xpFactor 0, aggroRadius 1.0 inert behind interaction.range 2.0. ⭐ TEACHES Harvest @L1, and here it is LOAD-BEARING rather than optional: the Beet authors the same `{\"*\": 0, gateKeys: [harvest]}` lock as the Turnip, so no combat aura can touch one and the arc's beet objective is UNFINISHABLE until Harvest is learned. That makes him the first NPC in the game the player cannot skip. ⚑ Reinhard down the road also teaches Harvest @L1 for his turnip chore — kept on purpose, because a player who somehow reaches the farm first must not be stuck; the two-teacher precedent is Torch's. ⭐ An `advice` info row hangs off root, ungated — durable character, not quest state (the content-npcs.md rule). ⭐ His `beets` node carries the one piece of MECHANICAL advice the arc gives: Harvest is an active aura, so it must be SWITCHED ON in place of the Damage aura, and it reaches only the nearest beet. ⚑ NO QUEST ROWS — the arc's `gather` stage carries a `talk_to` objective on him, satisfied by opening the panel. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art. ⚑ TEXT HAS A VOICE, by PO ask 2026-09-23 — the opening family is the one exception to the plain-text pass (PO 2026-08-02): he is quirky, gives life advice and harvesting advice, and ends every piece of advice with 'Always remember this.' The PLAYER'S rows stay on the plain conventions ('Do you have a task for me?', 'Teach me something.', a teach row names its skill) so the panel reads the same as everywhere else. ⚑ UNPLACED: the PO places the spawn in the editor. All values [PLACEHOLDER].",
+  "_comment": "Benjamin, at the beet field east of Flora's house, teaches Harvest; talking to him is an objective of `ready-for-harvest`. A Beet takes damage only from a `harvest`-tagged aura. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 83,
   "name": "Benjamin",
   "type": "MOB",
@@ -8,8 +8,17 @@
   "role": "creature",
   "tier": "normal",
   "curveLevel": 1,
-  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
-  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
   "skills": [],
   "interaction": {
     "range": 2,
@@ -17,26 +26,63 @@
       {
         "id": "root",
         "lines": [
-          {"id": "ah-my-brothers-child-eliza"},
-          {"id": "a-beet-is-a-very"}
+          {"id": "hello-stranger-what-can-i"}
         ],
         "options": [
-          { "stock": "ask-teach", "next": "teachings" },
-          { "id": "cant-i-just-pull-them", "next": "beets" },
-          { "id": "any-advice", "next": "advice" }
+          {
+            "id": "flora-sends-me-to-harvest",
+            "next": "flora"
+          },
+          {
+            "stock": "ask-teach",
+            "next": "teachings"
+          }
+        ]
+      },
+      {
+        "id": "flora",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "ready-for-harvest",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          {"id": "ah-good-im-glad-she"}
+        ],
+        "options": [
+          {
+            "id": "can-i-just-pull-them",
+            "next": "pull"
+          }
+        ]
+      },
+      {
+        "id": "pull",
+        "lines": [
+          {"id": "that-wont-work-you-need"},
+          {"id": "you-can-only-have-one"},
+          {"id": "i-can-teach-you"}
+        ],
+        "options": [
+          {
+            "stock": "ask-teach",
+            "next": "teachings"
+          }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "oh-a-student-wonderful-sit"}
+          {"id": "harvesting-is-done-standing"}
         ],
         "options": [
           {
             "id": "harvest",
             "grants": [
               {
-                "id": "ill-teach-you-harvest-swinging",
+                "id": "ill-teach-you-harvest-make",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1
@@ -44,24 +90,6 @@
             ]
           }
         ]
-      },
-      {
-        "id": "beets",
-        "lines": [
-          {"id": "pull-them-up-with-those"},
-          {"id": "learn-harvest-then-make-it"},
-          {"id": "stand-close-harvest-reaches"}
-        ],
-        "options": []
-      },
-      {
-        "id": "advice",
-        "lines": [
-          {"id": "if-youre-lost-follow"},
-          {"id": "never-trust-a-man-who"},
-          {"id": "and-write-to-your-mother"}
-        ],
-        "options": []
       }
     ]
   }

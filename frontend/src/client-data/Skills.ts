@@ -114,6 +114,9 @@ export interface SpawnParams {
     // only way to say what the summon does. The levels are a floor: the spawn
     // site raises them to the summon skill's level.
     summonLoadout?: SummonSkillRef[];
+    // The summon's death triggers (plan-effect-types-round-2.md C7), at their
+    // authored levels; omitted when it has none.
+    summonOnDeath?: SummonSkillRef[];
     // The spell's statement that this summon is a PET (plan-summon-follows.md
     // D1): it trails its caster and takes its fights. A hand mirror of the Go
     // struct with no completeness pin behind it (plan L5).
@@ -162,6 +165,16 @@ export interface ReviveParams {
 export interface DashParams {
     distance: number;
     distancePerLevel: number;
+}
+
+// The empower payload (plan-effect-types-round-2.md C4): what the caster's
+// next cooldown gains. The three flags and the factor are omitted when unset.
+export interface EmpowerParams {
+    instant?: boolean;
+    free?: boolean;
+    crit?: boolean;
+    factor?: number;
+    durationTicks: number;
 }
 
 export interface TickRateParams {
@@ -294,6 +307,11 @@ export interface SkillEffect {
     calm?: CalmParams;
     charm?: CharmParams;
     stun?: StunParams;
+    empower?: EmpowerParams;
+    // A fear's hold has the stun's shape (plan-effect-types-round-2.md C5).
+    fear?: StunParams;
+    // The stealth cap (plan-effect-types-round-2.md C6).
+    stealth?: {durationTicks: number};
 }
 
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------
@@ -664,6 +682,8 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoCharges]: 'No camp charges — rest at a campfire',
     // Also stamped once, with skill id 0, the tick a stun lands on the player.
     [ActivationRejection.Stunned]: 'Stunned',
+    // Also stamped once, with skill id 0, the tick a fear lands on the player.
+    [ActivationRejection.Feared]: 'Feared',
 };
 
 // How many Camp charges a character of this level may hold (plan-downtime.md

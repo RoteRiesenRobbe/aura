@@ -1,0 +1,30 @@
+{
+  "_comment": "Hans's wolf quest: kill 6 wolves, report to Hans, who sends the player to the Town Crier, who sends them on to the Governor of Dionsburg. The Governor's turn-in pays, the L9 half-level rule at L3 (the pasture wolves). Count and reward [PLACEHOLDER].",
+  "id": "he-who-cried-wolf",
+  "level": 3,
+  "stages": [
+    {
+      "id": "hunt",
+      "objectives": [
+        {
+          "kind": "kill",
+          "species": "Wolf",
+          "count": 6
+        }
+      ],
+      "next": "report"
+    },
+    {
+      "id": "report"
+    },
+    {
+      "id": "crier"
+    },
+    {
+      "id": "governor"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

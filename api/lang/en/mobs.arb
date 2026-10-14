@@ -24,61 +24,65 @@
   "@conv.AscensionStone.you-pick-one-reward-it": {
     "description": "Ascension Stone speaks this in the conversation, node \"ready\", line 2."
   },
+  "conv.Baabara.are-you-baabara": "Are you Baabara?",
+  "@conv.Baabara.are-you-baabara": {
+    "description": "A row the player picks when talking to Baabara (node \"root\"), written as the player's own words."
+  },
   "conv.Baabara.baa": "Baa.",
   "@conv.Baabara.baa": {
     "description": "Baabara speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Benjamin.a-beet-is-a-very": "A beet is a very honest vegetable. Always remember this.",
-  "@conv.Benjamin.a-beet-is-a-very": {
-    "description": "Benjamin speaks this in the conversation, node \"root\", line 2."
+  "conv.Baabara.baa-2": "Baa.",
+  "@conv.Baabara.baa-2": {
+    "description": "Baabara speaks this in the conversation, node \"quip\", line 1."
   },
-  "conv.Benjamin.ah-my-brothers-child-eliza": "Ah! My brother's child! Eliza sent you for beets, didn't she? She always sends someone for beets.",
-  "@conv.Benjamin.ah-my-brothers-child-eliza": {
-    "description": "Benjamin speaks this in the conversation, node \"root\", line 1."
+  "conv.Baabara.baaahh": "Bääähh.",
+  "@conv.Baabara.baaahh": {
+    "description": "Baabara speaks this in the conversation, node \"asked\", line 1."
   },
-  "conv.Benjamin.and-write-to-your-mother": "And write to your mother. She worries.",
-  "@conv.Benjamin.and-write-to-your-mother": {
-    "description": "Benjamin speaks this in the conversation, node \"advice\", line 3."
+  "conv.Baabara.ill-take-that-as": "I'll take that as a yes.",
+  "@conv.Baabara.ill-take-that-as": {
+    "description": "A row the player picks when talking to Baabara (node \"asked\"), written as the player's own words."
   },
-  "conv.Benjamin.any-advice": "Any advice?",
-  "@conv.Benjamin.any-advice": {
-    "description": "A row the player picks when talking to Benjamin (node \"root\"), written as the player's own words."
+  "conv.Benjamin.ah-good-im-glad-she": "Ah good, I'm glad she sent some help.",
+  "@conv.Benjamin.ah-good-im-glad-she": {
+    "description": "Benjamin speaks this in the conversation, node \"flora\", line 1."
   },
-  "conv.Benjamin.cant-i-just-pull-them": "Can't I just pull them up?",
-  "@conv.Benjamin.cant-i-just-pull-them": {
+  "conv.Benjamin.can-i-just-pull-them": "Can I just pull them out of the ground?",
+  "@conv.Benjamin.can-i-just-pull-them": {
+    "description": "A row the player picks when talking to Benjamin (node \"flora\"), written as the player's own words."
+  },
+  "conv.Benjamin.flora-sends-me-to-harvest": "Flora sends me to harvest the beets.",
+  "@conv.Benjamin.flora-sends-me-to-harvest": {
     "description": "A row the player picks when talking to Benjamin (node \"root\"), written as the player's own words."
   },
   "conv.Benjamin.harvest": "Harvest",
   "@conv.Benjamin.harvest": {
     "description": "A row the player picks when talking to Benjamin (node \"teachings\"), written as the player's own words."
   },
-  "conv.Benjamin.if-youre-lost-follow": "If you're lost, follow the road. Roads were built by people who knew where they were going.",
-  "@conv.Benjamin.if-youre-lost-follow": {
-    "description": "Benjamin speaks this in the conversation, node \"advice\", line 1."
-  },
-  "conv.Benjamin.ill-teach-you-harvest-swinging": "I'll teach you Harvest. Swinging at a beet does nothing; you have to ask it nicely. Always remember this.",
-  "@conv.Benjamin.ill-teach-you-harvest-swinging": {
-    "description": "Benjamin answers this when the player picks \"Harvest\" (node \"teachings\")."
-  },
-  "conv.Benjamin.learn-harvest-then-make-it": "Learn Harvest, then make it your active aura. You can only wear one at a time, so put your fists away first.",
-  "@conv.Benjamin.learn-harvest-then-make-it": {
-    "description": "Benjamin speaks this in the conversation, node \"beets\", line 2."
-  },
-  "conv.Benjamin.never-trust-a-man-who": "Never trust a man who doesn't like soup. Always remember this.",
-  "@conv.Benjamin.never-trust-a-man-who": {
-    "description": "Benjamin speaks this in the conversation, node \"advice\", line 2."
-  },
-  "conv.Benjamin.oh-a-student-wonderful-sit": "Oh, a student! Wonderful. Sit. No, stand. Harvesting is done standing. Always remember this.",
-  "@conv.Benjamin.oh-a-student-wonderful-sit": {
+  "conv.Benjamin.harvesting-is-done-standing": "Harvesting is done standing, close to the plant.",
+  "@conv.Benjamin.harvesting-is-done-standing": {
     "description": "Benjamin speaks this in the conversation, node \"teachings\", line 1."
   },
-  "conv.Benjamin.pull-them-up-with-those": "Pull them up? With those hands? The beet will laugh at you.",
-  "@conv.Benjamin.pull-them-up-with-those": {
-    "description": "Benjamin speaks this in the conversation, node \"beets\", line 1."
+  "conv.Benjamin.hello-stranger-what-can-i": "Hello, stranger. What can I do for you?",
+  "@conv.Benjamin.hello-stranger-what-can-i": {
+    "description": "Benjamin speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Benjamin.stand-close-harvest-reaches": "Stand close. Harvest reaches the nearest beet and nothing further, one at a time. Always remember this.",
-  "@conv.Benjamin.stand-close-harvest-reaches": {
-    "description": "Benjamin speaks this in the conversation, node \"beets\", line 3."
+  "conv.Benjamin.i-can-teach-you": "I can teach you the Harvest aura.",
+  "@conv.Benjamin.i-can-teach-you": {
+    "description": "Benjamin speaks this in the conversation, node \"pull\", line 3."
+  },
+  "conv.Benjamin.ill-teach-you-harvest-make": "I'll teach you Harvest. Make it your active aura and stand close to the beets.",
+  "@conv.Benjamin.ill-teach-you-harvest-make": {
+    "description": "Benjamin answers this when the player picks \"Harvest\" (node \"teachings\")."
+  },
+  "conv.Benjamin.that-wont-work-you-need": "That won't work. You need to have the Harvest aura active.",
+  "@conv.Benjamin.that-wont-work-you-need": {
+    "description": "Benjamin speaks this in the conversation, node \"pull\", line 1."
+  },
+  "conv.Benjamin.you-can-only-have-one": "You can only have one active aura at a time. The new auras you learn, you'll find in your spellbook.",
+  "@conv.Benjamin.you-can-only-have-one": {
+    "description": "Benjamin speaks this in the conversation, node \"pull\", line 2."
   },
   "conv.CaveExit.a-narrow-shaft-and-daylight": "A narrow shaft, and daylight at the top of it.",
   "@conv.CaveExit.a-narrow-shaft-and-daylight": {
@@ -168,9 +172,25 @@
   "@conv.DeadCarter.his-purse-is-gone": {
     "description": "Dead Carter speaks this in the conversation, node \"root\", line 2."
   },
+  "conv.Dog.are-you-the-shepherds-lost": "Are you the shepherd's lost dog?",
+  "@conv.Dog.are-you-the-shepherds-lost": {
+    "description": "A row the player picks when talking to Dog (node \"root\"), written as the player's own words."
+  },
+  "conv.Dog.maybe-its-time": "Maybe it's time for a new profession ...",
+  "@conv.Dog.maybe-its-time": {
+    "description": "A row the player picks when talking to Dog (node \"herd\"), written as the player's own words."
+  },
   "conv.Dog.summon-companion": "Summon Companion",
   "@conv.Dog.summon-companion": {
     "description": "A row the player picks when talking to Dog (node \"teachings\"), written as the player's own words."
+  },
+  "conv.Dog.wheres-your-herd-dog": "Where's your herd, dog?",
+  "@conv.Dog.wheres-your-herd-dog": {
+    "description": "A row the player picks when talking to Dog (node \"lost\"), written as the player's own words."
+  },
+  "conv.Dog.whimpers": "*whimpers*",
+  "@conv.Dog.whimpers": {
+    "description": "Dog speaks this in the conversation, node \"herd\", line 1."
   },
   "conv.Dog.woof": "Woof.",
   "@conv.Dog.woof": {
@@ -184,69 +204,9 @@
   "@conv.Dog.woof-3": {
     "description": "Dog answers this when the player picks \"Summon Companion\" (node \"teachings\")."
   },
-  "conv.Eliza.about-the-dinner": "About the dinner...",
-  "@conv.Eliza.about-the-dinner": {
-    "description": "A row the player picks when talking to Eliza (node \"root\"), written as the player's own words."
-  },
-  "conv.Eliza.and-your-uncle-benjamin-has": "And your uncle Benjamin has beets. Six. Don't let him talk your ear off.",
-  "@conv.Eliza.and-your-uncle-benjamin-has": {
-    "description": "Eliza speaks this in the conversation, node \"dinner\", line 3."
-  },
-  "conv.Eliza.come-back-to-me-when": "Come back to me when you have both. Then we eat.",
-  "@conv.Eliza.come-back-to-me-when": {
-    "description": "Eliza speaks this in the conversation, node \"dinner\", line 4."
-  },
-  "conv.Eliza.go-on-then-stay": "Go on, then. Stay on the road.",
-  "@conv.Eliza.go-on-then-stay": {
-    "description": "Eliza answers this when the player picks \"Do you have a task for me?\" (node \"root_fed\")."
-  },
-  "conv.Eliza.help-your-father-with-his": "Help your father with his game down by the lake, and get the six beets from Benjamin. Then we eat.",
-  "@conv.Eliza.help-your-father-with-his": {
-    "description": "Eliza speaks this in the conversation, node \"dinner_on_it\", line 1."
-  },
-  "conv.Eliza.i-have-the-meat": "I have the meat and the beets.",
-  "@conv.Eliza.i-have-the-meat": {
-    "description": "A row the player picks when talking to Eliza (node \"dinner_running\"), written as the player's own words."
-  },
-  "conv.Eliza.look-at-that-sit-sit": "Look at that. Sit, sit. It's nearly ready.",
-  "@conv.Eliza.look-at-that-sit-sit": {
-    "description": "Eliza answers this when the player picks \"I have the meat and the beets.\" (node \"dinner_running\")."
-  },
-  "conv.Eliza.one-last-dinner-at-home": "One last dinner at home before you go. I want to do this properly.",
-  "@conv.Eliza.one-last-dinner-at-home": {
-    "description": "Eliza speaks this in the conversation, node \"dinner\", line 1."
-  },
-  "conv.Eliza.reinhards-farm-is-east-down": "Reinhard's farm is east, down the road. He's a fair man, and he'll give you work.",
-  "@conv.Eliza.reinhards-farm-is-east-down": {
-    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 2."
-  },
-  "conv.Eliza.stay-on-the-road": "Stay on the road, and come home when you can. I mean that.",
-  "@conv.Eliza.stay-on-the-road": {
-    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 3."
-  },
-  "conv.Eliza.taller-than-your-father-already": "Taller than your father already. I don't know when that happened.",
-  "@conv.Eliza.taller-than-your-father-already": {
-    "description": "Eliza speaks this in the conversation, node \"root\", line 2."
-  },
-  "conv.Eliza.thank-you-go-on-before": "Thank you. Go on, before I change my mind about letting you out of the house.",
-  "@conv.Eliza.thank-you-go-on-before": {
-    "description": "Eliza answers this when the player picks \"I'll do it.\" (node \"dinner\")."
-  },
-  "conv.Eliza.the-dinner": "The dinner?",
-  "@conv.Eliza.the-dinner": {
-    "description": "Eliza speaks this in the conversation, node \"dinner_running\", line 1."
-  },
-  "conv.Eliza.there-you-are-come-here": "There you are. Come here, let me look at you.",
-  "@conv.Eliza.there-you-are-come-here": {
-    "description": "Eliza speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.Eliza.you-ate-everything-good-youll": "You ate everything. Good. You'll need it.",
-  "@conv.Eliza.you-ate-everything-good-youll": {
-    "description": "Eliza speaks this in the conversation, node \"root_fed\", line 1."
-  },
-  "conv.Eliza.your-father-is-out-hunting": "Your father is out hunting down south by the lake. Help him find his game.",
-  "@conv.Eliza.your-father-is-out-hunting": {
-    "description": "Eliza speaks this in the conversation, node \"dinner\", line 2."
+  "conv.Dog.woof-woof": "Woof! Woof!",
+  "@conv.Dog.woof-woof": {
+    "description": "Dog speaks this in the conversation, node \"lost\", line 1."
   },
   "conv.Emberkeeper.about-the-bandits": "About the bandits...",
   "@conv.Emberkeeper.about-the-bandits": {
@@ -356,9 +316,121 @@
   "@conv.FallenTraveller.his-pack-has-been-emptied": {
     "description": "Fallen Traveller speaks this in the conversation, node \"root\", line 2."
   },
-  "conv.Farmhand.i-do-the-work": "I do the work the farmer has no hands left for.",
-  "@conv.Farmhand.i-do-the-work": {
+  "conv.Farmhand.sometimes-i-feel-like-these": "Sometimes I feel like these turnips are hiding even deeper in the ground once I'm around to pull them out ...",
+  "@conv.Farmhand.sometimes-i-feel-like-these": {
     "description": "Farmhand speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Farmhand.these-rats-they-were-bigger": "These rats ... They were bigger than my forearm. I'm not going back in there!",
+  "@conv.Farmhand.these-rats-they-were-bigger": {
+    "description": "Farmhand speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.Flora.5-of-them-would-replenish": "5 of them would replenish our meat supplies and give some substance to our stews.",
+  "@conv.Flora.5-of-them-would-replenish": {
+    "description": "Flora speaks this in the conversation, node \"meat\", line 2."
+  },
+  "conv.Flora.about-the-beets": "About the beets...",
+  "@conv.Flora.about-the-beets": {
+    "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
+  },
+  "conv.Flora.about-the-deer": "About the deer...",
+  "@conv.Flora.about-the-deer": {
+    "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
+  },
+  "conv.Flora.ahh-what-a-sight": "Ahh ... what a sight for sore eyes. I'll prepare them right away.",
+  "@conv.Flora.ahh-what-a-sight": {
+    "description": "Flora answers this when the player picks \"Here you go! The meat of 5 deer.\" (node \"meat_running\")."
+  },
+  "conv.Flora.any-assistance-for-the-task": "Any assistance for the task?",
+  "@conv.Flora.any-assistance-for-the-task": {
+    "description": "A row the player picks when talking to Flora (node \"harvest_running\"), written as the player's own words."
+  },
+  "conv.Flora.any-assistance-for-the-task-2": "Any assistance for the task?",
+  "@conv.Flora.any-assistance-for-the-task-2": {
+    "description": "A row the player picks when talking to Flora (node \"meat_running\"), written as the player's own words."
+  },
+  "conv.Flora.be-quick-stags-tend": "Be quick. Stags tend to run faster than beets.",
+  "@conv.Flora.be-quick-stags-tend": {
+    "description": "Flora speaks this in the conversation, node \"meat_on_it\", line 1."
+  },
+  "conv.Flora.but-you-should-talk": "But you should talk to miller Reinhard, who lives further east.",
+  "@conv.Flora.but-you-should-talk": {
+    "description": "Flora speaks this in the conversation, node \"mill\", line 2."
+  },
+  "conv.Flora.come-back-here-when-youre": "Come back here when you're done.",
+  "@conv.Flora.come-back-here-when-youre": {
+    "description": "Flora answers this when the player picks \"I'll do it.\" (node \"harvest\")."
+  },
+  "conv.Flora.do-you-have-anything-else": "Do you have anything else to do?",
+  "@conv.Flora.do-you-have-anything-else": {
+    "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
+  },
+  "conv.Flora.do-you-have-anything-else-2": "Do you have anything else to do?",
+  "@conv.Flora.do-you-have-anything-else-2": {
+    "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
+  },
+  "conv.Flora.good-luck-stranger": "Good luck, stranger.",
+  "@conv.Flora.good-luck-stranger": {
+    "description": "Flora answers this when the player picks \"Sure, I'll talk to the miller.\" (node \"mill\")."
+  },
+  "conv.Flora.here-you-go-the-meat": "Here you go! The meat of 5 deer.",
+  "@conv.Flora.here-you-go-the-meat": {
+    "description": "A row the player picks when talking to Flora (node \"meat_running\"), written as the player's own words."
+  },
+  "conv.Flora.ive-got-a-beet-field": "I've got a beet field in the east that's ready for harvesting. Make yourself useful and harvest 10 beets.",
+  "@conv.Flora.ive-got-a-beet-field": {
+    "description": "Flora speaks this in the conversation, node \"harvest\", line 2."
+  },
+  "conv.Flora.ive-harvested-the-beets": "I've harvested the beets.",
+  "@conv.Flora.ive-harvested-the-beets": {
+    "description": "A row the player picks when talking to Flora (node \"harvest_running\"), written as the player's own words."
+  },
+  "conv.Flora.since-you-are-young": "Since you are young and strong, would you mind hunting some deer for me?",
+  "@conv.Flora.since-you-are-young": {
+    "description": "Flora speaks this in the conversation, node \"meat\", line 1."
+  },
+  "conv.Flora.so-you-came-here-looking": "So ... you came here looking for work?",
+  "@conv.Flora.so-you-came-here-looking": {
+    "description": "Flora speaks this in the conversation, node \"harvest\", line 1."
+  },
+  "conv.Flora.sure-ill-talk": "Sure, I'll talk to the miller.",
+  "@conv.Flora.sure-ill-talk": {
+    "description": "A row the player picks when talking to Flora (node \"mill\"), written as the player's own words."
+  },
+  "conv.Flora.talk-to-benjamin-first-hes": "Talk to Benjamin first. He's right in front of the field.",
+  "@conv.Flora.talk-to-benjamin-first-hes": {
+    "description": "Flora speaks this in the conversation, node \"harvest_on_it\", line 1."
+  },
+  "conv.Flora.talk-to-benjamin-he-can": "Talk to Benjamin, he can teach you how to harvest.",
+  "@conv.Flora.talk-to-benjamin-he-can": {
+    "description": "Flora speaks this in the conversation, node \"harvest\", line 3."
+  },
+  "conv.Flora.thanks-stranger-thats-all": "Thanks, stranger. That's all the work I have for now.",
+  "@conv.Flora.thanks-stranger-thats-all": {
+    "description": "Flora speaks this in the conversation, node \"mill\", line 1."
+  },
+  "conv.Flora.thanks-the-old-bones-wont": "Thanks ... the old bones won't bend like they used to, so I appreciate the help.",
+  "@conv.Flora.thanks-the-old-bones-wont": {
+    "description": "Flora answers this when the player picks \"I've harvested the beets.\" (node \"harvest_running\")."
+  },
+  "conv.Flora.the-beets": "The beets?",
+  "@conv.Flora.the-beets": {
+    "description": "Flora speaks this in the conversation, node \"harvest_running\", line 1."
+  },
+  "conv.Flora.the-deer": "The deer?",
+  "@conv.Flora.the-deer": {
+    "description": "Flora speaks this in the conversation, node \"meat_running\", line 1."
+  },
+  "conv.Flora.what-do-you-want-stranger": "What do you want, stranger?",
+  "@conv.Flora.what-do-you-want-stranger": {
+    "description": "Flora speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Flora.youll-find-them": "You'll find them in the south. My husband Henrik should be able to teach you how to hunt properly.",
+  "@conv.Flora.youll-find-them": {
+    "description": "Flora speaks this in the conversation, node \"meat\", line 3."
+  },
+  "conv.Flora.youll-find-them-further-south": "You'll find them further south, right after the fenced field.",
+  "@conv.Flora.youll-find-them-further-south": {
+    "description": "Flora answers this when the player picks \"I'll do it.\" (node \"meat\")."
   },
   "conv.ForestSign.danger-stay-away": "DANGER! STAY AWAY!",
   "@conv.ForestSign.danger-stay-away": {
@@ -435,6 +507,26 @@
   "conv.GladeRoot.the-wisps-drift-around": "The wisps drift around a root that hums. Somewhere, an old tree smiles.",
   "@conv.GladeRoot.the-wisps-drift-around": {
     "description": "Glade Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Governor.about-the-wolves": "About the wolves in the farmlands...",
+  "@conv.Governor.about-the-wolves": {
+    "description": "A row the player picks when talking to Governor (node \"root\"), written as the player's own words."
+  },
+  "conv.Governor.the-farmlands-speak": "The farmlands? Speak.",
+  "@conv.Governor.the-farmlands-speak": {
+    "description": "Governor speaks this in the conversation, node \"wolves\", line 1."
+  },
+  "conv.Governor.then-the-crier-was-right": "Then the Crier was right to send you. I will ask the Order to look into it.",
+  "@conv.Governor.then-the-crier-was-right": {
+    "description": "Governor answers this when the player picks \"There are more wolves on the farms than anyone can remember.\" (node \"wolves\")."
+  },
+  "conv.Governor.there-are-more-wolves": "There are more wolves on the farms than anyone can remember.",
+  "@conv.Governor.there-are-more-wolves": {
+    "description": "A row the player picks when talking to Governor (node \"wolves\"), written as the player's own words."
+  },
+  "conv.Governor.welcome-to-dionsburg-traveller": "Welcome to Dionsburg, traveller.",
+  "@conv.Governor.welcome-to-dionsburg-traveller": {
+    "description": "Governor speaks this in the conversation, node \"root\", line 1."
   },
   "conv.GrandfatherKnot.about-the-deadwood": "About the deadwood.",
   "@conv.GrandfatherKnot.about-the-deadwood": {
@@ -524,57 +616,157 @@
   "@conv.GrandfatherKnot.west-little-walker-the-root": {
     "description": "Grandfather Knot speaks this in the conversation, node \"where_one\", line 1."
   },
-  "conv.Hendrik.a-stag-will-start": "A stag will start to run the moment you hurt it.",
-  "@conv.Hendrik.a-stag-will-start": {
-    "description": "Hendrik speaks this in the conversation, node \"stags\", line 1."
+  "conv.Hans.a-herd-astray": "A herd astray",
+  "@conv.Hans.a-herd-astray": {
+    "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
-  "conv.Hendrik.and-when-youre-wrong-say": "And when you're wrong, say so quickly. It costs less that way.",
-  "@conv.Hendrik.and-when-youre-wrong-say": {
-    "description": "Hendrik speaks this in the conversation, node \"advice\", line 3."
+  "conv.Hans.about-the-wolves": "About the wolves...",
+  "@conv.Hans.about-the-wolves": {
+    "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
-  "conv.Hendrik.ask-what-you-need": "Ask what you need to ask. I'll answer straight.",
-  "@conv.Hendrik.ask-what-you-need": {
-    "description": "Hendrik speaks this in the conversation, node \"root\", line 2."
+  "conv.Hans.about-your-herd": "About your herd...",
+  "@conv.Hans.about-your-herd": {
+    "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
-  "conv.Hendrik.dont-give-up-the-chase": "Don't give up the chase, and don't be cruel about it.",
-  "@conv.Hendrik.dont-give-up-the-chase": {
-    "description": "Hendrik speaks this in the conversation, node \"stags\", line 3."
+  "conv.Hans.any-assistance-for-the-task": "Any assistance for the task?",
+  "@conv.Hans.any-assistance-for-the-task": {
+    "description": "A row the player picks when talking to Hans (node \"strays_running\"), written as the player's own words."
   },
-  "conv.Hendrik.how-do-i-hunt": "How do I hunt a stag?",
-  "@conv.Hendrik.how-do-i-hunt": {
-    "description": "A row the player picks when talking to Hendrik (node \"root\"), written as the player's own words."
+  "conv.Hans.any-assistance-for-the-task-2": "Any assistance for the task?",
+  "@conv.Hans.any-assistance-for-the-task-2": {
+    "description": "A row the player picks when talking to Hans (node \"wolves_running\"), written as the player's own words."
   },
-  "conv.Hendrik.ill-teach-you-one-thing": "I'll teach you one thing. Learn it properly.",
-  "@conv.Hendrik.ill-teach-you-one-thing": {
-    "description": "Hendrik speaks this in the conversation, node \"teachings\", line 1."
+  "conv.Hans.any-assistance-for-the-task-3": "Any assistance for the task?",
+  "@conv.Hans.any-assistance-for-the-task-3": {
+    "description": "A row the player picks when talking to Hans (node \"wolves_running\"), written as the player's own words."
   },
-  "conv.Hendrik.ill-teach-you-wild-it": "I'll teach you Wild. It reaches further than what you have now, and every blow costs you a little of yourself. Only one aura burns at a time, so choose it when the reach is worth the price.",
-  "@conv.Hendrik.ill-teach-you-wild-it": {
-    "description": "Hendrik answers this when the player picks \"Wild\" (node \"teachings\")."
+  "conv.Hans.any-assistance-for-the-task-4": "Any assistance for the task?",
+  "@conv.Hans.any-assistance-for-the-task-4": {
+    "description": "A row the player picks when talking to Hans (node \"wolves_running\"), written as the player's own words."
   },
-  "conv.Hendrik.pay-what-you-owe-even": "Pay what you owe, even when nobody is counting.",
-  "@conv.Hendrik.pay-what-you-owe-even": {
-    "description": "Hendrik speaks this in the conversation, node \"advice\", line 2."
+  "conv.Hans.be-careful-stranger": "Be careful, stranger!",
+  "@conv.Hans.be-careful-stranger": {
+    "description": "Hans answers this when the player picks \"I'll do it.\" (node \"wolves\")."
   },
-  "conv.Hendrik.take-only-what-you-need": "Take only what you need, from the land or from anyone.",
-  "@conv.Hendrik.take-only-what-you-need": {
-    "description": "Hendrik speaks this in the conversation, node \"advice\", line 1."
+  "conv.Hans.can-you-help-me-i": "Can you help me? I reckon you can ...",
+  "@conv.Hans.can-you-help-me-i": {
+    "description": "Hans speaks this in the conversation, node \"root\", line 2."
   },
-  "conv.Hendrik.what-should-i-know-before": "What should I know before I leave?",
-  "@conv.Hendrik.what-should-i-know-before": {
-    "description": "A row the player picks when talking to Hendrik (node \"root\"), written as the player's own words."
+  "conv.Hans.find-them-out": "Find them out in the pasture and kill 6 of them.",
+  "@conv.Hans.find-them-out": {
+    "description": "Hans speaks this in the conversation, node \"wolves\", line 2."
   },
-  "conv.Hendrik.wild": "Wild",
-  "@conv.Hendrik.wild": {
-    "description": "A row the player picks when talking to Hendrik (node \"teachings\"), written as the player's own words."
+  "conv.Hans.find-them-out-2": "Find them out in the pasture and kill 6 of them.",
+  "@conv.Hans.find-them-out-2": {
+    "description": "Hans speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
-  "conv.Hendrik.you-wont-win-by-hitting": "You won't win by hitting harder. You win by staying close.",
-  "@conv.Hendrik.you-wont-win-by-hitting": {
-    "description": "Hendrik speaks this in the conversation, node \"stags\", line 2."
+  "conv.Hans.he-who-cried-wolf": "He who cried wolf",
+  "@conv.Hans.he-who-cried-wolf": {
+    "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
-  "conv.Hendrik.your-mother-wants-meat-then": "Your mother wants meat. Then you'll earn it, not be handed it.",
-  "@conv.Hendrik.your-mother-wants-meat-then": {
-    "description": "Hendrik speaks this in the conversation, node \"root\", line 1."
+  "conv.Hans.ho-stranger": "Ho, stranger!",
+  "@conv.Hans.ho-stranger": {
+    "description": "Hans speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Hans.its-very-unsettling-that-were": "It's very unsettling that we're plagued by so many wolves. Tell the Town Crier, close to Reinhard's farm.",
+  "@conv.Hans.its-very-unsettling-that-were": {
+    "description": "Hans speaks this in the conversation, node \"wolves_crier\", line 1."
+  },
+  "conv.Hans.ive-found-your-herd": "I've found your herd.",
+  "@conv.Hans.ive-found-your-herd": {
+    "description": "A row the player picks when talking to Hans (node \"strays_running\"), written as the player's own words."
+  },
+  "conv.Hans.ive-killed-the-wolves": "I've killed the wolves.",
+  "@conv.Hans.ive-killed-the-wolves": {
+    "description": "A row the player picks when talking to Hans (node \"wolves_running\"), written as the player's own words."
+  },
+  "conv.Hans.maybe-he-knows-why-so": "Maybe he knows why so many are on our farms recently.",
+  "@conv.Hans.maybe-he-knows-why-so": {
+    "description": "Hans speaks this in the conversation, node \"wolves_crier\", line 2."
+  },
+  "conv.Hans.my-herd": "My herd?",
+  "@conv.Hans.my-herd": {
+    "description": "Hans speaks this in the conversation, node \"strays_running\", line 1."
+  },
+  "conv.Hans.please-help-me-find-them": "Please help me find them before the wolves do. They are probably around the pasture somewhere.",
+  "@conv.Hans.please-help-me-find-them": {
+    "description": "Hans speaks this in the conversation, node \"strays\", line 2."
+  },
+  "conv.Hans.really-thank-you": "Really! Thank you! ...",
+  "@conv.Hans.really-thank-you": {
+    "description": "Hans answers this when the player picks \"I've found your herd.\" (node \"strays_running\")."
+  },
+  "conv.Hans.thank-you-stranger": "Thank you, stranger!",
+  "@conv.Hans.thank-you-stranger": {
+    "description": "Hans answers this when the player picks \"I'll do it.\" (node \"strays\")."
+  },
+  "conv.Hans.the-governor-of-dionsburg-then": "The Governor of Dionsburg? Then follow the road east through the forest.",
+  "@conv.Hans.the-governor-of-dionsburg-then": {
+    "description": "Hans speaks this in the conversation, node \"wolves_governor\", line 1."
+  },
+  "conv.Hans.the-wolves": "The wolves?",
+  "@conv.Hans.the-wolves": {
+    "description": "Hans speaks this in the conversation, node \"wolves_running\", line 1."
+  },
+  "conv.Hans.these-dangerous-wolves-are": "These dangerous wolves are a threat to all of us, especially to my sheep!",
+  "@conv.Hans.these-dangerous-wolves-are": {
+    "description": "Hans speaks this in the conversation, node \"wolves\", line 1."
+  },
+  "conv.Hans.they-are-a-featherbrained-lot": "They are a featherbrained lot. I'm sure they're grazing peacefully somewhere in the farmlands.",
+  "@conv.Hans.they-are-a-featherbrained-lot": {
+    "description": "Hans speaks this in the conversation, node \"strays_on_it\", line 1."
+  },
+  "conv.Hans.wolves-scared-away-my-sheep": "Wolves scared away my sheep! And my darn dog ran right after them.",
+  "@conv.Hans.wolves-scared-away-my-sheep": {
+    "description": "Hans speaks this in the conversation, node \"strays\", line 1."
+  },
+  "conv.Hans.you-dont-carry-that-weapon": "You don't carry that weapon for vanity, huh? Still, so many wolves ... You should tell the Town Crier, close to Reinhard's farm. Maybe he knows why.",
+  "@conv.Hans.you-dont-carry-that-weapon": {
+    "description": "Hans answers this when the player picks \"I've killed the wolves.\" (node \"wolves_running\")."
+  },
+  "conv.Henrik.a-stag-will-start": "A stag will start to run the moment you hurt it.",
+  "@conv.Henrik.a-stag-will-start": {
+    "description": "Henrik speaks this in the conversation, node \"stags\", line 1."
+  },
+  "conv.Henrik.flora-sends-me-to-hunt": "Flora sends me to hunt some deer.",
+  "@conv.Henrik.flora-sends-me-to-hunt": {
+    "description": "A row the player picks when talking to Henrik (node \"root\"), written as the player's own words."
+  },
+  "conv.Henrik.hahaha-well-see": "Hahaha! We'll see.",
+  "@conv.Henrik.hahaha-well-see": {
+    "description": "Henrik speaks this in the conversation, node \"bravado\", line 1."
+  },
+  "conv.Henrik.hm-speak-up-stranger": "Hm? Speak up, stranger.",
+  "@conv.Henrik.hm-speak-up-stranger": {
+    "description": "Henrik speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Henrik.how-do-i-hunt": "How do I hunt a stag?",
+  "@conv.Henrik.how-do-i-hunt": {
+    "description": "A row the player picks when talking to Henrik (node \"root\"), written as the player's own words."
+  },
+  "conv.Henrik.ill-teach-you-one-thing": "I'll teach you one thing. Learn it properly.",
+  "@conv.Henrik.ill-teach-you-one-thing": {
+    "description": "Henrik speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.Henrik.no-problem-ill-kill": "No problem, I'll kill the deer in no time.",
+  "@conv.Henrik.no-problem-ill-kill": {
+    "description": "A row the player picks when talking to Henrik (node \"teachings\"), written as the player's own words."
+  },
+  "conv.Henrik.wild": "Wild",
+  "@conv.Henrik.wild": {
+    "description": "A row the player picks when talking to Henrik (node \"teachings\"), written as the player's own words."
+  },
+  "conv.Henrik.with-that-tiny-knife-you": "With that tiny knife you carry? Hahaha! Come here, I'll teach you how to hunt.",
+  "@conv.Henrik.with-that-tiny-knife-you": {
+    "description": "Henrik speaks this in the conversation, node \"flora\", line 1."
+  },
+  "conv.Henrik.with-the-wild-aura-youll": "With the Wild aura you'll have a larger reach. Choose Wild as your active aura and give it your best shot!",
+  "@conv.Henrik.with-the-wild-aura-youll": {
+    "description": "Henrik answers this when the player picks \"Wild\" (node \"teachings\")."
+  },
+  "conv.Henrik.you-wont-win-by-hitting": "You won't win by hitting harder. You win by staying close.",
+  "@conv.Henrik.you-wont-win-by-hitting": {
+    "description": "Henrik speaks this in the conversation, node \"stags\", line 2."
   },
   "conv.Hermit.about-the-village": "About the village...",
   "@conv.Hermit.about-the-village": {
@@ -632,9 +824,25 @@
   "@conv.Hermit.what-do-you-need": {
     "description": "Hermit speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Lambert.baa-baa": "Baa! Baa!",
-  "@conv.Lambert.baa-baa": {
+  "conv.Lambert.are-you-lambert": "Are you Lambert?",
+  "@conv.Lambert.are-you-lambert": {
+    "description": "A row the player picks when talking to Lambert (node \"root\"), written as the player's own words."
+  },
+  "conv.Lambert.baa": "Baa.",
+  "@conv.Lambert.baa": {
     "description": "Lambert speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Lambert.booh": "Bööh.",
+  "@conv.Lambert.booh": {
+    "description": "Lambert speaks this in the conversation, node \"quip\", line 1."
+  },
+  "conv.Lambert.boooohh": "Bööööhh.",
+  "@conv.Lambert.boooohh": {
+    "description": "Lambert speaks this in the conversation, node \"asked\", line 1."
+  },
+  "conv.Lambert.why-am-i-even-talking": "Why am I even talking to a sheep?",
+  "@conv.Lambert.why-am-i-even-talking": {
+    "description": "A row the player picks when talking to Lambert (node \"asked\"), written as the player's own words."
   },
   "conv.LamplessTraveller.about-your-lamp": "About your lamp...",
   "@conv.LamplessTraveller.about-your-lamp": {
@@ -708,6 +916,50 @@
   "@conv.Lamplighter.torch": {
     "description": "A row the player picks when talking to Lamplighter (node \"teachings\"), written as the player's own words."
   },
+  "conv.Lionett.about-the-seaweed": "About the seaweed...",
+  "@conv.Lionett.about-the-seaweed": {
+    "description": "A row the player picks when talking to Lionett (node \"root\"), written as the player's own words."
+  },
+  "conv.Lionett.and-heres-your-tea": "And here's your tea.",
+  "@conv.Lionett.and-heres-your-tea": {
+    "description": "Lionett answers this when the player picks \"Here's your seaweed.\" (node \"brew_running\")."
+  },
+  "conv.Lionett.any-assistance-for-the-task": "Any assistance for the task?",
+  "@conv.Lionett.any-assistance-for-the-task": {
+    "description": "A row the player picks when talking to Lionett (node \"brew_running\"), written as the player's own words."
+  },
+  "conv.Lionett.do-you-have-work": "Do you have work for me?",
+  "@conv.Lionett.do-you-have-work": {
+    "description": "A row the player picks when talking to Lionett (node \"root\"), written as the player's own words."
+  },
+  "conv.Lionett.heres-your-seaweed": "Here's your seaweed.",
+  "@conv.Lionett.heres-your-seaweed": {
+    "description": "A row the player picks when talking to Lionett (node \"brew_running\"), written as the player's own words."
+  },
+  "conv.Lionett.id-hoped-youd-say-that": "I'd hoped you'd say that. You need to harvest seaweed from the shore up north. 8 strands should suffice.",
+  "@conv.Lionett.id-hoped-youd-say-that": {
+    "description": "Lionett answers this when the player picks \"I'll do it.\" (node \"brew\")."
+  },
+  "conv.Lionett.if-you-help-me-gather": "If you help me gather the ingredients, I'll let you in on the recipe.",
+  "@conv.Lionett.if-you-help-me-gather": {
+    "description": "Lionett speaks this in the conversation, node \"brew\", line 2."
+  },
+  "conv.Lionett.indeed-i-do-im-about": "Indeed I do! I'm about to brew a special tea that helps you regain focus.",
+  "@conv.Lionett.indeed-i-do-im-about": {
+    "description": "Lionett speaks this in the conversation, node \"brew\", line 1."
+  },
+  "conv.Lionett.ohh-a-new-face-around": "Ohh ... a new face around here.",
+  "@conv.Lionett.ohh-a-new-face-around": {
+    "description": "Lionett speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Lionett.the-seaweed": "The seaweed?",
+  "@conv.Lionett.the-seaweed": {
+    "description": "Lionett speaks this in the conversation, node \"brew_running\", line 1."
+  },
+  "conv.Lionett.youll-find-seaweed": "You'll find seaweed to the north, close to the shore. Once you're there, use your Harvest aura to gather it.",
+  "@conv.Lionett.youll-find-seaweed": {
+    "description": "Lionett speaks this in the conversation, node \"brew_on_it\", line 1."
+  },
   "conv.MemorialStone.every-character-spent": "Every character spent at the ascension stone, newest first.",
   "@conv.MemorialStone.every-character-spent": {
     "description": "Memorial Stone speaks this in the conversation, node \"root\", line 2."
@@ -715,82 +967,6 @@
   "conv.MemorialStone.memorial-stone": "Memorial stone.",
   "@conv.MemorialStone.memorial-stone": {
     "description": "Memorial Stone speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.Miller.a-sounder-of-boars-has": "A sounder of boars has settled by the mill and I cannot work around them.",
-  "@conv.Miller.a-sounder-of-boars-has": {
-    "description": "Miller speaks this in the conversation, node \"sounder\", line 1."
-  },
-  "conv.Miller.about-the-boars": "About the boars at the mill...",
-  "@conv.Miller.about-the-boars": {
-    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
-  },
-  "conv.Miller.about-your-ring": "About your ring...",
-  "@conv.Miller.about-your-ring": {
-    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
-  },
-  "conv.Miller.anything-else": "Anything else?",
-  "@conv.Miller.anything-else": {
-    "description": "A row the player picks when talking to Miller (node \"root\"), written as the player's own words."
-  },
-  "conv.Miller.for-many-days-i-have": "For many days I have looked for it. The thick seaweed from the last tide makes it hard to see.",
-  "@conv.Miller.for-many-days-i-have": {
-    "description": "Miller speaks this in the conversation, node \"ring\", line 2."
-  },
-  "conv.Miller.i-found-your-ring": "I found your ring.",
-  "@conv.Miller.i-found-your-ring": {
-    "description": "A row the player picks when talking to Miller (node \"ring_running\"), written as the player's own words."
-  },
-  "conv.Miller.i-grind-what-the-farm": "I grind what the farm brings me, when the farm brings me anything.",
-  "@conv.Miller.i-grind-what-the-farm": {
-    "description": "Miller speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.Miller.i-killed-the-alpha-boar": "I killed the alpha boar.",
-  "@conv.Miller.i-killed-the-alpha-boar": {
-    "description": "A row the player picks when talking to Miller (node \"sounder_running\"), written as the player's own words."
-  },
-  "conv.Miller.i-lost-my-heirloom-my": "I lost my heirloom, my wedding ring, on the beach north of the farmland.",
-  "@conv.Miller.i-lost-my-heirloom-my": {
-    "description": "Miller speaks this in the conversation, node \"ring\", line 1."
-  },
-  "conv.Miller.ill-look-for-it": "I'll look for it.",
-  "@conv.Miller.ill-look-for-it": {
-    "description": "A row the player picks when talking to Miller (node \"ring\"), written as the player's own words."
-  },
-  "conv.Miller.it-is-bigger-than-anything": "It is bigger than anything else in this zone. Do not take it lightly.",
-  "@conv.Miller.it-is-bigger-than-anything": {
-    "description": "Miller speaks this in the conversation, node \"sounder\", line 3."
-  },
-  "conv.Miller.kill-the-big-one": "Kill the big one by the mill. The rest will scatter.",
-  "@conv.Miller.kill-the-big-one": {
-    "description": "Miller speaks this in the conversation, node \"sounder_on_it\", line 1."
-  },
-  "conv.Miller.my-ring": "My ring?",
-  "@conv.Miller.my-ring": {
-    "description": "Miller speaks this in the conversation, node \"ring_running\", line 1."
-  },
-  "conv.Miller.on-the-beach-north": "On the beach north of the farmland. Look under the seaweed.",
-  "@conv.Miller.on-the-beach-north": {
-    "description": "Miller speaks this in the conversation, node \"ring_on_it\", line 1."
-  },
-  "conv.Miller.please-help-me-search": "Please, help me search for it before my wife takes notice.",
-  "@conv.Miller.please-help-me-search": {
-    "description": "Miller speaks this in the conversation, node \"ring\", line 3."
-  },
-  "conv.Miller.thank-you": "Thank you.",
-  "@conv.Miller.thank-you": {
-    "description": "Miller answers this when the player picks \"I'll look for it.\" (node \"ring\")."
-  },
-  "conv.Miller.thats-it-thank-you": "That's it. Thank you.",
-  "@conv.Miller.thats-it-thank-you": {
-    "description": "Miller answers this when the player picks \"I found your ring.\" (node \"ring_running\")."
-  },
-  "conv.Miller.the-big-one-leads-them": "The big one leads them. Kill it and the rest will scatter.",
-  "@conv.Miller.the-big-one-leads-them": {
-    "description": "Miller speaks this in the conversation, node \"sounder\", line 2."
-  },
-  "conv.Miller.the-sounder": "The sounder?",
-  "@conv.Miller.the-sounder": {
-    "description": "Miller speaks this in the conversation, node \"sounder_running\", line 1."
   },
   "conv.Miner.about-the-spiders": "About the spiders...",
   "@conv.Miner.about-the-spiders": {
@@ -864,11 +1040,19 @@
   "@conv.PortalSummon.you-step-through": {
     "description": "Portal Summon answers this when the player picks \"Step through.\" (node \"root\")."
   },
+  "conv.Reinhard.a-lost-shipment": "A lost shipment",
+  "@conv.Reinhard.a-lost-shipment": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.Reinhard.about-the-beast": "About the beast...",
+  "@conv.Reinhard.about-the-beast": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
   "conv.Reinhard.about-the-boars": "About the boars...",
   "@conv.Reinhard.about-the-boars": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.about-the-rats": "About the rats in the barn...",
+  "conv.Reinhard.about-the-rats": "About the rats in the granary...",
   "@conv.Reinhard.about-the-rats": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
@@ -876,25 +1060,77 @@
   "@conv.Reinhard.about-the-turnips": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.anything-else-that-needs-doing": "Anything else that needs doing?",
-  "@conv.Reinhard.anything-else-that-needs-doing": {
+  "conv.Reinhard.about-tobias": "About Tobias...",
+  "@conv.Reinhard.about-tobias": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.anything-in-the-barn": "Anything in the barn?",
-  "@conv.Reinhard.anything-in-the-barn": {
+  "conv.Reinhard.about-your-ring": "About your ring...",
+  "@conv.Reinhard.about-your-ring": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.eliza-sends-me": "Eliza sends me.",
-  "@conv.Reinhard.eliza-sends-me": {
+  "conv.Reinhard.already-very-good-this-will": "Already? Very good, this will teach them to come after my grain!",
+  "@conv.Reinhard.already-very-good-this-will": {
+    "description": "Reinhard answers this when the player picks \"I've killed the boars.\" (node \"boars_running\")."
+  },
+  "conv.Reinhard.and-not-a-scratch": "And not a scratch on it. You're an honest one, aren't you?",
+  "@conv.Reinhard.and-not-a-scratch": {
+    "description": "Reinhard answers this when the player picks \"I've found your ring.\" (node \"ring_running\")."
+  },
+  "conv.Reinhard.and-youre-still-in-one": "And you're still in one piece? You're sturdier than you look. Good job.",
+  "@conv.Reinhard.and-youre-still-in-one": {
+    "description": "Reinhard answers this when the player picks \"I've killed the rats.\" (node \"rats_running\")."
+  },
+  "conv.Reinhard.any-assistance-for-the-task": "Any assistance for the task?",
+  "@conv.Reinhard.any-assistance-for-the-task": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.any-assistance-for-the-task-2": "Any assistance for the task?",
+  "@conv.Reinhard.any-assistance-for-the-task-2": {
+    "description": "A row the player picks when talking to Reinhard (node \"ring_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.any-assistance-for-the-task-3": "Any assistance for the task?",
+  "@conv.Reinhard.any-assistance-for-the-task-3": {
+    "description": "A row the player picks when talking to Reinhard (node \"boars_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.any-assistance-for-the-task-4": "Any assistance for the task?",
+  "@conv.Reinhard.any-assistance-for-the-task-4": {
+    "description": "A row the player picks when talking to Reinhard (node \"beast_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.any-assistance-for-the-task-5": "Any assistance for the task?",
+  "@conv.Reinhard.any-assistance-for-the-task-5": {
+    "description": "A row the player picks when talking to Reinhard (node \"shipment_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.be-careful-its-dark": "Be careful! It's dark in there and the rats are nasty beasts. Don't attract too many at once.",
+  "@conv.Reinhard.be-careful-its-dark": {
+    "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 2."
+  },
+  "conv.Reinhard.be-careful-once-you-get": "Be careful once you get close to their den. The beast will not be the only boar you'll encounter there.",
+  "@conv.Reinhard.be-careful-once-you-get": {
+    "description": "Reinhard speaks this in the conversation, node \"beast_on_it\", line 1."
+  },
+  "conv.Reinhard.bless-you": "Bless you!",
+  "@conv.Reinhard.bless-you": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"beast\")."
+  },
+  "conv.Reinhard.flora-sends-me-im-looking": "Flora sends me. I'm looking for work.",
+  "@conv.Reinhard.flora-sends-me-im-looking": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.elizas-child-then-youll-work": "Eliza's child. Then you'll work. Ask me for a task.",
-  "@conv.Reinhard.elizas-child-then-youll-work": {
-    "description": "Reinhard answers this when the player picks \"Eliza sends me.\" (node \"root\")."
+  "conv.Reinhard.floras-a-good-judge": "Flora's a good judge of people. Plenty of work around here, stranger.",
+  "@conv.Reinhard.floras-a-good-judge": {
+    "description": "Reinhard answers this when the player picks \"Flora sends me. I'm looking for work.\" (node \"root\")."
   },
-  "conv.Reinhard.giant-rats-in-my-barn": "Giant rats in my barn. They are not shy and they do not run.",
-  "@conv.Reinhard.giant-rats-in-my-barn": {
-    "description": "Reinhard speaks this in the conversation, node \"rats\", line 1."
+  "conv.Reinhard.go-inside-the-granary-kill": "Go inside the granary, kill 8 of the beasts and come back to me.",
+  "@conv.Reinhard.go-inside-the-granary-kill": {
+    "description": "Reinhard speaks this in the conversation, node \"rats\", line 2."
+  },
+  "conv.Reinhard.go-to-the-granary": "Go to the granary and climb down the ladder.",
+  "@conv.Reinhard.go-to-the-granary": {
+    "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 1."
+  },
+  "conv.Reinhard.great-it-must-be-tangled": "Great! It must be tangled in the seaweed somewhere on the shore.",
+  "@conv.Reinhard.great-it-must-be-tangled": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"ring\")."
   },
   "conv.Reinhard.harvest": "Harvest",
   "@conv.Reinhard.harvest": {
@@ -908,49 +1144,117 @@
   "@conv.Reinhard.harvest-5-turnips-2": {
     "description": "Reinhard speaks this in the conversation, node \"turnips_on_it\", line 1."
   },
+  "conv.Reinhard.he-hasnt-returned-yet": "He hasn't returned yet and I fear for him. Could you travel east and look for him? I'm afraid some harm has come to him.",
+  "@conv.Reinhard.he-hasnt-returned-yet": {
+    "description": "Reinhard speaks this in the conversation, node \"shipment\", line 3."
+  },
   "conv.Reinhard.i-harvested-the-5-turnips": "I harvested the 5 turnips.",
   "@conv.Reinhard.i-harvested-the-5-turnips": {
     "description": "A row the player picks when talking to Reinhard (node \"turnips_running\"), written as the player's own words."
   },
-  "conv.Reinhard.i-killed-the-6-boars": "I killed the 6 boars.",
-  "@conv.Reinhard.i-killed-the-6-boars": {
-    "description": "A row the player picks when talking to Reinhard (node \"boars_running\"), written as the player's own words."
-  },
-  "conv.Reinhard.i-killed-the-8-rats": "I killed the 8 rats.",
-  "@conv.Reinhard.i-killed-the-8-rats": {
-    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
-  },
-  "conv.Reinhard.i-work-this-field": "I work this field.",
-  "@conv.Reinhard.i-work-this-field": {
-    "description": "Reinhard speaks this in the conversation, node \"root\", line 1."
+  "conv.Reinhard.i-have-a-delicate-task": "I have a ... delicate task for you.",
+  "@conv.Reinhard.i-have-a-delicate-task": {
+    "description": "Reinhard speaks this in the conversation, node \"ring\", line 1."
   },
   "conv.Reinhard.ill-teach-you-harvest": "I'll teach you Harvest.",
   "@conv.Reinhard.ill-teach-you-harvest": {
     "description": "Reinhard answers this when the player picks \"Harvest\" (node \"teachings\")."
   },
-  "conv.Reinhard.kill-6-boars": "Kill 6 boars in the fields around the farm, then come back to me.",
-  "@conv.Reinhard.kill-6-boars": {
-    "description": "Reinhard speaks this in the conversation, node \"boars\", line 1."
+  "conv.Reinhard.it-should-be-somewhere": "It should be somewhere in the seaweed on the beach, north from here.",
+  "@conv.Reinhard.it-should-be-somewhere": {
+    "description": "Reinhard speaks this in the conversation, node \"ring_on_it\", line 1."
   },
-  "conv.Reinhard.kill-6-boars-2": "Kill 6 boars in the fields around the farm, then come back to me.",
-  "@conv.Reinhard.kill-6-boars-2": {
-    "description": "Reinhard speaks this in the conversation, node \"boars_on_it\", line 1."
+  "conv.Reinhard.ive-found-your-ring": "I've found your ring.",
+  "@conv.Reinhard.ive-found-your-ring": {
+    "description": "A row the player picks when talking to Reinhard (node \"ring_running\"), written as the player's own words."
   },
-  "conv.Reinhard.kill-8-of-them": "Kill 8 of them in there, then come back to me.",
-  "@conv.Reinhard.kill-8-of-them": {
-    "description": "Reinhard speaks this in the conversation, node \"rats\", line 2."
+  "conv.Reinhard.ive-killed-the-beast": "I've killed the beast.",
+  "@conv.Reinhard.ive-killed-the-beast": {
+    "description": "A row the player picks when talking to Reinhard (node \"beast_running\"), written as the player's own words."
   },
-  "conv.Reinhard.kill-8-of-them-2": "Kill 8 of them in there, then come back to me.",
-  "@conv.Reinhard.kill-8-of-them-2": {
-    "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 1."
+  "conv.Reinhard.ive-killed-the-boars": "I've killed the boars.",
+  "@conv.Reinhard.ive-killed-the-boars": {
+    "description": "A row the player picks when talking to Reinhard (node \"boars_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.ive-killed-the-rats": "I've killed the rats.",
+  "@conv.Reinhard.ive-killed-the-rats": {
+    "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
+  },
+  "conv.Reinhard.just-follow-the-road": "Just follow the road and cross the bridge that leads to the forest. That's the road Tobias has taken.",
+  "@conv.Reinhard.just-follow-the-road": {
+    "description": "Reinhard speaks this in the conversation, node \"shipment_on_it\", line 1."
+  },
+  "conv.Reinhard.kill-6-of-them-then": "Kill 6 of them, then report back to me. You'll find my fields north and south of the farm.",
+  "@conv.Reinhard.kill-6-of-them-then": {
+    "description": "Reinhard speaks this in the conversation, node \"boars\", line 2."
+  },
+  "conv.Reinhard.lost-and-found": "Lost and found",
+  "@conv.Reinhard.lost-and-found": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.Reinhard.mind-the-boars-though-they": "Mind the boars, though. They usually don't attack unless provoked.",
+  "@conv.Reinhard.mind-the-boars-though-they": {
+    "description": "Reinhard speaks this in the conversation, node \"ring_on_it\", line 2."
+  },
+  "conv.Reinhard.my-ring": "My ring?",
+  "@conv.Reinhard.my-ring": {
+    "description": "Reinhard speaks this in the conversation, node \"ring_running\", line 1."
+  },
+  "conv.Reinhard.my-wife-hasnt-noticed-yet": "My wife hasn't noticed yet and I'd prefer it stays this way. So please ... would you mind looking for it at the beach?",
+  "@conv.Reinhard.my-wife-hasnt-noticed-yet": {
+    "description": "Reinhard speaks this in the conversation, node \"ring\", line 3."
+  },
+  "conv.Reinhard.plenty-of-work-around-here": "Plenty of work around here, stranger.",
+  "@conv.Reinhard.plenty-of-work-around-here": {
+    "description": "Reinhard speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Reinhard.since-i-know-now-that": "Since I know now that you have a fierce heart and know how to fight, I have another task for you.",
+  "@conv.Reinhard.since-i-know-now-that": {
+    "description": "Reinhard speaks this in the conversation, node \"shipment\", line 1."
   },
   "conv.Reinhard.tell-me-more-about-rats": "Tell me more about rats.",
   "@conv.Reinhard.tell-me-more-about-rats": {
     "description": "A row the player picks when talking to Reinhard (node \"rats_running\"), written as the player's own words."
   },
+  "conv.Reinhard.thank-you-i-knew-i": "Thank you! I knew I could count on you.",
+  "@conv.Reinhard.thank-you-i-knew-i": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"shipment\")."
+  },
+  "conv.Reinhard.the-beast": "The beast?",
+  "@conv.Reinhard.the-beast": {
+    "description": "Reinhard speaks this in the conversation, node \"beast_running\", line 1."
+  },
+  "conv.Reinhard.the-beast-of-the-farmlands": "The beast of the farmlands",
+  "@conv.Reinhard.the-beast-of-the-farmlands": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
   "conv.Reinhard.the-boars": "The boars?",
   "@conv.Reinhard.the-boars": {
     "description": "Reinhard speaks this in the conversation, node \"boars_running\", line 1."
+  },
+  "conv.Reinhard.the-boars-can-put-up": "The boars can put up quite a fight. Be careful not to attract too many at a time.",
+  "@conv.Reinhard.the-boars-can-put-up": {
+    "description": "Reinhard speaks this in the conversation, node \"boars_on_it\", line 1."
+  },
+  "conv.Reinhard.the-fields-are-safe": "The fields are safe for now, but the darn boars will return.",
+  "@conv.Reinhard.the-fields-are-safe": {
+    "description": "Reinhard speaks this in the conversation, node \"beast\", line 1."
+  },
+  "conv.Reinhard.the-fields-where-i-plant": "The fields where I plant the grain for the mill are overrun with boars. They destroy the harvest!",
+  "@conv.Reinhard.the-fields-where-i-plant": {
+    "description": "Reinhard speaks this in the conversation, node \"boars\", line 1."
+  },
+  "conv.Reinhard.the-granarys-right-behind-you": "The granary's right behind you. Good luck!",
+  "@conv.Reinhard.the-granarys-right-behind-you": {
+    "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"rats\")."
+  },
+  "conv.Reinhard.the-pest-in-the-granary": "The pest in the granary",
+  "@conv.Reinhard.the-pest-in-the-granary": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
+  },
+  "conv.Reinhard.the-problematic-boars": "The problematic boars",
+  "@conv.Reinhard.the-problematic-boars": {
+    "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
   "conv.Reinhard.the-rats": "The rats?",
   "@conv.Reinhard.the-rats": {
@@ -960,13 +1264,45 @@
   "@conv.Reinhard.the-turnips": {
     "description": "Reinhard speaks this in the conversation, node \"turnips_running\", line 1."
   },
+  "conv.Reinhard.these-darn-rats-have-taken": "These darn rats have taken over the granary. Large as my forearm they are.",
+  "@conv.Reinhard.these-darn-rats-have-taken": {
+    "description": "Reinhard speaks this in the conversation, node \"rats\", line 1."
+  },
   "conv.Reinhard.they-came": "They came in with the grain sacks. Big as a cat, and they bite.",
   "@conv.Reinhard.they-came": {
     "description": "Reinhard speaks this in the conversation, node \"rats_more\", line 1."
   },
-  "conv.Reinhard.you-need-the-harvest-skill": "You need the Harvest skill for that — ask me to teach you first.",
+  "conv.Reinhard.they-have-a-den-south": "They have a den south of this farm. It's protected by a real beast! Kill it, and our crops will finally be safe!",
+  "@conv.Reinhard.they-have-a-den-south": {
+    "description": "Reinhard speaks this in the conversation, node \"beast\", line 2."
+  },
+  "conv.Reinhard.they-usually-dont-attack-unless": "They usually don't attack unless provoked.",
+  "@conv.Reinhard.they-usually-dont-attack-unless": {
+    "description": "Reinhard speaks this in the conversation, node \"boars_on_it\", line 2."
+  },
+  "conv.Reinhard.tobias": "Tobias?",
+  "@conv.Reinhard.tobias": {
+    "description": "Reinhard speaks this in the conversation, node \"shipment_running\", line 1."
+  },
+  "conv.Reinhard.two-days-ago-i-sent": "Two days ago, I sent my farmhand Tobias east to the city of Dionsburg with a shipment ... and a special letter for someone in the city.",
+  "@conv.Reinhard.two-days-ago-i-sent": {
+    "description": "Reinhard speaks this in the conversation, node \"shipment\", line 2."
+  },
+  "conv.Reinhard.whilst-fishing-on-the-beach": "Whilst fishing on the beach, I seem to have lost my wedding ring.",
+  "@conv.Reinhard.whilst-fishing-on-the-beach": {
+    "description": "Reinhard speaks this in the conversation, node \"ring\", line 2."
+  },
+  "conv.Reinhard.you-need-the-harvest-skill": "You need the Harvest skill for that. Ask me to teach you first.",
   "@conv.Reinhard.you-need-the-harvest-skill": {
     "description": "Reinhard speaks this in the conversation, node \"turnips\", line 2."
+  },
+  "conv.Reinhard.you-rid-these-lands": "You rid these lands of a nasty beast. Maybe you're not a farmer after all ... maybe you're a warrior!",
+  "@conv.Reinhard.you-rid-these-lands": {
+    "description": "Reinhard answers this when the player picks \"I've killed the beast.\" (node \"beast_running\")."
+  },
+  "conv.ReinhardsWife.he-thinks-i-havent-noticed": "He thinks I haven't noticed that his wedding band's missing ...",
+  "@conv.ReinhardsWife.he-thinks-i-havent-noticed": {
+    "description": "Reinhards Wife speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Shaman.about-the-dire-wolves": "About the dire wolves...",
   "@conv.Shaman.about-the-dire-wolves": {
@@ -1012,38 +1348,6 @@
   "@conv.Shaman.the-dire-wolves": {
     "description": "Shaman speaks this in the conversation, node \"direwolves_running\", line 1."
   },
-  "conv.Shepherd.about-your-sheep": "About your sheep...",
-  "@conv.Shepherd.about-your-sheep": {
-    "description": "A row the player picks when talking to Shepherd (node \"root\"), written as the player's own words."
-  },
-  "conv.Shepherd.baabara-woolliam-and-lambert": "Baabara, Woolliam and Lambert. Find them out on the pasture, and the dog with them, then come back to me.",
-  "@conv.Shepherd.baabara-woolliam-and-lambert": {
-    "description": "Shepherd speaks this in the conversation, node \"strays\", line 2."
-  },
-  "conv.Shepherd.baabara-woolliam-and-lambert-2": "Baabara, Woolliam and Lambert, and the dog. Find them on the pasture, then come back to me.",
-  "@conv.Shepherd.baabara-woolliam-and-lambert-2": {
-    "description": "Shepherd speaks this in the conversation, node \"strays_on_it\", line 1."
-  },
-  "conv.Shepherd.i-found-baabara-woolliam": "I found Baabara, Woolliam and Lambert, and the dog.",
-  "@conv.Shepherd.i-found-baabara-woolliam": {
-    "description": "A row the player picks when talking to Shepherd (node \"strays_running\"), written as the player's own words."
-  },
-  "conv.Shepherd.i-keep-the-flock": "I keep the flock on this pasture.",
-  "@conv.Shepherd.i-keep-the-flock": {
-    "description": "Shepherd speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.Shepherd.my-sheep": "My sheep?",
-  "@conv.Shepherd.my-sheep": {
-    "description": "Shepherd speaks this in the conversation, node \"strays_running\", line 1."
-  },
-  "conv.Shepherd.nothing-out-there-will-trouble": "Nothing out there will trouble you. The stags and the boars keep to themselves.",
-  "@conv.Shepherd.nothing-out-there-will-trouble": {
-    "description": "Shepherd speaks this in the conversation, node \"strays\", line 3."
-  },
-  "conv.Shepherd.three-of-my-sheep-wandered": "Three of my sheep wandered off and the dog went after them.",
-  "@conv.Shepherd.three-of-my-sheep-wandered": {
-    "description": "Shepherd speaks this in the conversation, node \"strays\", line 1."
-  },
   "conv.StoneRoot.a-root-clenched-around": "A root clenched around the stones like a fist. It loosens under your hand.",
   "@conv.StoneRoot.a-root-clenched-around": {
     "description": "Stone Root speaks this in the conversation, node \"root\", line 1."
@@ -1052,17 +1356,69 @@
   "@conv.StreamRoot.a-cold-root-damp": {
     "description": "Stream Root speaks this in the conversation, node \"root\", line 1."
   },
+  "conv.Tobias.are-you-all-right-what": "Are you all right? What happened?",
+  "@conv.Tobias.are-you-all-right-what": {
+    "description": "A row the player picks when talking to Tobias (node \"found\"), written as the player's own words."
+  },
+  "conv.Tobias.bandits-they-took-the-cart": "Bandits. They took the cart and burned it up the road. I barely got away, but I still have the letter.",
+  "@conv.Tobias.bandits-they-took-the-cart": {
+    "description": "Tobias answers this when the player picks \"Are you all right? What happened?\" (node \"found\")."
+  },
+  "conv.Tobias.reinhard-sent-me-to-look": "Reinhard sent me to look for you.",
+  "@conv.Tobias.reinhard-sent-me-to-look": {
+    "description": "A row the player picks when talking to Tobias (node \"root\"), written as the player's own words."
+  },
+  "conv.Tobias.reinhard-thank-the-light": "Reinhard? Thank the light.",
+  "@conv.Tobias.reinhard-thank-the-light": {
+    "description": "Tobias speaks this in the conversation, node \"found\", line 1."
+  },
+  "conv.Tobias.stay-back-oh-youre-not": "Stay back! ... Oh. You're not one of them.",
+  "@conv.Tobias.stay-back-oh-youre-not": {
+    "description": "Tobias speaks this in the conversation, node \"root\", line 1."
+  },
   "conv.TownCrier.about-the-wolves": "About the wolves...",
   "@conv.TownCrier.about-the-wolves": {
     "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
   },
-  "conv.TownCrier.hail-adventurer": "Hail Adventurer",
+  "conv.TownCrier.alas-i-know-neither": "Alas, I know neither the cause nor the cure.",
+  "@conv.TownCrier.alas-i-know-neither": {
+    "description": "Town Crier speaks this in the conversation, node \"hans\", line 2."
+  },
+  "conv.TownCrier.but-maybe-someone-in-dionsburg": "But maybe someone in Dionsburg knows what to do ... You should talk to its Governor about our problem.",
+  "@conv.TownCrier.but-maybe-someone-in-dionsburg": {
+    "description": "Town Crier speaks this in the conversation, node \"hans\", line 3."
+  },
+  "conv.TownCrier.hail-adventurer": "Hail, adventurer!",
   "@conv.TownCrier.hail-adventurer": {
     "description": "Town Crier calls this out to a player walking past (speech bubble)."
   },
-  "conv.TownCrier.i-call-out-the-news": "I call out the news here.",
-  "@conv.TownCrier.i-call-out-the-news": {
+  "conv.TownCrier.hail-adventurer-2": "Hail, adventurer!",
+  "@conv.TownCrier.hail-adventurer-2": {
     "description": "Town Crier speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.TownCrier.hans-sends-me-there-are": "Hans sends me. There are a lot of wolves recently.",
+  "@conv.TownCrier.hans-sends-me-there-are": {
+    "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
+  },
+  "conv.TownCrier.he-resides-in-the-cathedral": "He resides in the Cathedral, in the centre of Dionsburg.",
+  "@conv.TownCrier.he-resides-in-the-cathedral": {
+    "description": "Town Crier speaks this in the conversation, node \"papath\", line 3."
+  },
+  "conv.TownCrier.hes-a-champion-of-humanity": "He's a champion of humanity and all of its allies against the forces of evil.",
+  "@conv.TownCrier.hes-a-champion-of-humanity": {
+    "description": "Town Crier speaks this in the conversation, node \"papath\", line 2."
+  },
+  "conv.TownCrier.indeed-its-very-unusual-that": "Indeed ... it's very unusual that they appear in such great numbers.",
+  "@conv.TownCrier.indeed-its-very-unusual-that": {
+    "description": "Town Crier speaks this in the conversation, node \"hans\", line 1."
+  },
+  "conv.TownCrier.its-a-large-city": "It's a large city to the east. It's the dwelling place of the Order of Divine Light.",
+  "@conv.TownCrier.its-a-large-city": {
+    "description": "Town Crier speaks this in the conversation, node \"dionsburg\", line 1."
+  },
+  "conv.TownCrier.its-a-mighty-guild": "It's a mighty guild of paladins, champions of the righteous cause.",
+  "@conv.TownCrier.its-a-mighty-guild": {
+    "description": "Town Crier speaks this in the conversation, node \"order\", line 1."
   },
   "conv.TownCrier.kill-8-wolves": "Kill 8 wolves on the west road.",
   "@conv.TownCrier.kill-8-wolves": {
@@ -1072,9 +1428,45 @@
   "@conv.TownCrier.kill-8-wolves-2": {
     "description": "Town Crier speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
-  "conv.TownCrier.talk-to-the-hermit": "Talk to the Hermit and Reinhard.",
-  "@conv.TownCrier.talk-to-the-hermit": {
+  "conv.TownCrier.oh-i-just-know-what": "Oh, I just know what everyone knows about him.",
+  "@conv.TownCrier.oh-i-just-know-what": {
+    "description": "Town Crier speaks this in the conversation, node \"papath\", line 1."
+  },
+  "conv.TownCrier.splendid-just-follow-the-road": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates.",
+  "@conv.TownCrier.splendid-just-follow-the-road": {
+    "description": "Town Crier answers this when the player picks \"I'll do it.\" (node \"hans\")."
+  },
+  "conv.TownCrier.splendid-just-follow-the-road-2": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates.",
+  "@conv.TownCrier.splendid-just-follow-the-road-2": {
+    "description": "Town Crier answers this when the player picks \"I'll do it.\" (node \"dionsburg\")."
+  },
+  "conv.TownCrier.splendid-just-follow-the-road-3": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates.",
+  "@conv.TownCrier.splendid-just-follow-the-road-3": {
+    "description": "Town Crier answers this when the player picks \"I'll do it.\" (node \"order\")."
+  },
+  "conv.TownCrier.splendid-just-follow-the-road-4": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates.",
+  "@conv.TownCrier.splendid-just-follow-the-road-4": {
+    "description": "Town Crier answers this when the player picks \"I'll do it.\" (node \"papath\")."
+  },
+  "conv.TownCrier.talk-to-farmer-flora-miller": "Talk to Farmer Flora, Miller Reinhard, Herbalist Lionett and Shepherd Hans.",
+  "@conv.TownCrier.talk-to-farmer-flora-miller": {
     "description": "Town Crier speaks this in the conversation, node \"news_who\", line 1."
+  },
+  "conv.TownCrier.tell-me-more-about": "Tell me more about the Order of Divine Light.",
+  "@conv.TownCrier.tell-me-more-about": {
+    "description": "A row the player picks when talking to Town Crier (node \"dionsburg\"), written as the player's own words."
+  },
+  "conv.TownCrier.tell-me-more-about-dionsburg": "Tell me more about Dionsburg.",
+  "@conv.TownCrier.tell-me-more-about-dionsburg": {
+    "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
+  },
+  "conv.TownCrier.tell-me-more-about-dionsburg-2": "Tell me more about Dionsburg.",
+  "@conv.TownCrier.tell-me-more-about-dionsburg-2": {
+    "description": "A row the player picks when talking to Town Crier (node \"hans\"), written as the player's own words."
+  },
+  "conv.TownCrier.tell-me-more-about-papath": "Tell me more about Papath.",
+  "@conv.TownCrier.tell-me-more-about-papath": {
+    "description": "A row the player picks when talking to Town Crier (node \"order\"), written as the player's own words."
   },
   "conv.TownCrier.the-wolves": "The wolves?",
   "@conv.TownCrier.the-wolves": {
@@ -1084,9 +1476,17 @@
   "@conv.TownCrier.then-report-to-the-city": {
     "description": "Town Crier speaks this in the conversation, node \"wolves\", line 2."
   },
-  "conv.TownCrier.who-else-should-i-speak": "Who else should I speak to?",
-  "@conv.TownCrier.who-else-should-i-speak": {
+  "conv.TownCrier.they-defend-the-city": "They defend the city and uphold the laws in Dionsburg. They are led by a powerful paladin called Papath.",
+  "@conv.TownCrier.they-defend-the-city": {
+    "description": "Town Crier speaks this in the conversation, node \"order\", line 2."
+  },
+  "conv.TownCrier.who-here-has-work": "Who here has work for me?",
+  "@conv.TownCrier.who-here-has-work": {
     "description": "A row the player picks when talking to Town Crier (node \"root\"), written as the player's own words."
+  },
+  "conv.TownCrier.youll-find-flora-and-hans": "You'll find Flora and Hans to the west, Lionett to the north and Reinhard just south of here. There's always something to do.",
+  "@conv.TownCrier.youll-find-flora-and-hans": {
+    "description": "Town Crier speaks this in the conversation, node \"news_who\", line 2."
   },
   "conv.VillageHealer.about-the-alpha-wolves": "About the alpha wolves...",
   "@conv.VillageHealer.about-the-alpha-wolves": {
@@ -1204,9 +1604,25 @@
   "@conv.Wanderer.which-way-is-safe": {
     "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
   },
-  "conv.Woolliam.blrrf": "Blrrf.",
-  "@conv.Woolliam.blrrf": {
+  "conv.Woolliam.are-you-woolliam": "Are you Woolliam?",
+  "@conv.Woolliam.are-you-woolliam": {
+    "description": "A row the player picks when talking to Woolliam (node \"root\"), written as the player's own words."
+  },
+  "conv.Woolliam.baa": "Baa.",
+  "@conv.Woolliam.baa": {
     "description": "Woolliam speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Woolliam.go-home-woolliam": "Go home, Woolliam ...",
+  "@conv.Woolliam.go-home-woolliam": {
+    "description": "A row the player picks when talking to Woolliam (node \"asked\"), written as the player's own words."
+  },
+  "conv.Woolliam.grazes": "*grazes*",
+  "@conv.Woolliam.grazes": {
+    "description": "Woolliam speaks this in the conversation, node \"asked\", line 1."
+  },
+  "conv.Woolliam.keeps-grazing": "*keeps grazing*",
+  "@conv.Woolliam.keeps-grazing": {
+    "description": "Woolliam speaks this in the conversation, node \"quip\", line 1."
   },
   "mob.AlphaBoar.name": "{count, plural, one {Alpha Boar} other {Alpha Boars}}",
   "@mob.AlphaBoar.name": {
@@ -1304,6 +1720,16 @@
   "mob.Bramble.name": "Bramble",
   "@mob.Bramble.name": {
     "description": "Name of the Bramble (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.BroodMother.name": "Brood Mother",
+  "@mob.BroodMother.name": {
+    "description": "Name of the BroodMother (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.BurstTotem.name": "Burst Totem",
+  "@mob.BurstTotem.name": {
+    "description": "Name of the BurstTotem (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.Camp.name": "Camp",
@@ -1412,11 +1838,6 @@
     "description": "Name of the EliteWolf (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
-  "mob.Eliza.name": "Eliza",
-  "@mob.Eliza.name": {
-    "description": "Name of the Eliza (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
-    "x-maxLength": 26
-  },
   "mob.Emberkeeper.name": "Emberkeeper",
   "@mob.Emberkeeper.name": {
     "description": "Name of the Emberkeeper (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
@@ -1437,9 +1858,24 @@
     "description": "Name of the FireElemental (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
+  "mob.FireStirer.name": "Fire Stirer",
+  "@mob.FireStirer.name": {
+    "description": "Name of the FireStirer (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
   "mob.FireTotem.name": "Fire Totem",
   "@mob.FireTotem.name": {
     "description": "Name of the FireTotem (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.Firelord.name": "Firelord",
+  "@mob.Firelord.name": {
+    "description": "Name of the Firelord (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.Flora.name": "Flora",
+  "@mob.Flora.name": {
+    "description": "Name of the Flora (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.ForestSign.name": "Forest Sign",
@@ -1485,6 +1921,11 @@
     "description": "Name of the GladeRoot (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
+  "mob.Governor.name": "Governor",
+  "@mob.Governor.name": {
+    "description": "Name of the Governor (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
   "mob.GrandfatherKnot.name": "Grandfather Knot",
   "@mob.GrandfatherKnot.name": {
     "description": "Name of the GrandfatherKnot (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
@@ -1495,9 +1936,14 @@
     "description": "Name of the GreaterFireElemental (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
-  "mob.Hendrik.name": "Hendrik",
-  "@mob.Hendrik.name": {
-    "description": "Name of the Hendrik (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+  "mob.Hans.name": "Hans",
+  "@mob.Hans.name": {
+    "description": "Name of the Hans (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.Henrik.name": "Henrik",
+  "@mob.Henrik.name": {
+    "description": "Name of the Henrik (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.Hermit.name": "Hermit",
@@ -1533,6 +1979,11 @@
     "description": "Name of the Lamplighter (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
+  "mob.Lionett.name": "Lionett",
+  "@mob.Lionett.name": {
+    "description": "Name of the Lionett (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
   "mob.Marauder.name": "Marauder",
   "@mob.Marauder.name": {
     "description": "Name of the Marauder (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
@@ -1561,11 +2012,6 @@
   "mob.MercenaryCrossbowman.name": "Mercenary Crossbowman",
   "@mob.MercenaryCrossbowman.name": {
     "description": "Name of the MercenaryCrossbowman (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
-    "x-maxLength": 26
-  },
-  "mob.Miller.name": "Miller",
-  "@mob.Miller.name": {
-    "description": "Name of the Miller (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.Miner.name": "Miner",
@@ -1626,6 +2072,11 @@
     "description": "Name of the Reinhard (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
+  "mob.ReinhardsWife.name": "Reinhards Wife",
+  "@mob.ReinhardsWife.name": {
+    "description": "Name of the ReinhardsWife (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
   "mob.Rockfall.name": "Rockfall",
   "@mob.Rockfall.name": {
     "description": "Name of the Rockfall (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
@@ -1652,11 +2103,6 @@
   "mob.Sheep.name": "Sheep",
   "@mob.Sheep.name": {
     "description": "Name of the Sheep (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
-    "x-maxLength": 26
-  },
-  "mob.Shepherd.name": "Shepherd",
-  "@mob.Shepherd.name": {
-    "description": "Name of the Shepherd (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.ShieldbearerCompanion.name": "Shieldbearer Companion",
@@ -1713,6 +2159,11 @@
   "mob.StreamRoot.name": "Stream Root",
   "@mob.StreamRoot.name": {
     "description": "Name of the StreamRoot (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.Tobias.name": "Tobias",
+  "@mob.Tobias.name": {
+    "description": "Name of the Tobias (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.Totem.name": "Totem",

@@ -29,7 +29,38 @@
           {"id": "woof"}
         ],
         "options": [
-          { "stock": "ask-teach", "next": "teachings" }
+          {
+            "id": "are-you-the-shepherds-lost",
+            "next": "lost"
+          },
+          {
+            "stock": "ask-teach",
+            "next": "teachings"
+          }
+        ]
+      },
+      {
+        "id": "lost",
+        "lines": [
+          {"id": "woof-woof"}
+        ],
+        "options": [
+          {
+            "id": "wheres-your-herd-dog",
+            "next": "herd"
+          }
+        ]
+      },
+      {
+        "id": "herd",
+        "lines": [
+          {"id": "whimpers"}
+        ],
+        "options": [
+          {
+            "id": "maybe-its-time",
+            "next": "teachings"
+          }
         ]
       },
       {

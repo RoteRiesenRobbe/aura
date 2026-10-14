@@ -1,7 +1,7 @@
 {
-  "_comment": "The north pasture's NPC (content-zone-design-guide.md §2.4). Copied field for field from farmer.json — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only so nothing pushes it, role creature + speed 0 (D4: an NPC is an actor that authors no movement), xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range 2.0 is the wider of the two and sizes the one sensor. ⚑ QUESTS: offers and turns in `the-strays` (four talk_to targets: the named sheep Baabara, Woolliam and Lambert, plus the Dog) behind its own root row per the Q4 tree shape. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule), so Accept vanishes once taken and the turn-in appears exactly when walkable. ⭐ THE QUEST IS THE POI'S WHOLE POINT and the design is in the WALK, not the text: the four targets are spread across the pasture, so collecting them means crossing a field of Stags and Boars — which are `wildlife_prey`, hostileTo [], and therefore never initiate. The player learns 'not everything alive is an enemy' by walking through the proof, one POI after the broken fence taught them the opposite. That is why this quest authors ZERO combat and why its targets are unkillable by construction. ⚑ TEACHES NOTHING, deliberately — the TownCrier precedent; the pasture's teacher is the Dog standing in it, and the quest's job is to lead the player to it. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art (the standing call): a bespoke shepherd costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry. It earns its own sprite at the Zone 1 art pass. ⚑ TEXT is plain (PO 2026-08-02): no lore or stylized wording yet. All values [PLACEHOLDER].",
+  "_comment": "Shepherd Hans, on the north pasture. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `the-strays` (A Herd Astray); offers `he-who-cried-wolf` and advances it from the report stage to the Town Crier leg, the Governor of Dionsburg turns it in. One stage answer per non-terminal stage of the wolf quest so his progress row lasts the whole quest. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 75,
-  "name": "Shepherd",
+  "name": "Hans",
   "type": "MOB",
   "entityType": "Farmer",
   "faction": "townsfolk",
@@ -26,32 +26,40 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i-keep-the-flock"}
+          {"id": "ho-stranger"},
+          {"id": "can-you-help-me-i"}
         ],
         "options": [
           {
-            "stock": "ask-task",
+            "id": "a-herd-astray",
             "next": "strays"
           },
           {
-            "id": "about-your-sheep",
+            "id": "about-your-herd",
             "next": "strays_running"
+          },
+          {
+            "id": "he-who-cried-wolf",
+            "next": "wolves"
+          },
+          {
+            "id": "about-the-wolves",
+            "next": "wolves_running"
           }
         ]
       },
       {
         "id": "strays",
         "lines": [
-          {"id": "three-of-my-sheep-wandered"},
-          {"id": "baabara-woolliam-and-lambert"},
-          {"id": "nothing-out-there-will-trouble"}
+          {"id": "wolves-scared-away-my-sheep"},
+          {"id": "please-help-me-find-them"}
         ],
         "options": [
           {
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "id": "thank-you-stranger",
                 "kind": "offer_quest",
                 "quest": "the-strays"
               }
@@ -62,14 +70,14 @@
       {
         "id": "strays_running",
         "lines": [
-          {"id": "my-sheep"}
+          {"id": "my-herd"}
         ],
         "options": [
           {
-            "id": "i-found-baabara-woolliam",
+            "id": "ive-found-your-herd",
             "grants": [
               {
-                "stock": "good",
+                "id": "really-thank-you",
                 "kind": "advance_quest",
                 "quest": "the-strays",
                 "fromStage": "report",
@@ -82,7 +90,7 @@
             ]
           },
           {
-            "stock": "quest-progress",
+            "id": "any-assistance-for-the-task",
             "next": "strays_on_it"
           }
         ]
@@ -97,7 +105,98 @@
           }
         ],
         "lines": [
-          {"id": "baabara-woolliam-and-lambert-2"}
+          {"id": "they-are-a-featherbrained-lot"}
+        ]
+      },
+      {
+        "id": "wolves",
+        "lines": [
+          {"id": "these-dangerous-wolves-are"},
+          {"id": "find-them-out"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "be-careful-stranger",
+                "kind": "offer_quest",
+                "quest": "he-who-cried-wolf"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "wolves_running",
+        "lines": [
+          {"id": "the-wolves"}
+        ],
+        "options": [
+          {
+            "id": "ive-killed-the-wolves",
+            "grants": [
+              {
+                "id": "you-dont-carry-that-weapon",
+                "kind": "advance_quest",
+                "quest": "he-who-cried-wolf",
+                "fromStage": "report",
+                "toStage": "crier"
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task-2",
+            "next": "wolves_on_it"
+          },
+          {
+            "id": "any-assistance-for-the-task-3",
+            "next": "wolves_crier"
+          },
+          {
+            "id": "any-assistance-for-the-task-4",
+            "next": "wolves_governor"
+          }
+        ]
+      },
+      {
+        "id": "wolves_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "he-who-cried-wolf",
+            "stage": "hunt"
+          }
+        ],
+        "lines": [
+          {"id": "find-them-out-2"}
+        ]
+      },
+      {
+        "id": "wolves_crier",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "he-who-cried-wolf",
+            "stage": "crier"
+          }
+        ],
+        "lines": [
+          {"id": "its-very-unsettling-that-were"},
+          {"id": "maybe-he-knows-why-so"}
+        ]
+      },
+      {
+        "id": "wolves_governor",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "he-who-cried-wolf",
+            "stage": "governor"
+          }
+        ],
+        "lines": [
+          {"id": "the-governor-of-dionsburg-then"}
         ]
       }
     ]

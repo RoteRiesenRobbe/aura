@@ -71,7 +71,7 @@ the design sense (`plan-underworld.md` §2.1).
 |---|---|---|
 | **1 — Farmland & Village** | **Farmlands** ("Home and Hearth", `Fields`) · **Saltgrass Strand** ("Sea and Salt", `Coast`, a thin strip on the north edge). ⛔ **Brackenfold Meadows** ("Plough and Bramble", `FieldsForestBlend`) is leaving Zone 1 (PO 2026-10-02); the map fix is owed | 3 (Farmlands) |
 | **2 — Woodland** | **Deep Woods** ("City Outskirts", `Forest`), east of the river | 4–14 |
-| City (next) | **Brunnstedt** ("Walls and Wells", `City`) | none |
+| City (next) | **Dionsburg** (was Brunnstedt) ("Walls and Wells", `City`) | none |
 
 Interiors off Zone 1, each its own zone file entered through a `CaveMouth`:
 **Reinhard's barn** (`barn.json`, 10×10, the Giant Rats) and **the tunnel**

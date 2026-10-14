@@ -120,6 +120,10 @@ type SkillSystem struct {
 	// nil until wired, which reads as "nothing bound".
 	connState ConnState
 
+	// aggroForgetter is the stealth fan-out (plan-effect-types-round-2.md C6);
+	// nil in tests that do not need it.
+	aggroForgetter AggroForgetter
+
 	// ascension re-judges the stashed pick when the ceremony's channel
 	// completes (C2a step 5). The SAME object the InteractionSystem renders
 	// rows from, so the panel and the channel cannot disagree about what is
@@ -198,6 +202,15 @@ func (s *SkillSystem) Update(dt float32) {
 }
 
 func (s *SkillSystem) processEntity(e skillEntity) {
+	// A dead mob acts no more. It can stay in the world for a tick after its
+	// death (a death trigger's linger, plan-effect-types-round-2.md C7), and
+	// nothing it carries may tick or fire meanwhile.
+	if _, mob := e.(model.MobEntity); mob {
+		if h, ok := e.(healthRatioer); ok && h.HealthRatio() == 0 {
+			return
+		}
+	}
+
 	// Acting buff payloads first: dots on this entity deal their due damage and
 	// hots restore their due healing (effect foundations Step 2, HoT chunk 3).
 	// Pure buff AGING stays on ResetTickNumbers at tick start; acting lives here
@@ -236,7 +249,10 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// pass) would otherwise sit there and fire the moment the stun ends. The
 	// input system refuses presses from a stunned player; this covers the
 	// press that was already queued when the stun landed.
-	if st, ok := e.(stunSuppressible); ok && st.Stunned() {
+	//
+	// A fear holds the cast path exactly like a stun (plan-effect-types-round-2.md
+	// C5, D22), so the gate asks about both.
+	if _, held := model.HeldReason(e); held {
 		sc := e.SkillComponent()
 		sc.PendingCooldowns = sc.PendingCooldowns[:0]
 		sc.PendingUtilities = sc.PendingUtilities[:0]
@@ -459,7 +475,8 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	// No caster skip, matching the damage path's long-standing semantics
 	// (only relevant if content ever sets targetsAllies on a dot).
 	eligible := eligibleByTargetFlags[dotBuffable](effect, e, 0, false)
-	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	// A dot carries no gate key; its own tags decide immunity (plan-immune-targets.md §4).
+	targets := selectDamageTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Dot.Tags, "")
 	ignitedAny := false
 	for _, c := range targets {
 		if c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks) {
@@ -654,6 +671,13 @@ func mayHarm(caster any, target model.Factioned) bool {
 	if !ok {
 		return true
 	}
+	// No gated caster (every mob) harms a stealthed target
+	// (plan-effect-types-round-2.md C6, D25, L7): its aura and cooldowns hit
+	// any eligible collider, not only its aggro target, so acquisition alone
+	// would leave the player standing in its ring taking hits.
+	if model.IsStealthed(target) {
+		return false
+	}
 	var id uint64
 	if be, ok := target.(model.BasicEntity); ok {
 		id = be.Basic().ID()
@@ -770,7 +794,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	// replacing it, the critChance rule — an aura that already leeches leeches
 	// more while the burst is up.
 	lifesteal := effect.Damage.LifestealFraction + casterLifesteal(acting)
-	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	targets := selectDamageTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Damage.Tags, effect.Damage.GateKey)
 	for _, c := range targets {
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
@@ -824,7 +848,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, id skills.S
 	}
 
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(caster)
-	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	targets := selectDamageTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible, effect.Damage.Tags, effect.Damage.GateKey)
 	for _, c := range targets {
 		// Per-hit execute × crit × variance, same as the player path.
 		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
@@ -878,9 +902,25 @@ func healerThreatFactor() float32 { return combatFactors.HealerThreat() }
 //
 // Since plan-effect-types-round-2.md C1 it reads EffectiveStats, so a timed
 // damageDealt buff or debuff (a shout, a demoralize) counts beside Strong.
+//
+// An empowered cast's factor (plan-effect-types-round-2.md C4) multiplies on
+// top, for the length of that one fire only.
 func casterDamageFactor(acting any) float32 {
+	factor := empowerFactor(acting)
 	if s, ok := acting.(model.StatBuffable); ok {
-		return s.EffectiveStats().DamageFactor()
+		return s.EffectiveStats().DamageFactor() * factor
+	}
+	return factor
+}
+
+// empowerFactor is the factor of the cast spending an empower right now, 1
+// otherwise (C4, D21). The heal sites read it directly (L11: casterDamageFactor
+// never reaches a heal).
+func empowerFactor(acting any) float32 {
+	if em, ok := acting.(model.Empowerable); ok {
+		if p, firing := em.EmpoweredFire(); firing {
+			return p.DamageFactor()
+		}
 	}
 	return 1
 }
@@ -893,6 +933,12 @@ func casterDamageFactor(acting any) float32 {
 // never inherits its owner's base or stat. Non-skill test doubles simply roll
 // unboosted.
 func casterCritChance(acting any) float32 {
+	// An empowered cast crits every hit (C4, D21).
+	if em, ok := acting.(model.Empowerable); ok {
+		if p, firing := em.EmpoweredFire(); firing && p.Crit {
+			return 1
+		}
+	}
 	var chance float32
 	if p, ok := acting.(model.PlayerEntity); ok {
 		if c := p.Config(); c != nil {
@@ -1487,7 +1533,7 @@ func (s *SkillSystem) applyInstantSlow(e skillEntity, source skills.SkillID, lev
 // preemptive HoT is legitimate); the healing itself runs later in tickHotEvents.
 func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
 	// Power scale frozen at application, the dot convention (C0).
-	hp := effect.Hot.HPAt(level) * casterPowerScale(e)
+	hp := effect.Hot.HPAt(level) * casterPowerScale(e) * empowerFactor(e)
 	ticks := effect.Hot.DurationTicks()
 
 	hitAny := false
@@ -1651,7 +1697,7 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 			noteActivationRejected(e, es.Def.ID, reason)
 			continue
 		}
-		if es.EffectiveCastTicks() > 0 {
+		if es.EffectiveCastTicks() > 0 && !empoweredInstant(e, es) {
 			sc.StartCast(slot)
 			continue
 		}
@@ -1742,9 +1788,21 @@ func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 // (D8) — unlike an aura, which pays only for what it landed. No clamp here on
 // purpose; activationPrecondition has already guaranteed the caster survives
 // the payment, and D9 rejects rather than discounts.
+//
+// An empower (plan-effect-types-round-2.md C4, D21) is priced in by
+// cooldownCostHP, armed for the fire so its crit and factor reach this cast's
+// hits, and spent after it. A cancelled cast never gets here, so it spends
+// nothing.
 func (s *SkillSystem) fireAndCharge(e skillEntity, es *skills.EquippedSkill) {
 	payer, cost := cooldownCostHP(e, es)
+	em, empowered := spendableEmpower(e, es)
+	if empowered {
+		em.ArmEmpower()
+	}
 	s.fireCooldown(e, es)
+	if empowered {
+		em.ConsumeEmpower()
+	}
 	if payer != nil {
 		chargeCost(payer, cost)
 	}
@@ -2115,7 +2173,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e)), effect.SelfHeal.Variance, s.rng))
+			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e))*empowerFactor(e), effect.SelfHeal.Variance, s.rng))
 			// ⚑ Routed through Healable.Heal rather than writing Health here
 			// (plan-skill-vfx.md §12a.2/6): this was the ONE heal that wrote
 			// the pool directly and stamped its own number by hand, which is
@@ -2175,6 +2233,16 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeFear:
+			if s.applyFear(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeStealth:
+			if s.applyStealth(e, es.Def.ID, effect) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeInstantSlow:
 			if s.applyInstantSlow(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
@@ -2207,6 +2275,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeCharge:
 			if s.applyCharge(e, effect, es.Level) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeEmpower:
+			if s.applyEmpower(e, es.Def.ID, effect) {
 				hitAny = true
 			}
 
@@ -2257,6 +2330,41 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 	}
 	return hitAny
+}
+
+// FireOnDeath fires a dying mob's death triggers (plan-effect-types-round-2.md
+// C7, D27): each onDeath skill goes through fireCooldown from the dead mob,
+// where it died. No cost, no cooldown and no in-combat gate: a death is the
+// whole condition. Called by the MobSystem's sweep before the mob is removed,
+// so its collider still answers the queries (L6: nothing on this path may
+// refuse a caster at 0 HP). A despawned mob names nothing (D28).
+//
+// Each trigger stamps its FIRED event, and the report says whether anything
+// fired: the sweep then keeps the mob for one more snapshot (PO 2026-10-11),
+// so the client still holds its position and owner when these events arrive
+// and the hit marks, the authored look and the owner's numbers all draw.
+func (s *SkillSystem) FireOnDeath(m model.MobEntity) bool {
+	d, ok := m.(deathTriggered)
+	if !ok {
+		return false
+	}
+	e, ok := m.(skillEntity)
+	if !ok {
+		return false
+	}
+	fired := false
+	for _, ms := range d.OnDeathSkills() {
+		es := &skills.EquippedSkill{Def: ms.Def, Level: ms.Level}
+		s.fireCooldown(e, es)
+		noteCooldownCast(e, es)
+		fired = true
+	}
+	return fired
+}
+
+// deathTriggered is a mob that may carry death triggers (C7).
+type deathTriggered interface {
+	OnDeathSkills() []mobs.MobSkill
 }
 
 // noteCooldownCast stamps the FIRED event for one cooldown cast
@@ -2428,6 +2536,44 @@ func (s *SkillSystem) applyTickRate(e skillEntity, source skills.SkillID, effect
 	}
 	self.ApplyTickRate(source, effect.TickRate.Factor, effect.TickRate.DurationTicks)
 	return true
+}
+
+// applyEmpower fires an empower effect: the offer stands on the caster for
+// its authored lifetime. A non-player caster is a no-op (D20).
+func (s *SkillSystem) applyEmpower(e skillEntity, source skills.SkillID, effect skills.EffectDef) bool {
+	em, ok := e.(model.Empowerable)
+	if !ok || effect.Empower == nil {
+		return false
+	}
+	em.ApplyEmpower(source, *effect.Empower, effect.Empower.DurationTicks)
+	return true
+}
+
+// spendableEmpower is the empower the cast of es would spend: the caster's
+// live offer, except on an empower skill's own cast (L1), which neither reads
+// nor spends one.
+func spendableEmpower(e skillEntity, es *skills.EquippedSkill) (model.Empowerable, bool) {
+	if es.Def.GrantsEmpower() {
+		return nil, false
+	}
+	em, ok := e.(model.Empowerable)
+	if !ok {
+		return nil, false
+	}
+	if _, live := em.Empower(); !live {
+		return nil, false
+	}
+	return em, true
+}
+
+// empoweredInstant reports whether the live empower lets es skip its cast.
+func empoweredInstant(e skillEntity, es *skills.EquippedSkill) bool {
+	em, ok := spendableEmpower(e, es)
+	if !ok {
+		return false
+	}
+	p, _ := em.Empower()
+	return p.Instant
 }
 
 // speedApplier is the movement-buff capability behind both speed forms — the
@@ -2772,6 +2918,62 @@ func (s *SkillSystem) applyStun(e skillEntity, source skills.SkillID, level int,
 		c.Shape().UserData.(stunnable).ApplyStun(source, ticks)
 	}
 	return len(targets) > 0
+}
+
+// applyFear fires a fear cooldown (plan-effect-types-round-2.md C5, D22, D23):
+// applyStun's capped query circle, each picked target made to run from the
+// caster. Each door decides who can be feared (ccImmune, GOD, the shared
+// hard-CC ladder); a refusal still counts as a hit, the stun rule, so a mob's
+// fear is consumed on a selected target, immune or not.
+func (s *SkillSystem) applyFear(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Fear == nil {
+		return false
+	}
+	ticks := effect.Fear.TicksAt(level)
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	eligible := eligibleByTargetFlags[model.Fearable](effect, e, e.Basic().ID(), true)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+
+	for _, c := range targets {
+		c.Shape().UserData.(model.Fearable).ApplyFear(source, e, ticks)
+	}
+	return len(targets) > 0
+}
+
+// AggroForgetter is the MobSystem as stealth sees it
+// (plan-effect-types-round-2.md C6, D2): every mob drops one entity's threat
+// row, aggro target and support target, and nothing else.
+type AggroForgetter interface {
+	ForgetTarget(id uint64)
+}
+
+// SetAggroForgetter wires the stealth fan-out, once at boot.
+func (s *SkillSystem) SetAggroForgetter(f AggroForgetter) { s.aggroForgetter = f }
+
+// applyStealth fires a stealth effect (C6, D1-D3): the caster hides for up to
+// the authored cap and every mob forgets it, so it is also an escape. A
+// non-player caster is a no-op (stealth is a player tool).
+func (s *SkillSystem) applyStealth(e skillEntity, source skills.SkillID, effect skills.EffectDef) bool {
+	st, ok := e.(model.Stealther)
+	if !ok || effect.Stealth == nil {
+		return false
+	}
+	if !st.ApplyStealth(source, effect.Stealth.DurationTicks) {
+		return false
+	}
+	if s.aggroForgetter != nil {
+		s.aggroForgetter.ForgetTarget(e.Basic().ID())
+	}
+	return true
 }
 
 // charmable is the charm capability (plan-faction-flips chunk 3): an entity

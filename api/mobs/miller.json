@@ -1,7 +1,7 @@
 {
-  "_comment": "The Mill on the river's NPC (content-zone-design-guide.md §2.4). Copied field for field from shepherd.json, which copied farmer.json — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only so nothing pushes it, role creature + speed 0 (D4: an NPC is an actor that authors no movement), xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range 2.0 is the wider of the two and sizes the one sensor. ⚑ QUESTS: offers and turns in `the-sounder-at-the-mill`, the zone's only elite fight, and `the-millers-ring`, the beach search, each behind its own root row per the Q4 tree shape. No quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule). ⭐ HE IS THE POI'S ONE JOB: the mill is a soft dead end, so the only reason to walk down here is that someone down here asks for something. ⚑ TEACHES NOTHING, deliberately — the TownCrier/Shepherd precedent; the reward is XP and the elite's own drop table. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art (the standing call, as for the Shepherd): a bespoke miller costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry. He earns his own sprite at the Zone 1 art pass. ⚑ TEXT is plain (PO 2026-08-02): no lore or stylized wording yet. All values [PLACEHOLDER].",
+  "_comment": "Reinhard's wife, a bark NPC beside him (the Miller's spawn, re-cast; Reinhard took over his quests). Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. The display name derives from the def name, so it reads 'Reinhards Wife' without an apostrophe. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 80,
-  "name": "Miller",
+  "name": "ReinhardsWife",
   "type": "MOB",
   "entityType": "Farmer",
   "faction": "townsfolk",
@@ -26,136 +26,9 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i-grind-what-the-farm"}
+          {"id": "he-thinks-i-havent-noticed"}
         ],
-        "options": [
-          { "stock": "ask-task", "next": "sounder" },
-          { "id": "about-the-boars", "next": "sounder_running" },
-          { "id": "anything-else", "next": "ring" },
-          { "id": "about-your-ring", "next": "ring_running" }
-        ]
-      },
-      {
-        "id": "ring",
-        "lines": [
-          {"id": "i-lost-my-heirloom-my"},
-          {"id": "for-many-days-i-have"},
-          {"id": "please-help-me-search"}
-        ],
-        "options": [
-          {
-            "id": "ill-look-for-it",
-            "grants": [
-              {
-                "id": "thank-you",
-                "kind": "offer_quest",
-                "quest": "the-millers-ring"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ring_running",
-        "lines": [
-          {"id": "my-ring"}
-        ],
-        "options": [
-          {
-            "id": "i-found-your-ring",
-            "grants": [
-              {
-                "id": "thats-it-thank-you",
-                "kind": "advance_quest",
-                "quest": "the-millers-ring",
-                "fromStage": "return",
-                "toStage": "done"
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 216
-              }
-            ]
-          },
-          {
-            "stock": "quest-progress",
-            "next": "ring_on_it"
-          }
-        ]
-      },
-      {
-        "id": "ring_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "the-millers-ring",
-            "stage": "search"
-          }
-        ],
-        "lines": [
-          {"id": "on-the-beach-north"}
-        ]
-      },
-      {
-        "id": "sounder",
-        "lines": [
-          {"id": "a-sounder-of-boars-has"},
-          {"id": "the-big-one-leads-them"},
-          {"id": "it-is-bigger-than-anything"}
-        ],
-        "options": [
-          {
-            "stock": "quest-accept",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "offer_quest",
-                "quest": "the-sounder-at-the-mill"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "sounder_running",
-        "lines": [
-          {"id": "the-sounder"}
-        ],
-        "options": [
-          {
-            "id": "i-killed-the-alpha-boar",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "advance_quest",
-                "quest": "the-sounder-at-the-mill",
-                "fromStage": "report",
-                "toStage": "done"
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 370
-              }
-            ]
-          },
-          {
-            "stock": "quest-progress",
-            "next": "sounder_on_it"
-          }
-        ]
-      },
-      {
-        "id": "sounder_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "the-sounder-at-the-mill",
-            "stage": "cull"
-          }
-        ],
-        "lines": [
-          {"id": "kill-the-big-one"}
-        ]
+        "options": []
       }
     ]
   }

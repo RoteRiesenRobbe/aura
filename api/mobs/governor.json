@@ -1,0 +1,64 @@
+{
+  "_comment": "The Governor of Dionsburg, beside the City Guard at the city gate. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `he-who-cried-wolf` behind his progress row. His lines are drafted, the sheet has none. entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "id": 122,
+  "name": "Governor",
+  "type": "MOB",
+  "entityType": "Hermit",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "welcome-to-dionsburg-traveller"}
+        ],
+        "options": [
+          {
+            "id": "about-the-wolves",
+            "next": "wolves"
+          }
+        ]
+      },
+      {
+        "id": "wolves",
+        "lines": [
+          {"id": "the-farmlands-speak"}
+        ],
+        "options": [
+          {
+            "id": "there-are-more-wolves",
+            "grants": [
+              {
+                "id": "then-the-crier-was-right",
+                "kind": "advance_quest",
+                "quest": "he-who-cried-wolf",
+                "fromStage": "governor",
+                "toStage": "done"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 216
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

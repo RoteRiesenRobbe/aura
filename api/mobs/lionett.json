@@ -1,0 +1,109 @@
+{
+  "_comment": "Herbalist Lionett, north of the Town Crier towards the seaweed shore. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `a-healthy-brew`; teaches FirstAid on its turn-in. Dialogue from the PO's quest sheet. entityType VillageHealer is placeholder art. All values [PLACEHOLDER].",
+  "id": 120,
+  "name": "Lionett",
+  "type": "MOB",
+  "entityType": "VillageHealer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "ohh-a-new-face-around"}
+        ],
+        "options": [
+          {
+            "id": "do-you-have-work",
+            "next": "brew"
+          },
+          {
+            "id": "about-the-seaweed",
+            "next": "brew_running"
+          }
+        ]
+      },
+      {
+        "id": "brew",
+        "lines": [
+          {"id": "indeed-i-do-im-about"},
+          {"id": "if-you-help-me-gather"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "id-hoped-youd-say-that",
+                "kind": "offer_quest",
+                "quest": "a-healthy-brew"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "brew_running",
+        "lines": [
+          {"id": "the-seaweed"}
+        ],
+        "options": [
+          {
+            "id": "heres-your-seaweed",
+            "grants": [
+              {
+                "id": "and-heres-your-tea",
+                "kind": "advance_quest",
+                "quest": "a-healthy-brew",
+                "fromStage": "back",
+                "toStage": "done"
+              },
+              {
+                "kind": "teach_skill",
+                "skill": "FirstAid",
+                "requiredLevel": 1
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task",
+            "next": "brew_on_it"
+          }
+        ]
+      },
+      {
+        "id": "brew_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "a-healthy-brew",
+            "stage": "gather"
+          }
+        ],
+        "lines": [
+          {"id": "youll-find-seaweed"}
+        ]
+      }
+    ]
+  }
+}

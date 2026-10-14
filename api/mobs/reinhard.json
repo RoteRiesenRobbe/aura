@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). ⛑ RENAMED Farmer → Reinhard 2026-09-23 (PO): the def NAME is what zone spawns and quest talk_to targets resolve against, and it was ALSO what resolved his sprite — so the rename broke art resolution and the explicit entityType override above is the repair. The wire enum value `Farmer` is unchanged; it could not be reclaimed anyway. All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row — and `boars-in-the-field` (plan-generic-kill-quests.md C1), the first second quest on one giver, and `giant-rats-in-the-barn` (2026-09-23), which makes him the first THREE-offer giver and the zone's first AGGRESSIVE fight — his boars are prey faction and wait to be provoked, a GiantRat hunts you; each quest sits behind its own root row per the Q4 tree shape. ⭐ The rats are the worked example of the TWO-ROW quest shape (plan-quest-dialogue.md D11): 'Anything in the barn?' leads to the offer node (brief + Accept), 'About the rats in the barn...' to the progress node (turn-in, 'I am on it.', a question); the question node is gated `running`, so the whole progress row leaves at the turn-in (PO 2026-10-07: the norm for most quests). Drafted texts, PO rewords. ⚑ He turns in `eliza-sends-me` (plan-region-identity.md R2) on a root 'Eliza sends me.' row, shown only while that quest waits at `meet` (the Q1 show-rule). ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
+  "_comment": "Miller Reinhard, at his farm east of Flora's. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `eliza-sends-me` (Off to the Mill) on a root row (the D17 exception). Offers and turns in `giant-rats-in-the-barn` (The Pest in the Granary), `the-millers-ring` (Lost and Found, the seaweed search), `boars-in-the-field`, `the-sounder-at-the-mill` (The Beast of the Farmlands, gated on the boars completing) and `turnip-chore`; offers `a-lost-shipment` (gated on the beast completing), which ends at Tobias. Two-row shape on every quest. Teaches Harvest. Dialogue from the PO's quest sheet. The def name also resolved his sprite, hence the entityType override. All values [PLACEHOLDER].",
   "id": 51,
   "name": "Reinhard",
   "entityType": "Farmer",
@@ -26,20 +26,60 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i-work-this-field"}
+          {"id": "plenty-of-work-around-here"}
         ],
         "options": [
           {
-            "id": "eliza-sends-me",
+            "id": "flora-sends-me-im-looking",
             "grants": [
               {
-                "id": "elizas-child-then-youll-work",
+                "id": "floras-a-good-judge",
                 "kind": "advance_quest",
                 "quest": "eliza-sends-me",
                 "fromStage": "meet",
                 "toStage": "done"
               }
             ]
+          },
+          {
+            "id": "the-pest-in-the-granary",
+            "next": "rats"
+          },
+          {
+            "id": "about-the-rats",
+            "next": "rats_running"
+          },
+          {
+            "id": "lost-and-found",
+            "next": "ring"
+          },
+          {
+            "id": "about-your-ring",
+            "next": "ring_running"
+          },
+          {
+            "id": "the-problematic-boars",
+            "next": "boars"
+          },
+          {
+            "id": "about-the-boars",
+            "next": "boars_running"
+          },
+          {
+            "id": "the-beast-of-the-farmlands",
+            "next": "beast"
+          },
+          {
+            "id": "about-the-beast",
+            "next": "beast_running"
+          },
+          {
+            "id": "a-lost-shipment",
+            "next": "shipment"
+          },
+          {
+            "id": "about-tobias",
+            "next": "shipment_running"
           },
           {
             "stock": "ask-task",
@@ -50,25 +90,329 @@
             "next": "turnips_running"
           },
           {
-            "id": "anything-else-that-needs-doing",
-            "next": "boars"
-          },
-          {
-            "id": "about-the-boars",
-            "next": "boars_running"
-          },
-          {
-            "id": "anything-in-the-barn",
-            "next": "rats"
-          },
-          {
-            "id": "about-the-rats",
-            "next": "rats_running"
-          },
-          {
             "stock": "ask-teach",
             "next": "teachings"
           }
+        ]
+      },
+      {
+        "id": "rats",
+        "lines": [
+          {"id": "these-darn-rats-have-taken"},
+          {"id": "go-inside-the-granary-kill"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "the-granarys-right-behind-you",
+                "kind": "offer_quest",
+                "quest": "giant-rats-in-the-barn"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rats_running",
+        "lines": [
+          {"id": "the-rats"}
+        ],
+        "options": [
+          {
+            "id": "ive-killed-the-rats",
+            "grants": [
+              {
+                "id": "and-youre-still-in-one",
+                "kind": "advance_quest",
+                "quest": "giant-rats-in-the-barn",
+                "fromStage": "report",
+                "toStage": "done"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task",
+            "next": "rats_on_it"
+          },
+          {
+            "id": "tell-me-more-about-rats",
+            "next": "rats_more"
+          }
+        ]
+      },
+      {
+        "id": "rats_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "clear"
+          }
+        ],
+        "lines": [
+          {"id": "go-to-the-granary"},
+          {"id": "be-careful-its-dark"}
+        ]
+      },
+      {
+        "id": "rats_more",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "giant-rats-in-the-barn",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          {"id": "they-came"}
+        ]
+      },
+      {
+        "id": "ring",
+        "lines": [
+          {"id": "i-have-a-delicate-task"},
+          {"id": "whilst-fishing-on-the-beach"},
+          {"id": "my-wife-hasnt-noticed-yet"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "great-it-must-be-tangled",
+                "kind": "offer_quest",
+                "quest": "the-millers-ring"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ring_running",
+        "lines": [
+          {"id": "my-ring"}
+        ],
+        "options": [
+          {
+            "id": "ive-found-your-ring",
+            "grants": [
+              {
+                "id": "and-not-a-scratch",
+                "kind": "advance_quest",
+                "quest": "the-millers-ring",
+                "fromStage": "return",
+                "toStage": "done"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 216
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task-2",
+            "next": "ring_on_it"
+          }
+        ]
+      },
+      {
+        "id": "ring_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-millers-ring",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          {"id": "it-should-be-somewhere"},
+          {"id": "mind-the-boars-though-they"}
+        ]
+      },
+      {
+        "id": "boars",
+        "lines": [
+          {"id": "the-fields-where-i-plant"},
+          {"id": "kill-6-of-them-then"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "stock": "good",
+                "kind": "offer_quest",
+                "quest": "boars-in-the-field"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boars_running",
+        "lines": [
+          {"id": "the-boars"}
+        ],
+        "options": [
+          {
+            "id": "ive-killed-the-boars",
+            "grants": [
+              {
+                "id": "already-very-good-this-will",
+                "kind": "advance_quest",
+                "quest": "boars-in-the-field",
+                "fromStage": "report",
+                "toStage": "done"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task-3",
+            "next": "boars_on_it"
+          }
+        ]
+      },
+      {
+        "id": "boars_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "boars-in-the-field",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          {"id": "the-boars-can-put-up"},
+          {"id": "they-usually-dont-attack-unless"}
+        ]
+      },
+      {
+        "id": "beast",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "boars-in-the-field",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          {"id": "the-fields-are-safe"},
+          {"id": "they-have-a-den-south"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "bless-you",
+                "kind": "offer_quest",
+                "quest": "the-sounder-at-the-mill"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "beast_running",
+        "lines": [
+          {"id": "the-beast"}
+        ],
+        "options": [
+          {
+            "id": "ive-killed-the-beast",
+            "grants": [
+              {
+                "id": "you-rid-these-lands",
+                "kind": "advance_quest",
+                "quest": "the-sounder-at-the-mill",
+                "fromStage": "report",
+                "toStage": "done"
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 370
+              }
+            ]
+          },
+          {
+            "id": "any-assistance-for-the-task-4",
+            "next": "beast_on_it"
+          }
+        ]
+      },
+      {
+        "id": "beast_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sounder-at-the-mill",
+            "stage": "cull"
+          }
+        ],
+        "lines": [
+          {"id": "be-careful-once-you-get"}
+        ]
+      },
+      {
+        "id": "shipment",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sounder-at-the-mill",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          {"id": "since-i-know-now-that"},
+          {"id": "two-days-ago-i-sent"},
+          {"id": "he-hasnt-returned-yet"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              {
+                "id": "thank-you-i-knew-i",
+                "kind": "offer_quest",
+                "quest": "a-lost-shipment"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "shipment_running",
+        "lines": [
+          {"id": "tobias"}
+        ],
+        "options": [
+          {
+            "id": "any-assistance-for-the-task-5",
+            "next": "shipment_on_it"
+          }
+        ]
+      },
+      {
+        "id": "shipment_on_it",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "a-lost-shipment",
+            "stage": "search"
+          }
+        ],
+        "lines": [
+          {"id": "just-follow-the-road"}
         ]
       },
       {
@@ -129,142 +473,6 @@
         ],
         "lines": [
           {"id": "harvest-5-turnips-2"}
-        ]
-      },
-      {
-        "id": "boars",
-        "lines": [
-          {"id": "kill-6-boars"}
-        ],
-        "options": [
-          {
-            "stock": "quest-accept",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "offer_quest",
-                "quest": "boars-in-the-field"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "boars_running",
-        "lines": [
-          {"id": "the-boars"}
-        ],
-        "options": [
-          {
-            "id": "i-killed-the-6-boars",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "advance_quest",
-                "quest": "boars-in-the-field",
-                "fromStage": "report",
-                "toStage": "done"
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 180
-              }
-            ]
-          },
-          {
-            "stock": "quest-progress",
-            "next": "boars_on_it"
-          }
-        ]
-      },
-      {
-        "id": "boars_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "boars-in-the-field",
-            "stage": "cull"
-          }
-        ],
-        "lines": [
-          {"id": "kill-6-boars-2"}
-        ]
-      },
-      {
-        "id": "rats",
-        "lines": [
-          {"id": "giant-rats-in-my-barn"},
-          {"id": "kill-8-of-them"}
-        ],
-        "options": [
-          {
-            "stock": "quest-accept",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "offer_quest",
-                "quest": "giant-rats-in-the-barn"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "rats_running",
-        "lines": [
-          {"id": "the-rats"}
-        ],
-        "options": [
-          {
-            "id": "i-killed-the-8-rats",
-            "grants": [
-              {
-                "stock": "good",
-                "kind": "advance_quest",
-                "quest": "giant-rats-in-the-barn",
-                "fromStage": "report",
-                "toStage": "done"
-              },
-              {
-                "kind": "grant_xp",
-                "xp": 180
-              }
-            ]
-          },
-          {
-            "stock": "quest-progress",
-            "next": "rats_on_it"
-          },
-          {
-            "id": "tell-me-more-about-rats",
-            "next": "rats_more"
-          }
-        ]
-      },
-      {
-        "id": "rats_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "giant-rats-in-the-barn",
-            "stage": "clear"
-          }
-        ],
-        "lines": [
-          {"id": "kill-8-of-them-2"}
-        ]
-      },
-      {
-        "id": "rats_more",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "giant-rats-in-the-barn",
-            "stage": "running"
-          }
-        ],
-        "lines": [
-          {"id": "they-came"}
         ]
       },
       {

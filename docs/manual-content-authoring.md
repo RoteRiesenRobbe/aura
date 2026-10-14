@@ -197,6 +197,16 @@ faction and skills without a schema append (see §5).
      hazard (`api/mobs/poison-pool.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
+   - optional `onDeath[]`: `{skillName, level}`, the `skills[]` shape, naming
+     COOLDOWN skills the mob fires from where it dies (an `instant_damage`
+     explosion, `spawn` adds). They fire on every death, a summon's timer
+     running out included, but not when a summon is retired because its owner
+     left. No cost, no cooldown, no in-combat gate; kill credit is unchanged.
+     A `spawn` from a death needs a `ttlTicks` like any spawn, and the adds
+     belong to nobody. A mob whose triggers fired stays one more snapshot,
+     so a `fired` layer on the trigger skill draws at the spot it died, with
+     hit marks and the owner's damage numbers (`api/mobs/brood-mother.json`,
+     `burst-totem.json`).
 2. **`api/schema/server.fbs`** — add the mob's name to the `EntityType` enum.
    **Append at the end** to keep the wire compatible.
 3. **Regenerate bindings:** `cd api/schema && ./make.sh` (writes **both** Go and
@@ -464,8 +474,8 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 38 since plan-effect-types-round-2.md
-C3 added `charge`):
+`backend/pkg/aura/skills/definition.go`, 41 since plan-effect-types-round-2.md
+C6 added `stealth`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
@@ -473,7 +483,7 @@ C3 added `charge`):
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
 `retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`,
-`stat_aura`, `instant_stat`, `charge`.
+`stat_aura`, `instant_stat`, `charge`, `empower`, `fear`, `stealth`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -505,7 +515,8 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`.
+  `recall`, `revive`, `instant_slow`, `instant_stat`, `charge`, `empower`,
+  `fear`, `stealth`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   seven-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`, `threat`), `resist_passive`,
@@ -637,6 +648,20 @@ Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
   (the spawned totem also lands there, not at the dash destination). `charge`
   is the opposite case: author it FIRST, and the effects after it (Charge's
   stun) query from the landing spot.
+- `empower` (players only) arms the caster's NEXT cooldown with any mix of
+  `empowerInstant`, `empowerFree`, `empowerCrit` and `empowerFactor` (damage
+  and healing), standing for `empowerDurationTicks`. That cooldown spends it;
+  a cancelled cast does not, and an empower skill's own cast never reads one.
+  One empower at a time: a new one replaces the live one. A DoT never crits,
+  so `empowerCrit` does nothing for a DoT-only cooldown.
+- `stealth` (players only, self) hides the caster from mobs for up to
+  `stealthDurationTicks` and makes every mob forget them. Any hit that moves
+  HP, dealt or taken, ends it (a fully absorbed or resisted one does not), and
+  that hit lands and writes threat as usual. Mobs neither acquire nor hit a
+  stealthed player, auras included, and a heal from stealth writes no threat.
+  A damaging aura reveals the caster on its first tick, so sneaking means
+  switching to a harmless aura first. Other players still see the caster; the
+  token draws translucent for everyone, the caster included.
 - `charge` authors only `radius` / `radiusPerLevel`, the search distance. It
   always picks the nearest enemy (no selector, cap or target flags), moves the
   caster to touching it along dash's wall probe, and refuses the cast when no
@@ -738,6 +763,13 @@ authors should know:
   ladder; a cleanse does not reset it. So a design that relies on chaining
   stuns (several players, or two stun sources on one mob) will not hold a
   target down; plan around one full stun per 18 s.
+- **A fear** (`fear`, plan-effect-types-round-2.md C5) is a moving stun, both
+  ways: the target runs from the caster at its own walking speed and cannot
+  cast, press, take off or interact (the "Feared" reason). Damage does not
+  break it; the duration does. On a player the SERVER moves them and ignores
+  their movement keys. It shares the stun ladder: a stun and a fear on one
+  target are steps on the SAME 100 / 50 / 25 % ladder. `ccImmune` and GOD
+  refuse it. It has its own pip and a harmful tray circle.
 - **Slows never diminish.** An aura re-applies its slow every interval, so a
   ladder would make a player immune to the web they stand in. The strongest
   slow wins; slows from different sources do not stack.

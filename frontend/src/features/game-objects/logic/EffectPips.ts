@@ -36,6 +36,20 @@ export enum AppliedEffectBit {
     // A live reflect, own or granted (plan-effect-types-round-2.md C2): thorns
     // on an ally or a mob reads before anyone hits it.
     Reflect = 1 << 10,
+    // A live fear (plan-effect-types-round-2.md C5): a running mob reads as
+    // feared, not as one fleeing on its own.
+    Fear = 1 << 11,
+    // A live stealth (C6, D24): drawn as the token's alpha, never as a pip,
+    // which is why PIP_STYLES has no row for it.
+    Stealth = 1 << 12,
+}
+
+/** A stealthed token's alpha, for every viewer and its own player. [PLACEHOLDER] */
+export const STEALTH_ALPHA = 0.4;
+
+/** The token alpha an applied-effects mask asks for (plan-effect-types-round-2.md C6, D24). */
+export function tokenAlpha(mask: number): number {
+    return (mask & AppliedEffectBit.Stealth) !== 0 ? STEALTH_ALPHA : 1;
 }
 
 interface PipStyle {
@@ -60,6 +74,8 @@ interface PipStyle {
 const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.Charm, color: 0xc98ae0},
     {bit: AppliedEffectBit.Calm, color: 0xa8d8f0},
+    // [PLACEHOLDER] a sickly green-grey, apart from every ring colour.
+    {bit: AppliedEffectBit.Fear, color: 0x7f9a5a},
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},
     // [PLACEHOLDER] colours: a dull rust for a weakened stat, a gold for a raised one.

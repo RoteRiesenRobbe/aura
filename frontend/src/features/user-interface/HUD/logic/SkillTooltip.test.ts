@@ -1683,3 +1683,80 @@ describe('charge', () => {
         ]);
     });
 });
+
+describe('empower', () => {
+    it('names what the next cooldown gains, in one line', () => {
+        const swiftness = skill({
+            displayName: 'Swiftness', category: 'cooldown', maxLevel: 1, cooldownTicks: 900,
+            effects: [effect({type: 'empower', empower: {instant: true, free: true, crit: true, factor: 1.5, durationTicks: 450}})],
+        });
+        expect(lines(swiftness, 1, 1)).toEqual([
+            'Your next cooldown within 15s: instant cast, free, its hits always crit, 1.5× damage and healing',
+            'Cooldown: 30s',
+        ]);
+    });
+});
+
+describe('fear', () => {
+    it('says the target runs and cannot act', () => {
+        const terrify = skill({
+            displayName: 'Terrify', category: 'cooldown', maxLevel: 1, cooldownTicks: 600,
+            effects: [effect({type: 'fear', radius: 4, maxTargets: 1, targetsEnemies: true,
+                fear: {durationTicks: 120, durationTicksPerLevel: 0}})],
+        });
+        expect(lines(terrify, 1, 1)[0]).toBe('Fears its target for 4s: it runs from you and cannot attack or use abilities');
+    });
+});
+
+describe('stealth', () => {
+    it('names the cap and what breaks it', () => {
+        const vanish = skill({
+            displayName: 'Vanish', category: 'cooldown', maxLevel: 1, cooldownTicks: 1800,
+            effects: [effect({type: 'stealth', stealth: {durationTicks: 600}})],
+        });
+        expect(lines(vanish, 1, 1)[0]).toBe('Hides you from monsters for up to 20s; they forget you. Dealing or taking damage ends it');
+    });
+});
+
+// A summon's death triggers (plan-effect-types-round-2.md C7 follow-up): what
+// a bursting totem does when it ends, under its own lead line, at the authored
+// level (a death trigger is never raised by the summon skill's level).
+describe('summon death triggers', () => {
+    const burst = skill({
+        id: 163, name: 'TotemBurst', displayName: 'Totem Burst', maxLevel: 1,
+        effects: [effect({
+            type: 'instant_damage', radius: 3, targetsEnemies: true, selector: 'all',
+            damage: damageParams(45, 0),
+        })],
+    });
+    const resolve = (id: number) => (id === 163 ? burst : undefined);
+    const summon = skill({
+        displayName: 'Bursting Totem', category: 'cooldown', maxLevel: 1, cooldownTicks: 450,
+        effects: [effect({
+            type: 'spawn',
+            spawn: {mobName: 'BurstTotem', ttlTicks: 90, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0,
+                summonOnDeath: [{skillId: 163, level: 1}]},
+        })],
+    });
+    const lines = (powerScale: number) =>
+        formatSkillTooltip(summon, 1, powerScale, 0, 1, true, 1, 1, resolve).lines.map(l => l.text);
+
+    it('lists the burst beneath the Summons line, after a lead line', () => {
+        const rendered = lines(1);
+        const lead = rendered.indexOf('↳ When it ends:');
+        expect(lead).toBeGreaterThan(rendered.indexOf('Summons BurstTotem for 3s'));
+        expect(rendered.slice(lead + 1)).toEqual(expect.arrayContaining(['↳ Radius: 3 m']));
+        expect(rendered.slice(lead + 1).some(l => l.startsWith('↳ ') && l.includes('45'))).toBe(true);
+    });
+
+    it('scales the burst with the player level like the loadout', () => {
+        expect(lines(SCALE_AT_30).some(l => l.includes(`${roundHP(45 * SCALE_AT_30)}`))).toBe(true);
+    });
+
+    it('says nothing extra for a summon without death triggers', () => {
+        const plain = skill({...summon, effects: [effect({type: 'spawn',
+            spawn: {mobName: 'Totem', ttlTicks: 90, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}})]});
+        expect(formatSkillTooltip(plain, 1, 1, 0, 1, true, 1, 1, resolve).lines.map(l => l.text))
+            .not.toContain('↳ When it ends:');
+    });
+});

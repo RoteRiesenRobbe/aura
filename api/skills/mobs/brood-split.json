@@ -1,0 +1,17 @@
+{
+  "_comment": "BroodMother's death trigger: two Spiders where it dies, on its side. A spawn needs a lifetime, so they leave after 60 s. All values placeholder.",
+  "id": 164,
+  "name": "BroodSplit",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 30,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 10, "ms": 500, "tint": "#8a7a5c" }
+    ]
+  },
+  "effects": [
+    { "type": "spawn", "spawnMob": "Spider", "ttlTicks": 1800 },
+    { "type": "spawn", "spawnMob": "Spider", "ttlTicks": 1800 }
+  ]
+}

@@ -13739,6 +13739,16 @@
       "level": 15
     },
     {
+      "mob": "BroodMother",
+      "x": 38.5,
+      "y": -31.5,
+      "angle": 5.027,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1,
+      "level": 14
+    },
+    {
       "mob": "GiantSpider",
       "x": 35.23,
       "y": -34.83,

@@ -104,5 +104,7 @@ export enum EntityType {
   GrandfatherKnot = 114,
   Deadwood = 115,
   Remains = 116,
-  RemainsProp = 117
+  RemainsProp = 117,
+  Firelord = 118,
+  FireStirer = 119
 }

@@ -1,15 +1,24 @@
 {
-  "_comment": "The player's FATHER and the game's first combat teacher (content-zone-design-guide.md §2.0), one of the two parallel errands in the opening arc `dinner-for-the-family`. Standing talkable-NPC shape from miller.json — faction townsfolk, collisionLayer 97 (deliberately NOT Action(2)), mask 16, role creature + speed 0 (D4), xpFactor 0, aggroRadius 1.0 inert behind interaction.range 2.0. ⭐ TEACHES Wild @L1, the game's FIRST TAUGHT COMBAT SKILL: a fresh spellbook holds exactly the level-1 Damage milestone, and Wild is a damage aura with a wider ring (1.4 u vs Damage's 1.0) bought with a resource cost per hit — so the first lesson a player is taught is a TRADE, not a bigger number. ⚑ It also places an orphan: Wild had NO source anywhere in the game before this. ⭐ An `advice` info row hangs off root, ungated — durable character, not quest state (the content-npcs.md rule). ⚑ NO QUEST ROWS AT ALL, deliberately — the arc's `gather` stage carries a `talk_to` objective on him, which is satisfied by opening the panel, so the teaching row is the whole reason to come and nothing has to be wired to the quest. ⛑ entityType Wanderer is a DELIBERATE REUSE and placeholder art. ⚑ TEXT HAS A VOICE, by PO ask 2026-09-23 — the opening family is the one exception to the plain-text pass (PO 2026-08-02): he is stern, just and wise — short sentences, no comfort, fair to the stag. The PLAYER'S rows stay on the plain conventions ('Do you have a task for me?', 'Teach me something.', a teach row names its skill) so the panel reads the same as everywhere else. ⚑ UNPLACED: the PO places the spawn in the editor. All values [PLACEHOLDER].",
+  "_comment": "Henrik, Flora's husband, teaches Wild (the first taught combat skill); talking to him is an objective of `meat-for-dinner`. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
   "id": 84,
-  "name": "Hendrik",
+  "name": "Henrik",
   "type": "MOB",
   "entityType": "Wanderer",
   "faction": "townsfolk",
   "role": "creature",
   "tier": "normal",
   "curveLevel": 1,
-  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
-  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
   "skills": [],
   "interaction": {
     "range": 2,
@@ -17,49 +26,84 @@
       {
         "id": "root",
         "lines": [
-          {"id": "your-mother-wants-meat-then"},
-          {"id": "ask-what-you-need"}
+          {"id": "hm-speak-up-stranger"}
         ],
         "options": [
-          { "stock": "ask-teach", "next": "teachings" },
-          { "id": "how-do-i-hunt", "next": "stags" },
-          { "id": "what-should-i-know-before", "next": "advice" }
+          {
+            "id": "flora-sends-me-to-hunt",
+            "next": "flora"
+          },
+          {
+            "stock": "ask-teach",
+            "next": "teachings"
+          },
+          {
+            "id": "how-do-i-hunt",
+            "next": "stags"
+          }
+        ]
+      },
+      {
+        "id": "flora",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "meat-for-dinner",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          {"id": "with-that-tiny-knife-you"}
+        ],
+        "options": [
+          {
+            "stock": "ask-teach",
+            "next": "teachings"
+          }
         ]
       },
       {
         "id": "teachings",
-        "lines": [ {"id": "ill-teach-you-one-thing"} ],
+        "lines": [
+          {"id": "ill-teach-you-one-thing"}
+        ],
         "options": [
           {
             "id": "wild",
             "grants": [
               {
-                "id": "ill-teach-you-wild-it",
+                "id": "with-the-wild-aura-youll",
                 "kind": "teach_skill",
                 "skill": "Wild",
                 "requiredLevel": 1
               }
             ]
+          },
+          {
+            "id": "no-problem-ill-kill",
+            "next": "bravado"
           }
+        ]
+      },
+      {
+        "id": "bravado",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "meat-for-dinner",
+            "stage": "running"
+          }
+        ],
+        "lines": [
+          {"id": "hahaha-well-see"}
         ]
       },
       {
         "id": "stags",
         "lines": [
           {"id": "a-stag-will-start"},
-          {"id": "you-wont-win-by-hitting"},
-          {"id": "dont-give-up-the-chase"}
-        ],
-        "options": []
-      },
-      {
-        "id": "advice",
-        "lines": [
-          {"id": "take-only-what-you-need"},
-          {"id": "pay-what-you-owe-even"},
-          {"id": "and-when-youre-wrong-say"}
-        ],
-        "options": []
+          {"id": "you-wont-win-by-hitting"}
+        ]
       }
     ]
   }

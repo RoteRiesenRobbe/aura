@@ -19,6 +19,7 @@ import {
     DamageParams,
     SkillDefinition,
     SkillEffect,
+    SummonSkillRef,
     getLocalPlayerCostFactor,
     getLocalPlayerDamageFactor,
     getLocalPlayerMaxHealth,
@@ -71,7 +72,7 @@ export const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COL
     dot_aura: 'dot', instant_dot: 'dot',
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
     shield_aura: 'shield', instant_shield: 'shield',
-    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow', instant_slow: 'slow',
+    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow', instant_slow: 'slow', fear: 'slow',
     // Coloured as damage, not as a passive's absence of colour: this table
     // tints the line by WHAT THE EFFECT DOES, so the tooltip vocabulary matches
     // the in-world rings and pips. (The server's aura_category map answers a
@@ -103,6 +104,10 @@ export const NEUTRAL_EFFECT_TYPES: string[] = [
     'stat_aura', 'instant_stat',
     // Charge (C3) is movement, like dash.
     'charge',
+    // Empower (C4) changes the caster's own next cast.
+    'empower',
+    // Stealth (C6) hides the caster; its look is the token's alpha.
+    'stealth',
 ];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -679,6 +684,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // The search distance is the generic Radius line below.
             lines.push(t('ttCharge'));
             break;
+        case 'empower': {
+            // One line naming what the next cooldown gains. "Hits" because a
+            // DoT never crits (plan-effect-types-round-2.md L11).
+            const empower = effect.empower;
+            const gains: string[] = [];
+            if (empower.instant) gains.push('instant cast');
+            if (empower.free) gains.push('free');
+            if (empower.crit) gains.push('its hits always crit');
+            if (empower.factor) gains.push(`${fmt(empower.factor)}× damage and healing`);
+            lines.push(`Your next cooldown within ${ticksToSecs(empower.durationTicks)}: ${gains.join(', ')}`);
+            break;
+        }
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
             // damage-free nothing. The break condition (any damage ends it,
@@ -738,6 +755,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const stun = effect.stun;
             const held = prog(stun.durationTicks, stun.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             lines.push(t('ttStun', {held}));
+            break;
+        }
+        case 'stealth':
+            // D1 + D2 in one line: what it does, how long, and what ends it.
+            lines.push(`Hides you from monsters for up to ${ticksToSecs(effect.stealth.durationTicks)}; they forget you. Dealing or taking damage ends it`);
+            break;
+        case 'fear': {
+            // The stun line's shape: say it runs AND that it cannot act
+            // (plan-effect-types-round-2.md C5, D22).
+            const fear = effect.fear;
+            const held = prog(fear.durationTicks, fear.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`Fears its target for ${held}: it runs from you and cannot attack or use abilities`);
             break;
         }
         case 'retaliate_slow': {
@@ -877,18 +906,34 @@ const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 // previewMax is pinned to the level so no nested "→" renders — the loadout
 // levels only move through the summon skill, whose own lines keep the preview.
 // An unresolvable ref (catalog gap) degrades to the bare Summons line.
+//
+// The summon's death triggers (plan-effect-types-round-2.md C7) follow under a
+// "When it ends:" line, at their AUTHORED levels: the server fires them at the
+// level the mob file names and never raises them.
 function summonLoadoutLines(spawn: SkillEffect['spawn'], skillLevel: number, powerScale: number,
                             playerLevel: number,
                             resolveSkill: (id: number) => SkillDefinition | undefined): TooltipLine[] {
-    const out: TooltipLine[] = [];
     const summonPower = playerLevel > 0 ? scaled(1, spawn.powerPerOwnerLevel, playerLevel) : 1;
-    for (const ref of spawn.summonLoadout ?? []) {
+    const out = summonSkillLines(spawn.summonLoadout ?? [], skillLevel, powerScale * summonPower, resolveSkill);
+    const onDeath = summonSkillLines(spawn.summonOnDeath ?? [], 0, powerScale * summonPower, resolveSkill);
+    if (onDeath.length > 0) {
+        out.push({text: '↳ When it ends:'}, ...onDeath);
+    }
+    return out;
+}
+
+// summonSkillLines renders summon skill refs through effectBlock. raiseTo is
+// the summon skill's level the loadout is raised to (0 = authored level only).
+function summonSkillLines(refs: SummonSkillRef[], raiseTo: number, scale: number,
+                          resolveSkill: (id: number) => SkillDefinition | undefined): TooltipLine[] {
+    const out: TooltipLine[] = [];
+    for (const ref of refs) {
         const def = resolveSkill(ref.skillId);
         if (!def) continue;
-        const level = Math.max(ref.level, Math.min(skillLevel, def.maxLevel));
+        const level = Math.max(ref.level, Math.min(raiseTo, def.maxLevel));
         for (const effect of def.effects) {
             if (effect.type === 'spawn') continue; // a summon summoning: render one level deep only
-            const block = effectBlock(effect, level, level, powerScale * summonPower, false, false);
+            const block = effectBlock(effect, level, level, scale, false, false);
             for (const line of block.lines) {
                 out.push({text: t('ttSubLine', {line: line.text}), labelColor: line.labelColor});
             }

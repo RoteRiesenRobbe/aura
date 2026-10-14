@@ -1502,7 +1502,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 	target := &mobTouchRecorder{}
 	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), target)
 
-	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects(), powerScale: 1}
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects(), powerScale: 1, healthRatio: 1}
 	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
 	caster.sc.EquipCooldown(0, stomp, 1)
 
@@ -1529,7 +1529,7 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 	empty := phy.NewSpace()
 	empty.Update()
 
-	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects(), healthRatio: 1}
 	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
 	caster.sc.EquipCooldown(0, stomp, 1)
 
@@ -4171,7 +4171,7 @@ func TestCast_MobFirePathIgnoresCastTime(t *testing.T) {
 	target := &mobTouchRecorder{}
 	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), target)
 
-	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects(), healthRatio: 1}
 	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
 	caster.sc.EquipCooldown(0, stomp, 1)
 

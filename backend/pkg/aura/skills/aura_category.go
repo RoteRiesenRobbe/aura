@@ -130,6 +130,12 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeStun: AuraCategoryNone,
 	// A charge moves the caster; the movement is the tell.
 	EffectTypeCharge: AuraCategoryNone,
+	// An empower changes the caster's next cast; the tray shows it.
+	EffectTypeEmpower: AuraCategoryNone,
+	// A fear's tell is the target running, and its pip.
+	EffectTypeFear: AuraCategoryNone,
+	// Stealth shows as the token's alpha, never a ring.
+	EffectTypeStealth: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

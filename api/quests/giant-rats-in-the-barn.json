@@ -5,7 +5,13 @@
   "stages": [
     {
       "id": "clear",
-      "objectives": [{ "kind": "kill", "species": "GiantRat", "count": 8 }],
+      "objectives": [
+        {
+          "kind": "kill",
+          "species": "GiantRat",
+          "count": 8
+        }
+      ],
       "next": "report"
     },
     {

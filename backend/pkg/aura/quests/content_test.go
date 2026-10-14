@@ -74,7 +74,7 @@ var expectedQuests = map[string]string{
 	"the-lost-lamp":      "The Lost Lamp", // retitled 2026-08-02 with the plain-text pass (no stylized quest text yet)
 
 	// The generic kill quests (plan-generic-kill-quests.md C1 + C2).
-	"boars-in-the-field":          "Boars in the Field",
+	"boars-in-the-field":          "The Problematic Boars",
 	"dire-wolves-in-the-forest":   "Dire Wolves in the Forest",
 	"kobolds-on-the-road":         "Kobolds on the Road",
 	"spiders-in-the-diggings":     "Spiders in the Diggings",
@@ -85,29 +85,32 @@ var expectedQuests = map[string]string{
 	"thin-the-orc-line":           "Thin the Orc Line",
 
 	// The north pasture's talk_to quest (content-zone-design-guide.md §2.4).
-	"the-strays": "The Strays",
+	"the-strays": "A Herd Astray",
 
 	// The Mill on the river (content-zone-design-guide.md §2.4), and the only
 	// kill quest in the game whose count is 1: Zone 1's one elite is a NAMED
 	// fight, not a cull.
-	"the-sounder-at-the-mill": "The Sounder at the Mill",
+	"the-sounder-at-the-mill": "The Beast of the Farmlands",
 
 	// The Miller's second quest, and the first CHANCE objective: each beach
 	// seaweed heap harvested rolls a find, and the 12th always finds.
-	"the-millers-ring": "The Miller's Ring",
+	"the-millers-ring": "Lost and Found",
 
-	// ⭐ THE OPENING ARC (content-zone-design-guide.md §2.0): the first quest
-	// in the game, and the only one whose stages exist to hand over the
-	// starting kit — Wild at the father, Harvest at the uncle, FirstAid on the
-	// mother's turn-in. Its one objective stage runs both errands in parallel,
-	// a talk_to on each teacher beside the kill and the harvest, which is what
-	// makes those teachers unskippable rather than optional scenery.
-	"dinner-for-the-family": "Dinner for the Family",
+	// The quest sheet (2026-10-13) split the old dinner into Farmer Flora's two
+	// opening quests (Benjamin teaches Harvest, Henrik Wild), and added Hans's
+	// wolf chain (Hans, the Town Crier, the Governor of Dionsburg), Herbalist
+	// Lionett's seaweed (FirstAid on the turn-in) and Reinhard's shipment, which
+	// ends at Tobias.
+	"ready-for-harvest": "Ready for Harvest",
+	"meat-for-dinner":   "Meat for Dinner",
+	"he-who-cried-wolf": "He Who Cried Wolf",
+	"a-healthy-brew":    "A Healthy Brew",
+	"a-lost-shipment":   "A Lost Shipment",
 
 	// Reinhard's THIRD quest (content-zone-design-guide.md §2.4) — he is the
 	// first three-offer giver, where the Farmer he used to be was the first
 	// two-offer one.
-	"giant-rats-in-the-barn": "Giant Rats in the Barn",
+	"giant-rats-in-the-barn": "The Pest in the Granary",
 
 	// Grandfather Knot's two errands (docs/plan-grandfather-knot.md): a harvest,
 	// then — offered only once that is completed — three talk_to legs, the last
@@ -120,9 +123,9 @@ var expectedQuests = map[string]string{
 	"the-lost-friend": "The Lost Friend",
 
 	// The opening arc's handoff and the first REACH quest
-	// (plan-region-identity.md R2): handed over on the dinner turn-in, done on
-	// arriving at Reinhard's farm, turned in on his 'Eliza sends me.' row.
-	"eliza-sends-me": "Eliza Sends Me",
+	// (plan-region-identity.md R2): handed over by Flora, done on arriving at
+	// Reinhard's farm, turned in on his 'Flora sends me.' row.
+	"eliza-sends-me": "Off to the Mill",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -386,7 +389,13 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// so the L9 rule bottoms out at the same 150 village-welcome and
 		// turnip-chore pay — ½ × 300 × 1.2^0, with no level to inflate it. The
 		// real reward is the three skills, which this pin cannot see.
-		"dinner-for-the-family": 150, // L1, ½ × 300
+		"ready-for-harvest": 150, // L1, ½ × 300
+		"meat-for-dinner":   150, // L1, ½ × 300
+
+		// The quest sheet's newcomers (2026-10-13), the same rule.
+		"he-who-cried-wolf": 216, // L3 pasture wolves, ½ × 300 × 1.2²
+		"a-healthy-brew":    180, // L2, ½ × 300 × 1.2
+		"a-lost-shipment":   311, // L5, the woods' band, ½ × 300 × 1.2⁴
 
 		// ⚑ The same 180 the boars pay, and deliberately: the L9 rule prices the
 		// TARGET'S LEVEL, and the GiantRat is curveLevel 2 exactly like the Boar.
@@ -515,10 +524,7 @@ func TestContent_ElizaSendsMeWalksEndToEnd(t *testing.T) {
 		return nil
 	}
 
-	turnIn := rowFor("Eliza", "dinner-for-the-family", mobs.GrantAdvanceQuest)
-	last := turnIn.Grants[len(turnIn.Grants)-1]
-	assert.Equal(t, mobs.GrantOfferQuest, last.Kind, "the dinner turn-in hands over the next quest")
-	assert.Equal(t, "eliza-sends-me", last.Quest)
+	rowFor("Flora", "eliza-sends-me", mobs.GrantOfferQuest) // Flora hands it over
 
 	q, err := qr.Get("eliza-sends-me")
 	require.NoError(t, err)

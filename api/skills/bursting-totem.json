@@ -1,0 +1,17 @@
+{
+  "_comment": "Places a BurstTotem beside the caster that bursts on nearby enemies when its 3 s run out or it is destroyed. The burst scales with the caster's level through the totem. All values placeholder.",
+  "id": 165,
+  "name": "BurstingTotem",
+  "icon": "lorc/totem-head",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 450,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#f0a050" }
+    ]
+  },
+  "effects": [
+    { "type": "spawn", "spawnMob": "BurstTotem", "ttlTicks": 90 }
+  ]
+}

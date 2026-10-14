@@ -33,6 +33,9 @@ const (
 	EffectKindCharm     EffectKind = 1 << 11
 	EffectKindStatUp    EffectKind = 1 << 12
 	EffectKindStatDown  EffectKind = 1 << 13
+	EffectKindEmpower   EffectKind = 1 << 14
+	EffectKindFear      EffectKind = 1 << 15
+	EffectKindStealth   EffectKind = 1 << 16
 )
 
 func (*resistPayload) effectKind() EffectKind    { return EffectKindResist }
@@ -47,6 +50,9 @@ func (*shieldPayload) effectKind() EffectKind    { return EffectKindShield }
 func (*calmPayload) effectKind() EffectKind      { return EffectKindCalm }
 func (*stunPayload) effectKind() EffectKind      { return EffectKindStun }
 func (*charmPayload) effectKind() EffectKind     { return EffectKindCharm }
+func (*empowerPayload) effectKind() EffectKind   { return EffectKindEmpower }
+func (*fearPayload) effectKind() EffectKind      { return EffectKindFear }
+func (*stealthPayload) effectKind() EffectKind   { return EffectKindStealth }
 
 // The sign picks the tray side (D12), the appliedBit rule.
 func (p *statPayload) effectKind() EffectKind {

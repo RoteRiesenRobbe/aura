@@ -20,6 +20,7 @@ var _ = model.MobEntity(&Mob{})
 var _ = model.Healable(&Mob{})
 var _ = model.StatBuffable(&Mob{})
 var _ = model.Reflector(&Mob{})
+var _ = model.Fearable(&Mob{})
 
 // processSalt randomizes every mob's RNG stream per process run so a fresh
 // server no longer re-rolls the same HP variance + first drop for the Nth
@@ -573,8 +574,11 @@ type Mob struct {
 	// its pool already does (entity-model R5; before this it was stamped once at
 	// spawn and a summon that outlived a ding stayed behind forever). 0 means
 	// "unset" and reads as neutral 1.
-	owner               model.PlayerEntity
-	ttlTicks            int
+	owner    model.PlayerEntity
+	ttlTicks int
+	// despawned marks a removal that is not a death (ExpireWithOwner), so the
+	// death triggers stay silent (plan-effect-types-round-2.md C7, D28).
+	despawned           bool
 	summonPowerPerLevel float32
 
 	// despawnOnCooldownFire marks a THROWN projectile
@@ -693,7 +697,7 @@ func (m *Mob) AuraRadius() float32 {
 // freeze (the aura must resume on the beat it was interrupted) and is the same
 // landmine plan-mob-tether D5 records for the tether's evade.
 func (m *Mob) auraSuppressed() bool {
-	return m.buffs.Stunned()
+	return m.buffs.Stunned() || m.buffs.Feared()
 }
 
 // AuraTickInterval is the active aura's first-effect effective tick interval in
@@ -968,8 +972,21 @@ func (m *Mob) OwnedBy(id uint64) bool {
 // Idempotent: a flight takeoff calls the departure hook directly and a
 // mid-flight disconnect calls it again for the same player, so the second pass
 // must find nothing left to do.
+//
+// It also marks the mob DESPAWNED: an owner leaving is not a death, so the
+// mob's death triggers stay silent (plan-effect-types-round-2.md C7, D28).
 func (m *Mob) ExpireWithOwner() {
 	m.health = 0
+	m.despawned = true
+}
+
+// OnDeathSkills are the death triggers to fire now that this mob has died
+// (C7, D27): the definition's list, or none after a despawn (D6, D28).
+func (m *Mob) OnDeathSkills() []mobs.MobSkill {
+	if m.despawned {
+		return nil
+	}
+	return m.definition.OnDeath
 }
 
 // SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).
@@ -1140,8 +1157,16 @@ func (m *Mob) Update(dt float32) bool {
 	if m.mode == modeFlee {
 		fleeFrom = m.highestThreatTarget()
 	}
+	fearFrom, feared := m.fearFrom()
 
 	switch {
+	// A feared mob runs from the fearer ahead of everything else
+	// (plan-effect-types-round-2.md C5, D22). The mode and the aura slot are
+	// untouched (L3): the fight resumes where it was when the fear ends.
+	case feared:
+		m.resetChaseWatchdog()
+		m.moveAwayFrom(fearFrom)
+
 	case m.mode == modeSupport && m.supportTarget != nil:
 		if m.shouldApproach(m.supportTarget) {
 			m.chaseTowards(m.supportTarget.Position())
@@ -1298,6 +1323,32 @@ func (m *Mob) ApplyStun(source skills.SkillID, ticks int) bool {
 		return false
 	}
 	return m.buffs.ApplyStun(source, ticks)
+}
+
+// ApplyFear makes the mob run from `from` (plan-effect-types-round-2.md C5,
+// D22, D23): the stun door's shape. An immune species refuses it before the
+// shared hard-CC ladder sees it; aggro is kept, like a stun's (A5).
+func (m *Mob) ApplyFear(source skills.SkillID, from any, ticks int) bool {
+	if m.ccImmune() {
+		return false
+	}
+	return m.buffs.ApplyFear(source, from, ticks)
+}
+
+// Feared reports whether this mob is running from a fear.
+func (m *Mob) Feared() bool { return m.buffs.Feared() }
+
+// fearFrom is where a live fear says to run from: the fearer's position, read
+// live, which a removed fearer still answers with its last spot.
+func (m *Mob) fearFrom() (phy.Vec2f, bool) {
+	src, ok := m.buffs.FearSource()
+	if !ok {
+		return phy.Vec2f{}, false
+	}
+	if p, ok := src.(interface{ Position() phy.Vec2f }); ok {
+		return p.Position(), true
+	}
+	return phy.Vec2f{}, false
 }
 
 // Stunned reports whether this mob is currently held. Read by the SkillSystem's
@@ -1629,6 +1680,10 @@ func (m *Mob) findAggroTarget() model.Combatant {
 		if m.aggroMask&target.Faction().Bit() == 0 {
 			continue
 		}
+		// A stealthed player is not seen (plan-effect-types-round-2.md C6, D2).
+		if model.IsStealthed(target) {
+			continue
+		}
 		if m.ignoreAcquireTicks > 0 && target.Basic().ID() == m.ignoreAcquireID {
 			// Force-leashed standoff target: not proactively re-acquired until
 			// the window lapses. Only this path is gated - threat-table
@@ -1685,6 +1740,12 @@ func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
 		return nil
 	}
 	if source.Faction() == m.faction || source.HealthRatio() == 0 {
+		return nil
+	}
+	// A stealthed source writes no threat (C6, D25): a heal or a taunt from
+	// hiding stays hidden. The hit that breaks stealth breaks it first, so it
+	// writes as usual (D26).
+	if model.IsStealthed(source) {
 		return nil
 	}
 	if m.threat == nil {
@@ -1938,6 +1999,22 @@ func (m *Mob) Invulnerable() bool {
 // toucher otherwise; it is what the recorded hit event is attributed to
 // (plan-skill-vfx.md D9). The *Touches wrappers resolve it, because only they
 // can see both the payload's Source and the toucher.
+// NeverHurtBy reports whether this species can never be damaged by a hit with
+// these tags and this gate key (model.SpeciesImmunity, plan-immune-targets.md).
+// It is takeDamage's math on the definition alone: never m.buffs, never
+// m.invulnerable (L1, D2), and only an exact zero counts (D3).
+//
+// The pin below is L3: a drifted signature breaks the build instead of
+// silently demoting nobody behind the selector's type assertion.
+var _ model.SpeciesImmunity = (*Mob)(nil)
+
+func (m *Mob) NeverHurtBy(tags []string, gateKey string) bool {
+	if gateKey != "" && !skills.GateOpensFor(gateKey, m.definition.Factors.GateKeys) {
+		return true
+	}
+	return skills.ResistMultiplier(tags, m.definition.Factors.Resistances) == 0
+}
+
 func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffect) vitals.VitalSign {
 	// Conditional immunity (encounter-controller chunk 9b): while set, every
 	// hit is a non-event exactly like a fully resisted tag — no HP loss, no
@@ -2321,6 +2398,14 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	}
 	m.reflect(hitter, damage.HP, damage.Reflected)
 	lost := m.takeDamage(damage, model.ActingSourceID(damage.Source, p), model.StatusEffectDamagedAmbient)
+	// A direct hit that moved HP breaks the player's stealth before its threat
+	// is written (plan-effect-types-round-2.md C6, D1, D26). A summon's hit is
+	// the summon's, and a fully resisted one moved nothing.
+	if lost > 0 && damage.Source == nil {
+		if s, ok := p.(interface{ BreakStealth() }); ok {
+			s.BreakStealth()
+		}
+	}
 	// Lifesteal heal-back (chunk 1, F6 §3.1/9): the living Source (a summon
 	// leeches for itself, §4.2) else the toucher, from the dealt amount.
 	model.ApplyLifesteal(lost, damage.Lifesteal, damage.SkillID, damage.Source, p)

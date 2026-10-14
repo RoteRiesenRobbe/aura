@@ -422,6 +422,23 @@ export const GraphicsConfig = {
             maxSize: <number> 62,
         },
 
+        // The Ashen Fields fire pair. `file` is the loud "?" placeholder: the
+        // pack portrait is the only art, so builds without the atlases show it.
+        firelord: {
+            file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
+            packIcon: 'portrait-firelord',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            minSize: <number> 54,
+            maxSize: <number> 64,
+        },
+        fireStirer: {
+            file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
+            packIcon: 'portrait-fire-stirer',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            minSize: <number> 50,
+            maxSize: <number> 60,
+        },
+
         // Elite — deliberately larger than the lesser elemental so the tier
         // reads at a glance (body radius 0.55 vs 0.4).
         greaterFireElemental: {

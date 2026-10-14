@@ -1,0 +1,23 @@
+{
+  "_comment": "BroodMother's screech: every enemy within 3 units runs from it for 3 s. All values placeholder.",
+  "id": 167,
+  "name": "BroodScreech",
+  "icon": "lorc/shouting",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 450,
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 500, "count": 2 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "fear",
+      "radius": 3,
+      "selector": "all",
+      "targetsEnemies": true,
+      "fearTicks": 90
+    }
+  ]
+}

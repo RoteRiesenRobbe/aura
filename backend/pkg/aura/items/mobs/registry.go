@@ -182,6 +182,13 @@ func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 				loadout = append(loadout, skills.SummonSkillRef{SkillID: ms.Def.ID, Level: ms.Level})
 			}
 			effect.Spawn.SummonLoadout = loadout
+			if len(summoned.OnDeath) > 0 {
+				onDeath := make([]skills.SummonSkillRef, 0, len(summoned.OnDeath))
+				for _, ms := range summoned.OnDeath {
+					onDeath = append(onDeath, skills.SummonSkillRef{SkillID: ms.Def.ID, Level: ms.Level})
+				}
+				effect.Spawn.SummonOnDeath = onDeath
+			}
 		}
 	}
 	return errors.Join(findings...)

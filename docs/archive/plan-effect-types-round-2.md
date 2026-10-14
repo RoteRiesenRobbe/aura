@@ -1,7 +1,7 @@
 # Plan - effect types round 2: buffs on others, empower, stealth, fear, charge, thorns on others, death triggers
 
 **Status:** DESIGNED + PO-RULED 2026-10-07. **C0 + C1 BUILT 2026-10-07**
-(§10); **C3 BUILT 2026-10-07**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`)**; C4-C7 not started. D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
+(§10); **C3 BUILT 2026-10-07, PO look passed 2026-10-11 (the rush glide is right; charging turnips is fine)**; **C2 BUILT 2026-10-07, PO-passed 2026-10-08 (`fe298f70`); its placeholders (pip rose, 25 % / 10 s / 4 m) accepted as they stand 2026-10-11**; **C4-C7 BUILT 2026-10-11, PO-passed 2026-10-12 in the combined in-game pass** (C7's linger fix `665dd08b`). **✅ COMPLETE + archived 2026-10-12**; harness `c4-c7-effects.mjs` (§10). D1-D10 + D30 PO-ruled, D11-D29 mine (flag if wrong). 8
 chunks, C0 first, the rest mostly independent. **Sequenced AFTER buff tray C3** (D10).
 **Schema: DB NONE · wire YES (C0 widens two fields; C1, C2, C4-C6 add bits) ·
 conf NONE · content +6 effect types, +1 stat, +1 mob key, +1 example skill per
@@ -10,7 +10,15 @@ chunk · client YES (pips, tray kinds, the stealth look).** Ledger: §10.
 Line refs are as of `d35ab702`, from four code surveys run 2026-10-07. Re-verify
 them before executing a chunk. Re-pinned to `5a697d91` (2026-10-07): the C2 and
 C3 refs, the per-type checklist in §6 and the C5 ladder; C4, C6, C7 and the rest
-of §7 are still as of `d35ab702`.
+of §7 are still as of `d35ab702`. Re-verified 2026-10-11 at `6043a060` before
+C4-C7: every named symbol stands; moved lines are `fireAndCharge` `:1745`,
+`activationPrecondition` `:1762`, the cast-time branch `:1652`, `mayHarm`
+`:642`, `eligibleByTargetFlags` `:675`, `moveAwayFrom` `mob.go:1350`,
+`ccImmune` `:1314`, `findAggroTarget` `:1615`, `ForgetEntity` `:1790`, the
+mob movement switch `:1143`, the death sweep `sys/mob.go:208-215`. ⚑ The
+encounter `Despawn` (`encounter/system.go:135`) now calls `RemoveEntity`
+directly and never reaches the sweep, so D28's flag only has to mark
+`ExpireWithOwner`.
 
 **Origin.** The PO's 2026-10-07 session counted how many WoW Classic class spells
 Aura can emulate (386 spells, from the 2026-09-29 survey: 167 clean, 114 rough,
@@ -425,6 +433,33 @@ does not compile.
 - `empower` (D20, D21), `empowerPayload`.
 - Wire: EffectKind Empower. No pip (self-only, the tray shows it).
 - Example: a Nature's Swiftness (instant + free on the next cooldown).
+- ⚑ **As built (2026-10-11):**
+  - Keys `empowerInstant`, `empowerFree`, `empowerCrit` (bools),
+    `empowerFactor` (0 = none, else > 0 and not 1), `empowerDurationTicks`
+    (required); it must grant at least one of the four. Cooldown only, no
+    geometry or target keys.
+  - The store holds ONE empower at a time: a new one replaces the live one
+    from any source (two empower skills never stack into one cast). The
+    payload carries an `armed` flag, set by `fireAndCharge` around the one
+    fire that spends it, so crit and factor reach that cast's hits and never
+    an aura tick that lands while the offer merely stands. Instant and free
+    read the live offer; crit and factor read the armed one.
+  - Read sites: the cast-time branch in `processCooldowns`
+    (`empoweredInstant`), `cooldownCostHP` (covers BOTH reads, L1),
+    `casterCritChance` returns 1, `casterDamageFactor` multiplies the
+    factor (so instant damage and an instant DoT's frozen HP both get it),
+    and the new heal read `empowerFactor` at `self_heal` and `instant_hot`
+    (L11). `spendableEmpower` refuses an empower skill's own cast
+    (`SkillDefinition.GrantsEmpower`), so the offer it applies survives its
+    own fire.
+  - The capability is `model.Empowerable`, pinned on `*player` (L8); mobs
+    have none (D20) and `applyEmpower` on a mob is a no-op.
+  - Wire: tray kind Empower = 16384 (bit 14), beneficial; no pip.
+  - Example: `NaturesSwiftness` (id 162), instant + free for 15 s, cooldown
+    60 s, icon `lorc/star-swirl`, SKILL cheat only. All values [PLACEHOLDER].
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model,
+    vitest 1615/0 + typecheck, `-validate` 0 both zone sets, editor smoke 0.
+    In-game owed (the combined C4-C7 pass).
 
 ### C5 - fear
 
@@ -435,12 +470,74 @@ does not compile.
 - Wire: EffectKind Fear; pip Fear.
 - Example: a player fear on the nearest enemy, and a mob fear (a howl) equipped
   on a debug-zone mob.
+- ⚑ **As built (2026-10-11):**
+  - `fear` authors `fearTicks` / `fearTicksPerLevel` plus stun's geometry,
+    cap and target keys; the payload reuses `StunParams` (field `Fear`).
+    Cooldown only.
+  - `fearPayload{from any}`: the fearer itself, typed `any` like
+    `DotBuff.Caster`. The holder reads `from.Position()` live each tick; a
+    removed fearer's ref still answers with its last spot, so the plan's
+    `lastPos` field was not needed. `Buffs.hardCC` is the shared ladder both
+    `ApplyStun` and `ApplyFear` step (D4); the DR window runs while neither
+    is live. `MovementFactor` ignores fear (it runs at normal speed).
+  - Doors: `Mob.ApplyFear` (ccImmune first) and `player.ApplyFear` (GOD
+    first, then CancelCast, combat, the Feared reason once on landing).
+    `model.Fearable`, pinned on both (L8).
+  - Mob: a `feared` case FIRST in the `Update` movement switch,
+    `moveAwayFrom` the fearer; mode, aura slot and aggro untouched (L3), so
+    the fight resumes. `auraSuppressed` covers fear.
+  - Player: `PlayerInputSystem.fleeStep` after `updateInput` moves a
+    feared player one walking step (`walkStep`, extracted and shared with
+    normal walking) away from the fearer every tick, input or not; their own
+    movement vector is ignored.
+  - Cast and press refusal: a new `model.HeldReason(e)` answers stunned or
+    feared and why. The SkillSystem's cast gate, every input refusal
+    (cooldowns, utilities, takeoff) and the interaction refusal read it.
+    ⚑ Wire: a new `ActivationRejection.Feared = 6` (appended), so the HUD
+    floats "Feared", not "Stunned". The plan did not list it.
+  - Wire: tray kind Fear = 32768 (bit 15, harmful), pip Fear = 2048 (bit
+    11), colour 0x7f9a5a [PLACEHOLDER].
+  - Examples, all [PLACEHOLDER]: `Terrify` (166, player, nearest enemy in
+    4 u, 4 s +0.5 s/level, cooldown 20 s, SKILL cheat only) and
+    `BroodScreech` (167, every enemy in 3 u for 3 s, a `wave`) on the
+    debug-only BroodMother (C7).
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model/
+    core, vitest 1616/0 + typecheck, `-validate` 0 both zone sets, editor
+    smoke 0. In-game owed (the combined pass), with GOD off (L10).
 
 ### C6 - stealth
 
 - `stealth` (D1-D3, D24, D25, D26), `stealthPayload`. Self-only.
 - Wire: EffectKind Stealth; pip Stealth, rendered as token alpha.
 - Example: a stealth cooldown with a [PLACEHOLDER] 20 s cap.
+- ⚑ **As built (2026-10-11):**
+  - `stealth` authors `stealthDurationTicks` alone (self-only, cooldown
+    only); payload `StealthParams`, store `stealthPayload{}` (calm's shape).
+  - `model.Stealther` (`ApplyStealth`, `Stealthed`, `BreakStealth`) pinned
+    on `*player` (L8); `model.IsStealthed(e)` is the one read every mob door
+    asks. GOD does not refuse it (a player tool, not CC).
+  - Doors (D25, L7): `Mob.findAggroTarget` skips a stealthed target;
+    `Mob.threatEntryFor` writes nothing for a stealthed source (heal threat
+    and taunts included); the shared `mayHarm` refuses a gated (mob) caster
+    against a stealthed target, so mob auras and cooldowns miss it too.
+  - Breaks (D1, D26): `player.takeDamage` breaks on `loss > 0` (a fully
+    absorbed hit does not); `Mob.PlayerTouches` breaks a DIRECT hit with
+    `lost > 0` before the threat is written, so the breaking hit lands and
+    writes its threat. A summon's hit is the summon's and does not break.
+  - The fan-out (D2): `SkillSystem.applyStealth` calls the new
+    `MobSystem.ForgetTarget(id)` through `SetAggroForgetter` (wired in
+    `core/game.go`): `ForgetEntity` on every mob, no charm or summon touched.
+  - Wire: pip Stealth = 4096 (bit 12), tray kind Stealth = 65536 (bit 16,
+    beneficial). The client draws the pip bit as token alpha
+    (`tokenAlpha`, `STEALTH_ALPHA` 0.4 [PLACEHOLDER]) and never as a pip; the
+    own player feeds `setTokenAlpha` from its own `applied_effects` (L12).
+    The nameplate stays opaque.
+  - Example: `Vanish` (168), 20 s cap, cooldown 60 s, icon
+    `delapouite/invisible`, SKILL cheat only. [PLACEHOLDER].
+  - Verified: Go bar the known world prop pin, `-race` on sys/skills/model/
+    core, vitest 1618/0 + typecheck, `-validate` 0 both zone sets, editor
+    smoke 0. In-game owed: the combined pass, with TWO clients (the
+    translucent token as another player sees it).
 
 ### C7 - death triggers
 
@@ -452,6 +549,51 @@ does not compile.
 - Wire: none. Content editor: the mob tab gains the list.
 - Example: a debug-zone mob that splits into two adds, and a totem that bursts
   when its timer runs out.
+- ⚑ **As built (2026-10-11):**
+  - `MobDefinition.OnDeath []MobSkill`, parsed like `skills`; an unknown name
+    or a non-cooldown skill refuses the boot.
+  - `Mob.ExpireWithOwner` also sets `despawned`, and `Mob.OnDeathSkills()`
+    returns nothing for a despawned mob (D28). The encounter `Despawn` needs
+    no flag: it calls `RemoveEntity` directly and never reaches the sweep.
+    The TTL expiry is a death (D6): it zeroes health and the sweep fires.
+  - `MobSystem.SetDeathTriggers` (wired to the SkillSystem in `core/game.go`)
+    and the sweep calls `FireOnDeath` before `onMobDeath` + `RemoveEntity`.
+    `SkillSystem.FireOnDeath` runs each skill through `fireCooldown` from the
+    dead mob. L6 pinned: a real 0-HP mob's burst lands on a real player.
+    L5 pinned: a mob-cast spawn binds no owner, so the adds survive the
+    parent's removal; they enlist on its side.
+  - The look (PO 2026-10-11, after the first in-game pass found the burst
+    drew NOTHING): the mob left in the tick it burst, so the client dropped
+    every landing whose caster it could not find (`SkillFxPlan.ts`), no
+    FIRED event existed, and the owner's numbers could not resolve the
+    summon's `owner_id`. Ruled: a mob whose triggers FIRED lingers one
+    snapshot. `FireOnDeath` stamps each trigger's FIRED event and reports
+    whether anything fired; the sweep parks such a mob in
+    `MobSystem.lingering` and removes it at the start of the next tick (a
+    mob whose triggers fired nothing leaves at once, as before). The
+    SkillSystem skips a 0-HP mob in `processEntity`, so nothing it carries
+    ticks during the linger. `TotemBurst` now draws a `wave` on `fired`.
+  - Editor: the mob page gains an "On death" list (the skills row shape),
+    `validate.mjs` checks the names, README updated.
+  - Examples, all [PLACEHOLDER]: `BroodMother` (mob 116, GiantSpider art,
+    debug zones only at (38.5, -31.5) beside the giant spiders) splits into
+    two Spiders via `BroodSplit` (164; a spawn needs a TTL, so they leave
+    after 60 s). `BurstTotem` (mob 117, Totem art, no aura) bursts for 45
+    fire (× f(owner level), the summon's level is its owner's) on every enemy
+    within 3 u via `TotemBurst` (163); the player summons it with
+    `BurstingTotem` (165, 3 s, SKILL cheat only). PO 2026-10-11 after the
+    first look: 10 s -> 3 s, 20 -> 45 damage, and a tooltip description.
+  - PO 2026-10-11: a summon's tooltip lists its death triggers like its
+    loadout. `SpawnParams.SummonOnDeath` (wire name `summonOnDeath`) is
+    attached beside `SummonLoadout` in `validateSpawnEffects`; the tooltip
+    renders it under "↳ When it ends:" at the authored levels (never raised).
+    Pinned in `registry_test.go`, `loaders_test.go` and `SkillTooltip.test.ts`.
+  - Census bumps (L9): structures + BurstTotem, creatures 88 -> 89,
+    xpFactor-0 53 -> 54, the archetype guardrail exempts BroodMother with
+    the GiantSpider's own reason. Registry 127 -> 130.
+  - Verified: Go bar the known world prop pin, `-race` on sys/model/mob/
+    items/mobs, vitest 1615/0, `-validate` 0 both zone sets, editor smoke 0.
+    In-game owed (the combined C4-C7 pass).
 
 ## 7. Landmines
 
@@ -544,10 +686,34 @@ None blocking. Raised at execution if they come up:
 | C1 | Stat buff/debuff on others + `threat` stat | +2 kinds, +2 pips | ✅ 2026-10-07 `4df74931` (see §6 C1 "As built") |
 | C2 | Thorns on others (`retaliate_burst` widened, mob wearers) | +1 pip | ✅ 2026-10-08 `fe298f70` (see §6 C2 "As built") |
 | C3 | Charge (+ the `rush` look) | none | ✅ 2026-10-07 `d9a0b2ac` (see §6 C3 "As built") |
-| C4 | Empower next cast | +1 kind | not started |
-| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip | not started |
-| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | not started |
-| C7 | Death triggers (`onDeath` on mobs) | none | not started |
+| C4 | Empower next cast | +1 kind | ✅ 2026-10-11 `3361f81c` (see §6 C4 "As built"), PO-passed 2026-10-12 |
+| C5 | Fear (both ways, shared hard-CC ladder) | +1 kind, +1 pip, +1 rejection reason | ✅ 2026-10-11 `e1ec7a95` (see §6 C5 "As built"), PO-passed 2026-10-12 |
+| C6 | Stealth (towards mobs, translucent token) | +1 kind, +1 pip | ✅ 2026-10-11 `0e40e04b` (see §6 C6 "As built"), PO-passed 2026-10-12 |
+| C7 | Death triggers (`onDeath` on mobs) | none | ✅ 2026-10-11 `c5b945f6` + linger fix `665dd08b` (see §6 C7 "As built"), PO-passed 2026-10-12 |
+
+C4-C7 were built in one session (PO 2026-10-11: build all four, test them
+together). Owed: the PO's combined in-game pass, then ONE headless harness
+covering C4-C7 written after the verdict, so placeholder changes do not
+rewrite it. Re-run before handover (2026-10-11): `c2-player-cc.mjs` 22 PASS
++ the documented DR INCONCLUSIVE, `buff-tray.mjs` 22/22, `c3-charge.mjs` 6/6.
+
+⚑ **C4-C7 closed 2026-10-12.** The PO's combined pass ran in two sittings:
+the first (2026-10-11) found the totem burst drew nothing, fixed by the linger
+(§6 C7, `665dd08b`, with the 3 s / 45 damage retune and the "When it ends"
+tooltip); the second (2026-10-12) signed off all four chunks. Verified at
+`665dd08b`: Go bar the known world prop pin, vitest 1621/0 + typecheck.
+The harness `.claude/skills/verify/c4-c7-effects.mjs` (two clients, debug
+zones) was written after the verdict: empower circle, empower survives its
+own cast, Vanish's Stealth circle, Vanish spends the empower, own token at
+alpha 0.4, the second client sees it at 0.4, the totem's burst `wave`, the
+Fear pip on a mob, the BroodScreech's Fear circle on a player, and "Feared"
+on a press. Final runs 10/10 and 9/10 + 1 INCONCLUSIVE; over seven runs the
+Terrify leg was INCONCLUSIVE three times (no refusal float: the boar off or
+the press lost). Two venue findings recorded in the script: a bare `GOD`
+only ever turns god mode ON (`GOD off` turns it off), and the BroodMother
+stands in a level-14/15 pack that kills a fresh character in ~2 s, so the
+fear legs max the second client's level first. The §8 questions (stealth
+alpha, mob charge) never came up; they stay open ideas, not owed work.
 
 Order: C0 first (C1, C2, C4-C6 need its room); C1 next (it builds the
 buff-kind template the rest copy); C2-C7 in any order. C3 and C7 need no wire

@@ -1,6 +1,6 @@
 # Plan: World paths — a stroked polyline primitive for roads and water
 
-**Status: C1 + C2 + C3 SHIPPED 2026-09-07; C4 NOT STARTED. Rider `corners`/`ends` chunk A SHIPPED 2026-09-29, chunk B HELD (§12).** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
+**Status: C1 + C2 + C3 SHIPPED 2026-09-07; C4 NOT STARTED. Rider `corners`/`ends` chunk A SHIPPED 2026-09-29 (PO look passed 2026-10-11), chunk B HELD (§12).** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
 
 ⭐ **This is the sibling of the region primitive, not a new system.** A region is a closed polygon *filled*; a path is an open polyline *stroked*. The profile table, the paint spec, the blend mask, map parity and the Tiled round-trip are all reused verbatim — Pixi 8's `StrokeStyle extends FillStyle` (verified at HEAD in `frontend/node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts:43`), so `regionPaint()`'s `{texture, matrix}` output feeds `.stroke({…})` unchanged.
 

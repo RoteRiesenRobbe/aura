@@ -41,3 +41,10 @@ redistributed as files.
 The SVG skill glyphs under `frontend/src/client-data/icons/vendor/` are from
 game-icons.net under CC BY 3.0; the per-author attribution lives beside them in
 `frontend/src/client-data/icons/NOTICE.md`.
+
+## Inter (SIL Open Font License 1.1)
+
+The UI face, `frontend/src/features/user-interface/assets/fonts/inter/`:
+Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter). The
+Latin subset woff2 files come from `@fontsource/inter` 5.3.0, unmodified; the
+licence text sits beside them as `OFL.txt`.

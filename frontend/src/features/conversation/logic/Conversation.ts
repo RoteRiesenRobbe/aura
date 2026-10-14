@@ -30,6 +30,7 @@ import {
     ConversationTree,
     NO_GRANT,
 } from './ConversationModel';
+import {onRowPress} from './RowPress';
 
 const model = new ConversationModel();
 
@@ -316,7 +317,9 @@ function render() {
                 li.appendChild(wall);
             }
         } else {
-            li.addEventListener('pointerdown', () => take(row));
+            // A finger takes the row on the release, so a scroll that starts
+            // on a row does not pick it (RowPress.ts).
+            onRowPress(li, () => take(row));
         }
         return li;
     });
@@ -329,7 +332,7 @@ function render() {
         const li = document.createElement('li');
         li.className = 'conversationLeaveRow';
         li.textContent = t('conversationLeave');
-        li.addEventListener('pointerdown', leave);
+        onRowPress(li, leave);
         items.push(li);
     }
     rowsElement.replaceChildren(...items);

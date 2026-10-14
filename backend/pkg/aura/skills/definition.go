@@ -73,6 +73,9 @@ const (
 	EffectTypeStatAura
 	EffectTypeInstantStat
 	EffectTypeCharge
+	EffectTypeEmpower
+	EffectTypeFear
+	EffectTypeStealth
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -186,6 +189,15 @@ var effectTypeMap = map[string]EffectType{
 	// Charge (plan-effect-types-round-2.md C3, D18): the nearest enemy in a
 	// search radius, then a dash to contact along dash's stepped probe.
 	"charge": EffectTypeCharge,
+	// Empower next cast (plan-effect-types-round-2.md C4, D7, D20): arms the
+	// caster's next cooldown with any mix of instant, free, crit and a factor.
+	"empower": EffectTypeEmpower,
+	// Fear (plan-effect-types-round-2.md C5, D22): a moving stun. The target
+	// runs from the caster and cannot cast; it shares stun's hard-CC ladder.
+	"fear": EffectTypeFear,
+	// Stealth (plan-effect-types-round-2.md C6, D1-D3): self-only, hidden from
+	// mobs until the cap runs out or damage moves HP either way.
+	"stealth": EffectTypeStealth,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -404,6 +416,17 @@ type EffectDef struct {
 	// retaliate is this" would be a type tag the Type already carries.
 	RetaliateDamage *RetaliateDamageParams `json:"retaliateDamage,omitempty"` // retaliate_damage
 	RetaliateBurst  *RetaliateBurstParams  `json:"retaliateBurst,omitempty"`  // retaliate_burst
+	Empower         *EmpowerParams         `json:"empower,omitempty"`         // empower
+	// Fear holds for a duration like a stun, so it carries the stun's payload
+	// shape under its own name (C5).
+	Fear    *StunParams    `json:"fear,omitempty"`    // fear
+	Stealth *StealthParams `json:"stealth,omitempty"` // stealth
+}
+
+// StealthParams is the stealth payload (C6, D1): the cap on how long the
+// caster stays hidden if nothing breaks it first.
+type StealthParams struct {
+	DurationTicks int `json:"durationTicks"`
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -1008,6 +1031,11 @@ type SpawnParams struct {
 	// authored levels are a floor: the spawn site raises them to the summon
 	// skill's level (RaiseLoadoutLevels).
 	SummonLoadout []SummonSkillRef `json:"summonLoadout,omitempty"`
+	// SummonOnDeath is the summon's death triggers, attached beside the
+	// loadout for the same reason (plan-effect-types-round-2.md C7): the
+	// tooltip says what a bursting totem does when it ends. Authored levels,
+	// never raised: a death trigger fires at the level its mob file names.
+	SummonOnDeath []SummonSkillRef `json:"summonOnDeath,omitempty"`
 }
 
 // SummonSkillRef points a spawn payload at one of its summon's skills by
@@ -1050,6 +1078,37 @@ type StatParams struct {
 // BonusAt is the level-scaled additive stat bonus.
 func (p *StatParams) BonusAt(level int) float32 {
 	return Scaled(p.Bonus, p.BonusPerLevel, level)
+}
+
+// EmpowerParams is the empower payload (plan-effect-types-round-2.md C4, D7):
+// what the caster's NEXT cooldown gains, and how long the offer stands. Each
+// skill authors any mix of the four; Factor 0 means no factor.
+type EmpowerParams struct {
+	Instant       bool    `json:"instant,omitempty"` // skips the cast time
+	Free          bool    `json:"free,omitempty"`    // costs nothing
+	Crit          bool    `json:"crit,omitempty"`    // every hit crits (DoTs never crit, L11)
+	Factor        float32 `json:"factor,omitempty"`  // multiplies the damage and healing of that cast
+	DurationTicks int     `json:"durationTicks"`
+}
+
+// DamageFactor is the multiplier the empowered cast applies, 1 when the
+// skill authors none.
+func (p EmpowerParams) DamageFactor() float32 {
+	if p.Factor == 0 {
+		return 1
+	}
+	return p.Factor
+}
+
+// GrantsEmpower reports whether this skill is an empower skill. Its own cast
+// never reads or spends an empower (L1): the buff it applies is for the next.
+func (d *SkillDefinition) GrantsEmpower() bool {
+	for _, e := range d.Effects {
+		if e.Type == EffectTypeEmpower {
+			return true
+		}
+	}
+	return false
 }
 
 type SkillDefinition struct {
@@ -1229,6 +1288,11 @@ type effectDef struct {
 	StunTicks         int `json:"stunTicks"`         // stun: how long the target is held
 	StunTicksPerLevel int `json:"stunTicksPerLevel"` // stun: added per skill level
 
+	FearTicks         int `json:"fearTicks"`         // fear: how long the target runs
+	FearTicksPerLevel int `json:"fearTicksPerLevel"` // fear: added per skill level
+
+	StealthDurationTicks int `json:"stealthDurationTicks"` // stealth: the cap on how long it lasts
+
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
@@ -1294,6 +1358,12 @@ type effectDef struct {
 
 	CharmTicks         int `json:"charmTicks"`         // charm: ticks fighting for the charmer
 	CharmTicksPerLevel int `json:"charmTicksPerLevel"` // charm: per skill level
+
+	EmpowerInstant       bool    `json:"empowerInstant"`       // empower: the next cooldown skips its cast time
+	EmpowerFree          bool    `json:"empowerFree"`          // empower: the next cooldown costs nothing
+	EmpowerCrit          bool    `json:"empowerCrit"`          // empower: the next cooldown's hits all crit
+	EmpowerFactor        float32 `json:"empowerFactor"`        // empower: multiplies the next cooldown's damage and healing
+	EmpowerDurationTicks int     `json:"empowerDurationTicks"` // empower: how long the offer stands
 }
 
 type skillDefinition struct {
@@ -1562,6 +1632,13 @@ var effectKeys = map[EffectType][]string{
 	// nearest enemy), so no selector, cap or target flags; the distance is
 	// wherever that enemy stands.
 	EffectTypeCharge: keysGeometry,
+	// Empower (C4, D20): self-only, so no geometry, cadence or targeting.
+	EffectTypeEmpower: {"empowerInstant", "empowerFree", "empowerCrit", "empowerFactor", "empowerDurationTicks"},
+	// Fear (C5): stun's capped query circle with its own duration keys.
+	EffectTypeFear: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		[]string{"fearTicks", "fearTicksPerLevel"}),
+	// Stealth (C6): self-only, its cap alone.
+	EffectTypeStealth: {"stealthDurationTicks"},
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1639,6 +1716,9 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeLifestealBurst: {SkillCategoryCooldown},
 	EffectTypeRetaliateBurst: {SkillCategoryCooldown},
 	EffectTypeCharge:         {SkillCategoryCooldown},
+	EffectTypeEmpower:        {SkillCategoryCooldown},
+	EffectTypeFear:           {SkillCategoryCooldown},
+	EffectTypeStealth:        {SkillCategoryCooldown},
 	EffectTypeInstantDamage:  {SkillCategoryCooldown},
 	EffectTypeInstantDot:     {SkillCategoryCooldown},
 
@@ -2029,6 +2109,16 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
 		def.Charm, err = e.charmParams()
+	case EffectTypeEmpower:
+		def.Empower, err = e.empowerParams()
+	case EffectTypeFear:
+		def.Fear, err = e.fearParams()
+	case EffectTypeStealth:
+		if e.StealthDurationTicks < 1 {
+			err = fmt.Errorf("stealthDurationTicks: must be >= 1, got %v", e.StealthDurationTicks)
+		} else {
+			def.Stealth = &StealthParams{DurationTicks: e.StealthDurationTicks}
+		}
 	case EffectTypeLightAura, EffectTypeRecall, EffectTypeCharge:
 		// Payload-less by design: light_aura is pure geometry (its radius
 		// streams as the wire light_radius), recall's destination is the
@@ -2404,6 +2494,25 @@ func (e *effectDef) tickRateParams() (*TickRateParams, error) {
 	return &TickRateParams{Factor: e.TickRateFactor, DurationTicks: e.TickRateDurationTicks}, nil
 }
 
+// empowerParams builds the empower payload (C4, D7). It must grant something
+// and stand for at least a tick; a factor is a multiplier, so it is above 0
+// and not exactly 1 (a no-op).
+func (e *effectDef) empowerParams() (*EmpowerParams, error) {
+	if !e.EmpowerInstant && !e.EmpowerFree && !e.EmpowerCrit && e.EmpowerFactor == 0 {
+		return nil, fmt.Errorf("empower: grants nothing (author empowerInstant, empowerFree, empowerCrit or empowerFactor)")
+	}
+	if e.EmpowerFactor < 0 || e.EmpowerFactor == 1 {
+		return nil, fmt.Errorf("empowerFactor: must be > 0 and not 1, got %v", e.EmpowerFactor)
+	}
+	if e.EmpowerDurationTicks <= 0 {
+		return nil, fmt.Errorf("empowerDurationTicks: must be > 0, got %v", e.EmpowerDurationTicks)
+	}
+	return &EmpowerParams{
+		Instant: e.EmpowerInstant, Free: e.EmpowerFree, Crit: e.EmpowerCrit,
+		Factor: e.EmpowerFactor, DurationTicks: e.EmpowerDurationTicks,
+	}, nil
+}
+
 // speedParams builds the payload both speed forms share, branching on the form
 // like resistParams and shieldParams do (C4/D8).
 //
@@ -2667,6 +2776,14 @@ func (e *effectDef) stunParams() (*StunParams, error) {
 		return nil, fmt.Errorf("stunTicks: must be >= 1, got %v", e.StunTicks)
 	}
 	return &StunParams{DurationTicks: e.StunTicks, DurationTicksPerLevel: e.StunTicksPerLevel}, nil
+}
+
+// fearParams builds the fear payload on the stunParams rule.
+func (e *effectDef) fearParams() (*StunParams, error) {
+	if e.FearTicks < 1 {
+		return nil, fmt.Errorf("fearTicks: must be >= 1, got %v", e.FearTicks)
+	}
+	return &StunParams{DurationTicks: e.FearTicks, DurationTicksPerLevel: e.FearTicksPerLevel}, nil
 }
 
 // calmParams builds the calm payload. A calm of zero ticks is a cast that

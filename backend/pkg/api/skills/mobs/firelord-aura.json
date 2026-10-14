@@ -1,0 +1,25 @@
+{
+  "_comment": "The Firelord's flame burst: a medium direct fire hit (no dot) on every enemy within 2 units, once every 90 ticks. Uncapped on purpose: the whole ring burns at once, and the wave shows it. Paired with the Fire Stirer, whose mark doubles fire damage taken. All values placeholder.",
+  "id": 169,
+  "name": "FirelordAura",
+  "category": "active_aura",
+  "maxLevel": 1,
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 500, "count": 1 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 2.0,
+      "damageHP": 15,
+      "damageTags": ["fire"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "all",
+      "tickInterval": 90
+    }
+  ]
+}

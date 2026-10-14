@@ -164,6 +164,9 @@ const clickRow = async (needle) => {
   }, needle);
   const el = handle.asElement();
   if (!el) return false;
+  // The row list scrolls (#conversation is capped at 40vh), so a long root can
+  // hold the row below the fold, where a click lands outside the panel.
+  await el.scrollIntoViewIfNeeded();
   const b = await el.boundingBox();
   if (!b) return false;
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);

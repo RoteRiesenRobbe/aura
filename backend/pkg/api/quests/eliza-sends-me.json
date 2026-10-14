@@ -1,12 +1,15 @@
 {
-  "_comment": "The opening arc's handoff (plan-region-identity.md R2, PO 2026-10-05): the first `reach` quest. Eliza hands it over automatically on the dinner turn-in, as that row's trailing offer_quest, since her completed-dinner greeting already points down the road; her `root_fed` node also offers it on 'Do you have a task for me?' for a character who finished dinner before this quest existed (the row shows only while the quest is not started). `road` is done the first tick the player stands inside the `farmreinhard` region (api/regions/regions.json), not while flying; `meet` is turned in on Reinhard's 'Eliza sends me.' row. No reward: it is a handoff, and his own quests follow. ⚑ NO MARKER of any kind points at the farm (gdd.md §42). Text deliberately plain (PO 2026-08-02).",
+  "_comment": "Off to the Mill: the opening's handoff and the first `reach` quest. Flora offers it once `meat-for-dinner` is complete; `road` is done the first tick the player stands inside the `farmreinhard` region (api/regions/regions.json), not while flying; `meet` is turned in on Reinhard's root row 'Flora sends me. I'm looking for work.' No reward: it is a handoff, and his own quests follow. No marker of any kind points at the farm (gdd.md §42). The id keeps its old name so saved progress stays valid.",
   "id": "eliza-sends-me",
   "level": 1,
   "stages": [
     {
       "id": "road",
       "objectives": [
-        { "kind": "reach", "region": "farmreinhard" }
+        {
+          "kind": "reach",
+          "region": "farmreinhard"
+        }
       ],
       "next": "meet"
     },

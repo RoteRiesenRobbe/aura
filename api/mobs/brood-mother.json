@@ -1,0 +1,33 @@
+{
+  "_comment": "Debug-zone example for death triggers: a giant spider that screeches players into fear and splits into two Spiders when it dies. Reuses the GiantSpider art. All values placeholder.",
+  "id": 116,
+  "name": "BroodMother",
+  "type": "MOB",
+  "entityType": "GiantSpider",
+  "faction": "spider",
+  "tier": "normal",
+  "curveLevel": 9,
+  "factors": {
+    "resistances": {"poison": 0.25},
+    "baseMaxHealth": 182,
+    "maxHealthVariance": 0.1,
+    "speed": 0.95,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.45,
+    "aggroRadius": 3
+  },
+  "skills": [
+    { "skillName": "GiantVenomSpit", "level": 1 },
+    { "skillName": "BroodScreech", "level": 1 }
+  ],
+  "onDeath": [
+    { "skillName": "BroodSplit", "level": 1 }
+  ]
+}

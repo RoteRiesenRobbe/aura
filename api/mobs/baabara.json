@@ -27,7 +27,32 @@
         "id": "root",
         "lines": [
           {"id": "baa"}
+        ],
+        "options": [
+          {
+            "id": "are-you-baabara",
+            "next": "asked"
+          }
         ]
+      },
+      {
+        "id": "asked",
+        "lines": [
+          {"id": "baaahh"}
+        ],
+        "options": [
+          {
+            "id": "ill-take-that-as",
+            "next": "quip"
+          }
+        ]
+      },
+      {
+        "id": "quip",
+        "lines": [
+          {"id": "baa-2"}
+        ],
+        "options": []
       }
     ]
   }

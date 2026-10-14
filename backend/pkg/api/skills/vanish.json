@@ -1,0 +1,17 @@
+{
+  "_comment": "Hides the caster from monsters for up to 20 s and makes every monster forget them. Dealing or taking damage ends it, so a damaging aura reveals the caster on its first tick. All values placeholder.",
+  "id": 168,
+  "name": "Vanish",
+  "icon": "delapouite/invisible",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 1800,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 10, "ms": 600, "tint": "#b8bcc8" }
+    ]
+  },
+  "effects": [
+    { "type": "stealth", "costFractionOfMax": 0.03, "stealthDurationTicks": 600 }
+  ]
+}

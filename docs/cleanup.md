@@ -160,6 +160,20 @@ identity R2 closed (`docs/archive/plan-region-identity.md`).
 | **Trigger** | ⭐ **The next chunk that touches the Tiled palette or `AuraRegion`**, or the first time the label misleads someone in Tiled. |
 | **Closes when** | The region's placeholder says what it means (delete this row), or the PO rules the shared label fine. |
 
+### 5. The darkness layer's render target, never tuned for cost
+
+⚑ Not a superseded implementation: a performance tidy-up the PO parked here
+(2026-10-12) beside `docs/plan-lightmap.md`, which changes what this layer
+draws but not what it costs. Independent of that plan in either order.
+
+| | |
+|---|---|
+| **What** | `DarknessOverlay.ts` (as of `38bd612c`). (a) The `AlphaFilter` (169) renders the layer at the full canvas resolution, though everything in it is a soft gradient. (b) The layer has no `filterArea`, so Pixi walks the bounds of every child each frame, including every static campfire and torch glow in the zone (`punchStaticLight`, 291). (c) No light sprite is `cullable`, so off-screen glows are still submitted. The haze layer's filter (174) has (a) and (b) too. |
+| **Fix** | (a) `resolution: 0.5` on both filters (try 0.25 on mobile). The upscale blurs a gradient, which is invisible. ⭐ The big one: fill rate is the phone's ceiling. (b) A `filterArea` clamped to the viewport. ⚑ Check which space v8 reads it in, given the camera transform on `cameraGroup`. (c) `cullable = true` on static glows. All three are client-only, no wire, no schema. |
+| **Proof** | Pixels, never structure: re-run `a5-darkness-blend.mjs`, `a4-clearing.mjs` and `d-map-fog-darkness.mjs`. At 0.5 the band readings move by blur only. Frame time measured in the underworld before and after, desktop and phone. |
+| **Trigger** | ⭐ **The next phone visit** (entry 2 rides the same one), or the first frame-rate complaint in a dark zone, or L1 of `plan-lightmap.md`, whichever comes first. L1 already touches the filter in `setup`. |
+| **Closes when** | Measured and landed (delete this row), or measured and judged not worth it (say so and delete). |
+
 ---
 
 

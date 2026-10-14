@@ -22,7 +22,7 @@
   "@region.brunnstedt.subtitle": {
     "description": "Region banner subtitle under \"Brunnstedt\"."
   },
-  "region.brunnstedt.title": "Brunnstedt",
+  "region.brunnstedt.title": "Dionsburg",
   "@region.brunnstedt.title": {
     "description": "Region banner title of the place \"brunnstedt\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24

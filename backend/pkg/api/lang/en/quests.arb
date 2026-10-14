@@ -1,5 +1,51 @@
 {
   "@@locale": "en",
+  "quest.a-healthy-brew.back.journal": "Eight strands of seaweed. Lionett is waiting for them.",
+  "@quest.a-healthy-brew.back.journal": {
+    "description": "Journal (diary) entry of quest \"a-healthy-brew\", stage \"back\": written in the player's voice, first person."
+  },
+  "quest.a-healthy-brew.back.tracker": "Return to Lionett",
+  "@quest.a-healthy-brew.back.tracker": {
+    "description": "Tracker line of quest \"a-healthy-brew\", stage \"back\": the one objective line shown under the quest title."
+  },
+  "quest.a-healthy-brew.done.journal": "Lionett brewed her tea and taught you how to make it.",
+  "@quest.a-healthy-brew.done.journal": {
+    "description": "Journal (diary) entry of quest \"a-healthy-brew\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.a-healthy-brew.gather.journal": "Lionett wants you to gather 8 seaweed for her tea.",
+  "@quest.a-healthy-brew.gather.journal": {
+    "description": "Journal (diary) entry of quest \"a-healthy-brew\", stage \"gather\": written in the player's voice, first person."
+  },
+  "quest.a-healthy-brew.gather.tracker": "{n, number}/{m, number} seaweed gathered",
+  "@quest.a-healthy-brew.gather.tracker": {
+    "description": "Tracker line of quest \"a-healthy-brew\", stage \"gather\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.a-healthy-brew.title": "A Healthy Brew",
+  "@quest.a-healthy-brew.title": {
+    "description": "Quest title of \"a-healthy-brew\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.a-lost-shipment.found.journal": "You found Tobias alive at a campfire in the woods. The shipment is lost, but he still has Reinhard's letter.",
+  "@quest.a-lost-shipment.found.journal": {
+    "description": "Journal (diary) entry of quest \"a-lost-shipment\", stage \"found\": written in the player's voice, first person."
+  },
+  "quest.a-lost-shipment.search.journal": "Reinhard sent his farmhand Tobias to deliver a shipment to Dionsburg. He hasn't returned. Look for Tobias in the forest to the east.",
+  "@quest.a-lost-shipment.search.journal": {
+    "description": "Journal (diary) entry of quest \"a-lost-shipment\", stage \"search\": written in the player's voice, first person."
+  },
+  "quest.a-lost-shipment.search.tracker": "Find Tobias in the forest to the east",
+  "@quest.a-lost-shipment.search.tracker": {
+    "description": "Tracker line of quest \"a-lost-shipment\", stage \"search\": the one objective line shown under the quest title."
+  },
+  "quest.a-lost-shipment.title": "A Lost Shipment",
+  "@quest.a-lost-shipment.title": {
+    "description": "Quest title of \"a-lost-shipment\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.alpha-wolves-at-the-village.cull.journal": "Kill 5 alpha wolves around the village.",
   "@quest.alpha-wolves-at-the-village.cull.journal": {
     "description": "Journal (diary) entry of quest \"alpha-wolves-at-the-village\", stage \"cull\": written in the player's voice, first person."
@@ -87,7 +133,7 @@
     "description": "Quest title of \"bears-at-the-walls\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.boars-in-the-field.cull.journal": "Kill 6 boars in the fields around the farm.",
+  "quest.boars-in-the-field.cull.journal": "Kill 6 of the boars who threaten the harvest on the fields north and south of miller Reinhard's mill.",
   "@quest.boars-in-the-field.cull.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"cull\": written in the player's voice, first person."
   },
@@ -99,19 +145,19 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.boars-in-the-field.done.journal": "Done. Reported back to the Farmer.",
+  "quest.boars-in-the-field.done.journal": "Reinhard's grain is safe, for now.",
   "@quest.boars-in-the-field.done.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.boars-in-the-field.report.journal": "The boars are dealt with; the Farmer waits by his field.",
+  "quest.boars-in-the-field.report.journal": "The boars are dealt with. Reinhard is waiting.",
   "@quest.boars-in-the-field.report.journal": {
     "description": "Journal (diary) entry of quest \"boars-in-the-field\", stage \"report\": written in the player's voice, first person."
   },
-  "quest.boars-in-the-field.report.tracker": "Return to the Farmer",
+  "quest.boars-in-the-field.report.tracker": "Return to Reinhard",
   "@quest.boars-in-the-field.report.tracker": {
     "description": "Tracker line of quest \"boars-in-the-field\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.boars-in-the-field.title": "Boars in the Field",
+  "quest.boars-in-the-field.title": "The Problematic Boars",
   "@quest.boars-in-the-field.title": {
     "description": "Quest title of \"boars-in-the-field\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
@@ -143,35 +189,6 @@
   "quest.clear-the-grove.title": "Clear the Grove",
   "@quest.clear-the-grove.title": {
     "description": "Quest title of \"clear-the-grove\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
-    "x-maxLength": 30
-  },
-  "quest.dinner-for-the-family.done.journal": "Dinner. Afterwards Eliza points east down the road, to Reinhard's farm.",
-  "@quest.dinner-for-the-family.done.journal": {
-    "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"done\": written in the player's voice, first person."
-  },
-  "quest.dinner-for-the-family.gather.journal": "Eliza needs meat and beets for dinner. Hendrik hunts; Benjamin grows beets.",
-  "@quest.dinner-for-the-family.gather.journal": {
-    "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"gather\": written in the player's voice, first person."
-  },
-  "quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": "Talk to Benjamin",
-  "@quest.dinner-for-the-family.gather.talk_to.Benjamin.tracker": {
-    "description": "Tracker line of one talk_to objective (Benjamin) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
-  },
-  "quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": "Talk to Hendrik",
-  "@quest.dinner-for-the-family.gather.talk_to.Hendrik.tracker": {
-    "description": "Tracker line of one talk_to objective (Hendrik) in quest \"dinner-for-the-family\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
-  },
-  "quest.dinner-for-the-family.home.journal": "Meat and beets. Eliza is waiting on the pot.",
-  "@quest.dinner-for-the-family.home.journal": {
-    "description": "Journal (diary) entry of quest \"dinner-for-the-family\", stage \"home\": written in the player's voice, first person."
-  },
-  "quest.dinner-for-the-family.home.tracker": "Bring the food home to Eliza",
-  "@quest.dinner-for-the-family.home.tracker": {
-    "description": "Tracker line of quest \"dinner-for-the-family\", stage \"home\": the one objective line shown under the quest title."
-  },
-  "quest.dinner-for-the-family.title": "Dinner for the Family",
-  "@quest.dinner-for-the-family.title": {
-    "description": "Quest title of \"dinner-for-the-family\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
   "quest.dire-wolves-at-the-camp.cull.journal": "Kill 6 dire wolves around the Shaman's camp.",
@@ -232,11 +249,11 @@
     "description": "Quest title of \"dire-wolves-in-the-forest\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.eliza-sends-me.done.journal": "I told Reinhard that Eliza sent me. He looked me over and nodded: there is work.",
+  "quest.eliza-sends-me.done.journal": "You told Reinhard that Flora sent you. There is plenty of work around here.",
   "@quest.eliza-sends-me.done.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.eliza-sends-me.meet.journal": "I have reached Reinhard's farm. Now to find the man himself.",
+  "quest.eliza-sends-me.meet.journal": "You have reached Reinhard's farm. Now to find the miller himself.",
   "@quest.eliza-sends-me.meet.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"meet\": written in the player's voice, first person."
   },
@@ -244,7 +261,7 @@
   "@quest.eliza-sends-me.meet.tracker": {
     "description": "Tracker line of quest \"eliza-sends-me\", stage \"meet\": the one objective line shown under the quest title."
   },
-  "quest.eliza-sends-me.road.journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
+  "quest.eliza-sends-me.road.journal": "Flora has no more work. She told you to talk to miller Reinhard, who lives further east.",
   "@quest.eliza-sends-me.road.journal": {
     "description": "Journal (diary) entry of quest \"eliza-sends-me\", stage \"road\": written in the player's voice, first person."
   },
@@ -252,16 +269,16 @@
   "@quest.eliza-sends-me.road.reach.farmreinhard.tracker": {
     "description": "Tracker line of one reach objective (Reinhard's Farm) in quest \"eliza-sends-me\", stage \"road\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest.eliza-sends-me.title": "Eliza Sends Me",
+  "quest.eliza-sends-me.title": "Off to the Mill",
   "@quest.eliza-sends-me.title": {
     "description": "Quest title of \"eliza-sends-me\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.giant-rats-in-the-barn.clear.journal": "Kill 8 giant rats in Reinhard's barn.",
+  "quest.giant-rats-in-the-barn.clear.journal": "Miller Reinhard tasked you to kill 8 of the rats that have infested the granary.",
   "@quest.giant-rats-in-the-barn.clear.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"clear\": written in the player's voice, first person."
   },
-  "quest.giant-rats-in-the-barn.clear.tracker": "{n, number}/{m, number} giant rats killed",
+  "quest.giant-rats-in-the-barn.clear.tracker": "{n, number}/{m, number} rats killed",
   "@quest.giant-rats-in-the-barn.clear.tracker": {
     "description": "Tracker line of quest \"giant-rats-in-the-barn\", stage \"clear\": the one objective line shown under the quest title.",
     "placeholders": {
@@ -269,11 +286,11 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.giant-rats-in-the-barn.done.journal": "Done. The barn is Reinhard's again.",
+  "quest.giant-rats-in-the-barn.done.journal": "The granary is Reinhard's again.",
   "@quest.giant-rats-in-the-barn.done.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.giant-rats-in-the-barn.report.journal": "The barn is quiet. Reinhard is out in his field.",
+  "quest.giant-rats-in-the-barn.report.journal": "The granary is quiet. Reinhard is waiting.",
   "@quest.giant-rats-in-the-barn.report.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"report\": written in the player's voice, first person."
   },
@@ -281,9 +298,54 @@
   "@quest.giant-rats-in-the-barn.report.tracker": {
     "description": "Tracker line of quest \"giant-rats-in-the-barn\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.giant-rats-in-the-barn.title": "Giant Rats in the Barn",
+  "quest.giant-rats-in-the-barn.title": "The Pest in the Granary",
   "@quest.giant-rats-in-the-barn.title": {
     "description": "Quest title of \"giant-rats-in-the-barn\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.he-who-cried-wolf.crier.journal": "Hans is uneasy about so many wolves. He sent you to the Town Crier, close to Reinhard's farm.",
+  "@quest.he-who-cried-wolf.crier.journal": {
+    "description": "Journal (diary) entry of quest \"he-who-cried-wolf\", stage \"crier\": written in the player's voice, first person."
+  },
+  "quest.he-who-cried-wolf.crier.tracker": "Talk to the Town Crier",
+  "@quest.he-who-cried-wolf.crier.tracker": {
+    "description": "Tracker line of quest \"he-who-cried-wolf\", stage \"crier\": the one objective line shown under the quest title."
+  },
+  "quest.he-who-cried-wolf.done.journal": "The Governor of Dionsburg has heard about the wolves.",
+  "@quest.he-who-cried-wolf.done.journal": {
+    "description": "Journal (diary) entry of quest \"he-who-cried-wolf\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.he-who-cried-wolf.governor.journal": "The Town Crier advised you to tell the Governor of Dionsburg about the rising numbers of wolves in the farmlands. Maybe they know what causes it there.",
+  "@quest.he-who-cried-wolf.governor.journal": {
+    "description": "Journal (diary) entry of quest \"he-who-cried-wolf\", stage \"governor\": written in the player's voice, first person."
+  },
+  "quest.he-who-cried-wolf.governor.tracker": "Talk to the Governor of Dionsburg",
+  "@quest.he-who-cried-wolf.governor.tracker": {
+    "description": "Tracker line of quest \"he-who-cried-wolf\", stage \"governor\": the one objective line shown under the quest title."
+  },
+  "quest.he-who-cried-wolf.hunt.journal": "The shepherd tasked you with killing 6 wolves that found their way to the farmlands.",
+  "@quest.he-who-cried-wolf.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"he-who-cried-wolf\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.he-who-cried-wolf.hunt.tracker": "{n, number}/{m, number} wolves slain",
+  "@quest.he-who-cried-wolf.hunt.tracker": {
+    "description": "Tracker line of quest \"he-who-cried-wolf\", stage \"hunt\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.he-who-cried-wolf.report.journal": "Six wolves are dead. Hans should hear of it.",
+  "@quest.he-who-cried-wolf.report.journal": {
+    "description": "Journal (diary) entry of quest \"he-who-cried-wolf\", stage \"report\": written in the player's voice, first person."
+  },
+  "quest.he-who-cried-wolf.report.tracker": "Return to Hans",
+  "@quest.he-who-cried-wolf.report.tracker": {
+    "description": "Tracker line of quest \"he-who-cried-wolf\", stage \"report\": the one objective line shown under the quest title."
+  },
+  "quest.he-who-cried-wolf.title": "He Who Cried Wolf",
+  "@quest.he-who-cried-wolf.title": {
+    "description": "Quest title of \"he-who-cried-wolf\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
   "quest.kobolds-on-the-road.cull.journal": "Kill 8 kobolds near the road.",
@@ -313,6 +375,56 @@
   "quest.kobolds-on-the-road.title": "Kobolds on the Road",
   "@quest.kobolds-on-the-road.title": {
     "description": "Quest title of \"kobolds-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.meat-for-dinner.done.journal": "Meat's back on the menu.",
+  "@quest.meat-for-dinner.done.journal": {
+    "description": "Journal (diary) entry of quest \"meat-for-dinner\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.meat-for-dinner.home.journal": "Five deer. Flora's pantry will be full again.",
+  "@quest.meat-for-dinner.home.journal": {
+    "description": "Journal (diary) entry of quest \"meat-for-dinner\", stage \"home\": written in the player's voice, first person."
+  },
+  "quest.meat-for-dinner.home.tracker": "Return to Flora",
+  "@quest.meat-for-dinner.home.tracker": {
+    "description": "Tracker line of quest \"meat-for-dinner\", stage \"home\": the one objective line shown under the quest title."
+  },
+  "quest.meat-for-dinner.hunt.journal": "Kill 5 deer for Flora's pantry. You'll find them south of the farm.",
+  "@quest.meat-for-dinner.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"meat-for-dinner\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.meat-for-dinner.hunt.talk_to.Henrik.tracker": "Talk to Henrik",
+  "@quest.meat-for-dinner.hunt.talk_to.Henrik.tracker": {
+    "description": "Tracker line of one talk_to objective (Henrik) in quest \"meat-for-dinner\", stage \"hunt\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.meat-for-dinner.title": "Meat for Dinner",
+  "@quest.meat-for-dinner.title": {
+    "description": "Quest title of \"meat-for-dinner\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.ready-for-harvest.done.journal": "Flora has her beets.",
+  "@quest.ready-for-harvest.done.journal": {
+    "description": "Journal (diary) entry of quest \"ready-for-harvest\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.ready-for-harvest.gather.journal": "Harvest 10 beets on the field east of farmer Flora's house.",
+  "@quest.ready-for-harvest.gather.journal": {
+    "description": "Journal (diary) entry of quest \"ready-for-harvest\", stage \"gather\": written in the player's voice, first person."
+  },
+  "quest.ready-for-harvest.gather.talk_to.Benjamin.tracker": "Talk to Benjamin",
+  "@quest.ready-for-harvest.gather.talk_to.Benjamin.tracker": {
+    "description": "Tracker line of one talk_to objective (Benjamin) in quest \"ready-for-harvest\", stage \"gather\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.ready-for-harvest.home.journal": "The beets are harvested. Flora is waiting.",
+  "@quest.ready-for-harvest.home.journal": {
+    "description": "Journal (diary) entry of quest \"ready-for-harvest\", stage \"home\": written in the player's voice, first person."
+  },
+  "quest.ready-for-harvest.home.tracker": "Return to Flora",
+  "@quest.ready-for-harvest.home.tracker": {
+    "description": "Tracker line of quest \"ready-for-harvest\", stage \"home\": the one objective line shown under the quest title."
+  },
+  "quest.ready-for-harvest.title": "Ready for Harvest",
+  "@quest.ready-for-harvest.title": {
+    "description": "Quest title of \"ready-for-harvest\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
   "quest.spiders-in-the-diggings.cull.journal": "Kill 6 spiders in the tunnel diggings.",
@@ -398,19 +510,19 @@
     "description": "Quest title of \"the-lost-lamp\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-millers-ring.done.journal": "Done. The Miller has his ring back.",
+  "quest.the-millers-ring.done.journal": "Reinhard has his ring back.",
   "@quest.the-millers-ring.done.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-millers-ring.return.journal": "The ring was tangled in a heap of seaweed. The Miller will want it back.",
+  "quest.the-millers-ring.return.journal": "The ring was tangled in a heap of seaweed. Reinhard will want it back before his wife notices.",
   "@quest.the-millers-ring.return.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"return\": written in the player's voice, first person."
   },
-  "quest.the-millers-ring.return.tracker": "Return the ring to the Miller",
+  "quest.the-millers-ring.return.tracker": "Return the ring to Reinhard",
   "@quest.the-millers-ring.return.tracker": {
     "description": "Tracker line of quest \"the-millers-ring\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest.the-millers-ring.search.journal": "The Miller lost his wedding ring on the beach north of the farmland. It must be tangled in the seaweed washed up along the shore.",
+  "quest.the-millers-ring.search.journal": "Find miller Reinhard's lost wedding ring on the beach north of the farm. It must be tangled in the seaweed washed up along the shore.",
   "@quest.the-millers-ring.search.journal": {
     "description": "Journal (diary) entry of quest \"the-millers-ring\", stage \"search\": written in the player's voice, first person."
   },
@@ -418,7 +530,7 @@
   "@quest.the-millers-ring.search.tracker": {
     "description": "Tracker line of quest \"the-millers-ring\", stage \"search\": the one objective line shown under the quest title."
   },
-  "quest.the-millers-ring.title": "The Miller's Ring",
+  "quest.the-millers-ring.title": "Lost and Found",
   "@quest.the-millers-ring.title": {
     "description": "Quest title of \"the-millers-ring\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
@@ -480,11 +592,11 @@
     "description": "Quest title of \"the-sleeping-roots\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-sounder-at-the-mill.cull.journal": "Kill the alpha boar leading the sounder by the mill.",
+  "quest.the-sounder-at-the-mill.cull.journal": "Kill the leader of the boars. You'll find him in their den to the south.",
   "@quest.the-sounder-at-the-mill.cull.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest.the-sounder-at-the-mill.cull.tracker": "Kill the alpha boar ({n, number}/{m, number})",
+  "quest.the-sounder-at-the-mill.cull.tracker": "Kill the beast of the farmlands ({n, number}/{m, number})",
   "@quest.the-sounder-at-the-mill.cull.tracker": {
     "description": "Tracker line of quest \"the-sounder-at-the-mill\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
@@ -492,28 +604,28 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.the-sounder-at-the-mill.done.journal": "Done. Reported back to the Miller.",
+  "quest.the-sounder-at-the-mill.done.journal": "The beast is dead and the crops are safe.",
   "@quest.the-sounder-at-the-mill.done.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-sounder-at-the-mill.report.journal": "The alpha boar is dead; the Miller waits by his mill.",
+  "quest.the-sounder-at-the-mill.report.journal": "The beast of the farmlands is dead. Reinhard will want to hear it.",
   "@quest.the-sounder-at-the-mill.report.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"report\": written in the player's voice, first person."
   },
-  "quest.the-sounder-at-the-mill.report.tracker": "Return to the Miller",
+  "quest.the-sounder-at-the-mill.report.tracker": "Return to Reinhard",
   "@quest.the-sounder-at-the-mill.report.tracker": {
     "description": "Tracker line of quest \"the-sounder-at-the-mill\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.the-sounder-at-the-mill.title": "The Sounder at the Mill",
+  "quest.the-sounder-at-the-mill.title": "The Beast of the Farmlands",
   "@quest.the-sounder-at-the-mill.title": {
     "description": "Quest title of \"the-sounder-at-the-mill\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-strays.done.journal": "Done. Reported back to the Shepherd.",
+  "quest.the-strays.done.journal": "Hans has his herd back. More or less.",
   "@quest.the-strays.done.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-strays.find.journal": "The shepherd's three sheep — Baabara, Woolliam and Lambert — have wandered off across the pasture, and his dog with them.",
+  "quest.the-strays.find.journal": "Find the shepherd's lost sheep and his dog. They are somewhere around the farmlands.",
   "@quest.the-strays.find.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"find\": written in the player's voice, first person."
   },
@@ -533,15 +645,15 @@
   "@quest.the-strays.find.talk_to.Woolliam.tracker": {
     "description": "Tracker line of one talk_to objective (Woolliam) in quest \"the-strays\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
-  "quest.the-strays.report.journal": "Baabara, Woolliam and Lambert are found and the shepherd's dog is with them; the Shepherd waits on the pasture.",
+  "quest.the-strays.report.journal": "Baabara, Woolliam and Lambert are found, and the dog with them. Hans is waiting on the pasture.",
   "@quest.the-strays.report.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"report\": written in the player's voice, first person."
   },
-  "quest.the-strays.report.tracker": "Return to the Shepherd",
+  "quest.the-strays.report.tracker": "Return to Hans",
   "@quest.the-strays.report.tracker": {
     "description": "Tracker line of quest \"the-strays\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.the-strays.title": "The Strays",
+  "quest.the-strays.title": "A Herd Astray",
   "@quest.the-strays.title": {
     "description": "Quest title of \"the-strays\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30

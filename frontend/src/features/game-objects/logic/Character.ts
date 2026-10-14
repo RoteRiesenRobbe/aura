@@ -24,6 +24,7 @@ import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
+import {tokenAlpha} from './EffectPips';
 import type {AuraDisplay, LevelDisplay, OverheadVitals} from './WireSetters';
 import {BeatDetector} from './AuraBeat';
 
@@ -179,6 +180,8 @@ export class Character extends GameObject
             text: this.name,
             style: TextDisplay.style({
                 fill: 'white',
+                stroke: {color: '#000000', width: 4},
+                fontWeight: '700',
             }),
         });
         text.anchor.set(0.5, 0.5);
@@ -225,6 +228,15 @@ export class Character extends GameObject
     // (a dot no longer waits for its first damage tick to become visible).
     setAppliedEffects(mask: number) {
         this.overheadBar?.setAppliedEffects(mask);
+        this.setTokenAlpha(mask);
+    }
+
+    // A stealthed character draws translucent (plan-effect-types-round-2.md
+    // C6, D24). The own player feeds this directly, since its pips are never
+    // fed (buff tray D10, L12). The nameplate is not on `shape`, so it stays
+    // readable.
+    setTokenAlpha(mask: number) {
+        this.shape.alpha = tokenAlpha(mask);
     }
 
     /**

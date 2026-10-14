@@ -139,7 +139,7 @@ the same coordinate space and entered through a door: `barn.json`,
 |---|---|
 | 1 Starting village, forest and fields | Farmlands · Saltgrass Strand. ⛔ Brackenfold Meadows is still painted here but is leaving Zone 1 (PO 2026-10-02: "zone 1 is primarily farmland and the strand"); the map fix is owed, its destination is a map call |
 | 2 Forest and a logging camp | Deep Woods |
-| The City | Brunnstedt |
+| The City | Dionsburg |
 
 ⚑ **The other regions are NOT yet mapped to zone numbers here.** The world
 was placed "in the order of content-world.md" (`8bc9210c`), but a table

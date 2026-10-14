@@ -1,7 +1,7 @@
 # Content editor
 
 A local, standalone tool for hand-authored **mobs** (full stat fields:
-`tier`/`factors`/`body`/`skills`/`unlocks`/`faction`/`entityType`/…),
+`tier`/`factors`/`body`/`skills`/`onDeath`/`unlocks`/`faction`/`entityType`/…),
 **NPC dialogue trees** (the same mob file's `interaction` block — an NPC is
 not a separate schema, just a mob that carries one), **quest stage graphs**
 (`api/quests/*.json`), **factions** (`api/factions/*.json`), **recipes**
@@ -82,7 +82,7 @@ A hand edit outside the editor drafts the text inline and runs
 **In:** every mob stat field on any `api/mobs/*.json` file (identity, tier/
 role/faction/curveLevel/entityType, factors incl. resistances/gateKeys as
 fixed-vocabulary pickers, body incl. collision layer/mask as bitmask
-checkboxes, skills[], unlocks[]); NPC `interaction.nodes[]` / `.ambient` /
+checkboxes, skills[], onDeath[], unlocks[]); NPC `interaction.nodes[]` / `.ambient` /
 `.range` on any mob that carries one; quest `stages[]`/`objectives[]`/`next`
 on `api/quests/*.json` (an objective's `tracker` (any kind, Q2), `chance` +
 `guaranteedAt` on a kill/harvest), including a clickable "referenced by" panel showing

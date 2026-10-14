@@ -88,9 +88,28 @@
     "description": "Name of the skill BombBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.BroodScreech.name": "Brood Screech",
+  "@skill.BroodScreech.name": {
+    "description": "Name of the skill BroodScreech: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.BroodSplit.name": "Brood Split",
+  "@skill.BroodSplit.name": {
+    "description": "Name of the skill BroodSplit: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Bulwark.name": "Bulwark",
   "@skill.Bulwark.name": {
     "description": "Name of the skill Bulwark: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.BurstingTotem.description": "When its time runs out or it is destroyed, the totem bursts, burning every enemy around it. Its damage grows with your level.",
+  "@skill.BurstingTotem.description": {
+    "description": "Tooltip prose block of the skill BurstingTotem."
+  },
+  "skill.BurstingTotem.name": "Bursting Totem",
+  "@skill.BurstingTotem.name": {
+    "description": "Name of the skill BurstingTotem: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.CallForAid.name": "Call for Aid",
@@ -219,6 +238,16 @@
     "description": "Name of the skill FireShield: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.FireStirerAura.name": "Fire Stirer Aura",
+  "@skill.FireStirerAura.name": {
+    "description": "Name of the skill FireStirerAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.FireStirerKindle.name": "Fire Stirer Kindle",
+  "@skill.FireStirerKindle.name": {
+    "description": "Name of the skill FireStirerKindle: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.FireTotem.name": "Fire Totem",
   "@skill.FireTotem.name": {
     "description": "Name of the skill FireTotem: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -242,6 +271,11 @@
   "skill.Firebolt.name": "Firebolt",
   "@skill.Firebolt.name": {
     "description": "Name of the skill Firebolt: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.FirelordAura.name": "Firelord Aura",
+  "@skill.FirelordAura.name": {
+    "description": "Name of the skill FirelordAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.FirstAid.name": "First Aid",
@@ -361,6 +395,11 @@
   "skill.MammothAura.name": "Mammoth Aura",
   "@skill.MammothAura.name": {
     "description": "Name of the skill MammothAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.NaturesSwiftness.name": "Nature's Swiftness",
+  "@skill.NaturesSwiftness.name": {
+    "description": "Name of the skill NaturesSwiftness: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.NovaBurst.name": "Nova Burst",
@@ -579,6 +618,11 @@
     "description": "Name of the skill Taunt: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.Terrify.name": "Terrify",
+  "@skill.Terrify.name": {
+    "description": "Name of the skill Terrify: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.ThickHide.name": "Thick Hide",
   "@skill.ThickHide.name": {
     "description": "Name of the skill ThickHide: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -613,6 +657,11 @@
     "description": "Name of the skill TotemAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.TotemBurst.name": "Totem Burst",
+  "@skill.TotemBurst.name": {
+    "description": "Name of the skill TotemBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Tough.name": "Tough",
   "@skill.Tough.name": {
     "description": "Name of the skill Tough: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -626,6 +675,11 @@
   "skill.Vanguard.name": "Vanguard",
   "@skill.Vanguard.name": {
     "description": "Name of the skill Vanguard: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.Vanish.name": "Vanish",
+  "@skill.Vanish.name": {
+    "description": "Name of the skill Vanish: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.VenomSpit.name": "Venom Spit",

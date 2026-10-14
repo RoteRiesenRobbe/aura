@@ -588,6 +588,9 @@ export function validateMob(mob, idx) {
   for (const s of mob.skills || []) {
     if (!s.skillName || !idx.skills.has(s.skillName)) err(`${who}: skill "${s.skillName}" not found`);
   }
+  for (const s of mob.onDeath || []) {
+    if (!s.skillName || !idx.skills.has(s.skillName)) err(`${who}: onDeath skill "${s.skillName}" not found`);
+  }
   for (const u of mob.unlocks || []) {
     if (!u.skillName || !idx.skills.has(u.skillName)) err(`${who}: unlock skill "${u.skillName}" not found`);
     const chance = u.chance ?? 1.0;

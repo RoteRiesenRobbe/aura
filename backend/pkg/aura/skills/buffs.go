@@ -184,6 +184,28 @@ type statPayload struct {
 	bonus float32
 }
 
+// empowerPayload is a live empower (plan-effect-types-round-2.md C4, D21):
+// the offer the caster's next cooldown spends. armed is set for the length of
+// that one fire, so crit and the factor reach the cast's own hits and never
+// an aura tick that lands while the offer merely stands.
+type empowerPayload struct {
+	params EmpowerParams
+	armed  bool
+}
+
+// fearPayload is a live fear (plan-effect-types-round-2.md C5, D22): the
+// holder runs from `from` and cannot cast. `from` is the fearer, typed `any`
+// like DotBuff.Caster (model imports skills); the holder reads its position
+// live each tick, and a removed fearer's ref still answers with where it last
+// stood, which is the "keep the last position" rule for free.
+type fearPayload struct {
+	from any
+}
+
+// stealthPayload is a live stealth (plan-effect-types-round-2.md C6). Empty
+// like calm: the entry's remaining ticks are the cap, and a break drops it.
+type stealthPayload struct{}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -207,6 +229,9 @@ func (*charmPayload) isBuffPayload()     {}
 func (*lifestealPayload) isBuffPayload() {}
 func (*reflectPayload) isBuffPayload()   {}
 func (*statPayload) isBuffPayload()      {}
+func (*empowerPayload) isBuffPayload()   {}
+func (*fearPayload) isBuffPayload()      {}
+func (*stealthPayload) isBuffPayload()   {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -559,7 +584,7 @@ func (b *Buffs) Tick() {
 	// The DR window runs only while unstunned and is zeroed by every landed
 	// stun, so it measures time since the last landed stun ENDED (D10). Read
 	// before aging, so the tick a stun expires on is not counted as time after.
-	if b.stunSteps > 0 && !b.Stunned() {
+	if b.stunSteps > 0 && !b.Stunned() && !b.Feared() {
 		b.stunDRElapsed++
 		if b.stunDRElapsed >= StunDRResetTicks {
 			b.stunSteps, b.stunDRElapsed = 0, 0
@@ -646,12 +671,10 @@ const (
 // same source is a landed stun and a step on the ladder even when its shorter
 // duration does not extend the stream.
 func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
-	if b.stunSteps >= StunDRImmuneAfter {
+	ticks, ok := b.hardCC(ticks)
+	if !ok {
 		return false
 	}
-	ticks = max(ticks>>b.stunSteps, 1)
-	b.stunSteps++
-	b.stunDRElapsed = 0
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*stunPayload); ok {
 			b.extend(e, ticks)
@@ -660,6 +683,70 @@ func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
 	}
 	b.apply(source, &stunPayload{}, ticks)
 	return true
+}
+
+// hardCC steps the shared stun/fear ladder (plan-effect-types-round-2.md D4):
+// the duration this landing holds for, or false when the ladder refuses it.
+func (b *Buffs) hardCC(ticks int) (int, bool) {
+	if b.stunSteps >= StunDRImmuneAfter {
+		return 0, false
+	}
+	ticks = max(ticks>>b.stunSteps, 1)
+	b.stunSteps++
+	b.stunDRElapsed = 0
+	return ticks, true
+}
+
+// ApplyFear makes the holder run from `from` for ticks (C5, D22), cut by the
+// ladder it shares with stun (D4). One stream per source, extend-never-shorten
+// like stun; a refresh re-points the stream at its latest fearer.
+func (b *Buffs) ApplyFear(source SkillID, from any, ticks int) bool {
+	ticks, ok := b.hardCC(ticks)
+	if !ok {
+		return false
+	}
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*fearPayload); ok {
+			b.extend(e, ticks)
+			p.from = from
+			return true
+		}
+	}
+	b.apply(source, &fearPayload{from: from}, ticks)
+	return true
+}
+
+// ApplyStealth hides the holder from mobs for up to ticks (C6, D1). One
+// stream per source, extend-never-shorten like calm.
+func (b *Buffs) ApplyStealth(source SkillID, ticks int) {
+	for _, e := range b.entries[source] {
+		if _, ok := e.payload.(*stealthPayload); ok {
+			b.extend(e, ticks)
+			return
+		}
+	}
+	b.apply(source, &stealthPayload{}, ticks)
+}
+
+// Stealthed reports whether any stealth is live.
+func (b *Buffs) Stealthed() bool { return hasPayload[*stealthPayload](b) }
+
+// DropStealth ends every stealth early: the break (D1, D26).
+func (b *Buffs) DropStealth() { dropPayload[*stealthPayload](b) }
+
+// Feared reports whether any fear application is live.
+func (b *Buffs) Feared() bool { return hasPayload[*fearPayload](b) }
+
+// FearSource is the fearer of a live fear: what the holder runs from.
+func (b *Buffs) FearSource() (any, bool) {
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*fearPayload); ok {
+				return p.from, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // Stunned reports whether any stun application is live. THE read for both
@@ -700,6 +787,52 @@ func (b *Buffs) Charmed() bool { return hasPayload[*charmPayload](b) }
 // DropCharm ends the charm timer early — the charmer-left path (D10), where the
 // break is an event rather than an expiry.
 func (b *Buffs) DropCharm() { dropPayload[*charmPayload](b) }
+
+// ApplyEmpower stands an empower offer (C4). One at a time: a new one
+// replaces whatever is live, from any source, so two empower skills never
+// stack into one cast.
+func (b *Buffs) ApplyEmpower(source SkillID, p EmpowerParams, ticks int) {
+	dropPayload[*empowerPayload](b)
+	b.apply(source, &empowerPayload{params: p}, ticks)
+}
+
+// Empower is the live offer, if any: what the instant and free reads ask.
+func (b *Buffs) Empower() (EmpowerParams, bool) {
+	if p := b.empower(); p != nil {
+		return p.params, true
+	}
+	return EmpowerParams{}, false
+}
+
+// ArmEmpower marks the live offer as being spent by the fire now running.
+func (b *Buffs) ArmEmpower() {
+	if p := b.empower(); p != nil {
+		p.armed = true
+	}
+}
+
+// EmpoweredFire is the offer while a cast spends it: what the crit and factor
+// reads ask, so nothing outside that one fire sees them.
+func (b *Buffs) EmpoweredFire() (EmpowerParams, bool) {
+	if p := b.empower(); p != nil && p.armed {
+		return p.params, true
+	}
+	return EmpowerParams{}, false
+}
+
+// ConsumeEmpower spends the offer: once, after the fire that read it.
+func (b *Buffs) ConsumeEmpower() { dropPayload[*empowerPayload](b) }
+
+func (b *Buffs) empower() *empowerPayload {
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*empowerPayload); ok {
+				return p
+			}
+		}
+	}
+	return nil
+}
 
 // hasPayload reports whether any live application carries payload kind T.
 func hasPayload[T buffPayload](b *Buffs) bool {

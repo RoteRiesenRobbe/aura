@@ -1,5 +1,5 @@
 // c1-stat-buffs.mjs: stat buffs and debuffs on others at the game surface
-// (docs/plan-effect-types-round-2.md C1), with the two example skills:
+// (docs/archive/plan-effect-types-round-2.md C1), with the two example skills:
 //
 //   1  Bulwark (stat_aura, damageReduction, targetsSelf) switched on puts a
 //      BENEFICIAL Bulwark circle with the StatUp kind on the caster's own tray

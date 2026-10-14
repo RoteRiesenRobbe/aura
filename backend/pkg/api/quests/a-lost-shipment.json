@@ -1,0 +1,13 @@
+{
+  "_comment": "Reinhard's last quest, offered once The Beast of the Farmlands is complete. It ends at Tobias at the Wanderer's fire in the woods, who pays, the L9 half-level rule at L5 (the woods' band, like the-lost-friend at the same fire). Tobias's lines are drafted. Reward [PLACEHOLDER].",
+  "id": "a-lost-shipment",
+  "level": 5,
+  "stages": [
+    {
+      "id": "search"
+    },
+    {
+      "id": "found"
+    }
+  ]
+}

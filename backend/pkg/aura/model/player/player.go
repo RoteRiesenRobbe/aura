@@ -24,6 +24,9 @@ var _ = model.PlayerEntity(&player{})
 var _ = model.Healable(&player{})
 var _ = model.StatBuffable(&player{})
 var _ = model.Reflector(&player{})
+var _ = model.Empowerable(&player{})
+var _ = model.Fearable(&player{})
+var _ = model.Stealther(&player{})
 
 // ColliderRadiusMeters is the player body's physical collider radius. The
 // client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
@@ -435,6 +438,11 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	// beaten on your shield is combat (§3.1).
 	p.NoteCombatAction()
 	dealt := absorbed + loss
+	// A hit that moved HP breaks stealth (plan-effect-types-round-2.md C6, D1,
+	// D26); one the shield ate whole did not.
+	if loss > 0 {
+		p.BreakStealth()
+	}
 	// Damage interrupt (chunk 4): dealt > 0 — absorbed hits included —
 	// cancels a running cast, but only for skills that opted in
 	// (castInterruptedByDamage; the flag check lives on the component).
@@ -747,6 +755,40 @@ func (p *player) ApplyStun(source skills.SkillID, ticks int) bool {
 	return true
 }
 
+// ApplyFear makes the player run from `from` (plan-effect-types-round-2.md
+// C5, D5): the stun door's shape. GOD refuses it (L10); the ladder is the one
+// the stun steps. The input system then moves the player away from the fearer
+// each tick, whatever they press.
+func (p *player) ApplyFear(source skills.SkillID, from any, ticks int) bool {
+	if p.IsGod() || !p.buffs.ApplyFear(source, from, ticks) {
+		return false
+	}
+	p.skills.CancelCast()
+	p.NoteCombatAction()
+	p.NoteActivationRejected(0, model.ActivationRejectedFeared)
+	return true
+}
+
+// ApplyStealth hides this player from mobs for up to ticks (C6, D1-D3).
+// GOD does not refuse it: it is the player's own tool, not CC. The mobs'
+// tables are cleared by the SkillSystem's fan-out (D2), not here.
+func (p *player) ApplyStealth(source skills.SkillID, ticks int) bool {
+	p.buffs.ApplyStealth(source, ticks)
+	return true
+}
+
+// Stealthed reports whether this player is hidden from mobs.
+func (p *player) Stealthed() bool { return p.buffs.Stealthed() }
+
+// BreakStealth ends a stealth early (D26).
+func (p *player) BreakStealth() { p.buffs.DropStealth() }
+
+// Feared reports whether this player is running from a fear.
+func (p *player) Feared() bool { return p.buffs.Feared() }
+
+// FearSource is the fearer of a live fear, for the input system's flee step.
+func (p *player) FearSource() (any, bool) { return p.buffs.FearSource() }
+
 // Stunned reports whether this player is held: read by the SkillSystem's stun
 // gate and by the input system's press refusals.
 func (p *player) Stunned() bool { return p.buffs.Stunned() }
@@ -774,6 +816,16 @@ func (p *player) ApplyTickRate(source skills.SkillID, factor float32, ticks int)
 func (p *player) TickRateFactor() float32 {
 	return p.buffs.TickRateFactor()
 }
+
+// The empower offer (plan-effect-types-round-2.md C4) lives in the buff store;
+// these delegate, the SkillSystem reads them around the next cooldown's fire.
+func (p *player) ApplyEmpower(source skills.SkillID, e skills.EmpowerParams, ticks int) {
+	p.buffs.ApplyEmpower(source, e, ticks)
+}
+func (p *player) Empower() (skills.EmpowerParams, bool)       { return p.buffs.Empower() }
+func (p *player) ArmEmpower()                                 { p.buffs.ArmEmpower() }
+func (p *player) EmpoweredFire() (skills.EmpowerParams, bool) { return p.buffs.EmpoweredFire() }
+func (p *player) ConsumeEmpower()                             { p.buffs.ConsumeEmpower() }
 
 // ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
 // (Bloodthirst, R3 / §5.6); the damage site reads the composed value when it

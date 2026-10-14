@@ -1,0 +1,28 @@
+{
+  "_comment": "Flora's first quest, the opening. Benjamin teaches Harvest on the talk; a Beet takes damage only from a `harvest`-tagged aura, so the talk orders the field by content. Objectives in one stage are unordered. Reward on Flora's turn-in, the L9 half-level rule at L1. Count and reward [PLACEHOLDER].",
+  "id": "ready-for-harvest",
+  "level": 1,
+  "stages": [
+    {
+      "id": "gather",
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "Benjamin"
+        },
+        {
+          "kind": "harvest",
+          "species": "Beet",
+          "count": 10
+        }
+      ],
+      "next": "home"
+    },
+    {
+      "id": "home"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

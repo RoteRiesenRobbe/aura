@@ -257,6 +257,8 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// constructed before the ConnectionStateSystem, so the reference is wired
 	// post-construction (the CampfireAnchorSink precedent).
 	sk.SetConnState(s)
+	m.SetDeathTriggers(sk)
+	sk.SetAggroForgetter(m)
 	// The travel_to grant's destination lookup (plan-portal-spells.md D3): a
 	// portal delivers to its OWNER's bound campfire, resolved when the row is
 	// taken. Same seam, same construction-order reason, narrower interface.

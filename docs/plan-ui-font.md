@@ -1,6 +1,11 @@
 # plan-ui-font.md: picking a readable UI font
 
-> **Status: NOT SCHEDULED. Nothing is built and nothing is decided.** This is a
+> ⭐ **CURRENT STATE (2026-10-11): the UI face is INTER, everywhere** (HUD,
+> in-world Pixi text, the logo). Shipped, PO: *"works for now, we might switch
+> it later."* To change it again, follow **§7**; the rulings that led here are
+> the banners in §6. Everything below §6's banners is the 2026-08-09 history.
+
+> **Status (2026-08-09, historical): NOT SCHEDULED. Nothing is built and nothing is decided.** This is a
 > reference doc, written 2026-08-09 after a screenshot pass the PO asked for
 > (*"I mostly want an easily readable font for everything, the current one can
 > become hard to read"*). The pass ran, the candidates were shot in the live
@@ -227,6 +232,46 @@ the job is honest.
 > F1/F2's inline-or-race rule applies) · §6 Q3 the Capture Smallz logo
 > (untouched by this ruling - it is a different face).
 
+> ⭐ **RULED 2026-10-11 (PO): the face is LORA, everywhere, the logo
+> included.** It supersedes the 08-25 "neutral sans" direction: in a second
+> comparison the PO found the sans set too alike (*"they don't seem that
+> different at all"*) and asked for "subtle, very readable but slightly
+> fantasy handwritten" faces. The set was Lora, Alegreya, Merienda,
+> Philosopher, and Almendra
+> (comparison page: <https://claude.ai/artifact/BkaakpJL1VmJCPBWAzn29E>).
+> The PO picked Lora, *"not final but an improvement"*. Scope: the
+> DOM HUD **and** in-world Pixi text (Q1 answered yes) **and** the AURA logo
+> (Q3 answered: Capture Smallz goes too). Lora is OFL, covers German (D4),
+> has upright and italic, and its weights run from 400 to 700. The client's
+> `fontWeight: '900'` sites (`MapQuestMarkers.ts`, `Mobs.ts`) therefore
+> render at 700.
+>
+> ⭐ **BUILT 2026-10-11 (uncommitted, PO look owed).** Lora (Latin subset,
+> 400/600/700 + italic 400/700, ~109 KB) replaces both old faces. F1/F2:
+> `TextDisplay.ts` registers a boot preload on `document.fonts.load` for
+> 400 and 700, so no Pixi text is made before the face is resident. F3/F4:
+> the size retune is ONE declaration, `font-size-adjust: 0.4` on `body`
+> (~80 %, [PLACEHOLDER]). A root `font-size` was tried first (13 px and
+> 12 px) and rejected: the panels are rem-sized, so it shrank the boxes with
+> the text and "Discipline" still clipped. `font-size-adjust` shrinks only
+> the glyphs, leaves the mobile clamp alone, and the canvas ignores it. F5:
+> every `small-caps` site and its two `font-variant: none` opt-outs are gone,
+> and so is `letterSpacing: 2`. The player's own nameplate gained a black
+> stroke and weight 700: in Lora Regular it was thin white on grass.
+> Verified: typecheck, vitest 1614/0, `round4-tooltip` all pass,
+> `mobile-layout` red only on the known leg 7, and in-game screenshots of
+> the start screen, world, spellbook + tooltip and journal.
+
+> ⭐ **RULED 2026-10-11, later the same session (PO): INTER instead of Lora,
+> "works for now, we might switch it later".** After playing with Lora the PO
+> asked to try the comparison page's "Inter plain reference", and kept it. The
+> swap followed §7 and took three lines; everything Lora's BUILT banner
+> describes (the preload, `font-size-adjust`, no small-caps, the nameplate
+> stroke) carries over unchanged, since none of it is face-specific. Lora's
+> files were removed and `THIRD_PARTY.md` names Inter. Inter is OFL, covers
+> German, and ships here at 400/600/700 + italic 400/700, so the
+> `fontWeight: '900'` sites still render at 700. Committed with this banner.
+
 1. **In-world text as well, or HUD only?** Nameplates and speech bubbles are
    arguably art direction in a way a quest journal is not. Every card on the
    comparison page changes both at once, so the *World & HUD* scene is where
@@ -238,3 +283,69 @@ the job is honest.
    put to the PO.
 4. **Per-face size ratio.** F3's 0.79× is one eyeballed number applied to five
    faces. A real pick wants its own, and it interacts with the mobile clamp.
+
+---
+
+## 7. Changing the font: the process
+
+How the 2026-10-11 picks were made, written down so the next switch is routine.
+The whole face lives in **one folder and three lines**; nothing else in the
+client names it.
+
+### 7.1 Selecting a face
+
+1. **Shortlist with the hard filters first.** A candidate must be:
+   - **OFL or Apache licensed** (free to ship and to sell; see `THIRD_PARTY.md`).
+   - **Available on Fontsource** (`@fontsource/<name>`), which gives clean,
+     versioned, subset woff2 files.
+   - **German-capable**: the Latin subset (U+0000-00FF + U+2000-206F) must
+     cover umlauts, ß and „“ (localization D4). Fontsource's own CSS lists each
+     file's `unicode-range`.
+   - **400 and 700 at least** (body text and nameplates/labels), ideally 600
+     and italics too.
+2. **Compare them side by side, as a page the PO can flip through.** Build an
+   HTML page that loads each candidate from Google Fonts and renders the
+   game's real strings at the HUD's real sizes: a nameplate on a dark green
+   background, a tooltip block, a spellbook row, a German line with umlauts.
+   Publish it as an artifact (both comparison links are in §6). Include the
+   current face as a reference card so "better or worse" is visible.
+3. **Shoot the finalists in the live game** when the call is close (F6: a
+   page is not the game). The 2026-10-11 session used a throwaway Playwright
+   script that joins, then screenshots the start screen, world, spellbook +
+   tooltip and journal, and logs `document.fonts` state and panel overflow.
+4. **The PO picks.** Record the ruling as a banner in §6.
+
+### 7.2 Swapping it in
+
+1. **Fetch the files** (into the scratchpad, never the repo root):
+   `npm pack @fontsource/<name>`, untar, and copy
+   `files/<name>-latin-{400,600,700}-normal.woff2`,
+   `files/<name>-latin-{400,700}-italic.woff2` and the package's `LICENSE`
+   (as `OFL.txt`) into `frontend/src/features/user-interface/assets/fonts/<name>/`.
+2. **Write its `stylesheet.css`**: copy `fonts/inter/stylesheet.css` and
+   replace the family name, file prefix and the package version in the
+   header comment (a `sed` does it).
+3. **The three lines that name the face:**
+   - `userInterface.less`: the `@import "./fonts/<name>/stylesheet.css";` at
+     the top, and `font-family` in the `body` rule (keep a generic fallback
+     of the same class: `Arial, sans-serif` or `Georgia, serif`).
+   - `client-data/TextDisplay.ts`: `UI_FONT_FAMILY`, and the fallback list in
+     `defaultStyle()` to match. The boot preload reads the constant, so Pixi
+     text keeps waiting for the new face with no further change.
+4. **Leave the size knob alone at first.** `font-size-adjust: 0.4` on `body`
+   pins the x-height, so a new face lands at roughly the same visual size.
+   Retune it only if the PO finds the new face too big or small (it is a
+   [PLACEHOLDER]).
+5. **With the dev server up, HMR applies it**: hard-reload the 2001 tab
+   (Ctrl+Shift+R) and let the PO play. This is cheap enough to try a face
+   before committing to it; keep the old folder until the PO rules.
+6. **Once ruled:** delete the old face's folder, swap its section in
+   `THIRD_PARTY.md` for the new one (copyright line from the `OFL.txt`
+   header, the Fontsource package and version), and add the ruling banner to
+   §6. Update the CURRENT STATE banner at the top of this doc.
+7. **Verify:** `npm run typecheck`, `npm test`, then `round4-tooltip.mjs` and
+   `mobile-layout.mjs` (leg 7 is known red at HEAD), which own the
+   text-bearing layout assertions. Look at the start screen and account
+   screens too.
+
+**Schema impact of a swap: DB NONE · wire NONE · conf NONE.**

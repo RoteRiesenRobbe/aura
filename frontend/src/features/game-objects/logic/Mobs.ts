@@ -1557,6 +1557,48 @@ export class GreaterFireElemental extends Mob {
 Preloading.registerGameObjectSVG(
     GreaterFireElemental, file('greaterFireElemental'), maxSize('greaterFireElemental'));
 
+// The Ashen Fields fire pair, on the shared `wildlife` layer like the fire
+// elementals, with the same medallion frame over the pack portrait.
+const firelordBorder = registerBorder(GraphicsConfig.mobs.firelord.borderFile, maxSize('firelord'));
+
+export class Firelord extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('firelord'), maxSize('firelord')),
+            Firelord.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), firelordBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Firelord, file('firelord'), maxSize('firelord'));
+
+const fireStirerBorder = registerBorder(GraphicsConfig.mobs.fireStirer.borderFile, maxSize('fireStirer'));
+
+export class FireStirer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('fireStirer'), maxSize('fireStirer')),
+            FireStirer.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), fireStirerBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(FireStirer, file('fireStirer'), maxSize('fireStirer'));
+
 // The player-summoned fire totem: stationary and fixed-size, on the same
 // `totem` layer as its plain sibling.
 export class FireTotem extends Mob {

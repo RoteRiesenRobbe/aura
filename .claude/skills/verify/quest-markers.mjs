@@ -14,7 +14,7 @@
 // are what move the quest to its report stage.
 //
 // Legs:
-//   1  at spawn (Eliza's fire): a coloured `!` over Eliza, and Eliza's `!` on
+//   1  at spawn (Flora's fire): a coloured `!` over Flora, and Flora's `!` on
 //      the map; the Hermit (far away, in fog) has no map marker.
 //   2  at the Hermit: a `!` over him in the L1 tint, his map marker appears
 //      once the ground is uncovered, his offer row in the panel is tinted.
@@ -28,7 +28,7 @@
 //      marker's yellow; moving off hides it. Real mouse.move only.
 //   6  QUEST ADVANCE village-welcome back known: no glyph over the Hermit.
 //   7  a PHONE (a second, touch context with `&mobile`, a fresh character at
-//      the spawn): a TAP on Eliza's map marker opens the box centred ABOVE the
+//      the spawn): a TAP on Flora's map marker opens the box centred ABOVE the
 //      marker; a tap on open map hides it. Real touchscreen.tap only.
 //
 // ⚑ Restart aurad first and run this script ALONE (standing conversant rule).
@@ -61,7 +61,7 @@ const spawnOf = (mob) => {
 const HERMIT = spawnOf('Hermit');
 const REINHARD = spawnOf('Reinhard');
 const CRIER = spawnOf('TownCrier');
-const ELIZA = spawnOf('Eliza');
+const FLORA = spawnOf('Flora');
 
 // The difficulty tint of an at-level quest and the trivial grey
 // (client-data/Mobs.ts DIFFICULTY_BANDS / DIFFICULTY_GRAY).
@@ -200,10 +200,10 @@ const title = 'Village Welcome';
 
 // --- 1: at spawn ---------------------------------------------------------------
 await page.waitForTimeout(3000);
-const eliza = await waitGlyph(names.Eliza, (s) => s?.glyph === '!');
-check('1a Eliza (beside the spawn fire) shows a `!`', eliza?.glyph === '!' && eliza.visible, eliza);
+const eliza = await waitGlyph(names.Flora, (s) => s?.glyph === '!');
+check('1a Flora (beside the spawn fire) shows a `!`', eliza?.glyph === '!' && eliza.visible, eliza);
 let map = await mapGlyphs();
-check('1b the map layer exists and marks Eliza on revealed ground', mapHas(map, ELIZA), map);
+check('1b the map layer exists and marks Flora on revealed ground', mapHas(map, FLORA), map);
 check('1c the Hermit (in fog) is NOT on the map yet', map && !mapHas(map, HERMIT), map);
 
 // --- 2: at the Hermit ----------------------------------------------------------
@@ -332,7 +332,7 @@ const elizaGlyph = await phone.evaluate(([ex, ey]) => {
     Math.abs(c.position.x - ex * 120 * mm.scale) < 1 && Math.abs(c.position.y - ey * 120 * mm.scale) < 1);
   if (!g) return { open: true, glyph: false };
   return { open: true, x: box.left + layer.position.x + g.position.x, y: box.top + layer.position.y + g.position.y - g.style.fontSize / 2 };
-}, [ELIZA.x, ELIZA.y]);
+}, [FLORA.x, FLORA.y]);
 const phoneBox = () => phone.evaluate(() => {
   const el = document.querySelector('#worldMap .worldMapQuestHover');
   const r = el.getBoundingClientRect();
@@ -346,7 +346,7 @@ if (elizaGlyph?.x !== undefined) {
   tapBox = await phoneBox();
 }
 const centred = tapBox && Math.abs((tapBox.left + tapBox.right) / 2 - elizaGlyph.x) < 2;
-check('7a phone: a tap on Eliza\'s map marker opens the box ABOVE it, centred',
+check('7a phone: a tap on Flora\'s map marker opens the box ABOVE it, centred',
   !!tapBox && !tapBox.hidden && tapBox.lines.length > 0 && tapBox.bottom <= elizaGlyph.y && centred,
   { elizaGlyph, tapBox });
 await phone.screenshot({ path: join(shotDir, `qm-${label}-phone-tap.png`) });

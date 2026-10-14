@@ -1,0 +1,23 @@
+{
+  "_comment": "Example for death triggers: a player-summoned totem with no aura that bursts on nearby enemies when its timer runs out or it is destroyed. Not when its owner leaves. Reuses the Totem art. All values placeholder.",
+  "id": 117,
+  "name": "BurstTotem",
+  "type": "MOB",
+  "entityType": "Totem",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 50,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.25,
+    "collisionLayer": 160,
+    "collisionMask": 16
+  },
+  "onDeath": [
+    { "skillName": "TotemBurst", "level": 1 }
+  ]
+}

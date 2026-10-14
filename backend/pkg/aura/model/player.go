@@ -52,7 +52,24 @@ const (
 	// precondition: every press is refused while stunned, and the reason is
 	// also noted once as the stun lands.
 	ActivationRejectedStunned = ActivationRejection(AuraApi.ActivationRejectionStunned)
+	// ActivationRejectedFeared: the presser is feared
+	// (plan-effect-types-round-2.md C5), refused wherever a stun refuses.
+	ActivationRejectedFeared = ActivationRejection(AuraApi.ActivationRejectionFeared)
 )
+
+// HeldReason reports whether e is held by hard CC and why: a stun or a fear
+// (plan-effect-types-round-2.md C5, D4). Every press refusal reads it, so a
+// fear refuses exactly what a stun refuses. Each half is a structural assert,
+// the house pattern: a double answering only Stunned() is never feared.
+func HeldReason(e any) (ActivationRejection, bool) {
+	if s, ok := e.(interface{ Stunned() bool }); ok && s.Stunned() {
+		return ActivationRejectedStunned, true
+	}
+	if f, ok := e.(interface{ Feared() bool }); ok && f.Feared() {
+		return ActivationRejectedFeared, true
+	}
+	return ActivationRejectedNone, false
+}
 
 type Players []PlayerEntity
 

@@ -26,8 +26,33 @@
       {
         "id": "root",
         "lines": [
-          {"id": "blrrf"}
+          {"id": "baa"}
+        ],
+        "options": [
+          {
+            "id": "are-you-woolliam",
+            "next": "asked"
+          }
         ]
+      },
+      {
+        "id": "asked",
+        "lines": [
+          {"id": "grazes"}
+        ],
+        "options": [
+          {
+            "id": "go-home-woolliam",
+            "next": "quip"
+          }
+        ]
+      },
+      {
+        "id": "quip",
+        "lines": [
+          {"id": "keeps-grazing"}
+        ],
+        "options": []
       }
     ]
   }
