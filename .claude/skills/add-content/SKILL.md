@@ -248,7 +248,8 @@ the bottom. Trust the code over the manual if a path has drifted.
 - **Every player-visible string is translated (D23).** Write the German into
   `api/lang/de/<domain>.arb` in the SAME change (Claude drafts, the PO reviews),
   following `docs/manual-localization-de.md` (du, the glossary,
-  gender-neutral). After checking it, refresh the translated-from records:
+  gender-neutral). Text in CODE (an effect type's tooltip line, a server
+  message, a new code list) follows `docs/manual-localization.md`. After checking it, refresh the translated-from records:
   `cd backend && UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/`;
   then the same command without `UPDATE_LANG` must pass: it names missing,
   orphaned, outdated and too-long German keys (and orphaned or note-less

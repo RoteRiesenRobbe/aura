@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ LOCALIZATION: review + merge** (`docs/plan-localization.md` §10): branch `localization` holds C0a-C5b, main merged in 2026-10-11 (`2c915557`) and 2026-10-14 (the farmland quest sheet: its English extracted to ARB, its German owed). ✅ **C5a + C5b BUILT 2026-10-11:** English is authored in `api/lang/en/*.arb` (D27; the loaders read each content file joined with its English through `lang.EnglishFS`, and refuse inline text), dotted keys with ids as authored (D29, revised 2026-10-12 after a Weblate round-trip: `quest.<id>.<stage>.journal`, `conv.<NPC>.<slug>`, hyphenated slugs), frozen dialogue slugs + shared phrases by reference (`{"stock": "quest_accept"}`, D28), mob names carry their plural as ICU (D24, `namePlural` retired), the content editor writes all English and shows "German owed" (`aurad -lang-status`, D25), [PLACEHOLDER] length limits (D30). Owed: the PO reads the German (`docs/manual-localization-de.md` is the yardstick) and plays it through (C4's exit), the PO sets the D30 limits. ⭐ Browser-language detection is ON since 2026-10-13 (PO; `Locale.ts` DETECTION_ENABLED). ⚑ A running content editor started before this needs a restart (it reads the old inline text).
+- **⭐ LOCALIZATION: review + merge** (`docs/plan-localization.md` §10): branch `localization` holds C0a-C6, main merged 2026-10-14; German complete (`aurad -lang-status` 0/0), detection ON, no allowlist (D13). Owed: the PO's German read + playthrough (C4's exit), the D30 length limits, then merge.
 
 - **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 - **⭐ BUFF TRAY: real-phone check, now possible (live since the 2026-10-14 deploy of `82044c23`)** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).
@@ -94,6 +94,12 @@ parameters, configuration options, or abstraction layers. Add complexity only
 when there is a concrete, present need. This applies especially to the aura
 system: build what the current design requires, not what every possible future
 combination might require.
+
+### Localization — no literal player-facing text
+
+UI text via `t()` and `frontend/src/lang/<locale>/frontend.arb`, server text as
+a key + typed args (`lang/message.go`), content text in `api/lang/`; German in
+the same change. Read `docs/manual-localization.md` before adding any.
 
 ### TDD — Test-Driven Development
 

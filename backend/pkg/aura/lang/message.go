@@ -52,7 +52,7 @@ func List(name string, items []string) Arg {
 }
 
 // The server's message keys: EVERY key the server can send, in one place, with
-// its argument names. lang_keys_test.go pins each against the client's
+// its argument names. message_test.go pins each against the client's
 // frontend/src/lang/en/frontend.arb: a key with no template, or with other placeholder
 // names, fails there instead of degrading silently on screen (D14).
 const (

@@ -447,6 +447,12 @@ for reasons unrelated to any recent change:
    the interpolation buffer and take the MEDIAN non-zero step times 30. That
    read the nominal 1.50 u/s exactly. It is also why C1's "keep the 1280x800
    viewport" worked: a smaller viewport only shortened the frame.
+10. **Pin the locale: `browser.newContext({ locale: 'en-US', … })`**
+   (plan-localization.md D12). This machine's browser is German and detection
+   is on, so an unpinned script runs the game in German and every English
+   assertion fails. A leg that tests German pins `de-DE` and stores
+   `aura.locale` (`i18n-de.mjs`). Text the script asserts comes from the
+   catalogs (`docs/manual-localization.md`).
 
 ## Gotchas
 
