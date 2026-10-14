@@ -17,7 +17,7 @@ import (
 //   - every English key belongs to content, in its domain's file, and carries
 //     a translator note (D27, D18); a content string without English refuses
 //     the boot itself;
-//   - every English key has its German, except the allowlist (D13);
+//   - every English key has its German (D13; no allowlist since 2026-10-14);
 //   - no German key is an orphan (D13, a TEST failure, never a boot failure);
 //   - no German translation is outdated against its English (D20).
 //
@@ -80,22 +80,6 @@ func TestLangEnglishBelongsToContentAndCarriesNotes(t *testing.T) {
 	require.Empty(t, unnoted, "English keys without a translator note (D18)")
 }
 
-func readAllowlist(t *testing.T, locale string) map[string]bool {
-	t.Helper()
-	out := map[string]bool{}
-	raw, err := os.ReadFile(filepath.Join(langDir, locale, "allowlist.json"))
-	if os.IsNotExist(err) {
-		return out
-	}
-	require.NoError(t, err)
-	var keys []string
-	require.NoError(t, json.Unmarshal(raw, &keys))
-	for _, k := range keys {
-		out[k] = true
-	}
-	return out
-}
-
 func TestLangGermanIsCompleteAndCurrent(t *testing.T) {
 	loaded := loadLangContent(t)
 	src, err := diskContent("../../../api")
@@ -132,7 +116,7 @@ func TestLangGermanIsCompleteAndCurrent(t *testing.T) {
 	if !updateLang {
 		require.Empty(t, de.Outdated, "German translated from an older English (D20); check it, then UPDATE_LANG=1")
 	}
-	require.Empty(t, de.Missing, "English keys with no German and not on api/lang/de/allowlist.json (D13)")
+	require.Empty(t, de.Missing, "English keys with no German (D13)")
 	require.Empty(t, de.TooLong, "German over its length limit (D30)")
 	require.Empty(t, status["en"].TooLong, "English over its length limit (D30)")
 }

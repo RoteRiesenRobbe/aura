@@ -62,6 +62,7 @@ does not drift. The PO reviews all German text; this file is the yardstick.
 | ascension | Aufstieg | the character-sacrifice loop |
 | bloodline | Blutlinie | |
 | memorial | Gedenkstein | |
+| stranger (an NPC addressing the player) | Fremder | PO 2026-10-14; a deliberate exception to §1's gender-neutral rule, never "Fremdling" |
 
 ## 4. Names
 
@@ -110,3 +111,5 @@ phrases the line as a label.
   (content). The content editor shows what is owed after every save
   ("German owed", `aurad -lang-status`).
 - After launch, an English edit carries its German in the same change (D23).
+  There is no allowlist (removed 2026-10-14): German that cannot land with its
+  English leaves the German pin red until it does.

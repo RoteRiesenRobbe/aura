@@ -21,17 +21,15 @@ import (
 //   - missing: a content key with no translation;
 //   - outdated: a translation whose English changed since it was made (D20,
 //     the <locale>/<domain>.translated-from.json record);
-//   - allowlisted: either of the above, excused by <locale>/allowlist.json;
 //   - tooLong: a text over its key's x-maxLength (D30), English included.
 //
 // German is the strict language: its test fails on any of these (D26); a later
 // language only reports.
 
 type localeStatus struct {
-	Missing     []string `json:"missing"`
-	Outdated    []string `json:"outdated"`
-	Allowlisted []string `json:"allowlisted"`
-	TooLong     []string `json:"tooLong"`
+	Missing  []string `json:"missing"`
+	Outdated []string `json:"outdated"`
+	TooLong  []string `json:"tooLong"`
 }
 
 // langStatus reports every locale directory under the lang tree, English first
@@ -51,19 +49,9 @@ func langStatus(c loadedContent, langFS fs.FS) (map[string]*localeStatus, error)
 			continue
 		}
 		locale := dir.Name()
-		st := &localeStatus{Missing: []string{}, Outdated: []string{}, Allowlisted: []string{}, TooLong: []string{}}
+		st := &localeStatus{Missing: []string{}, Outdated: []string{}, TooLong: []string{}}
 		out[locale] = st
 		overlay := c.langBundle.Overlay(locale)
-		allow := map[string]bool{}
-		if raw, err := fs.ReadFile(langFS, path.Join(locale, "allowlist.json")); err == nil {
-			var keys []string
-			if err := json.Unmarshal(raw, &keys); err != nil {
-				return nil, fmt.Errorf("lang/%s/allowlist.json: %w", locale, err)
-			}
-			for _, k := range keys {
-				allow[k] = true
-			}
-		}
 		for _, d := range langDomains {
 			record := map[string]string{}
 			if raw, err := fs.ReadFile(langFS, path.Join(locale, d.name+".translated-from.json")); err == nil {
@@ -76,18 +64,10 @@ func langStatus(c loadedContent, langFS fs.FS) (map[string]*localeStatus, error)
 				if locale == lang.Source {
 					text = e.Text
 				} else if text == "" {
-					if allow[e.Key] {
-						st.Allowlisted = append(st.Allowlisted, e.Key)
-					} else {
-						st.Missing = append(st.Missing, e.Key)
-					}
+					st.Missing = append(st.Missing, e.Key)
 					continue
 				} else if record[e.Key] != e.Text {
-					if allow[e.Key] {
-						st.Allowlisted = append(st.Allowlisted, e.Key)
-					} else {
-						st.Outdated = append(st.Outdated, fmt.Sprintf("%s: was %q, now %q", e.Key, record[e.Key], e.Text))
-					}
+					st.Outdated = append(st.Outdated, fmt.Sprintf("%s: was %q, now %q", e.Key, record[e.Key], e.Text))
 				}
 				if limit, ok := limits[e.Key]; ok && visibleLength(text) > limit {
 					st.TooLong = append(st.TooLong, fmt.Sprintf("%s: %d characters, at most %d: %q", e.Key, visibleLength(text), limit, text))
@@ -96,7 +76,6 @@ func langStatus(c loadedContent, langFS fs.FS) (map[string]*localeStatus, error)
 		}
 		sort.Strings(st.Missing)
 		sort.Strings(st.Outdated)
-		sort.Strings(st.Allowlisted)
 		sort.Strings(st.TooLong)
 	}
 	return out, nil

@@ -26,7 +26,6 @@ function fixture() {
   }));
   write('api/lang/de/quests.arb', arb('de', { 'quest.wolves.title': 'Wölfe', 'quest.wolves.cull.journal': 'Töte sie.', 'quest.wolves.done.journal': 'Fertig.' }));
   write('api/lang/de/quests.translated-from.json', JSON.stringify({ 'quest.wolves.title': 'Wolves', 'quest.wolves.cull.journal': 'Kill them.', 'quest.wolves.done.journal': 'Done.' }, null, 2));
-  write('api/lang/de/allowlist.json', JSON.stringify(['quest.wolves.cull.journal']));
   write('api/lang/en/mobs.arb', arb('en', {
     'mob.Farmer.name': 'Farmer',
     'conv.Farmer.hello': 'Hello.',
@@ -72,7 +71,7 @@ test('a save writes a changed text and a new key with its note, and strips the J
   assert.match(en['@quest.wolves.done.tracker'].description, /Tracker line of quest "wolves", stage "done"/);
 });
 
-test('a renamed stage moves its keys in every locale, the record and the allowlist (L23)', () => {
+test('a renamed stage moves its keys in every locale and the record (L23)', () => {
   const root = fixture();
   const lang = loadLang(root);
   const h = hydrate('quest', quest(), lang);
@@ -83,13 +82,11 @@ test('a renamed stage moves its keys in every locale, the record and the allowli
   const en = JSON.parse(readFileSync(path.join(root, 'api/lang/en/quests.arb'), 'utf8'));
   const de = JSON.parse(readFileSync(path.join(root, 'api/lang/de/quests.arb'), 'utf8'));
   const rec = JSON.parse(readFileSync(path.join(root, 'api/lang/de/quests.translated-from.json'), 'utf8'));
-  const allow = JSON.parse(readFileSync(path.join(root, 'api/lang/de/allowlist.json'), 'utf8'));
   assert.equal(en['quest.wolves.hunt.journal'], 'Kill them.');
   assert.equal(en['quest.wolves.cull.journal'], undefined);
   assert.equal(en['quest.wolves.hunt.tracker'], '{n, number}/{m, number} wolves');
   assert.equal(de['quest.wolves.hunt.journal'], 'Töte sie.', 'the German follows its key');
   assert.equal(rec['quest.wolves.hunt.journal'], 'Kill them.');
-  assert.deepEqual(allow, ['quest.wolves.hunt.journal']);
   assert.ok(plan.moved.includes('quest.wolves.cull.journal → quest.wolves.hunt.journal'));
 });
 

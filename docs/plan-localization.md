@@ -377,6 +377,11 @@ translator notes in the files.
   allowlist covers deliberately-untranslated entries during rollout). At
   runtime a missing key falls back to en with no warning - the
   hand-maintained-table lesson says the *pin* is the guard, never the eye.
+  ⛔ **The allowlist is REMOVED (PO 2026-10-14).** It never held an entry
+  (both files `[]` from C0a/C1 to removal), the rollout it served is over,
+  and with no CI a red pin blocks nothing: an emergency English fix ships with
+  the German pin red and its German follows in the next change. The pins have
+  no exception list; `-lang-status` reports missing, outdated and too long.
 - **D14 - unknown key / unknown kind DEGRADES READABLE, never blank.** The
   client formatter renders an unresolvable key as the key plus its literal
   args (the `ascension_rows.go:399` "an unnamed requirement" analogue), and an
@@ -474,7 +479,8 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   completeness pin red. The rule:
   the German lands in the same change (Claude drafts it in the content
   session, the PO reviews), and the allowlist stays a deliberate escape
-  hatch, never a backlog (✅ PO 2026-10-07: allowed after launch, §8). Both steps (regenerate per D19, then translate)
+  hatch, never a backlog (✅ PO 2026-10-07: allowed after launch, §8; ⛔ the
+  allowlist is removed 2026-10-14, D13). Both steps (regenerate per D19, then translate)
   join the `add-content` skill and CLAUDE.md's content rules in C1. Offered
   and not taken: English first with a German backlog, the norm for teams
   with separate translators; here that backlog would have no owner.
@@ -1219,6 +1225,20 @@ D32. After the `main` merge on this branch is committed, as its own commit so
 the rename diff stays readable. ~½ session. No text changes: every English
 and German string keeps its words under its new key.
 
+⚑ **Amended 2026-10-14 (PO): the UI catalogs move into per-locale folders,
+named like the content domains.** `frontend/src/lang/en.arb` →
+`frontend/src/lang/en/frontend.arb`, `de.arb` → `de/frontend.arb`,
+`de.translated-from.json` → `de/frontend.translated-from.json` (the
+allowlist is gone, D13). Same
+shape as `api/lang/<locale>/<domain>.arb`, so one platform filemask pattern
+(`frontend/src/lang/*/frontend.arb`) covers it. Done FIRST, as its own commit
+(`git mv`, so history follows the files), before the key rename. Readers to
+repoint: `Locale.ts:14-15` (the `?raw` imports), `catalogs.test.ts:50-53`,
+`lang/message_test.go:15` (and the comments naming the path in
+`message.go:56`), the `UPDATE_LANG_SOURCE` step in
+`manual-localization-de.md` §6, and this plan's references by path (D6, D30,
+D31, C2, C5b, §6, §9).
+
 **Tests first:**
 
 - **vitest** (`src/lang/catalogs.test.ts`): every UI key matches D29's key
@@ -1235,9 +1255,9 @@ and German string keeps its words under its new key.
    hand for the ~40 first-words keys (rule 4) and mechanically for the rest,
    reviewed before the run. It lives in the throwaway rename script, not in
    the repo (the D29 migration's precedent).
-2. **The rename, one script run:** `frontend/src/lang/en.arb` and `de.arb`
-   (each `@key` block follows its key; `formatArb` keeps the canonical
-   layout), `de.translated-from.json`, the UI allowlist; every `t('…')`,
+2. **The rename, one script run:** `frontend/src/lang/en/frontend.arb` and
+   `de/frontend.arb` (each `@key` block follows its key; `formatArb` keeps the
+   canonical layout), `de/frontend.translated-from.json`; every `t('…')`,
    `tKey('…')` and `tParts('…')` literal in TS (193 calls in 19 files on
    2026-10-14); every `data-i18n`, `data-i18n-rich` and `data-i18n-attr`
    value in the HTML partials (6 files).
@@ -1263,8 +1283,8 @@ look in game, en and de: HUD, help panel, settings, character select, a
 tooltip, an unlock banner.
 
 **Schema:** DB NONE · FlatBuffers NONE (`EntityMessage.key` carries the new
-strings in the same field) · UI catalog: 311 keys renamed in en + de and the
-record.
+strings in the same field) · UI catalog: moved to `<locale>/frontend.arb`, 311
+keys renamed in en + de and the record.
 
 ---
 
@@ -1487,6 +1507,8 @@ tooltip fragments).
   must ship before its German (an emergency fix) lists its key, and German
   players see that string in English until it is translated. D23's rule
   stays the normal path; the list is the exception, not a backlog.
+  ⛔ **Superseded 2026-10-14 (PO): the allowlist is removed** (D13). The
+  emergency fix ships with the German pin red instead.
 - ✅ **Where this plan sits in the execution order** (PO 2026-10-07:
   "soonish"): early, ahead of the release map's content pass. Every chunk of
   new content authored before C1 adds to the de backlog, so "before the

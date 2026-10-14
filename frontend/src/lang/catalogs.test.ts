@@ -40,7 +40,6 @@ interface Pair {
     en: Arb;
     de: Arb;
     dePath: string;
-    allowlist: string[];
 }
 
 /** The en/de pairs: the UI catalogs + one pair per content domain. */
@@ -50,12 +49,9 @@ function pairs(): Pair[] {
         en: readJson(join(uiDir, 'en.arb')),
         de: readJson(join(uiDir, 'de.arb')),
         dePath: join(uiDir, 'de.arb'),
-        allowlist: readJson(join(uiDir, 'de.allowlist.json')),
     }];
     const enDir = join(contentDir, 'en');
     if (existsSync(enDir)) {
-        const allowPath = join(contentDir, 'de', 'allowlist.json');
-        const allow: string[] = existsSync(allowPath) ? readJson(allowPath) : [];
         readdirSync(enDir).filter(f => f.endsWith('.arb')).forEach(file => {
             const dePath = join(contentDir, 'de', file);
             list.push({
@@ -63,7 +59,6 @@ function pairs(): Pair[] {
                 en: readJson(join(enDir, file)),
                 de: existsSync(dePath) ? readJson(dePath) : {},
                 dePath,
-                allowlist: allow,
             });
         });
     }
@@ -124,12 +119,12 @@ describe('localization catalogs', () => {
         }
     });
 
-    it('de covers every en key, except the allowlist (D13)', () => {
+    it('de covers every en key (D13; no allowlist since 2026-10-14)', () => {
         const missing: string[] = [];
         for (const p of all) {
             const de = messages(p.de);
             Object.keys(messages(p.en)).forEach(key => {
-                if (!(key in de) && p.allowlist.indexOf(key) < 0) {
+                if (!(key in de)) {
                     missing.push(p.name + ': ' + key);
                 }
             });
@@ -262,7 +257,7 @@ describe('localization catalogs', () => {
             }
             const record: Record<string, string> = existsSync(recordPath) ? readJson(recordPath) : {};
             Object.keys(de).forEach(key => {
-                if (!(key in en) || p.allowlist.indexOf(key) >= 0) {
+                if (!(key in en)) {
                     return;
                 }
                 if (record[key] !== en[key]) {

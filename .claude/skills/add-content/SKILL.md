@@ -260,10 +260,10 @@ the bottom. Trust the code over the manual if a path has drifted.
   (German may use the same shape with its own forms); talk_to/reach objectives
   need a `tracker` unless their stage has one. Some keys carry a length limit
   (`x-maxLength`, D30: mob names 26, skill names 30, quest titles 30, region
-  titles 24 [PLACEHOLDER]s), English and German both. An emergency English fix
-  that must ship before its German lists the key in
-  `api/lang/de/allowlist.json` (the exception, never a backlog). `api/lang/` is
-  synced by cp-defs like every content dir.
+  titles 24 [PLACEHOLDER]s), English and German both. There is no allowlist
+  (removed 2026-10-14, PO): an emergency English fix that must ship before its
+  German ships with the German pin red, and the German follows in the next
+  change. `api/lang/` is synced by cp-defs like every content dir.
 
 ## Registry pins — the thing that leaves the suite RED at HEAD
 

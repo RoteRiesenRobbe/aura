@@ -182,7 +182,7 @@ export function parseFindings(stdout) {
  * Every locale's translation state, from the REAL loader (plan-localization.md
  * D25): `aurad -lang-status -content api/` over the tree as it sits on disk, so
  * call it after a save has written. Answers {locale: {missing, outdated,
- * allowlisted, tooLong}}. A THROW means it could not answer (a missing or stale
+ * tooLong}}. A THROW means it could not answer (a missing or stale
  * binary, content that does not load), exactly as validateCandidate.
  */
 export function langStatus() {

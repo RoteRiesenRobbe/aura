@@ -19,7 +19,7 @@
  *
  * ⚑ NODE ONLY: the browser reaches this through the server.
  */
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   formatArb, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, plainPlaceholders, slugify, spaced, STOCK_PREFIX, textFields,
@@ -28,7 +28,7 @@ import {
 /** The ARB a domain's English lives in. */
 export const ARB_OF = { quest: 'quests', mob: 'mobs', skill: 'skills', regions: 'regions' };
 
-/** Every locale's ARBs, translated-from records and allowlist, read fresh from api/lang. */
+/** Every locale's ARBs and translated-from records, read fresh from api/lang. */
 export function loadLang(root) {
   const dir = path.join(root, 'api', 'lang');
   const lang = { dir, locales: {} };
@@ -40,9 +40,7 @@ export function loadLang(root) {
       if (f.endsWith('.arb')) arbs[f.slice(0, -4)] = parseArb(readFileSync(path.join(ldir, f), 'utf8'));
       else if (f.endsWith('.translated-from.json')) records[f.slice(0, -'.translated-from.json'.length)] = JSON.parse(readFileSync(path.join(ldir, f), 'utf8'));
     }
-    const allowPath = path.join(ldir, 'allowlist.json');
-    const allow = existsSync(allowPath) ? JSON.parse(readFileSync(allowPath, 'utf8')) : undefined;
-    lang.locales[locale] = { arbs, records, allow };
+    lang.locales[locale] = { arbs, records };
   }
   return lang;
 }
@@ -246,7 +244,6 @@ export function planSave(domain, raw, diskRaw, lang) {
     const loc = lang.locales[locale];
     if (kind === 'arb') files[path.join(ldir, `${name}.arb`)] = formatArb(locale, loc.arbs[name].entries);
     else if (kind === 'record') files[path.join(ldir, `${name}.translated-from.json`)] = sortedJson(loc.records[name]);
-    else if (kind === 'allow') files[path.join(ldir, 'allowlist.json')] = JSON.stringify(loc.allow, null, 2) + '\n';
   }
   return { raw: dehydrate(domain, raw), files, moved, removed };
 }
@@ -270,10 +267,6 @@ function moveKey(lang, from, to, touched) {
       delete rec[from];
       touched.add(`${locale}/record/${name}`);
     }
-    if (loc.allow && loc.allow.includes(from)) {
-      loc.allow = loc.allow.map((k) => (k === from ? to : k));
-      touched.add(`${locale}/allow/`);
-    }
   }
 }
 
@@ -284,10 +277,6 @@ function removeKey(lang, key, touched) {
     }
     for (const [name, rec] of Object.entries(loc.records)) {
       if (key in rec) { delete rec[key]; touched.add(`${locale}/record/${name}`); }
-    }
-    if (loc.allow && loc.allow.includes(key)) {
-      loc.allow = loc.allow.filter((k) => k !== key);
-      touched.add(`${locale}/allow/`);
     }
   }
 }
