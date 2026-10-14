@@ -326,6 +326,68 @@ describe('localization catalogs', () => {
     });
 });
 
+// Player-facing text is never a literal (docs/manual-localization.md). Dev
+// tools are out of scope (plan-localization.md, Scope).
+function isDevOnly(file: string): boolean {
+    return /internal-tools|zone-editor|ground-textures|fx-preview/.test(file.replace(/\\/g, '/'));
+}
+
+const LETTERS = /[A-Za-z]{2,}/;
+const GUIDE = 'player-facing text must come from the catalog: see docs/manual-localization.md';
+
+describe('no hard-coded player-facing text', () => {
+    const srcRoot = join(uiDir, '..');
+    const files = walkFiles(srcRoot).filter(f => !f.endsWith('.test.ts') && !isDevOnly(f));
+
+    it('TS never assigns a text literal to textContent, innerText, title or placeholder', () => {
+        const assign = /\.(textContent|innerText|title|placeholder)\s*=\s*(['"`])((?:\\.|(?!\2).)*)\2/g;
+        const found: string[] = [];
+        files.filter(f => f.endsWith('.ts')).forEach(file => {
+            readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+                for (const m of line.matchAll(assign)) {
+                    if (LETTERS.test(m[3].replace(/\$\{[^}]*\}/g, ''))) {
+                        found.push(`${relative(srcRoot, file)}:${i + 1}: ${m[0]}`);
+                    }
+                }
+            });
+        });
+        expect(found, GUIDE).toEqual([]);
+    });
+
+    // An element whose own text is words carries data-i18n (or sits inside a
+    // data-i18n-rich sentence); a worded title / placeholder / alt /
+    // aria-label / button value is named in data-i18n-attr. data-i18n-skip
+    // marks text that is deliberately not translated (proper nouns, credits).
+    it('HTML partials carry their text through data-i18n', () => {
+        const found: string[] = [];
+        files.filter(f => f.endsWith('.html')).forEach(file => {
+            const doc = new DOMParser().parseFromString(readFileSync(file, 'utf8'), 'text/html');
+            doc.body.querySelectorAll('*').forEach(el => {
+                if (el.closest('[data-i18n-skip]') || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') {
+                    return;
+                }
+                const where = `${relative(srcRoot, file)} <${el.tagName.toLowerCase()}>`;
+                const own = Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+                if (LETTERS.test(own) && !el.closest('[data-i18n],[data-i18n-rich]')) {
+                    found.push(`${where} text "${own.slice(0, 40)}"`);
+                }
+                const named = (el.getAttribute('data-i18n-attr') || '').split(';').map(e => e.split(':')[0].trim());
+                const attrs = ['title', 'placeholder', 'alt', 'aria-label'];
+                if (el.tagName === 'INPUT' && /^(submit|button)$/.test(el.getAttribute('type') || '')) {
+                    attrs.push('value');
+                }
+                attrs.forEach(attr => {
+                    const value = el.getAttribute(attr);
+                    if (value && LETTERS.test(value) && named.indexOf(attr) < 0) {
+                        found.push(`${where} ${attr}="${value.slice(0, 40)}"`);
+                    }
+                });
+            });
+        });
+        expect(found, GUIDE).toEqual([]);
+    });
+});
+
 function walkFiles(dir: string): string[] {
     const out: string[] = [];
     readdirSync(dir).forEach(name => {

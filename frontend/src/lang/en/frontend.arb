@@ -849,6 +849,14 @@
     "description": "HUD: text of the <div> element in #passiveLoadout in #leftColumn. At most 20 characters: it heads a slot group in the spellbook.",
     "x-maxLength": 20
   },
+  "social.discord.title": "Join our discord",
+  "@social.discord.title": {
+    "description": "Start screen: hover text of the Discord link. Discord is a brand name and stays."
+  },
+  "social.other-games.title": "Take a look at our other games",
+  "@social.other-games.title": {
+    "description": "Start screen: hover text of the Kringel Games link (the studio's other games)."
+  },
   "spellbook.label": "Spellbook",
   "@spellbook.label": {
     "description": "HUD: label of the spellbook button and the spellbook panel title (the collection of every skill the player has discovered)."
@@ -904,6 +912,10 @@
   "start.changelog": "Changelog",
   "@start.changelog": {
     "description": "Start screen: text of the <a> element in #startScreen."
+  },
+  "start.connect-failed": "Couldn't connect",
+  "@start.connect-failed": {
+    "description": "Start screen status line when the game server cannot be reached; replaces the loading text."
   },
   "start.credits": "Credits",
   "@start.credits": {

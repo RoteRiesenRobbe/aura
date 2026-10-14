@@ -62,6 +62,12 @@ const htmlState = (page) => page.evaluate(() => ({
   const { ctx, page } = await open('de-DE', 'de');
   const s = await htmlState(page);
   (s.lang === 'de' && s.label === 'Spielsprache') ? pass('de pin resolves de', JSON.stringify(s)) : fail('de pin', JSON.stringify(s));
+  // The social links are inserted outside renderPartial (StartScreen.ts runs
+  // their i18n pass itself), so they get their own check.
+  const discord = await page.waitForFunction(
+    () => document.querySelector('.socialLink.discord')?.getAttribute('title'), null, { timeout: 15000 })
+    .then((h) => h.jsonValue()).catch(() => null);
+  discord === 'Tritt unserem Discord bei' ? pass('social link titles are German') : fail('social link title', String(discord));
   await ctx.close();
 }
 

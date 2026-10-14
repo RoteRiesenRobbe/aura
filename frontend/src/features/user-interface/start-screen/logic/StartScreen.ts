@@ -14,6 +14,8 @@ import {
 } from "../../../core/logic/Events";
 import * as SocialMedia from "../../social-media-links/logic/SocialMedia";
 import * as PlayerCount from "./PlayerCount";
+import {t} from '../../../localization/logic/Locale';
+import {applyI18n} from '../../../localization/logic/DomI18n';
 import * as AccountFlow from "../../../accounts/logic/AccountFlow";
 import * as GameSettingsUI from '../../../game-settings/logic/GameSettingsUI';
 
@@ -66,7 +68,10 @@ export function onDomReady() {
     }
 
     SocialMedia.content.then((htmlContent) => {
-        rootElement.querySelector('.socialMediaContainer').innerHTML = htmlContent;
+        const socialMedia = rootElement.querySelector('.socialMediaContainer');
+        socialMedia.innerHTML = htmlContent;
+        // Inserted outside Preloading.renderPartial, so its i18n pass runs here.
+        applyI18n(socialMedia);
 
         rootElement.querySelectorAll('.socialLink').forEach(element => {
             smoothHoverAnimation(element, {animationDuration: 0.3});
@@ -146,7 +151,7 @@ BackendConnectionFailureEvent.subscribe(() => {
     rootElement.classList.remove('loading');
     rootElement.classList.add('failure');
     if (loadingStatus) {
-        loadingStatus.textContent = "Couldn't connect";
+        loadingStatus.textContent = t('start.connect-failed');
     }
 });
 
