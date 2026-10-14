@@ -2,7 +2,7 @@ package lang
 
 // Keyed wire messages (plan-localization.md C2, D1/D8/D10): the server sends a
 // KEY and TYPED arguments, and the client formats the sentence in its own
-// language from frontend/src/lang/<locale>.arb. English is the fallback the
+// language from frontend/src/lang/<locale>/frontend.arb. English is the fallback the
 // server still composes (D10), shown only when the client has no template.
 
 // ArgKind mirrors AuraApi.MessageArgKind one for one (pinned in codec).
@@ -53,7 +53,7 @@ func List(name string, items []string) Arg {
 
 // The server's message keys: EVERY key the server can send, in one place, with
 // its argument names. lang_keys_test.go pins each against the client's
-// frontend/src/lang/en.arb: a key with no template, or with other placeholder
+// frontend/src/lang/en/frontend.arb: a key with no template, or with other placeholder
 // names, fails there instead of degrading silently on screen (D14).
 const (
 	KeyUnlockDroppedBy   = "unlockDroppedBy"

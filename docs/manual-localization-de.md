@@ -99,7 +99,7 @@ phrases the line as a label.
 - English is authored in `api/lang/en/<domain>.arb` (D27, C5a): the content
   editor writes it, or a hand edit drafts text inline in the content JSON and
   runs `node tools/lang/extract-english.mjs`. German goes in
-  `api/lang/de/<domain>.arb` (content) and `frontend/src/lang/de.arb` (UI),
+  `api/lang/de/<domain>.arb` (content) and `frontend/src/lang/de/frontend.arb` (UI),
   under the same dotted keys (D29).
 - A dialogue line's key carries its NPC and a frozen slug
   (`conv.Farmer.fields-need-work`); a shared phrase (`stock.quest-accept`) is

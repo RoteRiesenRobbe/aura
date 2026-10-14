@@ -46,9 +46,9 @@ interface Pair {
 function pairs(): Pair[] {
     const list: Pair[] = [{
         name: 'ui',
-        en: readJson(join(uiDir, 'en.arb')),
-        de: readJson(join(uiDir, 'de.arb')),
-        dePath: join(uiDir, 'de.arb'),
+        en: readJson(join(uiDir, 'en', 'frontend.arb')),
+        de: readJson(join(uiDir, 'de', 'frontend.arb')),
+        dePath: join(uiDir, 'de', 'frontend.arb'),
     }];
     const enDir = join(contentDir, 'en');
     if (existsSync(enDir)) {

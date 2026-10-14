@@ -266,7 +266,7 @@ translator notes in the files.
   2026-10-06 review found region and zone names arriving a third way, bundled
   into the client; ✅ PO 2026-10-07: they are SERVED like all other content
   text, item 2, so every content translation ships on one path.)
-  1. **Client-bundled UI catalog** (`frontend/src/lang/en.arb` + `de.arb`,
+  1. **Client-bundled UI catalog** (`frontend/src/lang/en/frontend.arb` + `de/frontend.arb`,
      D17; was `.ts`):
      everything the client can need *before or without* a connection (account
      screens, HUD chrome, banners) **plus the wire-message templates** for
@@ -673,7 +673,7 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     `b-c`): the boot refuses two strings with one key, naming both. My call:
     single `_`, refusal on collision, over a double `__` separator (never
     collides, reads worse).
-  - UI keys (`frontend/src/lang/*.arb`) are already identifier-style
+  - UI keys (`frontend/src/lang/*/frontend.arb`) are already identifier-style
     (`settingsLanguage`) and stay.
   - Why: the ARB spec asks for identifier keys and Flutter's generator
     enforces it; safe keys remove the platform-import risk the §8 test was
@@ -691,7 +691,7 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   - Content keys get it per field kind from the note templates (mob names:
     nameplate; skill names: ability bar; quest titles: tracker; region
     titles: banner); one key may override by hand. UI keys: set by hand on
-    the HUD-critical keys in `frontend/src/lang/en.arb`.
+    the HUD-critical keys in `frontend/src/lang/en/frontend.arb`.
   - Checked: an English or German text over its limit fails the completeness
     test; later languages get it in their report (D26). Counted in
     characters, a proxy (the font is proportional).
@@ -703,7 +703,7 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     descriptions; well over 90 %) never needs gender or case: each language
     writes it with its own grammar.
   - Only templates that insert a name can need it: ~15 of the 69 UI templates
-    with text arguments (survey 2026-10-11, `frontend/src/lang/en.arb`):
+    with text arguments (survey 2026-10-11, `frontend/src/lang/en/frontend.arb`):
     `unlockDroppedBy`, `unlockTaughtBy`, `questObjectiveKill`/`Harvest`,
     `ttSummons`, `ttThrows`, `ttVulnerable`/`ttImmune`/`ttResist`,
     `selectContinueBloodlineOf`, `warlordFallen`, `lockKills`.
@@ -911,7 +911,7 @@ and the extraction sweep (C0b) are each about a session.
   conversation content in C3.
 - **One list of server keys** (review 2026-10-06): every key the server can
   send is a Go constant in one file, and a Go test reads
-  `frontend/src/lang/en.arb` and fails on a constant with no template or with
+  `frontend/src/lang/en/frontend.arb` and fails on a constant with no template or with
   different placeholder names. Without it a forgotten template surfaces only
   as D14's degraded text; today only the lock-reason kinds are pinned (L6).
 - **Objective wording (Q2, PO-ruled 2026-10-07):** kill and harvest lines
@@ -1198,11 +1198,11 @@ D24 + D25 + D26. After C5a. ~1 session.
 6. **Length limits (D30):** `x-maxLength` per field kind in the note
    templates (mob names, skill names, quest titles, region titles), written
    into the note's words too; by hand on HUD-critical UI keys in
-   `frontend/src/lang/en.arb`; the completeness tests (Go + vitest) fail an
+   `frontend/src/lang/en/frontend.arb`; the completeness tests (Go + vitest) fail an
    English or German text over its limit. Values are [PLACEHOLDER]s measured
    from the current layout; the PO sets them.
 7. **Name-inserting templates (D31):** the label-shape note on each of the
-   ~15 templates in `frontend/src/lang/en.arb`.
+   ~15 templates in `frontend/src/lang/en/frontend.arb`.
 8. **Docs:** the `add-content` skill and `manual-content-authoring.md`: the
    ICU plural shape, `namePlural` gone, length limits.
 
@@ -1441,7 +1441,7 @@ requests (marshal-once-per-locale) · structured objectives carry ids never
 names (D8/L7 pin) · lock-reason kinds cover every `ConditionKind`
 (L6 completeness pin) · `-count=1` after every content/lang edit (L3).
 Added 2026-10-06: every server key constant has a template in
-`frontend/src/lang/en.arb` with the same placeholder names (C2) · the content
+`frontend/src/lang/en/frontend.arb` with the same placeholder names (C2) · the content
 loader refuses ICU syntax outside a field's placeholders, by file and field
 (L14) · the overlay loader refuses non-UTF-8, by file name (L17) · the loader
 refuses a dialogue string without an id, a duplicate id, and two objectives
@@ -1630,7 +1630,7 @@ changing a file. The candidates, as researched 2026-10-05:
   feature is in the free code: its paid plans differ by hosting capacity and
   support, not features. It reads and writes ARB, checks ICU MessageFormat
   syntax, and commits translations back to git. Components are configured by
-  filemask, e.g. `api/lang/*/quests.arb` and `frontend/src/lang/*.arb`; the
+  filemask, e.g. `api/lang/*/quests.arb` and `frontend/src/lang/*/frontend.arb`; the
   ARB `description`s (D18) are what it shows translators as context. Ways to
   run it:
   - **self-hosted**: free, with optional support from €53/month. It is a

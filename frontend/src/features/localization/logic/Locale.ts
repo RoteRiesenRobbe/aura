@@ -11,8 +11,8 @@
  * - `en-XA` is the dev-only pseudo-locale (D21), chosen only by an explicit pin.
  */
 import IntlMessageFormat from 'intl-messageformat';
-import enArb from '../../../lang/en.arb?raw';
-import deArb from '../../../lang/de.arb?raw';
+import enArb from '../../../lang/en/frontend.arb?raw';
+import deArb from '../../../lang/de/frontend.arb?raw';
 
 export const SOURCE_LOCALE = 'en';
 export const SUPPORTED_LOCALES: readonly string[] = ['en', 'de'];

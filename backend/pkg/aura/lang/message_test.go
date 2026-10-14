@@ -10,15 +10,15 @@ import (
 )
 
 // plan-localization.md C2: every server key has a client template in
-// frontend/src/lang/en.arb, with exactly the argument names the server sends.
+// frontend/src/lang/en/frontend.arb, with exactly the argument names the server sends.
 func TestServerKeys_EachHasAClientTemplateWithTheSameArguments(t *testing.T) {
-	raw, err := os.ReadFile("../../../../frontend/src/lang/en.arb")
+	raw, err := os.ReadFile("../../../../frontend/src/lang/en/frontend.arb")
 	require.NoError(t, err)
 	var arb map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(raw, &arb))
 	for key, args := range ServerKeys {
 		_, ok := arb[key]
-		require.True(t, ok, "server key %q has no template in frontend/src/lang/en.arb", key)
+		require.True(t, ok, "server key %q has no template in frontend/src/lang/en/frontend.arb", key)
 		var meta struct {
 			Placeholders map[string]json.RawMessage `json:"placeholders"`
 		}
