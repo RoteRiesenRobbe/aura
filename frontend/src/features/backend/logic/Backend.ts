@@ -159,7 +159,7 @@ export class Backend implements IBackend {
                 // Only announce a drop of an established session. The character
                 // is stashed server-side; a reload reconnects it.
                 if (wasInGame) {
-                    AlertBanner.show(t('backendConnectionLost'));
+                    AlertBanner.show(t('backend.connection-lost'));
                 }
             });
         };
@@ -330,7 +330,7 @@ export class Backend implements IBackend {
                     // plan-localization.md C2: the source label is a keyed
                     // message the client words (D8), English as fallback.
                     const source = wireMessageText(entityMessage);
-                    const text = t('unlockBanner', {category: skillCategory(skillId), name: skillDisplayName(skillId)})
+                    const text = t('unlock.banner', {category: skillCategory(skillId), name: skillDisplayName(skillId)})
                         + (source ? `\n${source}` : '');
                     AlertBanner.show(text, 'unlock');
                 }
@@ -751,9 +751,9 @@ export class Backend implements IBackend {
                 return;
             }
             if (draw.kind === 'immune') {
-                target.showFloatingText(t('floatImmune'), IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('float.immune'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else if (draw.kind === 'absorbed') {
-                target.showFloatingText(t('floatAbsorbed'), IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('float.absorbed'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else {
                 target.showFloatingNumber(hpToDisplay(event.amount), draw.kind);
             }

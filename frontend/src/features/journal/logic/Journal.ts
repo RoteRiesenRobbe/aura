@@ -149,11 +149,11 @@ function render() {
     // rather than render as a diary with nothing in it.
     let status = '';
     if (view.state === 'loading') {
-        status = t('journalOpening');
+        status = t('journal.opening');
     } else if (view.state === 'unavailable') {
-        status = t('journalUnavailable');
+        status = t('journal.unavailable');
     } else if (view.running.length === 0 && view.completed.length === 0) {
-        status = t('journalEmpty');
+        status = t('journal.empty');
     }
     statusElement.textContent = status;
     statusElement.classList.toggle('hidden', status === '');
@@ -215,7 +215,7 @@ function renderDetail(detail: JournalDetailView | null) {
     if (detail.running) {
         const button = document.createElement('span');
         button.className = 'journalAbandon';
-        button.textContent = t('journalAbandon');
+        button.textContent = t('journal.abandon');
         button.addEventListener('pointerdown', () => abandon(detail.questId));
         children.push(button);
     }

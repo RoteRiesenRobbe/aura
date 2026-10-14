@@ -918,7 +918,7 @@ export class MiniMap {
      */
     public open() {
         this.flightMode = false;
-        this.setTitle(t('hudMap'));
+        this.setTitle(t('map.label'));
         this.setState(MapState.FULLSCREEN);
     }
 
@@ -941,7 +941,7 @@ export class MiniMap {
         this.flightMode = true;
         // The departure board says what it wants from you; the read-only map
         // stays "Map". Stamped on every open, so no restore is needed on close.
-        this.setTitle(t('mapPickDestination'));
+        this.setTitle(t('map.pick-destination'));
         this.setState(MapState.FULLSCREEN);
     }
 

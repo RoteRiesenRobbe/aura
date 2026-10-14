@@ -212,7 +212,7 @@ export async function start(): Promise<void> {
         CharacterCreation.show('home', 0);
         AccountScreens.showError(
             AccountScreens.element('characterCreation'),
-            error instanceof ApiError ? error.message : t('accountErrorUnreachable'),
+            error instanceof ApiError ? error.message : t('account.error.unreachable'),
             error instanceof ApiError ? error.ref : undefined);
     }
 }
@@ -397,7 +397,7 @@ async function toCharacterSelect(autoSelectFirst: boolean): Promise<void> {
     } catch (error) {
         AccountScreens.showError(
             AccountScreens.element('characterCreation'),
-            error instanceof ApiError ? error.message : t('accountErrorUnreachable'));
+            error instanceof ApiError ? error.message : t('account.error.unreachable'));
         return;
     }
     // The server is the authority on whether this account has credentials —
@@ -454,7 +454,7 @@ async function enterWorld(character: Character): Promise<void> {
         }
         AccountScreens.showError(
             panel,
-            error instanceof ApiError ? error.message : t('accountErrorGeneric'),
+            error instanceof ApiError ? error.message : t('account.error.generic'),
             error instanceof ApiError ? error.ref : undefined);
         return;
     }
@@ -504,7 +504,7 @@ export async function onJoinRefused(): Promise<void> {
         await toCharacterSelect(false);
         AccountScreens.showError(
             AccountScreens.element('characterSelect'),
-            t('accountErrorJoinTimeout'));
+            t('account.error.join-timeout'));
         return;
     }
 
@@ -519,7 +519,7 @@ export async function onJoinRefused(): Promise<void> {
         await toCharacterSelect(false);
         AccountScreens.showError(
             AccountScreens.element('characterSelect'),
-            error instanceof ApiError ? error.message : t('accountErrorGeneric'),
+            error instanceof ApiError ? error.message : t('account.error.generic'),
             error instanceof ApiError ? error.ref : undefined);
     }
 }

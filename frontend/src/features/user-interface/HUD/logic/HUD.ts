@@ -219,7 +219,7 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
     castBarFill.setFraction(progress);
     const name = utilityKind > 0 ? Utilities.utilityDisplayName(utilityKind) : skillDisplayName(skillId);
     castBarTextElement.textContent =
-        t('hudCastBar', {name, secs: ticksLeft * Constants.SERVER_TICKRATE / 1000});
+        t('hud.cast-bar', {name, secs: ticksLeft * Constants.SERVER_TICKRATE / 1000});
 }
 
 // updateCampCharges renders the Camp button's charge counter (downtime C2).
@@ -259,7 +259,7 @@ function rejectEquipInCombat(): boolean {
     if (!combatLocked) {
         return false;
     }
-    AlertBanner.show(t('hudNoLoadoutInCombat'), 'warning');
+    AlertBanner.show(t('hud.refusal.loadout-in-combat'), 'warning');
     return true;
 }
 
@@ -282,7 +282,7 @@ function rejectWhileFlying(): boolean {
     if (!Flight.isFlying()) {
         return false;
     }
-    AlertBanner.show(t('hudNoAbilitiesWhileFlying'), 'warning');
+    AlertBanner.show(t('hud.refusal.abilities-while-flying'), 'warning');
     return true;
 }
 
@@ -332,7 +332,7 @@ export function updateFlight(flying: boolean, ticksLeft: number) {
         : 0;
     flightBarFill.setFraction(progress);
     flightBarTextElement.textContent =
-        t('hudFlyingBar', {secs: ticksLeft * Constants.SERVER_TICKRATE / 1000});
+        t('hud.flying-bar', {secs: ticksLeft * Constants.SERVER_TICKRATE / 1000});
 }
 
 // What the HUD is currently showing, for edge detection only — never a second
@@ -356,7 +356,7 @@ function setupRespecButton(button: HTMLElement) {
             clearTimeout(armed);
             armed = null;
         }
-        button.textContent = t('hudRespecButton');
+        button.textContent = t('spellbook.respec.label');
         button.classList.remove('armed');
     };
     button.addEventListener('pointerdown', (e) => {
@@ -366,7 +366,7 @@ function setupRespecButton(button: HTMLElement) {
             return;
         }
         if (armed === null) {
-            button.textContent = t('hudRespecConfirm');
+            button.textContent = t('spellbook.respec.confirm');
             button.classList.add('armed');
             armed = setTimeout(disarm, 4000);
             return;
@@ -418,10 +418,10 @@ export function pulseAuraMetronome() {
 // in the game and had no name anywhere on screen to spend.
 export function updateBarTexts(health: number, maxHealth: number, xpInLevel: number, xpForNextLevel: number) {
     if (healthBarTextElement) {
-        healthBarTextElement.textContent = t('hudFocusBar', {health, max: maxHealth});
+        healthBarTextElement.textContent = t('hud.bar.focus.text', {health, max: maxHealth});
     }
     if (xpBarTextElement) {
-        xpBarTextElement.textContent = t('hudXpBar', {xp: xpInLevel, next: xpForNextLevel});
+        xpBarTextElement.textContent = t('hud.bar.xp.text', {xp: xpInLevel, next: xpForNextLevel});
     }
 }
 
@@ -781,7 +781,7 @@ function updateSkillPointsDisplay(points: number) {
     // Pushed rather than pulled: SkillTooltip cannot import this module back.
     setAvailableSkillPoints(points);
     for (const badge of skillPointsBadgeElements) {
-        badge.textContent = t('hudSkillPointsBadge', {points});
+        badge.textContent = t('spellbook.points-badge', {points});
         badge.classList.toggle('hidden', points <= 0);
     }
     for (const button of spellbookButtonElements) {
@@ -818,9 +818,9 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
         currentSkillLevels.set(id, level);
     }
     const sections: { category: string, title: string }[] = [
-        {category: 'aura', title: t('hudAuras')},
-        {category: 'passive', title: t('hudPassives')},
-        {category: 'cooldown', title: t('hudCooldowns')},
+        {category: 'aura', title: t('skill-kind.auras')},
+        {category: 'passive', title: t('skill-kind.passives')},
+        {category: 'cooldown', title: t('skill-kind.cooldowns')},
     ];
 
     spellbookListElement.innerHTML = '';
@@ -883,7 +883,7 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             spendBtn.textContent = level >= maxLevel ? '+' : `+${nextCost}`;
             spendBtn.classList.toggle('inactive', level >= maxLevel || points < nextCost);
             if (level < maxLevel) {
-                spendBtn.title = t('hudSpendCostTitle', {cost: nextCost});
+                spendBtn.title = t('spellbook.spend-cost.title', {cost: nextCost});
             }
             controls.appendChild(spendBtn);
 
@@ -1139,7 +1139,7 @@ export function updateAuraLoadout(slots: number[]) {
         const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
         const label = li.querySelector('.slotLabel') as HTMLElement;
-        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hudEmpty');
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hud.slot.empty');
         renderSlotToken(li, slots[i]);
         // Re-apply the optimistic highlight after the per-tick text re-render.
         // Never highlight an empty slot (guards against a slot emptied while active).
@@ -1160,7 +1160,7 @@ export function updatePassiveLoadout(slots: number[]) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
         const label = li.querySelector('.slotLabel') as HTMLElement;
-        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hudEmpty');
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hud.slot.empty');
         renderSlotToken(li, slots[i]);
     }
 }
@@ -1191,13 +1191,13 @@ export function updateCooldownLoadout(slots: number[] | undefined, remainingTick
         if (!li) continue;
         const label = li.querySelector('.slotLabel') as HTMLElement;
         const cd = li.querySelector('.cdRemaining') as HTMLElement;
-        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hudEmpty');
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : t('hud.slot.empty');
         renderSlotToken(li, slots[i]);
         const remaining = remainingTicks[i] ?? 0;
         // Whole seconds, the board's "4s": the digits sit INSIDE a 52px circle
         // now, where a tenths place is noise the player cannot act on.
         cd.textContent = remaining > 0
-            ? t('hudCooldownSeconds', {secs: Math.ceil(remaining * Constants.SERVER_TICKRATE / 1000)}) : '';
+            ? t('hud.slot.cooldown-seconds', {secs: Math.ceil(remaining * Constants.SERVER_TICKRATE / 1000)}) : '';
         // The digits render at glyph scale, where three tabular characters is
         // what a 46px inner circle holds. The catalog's longest cooldowns run to
         // four ("140s" for Call for Aid), so those step down a size. Keyed off

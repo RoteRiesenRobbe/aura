@@ -103,10 +103,10 @@ async function submitLogin(): Promise<void> {
     if (mustWarn) {
         const warning = panel.querySelector('.anonymousWarning') as HTMLElement;
         warning.textContent =
-            t('authAbandonWarning');
+            t('account.abandon.warning');
         warning.classList.remove('hidden');
         (panel.querySelector('input[type="submit"]') as HTMLInputElement).value =
-            t('authAbandonButton');
+            t('account.abandon.button');
         discardConfirmed = true;
         return;
     }

@@ -439,7 +439,7 @@ function rowText(o: AuraApi.ConversationOption): string {
     for (let i = 0; i < o.locksLength(); i++) {
         reasons.push(lockReasonText(o.locks(i)));
     }
-    return t('conversationLockedRow', {label: base, reasons: formatList(reasons, o.locksAny() ? 'disjunction' : 'conjunction')});
+    return t('conversation.locked-row', {label: base, reasons: formatList(reasons, o.locksAny() ? 'disjunction' : 'conjunction')});
 }
 
 function rowReply(o: AuraApi.ConversationOption): string {
@@ -457,19 +457,19 @@ function lockReasonText(l: AuraApi.ConversationLock): string {
     const quest = questDefinition(l.quest() ?? '')?.title ?? (l.quest() ?? '');
     switch (l.kind()) {
         case AuraApi.ConversationLockKind.MinLevel:
-            return t('lockMinLevel', {value: l.value(), have: l.have()});
+            return t('lock.min-level', {value: l.value(), have: l.have()});
         case AuraApi.ConversationLockKind.Ascensions:
-            return t('lockAscensions', {value: l.value(), have: l.have()});
+            return t('lock.ascensions', {value: l.value(), have: l.have()});
         case AuraApi.ConversationLockKind.QuestComplete:
-            return t('lockQuestComplete', {quest});
+            return t('lock.quest-complete', {quest});
         case AuraApi.ConversationLockKind.QuestAtStage:
-            return t('lockQuestAtStage', {quest, stage: l.stage() ?? ''});
+            return t('lock.quest-at-stage', {quest, stage: l.stage() ?? ''});
         case AuraApi.ConversationLockKind.Kills:
-            return t('lockKills', {value: l.value(), have: l.have(), mob: mobName(Number(l.species()))});
+            return t('lock.kills', {value: l.value(), have: l.have(), mob: mobName(Number(l.species()))});
         case AuraApi.ConversationLockKind.TravelClosed:
-            return t('lockTravelClosed');
+            return t('lock.travel-closed');
         default:
-            return t('lockUnknown');
+            return t('lock.unknown');
     }
 }
 

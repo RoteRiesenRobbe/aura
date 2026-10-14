@@ -75,7 +75,7 @@ export function resolveArgs(args: WireArg[]): Record<string, unknown> {
             case AuraApi.MessageArgKind.List: {
                 const items = a.items.slice();
                 if (count && count.number > items.length) {
-                    items.push(t('listMoreOthers', {n: count.number - items.length}));
+                    items.push(t('list.more-others', {n: count.number - items.length}));
                 }
                 values[a.name] = formatList(items);
                 break;
@@ -95,7 +95,7 @@ export function wireMessageText(message: AuraApi.EntityMessage): string {
         return fallback;
     }
     const args = decodeArgs(message);
-    if (key === 'contentLines') {
+    if (key === 'content.lines') {
         // C3: authored lines by their stable ids (each its full key, D27), from
         // the /lang bundle.
         const english = fallback.split('\n');
@@ -173,20 +173,20 @@ export function objectiveLine(questId: string, o: ObjectiveData): string {
     if (line === null) {
         switch (o.kind) {
             case AuraApi.QuestObjectiveKind.TalkTo:
-                line = t('questObjectiveTalkTo', {name: mobName(o.target)});
+                line = t('quest.objective.talk-to', {name: mobName(o.target)});
                 break;
             case AuraApi.QuestObjectiveKind.Reach:
-                line = t('questObjectiveReach', {place: PLACES.get(o.region)?.title ?? o.region});
+                line = t('quest.objective.reach', {place: PLACES.get(o.region)?.title ?? o.region});
                 break;
             case AuraApi.QuestObjectiveKind.Harvest:
-                line = t('questObjectiveHarvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
+                line = t('quest.objective.harvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
                 break;
             default:
-                line = t('questObjectiveKill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
+                line = t('quest.objective.kill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
         }
     }
     if (!o.stage && o.kind === AuraApi.QuestObjectiveKind.TalkTo && o.done) {
-        line = t('questObjectiveDone', {line});
+        line = t('quest.objective.done', {line});
     }
     return line;
 }

@@ -98,28 +98,28 @@ function utilityTooltip(kind: number): TooltipContent | null {
     if (!name) {
         return null;
     }
-    const cast = t('utilityCastTime', {secs: UTILITY_CAST_SECONDS[kind]});
+    const cast = t('utility.cast-time', {secs: UTILITY_CAST_SECONDS[kind]});
     if (kind === AuraApi.UtilityKind.Recall) {
         return {
             title: name,
-            subtitle: t('utilitySubtitle'),
+            subtitle: t('utility.subtitle'),
             lines: [
-                {text: t('utilityRecallLine')},
-                {text: t('utilityRecallBind')},
+                {text: t('utility.recall.line')},
+                {text: t('utility.recall.bind')},
                 {text: cast},
-                {text: t('utilityRecallFree')},
+                {text: t('utility.recall.free')},
             ],
         };
     }
     return {
         title: name,
-        subtitle: t('utilitySubtitle'),
+        subtitle: t('utility.subtitle'),
         lines: [
-            {text: t('utilityCampLine')},
-            {text: t('utilityCampLimits')},
+            {text: t('utility.camp.line')},
+            {text: t('utility.camp.limits')},
             {text: cast},
-            {text: t('utilityCampCharges', {charges: campCharges, cap: campChargeCap(campLevel)}), labelColor: CHARGE_COLOR},
-            {text: t('utilityCampRefill')},
+            {text: t('utility.camp.charges', {charges: campCharges, cap: campChargeCap(campLevel)}), labelColor: CHARGE_COLOR},
+            {text: t('utility.camp.refill')},
         ],
     };
 }
@@ -140,7 +140,7 @@ export function trigger(kind: number) {
     // rather than routing through HUD, which keeps HUD ↔ Utilities from
     // becoming a cycle.
     if (Flight.isFlying()) {
-        AlertBanner.show(t('hudNoAbilitiesWhileFlying'), 'warning');
+        AlertBanner.show(t('hud.refusal.abilities-while-flying'), 'warning');
         return;
     }
     new UseUtilityMessage(kind).send();

@@ -49,11 +49,11 @@ describe('resolveLocale', () => {
 
 describe('t()', () => {
     it('formats the en message', () => {
-        expect(t('settingsLanguageHeading')).toBe('Language');
+        expect(t('settings.language.heading')).toBe('Language');
     });
     it('formats the de message', () => {
         setLocaleForTest('de');
-        expect(t('settingsLanguageHeading')).toBe('Sprache');
+        expect(t('settings.language.heading')).toBe('Sprache');
     });
     it('degrades an unknown key readable, never blank (D14)', () => {
         expect(t('noSuchKey', {mob: 'Wolf', n: 3})).toBe('noSuchKey (Wolf, 3)');
@@ -65,12 +65,12 @@ describe('t()', () => {
     });
     it('pseudo-localizes every message (D21)', () => {
         setLocaleForTest(PSEUDO_LOCALE);
-        const text = t('settingsLanguageHeading');
+        const text = t('settings.language.heading');
         expect(text.charAt(0)).toBe('[');
         expect(text).not.toMatch(/[A-Za-z]/);
     });
     it('formats rich-text tags to nodes, never innerHTML', () => {
-        const nodes = tParts('settingsLanguageHeading', {}, {});
+        const nodes = tParts('settings.language.heading', {}, {});
         expect(nodes.map(n => n.textContent).join('')).toBe('Language');
     });
 });
@@ -114,7 +114,7 @@ describe('pseudo inside plural branches (L21)', () => {
     it('accents the chosen branch of a plural message', () => {
         setLocaleForTest(PSEUDO_LOCALE);
         try {
-            expect(t('questObjectiveKill', {n: 3, m: 8, mob: 'Wolves'})).toMatch(/^\[3\/8 Ŵóļṽéš šļáíñ·+\]$/);
+            expect(t('quest.objective.kill', {n: 3, m: 8, mob: 'Wolves'})).toMatch(/^\[3\/8 Ŵóļṽéš šļáíñ·+\]$/);
         } finally {
             setLocaleForTest('en');
         }

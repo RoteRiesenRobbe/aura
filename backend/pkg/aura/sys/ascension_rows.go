@@ -128,7 +128,7 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 			OptionIndex:    ascensionEmptyPickIndex,
 			GrantIndex:     0,
 			Text:           "Spend this character, take no reward.",
-			TextKey:        "convAscendNoReward",
+			TextKey:        "conversation.ascend.no-reward",
 			Reply:          "Channelling now. Walk away to cancel.",
 			ConfirmSeconds: ascensionConfirmSeconds,
 		})
@@ -159,7 +159,7 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 	// same deliberate twin the teaching rows have: the greying and the named wall
 	// are the whole message, and the optimistic panel must have nothing to speak.
 	reply := fmt.Sprintf("%s it is. Channelling now, walk away to cancel.", text)
-	replyKey := "convAscendReply"
+	replyKey := "conversation.ascend.reply"
 	var locks []model.LockReason
 	if locked {
 		text = fmt.Sprintf("%s - locked: %s", text, describeConditions(entry.Gate, p))

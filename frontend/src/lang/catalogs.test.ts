@@ -119,6 +119,16 @@ describe('localization catalogs', () => {
         }
     });
 
+    // D32 (C6): a UI key is `<area>.<thing>[.<part>]`, lowercase, hyphenated,
+    // and never the dotted prefix of another (rule 5: a nested export stays
+    // possible).
+    it('UI keys are dotted, lowercase and hyphenated, none a prefix of another (D32)', () => {
+        const keys = Object.keys(messages(all[0].en));
+        const shape = /^[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$/;
+        expect(keys.filter(k => !shape.test(k))).toEqual([]);
+        expect(keys.filter(k => keys.some(other => other.startsWith(k + '.')))).toEqual([]);
+    });
+
     it('de covers every en key (D13; no allowlist since 2026-10-14)', () => {
         const missing: string[] = [];
         for (const p of all) {

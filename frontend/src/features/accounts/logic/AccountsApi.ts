@@ -57,21 +57,21 @@ export type ApiErrorCode = typeof API_ERROR_CODES[number]
 
 /** D15: each machine code's catalog key (respond.go's player-facing strings). */
 const API_ERROR_KEYS: Partial<Record<string, string>> = {
-    invalid_credentials: 'apiErrorInvalidCredentials',
-    already_logged_in: 'apiErrorAlreadyLoggedIn',
-    username_taken: 'apiErrorUsernameTaken',
-    name_taken: 'apiErrorNameTaken',
-    slots_full: 'apiErrorSlotsFull',
-    slot_taken: 'apiErrorSlotTaken',
-    already_registered: 'apiErrorAlreadyRegistered',
-    character_playing: 'apiErrorCharacterPlaying',
-    no_identity: 'apiErrorSignedOut',
-    session_expired: 'apiErrorSignedOut',
-    database_unavailable: 'apiErrorDatabase',
-    busy: 'apiErrorBusy',
-    internal: 'accountErrorGeneric',
-    bad_request: 'apiErrorBadRequest',
-    forbidden_origin: 'apiErrorForbiddenOrigin',
+    invalid_credentials: 'api-error.invalid-credentials',
+    already_logged_in: 'api-error.already-logged-in',
+    username_taken: 'api-error.username-taken',
+    name_taken: 'api-error.name-taken',
+    slots_full: 'api-error.slots-full',
+    slot_taken: 'api-error.slot-taken',
+    already_registered: 'api-error.already-registered',
+    character_playing: 'api-error.character-playing',
+    no_identity: 'api-error.signed-out',
+    session_expired: 'api-error.signed-out',
+    database_unavailable: 'api-error.database',
+    busy: 'api-error.busy',
+    internal: 'account.error.generic',
+    bad_request: 'api-error.bad-request',
+    forbidden_origin: 'api-error.forbidden-origin',
 };
 
 export class ApiError extends Error {
@@ -271,7 +271,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
     }
 
     let code: ApiErrorCode = 'internal';
-    let message = t('accountErrorGeneric');
+    let message = t('account.error.generic');
     let ref: string | undefined;
     try {
         const refusal = await response.json();

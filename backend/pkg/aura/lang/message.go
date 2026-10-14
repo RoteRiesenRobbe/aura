@@ -56,20 +56,20 @@ func List(name string, items []string) Arg {
 // frontend/src/lang/en/frontend.arb: a key with no template, or with other placeholder
 // names, fails there instead of degrading silently on screen (D14).
 const (
-	KeyUnlockDroppedBy   = "unlockDroppedBy"
-	KeyUnlockLevelReward = "unlockLevelReward"
-	KeyUnlockCombination = "unlockCombination"
-	KeyUnlockTaughtBy    = "unlockTaughtBy"
-	KeyUnlockCheat       = "unlockCheat"
-	KeyJournalUpdated    = "journalUpdated"
-	KeyQuestComplete     = "questComplete"
-	KeyWarlordFallen     = "warlordFallen"
-	KeyWarlordReturned   = "warlordReturned"
-	KeySaveResumed       = "saveResumed"
-	KeySaveFailing       = "saveFailing"
+	KeyUnlockDroppedBy   = "unlock.dropped-by"
+	KeyUnlockLevelReward = "unlock.level-reward"
+	KeyUnlockCombination = "unlock.combination"
+	KeyUnlockTaughtBy    = "unlock.taught-by"
+	KeyUnlockCheat       = "unlock.cheat"
+	KeyJournalUpdated    = "journal.updated"
+	KeyQuestComplete     = "quest.complete"
+	KeyWarlordFallen     = "warlord.fallen"
+	KeyWarlordReturned   = "warlord.returned"
+	KeySaveResumed       = "save.resumed"
+	KeySaveFailing       = "save.failing"
 	// KeyContentLines carries authored lines by id (C3): the client shows
 	// each conv.<id> from the /lang bundle, one per line.
-	KeyContentLines = "contentLines"
+	KeyContentLines = "content.lines"
 )
 
 // ServerKeys is each key's argument names.

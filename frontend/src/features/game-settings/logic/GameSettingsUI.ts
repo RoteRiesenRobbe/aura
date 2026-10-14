@@ -80,7 +80,7 @@ function setupLanguage() {
         if (select.value === Locale.locale()) {
             return;
         }
-        if (!window.confirm(Locale.t('settingsLanguageReloadConfirm'))) {
+        if (!window.confirm(Locale.t('settings.language.reload-confirm'))) {
             select.value = Locale.locale();
             return;
         }

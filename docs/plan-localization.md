@@ -2,7 +2,7 @@
 
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
-**⭐ C6 PLANNED 2026-10-14 (PO, D32):** the UI catalog's 311 camelCase keys get the content keys' shape (`hud.respec.button.title`, hyphenated parts). Not built.
+**✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -753,11 +753,11 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     | `settingsLanguageHeading` / `settingsLanguageLabel` | `settings.language.heading` / `settings.language.label` |
     | `settingsLanguageReloadConfirm` | `settings.language.reload-confirm` |
     | `hudRadarZoomInTitle` | `hud.radar.zoom-in.title` |
-    | `hudRespecButton` / `hudRespecButtonTitle` | `hud.respec.button.label` / `hud.respec.button.title` |
-    | `hudFocusBar` / `hudXpBar` | `hud.bar.focus` / `hud.bar.xp` |
+    | `hudRespecButton` / `hudRespecButtonTitle` | `spellbook.respec.label` / `spellbook.respec.title` |
+    | `hudFocusBar` / `hudXpBar` | `hud.bar.focus.text` / `hud.bar.xp.text` |
     | `hudMoving` / `hudMoveWithWasdOr` | `help.moving.heading` / `help.moving.body` |
     | `hudFocus` / `hudTheBarAtThe` | `help.focus.heading` / `help.focus.body` |
-    | `accountCreateValue` | `account.create.submit` |
+    | `accountCreateValue` | `account.create-character.submit` |
     | `accountPasswordRecoveryIsNot` | `account.register.no-recovery-note` |
     | `nagNagRegisterButton` | `nag.register-button` |
     | `selectContinueBloodlineOf` | `select.continue-bloodline-of` |
@@ -769,7 +769,8 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     | `ttStatMaxHealth` / `ttCategoryAura` | `tooltip.stat.max-health` / `tooltip.category.aura` |
     | `floatImmune` | `float.immune` |
 
-    The full mapping is written at C6 entry, as the rename script's table.
+    Built in C6 (2026-10-14): the table shows the names as built; the
+    catalog (`frontend/src/lang/en/frontend.arb`) is the record of all 311.
   - ⚑ `quest.objective.*` shares the `quest.` prefix with content keys. That
     is safe: the UI catalog and the served content text are separate files
     and separate lookups (`t()` vs the `/lang` bundle), so a UI key never
@@ -1842,6 +1843,35 @@ All six chunks built and committed one per chunk; NOT merged to main.
   same fields) · HTTP: `/lang` and the catalogs serve the dotted keys ·
   content format: dialogue slugs and shared phrase names are hyphenated.
 - ⚑ A running content editor needs a restart (it caches the old keys).
+
+### C6 + the allowlist removal (built 2026-10-14, PO)
+
+- **Allowlist removed** (`89f7a678`, D13): the three `allowlist.json` files,
+  the `allowlisted` field of `-lang-status`, the exception in the Go and
+  vitest pins, the editor's key moves. Same commit: "Fremdling" → "Fremder"
+  (PO; glossary).
+- **Folders** (`005af20a`): `frontend/src/lang/<locale>/frontend.arb` and
+  `de/frontend.translated-from.json`, by `git mv`.
+- **The rename**: 311 keys by one throwaway script (map reviewed for
+  coverage, duplicates, shape and prefixes before the run): en + de ARBs and
+  the record (now in `formatArb`'s sorted canonical order, so the catalog
+  groups by area), 371 sites in 20 TS files, 6 HTML partials, the 12 server
+  constants in `lang/message.go` and the 2 keys in `sys/ascension_rows.go`
+  (`conversation.ascend.*`); two old key names inside translator notes. Left
+  alone on purpose: CSS classes that share a key's name (`.journalAbandon`,
+  `.conversationLeave`, `#accountUsername`). Shared keys kept one name:
+  `skill-kind.auras|passives|cooldowns` (help headings and spellbook tabs),
+  `map.label`, `journal.label`, `spellbook.label`.
+- **New pin** (red first): every UI key is dotted, lowercase, hyphenated, and
+  never the dotted prefix of another (`catalogs.test.ts`, D32).
+- **Verified:** Go full suite bar the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · vitest 1663/0 ·
+  typecheck · webpack prod build · `i18n-pseudo` 4/4 (no raw key on screen) ·
+  `i18n-de` 7/7 · `round4-tooltip` passed · `chunk2-accounts` 24/24.
+- **Schema:** DB NONE · FlatBuffers NONE (`EntityMessage.key` and the
+  conversation key fields carry the new strings) · UI catalog moved and
+  renamed. An old client receiving a new server key shows the English
+  `message` (D10, D14).
 
 ---
 

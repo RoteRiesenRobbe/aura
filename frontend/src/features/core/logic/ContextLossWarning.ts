@@ -27,6 +27,6 @@ export function installContextLossWarning(canvas: HTMLCanvasElement): void {
         // The log is the load-bearing half: AlertBanner.show() no-ops until the
         // HUD is set up, and a mid-boot loss is the reproduced case.
         console.error('[webgl] world context lost — rendering has stopped. Reload the page. (backlog §29)');
-        AlertBanner.show(t('graphicsContextLost'), 'warning');
+        AlertBanner.show(t('graphics.context-lost'), 'warning');
     });
 }

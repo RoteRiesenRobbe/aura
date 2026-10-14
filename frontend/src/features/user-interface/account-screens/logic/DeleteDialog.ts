@@ -108,13 +108,13 @@ async function confirm(): Promise<void> {
             && (error.code === 'bad_request' || error.code === 'character_playing')) {
             close();
             onDeleted(error.code === 'bad_request'
-                ? t('deleteAlreadyGone')
+                ? t('account.delete.already-gone')
                 : error.message);
             return;
         }
         const message = error instanceof ApiError
             ? error.message
-            : t('accountErrorGeneric');
+            : t('account.error.generic');
         AccountScreens.showError(root, message, error instanceof ApiError ? error.ref : undefined);
         button.classList.remove('disabled');
     }
