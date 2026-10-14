@@ -325,6 +325,10 @@ Flora, Reinhard, Lionett and Hans; Brunnstedt's region title is now Dionsburg.
 ⚑ Tobias's and the Governor's lines are drafted (the sheet has none), and the
 den the sheet calls underground is the Alpha Boar's open-air spot until a cave
 is built.
+✅ PO walk passed 2026-10-14: the drafted lines and the placements of Lionett,
+Tobias and the Governor stand for now; all of it gets reworked later (in
+progress, nothing owed). Unbuilt from the sheet: the click-to-pick-up ring,
+the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 
 ⚑ **Two quests cross the zone line today.** `village-welcome` is offered by
 the Hermit, who stands in the Deep Woods (Zone 2), and `wolves-on-the-road` is
