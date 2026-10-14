@@ -3,6 +3,7 @@
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
+**⭐ C7 + C8 PLANNED 2026-10-14 (PO), not built:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale). The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -1287,6 +1288,88 @@ tooltip, an unlock banner.
 strings in the same field) · UI catalog: moved to `<locale>/frontend.arb`, 311
 keys renamed in en + de and the record.
 
+### C7 - translator notes stay out of the client bundle (frontend build, wire NONE)
+
+Planned 2026-10-14 (PO). ~¼ session. Independent of C8; either order.
+
+**Why.** The server never ships metadata (`ReadARB` drops every `@` key), but
+the client imports three ARBs whole through `?raw`: `Locale.ts:14-15`
+(`en/frontend.arb`, `de/frontend.arb`) and `LangBundle.ts:14`
+(`api/lang/en/regions.arb`). Measured 2026-10-14: `en/frontend.arb` is
+≈ 18.7 KB of messages and ≈ 50.5 KB of metadata, `regions.arb` ≈ 2.4 KB and
+≈ 8.9 KB, all pre-gzip and shipped to every player. The notes are for
+translators, never read at runtime: `parseArb` already drops them.
+
+**The rule:** the source ARBs keep every `@` entry (D18's notes, placeholders,
+`x-maxLength`), so translators, a platform (§9) and the pins see no change.
+Only the bundled copy is stripped.
+
+**Work:**
+
+1. `frontend/tools/arb-strip-loader.js`, a webpack loader: parse, delete every
+   key starting with `@`, `JSON.stringify` (whitespace goes too).
+2. `webpack.common.js`: a rule `{test: /\.arb$/, resourceQuery: /raw/, type:
+   'asset/source', use: [the loader]}`, and `exclude: /\.arb$/` on the generic
+   `?raw` rule (webpack applies EVERY matching rule, not the first).
+3. Nothing else: the import stays a string, so `raw.d.ts`, `parseArb` and the
+   three import sites are untouched. Vitest resolves `?raw` itself and keeps
+   reading the full file, which `parseArb` already handles.
+
+Not taken: webpack's built-in JSON `parser.parse` (no loader file, but the
+imports become objects: three call sites and the typing change); notes in a
+sidecar file (platforms read notes from inside the ARB, D17).
+
+**Verify:** `npm run build`, then grep `frontend/dist` for a known note string
+(absent) and a known English message (present) · vitest · typecheck · one
+look in game, en and de: start screen, HUD, a tooltip, a region banner.
+
+**Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged (build output
+only).
+
+### C8 - UI catalogs loaded on demand (frontend, wire NONE)
+
+Planned 2026-10-14 (PO). ~½ session. ⭐ **Trigger: the third locale.** At two
+locales the cost is ≈ 20 KB (pre-gzip) of German messages in every English
+player's bundle; C7 does not shrink it (the German file carries no metadata).
+Too little to pay for the moving part.
+
+**Why.** Content text is already per locale (`?lang=` on the catalogs and
+`/lang`, D6). The UI catalogs are not: `Locale.ts:14-15` imports every
+locale's `frontend.arb` statically, so all of them sit in the main bundle and
+each new language grows every player's download.
+
+**The rule:** English stays bundled (the fallback of D14 and the source of
+`t()` before anything else lands). Every other locale's catalog is a
+dynamic `import()`, which webpack emits as its own content-hashed chunk, so a
+catalog can never come from another build than the code calling `t()`. The
+files stay in `frontend/src/lang/` (they belong to the client code, and the
+key-usage scan ties them to it); nothing moves to the server.
+
+**Work:**
+
+1. `Locale.ts`: `catalogs` starts with `en` only; a `loadCatalog(locale)`
+   resolves the chosen locale's `import()` once, after the locale is resolved
+   (D11) and before text renders. `en-XA` needs no chunk (it transforms `en`).
+2. ⚑ **Entry check, the landmine:** the start screen's DOM is ready BEFORE
+   preloads run (`StartScreenDomReadyEvent` starts `waitForPreloads`,
+   `Preloading.ts`), and it carries UI text (`start.*`, the loading status).
+   `registerPreload` alone is therefore too late for it. Either await the
+   catalog before the start screen is inserted (one small fetch on the
+   critical path), or re-run `applyI18n` on the start screen when it lands
+   (a flash of English). Survey every other text rendered before preloads
+   finish at entry.
+3. A failed chunk load degrades to English (D14: readable, never blank), with
+   one `console.warn`, like `LangBundle.ts`.
+4. `catalogs.test.ts` reads the files from disk, so its pins are untouched.
+
+**Verify:** `npm run build` shows one chunk per non-English locale and no
+German message in the main bundle · vitest · typecheck · `i18n-de.mjs` and
+`i18n-pseudo.mjs` (no raw key on screen) · in game with the network
+throttled: no flash of keys on the start screen in de · the chunk blocked in
+devtools: the game comes up in English.
+
+**Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
+
 ---
 
 ## 5. Landmines
@@ -1482,6 +1565,8 @@ is the full German playthrough.
 | C5a English into ARB | ~1-1.5 sessions; the extract tool (= the migration) + the loader seam + the editor reading and writing the ARB + key moves; English byte-identical | DB NONE · FlatBuffers NONE (line ids carry full keys) · `/lang`: every content key renamed (D29) · content: text leaves mobs, quests, skills, `regions.json`; dialogue lines `{"id"}` with slug ids; `stock.json` deleted; `api/lang/en/` authored (D27) |
 | C5b mob names as ICU + editable English + "German owed" | ~1 session; 16 plural merges + the singular helper + the client formatter + editor fields, validation and `-lang-status` | DB NONE · FlatBuffers NONE · `/mobs`: the name may carry ICU, `displayNamePlural` removed · ARB: 16 `namePlural` keys merged (D24) |
 | C6 UI keys in the content keys' shape | ~½ session; one rename script (311 keys, 193 TS calls, 6 partials, 11 server constants) + the shape pin | DB NONE · FlatBuffers NONE · UI catalog keys renamed (D32) |
+| C7 notes out of the client bundle | ~¼ session; one webpack loader + one rule | DB NONE · FlatBuffers NONE · build output only |
+| C8 UI catalogs on demand (trigger: a third locale) | ~½ session; `Locale.ts` dynamic import + the start-screen timing | DB NONE · FlatBuffers NONE |
 
 Total new machinery is deliberately small: one client i18n module (on one
 library, `intl-messageformat`, D16), one overlay loader, one en-source
