@@ -1,5 +1,11 @@
 # Plan: Region audio — the ground you hear, and the place you hear
 
+> **⛔ SUPERSEDED 2026-10-15 by `docs/plan-audio.md`** (PO call): region music
+> and region footsteps are lanes D and E there, and its C0 design chunk decides
+> their scope. Nothing here was built. The design below (D1-D9, the throttle bug
+> §3.2, the music tracker §3.5) stays the reference; D4 and D6 remain ruled
+> unless that plan's C0 says otherwise.
+
 > **Status: DESIGNED 2026-08-23 (D4 + D6 PO-ruled; D1–D3, D5, D7–D9 are proposals).
 > No chunk built.** The audio consumers of `plan-region-primitive.md`. Split
 > out at PO request, same session, from *"can this biome texture also be used
