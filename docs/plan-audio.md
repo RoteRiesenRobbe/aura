@@ -51,7 +51,9 @@ Two different things hide in that list:
   `masterMuted`, `masterVolume`, `enableBackgroundAudio`, `musicVolume`. There
   is no sound-effects or UI volume. ⚑ **`masterMuted` defaults to `true`**: a
   new player starts muted and never hears the main title unless they find the
-  setting (Q1).
+  setting (Q1). Since `4725163d` (2026-10-15) a "Mute all" switch sits beside
+  Fullscreen on the account screens (the first screen a player sees), the same
+  setting as the settings panel's; `musicVolume` defaults to 0.5.
 - **Music:** `Music.ts`, 32 lines. One hardcoded track (`Aura - Main
   Title.mp3` since `1168b00e`), `autoPlay`, `loop`, started at import time,
   before any position or game state exists. No track table, no notion of a
@@ -122,6 +124,8 @@ from the survey above, not what it will cost to compose.
 
 - **Q1. Muted by default?** `masterMuted` defaults to `true` today. Unmuted
   means new players hear the title (after the browser's first-click unlock).
+  ⚑ The account screens now carry the mute switch, so a muted default no longer
+  hides the setting; this weakens the case for unmuting by default.
 - **Q2. Which lanes are v1?** Of A-H, which ship before release and in what
   order. The size table in §3 is the input.
 - **Q3. The music priority order.** Menu < region < event is the proposal.
