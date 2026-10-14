@@ -361,3 +361,12 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.85; color: var(-
 .save-checklist li { padding: 3px 0; }
 .save-checklist-box { margin: 6px 0 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg-card-2); }
 .save-checklist-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin-bottom: 4px; }
+
+/* Dialogue text (plan-localization.md D27, D28): own text with its slug, or a shared phrase. */
+.lines-editor .line-row { margin-bottom: 4px; }
+.slug { font-family: monospace; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.slug.editable { cursor: pointer; text-decoration: underline dotted; }
+button.reslug { font-size: 10px; padding: 1px 6px; }
+.owed-box { background: var(--bg-card-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 12px; }
+.owed-box .label { font-weight: 600; }
+.owed-box ul { margin: 4px 0 0 16px; padding: 0; max-height: 180px; overflow: auto; font-family: monospace; font-size: 11px; }

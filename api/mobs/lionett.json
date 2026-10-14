@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          "Ohh ... a new face around here."
+          {"id": "ohh-a-new-face-around"}
         ],
         "options": [
           {
-            "text": "Do you have work for me?",
+            "id": "do-you-have-work",
             "next": "brew"
           },
           {
-            "text": "About the seaweed...",
+            "id": "about-the-seaweed",
             "next": "brew_running"
           }
         ]
@@ -42,17 +42,17 @@
       {
         "id": "brew",
         "lines": [
-          "Indeed I do! I'm about to brew a special tea that helps you regain focus.",
-          "If you help me gather the ingredients, I'll let you in on the recipe."
+          {"id": "indeed-i-do-im-about"},
+          {"id": "if-you-help-me-gather"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "id-hoped-youd-say-that",
                 "kind": "offer_quest",
-                "quest": "a-healthy-brew",
-                "line": "I'd hoped you'd say that. You need to harvest seaweed from the shore up north. 8 strands should suffice."
+                "quest": "a-healthy-brew"
               }
             ]
           }
@@ -61,34 +61,32 @@
       {
         "id": "brew_running",
         "lines": [
-          "The seaweed?"
+          {"id": "the-seaweed"}
         ],
         "options": [
           {
-            "text": "Here's your seaweed.",
+            "id": "heres-your-seaweed",
             "grants": [
               {
+                "id": "and-heres-your-tea",
                 "kind": "advance_quest",
                 "quest": "a-healthy-brew",
                 "fromStage": "back",
-                "toStage": "done",
-                "line": "And here's your tea."
+                "toStage": "done"
               },
               {
                 "kind": "teach_skill",
                 "skill": "FirstAid",
-                "requiredLevel": 1,
-                "line": "I'll teach you how to use it, so you can use it in the future if you're short on focus."
+                "requiredLevel": 1
               },
               {
                 "kind": "grant_xp",
-                "xp": 180,
-                "line": "Thank you, dear."
+                "xp": 180
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task",
             "next": "brew_on_it"
           }
         ]
@@ -103,7 +101,7 @@
           }
         ],
         "lines": [
-          "You'll find seaweed to the north, close to the shore. Once you're there, use your Harvest aura to gather it."
+          {"id": "youll-find-seaweed"}
         ]
       }
     ]

@@ -26,27 +26,27 @@
       {
         "id": "root",
         "lines": [
-          "What do you want, stranger?"
+          {"id": "what-do-you-want-stranger"}
         ],
         "options": [
           {
-            "text": "Do you have a task for me?",
+            "stock": "ask-task",
             "next": "harvest"
           },
           {
-            "text": "About the beets...",
+            "id": "about-the-beets",
             "next": "harvest_running"
           },
           {
-            "text": "Do you have anything else to do?",
+            "id": "do-you-have-anything-else",
             "next": "meat"
           },
           {
-            "text": "About the deer...",
+            "id": "about-the-deer",
             "next": "meat_running"
           },
           {
-            "text": "Do you have anything else to do?",
+            "id": "do-you-have-anything-else-2",
             "next": "mill"
           }
         ]
@@ -54,18 +54,18 @@
       {
         "id": "harvest",
         "lines": [
-          "So ... you came here looking for work?",
-          "I've got a beet field in the east that's ready for harvesting. Make yourself useful and harvest 10 beets.",
-          "Talk to Benjamin, he can teach you how to harvest."
+          {"id": "so-you-came-here-looking"},
+          {"id": "ive-got-a-beet-field"},
+          {"id": "talk-to-benjamin-he-can"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "come-back-here-when-youre",
                 "kind": "offer_quest",
-                "quest": "ready-for-harvest",
-                "line": "Come back here when you're done."
+                "quest": "ready-for-harvest"
               }
             ]
           }
@@ -74,28 +74,27 @@
       {
         "id": "harvest_running",
         "lines": [
-          "The beets?"
+          {"id": "the-beets"}
         ],
         "options": [
           {
-            "text": "I've harvested the beets.",
+            "id": "ive-harvested-the-beets",
             "grants": [
               {
+                "id": "thanks-the-old-bones-wont",
                 "kind": "advance_quest",
                 "quest": "ready-for-harvest",
                 "fromStage": "home",
-                "toStage": "done",
-                "line": "Thanks ... the old bones won't bend like they used to, so I appreciate the help."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 150,
-                "line": "Here, for your trouble."
+                "xp": 150
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task",
             "next": "harvest_on_it"
           }
         ]
@@ -110,7 +109,7 @@
           }
         ],
         "lines": [
-          "Talk to Benjamin first. He's right in front of the field."
+          {"id": "talk-to-benjamin-first-hes"}
         ]
       },
       {
@@ -123,18 +122,18 @@
           }
         ],
         "lines": [
-          "Since you are young and strong, would you mind hunting some deer for me?",
-          "5 of them would replenish our meat supplies and give some substance to our stews.",
-          "You'll find them in the south. My husband Henrik should be able to teach you how to hunt properly."
+          {"id": "since-you-are-young"},
+          {"id": "5-of-them-would-replenish"},
+          {"id": "youll-find-them"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "youll-find-them-further-south",
                 "kind": "offer_quest",
-                "quest": "meat-for-dinner",
-                "line": "You'll find them further south, right after the fenced field."
+                "quest": "meat-for-dinner"
               }
             ]
           }
@@ -143,28 +142,27 @@
       {
         "id": "meat_running",
         "lines": [
-          "The deer?"
+          {"id": "the-deer"}
         ],
         "options": [
           {
-            "text": "Here you go! The meat of 5 deer.",
+            "id": "here-you-go-the-meat",
             "grants": [
               {
+                "id": "ahh-what-a-sight",
                 "kind": "advance_quest",
                 "quest": "meat-for-dinner",
                 "fromStage": "home",
-                "toStage": "done",
-                "line": "Ahh ... what a sight for sore eyes. I'll prepare them right away."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 150,
-                "line": "Meat's back on the menu!"
+                "xp": 150
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-2",
             "next": "meat_on_it"
           }
         ]
@@ -179,7 +177,7 @@
           }
         ],
         "lines": [
-          "Be quick. Stags tend to run faster than beets."
+          {"id": "be-quick-stags-tend"}
         ]
       },
       {
@@ -192,17 +190,17 @@
           }
         ],
         "lines": [
-          "Thanks, stranger. That's all the work I have for now.",
-          "But you should talk to miller Reinhard, who lives further east."
+          {"id": "thanks-stranger-thats-all"},
+          {"id": "but-you-should-talk"}
         ],
         "options": [
           {
-            "text": "Sure, I'll talk to the miller.",
+            "id": "sure-ill-talk",
             "grants": [
               {
+                "id": "good-luck-stranger",
                 "kind": "offer_quest",
-                "quest": "eliza-sends-me",
-                "line": "Good luck, stranger."
+                "quest": "eliza-sends-me"
               }
             ]
           }

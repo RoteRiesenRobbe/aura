@@ -58,7 +58,7 @@ const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 
 async function run(flavour) {
   const mobile = flavour === 'mobile';
-  const ctx = await browser.newContext({
+  const ctx = await browser.newContext({ locale: 'en-US',
     viewport: mobile ? { width: 844, height: 390 } : { width: 1280, height: 800 },
     hasTouch: mobile,
   });

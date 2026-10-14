@@ -26,19 +26,19 @@
       {
         "id": "root",
         "lines": [
-          "Hm? Speak up, stranger."
+          {"id": "hm-speak-up-stranger"}
         ],
         "options": [
           {
-            "text": "Flora sends me to hunt some deer.",
+            "id": "flora-sends-me-to-hunt",
             "next": "flora"
           },
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           },
           {
-            "text": "How do I hunt a stag?",
+            "id": "how-do-i-hunt",
             "next": "stags"
           }
         ]
@@ -53,11 +53,11 @@
           }
         ],
         "lines": [
-          "With that tiny knife you carry? Hahaha! Come here, I'll teach you how to hunt."
+          {"id": "with-that-tiny-knife-you"}
         ],
         "options": [
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -65,22 +65,22 @@
       {
         "id": "teachings",
         "lines": [
-          "I'll teach you one thing. Learn it properly."
+          {"id": "ill-teach-you-one-thing"}
         ],
         "options": [
           {
-            "text": "Wild",
+            "id": "wild",
             "grants": [
               {
+                "id": "with-the-wild-aura-youll",
                 "kind": "teach_skill",
                 "skill": "Wild",
-                "requiredLevel": 1,
-                "line": "With the Wild aura you'll have a larger reach. Choose Wild as your active aura and give it your best shot!"
+                "requiredLevel": 1
               }
             ]
           },
           {
-            "text": "No problem, I'll kill the deer in no time.",
+            "id": "no-problem-ill-kill",
             "next": "bravado"
           }
         ]
@@ -95,14 +95,14 @@
           }
         ],
         "lines": [
-          "Hahaha! We'll see."
+          {"id": "hahaha-well-see"}
         ]
       },
       {
         "id": "stags",
         "lines": [
-          "A stag will start to run the moment you hurt it.",
-          "You won't win by hitting harder. You win by staying close."
+          {"id": "a-stag-will-start"},
+          {"id": "you-wont-win-by-hitting"}
         ]
       }
     ]

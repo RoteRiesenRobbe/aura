@@ -27,6 +27,24 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
 - **Sync gotcha:** always check the boot log counts after a restart
   (`Loaded skill definitions count=…`). A stale `aurad` process silently
   masks new content — `pkill aurad`, rebuild, re-check.
+- **⭐ Player-visible English lives in `api/lang/en/*.arb`, not in the content
+  JSON** (plan-localization.md D27). A mob, quest, skill or region file keeps
+  structure and ids; its text (names, titles, journals, trackers, dialogue
+  lines, options, grant lines, skill descriptions, region titles) sits in the
+  English ARB under a dotted key (`quest.<id>.<stage>.journal`,
+  `mob.<Name>.name`, `conv.<NPC>.<slug>`). The boot refuses inline text in a
+  content file. **The examples in this manual show text INLINE, as a draft:**
+  write it like that, then run `node tools/lang/extract-english.mjs`, which
+  moves it into the ARB with a translator note, gives every dialogue line a
+  frozen slug (`{"id": "fields_need_work"}`) or names the shared phrase its
+  English matches (`{"stock": "quest_accept"}`), and strips the JSON. The
+  content editor does the same on save, and moves a renamed id's keys in every
+  language. German goes into `api/lang/de/` in the same change (D23); see the
+  `add-content` skill for the steps and `docs/manual-localization-de.md` for
+  the style.
+- **A mob a kill or harvest objective counts carries its plural in its name**
+  (D24): `"mob_Wolf_name": "{count, plural, one {Wolf} other {Wolves}}"`. Every
+  other mob name is plain text. The old `namePlural` field is retired.
 
 ---
 
@@ -1519,6 +1537,13 @@ giver's `!` and the quest's title are tinted by, with the mob nameplate's rule
 (grey / green / yellow / orange / red by its distance from the player's level).
 Aim it at the level the turn-in XP is priced for (the L9 half-level rule,
 `TestContent_QuestXPBudget`): a quest priced for L6 dire wolves is level 6.
+
+⭐ **Quest and stage ids are slugs**: lowercase letters, digits and `-`
+(`wolves-on-the-road`, `bring-it-back`), the rule region and area ids follow; the
+loader and the editor refuse anything else. Both go verbatim into the dotted
+text keys (`quest.<id>.<stage>.journal`), and a stage id is stored in every
+character's quest progress, so renaming one after release strands a quest
+mid-way for anyone standing on it.
 
 ### The stage graph
 

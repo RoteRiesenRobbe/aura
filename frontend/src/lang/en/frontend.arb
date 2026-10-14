@@ -1,0 +1,1670 @@
+{
+  "@@locale": "en",
+  "account.abandon.button": "Log in and abandon progress",
+  "@account.abandon.button": {
+    "description": "Login button after the abandon warning."
+  },
+  "account.abandon.warning": "You are currently playing without an account. Logging in will abandon that progress permanently — it cannot be recovered afterwards. Press Log in again to continue.",
+  "@account.abandon.warning": {
+    "description": "Login form warning for a guest with progress; the login button then reads account.abandon.button."
+  },
+  "account.create-character.close-button": "Close",
+  "@account.create-character.close-button": {
+    "description": "Account screens: text of the <a id=creationBackButton> element in #characterCreation in #accountScreens."
+  },
+  "account.create-character.heading": "Create your character",
+  "@account.create-character.heading": {
+    "description": "Account screens: text of the <h2> element in #characterCreation in #accountScreens."
+  },
+  "account.create-character.login-button": "Log in",
+  "@account.create-character.login-button": {
+    "description": "Account screens: text of the <a id=creationLoginButton> element in #characterCreation in #accountScreens."
+  },
+  "account.create-character.submit": "Create",
+  "@account.create-character.submit": {
+    "description": "Account screens: the value attribute of the <input> element in #characterCreationForm in #characterCreation."
+  },
+  "account.delete.already-gone": "That character is already gone.",
+  "@account.delete.already-gone": {
+    "description": "Delete dialog: the character was deleted elsewhere."
+  },
+  "account.delete.cancel-button": "Cancel",
+  "@account.delete.cancel-button": {
+    "description": "Account screens: text of the <a id=deleteCancelButton> element in #deleteDialog in #accountScreens."
+  },
+  "account.delete.confirm-button": "Delete",
+  "@account.delete.confirm-button": {
+    "description": "Account screens: text of the <a id=deleteConfirmButton> element in #deleteDialog in #accountScreens."
+  },
+  "account.delete.heading": "Delete this character?",
+  "@account.delete.heading": {
+    "description": "Account screens: text of the <h2> element in #deleteDialog in #accountScreens."
+  },
+  "account.delete.warning": "This cannot be undone.",
+  "@account.delete.warning": {
+    "description": "Account screens: text of the <p> element in #deleteDialog in #accountScreens."
+  },
+  "account.error.generic": "Something went wrong. Please try again.",
+  "@account.error.generic": {
+    "description": "Account screens: generic error."
+  },
+  "account.error.join-timeout": "That took too long; please pick your character again.",
+  "@account.error.join-timeout": {
+    "description": "Account screens: joining the world timed out."
+  },
+  "account.error.unreachable": "Aura could not be reached. Please try again in a moment.",
+  "@account.error.unreachable": {
+    "description": "Account screens: the server did not answer."
+  },
+  "account.field.password": "Password",
+  "@account.field.password": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "account.field.repeat-password": "Repeat Password",
+  "@account.field.repeat-password": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "account.field.username": "Username",
+  "@account.field.username": {
+    "description": "Account screens: text of the <label> element in #registerForm in #registerPanel."
+  },
+  "account.fullscreen": "Fullscreen",
+  "@account.fullscreen": {
+    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
+  },
+  "account.have-account": "Already have an account?",
+  "@account.have-account": {
+    "description": "Account screens: text of the <p> element in #selectLoginPrompt in #characterSelect."
+  },
+  "account.login.back-button": "Back",
+  "@account.login.back-button": {
+    "description": "Account screens: text of the <a id=loginBackButton> element in #loginPanel in #accountScreens."
+  },
+  "account.login.heading": "Log in",
+  "@account.login.heading": {
+    "description": "Account screens: text of the <h2> element in #loginPanel in #accountScreens."
+  },
+  "account.login.submit": "Log in",
+  "@account.login.submit": {
+    "description": "Account screens: the value attribute of the <input> element in #loginForm in #loginPanel."
+  },
+  "account.register.close-button": "Close",
+  "@account.register.close-button": {
+    "description": "Account screens: text of the <a id=registerBackButton> element in #registerPanel in #accountScreens."
+  },
+  "account.register.heading": "Create an account",
+  "@account.register.heading": {
+    "description": "Account screens: text of the <h2> element in #registerPanel in #accountScreens."
+  },
+  "account.register.keeps-progress-note": "Your characters and progress stay exactly as they are. Registering just adds a username and password to the account you are already playing on.",
+  "@account.register.keeps-progress-note": {
+    "description": "Account screens: text of the <p> element in #registerPanel in #accountScreens."
+  },
+  "account.register.no-recovery-note": "Password recovery is not available yet. If you forget this password, the account cannot be recovered.",
+  "@account.register.no-recovery-note": {
+    "description": "Account screens: text of the <p> element in #registerPanel in #accountScreens."
+  },
+  "account.register.submit": "Create account",
+  "@account.register.submit": {
+    "description": "Account screens: the value attribute of the <input> element in #registerForm in #registerPanel."
+  },
+  "account.select.heading": "Choose your character",
+  "@account.select.heading": {
+    "description": "Account screens: text of the <h2> element in #characterSelect in #accountScreens."
+  },
+  "account.select.login-button": "Log in",
+  "@account.select.login-button": {
+    "description": "Account screens: text of the <a id=selectLoginButton> element in #selectLoginPrompt in #characterSelect."
+  },
+  "account.select.logout-button": "Log out",
+  "@account.select.logout-button": {
+    "description": "Account screens: text of the <a id=logoutButton> element in #characterSelect in #accountScreens."
+  },
+  "api-error.already-logged-in": "This account is already logged in.",
+  "@api-error.already-logged-in": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.already-registered": "That account is already registered.",
+  "@api-error.already-registered": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.bad-request": "That request could not be understood.",
+  "@api-error.bad-request": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.busy": "Aura is busy right now. Please try again in a moment.",
+  "@api-error.busy": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.character-playing": "That character is in the world right now. Leave the world first.",
+  "@api-error.character-playing": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.database": "Aura is having trouble reaching its database. Please try again in a moment.",
+  "@api-error.database": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.forbidden-origin": "That request came from an origin this server does not serve.",
+  "@api-error.forbidden-origin": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.invalid-credentials": "Incorrect username or password.",
+  "@api-error.invalid-credentials": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.name-taken": "That character name is taken.",
+  "@api-error.name-taken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.signed-out": "You are signed out. Please log in again.",
+  "@api-error.signed-out": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.slot-taken": "That character slot is taken.",
+  "@api-error.slot-taken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.slots-full": "All character slots are full.",
+  "@api-error.slots-full": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "api-error.username-taken": "That username is already taken.",
+  "@api-error.username-taken": {
+    "description": "Account screens: a server refusal, localized by its machine code (D15)."
+  },
+  "backend.connection-lost": "Connection lost — reload to reconnect",
+  "@backend.connection-lost": {
+    "description": "Banner: the game connection dropped."
+  },
+  "confirm-row.cancel": "Cancel",
+  "@confirm-row.cancel": {
+    "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."
+  },
+  "confirm-row.confirm": "Confirm",
+  "@confirm-row.confirm": {
+    "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."
+  },
+  "content.lines": "{ids}",
+  "@content.lines": {
+    "description": "Carrier for authored lines sent by id (an NPC calling out to passers-by); the client shows each line from the dialogue bundle. Never shown as written.",
+    "placeholders": {
+      "ids": {"type": "String", "description": "Line ids", "example": "a1b2c3"}
+    }
+  },
+  "conversation.ascend.no-reward": "Spend this character, take no reward.",
+  "@conversation.ascend.no-reward": {
+    "description": "Ascension stone row: sacrifice the character without picking a reward.",
+    "placeholders": {
+      "skill": {"type": "String", "description": "Unused here", "example": ""}
+    }
+  },
+  "conversation.ascend.reply": "{skill} it is. Channelling now, walk away to cancel.",
+  "@conversation.ascend.reply": {
+    "description": "Ascension stone reply after picking a reward: the channel starts; walking away cancels it.",
+    "placeholders": {
+      "skill": {"type": "String", "description": "The chosen reward skill name", "example": "Lantern"}
+    }
+  },
+  "conversation.back": "← Back",
+  "@conversation.back": {
+    "description": "HUD: text of the <div> element in #conversation in #bottomCenter."
+  },
+  "conversation.leave.label": "Leave.",
+  "@conversation.leave.label": {
+    "description": "Conversation: the row that ends the conversation, written as the player's own words."
+  },
+  "conversation.leave.title": "Leave (Esc)",
+  "@conversation.leave.title": {
+    "description": "HUD: the title attribute of the <span> element in #conversation in #bottomCenter."
+  },
+  "conversation.level-wall": "level {level, number}",
+  "@conversation.level-wall": {
+    "description": "Conversation row: shown on an option locked behind a level; lower case, it sits beside the option.",
+    "placeholders": {
+      "level": {"type": "int", "description": "Required level", "example": "5"}
+    }
+  },
+  "conversation.locked-row": "{label} - locked: {reasons}",
+  "@conversation.locked-row": {
+    "description": "A greyed conversation row the player cannot take yet: its label, then why (the reasons, already joined with \"and\" or \"or\").",
+    "placeholders": {
+      "label": {"type": "String", "description": "The row label", "example": "Show me the rewards."},
+      "reasons": {"type": "String", "description": "The lock reasons, joined", "example": "level 30 (12/30)"}
+    }
+  },
+  "damage-type.bleed": "bleed",
+  "@damage-type.bleed": {
+    "description": "Name of the damage type \"bleed\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.fire": "fire",
+  "@damage-type.fire": {
+    "description": "Name of the damage type \"fire\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.frost": "frost",
+  "@damage-type.frost": {
+    "description": "Name of the damage type \"frost\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.nature": "nature",
+  "@damage-type.nature": {
+    "description": "Name of the damage type \"nature\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.physical": "physical",
+  "@damage-type.physical": {
+    "description": "Name of the damage type \"physical\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "damage-type.poison": "poison",
+  "@damage-type.poison": {
+    "description": "Name of the damage type \"poison\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
+  "end.respawn-button": "Respawn",
+  "@end.respawn-button": {
+    "description": "Death screen: the value attribute of the <input> element in #endForm in #endScreen."
+  },
+  "end.you-died": "You Died",
+  "@end.you-died": {
+    "description": "Death screen: text of the <h2> element in #endScreen."
+  },
+  "float.absorbed": "Absorbed",
+  "@float.absorbed": {
+    "description": "Floating text over a target whose shield absorbed a hit. At most 14 characters: it floats over a target.",
+    "x-maxLength": 14
+  },
+  "float.immune": "Immune",
+  "@float.immune": {
+    "description": "Floating text over a target that ignored an effect. At most 14 characters: it floats over a target.",
+    "x-maxLength": 14
+  },
+  "graphics.context-lost": "Graphics context lost — please reload the page.",
+  "@graphics.context-lost": {
+    "description": "Warning banner: WebGL context was lost."
+  },
+  "help.auras.body": "You fight with auras: a circle around you. No targeting, no aiming — where you stand is the attack. Each aura picks its own targets inside its range, and most affect only a limited number at a time (usually the nearest). An active aura ticks on a steady rhythm — every tick applies its effect; the ring pulse and the pip on the slot show the beat. Enemy auras tick too: stepping out between beats is real play. Exactly one aura is active at a time. You start with Damage equipped.",
+  "@help.auras.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.close.title": "Close (Esc)",
+  "@help.close.title": {
+    "description": "HUD: the title attribute of the <span> element in #help in #gameUI."
+  },
+  "help.costs.body": "Most skills spend Focus — the tooltip states every price. The basic Damage aura is always free: you are never left without an option.",
+  "@help.costs.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.costs.heading": "Costs",
+  "@help.costs.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.darkness.body": "Some areas are dark — bring a light aura, or a friend who carries one while you carry the damage. Filling roles for each other is the design. There is no PvP.",
+  "@help.darkness.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.darkness.heading": "Dark places and other players",
+  "@help.darkness.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.dying.body": "At zero Focus you die and respawn, losing the XP you had gathered toward your next level.",
+  "@help.dying.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.dying.heading": "Dying",
+  "@help.dying.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.equipping.body": "Open the spellbook (B), click a skill, then a slot or its hotkey. Not while in combat.",
+  "@help.equipping.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.equipping.heading": "Equipping",
+  "@help.equipping.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.fighting.body": "Everyone who takes part in a fight gets XP — being close with an aura on counts. The red sword means you are in combat. Mobs stop regenerating for a moment after being hit.",
+  "@help.fighting.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.fighting.heading": "Fighting and XP",
+  "@help.fighting.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.focus.body": "The bar at the top is Focus — your health and everything you spend, in one value. At zero you die. It refills out of combat; getting hit pauses that for a few seconds.",
+  "@help.focus.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.focus.heading": "Focus",
+  "@help.focus.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI. At most 10 characters: it labels the Focus bar.",
+    "x-maxLength": 10
+  },
+  "help.heading": "How Aura works",
+  "@help.heading": {
+    "description": "HUD: text of the <span> element in #help in #gameUI."
+  },
+  "help.levels.body": "Leveling up grants skill points. Spend them in the spellbook (B) with +. Higher levels cost more points; each skill has its own cap.",
+  "@help.levels.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.levels.heading": "Levels and skill points",
+  "@help.levels.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.moving.body": "Move with WASD or the arrow keys. The minimap is north-up; its compass shows directions. The world is shared — everyone you see is really there.",
+  "@help.moving.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.moving.heading": "Moving",
+  "@help.moving.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.people.body": "Get close and press E when the badge lights up. Quests are offered and turned in through dialogue; J opens the journal.",
+  "@help.people.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.people.heading": "People and quests",
+  "@help.people.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.skill-kinds.body": "<em>Auras</em>: slots 1–3, one active, switch with the hotkeys — also mid-fight. <em>Passives</em>: always on, all in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then recharge — the cooldown belongs to the skill, not the slot. Besides your skills, everyone always has two utility buttons, free and unlevelled: <em>Recall</em> takes you back to your bound campfire, and <em>Camp</em> puts down a small fire that heals everyone standing in it for a short while. Both cast slowly and break if you move or get hit. Camp costs a charge — resting at a real campfire refills them, and you carry more of them as you level.",
+  "@help.skill-kinds.body": {
+    "description": "HUD help panel (\"How Aura works\"), section \"The three kinds of skills\". <em> marks a term in emphasis; keep the tags around the translated terms (Auren, Passive, Abklingfähigkeiten, Rückkehr, Lager)."
+  },
+  "help.skill-kinds.heading": "The three kinds of skills",
+  "@help.skill-kinds.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "help.sources.body": "Granted at certain levels, dropped by some mobs, taught by some people (E when the badge appears), rewarded by quests.",
+  "@help.sources.body": {
+    "description": "HUD: text of the <p> element in #help in #gameUI."
+  },
+  "help.sources.heading": "Where skills come from",
+  "@help.sources.heading": {
+    "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hud.bar.focus.text": "Focus {health, number}/{max, number}",
+  "@hud.bar.focus.text": {
+    "description": "Text on the Focus bar (the one resource: health and spending).",
+    "placeholders": {
+      "health": {"type": "int", "description": "Current Focus", "example": "80"},
+      "max": {"type": "int", "description": "Maximum Focus", "example": "120"}
+    }
+  },
+  "hud.bar.focus.title": "Focus — your health and everything you spend to act",
+  "@hud.bar.focus.title": {
+    "description": "HUD: the title attribute of the <div id=healthBar> element in #vitalSigns in #gameUI."
+  },
+  "hud.bar.xp.text": "XP {xp, number}/{next, number}",
+  "@hud.bar.xp.text": {
+    "description": "Text on the experience bar.",
+    "placeholders": {
+      "xp": {"type": "int", "description": "XP gathered in this level", "example": "150"},
+      "next": {"type": "int", "description": "XP needed for the next level", "example": "400"}
+    }
+  },
+  "hud.bar.xp.title": "Experience — fills up to your next level",
+  "@hud.bar.xp.title": {
+    "description": "HUD: the title attribute of the <div id=xpBar> element in #vitalSigns in #gameUI."
+  },
+  "hud.cast-bar": "{name} {secs, number, ::.0}s",
+  "@hud.cast-bar": {
+    "description": "Cast bar text while casting: skill name and seconds left.",
+    "placeholders": {
+      "name": {"type": "String", "description": "Skill or utility name", "example": "Recall"},
+      "secs": {"type": "double", "description": "Seconds left, one decimal", "example": "2.5"}
+    }
+  },
+  "hud.combat-indicator.title": "In combat — loadout editing locked",
+  "@hud.combat-indicator.title": {
+    "description": "HUD: the title attribute of the <div id=combatIndicator> element in #gameUI."
+  },
+  "hud.flying-bar": "Flying — {secs, number, ::.0}s",
+  "@hud.flying-bar": {
+    "description": "Flight bar text: seconds of flight left.",
+    "placeholders": {
+      "secs": {"type": "double", "description": "Seconds left, one decimal", "example": "2.5"}
+    }
+  },
+  "hud.help-button.title": "How Aura works",
+  "@hud.help-button.title": {
+    "description": "HUD: the title attribute of the <div id=helpButton> element in #zoomControl in #gameUI."
+  },
+  "hud.interact-button.title": "Talk",
+  "@hud.interact-button.title": {
+    "description": "HUD: the title attribute of the <div id=interactButton> element in #gameUI."
+  },
+  "hud.journal-button.title": "Journal (J)",
+  "@hud.journal-button.title": {
+    "description": "HUD: the title attribute of the <div id=journalButton> element in #leftColumn in #gameUI."
+  },
+  "hud.map-button.title": "Map (M)",
+  "@hud.map-button.title": {
+    "description": "HUD: the title attribute of the <div id=mapButton> element in #gameUI."
+  },
+  "hud.mobile-menu.title": "Menu",
+  "@hud.mobile-menu.title": {
+    "description": "HUD: the title attribute of the <div id=mobileMenuButton> element in #gameUI."
+  },
+  "hud.quest-tracker.journal.title": "Journal (J)",
+  "@hud.quest-tracker.journal.title": {
+    "description": "HUD: the title attribute of the <div id=questTrackerJournal> element in #questTracker in #gameUI."
+  },
+  "hud.radar.zoom-in.title": "Zoom in",
+  "@hud.radar.zoom-in.title": {
+    "description": "HUD: the title attribute of the <button id=radarZoomIn> element in #minimap in #gameUI."
+  },
+  "hud.radar.zoom-out.title": "Zoom out",
+  "@hud.radar.zoom-out.title": {
+    "description": "HUD: the title attribute of the <button id=radarZoomOut> element in #minimap in #gameUI."
+  },
+  "hud.refusal.abilities-while-flying": "Can't use abilities while flying",
+  "@hud.refusal.abilities-while-flying": {
+    "description": "Warning banner: abilities are locked during flight."
+  },
+  "hud.refusal.loadout-in-combat": "Can't change loadout in combat",
+  "@hud.refusal.loadout-in-combat": {
+    "description": "Warning banner: equipping is locked in combat."
+  },
+  "hud.slot.cooldown-seconds": "{secs, number}s",
+  "@hud.slot.cooldown-seconds": {
+    "description": "Cooldown digits inside an ability slot circle; must stay very short (3-4 characters).",
+    "placeholders": {
+      "secs": {"type": "int", "description": "Whole seconds left", "example": "4"}
+    }
+  },
+  "hud.slot.empty": "— Empty —",
+  "@hud.slot.empty": {
+    "description": "HUD: text of the <span> element in #cooldownSlotList in #cooldownLoadout."
+  },
+  "hud.slots.auras": "Aura Slots",
+  "@hud.slots.auras": {
+    "description": "HUD: text of the <div> element in #auraLoadout in #abilityBar. At most 16 characters: it heads the aura slots.",
+    "x-maxLength": 16
+  },
+  "hud.slots.utility": "Utility",
+  "@hud.slots.utility": {
+    "description": "HUD: text of the <div> element in #utilityBar in #actionBars. At most 16 characters: it heads the utility bar.",
+    "x-maxLength": 16
+  },
+  "hud.spellbook-button.title": "Spellbook (B)",
+  "@hud.spellbook-button.title": {
+    "description": "HUD: the title attribute of the <div id=spellbookButton> element in #gameUI."
+  },
+  "hud.spellbook-sheet-button.title": "Spellbook (B)",
+  "@hud.spellbook-sheet-button.title": {
+    "description": "HUD: the title attribute of the <div id=spellbookSheetButton> element in #leftColumn in #gameUI."
+  },
+  "hud.utility.camp": "Camp",
+  "@hud.utility.camp": {
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar. At most 12 characters: it is a utility bar button.",
+    "x-maxLength": 12
+  },
+  "hud.utility.recall": "Recall",
+  "@hud.utility.recall": {
+    "description": "HUD: text of the <span> element in #utilityList in #utilityBar. At most 12 characters: it is a utility bar button.",
+    "x-maxLength": 12
+  },
+  "journal.abandon": "Abandon",
+  "@journal.abandon": {
+    "description": "Journal: button that abandons the selected quest."
+  },
+  "journal.close.title": "Close (J / Esc)",
+  "@journal.close.title": {
+    "description": "HUD: the title attribute of the <span> element in #journal in #gameUI."
+  },
+  "journal.empty": "Nothing written here yet.",
+  "@journal.empty": {
+    "description": "Journal status with no quests yet."
+  },
+  "journal.label": "Journal",
+  "@journal.label": {
+    "description": "HUD: text of the <span> element in #journal in #gameUI."
+  },
+  "journal.objective.done": "{line} ✓",
+  "@journal.objective.done": {
+    "description": "A finished talk_to objective line: the line plus a check mark.",
+    "placeholders": {
+      "line": {"type": "String", "description": "The objective line", "example": "Talk to Hendrik"}
+    }
+  },
+  "journal.objective.harvest": "{n, number}/{m, number} {mob} harvested",
+  "@journal.objective.harvest": {
+    "description": "Quest tracker line for a harvest objective; as journal.objective.kill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "n": {"type": "int", "description": "Harvested so far", "example": "2"},
+      "m": {"type": "int", "description": "Required", "example": "5"},
+      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Turnips"}
+    }
+  },
+  "journal.objective.kill": "{n, number}/{m, number} {mob} slain",
+  "@journal.objective.kill": {
+    "description": "Quest tracker line for a kill objective. {mob} is the mob name already in its form for the required count {m} (each language authors its plural forms in the mob name, D24). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "n": {"type": "int", "description": "Killed so far", "example": "3"},
+      "m": {"type": "int", "description": "Required", "example": "8"},
+      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Wolves"}
+    }
+  },
+  "journal.objective.reach": "Go to {place}",
+  "@journal.objective.reach": {
+    "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
+    "placeholders": {
+      "place": {"type": "String", "description": "Place name", "example": "Brunnstedt"}
+    }
+  },
+  "journal.objective.talk-to": "Talk to {name}",
+  "@journal.objective.talk-to": {
+    "description": "Fallback tracker line for a talk_to objective (content normally authors its own line). {name} is not inflected.",
+    "placeholders": {
+      "name": {"type": "String", "description": "NPC name", "example": "Hendrik"}
+    }
+  },
+  "journal.opening": "Opening the journal…",
+  "@journal.opening": {
+    "description": "Journal status while the quest catalog loads."
+  },
+  "journal.quest-complete": "Quest complete: {quest}",
+  "@journal.quest-complete": {
+    "description": "Banner when a quest is finished.",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, already localized", "example": "Wolves on the Road"}
+    }
+  },
+  "journal.tab.completed": "Completed",
+  "@journal.tab.completed": {
+    "description": "HUD: text of the <div> element in #journal in #gameUI."
+  },
+  "journal.tab.running": "Running",
+  "@journal.tab.running": {
+    "description": "HUD: text of the <div> element in #journal in #gameUI."
+  },
+  "journal.unavailable": "Journal unavailable — the quest catalog could not be loaded.",
+  "@journal.unavailable": {
+    "description": "Journal status when the quest catalog failed to load."
+  },
+  "journal.updated": "Journal updated: {quest}",
+  "@journal.updated": {
+    "description": "Banner when a quest moves to its next stage.",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, already localized", "example": "Wolves on the Road"}
+    }
+  },
+  "list.more-others": "{n, plural, one {# other} other {# others}}",
+  "@list.more-others": {
+    "description": "Last item of a name list that was cut short: \"A, B, C and 2 others\".",
+    "placeholders": {
+      "n": {"type": "int", "description": "How many names were left out", "example": "2"}
+    }
+  },
+  "lock.ascensions": "{value, plural, one {# ascension} other {# ascensions}} in this line ({have, number}/{value, number})",
+  "@lock.ascensions": {
+    "description": "Lock reason: characters already sacrificed in this bloodline.",
+    "placeholders": {
+      "value": {"type": "int", "description": "Required", "example": "2"},
+      "have": {"type": "int", "description": "So far", "example": "1"}
+    }
+  },
+  "lock.kills": "slay {value, number} × {mob} this life ({have, number}/{value, number})",
+  "@lock.kills": {
+    "description": "Lock reason: kill a number of one species in this life. {mob} is the singular name and is not inflected (the \"×\" form avoids the plural). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "value": {"type": "int", "description": "Required kills", "example": "10"},
+      "have": {"type": "int", "description": "Kills so far", "example": "4"},
+      "mob": {"type": "String", "description": "Mob name, singular", "example": "Orc"}
+    }
+  },
+  "lock.min-level": "level {value, number} ({have, number}/{value, number})",
+  "@lock.min-level": {
+    "description": "Lock reason: a minimum character level, with the player progress.",
+    "placeholders": {
+      "value": {"type": "int", "description": "Required level", "example": "30"},
+      "have": {"type": "int", "description": "Current level", "example": "12"}
+    }
+  },
+  "lock.quest-at-stage": "“{quest}” at “{stage}”",
+  "@lock.quest-at-stage": {
+    "description": "Lock reason: a quest must be at a given stage (stage is an internal id).",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, localized", "example": "The Lost Friend"},
+      "stage": {"type": "String", "description": "Stage id", "example": "search"}
+    }
+  },
+  "lock.quest-complete": "complete “{quest}”",
+  "@lock.quest-complete": {
+    "description": "Lock reason: a quest must be finished first.",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, localized", "example": "The Lost Friend"}
+    }
+  },
+  "lock.travel-closed": "its far end is gone",
+  "@lock.travel-closed": {
+    "description": "Lock reason on a travel row: the destination no longer exists."
+  },
+  "lock.unknown": "an unnamed requirement",
+  "@lock.unknown": {
+    "description": "Lock reason the client has no wording for (should never show)."
+  },
+  "map.close.title": "Close (M / Esc)",
+  "@map.close.title": {
+    "description": "HUD: the title attribute of the <span> element in #worldMap in #gameUI."
+  },
+  "map.label": "Map",
+  "@map.label": {
+    "description": "HUD: text of the <span> element in #worldMap in #gameUI."
+  },
+  "map.pick-destination": "Pick a destination to fly to...",
+  "@map.pick-destination": {
+    "description": "World map title while choosing a flight destination."
+  },
+  "nag.dismiss.title": "Dismiss",
+  "@nag.dismiss.title": {
+    "description": "Registration nag banner: the title attribute of the <a id=nagDismissButton> element in #registrationNag."
+  },
+  "nag.register-button": "Create an account",
+  "@nag.register-button": {
+    "description": "Registration nag banner: text of the <a id=nagRegisterButton> element in #registrationNag."
+  },
+  "nag.text": "Your progress lives only on this device.",
+  "@nag.text": {
+    "description": "Registration nag banner: text of the <span> element in #registrationNag."
+  },
+  "player.bound-restocked": "Bound and restocked",
+  "@player.bound-restocked": {
+    "description": "Floating text after resting at a campfire: it is now the home campfire and camp charges are refilled."
+  },
+  "player.level-banner": "Level {level, number}!",
+  "@player.level-banner": {
+    "description": "Banner on level up.",
+    "placeholders": {
+      "level": {"type": "int", "description": "The new level", "example": "5"}
+    }
+  },
+  "player.level-up": "Level up!",
+  "@player.level-up": {
+    "description": "Floating text over the player on level up."
+  },
+  "save.failing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",
+  "@save.failing": {
+    "description": "Banner while the server cannot save progress."
+  },
+  "save.resumed": "Your progress is being saved again.",
+  "@save.resumed": {
+    "description": "Banner after a save outage ends."
+  },
+  "select.continue-bloodline": "Continue this bloodline",
+  "@select.continue-bloodline": {
+    "description": "Empty slot card that continues a bloodline whose previous name was erased."
+  },
+  "select.continue-bloodline-of": "Continue the bloodline of {name}",
+  "@select.continue-bloodline-of": {
+    "description": "Empty slot card that continues a sacrificed character's bloodline. The name is not inflected. {name} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {name}\") (D31).",
+    "placeholders": {
+      "name": {"type": "String", "description": "Previous character's name (player-chosen, never translated)", "example": "Mara"}
+    }
+  },
+  "select.create-character": "Create character",
+  "@select.create-character": {
+    "description": "Empty slot card."
+  },
+  "select.gift-count": "{count, plural, one {# gift} other {# gifts}}",
+  "@select.gift-count": {
+    "description": "Bloodline card: number of inherited skills.",
+    "placeholders": {
+      "count": {"type": "int", "description": "Gifts", "example": "3"}
+    }
+  },
+  "select.gifts": "Gifts: {names}",
+  "@select.gifts": {
+    "description": "Bloodline card: skills inherited from earlier lives.",
+    "placeholders": {
+      "names": {"type": "String", "description": "Skill names, already joined as a list", "example": "Fireball, Heal"}
+    }
+  },
+  "select.in-world": "In world",
+  "@select.in-world": {
+    "description": "Character select: marks the character currently in the world."
+  },
+  "select.level": "Level {level, number}",
+  "@select.level": {
+    "description": "Character select card: the character's level.",
+    "placeholders": {
+      "level": {"type": "int", "description": "Level", "example": "7"}
+    }
+  },
+  "select.lives-spent": "{count, plural, one {# life spent} other {# lives spent}}",
+  "@select.lives-spent": {
+    "description": "Bloodline card: how many characters were sacrificed.",
+    "placeholders": {
+      "count": {"type": "int", "description": "Ascensions", "example": "2"}
+    }
+  },
+  "select.logout-leave-world": "Log out and leave the world",
+  "@select.logout-leave-world": {
+    "description": "Logout button after the playing-elsewhere warning."
+  },
+  "select.nth-life": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} life",
+  "@select.nth-life": {
+    "description": "Bloodline card: which life this character is.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Life number", "example": "2"}
+    }
+  },
+  "select.play": "Play",
+  "@select.play": {
+    "description": "Character select: enter the world with this character."
+  },
+  "select.playing-elsewhere": "This account is in the world in another window. Logging out will end that session.",
+  "@select.playing-elsewhere": {
+    "description": "Character select: the account is already playing in another tab."
+  },
+  "settings.account.anonymous-note": "You are playing without an account. Your progress lives only on this device.",
+  "@settings.account.anonymous-note": {
+    "description": "Settings panel: text of the <p> element in #accountAnonymous in #accountSettings."
+  },
+  "settings.account.heading": "Account",
+  "@settings.account.heading": {
+    "description": "Settings panel: text of the <h3> element in #accountSection in #gameSettingsPanel."
+  },
+  "settings.account.register-button": "Create an account",
+  "@settings.account.register-button": {
+    "description": "Settings panel: text of the <a id=settingsRegisterButton> element in #accountAnonymous in #accountSettings."
+  },
+  "settings.account.signed-in-as": "Signed in as <user></user>.",
+  "@settings.account.signed-in-as": {
+    "description": "Settings panel, account section: shown to a registered player. <user></user> is filled with the username by code; keep the empty tag where the name belongs in the sentence."
+  },
+  "settings.audio.heading": "Audio",
+  "@settings.audio.heading": {
+    "description": "Settings panel: text of the <h3> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.audio.master": "Master",
+  "@settings.audio.master": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.audio.music": "Music",
+  "@settings.audio.music": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.audio.mute-all": "Mute all",
+  "@settings.audio.mute-all": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.audio.play-in-background": "Play audio in background",
+  "@settings.audio.play-in-background": {
+    "description": "Settings panel: text of the <label> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.graphics.full": "Full",
+  "@settings.graphics.full": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settings.graphics.heading": "Graphics",
+  "@settings.graphics.heading": {
+    "description": "Settings panel: text of the <h3> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.graphics.low": "Low",
+  "@settings.graphics.low": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settings.graphics.off": "Off",
+  "@settings.graphics.off": {
+    "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settings.graphics.off-note": "Off keeps hit numbers and the aura ring; they are information, not dressing.",
+  "@settings.graphics.off-note": {
+    "description": "Settings panel: text of the <p> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.graphics.skill-effects": "Skill effects",
+  "@settings.graphics.skill-effects": {
+    "description": "Settings panel: text of the <legend> element in #vfxDensity in #gameSettingsPanel."
+  },
+  "settings.heading": "Settings",
+  "@settings.heading": {
+    "description": "Settings panel: text of the <h2> element in #gameSettingsPanel in #gameSettings."
+  },
+  "settings.language.heading": "Language",
+  "@settings.language.heading": {
+    "description": "Settings panel: heading of the language section."
+  },
+  "settings.language.label": "Game language",
+  "@settings.language.label": {
+    "description": "Settings panel: label of the language dropdown. Each option shows the language under its own name (Deutsch, English)."
+  },
+  "settings.language.reload-confirm": "The game will reload to switch the language. Continue?",
+  "@settings.language.reload-confirm": {
+    "description": "Browser confirm dialog shown before switching language; switching reloads the page and drops the connection."
+  },
+  "settings.leave-to-select": "Leave to character select",
+  "@settings.leave-to-select": {
+    "description": "Settings panel: text of the <a id=leaveToCharacterSelect> element in #accountSettings in #accountSection."
+  },
+  "skill-kind.auras": "Auras",
+  "@skill-kind.auras": {
+    "description": "HUD: text of the <li> element in #spellbookTabs in #spellbook. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
+  },
+  "skill-kind.cooldowns": "Cooldowns",
+  "@skill-kind.cooldowns": {
+    "description": "HUD: text of the <div> element in #cooldownLoadout in #abilityBar. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
+  },
+  "skill-kind.passives": "Passives",
+  "@skill-kind.passives": {
+    "description": "HUD: text of the <div> element in #passiveLoadout in #leftColumn. At most 20 characters: it heads a slot group in the spellbook.",
+    "x-maxLength": 20
+  },
+  "social.discord.title": "Join our discord",
+  "@social.discord.title": {
+    "description": "Start screen: hover text of the Discord link. Discord is a brand name and stays."
+  },
+  "social.other-games.title": "Take a look at our other games",
+  "@social.other-games.title": {
+    "description": "Start screen: hover text of the Kringel Games link (the studio's other games)."
+  },
+  "spellbook.label": "Spellbook",
+  "@spellbook.label": {
+    "description": "HUD: label of the spellbook button and the spellbook panel title (the collection of every skill the player has discovered)."
+  },
+  "spellbook.points-badge": "{points, plural, one {# Point} other {# Points}}",
+  "@spellbook.points-badge": {
+    "description": "Badge on the spellbook button: unspent skill points.",
+    "placeholders": {
+      "points": {"type": "int", "description": "Unspent skill points", "example": "3"}
+    }
+  },
+  "spellbook.respec.confirm": "Confirm?",
+  "@spellbook.respec.confirm": {
+    "description": "The skill reset button after the first press; a second press confirms. At most 14 characters: it replaces the reset button text.",
+    "x-maxLength": 14
+  },
+  "spellbook.respec.label": "Reset",
+  "@spellbook.respec.label": {
+    "description": "HUD: text of the <span id=respecButton> element in #spellbook in #leftColumn. At most 14 characters: it is a small button.",
+    "x-maxLength": 14
+  },
+  "spellbook.respec.title": "Reset every skill to level 1 and refund all points",
+  "@spellbook.respec.title": {
+    "description": "HUD: the title attribute of the <span id=respecButton> element in #spellbook in #leftColumn."
+  },
+  "spellbook.spend-cost.title": "{cost, plural, one {Costs # skill point} other {Costs # skill points}}",
+  "@spellbook.spend-cost.title": {
+    "description": "Tooltip on a skill's + button in the spellbook.",
+    "placeholders": {
+      "cost": {"type": "int", "description": "Skill points the next level costs", "example": "2"}
+    }
+  },
+  "start.beta-stamp": "Prototype",
+  "@start.beta-stamp": {
+    "description": "Start screen: text of the <a id=betaStamp> element in #startForm in #startScreen."
+  },
+  "start.browser.body": "In the Beta version, the game only runs smoothly on an up to date <chrome>Chrome</chrome> or <firefox>Firefox</firefox> browser.",
+  "@start.browser.body": {
+    "description": "Start screen: warning shown on unsupported browsers. <chrome> and <firefox> wrap links; keep the tags and the browser names."
+  },
+  "start.browser.continue-button": "Continue anyway",
+  "@start.browser.continue-button": {
+    "description": "Start screen: text of the <a id=continueAnywayButton> element in #chromeWarning in #startScreen."
+  },
+  "start.browser.get-chrome": "Get Chrome",
+  "@start.browser.get-chrome": {
+    "description": "Start screen: text of the <a> element in #chromeWarning in #startScreen."
+  },
+  "start.browser.heading": "Warning",
+  "@start.browser.heading": {
+    "description": "Start screen: text of the <em> element in #chromeWarning in #startScreen."
+  },
+  "start.changelog": "Changelog",
+  "@start.changelog": {
+    "description": "Start screen: text of the <a> element in #startScreen."
+  },
+  "start.connect-failed": "Couldn't connect",
+  "@start.connect-failed": {
+    "description": "Start screen status line when the game server cannot be reached; replaces the loading text."
+  },
+  "start.credits": "Credits",
+  "@start.credits": {
+    "description": "Start screen: text of the <a> element in #startScreen."
+  },
+  "start.fullscreen": "Fullscreen",
+  "@start.fullscreen": {
+    "description": "Start screen: text of the <label> element in #startForm in #startScreen."
+  },
+  "start.loading": "Loading…",
+  "@start.loading": {
+    "description": "Start screen: text of the <div id=loadingStatus> element in #startForm in #startScreen."
+  },
+  "start.player-count.label": "currently online",
+  "@start.player-count.label": {
+    "description": "Start screen: text of the <span> element in #playerCount in #startForm."
+  },
+  "start.player-count.title": "Players online",
+  "@start.player-count.title": {
+    "description": "Start screen: the title attribute of the <div id=playerCount> element in #startForm in #startScreen."
+  },
+  "tooltip.affects": "Affects: {factions}",
+  "@tooltip.affects": {
+    "description": "Skill tooltip. Factions a skill is limited to, already joined.",
+    "placeholders": {
+      "factions": {"type": "String", "description": "Already formatted factions", "example": "…"}
+    }
+  },
+  "tooltip.all-damage": "all damage",
+  "@tooltip.all-damage": {
+    "description": "Skill tooltip. Resist subject covering every damage type."
+  },
+  "tooltip.also-self": "{verb, select, shields {Also shields you} heals {Also heals you} other {Also applies to you}}",
+  "@tooltip.also-self": {
+    "description": "Skill tooltip. The effect also reaches the caster, besides allies.",
+    "placeholders": {
+      "verb": {"type": "String", "description": "Already formatted verb", "example": "…"}
+    }
+  },
+  "tooltip.arms": "Arms after {duration}",
+  "@tooltip.arms": {
+    "description": "Skill tooltip. Fuse time of a thrown object.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.at-campfire": " at your campfire",
+  "@tooltip.at-campfire": {
+    "description": "Skill tooltip. Where a summon appears; keep the leading space."
+  },
+  "tooltip.berserker": "Berserker: up to +{pct} damage at low Focus",
+  "@tooltip.berserker": {
+    "description": "Skill tooltip. Bonus damage when the caster is low.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.calm": "Calms enemies in range for {duration}",
+  "@tooltip.calm": {
+    "description": "Skill tooltip. Calm line.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.cast-time": "Cast time: {duration}{interrupt}",
+  "@tooltip.cast-time": {
+    "description": "Skill tooltip. Cast time line.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "interrupt": {"type": "String", "description": "Already formatted interrupt", "example": "…"}
+    }
+  },
+  "tooltip.category.aura": "Aura",
+  "@tooltip.category.aura": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "tooltip.category.cooldown": "Cooldown",
+  "@tooltip.category.cooldown": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "tooltip.category.passive": "Passive",
+  "@tooltip.category.passive": {
+    "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "tooltip.charge": "Charge to the nearest enemy in range",
+  "@tooltip.charge": {
+    "description": "Skill tooltip. Charge line."
+  },
+  "tooltip.charm": "Charms the nearest enemy to fight for you for {duration}",
+  "@tooltip.charm": {
+    "description": "Skill tooltip. Charm line.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.cooldown": "Cooldown: {duration}",
+  "@tooltip.cooldown": {
+    "description": "Skill tooltip. Cooldown line.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.costs": "Costs you: {amount}{unit}{when}",
+  "@tooltip.costs": {
+    "description": "Skill tooltip. Cost line: amount, unit (\" Focus\"), timing (\" every 1s\" / \" when …\").",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "unit": {"type": "String", "description": "Already formatted unit", "example": "…"},
+      "when": {"type": "String", "description": "Already formatted when", "example": "…"}
+    }
+  },
+  "tooltip.costs-per-cast": "Costs you: {amount}{unit} per cast",
+  "@tooltip.costs-per-cast": {
+    "description": "Skill tooltip. Cooldown cost line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "unit": {"type": "String", "description": "Already formatted unit", "example": "…"}
+    }
+  },
+  "tooltip.count-times": "{count}× ",
+  "@tooltip.count-times": {
+    "description": "Skill tooltip. A count prefix (\"3× \"); keep the trailing space.",
+    "placeholders": {
+      "count": {"type": "String", "description": "Already formatted count", "example": "…"}
+    }
+  },
+  "tooltip.crit.factor": " (×{factor})",
+  "@tooltip.crit.factor": {
+    "description": "Skill tooltip. Crit multiplier suffix; keep the leading space.",
+    "placeholders": {
+      "factor": {"type": "String", "description": "Already formatted factor", "example": "…"}
+    }
+  },
+  "tooltip.crit.line": "Crit: {chance}{factor}",
+  "@tooltip.crit.line": {
+    "description": "Skill tooltip. Critical hit chance line.",
+    "placeholders": {
+      "chance": {"type": "String", "description": "Already formatted chance", "example": "…"},
+      "factor": {"type": "String", "description": "Already formatted factor", "example": "…"}
+    }
+  },
+  "tooltip.damage": "Damage: {amount}{perTick}",
+  "@tooltip.damage": {
+    "description": "Skill tooltip. Damage line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "perTick": {"type": "String", "description": "Already formatted perTick", "example": "…"}
+    }
+  },
+  "tooltip.damage-type": "Damage type: {types}",
+  "@tooltip.damage-type": {
+    "description": "Skill tooltip. The damage types a hit deals: one or more damage-type.* names, already joined as a list in your language.",
+    "placeholders": {
+      "types": {"type": "String", "description": "The damage type names, joined", "example": "fire and poison"}
+    }
+  },
+  "tooltip.dash": "Dash {distance} m in your movement direction",
+  "@tooltip.dash": {
+    "description": "Skill tooltip. Dash line.",
+    "placeholders": {
+      "distance": {"type": "String", "description": "Already formatted distance", "example": "…"}
+    }
+  },
+  "tooltip.detaunt": "Sheds your threat to an enemy in range",
+  "@tooltip.detaunt": {
+    "description": "Skill tooltip. Threat drop line."
+  },
+  "tooltip.dot": "Damage over time: {amount} × {hits} hits over {duration}{refresh}",
+  "@tooltip.dot": {
+    "description": "Skill tooltip. Damage-over-time line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "hits": {"type": "String", "description": "Already formatted hits", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.every": " every {interval}",
+  "@tooltip.every": {
+    "description": "Skill tooltip. Cadence suffix on a hit line; keep the leading space.",
+    "placeholders": {
+      "interval": {"type": "String", "description": "Already formatted interval", "example": "…"}
+    }
+  },
+  "tooltip.execute": "Execute: ×{factor} below {pct} Focus",
+  "@tooltip.execute": {
+    "description": "Skill tooltip. Bonus damage against low-Focus targets.",
+    "placeholders": {
+      "factor": {"type": "String", "description": "Already formatted factor", "example": "…"},
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.follows": "Follows you and fights at your side",
+  "@tooltip.follows": {
+    "description": "Skill tooltip. A summon that follows the caster."
+  },
+  "tooltip.for-duration": " for {duration}",
+  "@tooltip.for-duration": {
+    "description": "Skill tooltip. Duration suffix; keep the leading space.",
+    "placeholders": {
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.gate.harvest": "Harvests plants and brambles — nothing else",
+  "@tooltip.gate.harvest": {
+    "description": "Skill tooltip. Tooltip line of a skill that only affects plants."
+  },
+  "tooltip.gate.other": "Only affects targets vulnerable to: {key}",
+  "@tooltip.gate.other": {
+    "description": "Skill tooltip. Fallback gate line; {key} is an internal word.",
+    "placeholders": {
+      "key": {"type": "String", "description": "Already formatted key", "example": "…"}
+    }
+  },
+  "tooltip.gate.smash": "Smashes boulders and rockfalls — nothing else",
+  "@tooltip.gate.smash": {
+    "description": "Skill tooltip. Tooltip line of a skill that only affects boulders."
+  },
+  "tooltip.group.allies": "allies",
+  "@tooltip.group.allies": {
+    "description": "Skill tooltip. Target group."
+  },
+  "tooltip.group.enemies": "enemies",
+  "@tooltip.group.enemies": {
+    "description": "Skill tooltip. Target group, joined with \" + \"."
+  },
+  "tooltip.group.structures": "structures",
+  "@tooltip.group.structures": {
+    "description": "Skill tooltip. Target group."
+  },
+  "tooltip.heal-self.flat": "Heal self: {amount} Focus",
+  "@tooltip.heal-self.flat": {
+    "description": "Skill tooltip. Self-heal line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"}
+    }
+  },
+  "tooltip.heal-self.pct": "Heal self: {amount} of max Focus",
+  "@tooltip.heal-self.pct": {
+    "description": "Skill tooltip. Self-heal line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"}
+    }
+  },
+  "tooltip.heal.flat": "Heal: {amount}{perTick}",
+  "@tooltip.heal.flat": {
+    "description": "Skill tooltip. Heal line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "perTick": {"type": "String", "description": "Already formatted perTick", "example": "…"}
+    }
+  },
+  "tooltip.heal.pct": "Heal: {amount} of max Focus{perTick}",
+  "@tooltip.heal.pct": {
+    "description": "Skill tooltip. Heal line, share of max Focus.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "perTick": {"type": "String", "description": "Already formatted perTick", "example": "…"}
+    }
+  },
+  "tooltip.hot.flat": "Heal over time: {amount} × {hits} over {duration}{refresh}",
+  "@tooltip.hot.flat": {
+    "description": "Skill tooltip. Heal-over-time line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "hits": {"type": "String", "description": "Already formatted hits", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.hot.pct": "Heal over time: {amount} of max Focus × {hits} over {duration}{refresh}",
+  "@tooltip.hot.pct": {
+    "description": "Skill tooltip. Heal-over-time line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "hits": {"type": "String", "description": "Already formatted hits", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.interrupted": " (interrupted by damage)",
+  "@tooltip.interrupted": {
+    "description": "Skill tooltip. Suffix; keep the leading space."
+  },
+  "tooltip.lifesteal": "Lifesteal: {pct}",
+  "@tooltip.lifesteal": {
+    "description": "Skill tooltip. Share of damage dealt that heals the caster.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.lifesteal-burst": "Heals you for {share} of the damage you deal, for {duration}",
+  "@tooltip.lifesteal-burst": {
+    "description": "Skill tooltip. Lifesteal burst line.",
+    "placeholders": {
+      "share": {"type": "String", "description": "Already formatted share", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.light": "Lights up the darkness around you",
+  "@tooltip.light": {
+    "description": "Skill tooltip. Light aura line."
+  },
+  "tooltip.per-tick": " per tick",
+  "@tooltip.per-tick": {
+    "description": "Skill tooltip. Cadence suffix; keep the leading space."
+  },
+  "tooltip.progression": "{current} → {next}",
+  "@tooltip.progression": {
+    "description": "Skill tooltip. A value now and at the next skill level.",
+    "placeholders": {
+      "current": {"type": "String", "description": "Already formatted current", "example": "…"},
+      "next": {"type": "String", "description": "Already formatted next", "example": "…"}
+    }
+  },
+  "tooltip.radius": "Radius: {radius} m",
+  "@tooltip.radius": {
+    "description": "Skill tooltip. Effect radius in metres.",
+    "placeholders": {
+      "radius": {"type": "String", "description": "Already formatted radius", "example": "…"}
+    }
+  },
+  "tooltip.recall": "Returns you to your bound campfire",
+  "@tooltip.recall": {
+    "description": "Skill tooltip. Recall line."
+  },
+  "tooltip.reflect": "Reflects {amount} damage onto anything that damages you",
+  "@tooltip.reflect": {
+    "description": "Skill tooltip. Reflect line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"}
+    }
+  },
+  "tooltip.refreshed": ", refreshed every {interval}",
+  "@tooltip.refreshed": {
+    "description": "Skill tooltip. Cadence suffix on a state line; keep the leading comma.",
+    "placeholders": {
+      "interval": {"type": "String", "description": "Already formatted interval", "example": "…"}
+    }
+  },
+  "tooltip.resist.immune": "Immune to {subject}{duration}{refresh}",
+  "@tooltip.resist.immune": {
+    "description": "Skill tooltip. An immunity line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
+    "placeholders": {
+      "subject": {"type": "String", "description": "Already formatted subject", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.resist.reduce": "Resist {subject}: −{amount} damage taken{duration}{refresh}",
+  "@tooltip.resist.reduce": {
+    "description": "Skill tooltip. A resistance line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
+    "placeholders": {
+      "subject": {"type": "String", "description": "Already formatted subject", "example": "…"},
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.resist.vulnerable": "Vulnerable to {subject}: +{amount} damage taken{duration}{refresh}",
+  "@tooltip.resist.vulnerable": {
+    "description": "Skill tooltip. A vulnerability line. {subject} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {subject}\") (D31).",
+    "placeholders": {
+      "subject": {"type": "String", "description": "Already formatted subject", "example": "…"},
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.retaliate-slow": "Slows anything that damages you by {share} for {duration}",
+  "@tooltip.retaliate-slow": {
+    "description": "Skill tooltip. Retaliate slow line.",
+    "placeholders": {
+      "share": {"type": "String", "description": "Already formatted share", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.revive": "Revives the nearest fallen player at {pct} Focus",
+  "@tooltip.revive": {
+    "description": "Skill tooltip. Revive line.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.selector.most-wounded": "most wounded",
+  "@tooltip.selector.most-wounded": {
+    "description": "Skill tooltip. Target selector adjective in \"Targets: most wounded 2 allies\"."
+  },
+  "tooltip.selector.nearest": "nearest",
+  "@tooltip.selector.nearest": {
+    "description": "Skill tooltip. Target selector adjective in \"Targets: nearest 3 enemies\"."
+  },
+  "tooltip.self": "{verb, select, shields {Shields you} heals {Heals you} other {Applies to you}}",
+  "@tooltip.self": {
+    "description": "Skill tooltip. The effect reaches the caster only.",
+    "placeholders": {
+      "verb": {"type": "String", "description": "Already formatted verb", "example": "…"}
+    }
+  },
+  "tooltip.shield": "Shield: {amount} Focus",
+  "@tooltip.shield": {
+    "description": "Skill tooltip. Shield line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"}
+    }
+  },
+  "tooltip.slow.aura": "Slow: {amount}{refresh}",
+  "@tooltip.slow.aura": {
+    "description": "Skill tooltip. Slow line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.slow.timed": "Slow: {share} for {duration}",
+  "@tooltip.slow.timed": {
+    "description": "Skill tooltip. Timed slow line.",
+    "placeholders": {
+      "share": {"type": "String", "description": "Already formatted share", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.speed": "Speed: {amount}{refresh}",
+  "@tooltip.speed": {
+    "description": "Skill tooltip. Speed aura line.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "refresh": {"type": "String", "description": "Already formatted refresh", "example": "…"}
+    }
+  },
+  "tooltip.speed-burst": "{mover, select, selfAndAllies {You and allies in range move} allies {Allies in range move} other {Move}} {pace} as fast for {duration}",
+  "@tooltip.speed-burst": {
+    "description": "Skill tooltip. A speed burst line; {mover} says who moves.",
+    "placeholders": {
+      "mover": {"type": "String", "description": "Already formatted mover", "example": "…"},
+      "Move": {"type": "String", "description": "Already formatted Move", "example": "…"},
+      "pace": {"type": "String", "description": "Already formatted pace", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.stat-line": "{label}: {lead}{amount}{scope}",
+  "@tooltip.stat-line": {
+    "description": "Skill tooltip. A stat modifier line: label, sign, amount, scope.",
+    "placeholders": {
+      "label": {"type": "String", "description": "Already formatted label", "example": "…"},
+      "lead": {"type": "String", "description": "Already formatted lead", "example": "…"},
+      "amount": {"type": "String", "description": "Already formatted amount", "example": "…"},
+      "scope": {"type": "String", "description": "Already formatted scope", "example": "…"}
+    }
+  },
+  "tooltip.stat.costs": "All costs",
+  "@tooltip.stat.costs": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.stat.crit-chance": "Crit chance",
+  "@tooltip.stat.crit-chance": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.stat.damage-dealt": "All damage",
+  "@tooltip.stat.damage-dealt": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.stat.damage-taken": "Damage taken",
+  "@tooltip.stat.damage-taken": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.stat.max-health": "Max Focus",
+  "@tooltip.stat.max-health": {
+    "description": "Skill tooltip. Stat label: the maximum of the one resource."
+  },
+  "tooltip.stat.movement-speed": "Movement speed",
+  "@tooltip.stat.movement-speed": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.stat.threat": "Threat",
+  "@tooltip.stat.threat": {
+    "description": "Skill tooltip. Stat label."
+  },
+  "tooltip.structure-damage": "Structure damage: {pct}",
+  "@tooltip.structure-damage": {
+    "description": "Skill tooltip. Damage share against structures.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.stun": "Holds one enemy for {held} — it cannot move, attack or use abilities",
+  "@tooltip.stun": {
+    "description": "Skill tooltip. Stun line.",
+    "placeholders": {
+      "held": {"type": "String", "description": "Already formatted held", "example": "…"}
+    }
+  },
+  "tooltip.sub-line": "↳ {line}",
+  "@tooltip.sub-line": {
+    "description": "Skill tooltip. A summon ability line indented under the summon.",
+    "placeholders": {
+      "line": {"type": "String", "description": "Already formatted line", "example": "…"}
+    }
+  },
+  "tooltip.subtitle": "{category} · Lv {level}/{max}",
+  "@tooltip.subtitle": {
+    "description": "Skill tooltip. Tooltip subtitle: skill kind and its level out of the max.",
+    "placeholders": {
+      "category": {"type": "String", "description": "Already formatted category", "example": "…"},
+      "level": {"type": "String", "description": "Already formatted level", "example": "…"},
+      "max": {"type": "String", "description": "Already formatted max", "example": "…"}
+    }
+  },
+  "tooltip.summon-power": "Summon power: +{pct} per player level",
+  "@tooltip.summon-power": {
+    "description": "Skill tooltip. Summon scaling.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.summons": "Summons {count}{mob}{where} for {duration}",
+  "@tooltip.summons": {
+    "description": "Skill tooltip. A summon line. {mob} is not inflected. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "count": {"type": "String", "description": "Already formatted count", "example": "…"},
+      "mob": {"type": "String", "description": "Already formatted mob", "example": "…"},
+      "where": {"type": "String", "description": "Already formatted where", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.targets.all": "Targets: all {who} in range",
+  "@tooltip.targets.all": {
+    "description": "Skill tooltip. An effect that reaches every target in range.",
+    "placeholders": {
+      "who": {"type": "String", "description": "Already formatted who", "example": "…"}
+    }
+  },
+  "tooltip.targets.count": "Targets: {selector} {count} {who}",
+  "@tooltip.targets.count": {
+    "description": "Skill tooltip. How many targets an effect picks. {selector} is an adjective (nearest), {count} a number, {who} the groups.",
+    "placeholders": {
+      "selector": {"type": "String", "description": "Already formatted selector", "example": "…"},
+      "count": {"type": "String", "description": "Already formatted count", "example": "…"},
+      "who": {"type": "String", "description": "Already formatted who", "example": "…"}
+    }
+  },
+  "tooltip.taunt": "Taunts enemies in range into attacking you",
+  "@tooltip.taunt": {
+    "description": "Skill tooltip. Taunt line."
+  },
+  "tooltip.thorns.other": "For {window}, the target reflects {share} of the damage it takes",
+  "@tooltip.thorns.other": {
+    "description": "Skill tooltip. Thorns on another.",
+    "placeholders": {
+      "window": {"type": "String", "description": "Already formatted window", "example": "…"},
+      "share": {"type": "String", "description": "Already formatted share", "example": "…"}
+    }
+  },
+  "tooltip.thorns.self": "For {window}, reflects {share} of damage taken",
+  "@tooltip.thorns.self": {
+    "description": "Skill tooltip. Thorns on the caster.",
+    "placeholders": {
+      "window": {"type": "String", "description": "Already formatted window", "example": "…"},
+      "share": {"type": "String", "description": "Already formatted share", "example": "…"}
+    }
+  },
+  "tooltip.throws": "Throws {mob} {distance} m ahead for {duration}",
+  "@tooltip.throws": {
+    "description": "Skill tooltip. A thrown object line. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "mob": {"type": "String", "description": "Already formatted mob", "example": "…"},
+      "distance": {"type": "String", "description": "Already formatted distance", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.tick-rate.faster": "{n}× faster",
+  "@tooltip.tick-rate.faster": {
+    "description": "Skill tooltip. Tick rate change.",
+    "placeholders": {
+      "n": {"type": "String", "description": "Already formatted n", "example": "…"}
+    }
+  },
+  "tooltip.tick-rate.line": "Your auras tick {speed} for {duration}",
+  "@tooltip.tick-rate.line": {
+    "description": "Skill tooltip. Tick rate line.",
+    "placeholders": {
+      "speed": {"type": "String", "description": "Already formatted speed", "example": "…"},
+      "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
+    }
+  },
+  "tooltip.tick-rate.slower": "{n}× slower",
+  "@tooltip.tick-rate.slower": {
+    "description": "Skill tooltip. Tick rate change.",
+    "placeholders": {
+      "n": {"type": "String", "description": "Already formatted n", "example": "…"}
+    }
+  },
+  "tooltip.ticks-every": "Ticks every {interval}",
+  "@tooltip.ticks-every": {
+    "description": "Skill tooltip. Shared cadence of a multi-effect aura.",
+    "placeholders": {
+      "interval": {"type": "String", "description": "Already formatted interval", "example": "…"}
+    }
+  },
+  "tooltip.times": "{n}×",
+  "@tooltip.times": {
+    "description": "Skill tooltip. A multiplier (\"1.5×\").",
+    "placeholders": {
+      "n": {"type": "String", "description": "Already formatted n", "example": "…"}
+    }
+  },
+  "tooltip.unit.focus": " Focus",
+  "@tooltip.unit.focus": {
+    "description": "Skill tooltip. Unit suffix after a Focus amount; keep the leading space."
+  },
+  "tooltip.unit.of-max-focus": " of max Focus",
+  "@tooltip.unit.of-max-focus": {
+    "description": "Skill tooltip. Unit suffix after a percentage cost; keep the leading space."
+  },
+  "tooltip.unit.percent": "{n}%",
+  "@tooltip.unit.percent": {
+    "description": "Skill tooltip. A percentage in skill tooltips; {n} is already formatted.",
+    "placeholders": {
+      "n": {"type": "String", "description": "Already formatted n", "example": "…"}
+    }
+  },
+  "tooltip.unit.seconds": "{n}s",
+  "@tooltip.unit.seconds": {
+    "description": "Skill tooltip. A duration in seconds in skill tooltips; {n} is already formatted.",
+    "placeholders": {
+      "n": {"type": "String", "description": "Already formatted n", "example": "…"}
+    }
+  },
+  "tooltip.variance": "Variance: ±{pct}",
+  "@tooltip.variance": {
+    "description": "Skill tooltip. Random spread of a value.",
+    "placeholders": {
+      "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
+    }
+  },
+  "tooltip.when.alight": "when it sets something alight",
+  "@tooltip.when.alight": {
+    "description": "Skill tooltip. Cost timing, appended to \"Costs you: 2 Focus\"."
+  },
+  "tooltip.when.catches-new": "when it catches someone new",
+  "@tooltip.when.catches-new": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "tooltip.when.reaches-new": "when it reaches someone new",
+  "@tooltip.when.reaches-new": {
+    "description": "Skill tooltip. Cost timing, appended to \"Costs you: 2 Focus\"."
+  },
+  "tooltip.when.reapplies": "every time it re-applies",
+  "@tooltip.when.reapplies": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "tooltip.when.shield": "when a shield goes up or is refilled",
+  "@tooltip.when.shield": {
+    "description": "Skill tooltip. Cost timing."
+  },
+  "tooltip.while-active": " while active",
+  "@tooltip.while-active": {
+    "description": "Skill tooltip. Scope suffix; keep the leading space."
+  },
+  "unlock.banner": "{category, select, aura {New aura: {name}} passive {New passive: {name}} cooldown {New cooldown: {name}} other {New skill: {name}}}",
+  "@unlock.banner": {
+    "description": "Banner when the player unlocks a skill. {category} is the skill kind; the branches name it.",
+    "placeholders": {
+      "category": {"type": "String", "description": "Skill kind: aura, passive or cooldown", "example": "aura"},
+      "name": {"type": "String", "description": "Skill name, already localized", "example": "Fireball"}
+    }
+  },
+  "unlock.cheat": "Cheat",
+  "@unlock.cheat": {
+    "description": "Unlock banner, second line: a developer cheat granted the skill."
+  },
+  "unlock.combination": "Combination discovered",
+  "@unlock.combination": {
+    "description": "Unlock banner, second line: a skill combination unlocked a new skill."
+  },
+  "unlock.dropped-by": "Dropped by: {mob}",
+  "@unlock.dropped-by": {
+    "description": "Unlock banner, second line: the skill came from a slain mob. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "mob": {"type": "String", "description": "Mob name, already localized; not inflected", "example": "Wolf"}
+    }
+  },
+  "unlock.level-reward": "Level {level, number} reward",
+  "@unlock.level-reward": {
+    "description": "Unlock banner, second line: a milestone level granted the skill.",
+    "placeholders": {
+      "level": {"type": "int", "description": "The level reached", "example": "5"}
+    }
+  },
+  "unlock.taught-by": "Taught by: {mob}",
+  "@unlock.taught-by": {
+    "description": "Unlock banner, second line: an NPC taught the skill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "mob": {"type": "String", "description": "NPC name, already localized; not inflected", "example": "Village Healer"}
+    }
+  },
+  "utility.camp.charges": "Charges: {charges, number}/{cap, number}",
+  "@utility.camp.charges": {
+    "description": "Camp tooltip: charges left.",
+    "placeholders": {
+      "charges": {"type": "int", "description": "Charges left", "example": "2"},
+      "cap": {"type": "int", "description": "Charge cap", "example": "3"}
+    }
+  },
+  "utility.camp.limits": "It burns out shortly, protects nothing, and cannot be bound to.",
+  "@utility.camp.limits": {
+    "description": "Camp tooltip."
+  },
+  "utility.camp.line": "Places a small campfire that heals everyone standing in it.",
+  "@utility.camp.line": {
+    "description": "Camp tooltip."
+  },
+  "utility.camp.refill": "Rest at a real campfire to refill. You carry more as you level.",
+  "@utility.camp.refill": {
+    "description": "Camp tooltip."
+  },
+  "utility.cast-time": "Cast time: {secs, number, ::.0}s (interrupted by damage or movement)",
+  "@utility.cast-time": {
+    "description": "Utility tooltip line.",
+    "placeholders": {
+      "secs": {"type": "double", "description": "Seconds left, one decimal", "example": "2.5"}
+    }
+  },
+  "utility.recall.bind": "Rest at any campfire to bind it.",
+  "@utility.recall.bind": {
+    "description": "Recall tooltip."
+  },
+  "utility.recall.free": "Free — no cost, no cooldown.",
+  "@utility.recall.free": {
+    "description": "Recall tooltip."
+  },
+  "utility.recall.line": "Returns you to the campfire you are bound to.",
+  "@utility.recall.line": {
+    "description": "Recall tooltip."
+  },
+  "utility.subtitle": "Utility · always available",
+  "@utility.subtitle": {
+    "description": "Utility tooltip subtitle."
+  },
+  "warlord.fallen": "{count, plural, =0 {The Orc Warlord has fallen to brave nameless heroes!} other {The Orc Warlord has fallen to {names}!}}",
+  "@warlord.fallen": {
+    "description": "Server-wide banner when the Orc Warlord boss dies. {names} is the list of player names who took part, already joined (\"A, B and 2 others\"). {names} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {names}\") (D31).",
+    "placeholders": {
+      "names": {"type": "String", "description": "Player names, joined as a list (player-chosen, never translated)", "example": "Mara, Tom and Eli"},
+      "count": {"type": "int", "description": "How many players took part", "example": "3"}
+    }
+  },
+  "warlord.returned": "The Orc Warlord has returned to the front!",
+  "@warlord.returned": {
+    "description": "Server-wide banner when the Orc Warlord boss respawns."
+  }
+}

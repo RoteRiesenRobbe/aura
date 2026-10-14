@@ -1,17 +1,13 @@
 {
   "_comment": "Reinhard's last quest, offered once The Beast of the Farmlands is complete. It ends at Tobias at the Wanderer's fire in the woods, who pays, the L9 half-level rule at L5 (the woods' band, like the-lost-friend at the same fire). Tobias's lines are drafted. Reward [PLACEHOLDER].",
   "id": "a-lost-shipment",
-  "title": "A Lost Shipment",
   "level": 5,
   "stages": [
     {
-      "id": "search",
-      "journal": "Reinhard sent his farmhand Tobias to deliver a shipment to Dionsburg. He hasn't returned. Look for Tobias in the forest to the east.",
-      "tracker": "Find Tobias in the forest to the east"
+      "id": "search"
     },
     {
-      "id": "found",
-      "journal": "You found Tobias alive at a campfire in the woods. The shipment is lost, but he still has Reinhard's letter."
+      "id": "found"
     }
   ]
 }

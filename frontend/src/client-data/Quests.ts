@@ -10,7 +10,7 @@
 // fetch state is tracked and the panel says "journal unavailable" instead of
 // quietly showing an empty diary to somebody mid-quest.
 
-import {catalogUrl} from '../features/backend/logic/Urls';
+import {contentCatalogUrl} from '../features/backend/logic/Urls';
 
 export interface QuestStageDefinition {
     id: string;
@@ -24,6 +24,9 @@ export interface QuestDefinition {
     /** The target player level (plan-quest-giver-markers.md C1): tints the title. */
     level: number;
     stages: QuestStageDefinition[];
+    /** Authored tracker templates by key, ICU, in the served locale
+     *  (plan-localization.md C2). Absent when the quest authors none. */
+    trackers?: Record<string, string>;
 }
 
 /**
@@ -36,7 +39,7 @@ const catalog = new Map<string, QuestDefinition>();
 let state: CatalogState = 'loading';
 
 export function loadQuestCatalog(): Promise<void> {
-    return fetch(catalogUrl('quests'))
+    return fetch(contentCatalogUrl('quests'))
         .then(response => {
             if (!response.ok) {
                 throw new Error(`GET /quests returned ${response.status}`);

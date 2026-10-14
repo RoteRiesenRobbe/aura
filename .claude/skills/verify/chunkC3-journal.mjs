@@ -37,10 +37,14 @@
 //      default 1280×800 AND at 2560×1440, with a screenshot each. Runs last
 //      because it resizes the viewport.
 //
-// To run half B, install the fixture next door and restart aurad:
+// To run half B, install the fixture next door, move its English into the
+// ARB (plan-localization.md D27: a content file carries no inline text, the
+// boot refuses one that does) and restart aurad:
 //     cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/
-//     (restart the server, run this script, then DELETE it again —
-//      api/quests/ is shipped content and C4 owns what lives there)
+//     node tools/lang/extract-english.mjs
+//     (restart the server, run this script, then REMOVE it again:
+//      rm api/quests/chunkC3-probe-quest.json && git checkout api/lang/en/quests.arb
+//      — api/quests/ is shipped content and C4 owns what lives there)
 //
 // ⚑ Restart the server first, and run this script ALONE — two harnesses in one
 // world put each other's NPCs in combat, which withdraws the talk offer for
@@ -68,7 +72,7 @@ const PROBE_QUEST = 'harness-probe';
 const NEAR_EMBERKEEPER = `${35 * 120} ${-22 * 120}`;
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -315,7 +319,7 @@ const probeLoaded = Array.isArray(catalog.body) && catalog.body.some((q) => q.id
 if (!probeLoaded) {
   skip('a quest walks through the journal (accept → abandon → complete)',
     `INCONCLUSIVE — the probe quest "${PROBE_QUEST}" is not loaded. ` +
-    'cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/ and restart aurad to run this half.');
+    'cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/, run node tools/lang/extract-english.mjs and restart aurad to run this half.');
 } else {
   const probeTitle = catalog.body.find((q) => q.id === PROBE_QUEST).title;
   const [seekProse, spokenProse] = catalog.body.find((q) => q.id === PROBE_QUEST).stages.map((s) => s.journal);
@@ -535,7 +539,7 @@ if (!wolvesLoaded) {
         const line = lineOf(j);
         const n = Number(/^(\d+)\/8 wolves killed$/.exec(line)?.[1] ?? NaN);
         if (Number.isInteger(n) && n > startCount) return { line, n };
-        // 8/8 advances the stage: the counter line gives way to carry_word's
+        // 8/8 advances the stage: the counter line gives way to carry-word's
         // authored tracker (Q4), and the second diary entry is the proof.
         if (entriesOf(j).length >= 2) return { line: '(stage advanced)', n: 8 };
         await page.evaluate(() => document.activeElement?.blur());

@@ -4,7 +4,6 @@
   "name": "DamageBurst",
   "icon": "lorc/broadsword",
   "packIcon": "crit-blade",
-  "displayName": "Damage-Burst",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

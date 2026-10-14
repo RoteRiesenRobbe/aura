@@ -2,6 +2,7 @@ package encounter
 
 import (
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log/slog"
 	"strings"
 
@@ -151,7 +152,7 @@ func (e *OrcWarlordEncounter) OnTick(s *System) {
 	if e.boss == nil && e.respawnAt > 0 && s.Ticks() >= e.respawnAt {
 		e.respawnAt = 0
 		e.spawnCycle(s)
-		s.Announce(warlordReturnAnnouncement)
+		s.Announce(lang.Message{Key: lang.KeyWarlordReturned, English: warlordReturnAnnouncement})
 	}
 	if e.boss == nil {
 		return
@@ -198,7 +199,7 @@ func (e *OrcWarlordEncounter) OnMobDeath(s *System, mobID uint64) {
 		names := e.boss.KillCreditNames()
 		e.boss = nil
 		e.respawnAt = s.Ticks() + respawnDelayTicks
-		s.Announce(fmt.Sprintf(warlordKillAnnouncement, formatKillCredit(names)))
+		s.Announce(warlordKillMessage(names))
 		// The arena empties until the respawn (PO ruling): despawn what the
 		// group left standing. Removal routes back through OnMobDeath for
 		// each id — the references are cleared first, so those dispatches
@@ -224,6 +225,21 @@ func (e *OrcWarlordEncounter) OnMobDeath(s *System, mobID uint64) {
 		}
 	}
 	delete(e.grunts, mobID)
+}
+
+// warlordKillMessage is the kill broadcast as a keyed message (plan-localization.md
+// C2): up to three player names as a list the client joins with
+// Intl.ListFormat, and the total, so the client words "and N others" itself.
+func warlordKillMessage(names []string) lang.Message {
+	shown := names
+	if len(shown) > 3 {
+		shown = shown[:3]
+	}
+	return lang.Message{
+		Key:     lang.KeyWarlordFallen,
+		Args:    []lang.Arg{lang.List("names", shown), lang.Number("count", float64(len(names)))},
+		English: fmt.Sprintf(warlordKillAnnouncement, formatKillCredit(names)),
+	}
 }
 
 // formatKillCredit renders the broadcast name list: up to three names spelled

@@ -90,7 +90,7 @@ const out = { label };
 const shot = (page, name) => page.screenshot({ path: join(outDir, `c6-theme-${label}-${name}.png`) });
 
 // --- desktop context ---
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
@@ -124,7 +124,7 @@ if (await openVia('#helpButton')) { await shot(page, 'd-help'); await page.keybo
 if (await openVia('#mapButton')) { await shot(page, 'e-map'); await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
 
 // --- mobile context (forced ?mobile; emulation alone doesn't flip pointer:coarse) ---
-const mpage = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const mpage = await (await browser.newContext({ locale: 'en-US', viewport: { width: 390, height: 844 } })).newPage();
 mpage.on('console', (m) => { if (m.type() === 'error') consoleErrors.push('[mobile] ' + m.text()); });
 mpage.on('pageerror', (e) => consoleErrors.push('[mobile] pageerror: ' + e.message));
 await mpage.goto(base + '&mobile', { waitUntil: 'domcontentloaded', timeout: 120_000 });

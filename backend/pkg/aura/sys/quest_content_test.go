@@ -16,27 +16,33 @@ import (
 	"github.com/stretchr/testify/require"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
+
+// embeddedEnglish is the embedded api/lang/en: the shipped content files keep
+// only structure and ids, and are read with their English (plan-localization.md D27).
+var embeddedEnglish = lang.EnglishFrom(alang.Lang)
 
 // contentRegistries loads the embedded mobs and quests the way the server does.
 func contentRegistries(t *testing.T) (mobs.Registry, quests.Registry) {
 	t.Helper()
 	fr, err := factions.RegistryFromFS(afactions.Factions)
 	require.NoError(t, err)
-	sr, err := skills.RegistryFromFS(askills.Skills, fr)
+	sr, err := skills.RegistryFromFS(lang.EnglishFS(askills.Skills, lang.DomainSkill, embeddedEnglish), fr)
 	require.NoError(t, err)
-	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), amobs.Mobs)
+	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), lang.EnglishFS(amobs.Mobs, lang.DomainMob, embeddedEnglish))
 	require.NoError(t, err)
-	qr, err := quests.RegistryFromFS(aquests.Quests, mr)
+	qr, err := quests.RegistryFromFS(lang.EnglishFS(aquests.Quests, lang.DomainQuest, embeddedEnglish), mr)
 	require.NoError(t, err)
 	_, err = quests.CrossValidate(mr, qr)
 	require.NoError(t, err)
@@ -336,7 +342,7 @@ func TestContent_TheCriersWolvesRowLastsTheHunt(t *testing.T) {
 	require.NoError(t, p.ledger.Accept("wolves-on-the-road"))
 	assert.True(t, shows(), "while the wolves are hunted")
 	p.ledger.Restore(quests.LedgerState{Quests: map[string]quests.Progress{
-		"wolves-on-the-road": {Path: []string{"thin", "carry_word"}, Running: true},
+		"wolves-on-the-road": {Path: []string{"thin", "carry-word"}, Running: true},
 	}})
 	assert.False(t, shows(), "once the word goes to the Guard or the Shaman")
 }

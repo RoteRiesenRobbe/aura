@@ -68,7 +68,7 @@ const spellbook = (page) =>
     [...document.querySelectorAll('#spellbookList [data-skill-id]')].map((e) => e.textContent.trim()));
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));

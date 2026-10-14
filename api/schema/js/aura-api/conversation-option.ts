@@ -4,6 +4,9 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { ConversationLock } from '../aura-api/conversation-lock.js';
+
+
 export class ConversationOption {
   bb: flatbuffers.ByteBuffer|null = null;
   bb_pos = 0;
@@ -83,8 +86,51 @@ questLevel():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+textId():string|null
+textId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+textId(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 26);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+replyId():string|null
+replyId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+replyId(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+textKey():string|null
+textKey(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+textKey(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 30);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+replyKey():string|null
+replyKey(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+replyKey(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 32);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+locks(index: number, obj?:ConversationLock):ConversationLock|null {
+  const offset = this.bb!.__offset(this.bb_pos, 34);
+  return offset ? (obj || new ConversationLock()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+locksLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 34);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
+locksAny():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 36);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(11);
+  builder.startObject(17);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -131,12 +177,48 @@ static addQuestLevel(builder:flatbuffers.Builder, questLevel:number) {
   builder.addFieldInt8(10, questLevel, 0);
 }
 
+static addTextId(builder:flatbuffers.Builder, textIdOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(11, textIdOffset, 0);
+}
+
+static addReplyId(builder:flatbuffers.Builder, replyIdOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(12, replyIdOffset, 0);
+}
+
+static addTextKey(builder:flatbuffers.Builder, textKeyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(13, textKeyOffset, 0);
+}
+
+static addReplyKey(builder:flatbuffers.Builder, replyKeyOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(14, replyKeyOffset, 0);
+}
+
+static addLocks(builder:flatbuffers.Builder, locksOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(15, locksOffset, 0);
+}
+
+static createLocksVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startLocksVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
+static addLocksAny(builder:flatbuffers.Builder, locksAny:boolean) {
+  builder.addFieldInt8(16, +locksAny, +false);
+}
+
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number, textIdOffset:flatbuffers.Offset, replyIdOffset:flatbuffers.Offset, textKeyOffset:flatbuffers.Offset, replyKeyOffset:flatbuffers.Offset, locksOffset:flatbuffers.Offset, locksAny:boolean):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -149,6 +231,12 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addSkillId(builder, skillId);
   ConversationOption.addTravel(builder, travel);
   ConversationOption.addQuestLevel(builder, questLevel);
+  ConversationOption.addTextId(builder, textIdOffset);
+  ConversationOption.addReplyId(builder, replyIdOffset);
+  ConversationOption.addTextKey(builder, textKeyOffset);
+  ConversationOption.addReplyKey(builder, replyKeyOffset);
+  ConversationOption.addLocks(builder, locksOffset);
+  ConversationOption.addLocksAny(builder, locksAny);
   return ConversationOption.endConversationOption(builder);
 }
 }

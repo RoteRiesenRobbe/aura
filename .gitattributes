@@ -21,3 +21,11 @@ api/zones/*.json text eol=lf
 # 3. Git hooks. Same shebang problem as the shell scripts, and the files carry
 #    no .sh extension.
 .githooks/* text eol=lf
+
+# 3. Localization files (plan-localization.md L16). The generated English
+#    source ARBs are compared byte for byte against a fresh extraction (D19),
+#    and the translated-from records the same way, so a CRLF checkout would
+#    read as stale with nothing edited.
+*.arb text eol=lf
+api/lang/**/*.json text eol=lf
+frontend/src/lang/*.json text eol=lf

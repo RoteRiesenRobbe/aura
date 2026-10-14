@@ -29,36 +29,36 @@
       {
         "id": "root",
         "lines": [
-          "I am passing through."
+          {"id": "i-am-passing-through"}
         ],
         "options": [
-          { "text": "Which way is safe?", "next": "roads" },
-          { "text": "Do you have a task for me?", "next": "kobolds" },
-          { "text": "About the kobolds...", "next": "kobolds_running" },
-          { "text": "Are you travelling alone?", "next": "friend" },
-          { "text": "About your friend...", "next": "friend_running" }
+          { "id": "which-way-is-safe", "next": "roads" },
+          { "stock": "ask-task", "next": "kobolds" },
+          { "id": "about-the-kobolds", "next": "kobolds_running" },
+          { "id": "are-you-travelling-alone", "next": "friend" },
+          { "id": "about-your-friend", "next": "friend_running" }
         ]
       },
       {
         "id": "roads",
         "lines": [
-          "North, through the tunnel. Bring a light.",
-          "East is dangerous. Bandits watch that road."
+          {"id": "north-through-the-tunnel-bring"},
+          {"id": "east-is-dangerous-bandits-watch"}
         ]
       },
       {
         "id": "kobolds",
         "lines": [
-          "Kill 8 kobolds near the road, then come back to me."
+          {"id": "kill-8-kobolds-near"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "kobolds-on-the-road",
-                "line": "Good."
+                "quest": "kobolds-on-the-road"
               }
             ]
           }
@@ -67,28 +67,27 @@
       {
         "id": "kobolds_running",
         "lines": [
-          "The kobolds?"
+          {"id": "the-kobolds"}
         ],
         "options": [
           {
-            "text": "I killed the 8 kobolds.",
+            "id": "i-killed-the-8-kobolds",
             "grants": [
               {
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "kobolds-on-the-road",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 450,
-                "line": "Here is your reward."
+                "xp": 450
               }
             ]
           },
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "kobolds_on_it"
           }
         ]
@@ -103,23 +102,23 @@
           }
         ],
         "lines": [
-          "Kill 8 kobolds near the road, then come back to me."
+          {"id": "kill-8-kobolds-near-2"}
         ]
       },
       {
         "id": "friend",
         "lines": [
-          "Not by choice. My friend went into the forest to collect berries and did not come back.",
-          "He wears a grey cloak and carries a walking staff. Please find him."
+          {"id": "not-by-choice-my-friend"},
+          {"id": "he-wears-a-grey-cloak"}
         ],
         "options": [
           {
-            "text": "I'll look for him.",
+            "id": "ill-look-for-him",
             "grants": [
               {
+                "id": "thank-you",
                 "kind": "offer_quest",
-                "quest": "the-lost-friend",
-                "line": "Thank you."
+                "quest": "the-lost-friend"
               }
             ]
           }
@@ -128,28 +127,27 @@
       {
         "id": "friend_running",
         "lines": [
-          "My friend?"
+          {"id": "my-friend"}
         ],
         "options": [
           {
-            "text": "I found him. He is dead.",
+            "id": "i-found-him-he-is",
             "grants": [
               {
+                "id": "i-feared-as-much-thank",
                 "kind": "advance_quest",
                 "quest": "the-lost-friend",
                 "fromStage": "return",
-                "toStage": "done",
-                "line": "I feared as much. Thank you for telling me."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 311,
-                "line": "Take this for your trouble."
+                "xp": 311
               }
             ]
           },
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "friend_on_it"
           }
         ]
@@ -164,7 +162,7 @@
           }
         ],
         "lines": [
-          "He went into the forest for berries. A grey cloak and a walking staff."
+          {"id": "he-went-into-the-forest"}
         ]
       }
     ]

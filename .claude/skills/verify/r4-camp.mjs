@@ -71,7 +71,7 @@ const check = (ok, name, note) => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-gpu'], env });
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));

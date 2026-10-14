@@ -8,7 +8,7 @@ import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from '../../core/logic/Events';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import * as TextDisplay from '../../../client-data/TextDisplay';
-import {difficultyColor, getLocalPlayerLevel, mobDefinition, TierRank} from '../../../client-data/Mobs';
+import {difficultyColor, formatMobName, getLocalPlayerLevel, mobDefinition, TierRank} from '../../../client-data/Mobs';
 import {questMarkerColor, questMarkerFor, questMarkerGlyph} from '../../../client-data/QuestMarkers';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
@@ -279,8 +279,8 @@ export abstract class Mob extends GameObject
         // A conversant-only plate carries no level: the number is a combat
         // fact, and an unattackable NPC speaking one would imply a fight.
         this.nameElement.text = definition.combatTarget
-            ? `${definition.displayName} ${this.effectiveLevel(definition)}`
-            : definition.displayName;
+            ? `${formatMobName(definition.displayName)} ${this.effectiveLevel(definition)}`
+            : formatMobName(definition.displayName);
     }
 
     // Y offset of the plate text: under the overhead bar, read off the bar's

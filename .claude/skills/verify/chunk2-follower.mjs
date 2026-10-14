@@ -55,7 +55,7 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 const HOSTILE = `${-40 * 120} ${10 * 120}`;
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });

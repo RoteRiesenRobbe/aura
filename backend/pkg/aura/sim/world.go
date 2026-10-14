@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"math"
 	"math/rand"
@@ -314,7 +315,7 @@ func (nopClient) NextRespec() *model.Respec                   { return nil }
 func (nopClient) NextUseUtility() *model.UseUtility           { return nil }
 func (nopClient) NextStartFlight() *model.StartFlight         { return nil }
 func (nopClient) SendMessage([]byte) error                    { return nil }
-func (nopClient) SendUnlock(uint64, string) error             { return nil }
-func (nopClient) SendJournal(string) error                    { return nil }
+func (nopClient) SendUnlock(uint64, lang.Message) error             { return nil }
+func (nopClient) SendJournal(lang.Message) error                    { return nil }
 func (nopClient) Close()                                      {}
 func (nopClient) UUID() uuid.UUID                             { return uuid.Nil }

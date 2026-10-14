@@ -1,13 +1,10 @@
 {
   "_comment": "Reinhard's kill quest and the Mill-on-the-river POI's whole reason to exist (content-zone-design-guide.md §2.4: soft dead end, side reward). Target: the single AlphaBoar spawn at the mill — Zone 1's one elite. ⭐ COUNT 1, and that is the design rather than a shortcut: every other kill quest in the game is a cull (6 boars, 8 wolves) and this one is a NAMED FIGHT, which is how the player learns that an elite is a different kind of thing from more of the same. It leans on the respawn only if they lose. Reward on the turn-in row (miller.json): 370 XP = the L9 half-level rule at L6, the same number the Lamplighter pays. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
   "id": "the-sounder-at-the-mill",
-  "title": "The Beast of the Farmlands",
   "level": 6,
   "stages": [
     {
       "id": "cull",
-      "journal": "Kill the leader of the boars. You'll find him in their den to the south.",
-      "tracker": "Kill the beast of the farmlands ({n}/{m})",
       "objectives": [
         {
           "kind": "kill",
@@ -18,13 +15,10 @@
       "next": "report"
     },
     {
-      "id": "report",
-      "journal": "The beast of the farmlands is dead. Reinhard will want to hear it.",
-      "tracker": "Return to Reinhard"
+      "id": "report"
     },
     {
-      "id": "done",
-      "journal": "The beast is dead and the crops are safe."
+      "id": "done"
     }
   ]
 }

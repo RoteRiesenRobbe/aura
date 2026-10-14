@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          "Welcome to Dionsburg, traveller."
+          {"id": "welcome-to-dionsburg-traveller"}
         ],
         "options": [
           {
-            "text": "About the wolves in the farmlands...",
+            "id": "about-the-wolves",
             "next": "wolves"
           }
         ]
@@ -38,23 +38,22 @@
       {
         "id": "wolves",
         "lines": [
-          "The farmlands? Speak."
+          {"id": "the-farmlands-speak"}
         ],
         "options": [
           {
-            "text": "There are more wolves on the farms than anyone can remember.",
+            "id": "there-are-more-wolves",
             "grants": [
               {
+                "id": "then-the-crier-was-right",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "governor",
-                "toStage": "done",
-                "line": "Then the Crier was right to send you. I will ask the Order to look into it."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 216,
-                "line": "Take this, for the long road."
+                "xp": 216
               }
             ]
           }

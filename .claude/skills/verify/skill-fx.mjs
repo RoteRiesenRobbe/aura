@@ -139,7 +139,7 @@ const browser = await chromium.launch({
   ],
   env,
 });
-const page = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 900 } })).newPage();
 const errors = [];
 let inconclusive = false;
 // An inconclusive that must NOT gate the legs after it (leg 20b's settle): it

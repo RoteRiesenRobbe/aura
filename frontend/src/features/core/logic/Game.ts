@@ -4,6 +4,7 @@ import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
 import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
 import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
+import {contentText, REGIONS_ENGLISH, zoneNameKey} from '../../../client-data/LangBundle';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -905,8 +906,8 @@ export class Game implements IGame {
 
     /**
      * The crossing curtain's title card: the place (a region's id, its text
-     * from api/regions/regions.json) the player arrived in, with its subtitle,
-     * else the zone's name (PO 2026-10-04).
+     * from api/lang, plan-localization.md D27) the player arrived in, with its
+     * subtitle, else the zone's name (PO 2026-10-04).
      *
      * ⚑ Read off the BUNDLED zone data, not Regions.loadedRegions(): the new
      * zone is only loaded under full cover, after this runs.
@@ -916,7 +917,10 @@ export class Game implements IGame {
         const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
         const place = placeAt(regions, {x: xPx, y: yPx});
         if (place === null) {
-            return zoneData?.name ? {title: zoneData.name} : null;
+            // The zone file's name is a dev label (plan-localization.md D27): only the
+            // debug zone set, which owes no English, falls back to it.
+            const english = REGIONS_ENGLISH[zoneNameKey(entered.name)] || zoneData?.name;
+            return english ? {title: contentText(zoneNameKey(entered.name), english)} : null;
         }
         // The card names the place, so the region banner must not name it again
         // a second after the reveal. Only when a card is actually shown: a cheat

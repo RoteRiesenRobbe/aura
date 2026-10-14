@@ -19,6 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
+- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). Unbuilt: C7 notes out of the bundle (any time), C8 catalogs on demand (trigger: a third locale), C9 spreadsheet round-trip.
+
 - **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 - **⭐ BUFF TRAY: real-phone check, now possible (live since the 2026-10-14 deploy of `82044c23`)** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).
 
@@ -60,7 +62,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ⭐ **M1-F5, dormancy vs. a CREDIBLE sim** (`plan-world-scale.md` §11): **(A)** an unobserved mob-vs-mob fight never ends (a slept mob is out of `phy.Space`, unhittable), a design ruling. **(B)** a mob can freeze walking home off its route (`model/mob/patrol.go:108-113`), outside L7; fix: refuse sleep while `returnPosSet`.
 - **Open PO calls:** ⭐ §B11 Q7: Go validation on save for EVERY editor tab, retiring `validate.mjs`'s port (`docs/archive/plan-content-editor.md`) · ⭐ should `EntitiesMarshalFlatbuf`'s `default:` stop panicking? (`recover()` hid the corpse bug eight weeks) · the portal pair's COST · does a QUEST turn-in row show the ability it pays? · should FireShield's flat reflect scale?
 - **Standing locks:** NO CI BY CHOICE (PO 2026-08-12; revisit at step 9); the local verify tail is the gate. Balance FINALs (growth 1.12 × maxLevel 30, regen + taper, campfire, free base aura, downtime 10 s + chain 20) live in `cmd/simharness/guardrail_test.go`; drop + milestone tables TUNING-OPEN. Day/night OFF (re-enabling means collapsing ~25 filter passes).
-- **Content rules** (full: the `add-content` skill): new mobs author tier + baseline (raw `maxHealth` hard-fails) and `factors.xpFactor` (absent → 1, `0` = no XP AND no nameplate); tier ≥ elite authors `factors.ccImmune`. A skill file is never deleted, an `id` never changes, `maxLevel` never drops (retire by removing unlock sources, `manual-content-authoring.md` §2); a `_comment` is never a ledger.
+- **Content rules** (full: the `add-content` skill): new mobs author tier + baseline (raw `maxHealth` hard-fails) and `factors.xpFactor` (absent → 1, `0` = no XP AND no nameplate); tier ≥ elite authors `factors.ccImmune`. Quest and stage ids are slugs (a-z, 0-9, `-`; the loader refuses others). A skill file is never deleted, an `id` never changes, `maxLevel` never drops (retire by removing unlock sources, `manual-content-authoring.md` §2); a `_comment` is never a ledger. ⭐ English lives in `api/lang/en/*.arb`, never inline in a content file (`plan-localization.md` D27): write it in the content editor, or draft it inline and run `node tools/lang/extract-english.mjs`; its German lands in `api/lang/de/` in the same change (D23), then `UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/` refreshes the records; a mob a kill/harvest quest counts carries its plural in its name (D24); style: `docs/manual-localization-de.md`.
 - **Gotchas:** a shape removed from `phy.Space` leaves every collision set at once (§54); never "optimize" that away. ⚑ A content edit does NOT invalidate the Go test cache (`-count=1`); without `-content ../api` the EMBEDDED copy is read (rebuild after ANY `api/` edit). ⚑ A ZONE edit is HALF-LIVE (restart after a Tiled save); the directory IS the zone list. ⚑ Skill FX draw BELOW darkness: look in daylight (the debug world's caves are dark).
 - **Dev tools:** `-debug-zones` loads `api/zones/.debug/` (the old 144×72 world); switch = restart (`dev-restart-windows.sh server debug`); every `.json` there loads (no backups); `-validate -debug-zones` gates it. ⚑ The starting aura is off until `1`. ⚑ GOD skips `takeDamage` AND refuses slow and stun (test CC with GOD off); `DAMAGE <pct>` works under GOD. Cheats: GOD, WARP `<x·120> <y·120>`, SPEED, XP, SKILL, ANNOUNCE, THREAT, QUEST, DAMAGE, REVEALMAP (whole map seen, persists).
 
@@ -92,6 +94,12 @@ parameters, configuration options, or abstraction layers. Add complexity only
 when there is a concrete, present need. This applies especially to the aura
 system: build what the current design requires, not what every possible future
 combination might require.
+
+### Localization — no literal player-facing text
+
+UI text via `t()` and `frontend/src/lang/<locale>/frontend.arb`, server text as
+a key + typed args (`lang/message.go`), content text in `api/lang/`; German in
+the same change. Read `docs/manual-localization.md` before adding any.
 
 ### TDD — Test-Driven Development
 

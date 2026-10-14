@@ -44,7 +44,7 @@ const wire = (p) => `${Math.round(p.x) * 120} ${Math.round(p.y) * 120}`;
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 const consoleErrors = [];
 const ctxLosses = [];
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 page.on('console', (m) => {
   if (m.type() === 'error') consoleErrors.push(m.text());
   if (/webgl.*context lost/i.test(m.text())) ctxLosses.push(1);

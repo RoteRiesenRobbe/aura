@@ -1,3 +1,4 @@
+import {t} from '../../localization/logic/Locale';
 import * as Utils from '../../common/logic/Utils';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as BackendConstants from './BackendConstants';
@@ -24,6 +25,7 @@ import {
 import {getLocalPlayerLevel} from '../../../client-data/Mobs';
 import {allQuestMarkers, setQuestMarkers} from '../../../client-data/QuestMarkers';
 import {AuraApi} from './AuraApi';
+import {wireMessageText} from '../../localization/logic/WireText';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
@@ -157,7 +159,7 @@ export class Backend implements IBackend {
                 // Only announce a drop of an established session. The character
                 // is stashed server-side; a reload reconnects it.
                 if (wasInGame) {
-                    AlertBanner.show('Connection lost — reload to reconnect');
+                    AlertBanner.show(t('backend.connection-lost'));
                 }
             });
         };
@@ -325,8 +327,10 @@ export class Backend implements IBackend {
                     // owns the "New <category>: <name>" line so it stays in sync
                     // with the catalog's displayName overrides.
                     const skillId = Number(entityMessage.entityId());
-                    const source = entityMessage.message();
-                    const text = `New ${skillCategory(skillId)}: ${skillDisplayName(skillId)}`
+                    // plan-localization.md C2: the source label is a keyed
+                    // message the client words (D8), English as fallback.
+                    const source = wireMessageText(entityMessage);
+                    const text = t('unlock.banner', {category: skillCategory(skillId), name: skillDisplayName(skillId)})
                         + (source ? `\n${source}` : '');
                     AlertBanner.show(text, 'unlock');
                 }
@@ -335,12 +339,12 @@ export class Backend implements IBackend {
                 // journal's state rides GameState every tick (L8), so a dropped
                 // banner loses nothing but the sentence.
                 else if (entityMessage.kind() === AuraApi.EntityMessageKind.Journal) {
-                    AlertBanner.show(entityMessage.message(), 'unlock');
+                    AlertBanner.show(wireMessageText(entityMessage), 'unlock');
                 }
                 // Entity id 0 = server announcement (chat.SystemEntityID) —
                 // routed to the alert banner, not a speech bubble (C6).
                 else if (Number(entityMessage.entityId()) === 0) {
-                    AlertBanner.show(entityMessage.message(), 'announce');
+                    AlertBanner.show(wireMessageText(entityMessage), 'announce');
                 } else {
                     Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
                 }
@@ -747,9 +751,9 @@ export class Backend implements IBackend {
                 return;
             }
             if (draw.kind === 'immune') {
-                target.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('float.immune'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else if (draw.kind === 'absorbed') {
-                target.showFloatingText('Absorbed', IMMUNE_COLOR, 1, IMMUNE_LANE);
+                target.showFloatingText(t('float.absorbed'), IMMUNE_COLOR, 1, IMMUNE_LANE);
             } else {
                 target.showFloatingNumber(hpToDisplay(event.amount), draw.kind);
             }

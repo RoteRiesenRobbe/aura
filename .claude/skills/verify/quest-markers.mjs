@@ -105,7 +105,8 @@ const warpTo = async (p, dx = 0, dy = 0) => {
 const names = await page.evaluate(async () => {
   const mobs = await (await fetch('/mobs')).json();
   const out = {};
-  for (const m of mobs) out[m.name] = m.displayName;
+  // A name may carry its plural forms as ICU (plan-localization.md D24); a plate speaks the singular.
+  for (const m of mobs) out[m.name] = (/one {([^{}]*)}/.exec(m.displayName) || [null, m.displayName])[1];
   return out;
 });
 

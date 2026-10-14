@@ -7,6 +7,7 @@ package encounter
 
 import (
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 
 	"github.com/EngoEngine/ecs"
@@ -51,7 +52,8 @@ type System struct {
 // Announcer is the server-wide system-message surface (chat.ChatSystem) —
 // narrow so encounters don't depend on the chat package.
 type Announcer interface {
-	Broadcast(text string)
+	// A keyed message (plan-localization.md C2): every client words it.
+	BroadcastMessage(m lang.Message)
 }
 
 func NewSystem(g model.Game, space *phy.Space) *System {
@@ -70,11 +72,11 @@ func (s *System) SetAnnouncer(a Announcer) {
 
 // Announce broadcasts a system message to every connected player; a no-op
 // while unwired so encounter tests need no chat fake.
-func (s *System) Announce(text string) {
+func (s *System) Announce(m lang.Message) {
 	if s.announcer == nil {
 		return
 	}
-	s.announcer.Broadcast(text)
+	s.announcer.BroadcastMessage(m)
 }
 
 // Priority 15 — directly after the MobSystem (20): deaths it detects this

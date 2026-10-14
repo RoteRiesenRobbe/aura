@@ -56,8 +56,8 @@ func threeStage() *QuestDefinition {
 	return &QuestDefinition{
 		ID: "pelts", Title: "Pelts", Level: 1,
 		Stages: []*Stage{
-			{ID: "hunt", Journal: "Hunt wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, Count: 3}}, Next: "turn_in"},
-			{ID: "turn_in", Journal: "Bring the pelts back."},
+			{ID: "hunt", Journal: "Hunt wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, Count: 3}}, Next: "turn-in"},
+			{ID: "turn-in", Journal: "Bring the pelts back."},
 			{ID: "done", Journal: "Done."},
 		},
 	}
@@ -73,7 +73,7 @@ func crossValidate(t *testing.T, defs []*QuestDefinition, mobDefs ...*mobs.MobDe
 func TestCrossValidate_AcceptsAWellFormedQuest(t *testing.T) {
 	warnings, err := crossValidate(t, []*QuestDefinition{threeStage()},
 		conversant("Farmer", offerRow("pelts")),
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done")))
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
 
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
@@ -89,7 +89,7 @@ func TestCrossValidate_RejectsAnUnknownQuest(t *testing.T) {
 }
 
 func TestCrossValidate_RejectsUnknownStages(t *testing.T) {
-	for _, edge := range [][2]string{{"nowhere", "done"}, {"turn_in", "nowhere"}} {
+	for _, edge := range [][2]string{{"nowhere", "done"}, {"turn-in", "nowhere"}} {
 		_, err := crossValidate(t, []*QuestDefinition{threeStage()},
 			conversant("Hermit", advanceRow("pelts", edge[0], edge[1])))
 
@@ -113,14 +113,14 @@ func TestCrossValidate_RejectsAdvancingOutOfAnObjectiveStage(t *testing.T) {
 // of it, which is knowable only after every row has been seen.
 func TestCrossValidate_RegistersDialogueEdgesSoMidQuestStagesWait(t *testing.T) {
 	q := threeStage()
-	require.True(t, q.IsTerminal(q.Stage("turn_in")),
+	require.True(t, q.IsTerminal(q.Stage("turn-in")),
 		"before any row is registered, a bare dialogue stage looks terminal")
 
 	_, err := crossValidate(t, []*QuestDefinition{q},
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done")))
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
 	require.NoError(t, err)
 
-	assert.False(t, q.IsTerminal(q.Stage("turn_in")),
+	assert.False(t, q.IsTerminal(q.Stage("turn-in")),
 		"a row advances out of it, so entering it must WAIT, not complete the quest")
 	assert.True(t, q.IsTerminal(q.Stage("done")), "and the stage nothing leaves still ends the quest")
 }
@@ -155,11 +155,11 @@ func TestCrossValidate_AcceptsTwoTurnInNPCsWithDifferentEnds(t *testing.T) {
 // the completed set, which abandon never touches, is what protects a terminal one.
 func TestCrossValidate_RejectsGrantXPOnANonTerminalEdge(t *testing.T) {
 	q := threeStage()
-	// A fourth stage after `done` makes the turn_in → done edge non-terminal.
+	// A fourth stage after `done` makes the turn-in → done edge non-terminal.
 	q.Stages = append(q.Stages, &Stage{ID: "epilogue", Journal: "One last thing."})
 
 	_, err := crossValidate(t, []*QuestDefinition{q},
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done",
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done",
 			mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "take this"})),
 		conversant("Farmer", advanceRow("pelts", "done", "epilogue")))
 
@@ -169,7 +169,7 @@ func TestCrossValidate_RejectsGrantXPOnANonTerminalEdge(t *testing.T) {
 
 func TestCrossValidate_AcceptsGrantXPOnATerminalEdge(t *testing.T) {
 	_, err := crossValidate(t, []*QuestDefinition{threeStage()},
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done",
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done",
 			mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "take this"})))
 
 	assert.NoError(t, err, "completion is protected by the completed set, which abandon never clears")
@@ -189,7 +189,7 @@ func conditionalConversant(name string, cond mobs.InteractionCondition) *mobs.Mo
 
 func TestCrossValidate_AcceptsQuestConditions(t *testing.T) {
 	for _, stage := range []string{
-		"turn_in", mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning,
+		"turn-in", mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning,
 	} {
 		_, err := crossValidate(t, []*QuestDefinition{threeStage()},
 			conditionalConversant("Farmer", mobs.InteractionCondition{
@@ -201,7 +201,7 @@ func TestCrossValidate_AcceptsQuestConditions(t *testing.T) {
 
 func TestCrossValidate_RejectsAConditionOnAnUnknownQuestOrStage(t *testing.T) {
 	cases := []mobs.InteractionCondition{
-		{Kind: mobs.ConditionQuestAtStage, Quest: "no-such-quest", Stage: "turn_in"},
+		{Kind: mobs.ConditionQuestAtStage, Quest: "no-such-quest", Stage: "turn-in"},
 		{Kind: mobs.ConditionQuestAtStage, Quest: "pelts", Stage: "no-such-stage"},
 	}
 	for _, cond := range cases {
@@ -226,7 +226,7 @@ func TestCrossValidate_IgnoresNonQuestConditions(t *testing.T) {
 // cheat drives a quest before its rows exist, which is exactly how C4 iterates.
 func TestCrossValidate_WarnsAboutAQuestNobodyOffers(t *testing.T) {
 	warnings, err := crossValidate(t, []*QuestDefinition{threeStage()},
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done")))
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
 
 	require.NoError(t, err)
 	require.Len(t, warnings, 1)
@@ -242,7 +242,7 @@ func TestCrossValidate_WarnsAboutAnUnreachableDialogueDeadEnd(t *testing.T) {
 
 	warnings, err := crossValidate(t, []*QuestDefinition{q},
 		conversant("Farmer", offerRow("pelts")),
-		conversant("Hermit", advanceRow("pelts", "turn_in", "done")))
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
 
 	require.NoError(t, err)
 	assert.Empty(t, warnings, "an unreferenced terminal stage is a legal branch end, not a defect")

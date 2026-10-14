@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          "Baa."
+          {"id": "baa"}
         ],
         "options": [
           {
-            "text": "Are you Baabara?",
+            "id": "are-you-baabara",
             "next": "asked"
           }
         ]
@@ -38,11 +38,11 @@
       {
         "id": "asked",
         "lines": [
-          "Bääähh."
+          {"id": "baaahh"}
         ],
         "options": [
           {
-            "text": "I'll take that as a yes.",
+            "id": "ill-take-that-as",
             "next": "quip"
           }
         ]
@@ -50,7 +50,7 @@
       {
         "id": "quip",
         "lines": [
-          "Baa."
+          {"id": "baa-2"}
         ],
         "options": []
       }

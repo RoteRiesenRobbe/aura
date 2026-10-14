@@ -122,7 +122,7 @@ describe('an empty slot that continues a bloodline', () => {
         ]), aSession);
 
         expect(cards()[0].textContent).toContain('2 lives spent');
-        expect(cards()[0].textContent).toContain('Frost Shield, Paralyze');
+        expect(cards()[0].textContent).toContain('Frost Shield and Paralyze');
     });
 
     /**

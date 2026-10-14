@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"net/http"
 	"testing"
 	"testing/fstest"
@@ -109,11 +110,13 @@ func (c *fakeClient) NextAbandonQuest() *model.AbandonQuest {
 }
 
 func (c *fakeClient) SendMessage(b []byte) error { c.sent = append(c.sent, b); return nil }
-func (c *fakeClient) SendUnlock(id uint64, source string) error {
+func (c *fakeClient) SendUnlock(id uint64, msg lang.Message) error {
+	source := msg.English
 	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
 	return nil
 }
-func (c *fakeClient) SendJournal(text string) error {
+func (c *fakeClient) SendJournal(msg lang.Message) error {
+	text := msg.English
 	c.journals = append(c.journals, text)
 	return nil
 }

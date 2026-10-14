@@ -42,7 +42,7 @@ const env = {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 900 } })).newPage();
 const errors = [];
 let inconclusive = false;
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));

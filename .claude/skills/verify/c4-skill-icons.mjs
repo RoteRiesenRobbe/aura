@@ -107,7 +107,7 @@ const pressKey = async (page, key) => {
 
 // ---------------------------------------------------------------- desktop ---
 
-const deskCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const deskCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } });
 const page = await deskCtx.newPage();
 wire(page);
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
@@ -211,7 +211,7 @@ await page.screenshot({ path: join(here, `c4-icons-desktop.png`) });
 
 // ----------------------------------------------------------------- mobile ---
 
-const mobCtx = await browser.newContext({
+const mobCtx = await browser.newContext({ locale: 'en-US',
   viewport: { width: 844, height: 390 },
   isMobile: true, hasTouch: true, deviceScaleFactor: 2,
 });

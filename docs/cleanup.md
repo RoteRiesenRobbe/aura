@@ -174,6 +174,20 @@ draws but not what it costs. Independent of that plan in either order.
 | **Trigger** | ⭐ **The next phone visit** (entry 2 rides the same one), or the first frame-rate complaint in a dark zone, or L1 of `plan-lightmap.md`, whichever comes first. L1 already touches the filter in `setup`. |
 | **Closes when** | Measured and landed (delete this row), or measured and judged not worth it (say so and delete). |
 
+### 6. One UI catalog for four kinds of text, while content splits by domain
+
+⚑ Not a superseded implementation: a layout tidy-up the PO parked here
+(2026-10-14) beside `docs/plan-localization.md` (C6 built the current file;
+C7/C8 plan its delivery).
+
+| | |
+|---|---|
+| **Today** | `frontend/src/lang/<locale>/frontend.arb` (317 keys, 2026-10-14) mixes four kinds of text, already told apart by their first key segment: **screens + HUD** (`account`, `start`, `select`, `settings`, `hud`, `help`, `map`, `spellbook`, `conversation`, `utility`, …, ~170), **game terms** (`damage-type`, `skill-kind`, `tooltip.category`/`stat`/`group`/`selector`/`gate`, ~30), **server messages** (`unlock`, `quest.complete`, `journal.updated`, `warlord`, `save`, `content`, `list`, `lock`, `api-error`, ~45), **tooltip sentence pieces** (the rest of `tooltip.*`, ~70). Content splits by domain (`api/lang/<locale>/{mobs,quests,skills,regions}.arb`). |
+| **Successor** | One file per kind in the same locale folder: `ui.arb`, `terms.arb` (the game's glossary: what a translator keeps consistent everywhere; it would also expose `tooltip.stat.max-health` reading "Max Focus" and "Aura" authored three times), `messages.arb` (then `lang_keys_test.go` can pin it BOTH ways against `ServerKeys`, not one), `tooltip.arb` (the hardest job, one code owner, its own German tests). A pin that every first segment belongs to exactly one file, like content's "misplaced" check. ⚑ Game terms stay in the UI tree: damage types are code constants with no content file, so a content ARB would refuse them as orphans. |
+| **Cost** | `Locale.ts` merges N files per locale (still ONE download per locale under C8); `catalogs.test.ts` and `lang_keys_test.go` read a set; one translated-from record per file. No key changes, so German carries over; DB NONE · FlatBuffers NONE. |
+| **Trigger** | ⭐ **The translation-platform setup (`plan-localization.md` §9: one file = one component) or C8, whichever comes first.** C8 rewrites the same imports in `Locale.ts`, so the split rides it. |
+| **Closes when** | The catalog is split (delete this row), or the PO rules one file fine. |
+
 ---
 
 

@@ -95,8 +95,28 @@ func (rcv *QuestProgress) ObjectivesLength() int {
 	return 0
 }
 
+func (rcv *QuestProgress) ObjectiveList(obj *QuestObjective, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *QuestProgress) ObjectiveListLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func QuestProgressStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(5)
 }
 func QuestProgressAddQuestId(builder *flatbuffers.Builder, questId flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(questId), 0)
@@ -114,6 +134,12 @@ func QuestProgressAddObjectives(builder *flatbuffers.Builder, objectives flatbuf
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(objectives), 0)
 }
 func QuestProgressStartObjectivesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func QuestProgressAddObjectiveList(builder *flatbuffers.Builder, objectiveList flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(objectiveList), 0)
+}
+func QuestProgressStartObjectiveListVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func QuestProgressEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

@@ -41,7 +41,7 @@ const WANDERER = one(world, 'Wanderer');
 const PROP = Object.values(world.props).flat().find((p) => p.type === 'Remains');
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 // A headless page has no audio device; that error is the environment's.

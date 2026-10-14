@@ -73,8 +73,36 @@ func (rcv *EntityMessage) MutateKind(n EntityMessageKind) bool {
 	return rcv._tab.MutateByteSlot(8, byte(n))
 }
 
+func (rcv *EntityMessage) Key() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *EntityMessage) Args(obj *MessageArg, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *EntityMessage) ArgsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func EntityMessageStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(5)
 }
 func EntityMessageAddEntityId(builder *flatbuffers.Builder, entityId uint64) {
 	builder.PrependUint64Slot(0, entityId, 0)
@@ -84,6 +112,15 @@ func EntityMessageAddMessage(builder *flatbuffers.Builder, message flatbuffers.U
 }
 func EntityMessageAddKind(builder *flatbuffers.Builder, kind EntityMessageKind) {
 	builder.PrependByteSlot(2, byte(kind), 0)
+}
+func EntityMessageAddKey(builder *flatbuffers.Builder, key flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(key), 0)
+}
+func EntityMessageAddArgs(builder *flatbuffers.Builder, args flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(args), 0)
+}
+func EntityMessageStartArgsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func EntityMessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

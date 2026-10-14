@@ -1,3 +1,4 @@
+import {t} from '../../localization/logic/Locale';
 // Baseline utilities (plan-downtime.md D1): a small class of always-present
 // abilities outside the skill catalog and the spellbook — Recall now, the
 // mini-campfire with C2. The buttons live in #utilityBar between the aura and
@@ -97,29 +98,28 @@ function utilityTooltip(kind: number): TooltipContent | null {
     if (!name) {
         return null;
     }
-    const cast = `Cast time: ${UTILITY_CAST_SECONDS[kind].toFixed(1)}s ` +
-        '(interrupted by damage or movement)';
+    const cast = t('utility.cast-time', {secs: UTILITY_CAST_SECONDS[kind]});
     if (kind === AuraApi.UtilityKind.Recall) {
         return {
             title: name,
-            subtitle: 'Utility · always available',
+            subtitle: t('utility.subtitle'),
             lines: [
-                {text: 'Returns you to the campfire you are bound to.'},
-                {text: 'Rest at any campfire to bind it.'},
+                {text: t('utility.recall.line')},
+                {text: t('utility.recall.bind')},
                 {text: cast},
-                {text: 'Free — no cost, no cooldown.'},
+                {text: t('utility.recall.free')},
             ],
         };
     }
     return {
         title: name,
-        subtitle: 'Utility · always available',
+        subtitle: t('utility.subtitle'),
         lines: [
-            {text: 'Places a small campfire that heals everyone standing in it.'},
-            {text: 'It burns out shortly, protects nothing, and cannot be bound to.'},
+            {text: t('utility.camp.line')},
+            {text: t('utility.camp.limits')},
             {text: cast},
-            {text: `Charges: ${campCharges}/${campChargeCap(campLevel)}`, labelColor: CHARGE_COLOR},
-            {text: 'Rest at a real campfire to refill. You carry more as you level.'},
+            {text: t('utility.camp.charges', {charges: campCharges, cap: campChargeCap(campLevel)}), labelColor: CHARGE_COLOR},
+            {text: t('utility.camp.refill')},
         ],
     };
 }
@@ -140,7 +140,7 @@ export function trigger(kind: number) {
     // rather than routing through HUD, which keeps HUD ↔ Utilities from
     // becoming a cycle.
     if (Flight.isFlying()) {
-        AlertBanner.show("Can't use abilities while flying", 'warning');
+        AlertBanner.show(t('hud.refusal.abilities-while-flying'), 'warning');
         return;
     }
     new UseUtilityMessage(kind).send();

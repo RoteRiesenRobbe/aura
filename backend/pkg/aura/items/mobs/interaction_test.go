@@ -308,7 +308,7 @@ const questTurnInJSON = `{
     "options": [{
       "text": "Here are the pelts.",
       "grants": [
-        {"kind": "advance_quest", "quest": "pelts", "fromStage": "turn_in", "toStage": "done", "line": "You have my thanks."},
+        {"kind": "advance_quest", "quest": "pelts", "fromStage": "turn-in", "toStage": "done", "line": "You have my thanks."},
         {"kind": "grant_xp", "xp": 250, "line": "Experience is its own reward."},
         {"kind": "teach_skill", "skill": "DodoAura", "line": "And this, besides."}
       ]
@@ -343,7 +343,7 @@ func TestMapMobDefinition_ResolvesAQuestTurnIn(t *testing.T) {
 
 	assert.Equal(t, GrantAdvanceQuest, grants[0].Kind)
 	assert.Equal(t, "pelts", grants[0].Quest)
-	assert.Equal(t, "turn_in", grants[0].FromStage)
+	assert.Equal(t, "turn-in", grants[0].FromStage)
 	assert.Equal(t, "done", grants[0].ToStage)
 	assert.Nil(t, grants[0].Skill, "a quest grant resolves no skill")
 
@@ -374,7 +374,7 @@ func TestMapMobDefinition_ResolvesAQuestCondition(t *testing.T) {
 	def, err := mapInteraction(t, `{"nodes": [
 	  {
 	    "id": "mid_quest",
-	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn-in"}],
 	    "lines": ["Back already?"]
 	  },
 	  {"id": "root", "lines": ["Wolves again."]}
@@ -384,7 +384,7 @@ func TestMapMobDefinition_ResolvesAQuestCondition(t *testing.T) {
 	c := def.Interaction.Nodes[0].Gate.Conditions[0]
 	assert.Equal(t, ConditionQuestAtStage, c.Kind)
 	assert.Equal(t, "pelts", c.Quest)
-	assert.Equal(t, "turn_in", c.Stage)
+	assert.Equal(t, "turn-in", c.Stage)
 }
 
 // Per-kind payload resolution (§5's code-review item): the loader used to resolve
@@ -436,7 +436,7 @@ func TestMapMobDefinition_RejectsAQuestGrantWithoutAQuest(t *testing.T) {
 func TestMapMobDefinition_RejectsAnAdvanceWithoutStages(t *testing.T) {
 	for _, grant := range []string{
 		`{"kind": "advance_quest", "quest": "pelts", "toStage": "done", "line": "x"}`,
-		`{"kind": "advance_quest", "quest": "pelts", "fromStage": "turn_in", "line": "x"}`,
+		`{"kind": "advance_quest", "quest": "pelts", "fromStage": "turn-in", "line": "x"}`,
 		`{"kind": "advance_quest", "quest": "pelts", "fromStage": "same", "toStage": "same", "line": "x"}`,
 	} {
 		_, err := mapInteraction(t, `{"nodes": [{
@@ -618,7 +618,7 @@ func TestMapMobDefinition_RejectsAConditionalNodeBelowAnUnconditionalOne(t *test
 	  {"id": "root", "lines": ["Wolves again."]},
 	  {
 	    "id": "mid_quest",
-	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn-in"}],
 	    "lines": ["Back already?"]
 	  }
 	]}`)
@@ -630,7 +630,7 @@ func TestMapMobDefinition_AcceptsConditionalNodesAboveTheFallback(t *testing.T) 
 	_, err := mapInteraction(t, `{"nodes": [
 	  {
 	    "id": "mid_quest",
-	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn-in"}],
 	    "lines": ["Back already?"]
 	  },
 	  {
@@ -675,7 +675,7 @@ func TestMapMobDefinition_StillRejectsAnUnreachableConditionalGreeting(t *testin
 	  {"id": "nest", "lines": ["North of the tunnel."]},
 	  {
 	    "id": "mid_quest",
-	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn-in"}],
 	    "lines": ["Back already?"]
 	  }
 	]}`)

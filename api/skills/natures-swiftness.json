@@ -2,7 +2,6 @@
   "_comment": "Arms the caster's next cooldown: instant cast and free. All values placeholder.",
   "id": 162,
   "name": "NaturesSwiftness",
-  "displayName": "Nature's Swiftness",
   "icon": "lorc/star-swirl",
   "category": "cooldown",
   "maxLevel": 1,

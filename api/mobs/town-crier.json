@@ -22,33 +22,33 @@
   "interaction": {
     "range": 2.0,
     "ambient": [
-      "Hail, adventurer!"
+      {"id": "hail-adventurer"}
     ],
     "nodes": [
       {
         "id": "root",
         "lines": [
-          "Hail, adventurer!"
+          {"id": "hail-adventurer-2"}
         ],
         "options": [
           {
-            "text": "Hans sends me. There are a lot of wolves recently.",
+            "id": "hans-sends-me-there-are",
             "next": "hans"
           },
           {
-            "text": "Do you have a task for me?",
+            "stock": "ask-task",
             "next": "wolves"
           },
           {
-            "text": "About the wolves...",
+            "id": "about-the-wolves",
             "next": "wolves_running"
           },
           {
-            "text": "Tell me more about Dionsburg.",
+            "id": "tell-me-more-about-dionsburg",
             "next": "dionsburg"
           },
           {
-            "text": "Who here has work for me?",
+            "id": "who-here-has-work",
             "next": "news_who"
           }
         ]
@@ -69,25 +69,25 @@
           }
         ],
         "lines": [
-          "Indeed ... it's very unusual that they appear in such great numbers.",
-          "Alas, I know neither the cause nor the cure.",
-          "But maybe someone in Dionsburg knows what to do ... You should talk to its Governor about our problem."
+          {"id": "indeed-its-very-unusual-that"},
+          {"id": "alas-i-know-neither"},
+          {"id": "but-maybe-someone-in-dionsburg"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "splendid-just-follow-the-road",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "crier",
-                "toStage": "governor",
-                "line": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates."
+                "toStage": "governor"
               }
             ]
           },
           {
-            "text": "Tell me more about Dionsburg.",
+            "id": "tell-me-more-about-dionsburg-2",
             "next": "dionsburg"
           }
         ]
@@ -95,17 +95,17 @@
       {
         "id": "wolves",
         "lines": [
-          "Kill 8 wolves on the west road.",
-          "Then report to the City Guard at the city gate far to the east, or to the Shaman at his fire east along the road."
+          {"id": "kill-8-wolves"},
+          {"id": "then-report-to-the-city"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "wolves-on-the-road",
-                "line": "Good."
+                "quest": "wolves-on-the-road"
               }
             ]
           }
@@ -114,11 +114,11 @@
       {
         "id": "wolves_running",
         "lines": [
-          "The wolves?"
+          {"id": "the-wolves"}
         ],
         "options": [
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "wolves_on_it"
           }
         ]
@@ -133,29 +133,29 @@
           }
         ],
         "lines": [
-          "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman."
+          {"id": "kill-8-wolves-2"}
         ]
       },
       {
         "id": "dionsburg",
         "lines": [
-          "It's a large city to the east. It's the dwelling place of the Order of Divine Light."
+          {"id": "its-a-large-city"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "splendid-just-follow-the-road-2",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "crier",
-                "toStage": "governor",
-                "line": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates."
+                "toStage": "governor"
               }
             ]
           },
           {
-            "text": "Tell me more about the Order of Divine Light.",
+            "id": "tell-me-more-about",
             "next": "order"
           }
         ]
@@ -163,24 +163,24 @@
       {
         "id": "order",
         "lines": [
-          "It's a mighty guild of paladins, champions of the righteous cause.",
-          "They defend the city and uphold the laws in Dionsburg. They are led by a powerful paladin called Papath."
+          {"id": "its-a-mighty-guild"},
+          {"id": "they-defend-the-city"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "splendid-just-follow-the-road-3",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "crier",
-                "toStage": "governor",
-                "line": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates."
+                "toStage": "governor"
               }
             ]
           },
           {
-            "text": "Tell me more about Papath.",
+            "id": "tell-me-more-about-papath",
             "next": "papath"
           }
         ]
@@ -188,20 +188,20 @@
       {
         "id": "papath",
         "lines": [
-          "Oh, I just know what everyone knows about him.",
-          "He's a champion of humanity and all of its allies against the forces of evil.",
-          "He resides in the Cathedral, in the centre of Dionsburg."
+          {"id": "oh-i-just-know-what"},
+          {"id": "hes-a-champion-of-humanity"},
+          {"id": "he-resides-in-the-cathedral"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "splendid-just-follow-the-road-4",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "crier",
-                "toStage": "governor",
-                "line": "Splendid! Just follow the road east through the forest. It'll lead you right to the city gates."
+                "toStage": "governor"
               }
             ]
           }
@@ -210,8 +210,8 @@
       {
         "id": "news_who",
         "lines": [
-          "Talk to Farmer Flora, Miller Reinhard, Herbalist Lionett and Shepherd Hans.",
-          "You'll find Flora and Hans to the west, Lionett to the north and Reinhard just south of here. There's always something to do."
+          {"id": "talk-to-farmer-flora-miller"},
+          {"id": "youll-find-flora-and-hans"}
         ],
         "options": []
       }

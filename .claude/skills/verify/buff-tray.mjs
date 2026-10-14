@@ -65,7 +65,7 @@ const check = (name, pass, detail) => results.push({ check: name, pass, detail }
 const f1 = (n) => (typeof n === 'number' ? n.toFixed(1) : String(n));
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
@@ -404,7 +404,7 @@ check('A spider under Immolate still carries its own Dot pip (the strip retired 
 // ⚑ Shut the desktop page first: two live pages leave one in the background,
 // and a background page clamps timers, which the 500 ms hold IS.
 await page.close();
-const phoneCtx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+const phoneCtx = await browser.newContext({ locale: 'en-US', viewport: { width: 844, height: 390 }, hasTouch: true });
 const phone = await phoneCtx.newPage();
 phone.on('console', (m) => { if (m.type() === 'error') consoleErrors.push('phone: ' + m.text()); });
 phone.on('pageerror', (e) => consoleErrors.push('phone pageerror: ' + e.message));

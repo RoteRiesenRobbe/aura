@@ -26,17 +26,17 @@
       {
         "id": "root",
         "lines": [
-          "A dark opening in the rock.",
-          "Cold air rises out of it."
+          {"id": "a-dark-opening"},
+          {"id": "cold-air-rises-out"}
         ],
         "options": [
           {
-            "text": "Climb down.",
+            "id": "climb-down",
             "grants": [
               {
+                "id": "you-climb-down-into",
                 "kind": "travel_to",
-                "mode": "anchor",
-                "line": "You climb down into the dark."
+                "mode": "anchor"
               }
             ]
           }

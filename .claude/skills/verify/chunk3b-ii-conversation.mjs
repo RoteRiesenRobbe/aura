@@ -66,7 +66,7 @@ const WANDERER_SPAWN = w(-16, 31);
 const NEAR_TOWNCRIER = w(-56, 20);
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 const ctxLosses = [];

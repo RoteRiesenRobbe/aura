@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+)
 
 // Client is the interface representing the underlying
 // connection to a player/client.
@@ -62,14 +66,15 @@ type Client interface {
 	// "Taught by: Farmer"). The client composes the "New <category>: <name>"
 	// line from its catalog and shows the source label beneath it — see
 	// plan-unlock-attribution.md.
-	SendUnlock(skillID uint64, source string) error
+	// The label is a keyed message (plan-localization.md C2, D8).
+	SendUnlock(skillID uint64, source lang.Message) error
 
 	// SendJournal enqueues a journal ping (kind=Journal) carrying only the
 	// banner line — a quest entered a new stage, or finished (plan-quests.md
 	// D17). ⚑ GARNISH ONLY: this channel drops on a full buffer, so nothing
 	// durable may ride it; the journal's actual state is re-sent every tick on
 	// GameState.quest_progress (L8).
-	SendJournal(text string) error
+	SendJournal(m lang.Message) error
 
 	// Close closes the connection and disconnects the client
 	Close()

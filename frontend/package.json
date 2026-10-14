@@ -33,6 +33,7 @@
     "file-saver": "^2.0.5",
     "flatbuffers": "24.3.25",
     "fscreen": "^1.2.0",
+    "intl-messageformat": "^10.7.18",
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",
     "on-change": "^5.0.1",

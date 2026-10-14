@@ -1,3 +1,4 @@
+import {t} from '../../localization/logic/Locale';
 /**
  * The conversation panel (plan-entity-model.md chunk 3b-ii).
  *
@@ -312,7 +313,7 @@ function render() {
             if (row.requiredLevel > 0) {
                 const wall = document.createElement('span');
                 wall.className = 'conversationWall';
-                wall.textContent = `level ${row.requiredLevel}`;
+                wall.textContent = t('conversation.level-wall', {level: row.requiredLevel});
                 li.appendChild(wall);
             }
         } else {
@@ -330,7 +331,7 @@ function render() {
     if (view.showLeave) {
         const li = document.createElement('li');
         li.className = 'conversationLeaveRow';
-        li.textContent = 'Leave.';
+        li.textContent = t('conversation.leave.label');
         onRowPress(li, leave);
         items.push(li);
     }

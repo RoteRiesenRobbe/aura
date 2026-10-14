@@ -1,12 +1,10 @@
 {
   "_comment": "Off to the Mill: the opening's handoff and the first `reach` quest. Flora offers it once `meat-for-dinner` is complete; `road` is done the first tick the player stands inside the `farmreinhard` region (api/regions/regions.json), not while flying; `meet` is turned in on Reinhard's root row 'Flora sends me. I'm looking for work.' No reward: it is a handoff, and his own quests follow. No marker of any kind points at the farm (gdd.md §42). The id keeps its old name so saved progress stays valid.",
   "id": "eliza-sends-me",
-  "title": "Off to the Mill",
   "level": 1,
   "stages": [
     {
       "id": "road",
-      "journal": "Flora has no more work. She told you to talk to miller Reinhard, who lives further east.",
       "objectives": [
         {
           "kind": "reach",
@@ -16,13 +14,10 @@
       "next": "meet"
     },
     {
-      "id": "meet",
-      "journal": "You have reached Reinhard's farm. Now to find the miller himself.",
-      "tracker": "Talk to Reinhard"
+      "id": "meet"
     },
     {
-      "id": "done",
-      "journal": "You told Reinhard that Flora sent you. There is plenty of work around here."
+      "id": "done"
     }
   ]
 }

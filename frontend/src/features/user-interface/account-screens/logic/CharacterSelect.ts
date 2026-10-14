@@ -1,3 +1,4 @@
+import {t, formatList} from '../../../localization/logic/Locale';
 import {
     AccountsApi, ApiError, Character, CharacterList, SessionState, SlotBloodline,
 } from '../../../accounts/logic/AccountsApi';
@@ -74,10 +75,9 @@ export function show(list: CharacterList, state: SessionState, autoSelectFirst =
     const warning = panel.querySelector('.playingWarning') as HTMLElement;
     warning.classList.toggle('hidden', playingCharacterId === null);
     if (playingCharacterId !== null) {
-        warning.textContent = 'This account is in the world in another window. '
-            + 'Logging out will end that session.';
+        warning.textContent = t('select.playing-elsewhere');
     }
-    AccountScreens.element('logoutButton').textContent = 'Log out';
+    AccountScreens.element('logoutButton').textContent = t('account.select.logout-button');
 
     // Logout for registered accounts, Log in for guests — never both, and never
     // neither. A guest reaching this screen has characters they could lose, so
@@ -170,11 +170,11 @@ function giftCount(unlocks: string[]): string {
     if (unlocks.length === 0) {
         return '';
     }
-    return `${unlocks.length} gift${unlocks.length === 1 ? '' : 's'}`;
+    return t('select.gift-count', {count: unlocks.length});
 }
 
 function livesSpent(ascensions: number): string {
-    return `${ascensions} ${ascensions === 1 ? 'life' : 'lives'} spent`;
+    return t('select.lives-spent', {count: ascensions});
 }
 
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th. */
@@ -216,7 +216,7 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
 
     const level = document.createElement('div');
     level.className = 'slotCharacterLevel';
-    level.textContent = `Level ${character.level}`;
+    level.textContent = t('select.level', {level: character.level});
     card.appendChild(level);
 
     // ⚑ COUNTS ONLY, and only when there is a history (D23). This character's
@@ -225,7 +225,7 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     // "1st life · 0 gifts".
     if (hasHistory(bloodline)) {
         card.appendChild(line('slotBloodline', [
-            `${ordinal(bloodline.ascensions + 1)} life`,
+            t('select.nth-life', {n: bloodline.ascensions + 1}),
             giftCount(bloodline.unlocks),
         ].filter(Boolean).join(' · ')));
     }
@@ -238,7 +238,7 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     if (character.id === playingCharacterId) {
         const inWorld = document.createElement('div');
         inWorld.className = 'slotInWorld';
-        inWorld.textContent = 'In world';
+        inWorld.textContent = t('select.in-world');
         card.appendChild(inWorld);
         card.classList.add('inWorld');
         return card;
@@ -247,7 +247,7 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     const play = document.createElement('a');
     play.className = 'button';
     play.href = '#';
-    play.textContent = 'Play';
+    play.textContent = t('select.play');
     play.addEventListener('pointerdown', (event) => {
         event.preventDefault();
         onPlay(character);
@@ -257,7 +257,7 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     const remove = document.createElement('a');
     remove.className = 'slotDelete';
     remove.href = '#';
-    remove.textContent = 'Delete';
+    remove.textContent = t('account.delete.confirm-button');
     remove.addEventListener('pointerdown', (event) => {
         event.preventDefault();
         DeleteDialog.open(character, (message) => {
@@ -284,8 +284,8 @@ function createCard(characterCount: number, slotIndex: number, bloodline?: SlotB
         // an anonymous account renames every one of its rows. "Continue this
         // bloodline" is what a card says when it may not say whose.
         card.appendChild(line('slotCreateLabel', bloodline.predecessorName
-            ? `Continue the bloodline of ${bloodline.predecessorName}`
-            : 'Continue this bloodline'));
+            ? t('select.continue-bloodline-of', {name: bloodline.predecessorName})
+            : t('select.continue-bloodline')));
         if (bloodline.ascensions > 0) {
             card.appendChild(line('slotBloodline', livesSpent(bloodline.ascensions)));
         }
@@ -293,10 +293,10 @@ function createCard(characterCount: number, slotIndex: number, bloodline?: SlotB
             // ⚑ DISPLAY names. The unlock key is a registry id (D17) and no
             // player has ever seen one.
             card.appendChild(line('slotBloodlineGifts',
-                `Gifts: ${bloodline.unlocks.map(skillDisplayNameFor).join(', ')}`));
+                t('select.gifts', {names: formatList(bloodline.unlocks.map(skillDisplayNameFor))})));
         }
     } else {
-        card.appendChild(line('slotCreateLabel', 'Create character'));
+        card.appendChild(line('slotCreateLabel', t('select.create-character')));
     }
 
     card.dataset.slotIndex = String(slotIndex);
@@ -331,7 +331,7 @@ async function logout(): Promise<void> {
     // says what it does.
     if (playingCharacterId !== null && !logoutConfirmed) {
         logoutConfirmed = true;
-        AccountScreens.element('logoutButton').textContent = 'Log out and leave the world';
+        AccountScreens.element('logoutButton').textContent = t('select.logout-leave-world');
         return;
     }
 
@@ -342,7 +342,7 @@ async function logout(): Promise<void> {
         if (!(error instanceof ApiError) || (error.code !== 'no_identity' && error.code !== 'session_expired')) {
             const message = error instanceof ApiError
                 ? error.message
-                : 'Something went wrong. Please try again.';
+                : t('account.error.generic');
             AccountScreens.showError(panel, message, error instanceof ApiError ? error.ref : undefined);
             return;
         }

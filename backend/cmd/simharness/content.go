@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
@@ -17,6 +18,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -56,13 +58,15 @@ const firstMobSkillID skills.SkillID = 100
 // props joined with the C1.5 placement battery (plan-xp-formula.md §13.3) —
 // props because a zone does not load without them: world.Zone.resolve binds
 // every prop's type against the registry, so reading world.json needs the same
-// two sources aurad boots with.
+// two sources aurad boots with. lang is api/lang: the English the mob and skill
+// files are read with (plan-localization.md D27).
 type contentDirs struct {
 	skills   fs.FS
 	factions fs.FS
 	mobs     fs.FS
 	zones    fs.FS
 	props    fs.FS
+	lang     fs.FS
 }
 
 // contentFS resolves them: the embedded pkg/api copies by default (synced from
@@ -82,9 +86,10 @@ func contentFS(contentDir string) (contentDirs, error) {
 		mobs:     amobs.Mobs,
 		zones:    azones.Zones,
 		props:    aprops.Props,
+		lang:     alang.Lang,
 	}
 	if contentDir == "" {
-		return c, nil
+		return withEnglish(c), nil
 	}
 	root := os.DirFS(contentDir)
 	for _, s := range []struct {
@@ -92,7 +97,7 @@ func contentFS(contentDir string) (contentDirs, error) {
 		dst  *fs.FS
 	}{
 		{"skills", &c.skills}, {"factions", &c.factions}, {"mobs", &c.mobs},
-		{"zones", &c.zones}, {"props", &c.props},
+		{"zones", &c.zones}, {"props", &c.props}, {"lang", &c.lang},
 	} {
 		sub, err := fs.Sub(root, s.name)
 		if err != nil {
@@ -103,7 +108,16 @@ func contentFS(contentDir string) (contentDirs, error) {
 		}
 		*s.dst = sub
 	}
-	return c, nil
+	return withEnglish(c), nil
+}
+
+// withEnglish has the mob and skill loaders read each file with its English
+// joined in from api/lang/en/, as aurad does (plan-localization.md D27).
+func withEnglish(c contentDirs) contentDirs {
+	en := lang.EnglishFrom(c.lang)
+	c.mobs = lang.EnglishFS(c.mobs, lang.DomainMob, en)
+	c.skills = lang.EnglishFS(c.skills, lang.DomainSkill, en)
+	return c
 }
 
 // loadRegistries builds the real registries once (tier+baseline numbers derived

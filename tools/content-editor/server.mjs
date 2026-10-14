@@ -18,6 +18,12 @@
  * See docs/archive/plan-content-editor.md for the design (D1: custom, not an
  * adapted external tool; scope; what this deliberately does not cover).
  *
+ * ⭐ THE TEXT LIVES IN api/lang/en/ (plan-localization.md D27): the content JSON
+ * keeps structure and ids. Every mob, quest and skill is HYDRATED as it is read
+ * (its English filled in, its renameable ids remembered) and planned back apart
+ * on save (content-lang.mjs), so the forms and validate.mjs see one object
+ * with its text in it, and a rename moves its keys in every locale (L23).
+ *
  * ⚑ ONE endpoint breaks the no-aurad rule, deliberately: POST
  * /api/validate/candidate runs the BUILT `backend/aurad -validate` over a temp
  * copy of api/ so a candidate is judged by the real loader rather than by a JS
@@ -41,9 +47,10 @@ import { prettyJson } from './format.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
 import { listJsonFiles } from './files.mjs';
 import { readSkillIcons } from './skill-icons.mjs';
-import { validateCandidate } from './aurad-validate.mjs';
+import { langStatus, validateCandidate } from './aurad-validate.mjs';
 import { saveSkill, saveSkillVisual } from './save-skill.mjs';
 import { readSkillFxBodies, readSkillFxPalette, SKILL_FX_BODIES_DIR } from './skill-fx.mjs';
+import { ensureName, hydrate, loadLang, mintIds, planSave, sharedPhrases, writeSave } from './content-lang.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -59,31 +66,29 @@ const SHARED_CONSTANTS_FILE = path.join(ROOT, 'api', 'shared-constants.json');
 const PUBLIC_DIR = path.join(HERE, 'public');
 const PORT = Number(process.env.PORT) || 4610;
 
-function readMobs() {
-  return listJsonFiles(MOBS_DIR).map((abs) => ({
+// Every reader hands back the HYDRATED object (D27): its English from
+// api/lang/en/, read fresh with the file.
+function readHydrated(dir, domain, lang = loadLang(ROOT)) {
+  return listJsonFiles(dir).map((abs) => ({
     file: path.relative(ROOT, abs).split(path.sep).join('/'),
     abs,
-    raw: JSON.parse(readFileSync(abs, 'utf8')),
+    raw: hydrate(domain, JSON.parse(readFileSync(abs, 'utf8')), lang),
   }));
 }
 
-function readQuests() {
-  return listJsonFiles(QUESTS_DIR).map((abs) => ({
-    file: path.relative(ROOT, abs).split(path.sep).join('/'),
-    abs,
-    raw: JSON.parse(readFileSync(abs, 'utf8')),
-  }));
+function readMobs(lang) {
+  return readHydrated(MOBS_DIR, 'mob', lang);
+}
+
+function readQuests(lang) {
+  return readHydrated(QUESTS_DIR, 'quest', lang);
 }
 
 // BOTH folders: api/skills/*.json (player skills, the Skills tab's scope) and
 // api/skills/mobs/*.json (mob-embedded, hidden from the tab but sharing its
 // id and name space - §B10 L6). The client filters by path.
-function readSkills() {
-  return listJsonFiles(SKILLS_DIR).map((abs) => ({
-    file: path.relative(ROOT, abs).split(path.sep).join('/'),
-    abs,
-    raw: JSON.parse(readFileSync(abs, 'utf8')),
-  }));
+function readSkills(lang) {
+  return readHydrated(SKILLS_DIR, 'skill', lang);
 }
 function readSkillDefs() {
   return readSkills().map((s) => s.raw);
@@ -205,8 +210,9 @@ const KIND_PATTERNS = {
 // `api/<kind-dir>/<slug>.json` shape so it can never walk outside its
 // directory.
 function saveOne({ kind, file, raw, isNew }) {
-  const mobs = readMobs();
-  const quests = readQuests();
+  const lang = loadLang(ROOT);
+  const mobs = readMobs(lang);
+  const quests = readQuests(lang);
   const skillNames = readSkillNames();
   const skillMaxLevels = readSkillMaxLevels();
   const factions = readFactions();
@@ -219,8 +225,17 @@ function saveOne({ kind, file, raw, isNew }) {
   const abs = path.join(ROOT, ...file.split('/'));
   if (path.dirname(abs) !== dir) throw new Error(`invalid ${kind} file path ${file}`);
 
+  // A new dialogue line, option or grant line gets its slug (or the shared
+  // phrase it matches) BEFORE validation, so the rules see the ids it will have.
+  const texted = kind === 'mob' || kind === 'quest';
+  if (texted) {
+    mintIds(kind, raw, lang);
+    ensureName(kind, raw, lang);
+  }
+
   const list = kind === 'mob' ? mobs : kind === 'quest' ? quests : kind === 'faction' ? factions : recipes;
   let target = list.find((e) => e.file === file);
+  const onDisk = target && texted ? JSON.parse(readFileSync(target.abs, 'utf8')) : undefined;
   if (target) {
     if (isNew) return { ok: false, errors: [`${file} already exists — reload and edit it directly instead of creating a duplicate.`] };
     target.raw = raw;
@@ -229,7 +244,7 @@ function saveOne({ kind, file, raw, isNew }) {
     list.push(target);
   }
 
-  const idx = buildIndex(mobs, quests, skillNames, { factionNames, entityTypes, skillMaxLevels, recipes });
+  const idx = buildIndex(mobs, quests, skillNames, { factionNames, entityTypes, skillMaxLevels, recipes, sharedPhrases: sharedPhrases(lang) });
   // A mob is validated at the mob level ALWAYS (tier/factors/body/skills/
   // unlocks), plus at the interaction level whenever it carries one — an NPC
   // is just a mob with an interaction block, never a separate schema.
@@ -240,12 +255,34 @@ function saveOne({ kind, file, raw, isNew }) {
   else errors = validateRecipe(raw, idx);
   if (errors.length > 0) return { ok: false, errors: errors.map((e) => e.message) };
 
-  writeJson(target.abs, raw);
+  if (!texted) {
+    writeJson(target.abs, raw);
+  } else {
+    // The JSON without its text, and the English (plus every locale a rename
+    // or a deletion touches) into api/lang.
+    const plan = planSave(kind, raw, onDisk, lang);
+    writeJson(target.abs, plan.raw);
+    writeSave(plan.files);
+    target.raw = hydrate(kind, plan.raw, loadLang(ROOT));
+  }
   // Re-run the full pass post-write for warnings (e.g. "offered by nobody"),
   // informational only — never blocks a save.
   const milestones = readMilestonesEntry();
-  const full = validateAll(mobs, quests, skillNames, { factionNames, entityTypes, factions, recipes, milestones, skillMaxLevels });
-  return { ok: true, warnings: full.warnings.map((w) => w.message) };
+  const full = validateAll(mobs, quests, skillNames, { factionNames, entityTypes, factions, recipes, milestones, skillMaxLevels, sharedPhrases: sharedPhrases(lang) });
+  // The saved object comes back re-hydrated: its new slugs and ids are what
+  // the next save compares against.
+  return { ok: true, warnings: full.warnings.map((w) => w.message), raw: target.raw, ...(texted ? owedAfterSave() : {}) };
+}
+
+// "German owed" (plan-localization.md D25): after a save, what every
+// translation now lacks, from the built aurad (never a JS port). A failure to
+// answer never fails the save that already happened; it is reported instead.
+function owedAfterSave() {
+  try {
+    return { owed: langStatus() };
+  } catch (err) {
+    return { owedError: String(err?.message || err) };
+  }
 }
 
 // Milestones is one shared file holding a JSON array, not one-file-per-entry
@@ -276,9 +313,10 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   try {
     if (req.method === 'GET' && url.pathname === '/api/data') {
-      const mobs = readMobs().map(({ file, raw }) => ({ file, raw }));
-      const quests = readQuests().map(({ file, raw }) => ({ file, raw }));
-      const skills = readSkills().map(({ file, raw }) => ({ file, raw }));
+      const lang = loadLang(ROOT);
+      const mobs = readMobs(lang).map(({ file, raw }) => ({ file, raw }));
+      const quests = readQuests(lang).map(({ file, raw }) => ({ file, raw }));
+      const skills = readSkills(lang).map(({ file, raw }) => ({ file, raw }));
       const skillNames = skills.map((s) => s.raw.name).filter(Boolean);
       const skillMaxLevels = readSkillMaxLevels();
       const factions = readFactions().map(({ file, raw }) => ({ file, raw }));
@@ -308,11 +346,14 @@ const server = createServer(async (req, res) => {
         mobs, quests, skills, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
         skillVocabulary, skillIcons, ticksPerSecond, skillFxBodies, skillFxPalette,
+        // The shared phrases a dialogue line may name instead of its own text (D28).
+        sharedPhrases: sharedPhrases(lang),
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
-      const mobs = readMobs().map(({ file, raw }) => ({ file, raw }));
-      const quests = readQuests().map(({ file, raw }) => ({ file, raw }));
+      const lang = loadLang(ROOT);
+      const mobs = readMobs(lang).map(({ file, raw }) => ({ file, raw }));
+      const quests = readQuests(lang).map(({ file, raw }) => ({ file, raw }));
       const skillNames = readSkillNames();
       const skillMaxLevels = readSkillMaxLevels();
       const factions = readFactions().map(({ file, raw }) => ({ file, raw }));
@@ -320,7 +361,7 @@ const server = createServer(async (req, res) => {
       const factionNames = factions.map((f) => f.raw.name);
       const entityTypes = readEntityTypes();
       const milestones = readMilestonesEntry();
-      const { errors, warnings } = validateAll(mobs, quests, skillNames, { factionNames, entityTypes, factions, recipes, milestones, skillMaxLevels });
+      const { errors, warnings } = validateAll(mobs, quests, skillNames, { factionNames, entityTypes, factions, recipes, milestones, skillMaxLevels, sharedPhrases: sharedPhrases(lang) });
       return sendJson(res, 200, {
         errors: errors.map((e) => ({ file: e.file, message: e.message })),
         warnings: warnings.map((w) => ({ file: w.file, message: w.message })),
@@ -369,9 +410,10 @@ const server = createServer(async (req, res) => {
     // the client must not render that as a clean pass or as a finding list.
     if (req.method === 'POST' && url.pathname === '/api/save/skill') {
       const body = await readBody(req);
-      return sendJson(res, 200, saveSkill({ file: body.file, raw: body.raw, isNew: !!body.isNew }, {
+      const saved = saveSkill({ file: body.file, raw: body.raw, isNew: !!body.isNew }, {
         root: ROOT, readMobs, readRecipes, readMilestonesEntry, validateCandidate,
-      }));
+      });
+      return sendJson(res, 200, saved.ok ? { ...saved, ...owedAfterSave() } : saved);
     }
     // The Mobs tab's look editor (plan-skill-vfx.md §12f.5 C3b): writes ONLY the
     // `visual` key of one api/skills/mobs/<slug>.json, through the same seam.
@@ -395,6 +437,10 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/skill-references.mjs') {
       return serveStatic(res, path.join(HERE, 'skill-references.mjs'));
+    }
+    // The content-text rules (keys, slugs, notes), shared with the extract tool.
+    if (req.method === 'GET' && url.pathname === '/content-text.mjs') {
+      return serveStatic(res, path.join(ROOT, 'tools', 'lang', 'content-text.mjs'));
     }
     // A body thumbnail (C3b). The stem must be IN the generated manifest,
     // verbatim, or it is a 404: no listing, no other extension, and no path

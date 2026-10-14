@@ -47,7 +47,7 @@ const pass = (m) => console.log('PASS: ' + m);
 const fail = (m) => { failed++; console.log('FAIL: ' + m); };
 
 try {
-  const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+  const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 900 } });
   const page = await context.newPage();
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });

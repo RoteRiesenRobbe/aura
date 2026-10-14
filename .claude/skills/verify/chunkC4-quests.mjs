@@ -83,7 +83,7 @@ const AT = {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -261,8 +261,9 @@ const spellbook = () => page.evaluate(() =>
   [...document.querySelectorAll('#spellbookList li')].map((li) => li.textContent.trim()));
 // "XP 150/300" → 150. Within-level progress, so a level-up resets it.
 const xpInLevel = () => page.evaluate(() => {
-  const m = /XP\s+(\d+)\s*\/\s*(\d+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
-  return m ? Number(m[1]) : -1;
+  // Numbers are locale-formatted (plan-localization.md D16): "XP 1,234 / 5,600".
+  const m = /XP\s+([\d.,\s  ]+?)\s*\/\s*([\d.,\s  ]+)/.exec(document.querySelector('#xpBar .barText')?.textContent ?? '');
+  return m ? Number(m[1].replace(/\D/g, '')) : -1;
 });
 
 // Copied from chunkP-presence: click the skill NAME (never the row centre — the
@@ -675,7 +676,7 @@ try {
       'to walk it at the surface.');
   } else {
     check('C3 eight real wolf kills advance the cull off the counters',
-      hunted.entries[1] === prose('wolves-on-the-road', 'carry_word'), `entries=${JSON.stringify(hunted.entries)}`);
+      hunted.entries[1] === prose('wolves-on-the-road', 'carry-word'), `entries=${JSON.stringify(hunted.entries)}`);
     check('C4 ...and the carry stage shows its authored tracker (the choice, in the journal)',
       (hunted.objectives ?? []).some((o) => /Report to the City Guard or the Shaman/.test(o)),
       `objectives=${JSON.stringify(hunted.objectives)}`);
@@ -700,7 +701,7 @@ try {
     const doneDetail = await detailOf(titleOf('wolves-on-the-road'));
     check('C7 taking the militia leg completes the quest on ITS terminal stage, with its own diary entry',
       inList(done?.completed ?? [], titleOf('wolves-on-the-road'))
-      && doneDetail?.entries.slice(-1)[0] === prose('wolves-on-the-road', 'told_militia'),
+      && doneDetail?.entries.slice(-1)[0] === prose('wolves-on-the-road', 'told-militia'),
       `entries=${JSON.stringify(doneDetail?.entries)}`);
     check('C8 ...and pays the militia leg\'s own reward — Taunt, which the shaman leg does not teach',
       !bookBefore.some((r) => /taunt/i.test(r)) && bookAfter.some((r) => /taunt/i.test(r)),

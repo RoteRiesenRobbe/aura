@@ -28,7 +28,7 @@ const url = process.argv[2] || 'http://localhost:2001/?token=plz&wsUrl=ws://loca
   + encodeURIComponent(GRANTS.map((g) => `SKILL ${g}`).join(','));
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } })).newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));

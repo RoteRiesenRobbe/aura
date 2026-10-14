@@ -198,6 +198,7 @@ func TestZoneSet_TheSurfaceAloneRefusesBecauseItsDoorsLeadNowhere(t *testing.T) 
 	assert.Contains(t, err.Error(), `zone "world"`)
 	assert.Contains(t, err.Error(), "no loaded zone authors")
 }
+
 // ⭐ THE DIRECTORY IS THE ZONE LIST. Pinned against the REAL api/zones/ rather
 // than a fixture, because the property that matters is "a file dropped in there
 // is live" — a fixture would prove the function works while the shipped world

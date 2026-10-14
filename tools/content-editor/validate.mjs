@@ -11,11 +11,14 @@
 // wire-index edge cases) are deliberately left to Go. See
 // docs/archive/plan-content-editor.md §4/§6.
 
+import { mobNameForms, SLUG_PATTERN } from './content-text.mjs';
+
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const CONDITIONS_MODES = ['all', 'any']; // mobs.ConditionModeAll/Any, hand-synced (plan-quest-dialogue.md L2)
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
 const QUEST_KINDS = ['offer_quest', 'advance_quest'];
+const QUEST_ID_PATTERN = /^[a-z0-9-]+$/; // quests.idPattern: a quest or stage id is a slug
 // The closed destination vocabulary of a travel_to grant (interaction.go
 // travelModes). `anchor` (underworld U3b, 2026-09-08) delivers to the zone
 // anchor named on the PLACEMENT (world.Spawn.Anchor); the grant's own `anchor`
@@ -70,6 +73,8 @@ export const MAX_FACTIONS = 62;
  * feed recipe validation. Omit what doesn't apply at a given call site. */
 export function buildIndex(mobs, quests, skillNames, extra = {}) {
   const mobNames = new Set(mobs.map((m) => m.raw.name));
+  // Each mob's English name as authored (D24), where the editor hydrated it.
+  const mobDisplayNames = new Map(mobs.filter((m) => m.raw.displayName !== undefined).map((m) => [m.raw.name, m.raw.displayName]));
   const questsById = new Map(quests.map((q) => [q.raw.id, q.raw]));
   const skills = new Set(skillNames);
   const factionNames = new Set(extra.factionNames || []);
@@ -103,8 +108,10 @@ export function buildIndex(mobs, quests, skillNames, extra = {}) {
     }
   }
   return {
-    mobNames, questsById, skills, dialogueEdgeFrom, offeredQuests, factionNames, entityTypes,
+    mobNames, mobDisplayNames, questsById, skills, dialogueEdgeFrom, offeredQuests, factionNames, entityTypes,
     skillMaxLevels, recipeIdOwners,
+    // The shared phrases a dialogue item may name (D28); unknown when not given.
+    sharedPhrases: extra.sharedPhrases,
   };
 }
 
@@ -127,6 +134,7 @@ export function validateQuest(quest, idx) {
 
   if (!quest.id) { err('quest without an id'); return errors; }
   const q = `quest "${quest.id}"`;
+  if (!QUEST_ID_PATTERN.test(quest.id)) err(`${q}: id must be a slug of a-z, 0-9 and '-' (e.g. "wolves-on-the-road")`);
   if (!quest.title) err(`${q}: missing title`);
   if (!Number.isInteger(quest.level) || quest.level < 1) err(`${q}: missing level (the target player level, 1 or more)`);
   if (!quest.stages || quest.stages.length === 0) { err(`${q}: no stages`); return errors; }
@@ -134,6 +142,7 @@ export function validateQuest(quest, idx) {
   const seen = new Set();
   for (const s of quest.stages) {
     if (!s.id) { err(`${q}: stage without an id`); continue; }
+    if (!QUEST_ID_PATTERN.test(s.id)) err(`${q}: stage id "${s.id}" must be a slug of a-z, 0-9 and '-' (e.g. "bring-it-back")`);
     if (seen.has(s.id)) err(`${q}: duplicate stage id "${s.id}"`);
     seen.add(s.id);
     if (!s.journal) err(`${q} stage "${s.id}": missing journal prose`);
@@ -154,7 +163,8 @@ export function validateQuest(quest, idx) {
         if (!o.region) err(`${q} stage "${s.id}": reach names a region`);
         if (o.count) err(`${q} stage "${s.id}": a reach objective takes no count`);
         if (o.chance) err(`${q} stage "${s.id}": a chance rides a kill/harvest objective, not reach`);
-        if (o.tracker) err(`${q} stage "${s.id}": an objective tracker rewords a talk_to line only`);
+        if (o.tracker && s.tracker) err(`${q} stage "${s.id}": an objective tracker under a stage tracker is never shown`);
+        if (!o.tracker && !s.tracker) err(`${q} stage "${s.id}": a reach objective needs its own tracker, e.g. "Go to …" (plan-localization.md Q2)`);
         if (objectives.length !== 1) err(`${q} stage "${s.id}": a reach objective must be its stage's only objective`);
         continue;
       }
@@ -166,7 +176,11 @@ export function validateQuest(quest, idx) {
       } else if (o.npc) {
         err(`${q} stage "${s.id}": ${o.kind} names a species, not an npc`);
       }
-      if (o.tracker && o.kind !== 'talk_to') err(`${q} stage "${s.id}": an objective tracker rewords a talk_to line only`);
+      // Q2: talk_to needs an article or a preposition no template can build
+      // from a name, so it authors its own line unless the stage's replaces it.
+      if (o.kind === 'talk_to' && !o.tracker && !s.tracker) {
+        err(`${q} stage "${s.id}": a talk_to objective (${name || '?'}) needs its own tracker, e.g. "Talk to the …" (plan-localization.md Q2)`);
+      }
       if (o.tracker && s.tracker) err(`${q} stage "${s.id}": an objective tracker under a stage tracker is never shown`);
       // A chance objective (a find rolled per credit, the Nth guaranteed);
       // mirrors quests.go validateChance.
@@ -185,6 +199,10 @@ export function validateQuest(quest, idx) {
       }
       if (!name) err(`${q} stage "${s.id}": objective "${o.kind}" without a target`);
       else if (!idx.mobNames.has(name)) err(`${q} stage "${s.id}": objective "${o.kind}" names unknown target "${name}"`);
+      // D24 (Q2 in substance): a counted mob's name authors its plural forms.
+      else if ((o.kind === 'kill' || o.kind === 'harvest') && idx.mobDisplayNames?.has(name) && !mobNameForms(idx.mobDisplayNames.get(name))) {
+        err(`${q} stage "${s.id}": ${o.kind} objective counts ${name}, whose name has no plural (give it one in the mob's Plural field, D24)`);
+      }
     }
     if (s.tracker && (s.tracker.includes('{n}') || s.tracker.includes('{m}'))) {
       if (!objectives.some((o) => (o.kind === 'kill' || o.kind === 'harvest') && !o.chance)) {
@@ -210,6 +228,48 @@ export function validateQuest(quest, idx) {
   return errors;
 }
 
+/**
+ * The dialogue reference rules (plan-localization.md D27, D28): every line,
+ * option text and grant line names its own slug ({"id"}) or a shared phrase
+ * ({"stock"}), never both; a slug is lowercase ASCII words joined by - and
+ * unique within the NPC; a shared phrase exists (idx.sharedPhrases, when
+ * known). The Go boot refuses the same (lang.EnglishFS, the lang stage).
+ */
+export function dialogueIdProblems(mob, idx = {}) {
+  const out = [];
+  const inter = mob.interaction;
+  if (!inter) return out;
+  const seen = new Map();
+  const check = (item, where, hasText) => {
+    if (!item || typeof item !== 'object') {
+      if (hasText) out.push(`${where} has no id`);
+      return;
+    }
+    if (item.id && item.stock) { out.push(`${where} names both an id and a shared phrase`); return; }
+    if (item.stock) {
+      if (idx.sharedPhrases && !(item.stock in idx.sharedPhrases)) out.push(`${where} names the unknown shared phrase "${item.stock}"`);
+      return;
+    }
+    if (!item.id) { if (hasText) out.push(`${where} has no id`); return; }
+    if (!SLUG_PATTERN.test(item.id)) out.push(`${where}: id "${item.id}" must be lowercase ASCII words joined by -`);
+    if (seen.has(item.id)) out.push(`${where} reuses the id "${item.id}" (also ${seen.get(item.id)}); a slug is unique within the NPC`);
+    seen.set(item.id, where);
+  };
+  (inter.ambient || []).forEach((l, i) => check(l, `ambient line ${i}`, true));
+  for (const node of inter.nodes || []) {
+    (node.lines || []).forEach((l, i) => check(l, `node "${node.id}" line ${i}`, true));
+    for (const [oi, opt] of (node.options || []).entries()) {
+      if (opt.text || opt.id || opt.stock) check(opt, `node "${node.id}" option ${oi}`, !!opt.text);
+      const grants = opt.grants || [];
+      for (const [gi, g] of grants.entries()) {
+        if (gi > 0 && QUEST_KINDS.includes(grants[0]?.kind)) continue;
+        check(g, `node "${node.id}" option ${oi} grant ${gi}`, true);
+      }
+    }
+  }
+  return out;
+}
+
 /** Ports mapToInteraction + the relevant half of CrossValidate. */
 export function validateInteraction(mob, idx) {
   const errors = [];
@@ -222,6 +282,8 @@ export function validateInteraction(mob, idx) {
   if (inter.range != null && inter.range < 0) err(`${who}: interaction.range must not be negative`);
   const nodes = inter.nodes || [];
   if (nodes.length === 0) { err(`${who}: interaction.nodes must not be empty`); return errors; }
+
+  for (const problem of dialogueIdProblems(mob, idx)) err(`${who}: ${problem}`);
 
   const ids = new Set();
   for (const node of nodes) {
@@ -311,7 +373,9 @@ export function validateInteraction(mob, idx) {
           err(`${gWho}: kind "${g.kind}" must be one of ${GRANT_KINDS.join('/')}`);
           continue;
         }
-        if (!g.line?.trim()) err(`${gWho}: line must not be empty`);
+        const follower = gi > 0 && QUEST_KINDS.includes(grants[0]?.kind);
+        if (follower && g.line) err(`${gWho}: a quest bundle's follower grant is never spoken; drop its line`);
+        else if (!follower && !g.line?.trim()) err(`${gWho}: line must not be empty`);
         if (g.kind !== 'teach_skill' && g.skill) err(`${gWho}: a ${g.kind} grant hands over no skill — drop "skill"`);
         if (g.kind !== 'teach_skill' && g.requiredLevel) err(`${gWho}: a ${g.kind} grant takes no requiredLevel`);
         if (g.kind !== 'travel_to' && g.mode) err(`${gWho}: a ${g.kind} grant goes nowhere — drop "mode"`);
@@ -439,6 +503,14 @@ export function validateMob(mob, idx) {
   const who = `mob "${mob.name}"`;
   const factors = mob.factors || {};
   const body = mob.body || {};
+
+  // The English name (D24): plain text, or exactly the one/other plural on count.
+  if (mob.displayName !== undefined) {
+    if (!String(mob.displayName).trim()) err(`${who}: needs an English name`);
+    else if (/[{}<>]/.test(mob.displayName) && !mobNameForms(mob.displayName)) {
+      err(`${who}: the name must be plain text or exactly {count, plural, one {…} other {…}} (D24)`);
+    }
+  }
 
   const role = mob.role || 'creature';
   if (mob.role && !ROLES.includes(mob.role)) {

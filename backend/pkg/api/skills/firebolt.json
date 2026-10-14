@@ -4,7 +4,6 @@
   "name": "Firebolt",
   "icon": "carl-olsen/flame",
   "packIcon": "fireball",
-  "displayName": "Firebolt",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {
