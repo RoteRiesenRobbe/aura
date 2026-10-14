@@ -65,11 +65,13 @@ const htmlState = (page) => page.evaluate(() => ({
   await ctx.close();
 }
 
-// Leg 2b: German browser WITHOUT a stored choice stays en until C4's exit (Q3)
+// Leg 2b: German browser WITHOUT a stored choice resolves de: detection is on
+// since 2026-10-13 (PO, Q3; Locale.ts DETECTION_ENABLED). Before that it
+// asserted the opposite, "stays en until C4's exit".
 {
   const { ctx, page } = await open('de-DE');
   const s = await htmlState(page);
-  s.lang === 'en' ? pass('no detection before C4 exit (Q3)') : fail('detection is on', JSON.stringify(s));
+  s.lang === 'de' ? pass('detection negotiates de-DE to de (Q3)') : fail('detection is off', JSON.stringify(s));
   await ctx.close();
 }
 
