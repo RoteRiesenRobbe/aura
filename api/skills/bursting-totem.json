@@ -6,7 +6,6 @@
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 450,
-  "description": "When its time runs out or it is destroyed, the totem bursts, burning every enemy around it. Its damage grows with your level.",
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#f0a050" }

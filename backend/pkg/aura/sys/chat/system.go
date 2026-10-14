@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 
 	"github.com/EngoEngine/ecs"
@@ -28,6 +29,21 @@ func (p *ChatSystem) Broadcast(text string) {
 	}
 	builder := flatbuffers.NewBuilder(32)
 	entityMessage := codec.EntityMessageFlatbufMarshal(builder, SystemEntityID, text, AuraApi.EntityMessageKindChat)
+	builder.Finish(entityMessage)
+	bytes := builder.FinishedBytes()
+	for _, player := range p.players {
+		player.Client().SendMessage(bytes)
+	}
+}
+
+// BroadcastMessage is Broadcast for a keyed message (plan-localization.md C2):
+// one payload for everyone, worded by each client in its own language (D1).
+func (p *ChatSystem) BroadcastMessage(m lang.Message) {
+	if len(p.players) == 0 {
+		return
+	}
+	builder := flatbuffers.NewBuilder(64)
+	entityMessage := codec.KeyedEntityMessageFlatbufMarshal(builder, SystemEntityID, m, AuraApi.EntityMessageKindChat)
 	builder.Finish(entityMessage)
 	bytes := builder.FinishedBytes()
 	for _, player := range p.players {

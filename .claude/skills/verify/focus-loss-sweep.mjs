@@ -54,7 +54,7 @@ const STOPPED_MAX = 0.3; // u over the whole still window
 // software GL sidesteps it. Position reads freeze with the render loop (getX
 // rides the interpolated sprite), so a lost context zeroes every movement leg.
 const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-gpu'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });

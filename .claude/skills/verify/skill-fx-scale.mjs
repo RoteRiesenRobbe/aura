@@ -337,7 +337,7 @@ function record(leg, label, out, extra = {}, windowMs = WINDOW_MS, into = rows) 
 
 // --- the desktop page -------------------------------------------------------
 
-const desktopContext = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+const desktopContext = await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 900 } });
 const desktopPage = await preparePage(desktopContext, 'fxscale');
 console.log('joined (desktop 1600x900)');
 
@@ -485,7 +485,7 @@ console.log('\n== LEG 6: phone shape, 390x844 @ DPR 3 ==');
 let phonePage = null;
 let phoneContext = null;
 if (!rampOnly && honest && TEN !== null) {
-  phoneContext = await browser.newContext({
+  phoneContext = await browser.newContext({ locale: 'en-US',
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 3,
     hasTouch: true,

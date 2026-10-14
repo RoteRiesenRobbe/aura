@@ -1,17 +1,14 @@
 {
   "_comment": "Flora's second quest, offered once Ready for Harvest is complete. Henrik teaches Wild on the talk. The sheet's deer are the Stag species. Reward on Flora's turn-in, the L9 half-level rule at L1. Count and reward [PLACEHOLDER].",
   "id": "meat-for-dinner",
-  "title": "Meat for Dinner",
   "level": 1,
   "stages": [
     {
       "id": "hunt",
-      "journal": "Kill 5 deer for Flora's pantry. You'll find them south of the farm.",
       "objectives": [
         {
           "kind": "talk_to",
-          "npc": "Henrik",
-          "tracker": "Talk to Henrik"
+          "npc": "Henrik"
         },
         {
           "kind": "kill",
@@ -22,13 +19,10 @@
       "next": "home"
     },
     {
-      "id": "home",
-      "journal": "Five deer. Flora's pantry will be full again.",
-      "tracker": "Return to Flora"
+      "id": "home"
     },
     {
-      "id": "done",
-      "journal": "Meat's back on the menu."
+      "id": "done"
     }
   ]
 }

@@ -9,6 +9,7 @@ import {
 } from '/skill-presentation.mjs';
 import { skillFxColor, skillVisualHints, legalKinds, legalMoments, paletteTagOf, kindReadsTint } from '/skill-visual-hints.mjs';
 import { collectSkillReferences } from '/skill-references.mjs';
+import { keys as textKeys, mobNameForms, mobNameText, slugify as lineSlug, SLUG_PATTERN } from '/content-text.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
 function el(tag, props = {}, children = []) {
@@ -108,6 +109,7 @@ function idx() {
     entityTypes: state.entityTypes,
     skillMaxLevels: state.skillMaxLevels,
     recipes: state.recipes,
+    sharedPhrases: state.sharedPhrases,
   });
 }
 function factionDisplayName(name) {
@@ -204,7 +206,8 @@ function createNewNpc() {
     factors: { baseMaxHealth: 200, xpFactor: 0, speed: 0 },
     body: { radius: 0.35, collisionLayer: 97, collisionMask: 16, aggroRadius: 1.0 },
     skills: [],
-    interaction: { range: 2, ambient: [], nodes: [{ id: 'root', lines: ["TODO: write this NPC's opening line."], options: [] }] },
+    displayName: display,
+    interaction: { range: 2, ambient: [], nodes: [{ id: 'root', lines: [{ text: "TODO: write this NPC's opening line." }], options: [] }] },
   };
   const entry = { file, raw, isNew: true };
   state.mobs.push(entry);
@@ -244,6 +247,7 @@ function createNewMob() {
     body: { radius: 0.3, aggroRadius: 3 },
     skills: [],
     unlocks: [],
+    displayName: display,
   };
   const entry = { file, raw, isNew: true };
   state.mobs.push(entry);
@@ -351,7 +355,7 @@ function createNewSkill() {
     return;
   }
   const nextId = state.skills.reduce((max, s) => Math.max(max, s.raw.id || 0), 0) + 1;
-  const raw = { id: nextId, name, maxLevel: 5, effects: [] };
+  const raw = { id: nextId, name, displayName: display, maxLevel: 5, effects: [] };
   const entry = { file, raw, isNew: true };
   state.skills.push(entry);
   state.selected = { kind: 'skill', file };
@@ -377,6 +381,7 @@ async function loadAll() {
   if (data.skillFxPalette) state.skillFxPalette = data.skillFxPalette;
   state.ticksPerSecond = data.ticksPerSecond;
   state.entityTypes = data.entityTypes;
+  state.sharedPhrases = data.sharedPhrases || {};
   for (const m of state.mobs) markPristine(m.file);
   for (const s of state.skills) markPristine(s.file);
   for (const q of state.quests) markPristine(q.file);
@@ -736,7 +741,14 @@ function statSection(title, collapsedSet = state.mobSectionCollapsed) {
 
 function identitySection(mob, onChange) {
   const col = statSection('Identity');
+  // The English name (plan-localization.md D24, D25): singular, and the plural
+  // a kill or harvest quest counts with. Written to api/lang/en/mobs.arb as
+  // plain text, or as {count, plural, one {…} other {…}} when a plural is set.
+  const forms = mobNameForms(mob.displayName || '') || { one: mob.displayName || '', other: '' };
+  const setName = () => { mob.displayName = mobNameText(forms.one, forms.other); onChange(); };
   col.body.appendChild(el('div', { class: 'stat-grid' }, [
+    field('Name (English)', keyed(textInput(forms.one, (v) => { forms.one = v; setName(); }), textKeys.mobName(mob.name || ''))),
+    field('Plural (needed when a quest counts it)', textInput(forms.other, (v) => { forms.other = v; setName(); })),
     field('Faction (blank = hostile)', select(['', ...state.factions.map((f) => f.raw.name)], mob.faction || '', (v) => { mob.faction = v; onChange(); }, (v) => v ? factionDisplayName(v) : '— hostile —')),
     field('Tier', select(TIERS, mob.tier || 'normal', (v) => { mob.tier = v; onChange(); })),
     field('Role', select(ROLES, mob.role || 'creature', (v) => { mob.role = v; onChange(); })),
@@ -933,7 +945,7 @@ function dialogueTreeSection(mob, onChange) {
     col.body.appendChild(el('button', {
       class: 'primary',
       onclick: () => {
-        mob.interaction = { range: 2, ambient: [], nodes: [{ id: 'root', lines: ["TODO: write this NPC's opening line."], options: [] }] };
+        mob.interaction = { range: 2, ambient: [], nodes: [{ id: 'root', lines: [{ text: "TODO: write this NPC's opening line." }], options: [] }] };
         renderEditor();
       },
     }, '+ Add dialogue tree'));
@@ -943,9 +955,10 @@ function dialogueTreeSection(mob, onChange) {
   const inter = mob.interaction;
   col.body.appendChild(el('div', { class: 'top-fields' }, [
     field('Range', numberInput(inter.range ?? 0, (v) => { inter.range = v; onChange(); })),
-    field('Ambient (one hail per line)', textArea((inter.ambient || []).join('\n'), (v) => {
-      inter.ambient = splitLines(v); onChange();
-    }, 'lines-textarea')),
+  ]));
+  col.body.appendChild(el('div', { class: 'subsection' }, [
+    el('label', { text: 'Ambient (hails called out to a player walking past)' }),
+    linesEditor(mob, inter, 'ambient', onChange),
   ]));
 
   const graphWrap = el('div', { class: 'graph-wrap' });
@@ -1000,7 +1013,7 @@ function dialogueTreeSection(mob, onChange) {
 
     card.appendChild(el('div', { class: 'subsection' }, [
       el('label', { text: 'Lines' }),
-      textArea((node.lines || []).join('\n'), (v) => { node.lines = splitLines(v); onChange(); }, 'lines-textarea'),
+      linesEditor(mob, node, 'lines', onChange),
     ]));
 
     if (node.rows === 'ascension_catalog') {
@@ -1032,7 +1045,7 @@ function dialogueTreeSection(mob, onChange) {
 function optionCard(mob, inter, node, opt, ni, oi, nodeIds, onChange, onStructuralChange) {
   const card = el('div', { class: 'option-card' });
   const row1 = el('div', { class: 'row1', 'data-anchor-out': opt.next || null }, [
-    el('input', { type: 'text', class: 'col-flex', placeholder: 'row text', value: opt.text || '', oninput: (e) => { opt.text = e.target.value; onChange(); } }),
+    ...dialogueTextControls(mob, opt, 'text', 'row text (blank: a teach row shows its skill)', onChange, onStructuralChange),
     select(['', ...nodeIds], opt.next || '', (v) => { opt.next = v; row1.dataset.anchorOut = v || ''; onChange(); }, (v) => v || '— next: none —', 'col-fixed-lg'),
     el('label', {
       class: 'check',
@@ -1062,7 +1075,14 @@ function grantRow(mob, opt, g, gi, onChange, onStructuralChange) {
     for (const k of ['skill', 'requiredLevel', 'quest', 'fromStage', 'toStage', 'xp', 'mode', 'anchor']) delete g[k];
     g.kind = v; onStructuralChange();
   }, null, 'col-fixed-md'));
-  wrap.appendChild(el('input', { type: 'text', class: 'col-flex', placeholder: 'line spoken', value: g.line || '', oninput: (e) => { g.line = e.target.value; onChange(); } }));
+  // Only a quest bundle's lead grant is spoken; the rest ride the row silently
+  // and carry no line (plan-localization.md C5a).
+  if (gi > 0 && ['offer_quest', 'advance_quest'].includes(opt.grants[0]?.kind)) {
+    delete g.line; delete g.id; delete g.stock;
+    wrap.appendChild(el('span', { class: 'col-flex grant-hint', text: 'rides the row: never spoken, no line' }));
+  } else {
+    for (const c of dialogueTextControls(mob, g, 'line', 'line spoken', onChange, onStructuralChange)) wrap.appendChild(c);
+  }
 
   if (g.kind === 'teach_skill') {
     wrap.appendChild(select(['', ...state.skillNames], g.skill || '', (v) => { g.skill = v; onChange(); }, (v) => v || '— skill —'));
@@ -1187,10 +1207,13 @@ async function saveMob(entry) {
     return;
   }
   entry.isNew = false;
-  editorRoot.querySelector('.new-badge')?.remove();
+  if (body.raw) { entry.raw = body.raw; noteSharedPhrases(entry.raw); }
   markPristine(entry.file);
-  fb.className = 'save-feedback ok';
-  fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderEditor();
+  const fbAfter = $('#save-feedback');
+  fbAfter.className = 'save-feedback ok';
+  fbAfter.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderOwed(body);
   renderSidebar();
   runGlobalValidation();
 }
@@ -1219,7 +1242,7 @@ function renderQuestEditor(entry) {
   editorRoot.appendChild(header);
 
   const topFields = el('div', { class: 'top-fields' }, [
-    field('Title', textInput(quest.title || '', (v) => { quest.title = v; refresh(); })),
+    field('Title', keyed(textInput(quest.title || '', (v) => { quest.title = v; refresh(); }), textKeys.questTitle(quest.id || ''))),
     field('Level', numberInput(quest.level ?? '', (v) => { quest.level = v; refresh(); }, 'target player level')),
     field('Repeatable', checkboxInput(!!quest.repeatable, (v) => { quest.repeatable = v; refresh(); })),
   ]);
@@ -1273,8 +1296,8 @@ function renderQuestEditor(entry) {
     ]);
     card.appendChild(head);
 
-    card.appendChild(field('Journal', textArea(s.journal || '', (v) => { s.journal = v; refresh(); })));
-    card.appendChild(field('Tracker (supports {n}/{m})', textInput(s.tracker || '', (v) => { s.tracker = v; refresh(); })));
+    card.appendChild(field('Journal', keyed(textArea(s.journal || '', (v) => { s.journal = v; refresh(); }), textKeys.questJournal(quest.id || '', s.id || ''))));
+    card.appendChild(field('Tracker (supports {n}/{m})', keyed(textInput(s.tracker || '', (v) => { s.tracker = v; refresh(); }), textKeys.questStageTracker(quest.id || '', s.id || ''))));
 
     const objCol = el('div', { class: 'options-col' });
     const objectives = s.objectives || [];
@@ -1418,10 +1441,15 @@ async function saveQuest(entry) {
     return;
   }
   entry.isNew = false;
-  editorRoot.querySelector('.new-badge')?.remove();
+  // The saved quest comes back re-hydrated: a renamed stage's new id is what
+  // the next save compares against (L23).
+  if (body.raw) entry.raw = body.raw;
   markPristine(entry.file);
-  fb.className = 'save-feedback ok';
-  fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderEditor();
+  const fbAfter = $('#save-feedback');
+  fbAfter.className = 'save-feedback ok';
+  fbAfter.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderOwed(body);
   renderSidebar();
   runGlobalValidation();
 }
@@ -2580,12 +2608,15 @@ async function saveSkill(entry) {
   }
   const wasNew = !!entry.isNew;
   entry.isNew = false;
-  editorRoot.querySelector('.new-badge')?.remove();
+  if (body.raw) entry.raw = body.raw;
   markPristine(entry.file);
+  rerenderSkillEditor();
   renderChecklist(body.checklist || []);
-  fb.className = 'save-feedback ok';
+  renderOwed(body);
+  const fbAfter = $('#save-feedback');
+  fbAfter.className = 'save-feedback ok';
   const warnings = body.warnings && body.warnings.length ? body.warnings.join(' · ') + ' · ' : '';
-  fb.textContent = `saved${wasNew ? ' (new file written)' : ''}: ${warnings}see the checklist below`;
+  fbAfter.textContent = `saved${wasNew ? ' (new file written)' : ''}: ${warnings}see the checklist below`;
   renderSidebar();
   runGlobalValidation();
 }
@@ -2923,6 +2954,8 @@ function levelPreview(title, rows, maxLevel) {
 
 /* ---- small field builders ------------------------------------------------ */
 function field(label, control) { return el('div', { class: 'field' }, [el('label', { text: label }), control]); }
+// A text field shows its key, greyed, while it has no English (plan-localization.md D25).
+function keyed(control, key) { control.placeholder = key; control.title = `api/lang/en: ${key}`; return control; }
 function textInput(value, onChange) { return el('input', { type: 'text', value, oninput: (e) => onChange(e.target.value) }); }
 function textArea(value, onChange, cls) {
   const ta = document.createElement('textarea');
@@ -2973,6 +3006,172 @@ function select(options, value, onChange, labelFn, cls) {
 // claiming an alignment that isn't there.
 function colHeaders(cells) {
   return el('div', { class: 'col-headers' }, cells.map((c) => el('span', { class: c.cls || '', text: c.label })));
+}
+// plan-localization.md D20 / L19: a dialogue line is {id, text}, and its id is
+// what its German translation hangs on, so a save must never drop or re-mint
+// one. The textarea shows the texts; on edit, a line keeps the id of the old
+// line with the same text, else the id at its position (an edit in place),
+// and only a genuinely new line gets a fresh id.
+/* ---- "German owed" (plan-localization.md D25) ------------------------------
+ * After a save: the keys every translation now lacks or translated from an
+ * older English (D20), and any text over its length limit (D30), as the built
+ * aurad computes them (aurad -lang-status). Read-only: German is written in
+ * api/lang/de/ (D23).
+ */
+function renderOwed(body) {
+  editorRoot.querySelector('.owed-box')?.remove();
+  const box = el('div', { class: 'owed-box' });
+  if (body.owedError) {
+    box.appendChild(el('div', { class: 'label', text: 'Translations owed: could not ask aurad' }));
+    box.appendChild(el('div', { class: 'hint', text: body.owedError }));
+  } else if (body.owed) {
+    const rows = [];
+    for (const [locale, st] of Object.entries(body.owed)) {
+      for (const key of st.missing || []) rows.push(`${locale}: missing ${key}`);
+      for (const line of st.outdated || []) rows.push(`${locale}: outdated ${line}`);
+      for (const line of st.tooLong || []) rows.push(`${locale}: too long ${line}`);
+    }
+    box.appendChild(el('div', { class: 'label', text: rows.length ? `German owed (${rows.length})` : 'German owed: nothing' }));
+    if (rows.length) box.appendChild(el('ul', {}, rows.map((r) => el('li', { text: r }))));
+  } else {
+    return;
+  }
+  const header = editorRoot.querySelector('.editor-header');
+  if (header) header.after(box); else editorRoot.prepend(box);
+}
+
+/* ---- dialogue text (plan-localization.md D27, D28) -----------------------
+ * Every line, row text and grant line is its OWN text with a slug (minted at
+ * the first save, frozen after: a reword keeps it, "re-slug" renames it and
+ * the server moves its key in every locale), or a SHARED phrase whose English
+ * is one for every line that names it.
+ */
+
+// Every slug the NPC uses, so a new or edited one stays unique within it.
+function npcSlugsOf(mob, except) {
+  const taken = new Set();
+  const visit = (item) => { if (item && typeof item === 'object' && item.id && item !== except) taken.add(item.id); };
+  const inter = mob.interaction || {};
+  (inter.ambient || []).forEach(visit);
+  for (const node of inter.nodes || []) {
+    (node.lines || []).forEach(visit);
+    for (const opt of node.options || []) { visit(opt); (opt.grants || []).forEach(visit); }
+  }
+  return taken;
+}
+
+// How many items across every mob name a shared phrase.
+function sharedPhraseUses(name) {
+  let n = 0;
+  const visit = (item) => { if (item && item.stock === name) n++; };
+  for (const { raw } of state.mobs) {
+    const inter = raw.interaction || {};
+    (inter.ambient || []).forEach(visit);
+    for (const node of inter.nodes || []) {
+      (node.lines || []).forEach(visit);
+      for (const opt of node.options || []) { visit(opt); (opt.grants || []).forEach(visit); }
+    }
+  }
+  return n;
+}
+
+// A saved shared phrase's text reaches every other open mob that names it.
+function noteSharedPhrases(raw) {
+  const texts = {};
+  const visit = (item) => { if (item && item.stock && item.text) texts[item.stock] = item.text; };
+  const inter = raw.interaction || {};
+  (inter.ambient || []).forEach(visit);
+  for (const node of inter.nodes || []) {
+    (node.lines || []).forEach(visit);
+    for (const opt of node.options || []) { visit(opt); (opt.grants || []).forEach(visit); }
+  }
+  for (const [name, text] of Object.entries(texts)) {
+    if (state.sharedPhrases[name] === text) continue;
+    state.sharedPhrases[name] = text;
+    for (const m of state.mobs) {
+      const clean = !isDirty(m.file);
+      const set = (item, field) => { if (item && item.stock === name) item[field] = text; };
+      const mi = m.raw.interaction || {};
+      (mi.ambient || []).forEach((l) => set(l, 'text'));
+      for (const node of mi.nodes || []) {
+        (node.lines || []).forEach((l) => set(l, 'text'));
+        for (const opt of node.options || []) { set(opt, 'text'); (opt.grants || []).forEach((g) => set(g, 'line')); }
+      }
+      if (clean) markPristine(m.file);
+    }
+  }
+}
+
+// The controls of one dialogue string: own text or a shared phrase, the text,
+// and its slug.
+function dialogueTextControls(mob, item, field, placeholder, onChange, onStructuralChange) {
+  const phrases = Object.keys(state.sharedPhrases || {}).sort();
+  const pick = select(['', ...phrases], item.stock || '', (v) => {
+    if (v) { item.stock = v; delete item.id; item[field] = state.sharedPhrases[v]; }
+    else { delete item.stock; }
+    onStructuralChange();
+  }, (v) => (v ? `shared: ${v}` : 'own text'), 'col-fixed-md');
+  pick.title = 'A shared phrase (D28) is one English for every line that names it: editing its text here edits it everywhere.';
+  const input = el('input', {
+    type: 'text', class: 'col-flex', placeholder, value: item[field] || '',
+    oninput: (e) => {
+      item[field] = e.target.value;
+      if (item.stock) note.textContent = `edits the shared phrase for all ${sharedPhraseUses(item.stock)} line(s) that use it`;
+      onChange();
+    },
+  });
+  const note = el('span', { class: 'slug' });
+  if (item.stock) {
+    note.textContent = `shared by ${sharedPhraseUses(item.stock)}`;
+    return [pick, input, note];
+  }
+  if (!item.id) {
+    note.textContent = 'id: at save';
+    note.title = 'A slug is made from the first words when this line is first saved (D27).';
+    return [pick, input, note];
+  }
+  note.textContent = `id: ${item.id}`;
+  note.title = 'Click to rename the slug. A rename moves its text in every language.';
+  note.classList.add('editable');
+  note.onclick = () => {
+    const next = prompt('Slug (lowercase words joined by -):', item.id);
+    if (!next || next === item.id) return;
+    if (!SLUG_PATTERN.test(next)) { alert(`"${next}" is not a slug: lowercase ASCII words joined by -.`); return; }
+    if (npcSlugsOf(mob, item).has(next)) { alert(`"${next}" is already used by this NPC.`); return; }
+    item.id = next;
+    onStructuralChange();
+  };
+  const reslug = el('button', {
+    class: 'reslug', title: 'Make a fresh slug from the current text (after a big reword). Moves its text in every language.',
+    onclick: () => {
+      if (!item[field]) return;
+      const next = lineSlug(item[field], npcSlugsOf(mob, item));
+      if (next !== item.id) { item.id = next; onStructuralChange(); }
+    },
+  }, 're-slug');
+  return [pick, input, note, reslug];
+}
+
+// One row per line, each its own text or a shared phrase.
+function linesEditor(mob, holder, field, onChange) {
+  const wrap = el('div', { class: 'lines-editor' });
+  function render() {
+    wrap.innerHTML = '';
+    const list = holder[field] || (holder[field] = []);
+    list.forEach((line, i) => {
+      if (typeof line !== 'object' || line === null) list[i] = { text: String(line ?? '') };
+      const item = list[i];
+      wrap.appendChild(el('div', { class: 'line-row grant-row' }, [
+        ...dialogueTextControls(mob, item, 'text', 'line', onChange, () => { render(); onChange(); }),
+        el('button', { title: 'Move up', onclick: () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; render(); onChange(); } } }, '↑'),
+        el('button', { title: 'Move down', onclick: () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; render(); onChange(); } } }, '↓'),
+        el('button', { class: 'danger', onclick: () => { list.splice(i, 1); render(); onChange(); } }, '×'),
+      ]));
+    });
+    wrap.appendChild(el('button', { class: 'add-row', onclick: () => { list.push({ text: '' }); render(); onChange(); } }, '+ Add line'));
+  }
+  render();
+  return wrap;
 }
 function splitLines(v) {
   const lines = v.split('\n');

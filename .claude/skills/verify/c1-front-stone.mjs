@@ -94,7 +94,7 @@ const check = (name, pass, detail) => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });

@@ -65,7 +65,7 @@ const TOWN_CLUSTER = w(-57, 26);       // three conversants inside ~3 units
 const EMPTY_GROUND = w(-57, 16);       // far from every conversant, for the E/R check
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });

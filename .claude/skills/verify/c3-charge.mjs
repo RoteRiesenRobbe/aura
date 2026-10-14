@@ -53,7 +53,7 @@ const check = (name, pass, detail) => results.push({ check: name, pass, detail }
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 const consoleErrors = [];
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`));
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });

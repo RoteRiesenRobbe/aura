@@ -6,7 +6,6 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,
-  "description": "The share is of the hit as thrown, before the wearer's own mitigation.",
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600 }

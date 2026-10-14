@@ -26,71 +26,71 @@
       {
         "id": "root",
         "lines": [
-          "Plenty of work around here, stranger."
+          {"id": "plenty-of-work-around-here"}
         ],
         "options": [
           {
-            "text": "Flora sends me. I'm looking for work.",
+            "id": "flora-sends-me-im-looking",
             "grants": [
               {
+                "id": "floras-a-good-judge",
                 "kind": "advance_quest",
                 "quest": "eliza-sends-me",
                 "fromStage": "meet",
-                "toStage": "done",
-                "line": "Flora's a good judge of people. Plenty of work around here, stranger."
+                "toStage": "done"
               }
             ]
           },
           {
-            "text": "The pest in the granary",
+            "id": "the-pest-in-the-granary",
             "next": "rats"
           },
           {
-            "text": "About the rats in the granary...",
+            "id": "about-the-rats",
             "next": "rats_running"
           },
           {
-            "text": "Lost and found",
+            "id": "lost-and-found",
             "next": "ring"
           },
           {
-            "text": "About your ring...",
+            "id": "about-your-ring",
             "next": "ring_running"
           },
           {
-            "text": "The problematic boars",
+            "id": "the-problematic-boars",
             "next": "boars"
           },
           {
-            "text": "About the boars...",
+            "id": "about-the-boars",
             "next": "boars_running"
           },
           {
-            "text": "The beast of the farmlands",
+            "id": "the-beast-of-the-farmlands",
             "next": "beast"
           },
           {
-            "text": "About the beast...",
+            "id": "about-the-beast",
             "next": "beast_running"
           },
           {
-            "text": "A lost shipment",
+            "id": "a-lost-shipment",
             "next": "shipment"
           },
           {
-            "text": "About Tobias...",
+            "id": "about-tobias",
             "next": "shipment_running"
           },
           {
-            "text": "Do you have a task for me?",
+            "stock": "ask-task",
             "next": "turnips"
           },
           {
-            "text": "About the turnips...",
+            "id": "about-the-turnips",
             "next": "turnips_running"
           },
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -98,17 +98,17 @@
       {
         "id": "rats",
         "lines": [
-          "These darn rats have taken over the granary. Large as my forearm they are.",
-          "Go inside the granary, kill 8 of the beasts and come back to me."
+          {"id": "these-darn-rats-have-taken"},
+          {"id": "go-inside-the-granary-kill"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "the-granarys-right-behind-you",
                 "kind": "offer_quest",
-                "quest": "giant-rats-in-the-barn",
-                "line": "The granary's right behind you. Good luck!"
+                "quest": "giant-rats-in-the-barn"
               }
             ]
           }
@@ -117,32 +117,31 @@
       {
         "id": "rats_running",
         "lines": [
-          "The rats?"
+          {"id": "the-rats"}
         ],
         "options": [
           {
-            "text": "I've killed the rats.",
+            "id": "ive-killed-the-rats",
             "grants": [
               {
+                "id": "and-youre-still-in-one",
                 "kind": "advance_quest",
                 "quest": "giant-rats-in-the-barn",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "And you're still in one piece? You're sturdier than you look. Good job."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 180,
-                "line": "Here is your reward."
+                "xp": 180
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task",
             "next": "rats_on_it"
           },
           {
-            "text": "Tell me more about rats.",
+            "id": "tell-me-more-about-rats",
             "next": "rats_more"
           }
         ]
@@ -157,8 +156,8 @@
           }
         ],
         "lines": [
-          "Go to the granary and climb down the ladder.",
-          "Be careful! It's dark in there and the rats are nasty beasts. Don't attract too many at once."
+          {"id": "go-to-the-granary"},
+          {"id": "be-careful-its-dark"}
         ]
       },
       {
@@ -171,24 +170,24 @@
           }
         ],
         "lines": [
-          "They came in with the grain sacks. Big as a cat, and they bite."
+          {"id": "they-came"}
         ]
       },
       {
         "id": "ring",
         "lines": [
-          "I have a ... delicate task for you.",
-          "Whilst fishing on the beach, I seem to have lost my wedding ring.",
-          "My wife hasn't noticed yet and I'd prefer it stays this way. So please ... would you mind looking for it at the beach?"
+          {"id": "i-have-a-delicate-task"},
+          {"id": "whilst-fishing-on-the-beach"},
+          {"id": "my-wife-hasnt-noticed-yet"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "great-it-must-be-tangled",
                 "kind": "offer_quest",
-                "quest": "the-millers-ring",
-                "line": "Great! It must be tangled in the seaweed somewhere on the shore."
+                "quest": "the-millers-ring"
               }
             ]
           }
@@ -197,28 +196,27 @@
       {
         "id": "ring_running",
         "lines": [
-          "My ring?"
+          {"id": "my-ring"}
         ],
         "options": [
           {
-            "text": "I've found your ring.",
+            "id": "ive-found-your-ring",
             "grants": [
               {
+                "id": "and-not-a-scratch",
                 "kind": "advance_quest",
                 "quest": "the-millers-ring",
                 "fromStage": "return",
-                "toStage": "done",
-                "line": "And not a scratch on it. You're an honest one, aren't you?"
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 216,
-                "line": "Here is your reward."
+                "xp": 216
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-2",
             "next": "ring_on_it"
           }
         ]
@@ -233,24 +231,24 @@
           }
         ],
         "lines": [
-          "It should be somewhere in the seaweed on the beach, north from here.",
-          "Mind the boars, though. They usually don't attack unless provoked."
+          {"id": "it-should-be-somewhere"},
+          {"id": "mind-the-boars-though-they"}
         ]
       },
       {
         "id": "boars",
         "lines": [
-          "The fields where I plant the grain for the mill are overrun with boars. They destroy the harvest!",
-          "Kill 6 of them, then report back to me. You'll find my fields north and south of the farm."
+          {"id": "the-fields-where-i-plant"},
+          {"id": "kill-6-of-them-then"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "boars-in-the-field",
-                "line": "Good."
+                "quest": "boars-in-the-field"
               }
             ]
           }
@@ -259,28 +257,27 @@
       {
         "id": "boars_running",
         "lines": [
-          "The boars?"
+          {"id": "the-boars"}
         ],
         "options": [
           {
-            "text": "I've killed the boars.",
+            "id": "ive-killed-the-boars",
             "grants": [
               {
+                "id": "already-very-good-this-will",
                 "kind": "advance_quest",
                 "quest": "boars-in-the-field",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Already? Very good, this will teach them to come after my grain!"
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 180,
-                "line": "Here is your reward."
+                "xp": 180
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-3",
             "next": "boars_on_it"
           }
         ]
@@ -295,8 +292,8 @@
           }
         ],
         "lines": [
-          "The boars can put up quite a fight. Be careful not to attract too many at a time.",
-          "They usually don't attack unless provoked."
+          {"id": "the-boars-can-put-up"},
+          {"id": "they-usually-dont-attack-unless"}
         ]
       },
       {
@@ -309,17 +306,17 @@
           }
         ],
         "lines": [
-          "The fields are safe for now, but the darn boars will return.",
-          "They have a den south of this farm. It's protected by a real beast! Kill it, and our crops will finally be safe!"
+          {"id": "the-fields-are-safe"},
+          {"id": "they-have-a-den-south"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "bless-you",
                 "kind": "offer_quest",
-                "quest": "the-sounder-at-the-mill",
-                "line": "Bless you!"
+                "quest": "the-sounder-at-the-mill"
               }
             ]
           }
@@ -328,28 +325,27 @@
       {
         "id": "beast_running",
         "lines": [
-          "The beast?"
+          {"id": "the-beast"}
         ],
         "options": [
           {
-            "text": "I've killed the beast.",
+            "id": "ive-killed-the-beast",
             "grants": [
               {
+                "id": "you-rid-these-lands",
                 "kind": "advance_quest",
                 "quest": "the-sounder-at-the-mill",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "You rid these lands of a nasty beast. Maybe you're not a farmer after all ... maybe you're a warrior!"
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 370,
-                "line": "Here is your reward."
+                "xp": 370
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-4",
             "next": "beast_on_it"
           }
         ]
@@ -364,7 +360,7 @@
           }
         ],
         "lines": [
-          "Be careful once you get close to their den. The beast will not be the only boar you'll encounter there."
+          {"id": "be-careful-once-you-get"}
         ]
       },
       {
@@ -377,18 +373,18 @@
           }
         ],
         "lines": [
-          "Since I know now that you have a fierce heart and know how to fight, I have another task for you.",
-          "Two days ago, I sent my farmhand Tobias east to the city of Dionsburg with a shipment ... and a special letter for someone in the city.",
-          "He hasn't returned yet and I fear for him. Could you travel east and look for him? I'm afraid some harm has come to him."
+          {"id": "since-i-know-now-that"},
+          {"id": "two-days-ago-i-sent"},
+          {"id": "he-hasnt-returned-yet"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "thank-you-i-knew-i",
                 "kind": "offer_quest",
-                "quest": "a-lost-shipment",
-                "line": "Thank you! I knew I could count on you."
+                "quest": "a-lost-shipment"
               }
             ]
           }
@@ -397,11 +393,11 @@
       {
         "id": "shipment_running",
         "lines": [
-          "Tobias?"
+          {"id": "tobias"}
         ],
         "options": [
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-5",
             "next": "shipment_on_it"
           }
         ]
@@ -416,23 +412,23 @@
           }
         ],
         "lines": [
-          "Just follow the road and cross the bridge that leads to the forest. That's the road Tobias has taken."
+          {"id": "just-follow-the-road"}
         ]
       },
       {
         "id": "turnips",
         "lines": [
-          "Harvest 5 turnips from the row north of here, then come back to me.",
-          "You need the Harvest skill for that. Ask me to teach you first."
+          {"id": "harvest-5-turnips"},
+          {"id": "you-need-the-harvest-skill"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "turnip-chore",
-                "line": "Good."
+                "quest": "turnip-chore"
               }
             ]
           }
@@ -441,28 +437,27 @@
       {
         "id": "turnips_running",
         "lines": [
-          "The turnips?"
+          {"id": "the-turnips"}
         ],
         "options": [
           {
-            "text": "I harvested the 5 turnips.",
+            "id": "i-harvested-the-5-turnips",
             "grants": [
               {
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "turnip-chore",
                 "fromStage": "handover",
-                "toStage": "paid",
-                "line": "Good."
+                "toStage": "paid"
               },
               {
                 "kind": "grant_xp",
-                "xp": 150,
-                "line": "Here is your reward."
+                "xp": 150
               }
             ]
           },
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "turnips_on_it"
           }
         ]
@@ -477,23 +472,23 @@
           }
         ],
         "lines": [
-          "Harvest 5 turnips from the row north of here, then come back to me."
+          {"id": "harvest-5-turnips-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
-            "text": "Harvest",
+            "id": "harvest",
             "grants": [
               {
+                "id": "ill-teach-you-harvest",
                 "kind": "teach_skill",
                 "skill": "Harvest",
-                "requiredLevel": 1,
-                "line": "I'll teach you Harvest."
+                "requiredLevel": 1
               }
             ]
           }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
 	"testing"
 	"testing/fstest"
@@ -96,7 +97,8 @@ type cmdFakeClient struct {
 	}
 }
 
-func (c *cmdFakeClient) SendUnlock(id uint64, source string) error {
+func (c *cmdFakeClient) SendUnlock(id uint64, msg lang.Message) error {
+	source := msg.English
 	c.unlocks = append(c.unlocks, struct {
 		id     uint64
 		source string

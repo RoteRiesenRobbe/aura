@@ -53,7 +53,7 @@ const sample = (page) => page.evaluate(() => {
 });
 
 const browser = await chromium.launch({ env, args: ['--no-sandbox'] });
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
 await page.goto(url);

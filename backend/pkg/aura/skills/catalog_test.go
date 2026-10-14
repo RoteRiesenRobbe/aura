@@ -1,6 +1,8 @@
 package skills
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
@@ -287,7 +289,7 @@ func TestCatalogJSON_CarriesTheConfiguredCurve(t *testing.T) {
 }
 
 func TestCatalogHandler(t *testing.T) {
-	handler, err := CatalogHandler(catalogTestRegistry(t), catalogTestCurve)
+	handler, err := CatalogHandler(catalogTestRegistry(t), catalogTestCurve, lang.NewBundle())
 	if err != nil {
 		t.Fatalf("CatalogHandler: %v", err)
 	}

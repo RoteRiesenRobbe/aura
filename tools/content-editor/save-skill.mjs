@@ -28,6 +28,7 @@ import { candidateSegments } from './aurad-validate.mjs';
 import { collectSkillReferences } from './skill-references.mjs';
 import { listJsonFiles } from './files.mjs';
 import { prettyJson } from './format.mjs';
+import { ensureName, hydrate, loadLang, planSave, writeSave } from './content-lang.mjs';
 
 // The scope (D2): api/skills/<slug>.json only. candidateSegments already
 // rejects everything outside the content directories and any second nesting
@@ -93,6 +94,7 @@ export function saveSkill({ file, raw, isNew }, deps) {
   }
   const abs = path.join(root, ...file.split('/'));
   const exists = existsSync(abs);
+  let onDisk;
 
   // 2. existence, both ways round. A NEW skill must not land on a file that is
   // already there (two tabs, or a name that only looks free), and an EDIT of a
@@ -105,7 +107,6 @@ export function saveSkill({ file, raw, isNew }, deps) {
   }
 
   if (!isNew) {
-    let onDisk;
     try {
       onDisk = JSON.parse(readFileSync(abs, 'utf8'));
     } catch (err) {
@@ -143,18 +144,26 @@ export function saveSkill({ file, raw, isNew }, deps) {
   // candidate substituted in. A throw here is the validator failing to answer
   // and must reach the caller as such. For a new skill this is also where a
   // duplicate id or name is caught - by Go, not here.
-  const { ok, findings } = validateCandidate({ file, raw });
+  // The name and description live in api/lang/en/skills.arb (plan-localization.md
+  // D27): the candidate is the JSON without them plus the English it would write.
+  const lang = loadLang(root);
+  const candidate = JSON.parse(JSON.stringify(raw));
+  ensureName('skill', candidate, lang);
+  const plan = planSave('skill', candidate, onDisk, lang);
+  const { ok, findings } = validateCandidate({ file, raw: plan.raw, langFiles: plan.files });
   if (!ok) return { ok: false, stage: 'validate', errors: findings };
 
   // 6. write. The client round-trips the whole raw object and edits it in
   // place, so _comment and every key the form never renders (visual, legacy,
   // forwardUnits, armTicks - §B4.8, L8) are written back untouched.
-  writeFileSync(abs, prettyJson(raw) + '\n', 'utf8');
+  writeFileSync(abs, prettyJson(plan.raw) + '\n', 'utf8');
+  writeSave(plan.files);
 
   // 7. the post-save bookkeeping, counted AFTER the write so a new file is in
   // the number the registry pin needs (§B4.7).
   const skillCount = listJsonFiles(path.join(root, 'api', SKILLS_DIR)).length;
-  return { ok: true, warnings: [], checklist: checklistFor(!!isNew, skillCount), skillCount };
+  // The saved skill comes back re-hydrated (its English from api/lang/en, D27).
+  return { ok: true, warnings: [], checklist: checklistFor(!!isNew, skillCount), skillCount, raw: hydrate('skill', plan.raw, loadLang(root)) };
 }
 
 // The Mobs tab's look editor writes here (plan-skill-vfx.md §12f.5 C3b): the

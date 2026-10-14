@@ -97,6 +97,7 @@ import { skillVisualHints } from './skill-visual-hints.mjs';
 import { readSkillIcons, SKILL_ICONS_FILE, REGEN_ICONS } from './skill-icons.mjs';
 import { readSkillFxPalette, SKILL_FX_PALETTE_FILE } from './skill-fx.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
+import { ensureName, loadLang, planSave } from './content-lang.mjs';
 import { selfTestFindings as seamSelfTestFindings } from './aurad-validate.test.mjs';
 import { selfTestFindings as saveSkillSelfTestFindings } from './save-skill.test.mjs';
 
@@ -455,7 +456,12 @@ try {
   const duplicate = JSON.parse(readFileSync(path.join(ROOT, ...SEAM_CANDIDATE.split('/')), 'utf8'));
   duplicate.id = 1;
   duplicate.name = 'SmokeDuplicateId';
-  const dup = validateCandidate({ file: 'api/skills/smoke-duplicate-id.json', raw: duplicate });
+  // Its English goes into the temp tree with it, as a save would write it
+  // (plan-localization.md D27): without it the hydration refuses first.
+  const lang = loadLang(ROOT);
+  ensureName('skill', duplicate, lang);
+  const plan = planSave('skill', duplicate, undefined, lang);
+  const dup = validateCandidate({ file: 'api/skills/smoke-duplicate-id.json', raw: plan.raw, langFiles: plan.files });
   if (dup.ok) finding('save seam', 'a NEW skill file reusing id 1 was ACCEPTED - the loader is expected to refuse a duplicate skill ID, and save-skill.mjs has no JS twin of that rule');
   else if (!dup.findings.some((f) => /duplicate skill ID/i.test(f))) {
     finding('save seam', `a new file reusing id 1 was refused, but not as a duplicate id: ${dup.findings.join(' | ') || '(no findings)'}`);

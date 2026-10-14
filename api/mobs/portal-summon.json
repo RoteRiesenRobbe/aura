@@ -26,17 +26,17 @@
       {
         "id": "root",
         "lines": [
-          "A portal stands open.",
-          "It leads to whoever opened it."
+          {"id": "a-portal-stands-open"},
+          {"id": "it-leads-to-whoever-opened"}
         ],
         "options": [
           {
-            "text": "Step through.",
+            "id": "step-through",
             "grants": [
               {
+                "id": "you-step-through",
                 "kind": "travel_to",
-                "mode": "caster",
-                "line": "You step through."
+                "mode": "caster"
               }
             ]
           }

@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          "Stay back! ... Oh. You're not one of them."
+          {"id": "stay-back-oh-youre-not"}
         ],
         "options": [
           {
-            "text": "Reinhard sent me to look for you.",
+            "id": "reinhard-sent-me-to-look",
             "next": "found"
           }
         ]
@@ -38,23 +38,22 @@
       {
         "id": "found",
         "lines": [
-          "Reinhard? Thank the light."
+          {"id": "reinhard-thank-the-light"}
         ],
         "options": [
           {
-            "text": "Are you all right? What happened?",
+            "id": "are-you-all-right-what",
             "grants": [
               {
+                "id": "bandits-they-took-the-cart",
                 "kind": "advance_quest",
                 "quest": "a-lost-shipment",
                 "fromStage": "search",
-                "toStage": "found",
-                "line": "Bandits. They took the cart and burned it up the road. I barely got away, but I still have the letter."
+                "toStage": "found"
               },
               {
                 "kind": "grant_xp",
-                "xp": 311,
-                "line": "Tell Reinhard I'm alive. Here, for your trouble."
+                "xp": 311
               }
             ]
           }

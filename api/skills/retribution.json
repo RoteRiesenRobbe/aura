@@ -4,12 +4,10 @@
   "name": "Retribution",
   "icon": "lorc/shield-reflect",
   "packIcon": "deflect",
-  "displayName": "Retribution",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": -60,
-  "description": "The share is of the hit as thrown, before your own mitigation.",
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600 }

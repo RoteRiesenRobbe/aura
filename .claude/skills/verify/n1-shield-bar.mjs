@@ -57,7 +57,7 @@ const check = (name, pass, detail) => results.push({ check: name, pass, detail }
 // field died with step 8a chunk 2, and this script rotted at the join until
 // the code-health C5 re-run caught it.
 const newPlayer = async (tag) => {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+  const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
   page.on('console', (m) => {
     if (m.type() === 'error') consoleErrors.push(`[${tag}] ` + m.text());
     if (/webgl.*context lost/i.test(m.text())) ctxLosses.push(tag);

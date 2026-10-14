@@ -107,7 +107,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const page = await (await browser.newContext({ viewport: { width: 1400, height: 2400 } })).newPage();
+const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1400, height: 2400 } })).newPage();
 const problems = [];
 // The preview frames load from the frontend dev server (2e), which may be down
 // or may not serve fx-preview.html yet: their errors are NOTEs, not problems.
@@ -296,8 +296,12 @@ console.log('seam refusal:', fb.slice(0, 140));
 if (!fb.startsWith('refused by aurad -validate:')) problems.push(`illegal cost was not refused by the seam: ${fb.slice(0, 160)}`);
 await reset();
 
-// a real save: description edited, disk changed by that key only, then restored
+// a real save: description edited, then restored. Since plan-localization.md
+// C5a (D27) a skill's description is English in api/lang/en/skills.arb, so the
+// save changes THAT key and leaves the JSON's content alone.
+const SKILLS_ARB = new URL('../../../api/lang/en/skills.arb', import.meta.url);
 const originalBytes = readFileSync(DAMAGE_FILE, 'utf8');
+const originalArb = readFileSync(SKILLS_ARB, 'utf8');
 const original = JSON.parse(originalBytes);
 const marker = 'C3 harness, restored immediately.';
 await page.locator('#editor-root .field[title="description"] textarea').first().fill(marker);
@@ -309,16 +313,19 @@ console.log('save:', fb.slice(0, 90));
 if (!fb.startsWith('saved')) problems.push(`save did not succeed: ${fb.slice(0, 160)}`);
 try {
   const written = JSON.parse(readFileSync(DAMAGE_FILE, 'utf8'));
-  if (written.description !== marker) problems.push('saved file does not carry the new description');
+  const arb = JSON.parse(readFileSync(SKILLS_ARB, 'utf8'));
+  if (arb[`skill_${original.name}_description`] !== marker) problems.push('the English ARB does not carry the new description');
+  if ('description' in written) problems.push('the description leaked into the JSON (D27: it lives in the ARB)');
   if (written._comment !== original._comment) problems.push('saved file lost or changed _comment');
-  const expect = { ...original, description: marker };
   const norm = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
-  if (norm(written) !== norm(expect)) problems.push('saved file differs from the original beyond description');
+  if (norm(written) !== norm(original)) problems.push('saved JSON differs from the original');
   if (await page.locator('#skill-list li.dirty').count() !== 0) problems.push('a saved skill still shows a dirty marker');
 } finally {
   writeFileSync(DAMAGE_FILE, originalBytes, 'utf8');
+  writeFileSync(SKILLS_ARB, originalArb, 'utf8');
 }
 if (readFileSync(DAMAGE_FILE, 'utf8') !== originalBytes) problems.push('damage.json was not restored byte for byte');
+if (readFileSync(SKILLS_ARB, 'utf8') !== originalArb) problems.push('skills.arb was not restored byte for byte');
 
 // a parked skill stays read-only, whole
 await open('ThrowBomb');

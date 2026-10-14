@@ -791,14 +791,14 @@ func TestDescribeCondition_NamesTheQuestByItsTitle(t *testing.T) {
 func TestDescribeCondition_AStageGateAlsoTitlesTheQuest(t *testing.T) {
 	p := newQuestLearner(t, 25, &quests.QuestDefinition{
 		ID: "lamp", Title: "The Lost Lamp", Level: 1,
-		Stages: []*quests.Stage{{ID: "bring_it_back", Journal: "Bring it back."}},
+		Stages: []*quests.Stage{{ID: "bring-it-back", Journal: "Bring it back."}},
 	})
 
 	got := describeConditions(mobs.Gate{Conditions: []mobs.InteractionCondition{
-		{Kind: mobs.ConditionQuestAtStage, Quest: "lamp", Stage: "bring_it_back"},
+		{Kind: mobs.ConditionQuestAtStage, Quest: "lamp", Stage: "bring-it-back"},
 	}}, p)
 
-	assert.Equal(t, `"The Lost Lamp" at "bring_it_back"`, got)
+	assert.Equal(t, `"The Lost Lamp" at "bring-it-back"`, got)
 }
 
 // D8: one dialect for both surfaces, and the mode is the join.

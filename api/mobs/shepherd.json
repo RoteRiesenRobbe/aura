@@ -26,24 +26,24 @@
       {
         "id": "root",
         "lines": [
-          "Ho, stranger!",
-          "Can you help me? I reckon you can ..."
+          {"id": "ho-stranger"},
+          {"id": "can-you-help-me-i"}
         ],
         "options": [
           {
-            "text": "A herd astray",
+            "id": "a-herd-astray",
             "next": "strays"
           },
           {
-            "text": "About your herd...",
+            "id": "about-your-herd",
             "next": "strays_running"
           },
           {
-            "text": "He who cried wolf",
+            "id": "he-who-cried-wolf",
             "next": "wolves"
           },
           {
-            "text": "About the wolves...",
+            "id": "about-the-wolves",
             "next": "wolves_running"
           }
         ]
@@ -51,17 +51,17 @@
       {
         "id": "strays",
         "lines": [
-          "Wolves scared away my sheep! And my darn dog ran right after them.",
-          "Please help me find them before the wolves do. They are probably around the pasture somewhere."
+          {"id": "wolves-scared-away-my-sheep"},
+          {"id": "please-help-me-find-them"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "thank-you-stranger",
                 "kind": "offer_quest",
-                "quest": "the-strays",
-                "line": "Thank you, stranger!"
+                "quest": "the-strays"
               }
             ]
           }
@@ -70,28 +70,27 @@
       {
         "id": "strays_running",
         "lines": [
-          "My herd?"
+          {"id": "my-herd"}
         ],
         "options": [
           {
-            "text": "I've found your herd.",
+            "id": "ive-found-your-herd",
             "grants": [
               {
+                "id": "really-thank-you",
                 "kind": "advance_quest",
                 "quest": "the-strays",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Really! Thank you! ..."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 180,
-                "line": "Didn't you bring them here?"
+                "xp": 180
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task",
             "next": "strays_on_it"
           }
         ]
@@ -106,23 +105,23 @@
           }
         ],
         "lines": [
-          "They are a featherbrained lot. I'm sure they're grazing peacefully somewhere in the farmlands."
+          {"id": "they-are-a-featherbrained-lot"}
         ]
       },
       {
         "id": "wolves",
         "lines": [
-          "These dangerous wolves are a threat to all of us, especially to my sheep!",
-          "Find them out in the pasture and kill 6 of them."
+          {"id": "these-dangerous-wolves-are"},
+          {"id": "find-them-out"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "id": "be-careful-stranger",
                 "kind": "offer_quest",
-                "quest": "he-who-cried-wolf",
-                "line": "Be careful, stranger!"
+                "quest": "he-who-cried-wolf"
               }
             ]
           }
@@ -131,31 +130,31 @@
       {
         "id": "wolves_running",
         "lines": [
-          "The wolves?"
+          {"id": "the-wolves"}
         ],
         "options": [
           {
-            "text": "I've killed the wolves.",
+            "id": "ive-killed-the-wolves",
             "grants": [
               {
+                "id": "you-dont-carry-that-weapon",
                 "kind": "advance_quest",
                 "quest": "he-who-cried-wolf",
                 "fromStage": "report",
-                "toStage": "crier",
-                "line": "You don't carry that weapon for vanity, huh? Still, so many wolves ... You should tell the Town Crier, close to Reinhard's farm. Maybe he knows why."
+                "toStage": "crier"
               }
             ]
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-2",
             "next": "wolves_on_it"
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-3",
             "next": "wolves_crier"
           },
           {
-            "text": "Any assistance for the task?",
+            "id": "any-assistance-for-the-task-4",
             "next": "wolves_governor"
           }
         ]
@@ -170,7 +169,7 @@
           }
         ],
         "lines": [
-          "Find them out in the pasture and kill 6 of them."
+          {"id": "find-them-out-2"}
         ]
       },
       {
@@ -183,8 +182,8 @@
           }
         ],
         "lines": [
-          "It's very unsettling that we're plagued by so many wolves. Tell the Town Crier, close to Reinhard's farm.",
-          "Maybe he knows why so many are on our farms recently."
+          {"id": "its-very-unsettling-that-were"},
+          {"id": "maybe-he-knows-why-so"}
         ]
       },
       {
@@ -197,7 +196,7 @@
           }
         ],
         "lines": [
-          "The Governor of Dionsburg? Then follow the road east through the forest."
+          {"id": "the-governor-of-dionsburg-then"}
         ]
       }
     ]

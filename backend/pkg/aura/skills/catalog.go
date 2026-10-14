@@ -1,6 +1,8 @@
 package skills
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -88,24 +90,32 @@ type Catalog struct {
 // the configured level curve. Mob-only and legacy skills are included —
 // harmless, since the client only renders tooltips for spellbook-known ids.
 func CatalogJSON(r Registry, c curve.Curve) ([]byte, error) {
+	return CatalogJSONIn(r, c, lang.Identity)
+}
+
+// CatalogJSONIn is the catalog in one locale (plan-localization.md C1): the
+// display name and the description resolve through tr by the skill's id
+// (D20). Each definition is copied, never edited: the registry is shared.
+func CatalogJSONIn(r Registry, c curve.Curve, tr lang.Tr) ([]byte, error) {
 	defs := r.All()
 	sort.Slice(defs, func(i, j int) bool { return defs[i].ID < defs[j].ID })
-	return json.Marshal(Catalog{Curve: c, Skills: defs})
+	localized := make([]*SkillDefinition, len(defs))
+	for i, d := range defs {
+		copied := *d
+		copied.DisplayName = tr(lang.SkillName(d.Name), d.Display())
+		if d.Description != "" {
+			copied.Description = tr(lang.SkillDescription(d.Name), d.Description)
+		}
+		localized[i] = &copied
+	}
+	return json.Marshal(Catalog{Curve: c, Skills: localized})
 }
 
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in
 // dev the client runs on :2001 against aurad on :2000, and the catalog is
 // public read-only content.
-func CatalogHandler(r Registry, c curve.Curve) (http.Handler, error) {
-	payload, err := CatalogJSON(r, c)
-	if err != nil {
-		return nil, err
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(payload)
-	}), nil
+func CatalogHandler(r Registry, c curve.Curve, b *lang.Bundle) (http.Handler, error) {
+	return lang.Handler(b, func(tr lang.Tr) ([]byte, error) { return CatalogJSONIn(r, c, tr) })
 }
 
 // Display is what a player should see this skill called: the authored

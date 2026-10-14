@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 	"sync/atomic"
 
@@ -176,9 +177,11 @@ func (c *client) SendMessage(bytes []byte) error {
 
 // SendUnlock marshals a kind=Unlock EntityMessage (skill id in entity_id, the
 // source label in message) and enqueues it — see plan-unlock-attribution.md.
-func (c *client) SendUnlock(skillID uint64, source string) error {
+//
+// The source is a keyed message (plan-localization.md C2): the client words it.
+func (c *client) SendUnlock(skillID uint64, source lang.Message) error {
 	builder := flatbuffers.NewBuilder(64)
-	msg := codec.EntityMessageFlatbufMarshal(builder, skillID, source, AuraApi.EntityMessageKindUnlock)
+	msg := codec.KeyedEntityMessageFlatbufMarshal(builder, skillID, source, AuraApi.EntityMessageKindUnlock)
 	builder.Finish(msg)
 	return c.SendMessage(builder.FinishedBytes())
 }
@@ -186,9 +189,9 @@ func (c *client) SendUnlock(skillID uint64, source string) error {
 // SendJournal marshals a kind=Journal EntityMessage carrying the banner line
 // (plan-quests.md C3, D17) and enqueues it. entity_id is unused — the client
 // branches on the kind before it reads it, exactly as it does for Unlock.
-func (c *client) SendJournal(text string) error {
+func (c *client) SendJournal(m lang.Message) error {
 	builder := flatbuffers.NewBuilder(64)
-	msg := codec.EntityMessageFlatbufMarshal(builder, 0, text, AuraApi.EntityMessageKindJournal)
+	msg := codec.KeyedEntityMessageFlatbufMarshal(builder, 0, m, AuraApi.EntityMessageKindJournal)
 	builder.Finish(msg)
 	return c.SendMessage(builder.FinishedBytes())
 }

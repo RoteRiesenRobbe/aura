@@ -1,13 +1,10 @@
 {
   "_comment": "Lionett's quest: harvest 8 seaweed on the north shore. Seaweed takes damage only from a `harvest`-tagged aura. Reward on Lionett's turn-in: FirstAid plus the L9 half-level rule at L2. Count and reward [PLACEHOLDER].",
   "id": "a-healthy-brew",
-  "title": "A Healthy Brew",
   "level": 2,
   "stages": [
     {
       "id": "gather",
-      "journal": "Lionett wants you to gather 8 seaweed for her tea.",
-      "tracker": "{n}/{m} seaweed gathered",
       "objectives": [
         {
           "kind": "harvest",
@@ -18,13 +15,10 @@
       "next": "back"
     },
     {
-      "id": "back",
-      "journal": "Eight strands of seaweed. Lionett is waiting for them.",
-      "tracker": "Return to Lionett"
+      "id": "back"
     },
     {
-      "id": "done",
-      "journal": "Lionett brewed her tea and taught you how to make it."
+      "id": "done"
     }
   ]
 }

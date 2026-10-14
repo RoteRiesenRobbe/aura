@@ -27,8 +27,8 @@
       {
         "id": "root",
         "lines": [
-          "Sometimes I feel like these turnips are hiding even deeper in the ground once I'm around to pull them out ...",
-          "These rats ... They were bigger than my forearm. I'm not going back in there!"
+          {"id": "sometimes-i-feel-like-these"},
+          {"id": "these-rats-they-were-bigger"}
         ],
         "options": []
       }

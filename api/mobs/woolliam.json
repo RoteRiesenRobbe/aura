@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          "Baa."
+          {"id": "baa"}
         ],
         "options": [
           {
-            "text": "Are you Woolliam?",
+            "id": "are-you-woolliam",
             "next": "asked"
           }
         ]
@@ -38,11 +38,11 @@
       {
         "id": "asked",
         "lines": [
-          "*grazes*"
+          {"id": "grazes"}
         ],
         "options": [
           {
-            "text": "Go home, Woolliam ...",
+            "id": "go-home-woolliam",
             "next": "quip"
           }
         ]
@@ -50,7 +50,7 @@
       {
         "id": "quip",
         "lines": [
-          "*keeps grazing*"
+          {"id": "keeps-grazing"}
         ],
         "options": []
       }

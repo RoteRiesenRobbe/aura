@@ -169,6 +169,13 @@ func TestLoad_Rejections(t *testing.T) {
 		"missing journal": `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "s"}]}`,
 		"duplicate stage id": `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "a"}, {"id": "s", "journal": "b"}]}`,
+		// Quest and stage ids are slugs, like region and area ids: both go
+		// verbatim into the dotted lang keys (plan-localization.md D29).
+		"quest id with an underscore": `{"id": "lost_lamp", "title": "Q", "level": 1, "stages": [{"id": "s", "journal": "j"}]}`,
+		"quest id with a dot":         `{"id": "lost.lamp", "title": "Q", "level": 1, "stages": [{"id": "s", "journal": "j"}]}`,
+		"stage id with an underscore": `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "bring_it_back", "journal": "j"}]}`,
+		"stage id with a capital":     `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "Report", "journal": "j"}]}`,
+		"stage id with a space":       `{"id": "q", "title": "Q", "level": 1, "stages": [{"id": "go home", "journal": "j"}]}`,
 		"unknown species": `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Ghost", "count": 1}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
@@ -203,11 +210,6 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "s", "journal": "j", "tracker": "Kill {n} of {m} things"}]}`,
 		"count placeholder on a talk_to-only stage": `{"id": "q", "title": "Q", "level": 1, "stages": [
 			{"id": "s", "journal": "j", "tracker": "{n}/{m} met", "objectives": [{"kind": "talk_to", "npc": "Farmer"}], "next": "t"},
-			{"id": "t", "journal": "done"}]}`,
-		// An objective tracker rewords a talk_to line only; a kill/harvest
-		// line carries a live count the static text would hide.
-		"objective tracker on a kill": `{"id": "q", "title": "Q", "level": 1, "stages": [
-			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "tracker": "Wolves"}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 		// A stage tracker wins outright, so an objective tracker under it
 		// would be dead text.

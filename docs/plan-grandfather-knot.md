@@ -105,12 +105,12 @@ second quest's offer sits on a node gated on `clear-the-grove` `completed` AND
 | grove | `tidy` | objective | `harvest Deadwood ×6` [PLACEHOLDER], "{n}/{m} deadwood cleared" | itself |
 | grove | `tidied` | dialogue | "Return to Grandfather Knot" | his row "The grove is clear." → `cleared` (+600 XP) |
 | grove | `cleared` | terminal | | |
-| roots | `root_one` | objective (entered on accept) | `talk_to StreamRoot`, "Wake the root by the stream" | itself |
-| roots | `back_one` | dialogue | "Return to Grandfather Knot" | his row → `root_two` |
-| roots | `root_two` | objective | `talk_to StoneRoot`, "Wake the root by the stones" | itself |
-| roots | `back_two` | dialogue | "Return to Grandfather Knot" | his row → `root_three` |
-| roots | `root_three` | objective | `talk_to GladeRoot`, "Wake the last root" | itself |
-| roots | `back_three` | dialogue | "Return to Grandfather Knot" | the turn-in row → `rooted` |
+| roots | `root-one` | objective (entered on accept) | `talk_to StreamRoot`, "Wake the root by the stream" | itself |
+| roots | `back-one` | dialogue | "Return to Grandfather Knot" | his row → `root-two` |
+| roots | `root-two` | objective | `talk_to StoneRoot`, "Wake the root by the stones" | itself |
+| roots | `back-two` | dialogue | "Return to Grandfather Knot" | his row → `root-three` |
+| roots | `root-three` | objective | `talk_to GladeRoot`, "Wake the last root" | itself |
+| roots | `back-three` | dialogue | "Return to Grandfather Knot" | the turn-in row → `rooted` |
 | roots | `rooted` | terminal | | |
 
 Its middle legs are dialogue rows leading back INTO objective stages; entering

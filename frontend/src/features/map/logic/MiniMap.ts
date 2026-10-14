@@ -1,3 +1,4 @@
+import {t} from '../../localization/logic/Locale';
 import {Application, Container, ContainerChild, Graphics, Sprite, ViewContainer} from 'pixi.js';
 import {registerPreload} from '../../core/logic/Preloading';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
@@ -917,7 +918,7 @@ export class MiniMap {
      */
     public open() {
         this.flightMode = false;
-        this.setTitle('Map');
+        this.setTitle(t('map.label'));
         this.setState(MapState.FULLSCREEN);
     }
 
@@ -940,7 +941,7 @@ export class MiniMap {
         this.flightMode = true;
         // The departure board says what it wants from you; the read-only map
         // stays "Map". Stamped on every open, so no restore is needed on close.
-        this.setTitle('Pick a destination to fly to...');
+        this.setTitle(t('map.pick-destination'));
         this.setState(MapState.FULLSCREEN);
     }
 

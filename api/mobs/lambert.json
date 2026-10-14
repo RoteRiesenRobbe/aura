@@ -26,11 +26,11 @@
       {
         "id": "root",
         "lines": [
-          "Baa."
+          {"id": "baa"}
         ],
         "options": [
           {
-            "text": "Are you Lambert?",
+            "id": "are-you-lambert",
             "next": "asked"
           }
         ]
@@ -38,11 +38,11 @@
       {
         "id": "asked",
         "lines": [
-          "Bööööhh."
+          {"id": "boooohh"}
         ],
         "options": [
           {
-            "text": "Why am I even talking to a sheep?",
+            "id": "why-am-i-even-talking",
             "next": "quip"
           }
         ]
@@ -50,7 +50,7 @@
       {
         "id": "quip",
         "lines": [
-          "Bööh."
+          {"id": "booh"}
         ],
         "options": []
       }

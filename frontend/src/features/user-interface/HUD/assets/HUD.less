@@ -238,7 +238,9 @@
 	// A hard black outline (8-direction offsets) plus a soft glow, so the light
 	// gold/cornsilk text stays legible over a similarly-coloured background
 	// (e.g. the tan NPC house behind an unlock banner).
-	-webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.9);
+	// ⚑ No -webkit-text-stroke (removed 2026-10-14): Inter's outlines overlap
+	// (stem into bowl, crossbar through stem), and a stroke traces every
+	// contour, drawing lines INSIDE the letters at banner sizes.
 	text-shadow:
 		-2px -2px 0 rgba(0, 0, 0, 0.9), 2px -2px 0 rgba(0, 0, 0, 0.9),
 		-2px 2px 0 rgba(0, 0, 0, 0.9), 2px 2px 0 rgba(0, 0, 0, 0.9),
@@ -283,7 +285,7 @@
 	text-align: center;
 	pointer-events: none;
 	color: Cornsilk;
-	-webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.9);
+	// No text stroke: see #alertBanner (Inter's overlapping contours).
 	text-shadow:
 		-2px -2px 0 rgba(0, 0, 0, 0.9), 2px -2px 0 rgba(0, 0, 0, 0.9),
 		-2px 2px 0 rgba(0, 0, 0, 0.9), 2px 2px 0 rgba(0, 0, 0, 0.9),

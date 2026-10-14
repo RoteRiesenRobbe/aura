@@ -1,6 +1,7 @@
 package encounter
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"strings"
 	"testing"
 
@@ -15,9 +16,13 @@ import (
 // fakeAnnouncer captures Announce broadcasts.
 type fakeAnnouncer struct {
 	messages []string
+	keyed    []lang.Message
 }
 
-func (f *fakeAnnouncer) Broadcast(text string) { f.messages = append(f.messages, text) }
+func (f *fakeAnnouncer) BroadcastMessage(m lang.Message) {
+	f.messages = append(f.messages, m.English)
+	f.keyed = append(f.keyed, m)
+}
 
 // warlordArena drives the Orc Warlord encounter through the fakeGame,
 // replicating the MobSystem death loop.

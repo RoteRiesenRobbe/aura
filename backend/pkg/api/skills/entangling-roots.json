@@ -6,7 +6,6 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,
-  "description": "Rooted enemies cannot move, but they still fight.",
   "visual": {
     "layers": [
       { "kind": "wave", "on": "fired", "ms": 500, "count": 1, "tint": "#7a9a3c" }

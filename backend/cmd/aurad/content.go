@@ -12,6 +12,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -33,6 +34,10 @@ type loadedContent struct {
 	// darkness is each atmosphere profile's declared darkness, which the map
 	// reveal reads (plan-map-fog-darkness.md C1).
 	darkness map[string]float32
+	// langEntries is every translatable content string by domain, and
+	// langBundle the loaded translations (plan-localization.md C1).
+	langEntries map[string][]lang.Entry
+	langBundle  *lang.Bundle
 }
 
 // loadContent runs every content stage in dependency order and returns the
@@ -171,6 +176,23 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		skip("quest regions", missing(input{okQuests, "quests"}, input{okZones, "zones"})...)
 	} else if err = bindQuestRegions(out.quests, out.regions, out.zones); err != nil {
 		fail("quest regions", err)
+	}
+
+	// Localization (plan-localization.md C1, C5a): every ARB, English included,
+	// refused when not UTF-8 or malformed (L17), and the content text as keyed
+	// entries, refused where it would not survive as ICU (L14) or where two
+	// strings share a key. The English itself reached the registries as
+	// their files were read (withEnglish, D27).
+	// A LEAF stage: it reads the registries above and nothing reads it back.
+	if out.langBundle, err = lang.LoadOverlays(src.lang); err != nil {
+		fail("lang", err)
+	} else if zoneNames, zoneFindings, err := zoneNamesFrom(src.zones, out.langBundle.Overlay(lang.Source), src.debugZones); err != nil {
+		fail("lang", err)
+	} else {
+		var langFindings []string
+		out.langEntries, langFindings = langEntries(out, zoneNames)
+		findings = append(findings, zoneFindings...)
+		findings = append(findings, langFindings...)
 	}
 
 	return out, findings

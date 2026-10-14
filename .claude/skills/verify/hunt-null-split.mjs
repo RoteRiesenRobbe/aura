@@ -61,7 +61,7 @@ for (let run = 1; run <= runs; run++) {
   const label = `run${String(run).padStart(2, '0')}`;
   if (process.env.HUNT_RESTART === '1') restartServer();
   // Fresh context => fresh HTTP cache, fresh sessionStorage (no auto-rejoin).
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
 
   const pageErrors = [];

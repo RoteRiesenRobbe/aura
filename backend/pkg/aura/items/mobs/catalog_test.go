@@ -1,6 +1,8 @@
 package mobs
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
@@ -268,7 +270,7 @@ func mustCatalogJSON(t *testing.T, r Registry) []byte {
 }
 
 func TestMobCatalogHandler_ServesJSONWithCORS(t *testing.T) {
-	handler, err := CatalogHandler(catalogTestRegistry(t))
+	handler, err := CatalogHandler(catalogTestRegistry(t), lang.NewBundle())
 	require.NoError(t, err)
 
 	rec := httptest.NewRecorder()

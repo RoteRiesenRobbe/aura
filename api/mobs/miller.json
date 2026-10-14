@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          "He thinks I haven't noticed that his wedding band's missing ..."
+          {"id": "he-thinks-i-havent-noticed"}
         ],
         "options": []
       }

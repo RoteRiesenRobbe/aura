@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          "Woof."
+          {"id": "woof"}
         ],
         "options": [
           {
-            "text": "Are you the shepherd's lost dog?",
+            "id": "are-you-the-shepherds-lost",
             "next": "lost"
           },
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -42,11 +42,11 @@
       {
         "id": "lost",
         "lines": [
-          "Woof! Woof!"
+          {"id": "woof-woof"}
         ],
         "options": [
           {
-            "text": "Where's your herd, dog?",
+            "id": "wheres-your-herd-dog",
             "next": "herd"
           }
         ]
@@ -54,11 +54,11 @@
       {
         "id": "herd",
         "lines": [
-          "*whimpers*"
+          {"id": "whimpers"}
         ],
         "options": [
           {
-            "text": "Maybe it's time for a new profession ...",
+            "id": "maybe-its-time",
             "next": "teachings"
           }
         ]
@@ -66,16 +66,16 @@
       {
         "id": "teachings",
         "lines": [
-          "Woof?"
+          {"id": "woof-2"}
         ],
         "options": [
           {
-            "text": "Summon Companion",
+            "id": "summon-companion",
             "grants": [
               {
+                "id": "woof-3",
                 "kind": "teach_skill",
-                "skill": "SummonCompanion",
-                "line": "Woof!"
+                "skill": "SummonCompanion"
               }
             ]
           }

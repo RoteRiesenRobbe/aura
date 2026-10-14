@@ -46,7 +46,7 @@ const check = (ok, name, note) => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 // ⚑ No 401 filter any more — a cold load is genuinely clean now that
 // `GET /api/session` answers "nobody is signed in" with a 200 instead of an

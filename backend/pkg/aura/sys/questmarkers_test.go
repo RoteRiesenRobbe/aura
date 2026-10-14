@@ -152,9 +152,9 @@ func TestQuestMarkers_OnlyRowsReachableFromTheEntryNode(t *testing.T) {
 // it: two finishers of one branch both show it, and an unrelated NPC does not.
 func TestQuestMarkers_InProgressMarksEveryFinisherOnly(t *testing.T) {
 	q := leveledQuest(questID, 1)
-	q.Stages = append(q.Stages, &quests.Stage{ID: "done_b", Journal: "Done otherwise."})
+	q.Stages = append(q.Stages, &quests.Stage{ID: "done-b", Journal: "Done otherwise."})
 	finisherA := giver([]mobs.InteractionGrant{turnInOf(questID)})
-	finisherB := giver([]mobs.InteractionGrant{{Kind: mobs.GrantAdvanceQuest, Quest: questID, FromStage: stageTurn, ToStage: "done_b"}})
+	finisherB := giver([]mobs.InteractionGrant{{Kind: mobs.GrantAdvanceQuest, Quest: questID, FromStage: stageTurn, ToStage: "done-b"}})
 	finisherB.ID = 41
 	bystander := giver([]mobs.InteractionGrant{offerOf("other")})
 	bystander.ID = 42

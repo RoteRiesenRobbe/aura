@@ -44,7 +44,7 @@ const env = {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
 
 const consoleErrors = [];

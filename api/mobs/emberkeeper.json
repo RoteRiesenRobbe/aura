@@ -26,29 +26,29 @@
       {
         "id": "root",
         "lines": [
-          "You can rest at my fire."
+          {"id": "you-can-rest-at-my"}
         ],
         "options": [
-          {"text": "Do you have a task for me?", "next": "bandits"},
-          { "text": "About the bandits...", "next": "bandits_running" },
-          {"text": "Teach me something.", "next": "teachings"},
-          {"text": "Anything new around here?", "next": "news"},
-          {"text": "Where can I find...", "next": "directions"}
+          { "stock": "ask-task","next": "bandits"},
+          { "id": "about-the-bandits", "next": "bandits_running" },
+          { "stock": "ask-teach","next": "teachings"},
+          { "id": "anything-new-around-here","next": "news"},
+          { "id": "where-can-i-find","next": "directions"}
         ]
       },
       {
         "id": "bandits",
         "lines": [
-          "Kill 6 bandits from the camp east of here, then come back to me."
+          {"id": "kill-6-bandits"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "bandits-at-the-shrine",
-                "line": "Good."
+                "quest": "bandits-at-the-shrine"
               }
             ]
           }
@@ -57,28 +57,27 @@
       {
         "id": "bandits_running",
         "lines": [
-          "The bandits?"
+          {"id": "the-bandits"}
         ],
         "options": [
           {
-            "text": "I killed the 6 bandits.",
+            "id": "i-killed-the-6-bandits",
             "grants": [
               {
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "bandits-at-the-shrine",
                 "fromStage": "report",
-                "toStage": "done",
-                "line": "Good."
+                "toStage": "done"
               },
               {
                 "kind": "grant_xp",
-                "xp": 1250,
-                "line": "Here is your reward."
+                "xp": 1250
               }
             ]
           },
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "bandits_on_it"
           }
         ]
@@ -93,56 +92,56 @@
           }
         ],
         "lines": [
-          "Kill 6 bandits from the camp east of here, then come back to me."
+          {"id": "kill-6-bandits-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
-            "text": "Torch",
+            "id": "torch",
             "grants": [
               {
+                "id": "ill-teach-you-torch",
                 "kind": "teach_skill",
                 "skill": "Torch",
-                "requiredLevel": 1,
-                "line": "I'll teach you Torch."
+                "requiredLevel": 1
               }
             ]
           },
           {
-            "text": "Ignite",
+            "id": "ignite",
             "grants": [
               {
+                "id": "ill-teach-you-ignite",
                 "kind": "teach_skill",
                 "skill": "Ignite",
-                "requiredLevel": 7,
-                "line": "I'll teach you Ignite."
+                "requiredLevel": 7
               }
             ]
           },
           {
-            "text": "Immolate",
+            "id": "immolate",
             "grants": [
               {
+                "id": "ill-teach-you-immolate",
                 "kind": "teach_skill",
                 "skill": "Immolate",
-                "requiredLevel": 12,
-                "line": "I'll teach you Immolate."
+                "requiredLevel": 12
               }
             ]
           },
           {
-            "text": "Bind Elemental",
+            "id": "bind-elemental",
             "grants": [
               {
+                "id": "ill-teach-you-bind-elemental",
                 "kind": "teach_skill",
                 "skill": "BindElemental",
-                "requiredLevel": 15,
-                "line": "I'll teach you Bind Elemental."
+                "requiredLevel": 15
               }
             ]
           }
@@ -151,33 +150,33 @@
       {
         "id": "news",
         "lines": [
-          "Bandits hide in the dark forest.",
-          "The camp is east of here."
+          {"id": "bandits-hide-in-the-dark"},
+          {"id": "the-camp-is-east"}
         ]
       },
       {
         "id": "directions",
-        "lines": ["Ask about a place."],
+        "lines": [{"id": "ask-about-a-place"}],
         "options": [
-          {"text": "The mill.", "next": "dir_mill"},
-          {"text": "The tunnel north.", "next": "dir_tunnel"},
-          {"text": "Other fires like yours.", "next": "dir_fires"}
+          { "id": "the-mill","next": "dir_mill"},
+          { "id": "the-tunnel-north","next": "dir_tunnel"},
+          { "id": "other-fires-like-yours","next": "dir_fires"}
         ]
       },
       {
         "id": "dir_mill",
-        "lines": ["Downhill, past the broken fence."]
+        "lines": [{"id": "downhill-past-the-broken-fence"}]
       },
       {
         "id": "dir_tunnel",
         "lines": [
-          "North, where the hills close in. Take a light."
+          {"id": "north-where-the-hills-close"}
         ]
       },
       {
         "id": "dir_fires",
         "lines": [
-          "Campfires are scattered around. Sit at one and you respawn there."
+          {"id": "campfires-are-scattered-around"}
         ]
       }
     ]

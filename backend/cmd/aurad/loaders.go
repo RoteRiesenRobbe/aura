@@ -20,6 +20,7 @@ import (
 	aascension "github.com/RoteRiesenRobbe/aura/pkg/api/ascension"
 	aatmospheres "github.com/RoteRiesenRobbe/aura/pkg/api/atmospheres"
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	alang "github.com/RoteRiesenRobbe/aura/pkg/api/lang"
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
@@ -34,6 +35,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -47,6 +49,9 @@ import (
 // covered here — keep it that way, or a content edit silently no-ops until
 // someone remembers the rebuild.
 type contentSources struct {
+	// debugZones marks the -debug-zones set (useDebugZones): a dev world whose
+	// zones speak their file labels, not authored English (plan-localization.md D27).
+	debugZones bool
 	mobs       fs.FS
 	skills     fs.FS
 	recipes    fs.FS
@@ -68,10 +73,13 @@ type contentSources struct {
 	// atmospheres is the atmosphere profile table, shared with the client; the
 	// server reads only each profile's darkness (plan-map-fog-darkness.md C1).
 	atmospheres fs.FS
+	// lang is the localization tree (plan-localization.md C1, L3): the
+	// authored English (D27) and the translations, api/lang/<locale>/.
+	lang fs.FS
 }
 
 func embeddedContent() contentSources {
-	return contentSources{
+	return withEnglish(contentSources{
 		mobs:        amobs.Mobs,
 		skills:      askills.Skills,
 		recipes:     arecipes.Recipes,
@@ -85,12 +93,26 @@ func embeddedContent() contentSources {
 		areas:       aareas.Areas,
 		regions:     aregions.Regions,
 		atmospheres: aatmospheres.Atmospheres,
-	}
+		lang:        alang.Lang,
+	})
+}
+
+// withEnglish has the quest, mob, skill and region loaders read each file
+// with its English joined in from api/lang/en/ (plan-localization.md D27):
+// the content JSON keeps structure and ids, the ARB holds the text, and every
+// loader still sees one JSON with its text in it.
+func withEnglish(c contentSources) contentSources {
+	en := lang.EnglishFrom(c.lang)
+	c.quests = lang.EnglishFS(c.quests, lang.DomainQuest, en)
+	c.mobs = lang.EnglishFS(c.mobs, lang.DomainMob, en)
+	c.skills = lang.EnglishFS(c.skills, lang.DomainSkill, en)
+	c.regions = lang.EnglishFS(c.regions, lang.DomainRegions, en)
+	return c
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/, skill-fx/, areas/, regions/, atmospheres/).
+// ascension/, skill-fx/, areas/, regions/, atmospheres/, lang/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -143,7 +165,10 @@ func diskContent(dir string) (contentSources, error) {
 	if c.regions, err = sub("regions"); err != nil {
 		return contentSources{}, err
 	}
-	return c, nil
+	if c.lang, err = sub("lang"); err != nil {
+		return contentSources{}, err
+	}
+	return withEnglish(c), nil
 }
 
 // The debug zone set (`-debug-zones`): a complete, separate zone list under
@@ -166,6 +191,7 @@ func useDebugZones(c contentSources) (contentSources, error) {
 		return contentSources{}, err
 	}
 	c.zones = sub
+	c.debugZones = true
 	return c, nil
 }
 

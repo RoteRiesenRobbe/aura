@@ -54,8 +54,20 @@ optionsLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+lineIds(index: number):string
+lineIds(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+lineIds(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+}
+
+lineIdsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startConversationNode(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(4);
 }
 
 static addId(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset) {
@@ -94,16 +106,33 @@ static startOptionsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 }
 
+static addLineIds(builder:flatbuffers.Builder, lineIdsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, lineIdsOffset, 0);
+}
+
+static createLineIdsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startLineIdsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endConversationNode(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationNode(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, linesOffset:flatbuffers.Offset, optionsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createConversationNode(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, linesOffset:flatbuffers.Offset, optionsOffset:flatbuffers.Offset, lineIdsOffset:flatbuffers.Offset):flatbuffers.Offset {
   ConversationNode.startConversationNode(builder);
   ConversationNode.addId(builder, idOffset);
   ConversationNode.addLines(builder, linesOffset);
   ConversationNode.addOptions(builder, optionsOffset);
+  ConversationNode.addLineIds(builder, lineIdsOffset);
   return ConversationNode.endConversationNode(builder);
 }
 }

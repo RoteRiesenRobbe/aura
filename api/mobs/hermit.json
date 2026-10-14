@@ -25,27 +25,27 @@
       {
         "id": "root",
         "lines": [
-          "What do you need?"
+          {"id": "what-do-you-need"}
         ],
         "options": [
-          { "text": "Do you have a task for me?", "next": "welcome" },
-          { "text": "About the village...", "next": "welcome_running" },
-          { "text": "Teach me something.", "next": "teachings" }
+          { "stock": "ask-task", "next": "welcome" },
+          { "id": "about-the-village", "next": "welcome_running" },
+          { "stock": "ask-teach", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          "Talk to Reinhard and the Town Crier, then come back to me."
+          {"id": "talk-to-reinhard"}
         ],
         "options": [
           {
-            "text": "I'll do it.",
+            "stock": "quest-accept",
             "grants": [
               {
+                "stock": "good",
                 "kind": "offer_quest",
-                "quest": "village-welcome",
-                "line": "Good."
+                "quest": "village-welcome"
               }
             ]
           }
@@ -54,28 +54,27 @@
       {
         "id": "welcome_running",
         "lines": [
-          "The village?"
+          {"id": "the-village"}
         ],
         "options": [
           {
-            "text": "I talked to Reinhard and the Town Crier.",
+            "id": "i-talked-to-reinhard",
             "grants": [
               {
+                "stock": "good",
                 "kind": "advance_quest",
                 "quest": "village-welcome",
                 "fromStage": "back",
-                "toStage": "known",
-                "line": "Good."
+                "toStage": "known"
               },
               {
                 "kind": "grant_xp",
-                "xp": 150,
-                "line": "Here is your reward."
+                "xp": 150
               }
             ]
           },
           {
-            "text": "I am on it.",
+            "stock": "quest-progress",
             "next": "welcome_on_it"
           }
         ]
@@ -90,56 +89,56 @@
           }
         ],
         "lines": [
-          "Talk to Reinhard and the Town Crier, then come back to me."
+          {"id": "talk-to-reinhard-2"}
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "What do you want to learn?"
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
-            "text": "First Aid",
+            "id": "first-aid",
             "grants": [
               {
+                "id": "ill-teach-you-first-aid",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
-                "requiredLevel": 2,
-                "line": "I'll teach you First Aid."
+                "requiredLevel": 2
               }
             ]
           },
           {
-            "text": "Heal",
+            "id": "heal",
             "grants": [
               {
+                "id": "ill-teach-you-heal",
                 "kind": "teach_skill",
                 "skill": "Heal",
-                "requiredLevel": 3,
-                "line": "I'll teach you Heal."
+                "requiredLevel": 3
               }
             ]
           },
           {
-            "text": "Calm",
+            "id": "calm",
             "grants": [
               {
+                "id": "ill-teach-you-calm",
                 "kind": "teach_skill",
                 "skill": "Calm",
-                "requiredLevel": 10,
-                "line": "I'll teach you Calm."
+                "requiredLevel": 10
               }
             ]
           },
           {
-            "text": "Charm Beast",
+            "id": "charm-beast",
             "grants": [
               {
+                "id": "ill-teach-you-charm-beast",
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
-                "requiredLevel": 10,
-                "line": "I'll teach you Charm Beast."
+                "requiredLevel": 10
               }
             ]
           }

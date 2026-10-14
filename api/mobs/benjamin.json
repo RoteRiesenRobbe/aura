@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          "Hello, stranger. What can I do for you?"
+          {"id": "hello-stranger-what-can-i"}
         ],
         "options": [
           {
-            "text": "Flora sends me to harvest the beets.",
+            "id": "flora-sends-me-to-harvest",
             "next": "flora"
           },
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -49,11 +49,11 @@
           }
         ],
         "lines": [
-          "Ah good, I'm glad she sent some help."
+          {"id": "ah-good-im-glad-she"}
         ],
         "options": [
           {
-            "text": "Can I just pull them out of the ground?",
+            "id": "can-i-just-pull-them",
             "next": "pull"
           }
         ]
@@ -61,13 +61,13 @@
       {
         "id": "pull",
         "lines": [
-          "That won't work. You need to have the Harvest aura active.",
-          "You can only have one active aura at a time. The new auras you learn, you'll find in your spellbook.",
-          "I can teach you the Harvest aura."
+          {"id": "that-wont-work-you-need"},
+          {"id": "you-can-only-have-one"},
+          {"id": "i-can-teach-you"}
         ],
         "options": [
           {
-            "text": "Teach me something.",
+            "stock": "ask-teach",
             "next": "teachings"
           }
         ]
@@ -75,17 +75,17 @@
       {
         "id": "teachings",
         "lines": [
-          "Harvesting is done standing, close to the plant."
+          {"id": "harvesting-is-done-standing"}
         ],
         "options": [
           {
-            "text": "Harvest",
+            "id": "harvest",
             "grants": [
               {
+                "id": "ill-teach-you-harvest-make",
                 "kind": "teach_skill",
                 "skill": "Harvest",
-                "requiredLevel": 1,
-                "line": "I'll teach you Harvest. Make it your active aura and stand close to the beets."
+                "requiredLevel": 1
               }
             ]
           }

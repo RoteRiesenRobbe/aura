@@ -86,8 +86,8 @@ turn-ins, which sit on root (D18).
 | Reinhard *(was `Farmer`)* | `turnip-chore` | offers and turns in; the **Harvest** teaching the objective needs sits behind his root `Teach me something.` row, and the quest brief points at it |
 | Town crier | `village-welcome` | a talk_to target |
 | Town crier | `wolves-on-the-road` | offers it, and turns in **nothing** — his quest node's brief is where the player learns there is a choice at all |
-| City guard | `wolves-on-the-road` | **branch leg A** → `told_militia`, rewards **Taunt** + 400 XP |
-| Shaman | `wolves-on-the-road` | **branch leg B** → `told_shaman`, rewards **Slow** + 400 XP |
+| City guard | `wolves-on-the-road` | **branch leg A** → `told-militia`, rewards **Taunt** + 400 XP |
+| Shaman | `wolves-on-the-road` | **branch leg B** → `told-shaman`, rewards **Slow** + 400 XP |
 | Lampless traveller | `the-lost-lamp` ("The Lost Lamp") | offers and turns in the simple three-stage version (Q4/R3); rewards **Lantern** + 700 XP — ⚑ the turn-in row is the aura's **only source in the world** (L5b; the kobold drops died with Q4) |
 | Reinhard *(was `Farmer`)* | `boars-in-the-field` | offers and turns in (his **second** quest — the first two-offer giver); 6× Boar L2, 180 XP. Generic kill quest (plan-generic-kill-quests.md C1, 2026-08-07); rewards follow the L9 half-level rule |
 | Lamplighter | `dire-wolves-in-the-forest` | offers and turns in; 4× DireWolf L6, 370 XP (C1). The closer EliteWolf was deliberately left a discovery (the ForestSign clue's mob) |

@@ -9,6 +9,12 @@ body {
 
 	font-family: "Inter", Arial, sans-serif;
 	font-size: 1.5rem;
+	// plan-localization.md C4, the +30 % length sweep: German runs longer and
+	// builds long compounds ("Fertigkeitspunkte"). Hyphenation follows the
+	// page's lang (Locale.ts declares it), and a word wider than its box breaks
+	// rather than overflowing. Neither changes anything for text that fits.
+	hyphens: auto;
+	overflow-wrap: break-word;
 	// Every size in the HUD was tuned for stone-age, whose letters are all
 	// capitals. A face with lowercase is taller per em, so the same sizes
 	// overflowed their (rem-sized) panels. Pinning the x-height at 0.4 em

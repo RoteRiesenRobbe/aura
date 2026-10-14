@@ -2,6 +2,7 @@ package mob
 
 import (
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 	"math/rand"
 	"sort"
@@ -2550,16 +2551,16 @@ func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 		// new discovery announces its source (plan-unlock-attribution.md).
 		if m.rand.Float32() < u.Chance && !p.SkillComponent().HasDiscovered(u.Skill.ID) {
 			p.SkillComponent().Discover(u.Skill.ID)
-			p.Client().SendUnlock(uint64(u.Skill.ID), "Dropped by: "+m.dropSourceName())
+			p.Client().SendUnlock(uint64(u.Skill.ID), lang.Message{Key: lang.KeyUnlockDroppedBy,
+				Args: []lang.Arg{lang.MobRef("mob", uint64(m.definition.ID))}, English: "Dropped by: " + m.dropSourceName()})
 		}
 	}
 	// A kill-drop discovery can newly satisfy a recipe (Phase 9).
 	p.ApplyRecipeCascade()
 }
 
-// dropSourceName is the friendly mob name for a "Dropped by: X" unlock label —
-// the CamelCase definition name spaced out (the same derivation the /mobs
-// nameplate catalog uses).
+// dropSourceName is the friendly mob name for a "Dropped by: X" unlock label:
+// the definition's English display name, the one the /mobs catalog serves.
 func (m *Mob) dropSourceName() string {
-	return skills.DeriveDisplayName(m.definition.Name)
+	return m.definition.Display()
 }

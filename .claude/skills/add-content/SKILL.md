@@ -213,6 +213,9 @@ the bottom. Trust the code over the manual if a path has drifted.
 - **Every quest authors `"level"`** (the target player level, ≥ 1; the loader
   hard-fails without it): the level its turn-in XP is priced for. It tints the
   giver's `!` and the quest title (`plan-quest-giver-markers.md`).
+- **Quest and stage ids are slugs** (a-z, 0-9, `-`; the loader refuses
+  `bring_it_back`): they go verbatim into the dotted text keys, and a stage id
+  is persisted in quest progress, so never rename one casually.
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),
@@ -220,6 +223,48 @@ the bottom. Trust the code over the manual if a path has drifted.
   reads `api/` fresh off disk, so it never crashes on an unrecognized field —
   it just silently can't author or validate it, which only surfaces as "why
   didn't the editor warn me about this."
+- **⭐ English lives in `api/lang/en/*.arb`, not in the content JSON
+  (plan-localization.md D27, C5a).** A mob, quest, skill or region file keeps
+  structure and ids only; its text (quest titles, journals, trackers, mob
+  names, dialogue lines, options, grant lines, skill names and descriptions,
+  region titles) is in the English ARB under a dotted key with the ids as
+  authored (D29: `quest.<id>.<stage>.journal`, `mob.<Name>.name`,
+  `conv.<NPC>.<slug>`, ...).
+  The boot REFUSES inline text in a content file and a string with no English,
+  naming file and key. Two ways to write English, one result:
+  1. **the content editor** (`tools/content-editor/`), which writes the JSON and
+     the English ARB together, mints a dialogue line's slug at its first save,
+     moves keys in every locale on a rename (L23), and shows "German owed"
+     after a save; or
+  2. **by hand / by Claude:** write the text INLINE in the JSON as a draft
+     (`"title": "Rats in the Cellar"`, a line as `"Hello."` or
+     `{"text": "Hello."}`), then run `node tools/lang/extract-english.mjs`: it
+     mints slugs (or names the shared phrase whose English matches exactly,
+     D28: `{"stock": "quest_accept"}`), moves the text into the ARB with a
+     translator note, and strips the JSON format-preservingly.
+     `node tools/lang/extract-english.mjs --check` exits 1 if inline text is left.
+  A dialogue slug is FROZEN once saved: rewording keeps it (the German stays
+  attached); only an explicit re-slug in the editor renames it, in every locale.
+- **Every player-visible string is translated (D23).** Write the German into
+  `api/lang/de/<domain>.arb` in the SAME change (Claude drafts, the PO reviews),
+  following `docs/manual-localization-de.md` (du, the glossary,
+  gender-neutral). Text in CODE (an effect type's tooltip line, a server
+  message, a new code list) follows `docs/manual-localization.md`. After checking it, refresh the translated-from records:
+  `cd backend && UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/`;
+  then the same command without `UPDATE_LANG` must pass: it names missing,
+  orphaned, outdated and too-long German keys (and orphaned or note-less
+  English ones). `aurad -lang-status -content ../api` prints the same report as
+  JSON. Text may not contain `{`, `}`, `<` or `>` outside a field's
+  placeholders (`{n}`/`{m}` in trackers): ICU reads them as syntax, and the
+  loader refuses them (L14). **A mob a kill or harvest objective counts needs
+  its plural in its name** (D24): `{count, plural, one {Wolf} other {Wolves}}`
+  (German may use the same shape with its own forms); talk_to/reach objectives
+  need a `tracker` unless their stage has one. Some keys carry a length limit
+  (`x-maxLength`, D30: mob names 26, skill names 30, quest titles 30, region
+  titles 24 [PLACEHOLDER]s), English and German both. There is no allowlist
+  (removed 2026-10-14, PO): an emergency English fix that must ship before its
+  German ships with the German pin red, and the German follows in the next
+  change. `api/lang/` is synced by cp-defs like every content dir.
 
 ## Registry pins — the thing that leaves the suite RED at HEAD
 
