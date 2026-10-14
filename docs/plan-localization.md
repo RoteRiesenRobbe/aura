@@ -2,6 +2,7 @@
 
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
+**⭐ C6 PLANNED 2026-10-14 (PO, D32):** the UI catalog's 311 camelCase keys get the content keys' shape (`hud.respec.button.title`, hyphenated parts). Not built.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -422,7 +423,8 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     The wire carries the ids and the client looks the text up
     (C3).
   - **UI strings** keep their hand-written keys (`settingsLanguage`), named by
-    meaning.
+    meaning. ⚑ **Amended 2026-10-14 (PO, D32):** from C6 they are dotted
+    and hyphenated like content keys (`settings.language.label`).
 
   **The translated-from record catches edits.** Beside each German ARB, a
   generated `<file>.translated-from.json` (named `.source.json` until
@@ -712,6 +714,60 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
   - Not taken: a gender per name and language with ICU `select` (code must
     wire every grammatical fact), Mozilla's Fluent (a format switch, no
     mature Go library). Revisit only if composed sentences become necessary.
+- **D32 - UI keys take the CONTENT KEYS' SHAPE: dotted, hyphenated parts**
+  (✅ **PO 2026-10-14**; amends D20's UI bullet, built in C6).
+  - Why: D29's revision (2026-10-12) moved content keys back to dots after
+    the Weblate round-trip, but it covered only keys built from content ids,
+    so the UI catalog kept D29's earlier identifier style by inertia. Nothing
+    protects the camelCase any more, and about 40 UI keys were named from
+    their first English words in C0b (`hudTheBarAtThe`, `hudMoveWithWasdOr`,
+    `nagNagRegisterButton`), against D20's "named by meaning".
+  - **Shape:** `<area>.<thing>[.<part>]`, the key characters D29 allows.
+    1. The first part names the area, following `features/`: `hud`, `help`,
+       `spellbook`, `account`, `start`, `nag`, `end`, `settings`, `select`,
+       `journal`, `quest`, `conversation`, `lock`, `unlock`, `float`,
+       `tooltip`, `api-error`, … `hud` (69 keys today) splits into `hud`
+       (on-screen chrome), `help` (the "How Aura works" panel) and
+       `spellbook`.
+    2. Parts are lowercase and hyphenated, like content slugs
+       (`conv.Miner.about-the-spiders`). Not taken: camelCase parts
+       (`hud.respec.buttonTitle`), closer to the TS code but a second style
+       beside the content keys.
+    3. An attribute or role is a final part, never a suffix: `.title`,
+       `.placeholder`, `.confirm`, `.heading`, `.body`, `.label`.
+    4. Named by meaning, never by the English's first words.
+    5. My call: no key is a prefix of another (`hud.respec.button.label` +
+       `hud.respec.button.title`, never `hud.respec.button` beside
+       `hud.respec.button.title`), so a nested export (i18next, YAML) stays
+       possible. ARB itself is flat and would not mind.
+  - **Examples:**
+
+    | Today | D32 |
+    | --- | --- |
+    | `settingsLanguageHeading` / `settingsLanguageLabel` | `settings.language.heading` / `settings.language.label` |
+    | `settingsLanguageReloadConfirm` | `settings.language.reload-confirm` |
+    | `hudRadarZoomInTitle` | `hud.radar.zoom-in.title` |
+    | `hudRespecButton` / `hudRespecButtonTitle` | `hud.respec.button.label` / `hud.respec.button.title` |
+    | `hudFocusBar` / `hudXpBar` | `hud.bar.focus` / `hud.bar.xp` |
+    | `hudMoving` / `hudMoveWithWasdOr` | `help.moving.heading` / `help.moving.body` |
+    | `hudFocus` / `hudTheBarAtThe` | `help.focus.heading` / `help.focus.body` |
+    | `accountCreateValue` | `account.create.submit` |
+    | `accountPasswordRecoveryIsNot` | `account.register.no-recovery-note` |
+    | `nagNagRegisterButton` | `nag.register-button` |
+    | `selectContinueBloodlineOf` | `select.continue-bloodline-of` |
+    | `questObjectiveTalkTo` / `questObjectiveKill` | `quest.objective.talk-to` / `quest.objective.kill` |
+    | `lockQuestAtStage` | `lock.quest-at-stage` |
+    | `unlockDroppedBy` | `unlock.dropped-by` |
+    | `apiErrorUsernameTaken` | `api-error.username-taken` |
+    | `ttCosts` / `ttCostsPerCast` | `tooltip.costs` / `tooltip.costs-per-cast` |
+    | `ttStatMaxHealth` / `ttCategoryAura` | `tooltip.stat.max-health` / `tooltip.category.aura` |
+    | `floatImmune` | `float.immune` |
+
+    The full mapping is written at C6 entry, as the rename script's table.
+  - ⚑ `quest.objective.*` shares the `quest.` prefix with content keys. That
+    is safe: the UI catalog and the served content text are separate files
+    and separate lookups (`t()` vs the `/lang` bundle), so a UI key never
+    meets a content key.
 ---
 
 ## 4. The chunks
@@ -1157,6 +1213,59 @@ D24 + D25 + D26. After C5a. ~1 session.
 may carry ICU, `displayNamePlural` removed · ARB: 16 `namePlural` keys merged
 in en + de.
 
+### C6 - UI keys in the content keys' shape (frontend + backend key constants, wire NONE)
+
+D32. After the `main` merge on this branch is committed, as its own commit so
+the rename diff stays readable. ~½ session. No text changes: every English
+and German string keeps its words under its new key.
+
+**Tests first:**
+
+- **vitest** (`src/lang/catalogs.test.ts`): every UI key matches D29's key
+  pattern with D32's shape (lowercase hyphenated parts, at least two parts);
+  no UI key is a prefix of another (D32 rule 5). The existing pins (key-set
+  equality, key-usage scan, notes, translated-from record, `x-maxLength`)
+  run unchanged against the renamed files.
+- **Go:** the existing pin that every server key constant has a template in
+  `en.arb` (`lang/message.go`) runs against the new names.
+
+**Work:**
+
+1. **The mapping:** a table old → new for all 311 keys, written at entry by
+   hand for the ~40 first-words keys (rule 4) and mechanically for the rest,
+   reviewed before the run. It lives in the throwaway rename script, not in
+   the repo (the D29 migration's precedent).
+2. **The rename, one script run:** `frontend/src/lang/en.arb` and `de.arb`
+   (each `@key` block follows its key; `formatArb` keeps the canonical
+   layout), `de.translated-from.json`, the UI allowlist; every `t('…')`,
+   `tKey('…')` and `tParts('…')` literal in TS (193 calls in 19 files on
+   2026-10-14); every `data-i18n`, `data-i18n-rich` and `data-i18n-attr`
+   value in the HTML partials (6 files).
+3. **Keys the usage scan does not see** (it reads `t('…')`, `tParts('…')`
+   and the partials only): `API_ERROR_KEYS` in `AccountsApi.ts:59` (a map of
+   key literals read through `tKey`) and the server keys reaching
+   `WireText.ts:105`. Survey `tKey(` again at entry (2026-10-14: those two
+   only; the conversation's `textKey`/`replyKey` are content keys, not UI).
+4. **Server keys:** the 11 constants in `backend/pkg/aura/lang/message.go`
+   (`unlockDroppedBy` → `unlock.dropped-by`, …). They travel on the wire in
+   `EntityMessage.key`; an older client receiving a new key has no template
+   and shows the English `message` (D10, D14), so nothing breaks.
+5. **Harnesses:** legs that assert UI keys (`i18n-de.mjs`, `i18n-pseudo.mjs`
+   if any) read the new names.
+6. **Docs:** D32's table becomes a pointer to the area list; the
+   `add-content` skill and `manual-localization-de.md` examples use the new
+   names.
+
+**Verify:** vitest · typecheck · Go `-count=1 ./pkg/aura/lang/...` and the
+full suite · `i18n-de.mjs` · `i18n-pseudo.mjs` (no raw key on screen in en, de
+or pseudo) · `aurad -lang-status` unchanged (UI keys are not in it) · a quick
+look in game, en and de: HUD, help panel, settings, character select, a
+tooltip, an unlock banner.
+
+**Schema:** DB NONE · FlatBuffers NONE (`EntityMessage.key` carries the new
+strings in the same field) · UI catalog: 311 keys renamed in en + de and the
+record.
+
 ---
 
 ## 5. Landmines
@@ -1351,6 +1460,7 @@ is the full German playthrough.
 | C4 tooltips + polish | ~1 session; template rework + length sweep + PO playthrough | DB NONE · wire NONE |
 | C5a English into ARB | ~1-1.5 sessions; the extract tool (= the migration) + the loader seam + the editor reading and writing the ARB + key moves; English byte-identical | DB NONE · FlatBuffers NONE (line ids carry full keys) · `/lang`: every content key renamed (D29) · content: text leaves mobs, quests, skills, `regions.json`; dialogue lines `{"id"}` with slug ids; `stock.json` deleted; `api/lang/en/` authored (D27) |
 | C5b mob names as ICU + editable English + "German owed" | ~1 session; 16 plural merges + the singular helper + the client formatter + editor fields, validation and `-lang-status` | DB NONE · FlatBuffers NONE · `/mobs`: the name may carry ICU, `displayNamePlural` removed · ARB: 16 `namePlural` keys merged (D24) |
+| C6 UI keys in the content keys' shape | ~½ session; one rename script (311 keys, 193 TS calls, 6 partials, 11 server constants) + the shape pin | DB NONE · FlatBuffers NONE · UI catalog keys renamed (D32) |
 
 Total new machinery is deliberately small: one client i18n module (on one
 library, `intl-messageformat`, D16), one overlay loader, one en-source
