@@ -517,9 +517,55 @@
   "@journal.label": {
     "description": "HUD: text of the <span> element in #journal in #gameUI."
   },
+  "journal.objective.done": "{line} ✓",
+  "@journal.objective.done": {
+    "description": "A finished talk_to objective line: the line plus a check mark.",
+    "placeholders": {
+      "line": {"type": "String", "description": "The objective line", "example": "Talk to Hendrik"}
+    }
+  },
+  "journal.objective.harvest": "{n, number}/{m, number} {mob} harvested",
+  "@journal.objective.harvest": {
+    "description": "Quest tracker line for a harvest objective; as journal.objective.kill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "n": {"type": "int", "description": "Harvested so far", "example": "2"},
+      "m": {"type": "int", "description": "Required", "example": "5"},
+      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Turnips"}
+    }
+  },
+  "journal.objective.kill": "{n, number}/{m, number} {mob} slain",
+  "@journal.objective.kill": {
+    "description": "Quest tracker line for a kill objective. {mob} is the mob name already in its form for the required count {m} (each language authors its plural forms in the mob name, D24). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
+    "placeholders": {
+      "n": {"type": "int", "description": "Killed so far", "example": "3"},
+      "m": {"type": "int", "description": "Required", "example": "8"},
+      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Wolves"}
+    }
+  },
+  "journal.objective.reach": "Go to {place}",
+  "@journal.objective.reach": {
+    "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
+    "placeholders": {
+      "place": {"type": "String", "description": "Place name", "example": "Brunnstedt"}
+    }
+  },
+  "journal.objective.talk-to": "Talk to {name}",
+  "@journal.objective.talk-to": {
+    "description": "Fallback tracker line for a talk_to objective (content normally authors its own line). {name} is not inflected.",
+    "placeholders": {
+      "name": {"type": "String", "description": "NPC name", "example": "Hendrik"}
+    }
+  },
   "journal.opening": "Opening the journal…",
   "@journal.opening": {
     "description": "Journal status while the quest catalog loads."
+  },
+  "journal.quest-complete": "Quest complete: {quest}",
+  "@journal.quest-complete": {
+    "description": "Banner when a quest is finished.",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, already localized", "example": "Wolves on the Road"}
+    }
   },
   "journal.tab.completed": "Completed",
   "@journal.tab.completed": {
@@ -633,52 +679,6 @@
   "player.level-up": "Level up!",
   "@player.level-up": {
     "description": "Floating text over the player on level up."
-  },
-  "quest.complete": "Quest complete: {quest}",
-  "@quest.complete": {
-    "description": "Banner when a quest is finished.",
-    "placeholders": {
-      "quest": {"type": "String", "description": "Quest title, already localized", "example": "Wolves on the Road"}
-    }
-  },
-  "quest.objective.done": "{line} ✓",
-  "@quest.objective.done": {
-    "description": "A finished talk_to objective line: the line plus a check mark.",
-    "placeholders": {
-      "line": {"type": "String", "description": "The objective line", "example": "Talk to Hendrik"}
-    }
-  },
-  "quest.objective.harvest": "{n, number}/{m, number} {mob} harvested",
-  "@quest.objective.harvest": {
-    "description": "Quest tracker line for a harvest objective; as quest.objective.kill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
-    "placeholders": {
-      "n": {"type": "int", "description": "Harvested so far", "example": "2"},
-      "m": {"type": "int", "description": "Required", "example": "5"},
-      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Turnips"}
-    }
-  },
-  "quest.objective.kill": "{n, number}/{m, number} {mob} slain",
-  "@quest.objective.kill": {
-    "description": "Quest tracker line for a kill objective. {mob} is the mob name already in its form for the required count {m} (each language authors its plural forms in the mob name, D24). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",
-    "placeholders": {
-      "n": {"type": "int", "description": "Killed so far", "example": "3"},
-      "m": {"type": "int", "description": "Required", "example": "8"},
-      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Wolves"}
-    }
-  },
-  "quest.objective.reach": "Go to {place}",
-  "@quest.objective.reach": {
-    "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
-    "placeholders": {
-      "place": {"type": "String", "description": "Place name", "example": "Brunnstedt"}
-    }
-  },
-  "quest.objective.talk-to": "Talk to {name}",
-  "@quest.objective.talk-to": {
-    "description": "Fallback tracker line for a talk_to objective (content normally authors its own line). {name} is not inflected.",
-    "placeholders": {
-      "name": {"type": "String", "description": "NPC name", "example": "Hendrik"}
-    }
   },
   "save.failing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",
   "@save.failing": {

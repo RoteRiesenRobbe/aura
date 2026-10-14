@@ -62,7 +62,7 @@ const (
 	KeyUnlockTaughtBy    = "unlock.taught-by"
 	KeyUnlockCheat       = "unlock.cheat"
 	KeyJournalUpdated    = "journal.updated"
-	KeyQuestComplete     = "quest.complete"
+	KeyQuestComplete     = "journal.quest-complete"
 	KeyWarlordFallen     = "warlord.fallen"
 	KeyWarlordReturned   = "warlord.returned"
 	KeySaveResumed       = "save.resumed"

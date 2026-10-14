@@ -129,6 +129,14 @@ describe('localization catalogs', () => {
         expect(keys.filter(k => keys.some(other => other.startsWith(k + '.')))).toEqual([]);
     });
 
+    // The no-prefix rule above sees only this file. A UI key under a content
+    // root (quest.<id>…, mob.<Name>…) could collide with a content key nobody
+    // checks against, so the content roots are off limits here.
+    it('no UI key starts with a content key root (D32)', () => {
+        const contentRoots = new Set(['quest', 'mob', 'skill', 'region', 'zone', 'conv', 'stock']);
+        expect(Object.keys(messages(all[0].en)).filter(k => contentRoots.has(k.split('.')[0]))).toEqual([]);
+    });
+
     it('de covers every en key (D13; no allowlist since 2026-10-14)', () => {
         const missing: string[] = [];
         for (const p of all) {

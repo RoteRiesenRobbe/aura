@@ -173,20 +173,20 @@ export function objectiveLine(questId: string, o: ObjectiveData): string {
     if (line === null) {
         switch (o.kind) {
             case AuraApi.QuestObjectiveKind.TalkTo:
-                line = t('quest.objective.talk-to', {name: mobName(o.target)});
+                line = t('journal.objective.talk-to', {name: mobName(o.target)});
                 break;
             case AuraApi.QuestObjectiveKind.Reach:
-                line = t('quest.objective.reach', {place: PLACES.get(o.region)?.title ?? o.region});
+                line = t('journal.objective.reach', {place: PLACES.get(o.region)?.title ?? o.region});
                 break;
             case AuraApi.QuestObjectiveKind.Harvest:
-                line = t('quest.objective.harvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
+                line = t('journal.objective.harvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
                 break;
             default:
-                line = t('quest.objective.kill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
+                line = t('journal.objective.kill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
         }
     }
     if (!o.stage && o.kind === AuraApi.QuestObjectiveKind.TalkTo && o.done) {
-        line = t('quest.objective.done', {line});
+        line = t('journal.objective.done', {line});
     }
     return line;
 }

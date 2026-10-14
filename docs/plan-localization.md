@@ -3,7 +3,7 @@
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (not merged; §10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
-**⭐ C7 + C8 PLANNED 2026-10-14 (PO), not built:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale). The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
+**⭐ C7 + C8 + C9 PLANNED 2026-10-14 (PO), not built:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -762,7 +762,7 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
     | `accountPasswordRecoveryIsNot` | `account.register.no-recovery-note` |
     | `nagNagRegisterButton` | `nag.register-button` |
     | `selectContinueBloodlineOf` | `select.continue-bloodline-of` |
-    | `questObjectiveTalkTo` / `questObjectiveKill` | `quest.objective.talk-to` / `quest.objective.kill` |
+    | `questObjectiveTalkTo` / `questObjectiveKill` | `journal.objective.talk-to` / `journal.objective.kill` |
     | `lockQuestAtStage` | `lock.quest-at-stage` |
     | `unlockDroppedBy` | `unlock.dropped-by` |
     | `apiErrorUsernameTaken` | `api-error.username-taken` |
@@ -772,10 +772,15 @@ and D22's form of address, which the PO ruled 2026-10-07, §8):
 
     Built in C6 (2026-10-14): the table shows the names as built; the
     catalog (`frontend/src/lang/en/frontend.arb`) is the record of all 311.
-  - ⚑ `quest.objective.*` shares the `quest.` prefix with content keys. That
+  - ⚑ ~~`quest.objective.*` shares the `quest.` prefix with content keys. That
     is safe: the UI catalog and the served content text are separate files
     and separate lookups (`t()` vs the `/lang` bundle), so a UI key never
-    meets a content key.
+    meets a content key.~~ **Revised 2026-10-14:** safe at runtime, but rule 5
+    is checked only inside the UI file, so a quest id `complete` or
+    `objective` would have collided unnoticed. The UI's `quest.*` keys moved
+    to `journal.quest-complete` and `journal.objective.*`, and a vitest pin
+    now refuses a UI key whose first part is a content root (`quest`, `mob`,
+    `skill`, `region`, `zone`, `conv`, `stock`).
 ---
 
 ## 4. The chunks
@@ -1370,6 +1375,78 @@ devtools: the game comes up in English.
 
 **Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
 
+### C9 - spreadsheet round-trip for translations (tools, wire NONE)
+
+Planned 2026-10-14 (PO). ~½ session. Independent of C7 and C8. A bridge to
+Google Sheets (or any spreadsheet) while the ARBs stay the source of truth;
+no translation platform needed (§9), and its CSV shape carries over to
+Weblate or Crowdin, which both import CSV.
+
+**The tool:** `tools/lang/sheet.mjs`, plain Node, no Google API (manual
+File → Import / Download as CSV; the Sheets API is worth it only if the
+round-trip becomes frequent).
+
+- `export` with no argument writes one CSV per non-English locale found under
+  `api/lang/` and `frontend/src/lang/` (today `de.csv`); `export --locale de`
+  writes that one. One sheet per language, so each translator gets their own.
+- Columns: `file` (`mobs`, `quests`, `skills`, `regions`, `frontend`) · `key` ·
+  `en` · `<locale>` (the header IS the locale code) · `note` (the `@key`
+  description) · `maxLength` (`x-maxLength`) · `status` (`missing` / `outdated`
+  / `ok`). Every key of both trees, content and UI, sorted like the ARB.
+- `import <file.csv>` writes every locale column it finds (the locale read
+  from the header, never the file name: a Sheets download renames the file),
+  into `<tree>/<locale>/<file>.arb` through `formatArb` (`content-text.mjs`), so
+  the canonical layout, UTF-8 and the trailing newline hold. Only translation
+  columns are written: an edited `en` cell is reported and ignored (English is
+  authored in the ARBs or the content editor, D27).
+
+**Rules:**
+
+- **Rows match by `key`, never by position** (sorting and filtering the sheet
+  is safe). An unknown key, a duplicate key or a `file` that disagrees with
+  the key's home refuses the import, naming the rows; nothing is written.
+- **An empty cell is "no translation"**: the key is left out of the ARB (the
+  English fallback, D13), never written as `""`.
+- **A new locale works:** export for a locale with no folder gives every row
+  `missing`; import creates its ARBs with the `@@locale` header. Import does
+  NOT make it playable (`lang.Served`, `SUPPORTED_LOCALES` and the picker stay
+  a deliberate step).
+- **`status` is computed from the files** (`missing`: no key in the locale's
+  ARB; `outdated`: its `translated-from.json` records other English), the same
+  rule `aurad -lang-status` (content) and `catalogs.test.ts` (UI) apply. Import
+  never touches `translated-from.json`: that stays the review step
+  (`UPDATE_LANG=1`, D20).
+- **ICU is checked at import** with the target locale's plural categories
+  (`Intl.PluralRules`; Polish needs `one`/`few`/`many`/`other`), plus the
+  arguments matching English (L14), naming bad rows. The pins re-check after.
+- ⚑ **A stale sheet overwrites.** Import writes what its columns hold, so a
+  sheet exported before newer edits reverts them. Per-language sheets keep it
+  rare and the git diff shows it; if it bites, import refuses rows whose
+  translation changed in the repo since the export (an export timestamp per
+  row, or the export-time text in a hidden column).
+
+**Spreadsheet traps, written into the tool's `--help`:** on import into Sheets
+untick "Convert text to numbers, dates, and formulas" (else `3/8` becomes a
+date, a leading `=`/`+` a formula); a leading `'` is swallowed by Sheets as a
+text marker. The CSV is RFC 4180 (quoted cells, doubled quotes, newlines
+inside cells); a small parser in the tool, no dependency.
+
+**Tests first** (`tools/lang/sheet.test.mjs`, beside `content-text.test.mjs`):
+a round-trip with no edits changes no file byte · a reordered and filtered
+sheet imports the same · an unknown key, a duplicate key and a broken ICU
+plural each refuse with the row named · an empty cell removes nothing it
+should keep and writes no `""` · a two-locale sheet writes both · the CSV
+parser on quotes, commas and newlines in cells · `status` matches
+`aurad -lang-status`'s `de` for the content keys.
+
+**Verify:** export, edit three German cells in Google Sheets (one plural, one
+with a comma, one with a newline), download, import: the git diff is exactly
+those three · vitest (`catalogs.test.ts`) · Go
+`TestLangGermanIsCompleteAndCurrent` · `aurad -lang-status`.
+
+**Schema:** DB NONE · FlatBuffers NONE · ARB files written only by import, in
+the canonical layout.
+
 ---
 
 ## 5. Landmines
@@ -1567,6 +1644,7 @@ is the full German playthrough.
 | C6 UI keys in the content keys' shape | ~½ session; one rename script (311 keys, 193 TS calls, 6 partials, 11 server constants) + the shape pin | DB NONE · FlatBuffers NONE · UI catalog keys renamed (D32) |
 | C7 notes out of the client bundle | ~¼ session; one webpack loader + one rule | DB NONE · FlatBuffers NONE · build output only |
 | C8 UI catalogs on demand (trigger: a third locale) | ~½ session; `Locale.ts` dynamic import + the start-screen timing | DB NONE · FlatBuffers NONE |
+| C9 spreadsheet round-trip | ~½ session; `tools/lang/sheet.mjs` export/import + a CSV parser + tests | DB NONE · FlatBuffers NONE · ARBs written by import only |
 
 Total new machinery is deliberately small: one client i18n module (on one
 library, `intl-messageformat`, D16), one overlay loader, one en-source

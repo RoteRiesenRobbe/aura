@@ -114,7 +114,7 @@ describe('pseudo inside plural branches (L21)', () => {
     it('accents the chosen branch of a plural message', () => {
         setLocaleForTest(PSEUDO_LOCALE);
         try {
-            expect(t('quest.objective.kill', {n: 3, m: 8, mob: 'Wolves'})).toMatch(/^\[3\/8 Ŵóļṽéš šļáíñ·+\]$/);
+            expect(t('journal.objective.kill', {n: 3, m: 8, mob: 'Wolves'})).toMatch(/^\[3\/8 Ŵóļṽéš šļáíñ·+\]$/);
         } finally {
             setLocaleForTest('en');
         }
