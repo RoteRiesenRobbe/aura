@@ -45,7 +45,7 @@ export class AudioSettings {
     public masterMuted: boolean = true;
     public masterVolume: number = 0.7;
     public enableBackgroundAudio: boolean = false;
-    public musicVolume: number = 1.0;
+    public musicVolume: number = 0.5;
 }
 
 /** How much skill VFX dressing draws (plan-skill-vfx.md §7.3, §12d.1). */

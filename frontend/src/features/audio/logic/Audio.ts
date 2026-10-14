@@ -11,6 +11,7 @@ GameSettingChangedEvent.subscribe(payload => {
     const setting = payload.path.substring('audio.'.length);
     switch (setting) {
         case 'masterMuted':
+            muteToggles.forEach(toggle => (toggle.checked = payload.newValue as boolean));
             if (payload.newValue) {
                 sound.muteAll();
             } else {
@@ -22,6 +23,24 @@ GameSettingChangedEvent.subscribe(payload => {
             break;
     }
 });
+
+const muteToggles: HTMLInputElement[] = [];
+
+/**
+ * Adopt a checkbox as a "Mute all" switch. There is more than one (settings
+ * panel + account screens) and they all edit `audio.masterMuted`, so this
+ * module keeps every copy showing the current value.
+ */
+export function registerMuteToggle(toggle: HTMLInputElement): void {
+    if (!toggle || muteToggles.indexOf(toggle) !== -1) {
+        return;
+    }
+    muteToggles.push(toggle);
+    toggle.checked = GameSettings.get().audio.masterMuted;
+    toggle.addEventListener('change', () => {
+        GameSettings.get().audio.masterMuted = toggle.checked;
+    });
+}
 
 function setupBackgroundAudio() {
     sound.disableAutoPause = true;

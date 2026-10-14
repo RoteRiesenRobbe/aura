@@ -72,6 +72,10 @@
   "@account.fullscreen": {
     "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
   },
+  "account.mute-all": "Mute all",
+  "@account.mute-all": {
+    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
+  },
   "account.have-account": "Already have an account?",
   "@account.have-account": {
     "description": "Account screens: text of the <p> element in #selectLoginPrompt in #characterSelect."

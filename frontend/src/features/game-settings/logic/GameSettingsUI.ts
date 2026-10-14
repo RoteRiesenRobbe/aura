@@ -8,6 +8,7 @@ import * as AccountSettings from './AccountSettings';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {BackendState} from '../../backend/logic/IBackend';
 import * as Locale from '../../localization/logic/Locale';
+import {registerMuteToggle} from '../../audio/logic/Audio';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;
@@ -89,11 +90,7 @@ function setupLanguage() {
 }
 
 function setupAudioSettings() {
-    setupToggle(
-        '#muteAllToggle',
-        () => gameSettings.audio.masterMuted,
-        value => (gameSettings.audio.masterMuted = value),
-    );
+    registerMuteToggle(rootElement.querySelector('#muteAllToggle'));
 
     setupRange(
         '#masterVolume',

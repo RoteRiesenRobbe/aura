@@ -2,6 +2,7 @@ import '../assets/accountScreens.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {preventInputPropagation} from '../../../common/logic/Utils';
 import {registerFullscreenToggle} from '../../../full-screen/logic/FullScreen';
+import {registerMuteToggle} from '../../../audio/logic/Audio';
 
 /**
  * The DOM shell for the pre-game account screens
@@ -30,6 +31,8 @@ function onDomReady() {
     // preventDefaults — so the checkbox still toggles and still fires `change`.)
     registerFullscreenToggle(element<HTMLInputElement>('creationFullscreenToggle'));
     registerFullscreenToggle(element<HTMLInputElement>('selectFullscreenToggle'));
+    registerMuteToggle(element<HTMLInputElement>('creationMuteToggle'));
+    registerMuteToggle(element<HTMLInputElement>('selectMuteToggle'));
 
     isDomReady = true;
     domReadyCallbacks.forEach((callback) => callback());
