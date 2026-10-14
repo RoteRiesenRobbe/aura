@@ -1681,6 +1681,21 @@ tooltip fragments).
 - **`plan-ui-font.md` inherits a hard requirement** (D4): the future face must
   cover the shipped locales' scripts (de: Latin + umlauts + ß) - recorded here
   so the font pass reads it before picking.
+  ⭐ **Entry check for any locale beyond de (2026-10-14, PO):** Inter (shipped
+  2026-10-11, `6043a060`) is bundled as the fontsource `latin` subset ONLY,
+  with no `unicode-range` (`user-interface/assets/fonts/inter/`). Its cmap,
+  read 2026-10-14 in all five files: a ä ß yes; Ł ł (Latin Extended-A), Greek
+  and Cyrillic NO. A missing glyph falls back per letter to the next face
+  (`Arial` in Pixi, `TextDisplay.ts`; Arial/sans-serif in HTML), which is close
+  enough that it reads as fine in isolation ("Ζωή", "Дмитрий" render wholly in
+  Arial) but mixes faces inside a word ("Łukasz": the Ł is Arial). Today that
+  touches only player names (the name guard accepts any precomposed letter);
+  a Polish, Czech or Turkish locale would mix faces in every sentence. The fix,
+  before such a locale ships (or earlier for names): add fontsource's
+  `latin-ext` files (and `greek` / `cyrillic` if names should match) as more
+  `@font-face` rules with each subset's `unicode-range`, so a browser fetches a
+  subset only when a page uses one of its letters. Per weight and style shipped
+  (400, 400 italic, 600, 700, 700 italic). DB/wire NONE.
 - D6–D15 (and D21–D23, added 2026-10-06; D20 was ruled 2026-10-07) are my
   calls, not rulings. The one worth a second look: D11 (reload-on-switch,
   which backlog §52's teardown work would later soften for free). D9 was
