@@ -10,6 +10,15 @@ rulings). **Schema: DB NONE · conf NONE · wire NONE (L1, L3) / +2 appended
 fields (L2) · content +1 optional effect key, +1 optional prop key (L2),
 profile colours (L3).** Line refs as of `38bd612c`. Ledger: §9.
 
+**Round 2 (L4-L7): DESIGNED 2026-10-15, PO "I like all of them", nothing built**
+(§10). A review after the rebase onto main: L4 removes a colour pop the
+doubled campfire glow brings back and colours the sight floor correctly, L5
+gives every light an adjustable SHAPE (white heart, fade start, falloff curve,
+tunable live from the console), L6 eases lights instead of snapping them, L7
+adds flicker to fire. **Schema: DB NONE · conf NONE · wire NONE (L4-L6) / +2
+appended fields (L7) · content +1 optional effect key, +1 optional prop key
+(L7).** Line refs in §10 as of `a5066f7b`.
+
 The performance knobs on the same layer (filter resolution, `filterArea`,
 culling) are **not** in this plan: they were `docs/cleanup.md` entry 5, CLOSED
 2026-10-13 as measured and not worth it (§9's ledger notes).
@@ -126,8 +135,8 @@ playtest-1 Pass C removed (`DarknessOverlay.ts:36-44`, GDD §6.5). Hence:
 
 - **Shadows / walls blocking light.** That is `plan-line-of-sight.md`, parked
   and not ruled.
-- **Normal maps**, light flicker. Coloured darkness only on partial
-  darkness (D7).
+- **Normal maps.** Coloured darkness only on partial darkness (D7). (Light
+  flicker was out of L1-L3; round 2 takes it as L7, §10.)
 - **Editor fields for props and atmosphere profiles.** The content editor
   edits neither (Q4's rule: a field only where the editor already edits the
   thing).
@@ -335,3 +344,204 @@ reads.
   ≈ 0.03 ms in daylight; the whole layer 0.04 ms at DPR 1, 0.1-0.2 ms at DPR 2.
   Filter resolution 0.5 measured nothing and was reverted.
 - **PO in-game look: OK** (2026-10-13). Nothing owed but the merge.
+- **Rebased onto main 2026-10-15** (`83d02042`, `a5066f7b`): one conflict,
+  `docs/README.md`'s index line. Main had not touched `Character` or `Mob`,
+  so `light_color` stays last on both. `go build` + `go vet` clean, Go
+  skills/codec/world/model/cmd-aurad green bar the known C1b prop pin, tsc
+  clean, vitest 1679/0.
+
+---
+
+## 10. Round 2 - L4-L7 (designed 2026-10-15)
+
+A review of the built branch found two defects the colour introduced (D8, D9)
+and five improvements. The PO took all of them ("I like all of them"), was
+least convinced by a white light centre on its own, and asked for it to be
+combined with the softer falloff (D10). Order: L4 → L5 → L6 → L7. L4 comes
+first because the campfire glow should look right before anyone tunes a
+shape or a colour against it, and L5 before L6/L7 so that one in-game look
+session tunes colours and shape together.
+
+All numbers below are [PLACEHOLDER].
+
+### 10.1 Design decisions
+
+**D8. A campfire draws ONE light, the static glow** (L4, a defect). Every
+campfire draws its static glow (`loadZone`, `DarknessOverlay.ts:226`) and,
+once it is in interest range, its wire light on top (the note at
+`DarknessOverlay.ts:301-304`). Two white lights screen to white, so L1 could
+not show it. Two COLOURED lights do not: `1-(1-c)²` lifts `#ffb060`'s core
+from (1, .69, .38) to (1, .90, .61). So a campfire reads deep orange at the
+screen edge and turns pale yellow when it streams in, and the PO's 2026-10-13
+look most likely saw the pale one (§9's R/B 1.77 sits near the doubled
+value). The fix: the client draws no wire light for an entity whose
+`dwellRadius > 0` (a respawn anchor, which is exactly what `zone.bindPoints`
+places glows for). Identity, never position: a player standing beside the
+fire keeps their own light. `isHidden` is unaffected (the static circle
+already answers for the pocket). ⚑ Removing the doubling makes campfires
+deeper orange and darker, so the campfire colour likely wants re-tuning in
+L5's look session (content only).
+
+**D9. Sight takes D5's rule: the bigger of light and sight decides the
+colour** (L4, a defect). The own hole is `max(wire, sight)`
+(`applyRadius`, `DarknessOverlay.ts:419`) but always carries the wire colour,
+so a small Torch in a high-`sight` profile (Canopy, sight 2) tints everything
+the player can see, not just what the torch lights. Sight is eyes, not a
+light: when sight wins the radius the own light draws white, when the wire
+light wins it draws the wire colour. That is D5 ("the colour of the light
+that wins the radius") extended to sight. L6's easing smooths the change.
+
+**D10. One adjustable light SHAPE, three numbers** (L5, the PO's
+combination of "white centre" and "softer falloff"). Every light, static and
+wire, draws with one global shape:
+
+| Knob | Meaning | Default (= today) |
+| --- | --- | --- |
+| `heart` | fraction of the radius that stays WHITE before the colour comes in | 0 |
+| `core` | fraction of the radius fully lit before the fade starts (today's `LIGHT_CORE_FRACTION`) | 0.55 |
+| `curve` | the fade's shape, 0 = linear (today), 1 = smoothstep, blended between | 0 |
+
+- **Two sprites per light**: the coloured glow as today, plus a WHITE heart
+  sprite on top drawn with the same texture at `heart` × the light's radius,
+  also screened. Screen of white over a colour lerps it toward white by the
+  heart's alpha, so the heart's soft edge fades white into the colour by
+  construction. A tint colours the whole sprite and cannot leave a white
+  centre, which is why it is two sprites and not one. `heart` 0 hides the
+  heart sprite (`visible = false`), so the default costs nothing.
+- **The curve lives in the cached texture** (`texture`,
+  `DarknessOverlay.ts:600`): a canvas gradient interpolates linearly between
+  stops, so a curved fade is the same gradient with ~16 stops sampled from
+  the curve. No per-frame cost; the cache key gains the curve.
+- **Tunable live**: `darkness.lightShape({heart, core, curve})` on the
+  existing console handle (`BrowserConsole.ts:119`), which rebuilds the
+  textures and re-skins every light on screen. The PO tunes by eye in a cave;
+  the chosen values go back into `DarknessVisuals` as [PLACEHOLDER].
+- **One shape for every light.** A per-source shape (a whiter Lantern than a
+  fire) only if one shape turns out not to fit (YAGNI).
+- **Gameplay unaffected**: `isHidden` reads radii, never the shape.
+- **Item 2's fallback stays open**: if lit ground reads too dark under the
+  colours after L4, the PO may prefer paler colours (content) over a heart;
+  `heart` 0 then simply stays.
+
+**D11. Wire lights EASE, never snap** (L6). Today `setLightRadius` sets the
+size and tint in one frame, so turning a Lantern on or off, or switching
+between two lit auras, pops; a lit mob entering view pops in, and one dying
+vanishes.
+
+- Radius and colour ease over `LIGHT_RAMP_MS` (300 ms) with the existing
+  `Ramp` (`regions/logic/Ramp.ts`, constant duration), colour as an RGB lerp
+  on a progress ramp of its own (a colour can change at an unchanged radius).
+- A new light fades IN (alpha 0 → 1); a removed one (radius 0, the entity
+  leaving view, dying) fades OUT where it last stood and is then destroyed.
+- ⛔ `isHidden` reads the TARGET, never the drawn value: the wire radius
+  (own light: `max(wire, eased sight)`, as today), and a fading-out light no
+  longer counts. Nameplates change at exactly the moment they do today.
+- Static lights never change and are not eased. A zone swap (`clear`) stays
+  instant, as the sight ramp's own note there already requires.
+- Pause-safe for free: `update` runs from `PrerenderEvent`, behind the loop's
+  `paused` guard.
+
+**D12. Fire flickers** (L7, needs the wire).
+
+- **Content**: optional `flicker: true` on a `light_aura` effect, optional
+  `lightFlicker: true` on a light prop (beside `lightFraction`/`lightColor`;
+  refused without `lightFraction`, like `lightColor`). Absent = steady.
+  Content editor: the effect key gets an `EFFECT_PRESENTATION` entry (Q4's
+  rule), props none.
+- **Wire**: `light_flicker:bool = false` appended LAST to `Character` and
+  `Mob`; the flag of the effect that won the radius (D5, so `Light()` returns
+  it with the colour). A separate bool rather than packing into
+  `light_color`'s spare top byte: plainer, and it costs no bytes when off.
+- **Sources** (proposed): campfire, camp, Torch (passive), torch prop,
+  Wildfire, fire elemental, fire totem. Steady: Lantern, Omni rigs.
+- **Draw**: radius ±`FLICKER_SIZE` (3 %) and alpha ±`FLICKER_ALPHA` (6 %)
+  from smooth 1-D value noise at ~4 Hz, phase seeded per light (id, or
+  position for a static one) so neighbouring fires never pulse together.
+  Multiplies on top of D11's eased radius; the heart (D10) flickers with
+  its light.
+- ⛔ Presentation only: `isHidden` ignores it (D11's "read the target" rule
+  already guarantees this), the server's map fog never sees it.
+
+### 10.2 The chunks
+
+**L4 - one colour per light** (client only; D8, D9).
+
+- `EntityManager.ts:212`: skip `setLightRadius` (and remove any light
+  already drawn) when the entity's `dwellRadius > 0`. ⚑ First confirm every
+  `dwellRadius > 0` entity sits on a `zone.bindPoints` entry, or it would
+  lose its only light.
+- `DarknessOverlay.ts` `applyRadius` (419): the own light's tint is white
+  while sight wins the radius, the wire colour otherwise. The colour must be
+  stored on `LightSource` beside `wireRadiusPx` for this.
+- Exit: pixels, see 10.3.
+
+**L5 - the light shape** (client only; D10).
+
+- `DarknessVisuals`: `LIGHT_HEART_FRACTION` (0), `LIGHT_CORE_FRACTION`
+  (0.55), `LIGHT_CURVE` (0).
+- `texture` (600): sampled stops for the curve; key gains the curve.
+- `lightSprite` (402), `punchStaticLight` (340), `applyRadius` (419),
+  `removeLight` (486): the heart sprite is created, sized, moved and
+  destroyed with its light.
+- `darkness.lightShape(...)` on the console handle.
+- Then the PO's look session: shape and every L2 colour, in a cave.
+
+**L6 - easing** (client only; D11).
+
+- `LightSource` gains a radius ramp, a colour from/to + progress ramp and a
+  fade state; `update` (431) advances them; `isHidden` (504) reads the
+  target radius instead of `sprite.width`.
+
+**L7 - flicker** (content + wire + server + client + editor; D12).
+
+- Go: `LightParams.Flicker`, `Light()` (`component.go:80`, `:794`) returns
+  it, `LightFlicker()` on both entity interfaces and implementations, the
+  codec writes it; prop loader accepts and validates `lightFlicker`.
+- `server.fbs`: `light_flicker` appended last to `Character` and `Mob`,
+  regenerate both bindings, clear the webpack cache
+  ([[project-webpack-cache-stale-bindings]]).
+- Vocabulary regen + `EFFECT_PRESENTATION` entry (`smoke.mjs` fails
+  without it).
+- Content: the sources in D12, in `api/` and the `backend/pkg/api/` copy by
+  hand ([[project-no-make-on-windows-box]]).
+- Client: unmarshal, `setLightRadius` takes the flag, static lights read it
+  from `campfire-aura.json` and the prop file.
+- German: none, no strings.
+
+### 10.3 Test strategy
+
+- **L4 pixels** (`l1-lightmap.mjs`, a new leg): a campfire's core is the
+  same colour with its wire entity in range and out of it (today it pales);
+  a light-less player in a sight-2 profile draws a white hole, and with a
+  light larger than sight draws its colour. Vitest: the sight-vs-light
+  colour rule as a pure function.
+- **L5**: at the defaults, `l1-lightmap.mjs parity` and `colour` reproduce
+  their current numbers EXACTLY (the defaults are today's picture). Vitest:
+  the curve sampler (0 = linear stops, 1 = smoothstep). Pixels at a heart >
+  0: the core reads white (R≈G≈B) while the rim keeps the hue. After the
+  PO's values land, re-record the baseline, recorded in the ledger.
+- **L6**: vitest for the colour lerp and the fade state machine. A pixel or
+  harness leg: toggling the Lantern grows the hole over frames instead of in
+  one; `isHidden` flips on the same frame as before (a plate test).
+- **L7**: Go: `Light()` returns the winning effect's flag (tie rule as D5),
+  validation (a prop `lightFlicker` without `lightFraction` refused), a codec
+  round-trip. Vitest: the noise stays within ±amplitude and is continuous.
+  Pixels: a flickering light's rim varies across frames, a steady one does
+  not. Editor `smoke.mjs` green.
+- **In-game (PO)**: after L5, the shape + colour look; after L7, the flicker
+  amplitude and speed.
+
+### 10.4 Open
+
+- ⚑ **Flicker sources**: D12's list is proposed, not ruled (camp is listed
+  because its aura already rises fire particles).
+- ⚑ **Every number in §10** waits for the PO's look sessions.
+
+### 10.5 Chunk ledger
+
+| Chunk | State | Commit | Verified |
+| --- | --- | --- | --- |
+| L4 one colour per light | designed | | |
+| L5 light shape | designed | | |
+| L6 easing | designed | | |
+| L7 flicker | designed | | |
