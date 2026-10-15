@@ -4,7 +4,7 @@
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (§10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
-**✅ C7 BUILT 2026-10-15 (§10 ledger):** the bundled ARBs ship without their `@` metadata (main bundle −75 KB pre-gzip). **✅ C8 BUILT 2026-10-15, ahead of its trigger (PO asked for every remaining chunk; §10 ledger):** German is its own chunk, and the game's modules evaluate only once the chosen locale's catalog is in. **⭐ C9 planned 2026-10-14 (PO), not built; C7-C9 as planned:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
+**✅ C7 BUILT 2026-10-15 (§10 ledger):** the bundled ARBs ship without their `@` metadata (main bundle −75 KB pre-gzip). **✅ C8 BUILT 2026-10-15, ahead of its trigger (PO asked for every remaining chunk; §10 ledger):** German is its own chunk, and the game's modules evaluate only once the chosen locale's catalog is in. **✅ C9 BUILT 2026-10-15 (§10 ledger):** `tools/lang/sheet.mjs` exports a CSV per language and imports it back into the ARBs (manual-localization.md §6). **Every chunk is built; owed: the PO's German read + playthrough and the D30 limits. C7-C9 as planned:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -2115,6 +2115,48 @@ All six chunks built and committed one per chunk; NOT merged to main.
   error; English never requests the chunk) · `i18n-de` 7/7 · `i18n-pseudo`
   5/5 · `round4-tooltip` passed · `chunk2-accounts` 24/24.
 - **Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
+
+### C9 (built 2026-10-15)
+
+- `tools/lang/sheet.mjs` (`export [--locale] [--out]`, `import <csv>`,
+  `--help` with the rules and the Sheets traps) as planned; the logic is
+  exported (`exportRows`, `planImport`, `icuProblem`, the CSV pair) and
+  `planImport` writes nothing, so a refusal can never half-write.
+- **Rulings made while building** (flag if wrong):
+  - An empty cell keeps an existing translation rather than deleting it
+    (the import reports how many it kept). Deleting a translation stays a
+    repo edit.
+  - Plural forms: a form the language does not have refuses
+    (`Intl.PluralRules`, cardinal or ordinal per the plural). A missing form
+    refuses only when the English gives every English form; an English that
+    picks exact values (`=0`) asks for nothing more.
+  - The CSV carries a byte-order mark (Excel reads the umlauts) and CRLF rows;
+    import takes either, with or without the mark.
+  - The ICU parser is `@formatjs/icu-messageformat-parser`, the one
+    `intl-messageformat` uses, resolved from `frontend/node_modules`.
+- **Found:** `frontend.arb` (en and de) was out of `formatArb`'s order since
+  the audio commit hand-inserted `account.mute-all`. Re-sorted here (a pure
+  move), and the round-trip test now pins every translation ARB to the
+  canonical layout, so an import's diff is only its edits.
+- **Tests first** (`tools/lang/sheet.test.mjs`, 11, `node --test
+  tools/lang/*.test.mjs`): the CSV parser · export rows, order and status · a
+  new language all `missing` · the real trees round-trip with no byte changed ·
+  three edits, then the same sheet sorted and filtered, import identically ·
+  unknown key, duplicate key, wrong file and broken plural each refuse naming
+  the row · an empty cell writes nothing · an edited English cell is
+  reported, ignored · a two-language sheet writes both, a new language gets
+  its header · ICU arguments, bare numbers, de and pl plural forms · status
+  equals `aurad -lang-status` on a copy of `api/` with one translation removed
+  and one English changed (skips without a built `aurad`).
+- **Verified (the planned check, Sheets simulated):** export (1222 keys, 0
+  missing, 0 outdated), three German cells edited (a plural, a comma, a line
+  break) and re-saved as Sheets downloads (no mark, LF, rows sorted), import:
+  the git diff was exactly those three; vitest `catalogs.test.ts` 13/13, Go
+  `TestLang*` passed, `aurad -lang-status` 0/0/0 with them in; a `few` form
+  added to German refused naming row 37, nothing written; re-importing the
+  first export restored the three. Not done: a real Google Sheets upload.
+- **Schema:** DB NONE · FlatBuffers NONE · ARB files written only by import;
+  `frontend.arb` (en, de) re-sorted, no text changed.
 
 ---
 

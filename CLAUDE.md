@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). Unbuilt: C7 notes out of the bundle (any time), C8 catalogs on demand (trigger: a third locale), C9 spreadsheet round-trip.
+- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). ✅ C7-C9 BUILT 2026-10-15 on branch `localization-c7-c9` (not merged): notes out of the bundle, non-English UI catalogs as chunks (`index.ts` is a bootstrap that loads one before `App.ts` runs), `tools/lang/sheet.mjs` CSV export/import (manual-localization.md §6).
 
 - **⭐ AUDIO: plan SKETCHED 2026-10-15, C0 (design) is next** (`docs/plan-audio.md`): music per state (menu, region, ascension) and one-shot sounds; C0 narrows eight lanes to v1 and answers §5. Takes over `archive/plan-region-audio.md`. The main title plays since `1168b00e` (loops forever, menus and world alike). ⚑ `masterMuted` defaults to `true` (Q1); since `4725163d` (deployed 2026-10-15) a "Mute all" switch sits beside Fullscreen on the account screens and music defaults to 50.
 

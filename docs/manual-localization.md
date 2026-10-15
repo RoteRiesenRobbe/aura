@@ -75,3 +75,14 @@ panel, zone editor, console, cheat feedback) are out of scope.
   word on screen is a string that bypassed the catalog (D21).
 - Harness scripts pin `locale: 'en-US'` in `browser.newContext` (D12): this
   machine's browser is German.
+
+## 6. Translating in a spreadsheet
+
+`node tools/lang/sheet.mjs export` writes one CSV per language (`de.csv`:
+key, English, translation, note, length limit, status); `node
+tools/lang/sheet.mjs import de.csv` writes the translation column back into
+the ARBs, or refuses the whole sheet naming the bad rows. It never writes
+English and never refreshes the translated-from records: review the git diff,
+then run §5's record step. `--help` lists the rules and the Google Sheets
+traps (untick "Convert text to numbers, dates, and formulas" on import).
+Tests: `node --test tools/lang/*.test.mjs` (plan-localization.md C9).
