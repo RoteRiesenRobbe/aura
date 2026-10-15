@@ -533,6 +533,13 @@ table Mob {
   // Character.light_color. Appended at the table end so existing field IDs
   // stay stable; omitted for every unlit or uncoloured mob.
   light_color:uint = 0;
+
+  // does that light flicker (plan-lightmap.md L7, D12)? The flag of the
+  // light_aura effect that won the radius, like light_color. Presentation
+  // only: the client wobbles the drawn light, nothing reads it for gameplay.
+  // Mirrors Character.light_flicker. Appended at the table end; omitted for
+  // every steady light.
+  light_flicker:bool = false;
 }
 
 table Character {
@@ -679,6 +686,11 @@ table Character {
   // L2), 0 = unauthored white. Mirrors Mob.light_color. Appended at the table
   // end so existing field IDs stay stable.
   light_color:uint = 0;
+
+  // does that light flicker (plan-lightmap.md L7, D12)? Mirrors
+  // Mob.light_flicker. Appended at the table end so existing field IDs stay
+  // stable.
+  light_flicker:bool = false;
 }
 
 table Spectator {

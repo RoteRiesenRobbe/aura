@@ -133,6 +133,8 @@ type MobEntity interface {
 	// LightColor is that light's colour, 0xRRGGBB, 0 = unauthored white (wire
 	// light_color; plan-lightmap.md L2).
 	LightColor() uint32
+	// LightFlicker: does that light flicker (wire light_flicker; L7)?
+	LightFlicker() bool
 	// DwellRadius is the bind radius of a campfire respawn anchor, 0 for
 	// everything that is not one (wire dwell_radius — the client draws the
 	// inner dwell circle from it, so the server's bind factor is the single

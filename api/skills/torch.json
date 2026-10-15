@@ -10,6 +10,7 @@
     {
       "type": "light_aura",
       "color": "#ffc98a",
+      "flicker": true,
       "radius": 2.5,
       "radiusPerLevel": 0.25
     }

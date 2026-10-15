@@ -74,10 +74,11 @@ func (es *EquippedSkill) EffectiveRadius() float32 {
 }
 
 // Light is the level-scaled light radius — the maximum over the skill's
-// light_aura effects, 0 = the skill emits no light — and the colour of the
-// effect that supplied it (0 = unauthored white; plan-lightmap.md D5). The
-// first effect keeps a tie. Streams as the wire light_radius / light_color.
-func (es *EquippedSkill) Light() (radius float32, color uint32) {
+// light_aura effects, 0 = the skill emits no light — and the payload (colour,
+// flicker) of the effect that supplied it (zero = unauthored white, steady;
+// plan-lightmap.md D5, D12). The first effect keeps a tie. Streams as the wire
+// light_radius / light_color / light_flicker.
+func (es *EquippedSkill) Light() (radius float32, light LightParams) {
 	for _, e := range es.Def.Effects {
 		if e.Type != EffectTypeLightAura {
 			continue
@@ -85,13 +86,13 @@ func (es *EquippedSkill) Light() (radius float32, color uint32) {
 		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
 		if r > radius {
 			radius = r
-			color = 0
+			light = LightParams{}
 			if e.Light != nil {
-				color = e.Light.Color
+				light = *e.Light
 			}
 		}
 	}
-	return radius, color
+	return radius, light
 }
 
 // LightRadius is Light's radius alone (the map fog reads only this).
@@ -788,28 +789,35 @@ func (sc *SkillComponent) LightRadius() float32 {
 	return r
 }
 
-// Light is LightRadius plus the colour of the source that won it
-// (plan-lightmap.md D5): one colour per entity, never a blend of two. A tie
-// keeps the earlier source — the active aura, then the passive slots in order.
-func (sc *SkillComponent) Light() (radius float32, color uint32) {
+// Light is LightRadius plus the payload of the source that won it
+// (plan-lightmap.md D5, D12): one colour and one flicker per entity, never a
+// blend of two. A tie keeps the earlier source — the active aura, then the
+// passive slots in order.
+func (sc *SkillComponent) Light() (radius float32, light LightParams) {
 	if slot := sc.ActiveAuraSlot; slot >= 0 && sc.AuraSlots[slot] != nil {
-		radius, color = sc.AuraSlots[slot].Light()
+		radius, light = sc.AuraSlots[slot].Light()
 	}
 	for _, es := range sc.PassiveSlots {
 		if es == nil {
 			continue
 		}
-		if r, c := es.Light(); r > radius {
-			radius, color = r, c
+		if r, l := es.Light(); r > radius {
+			radius, light = r, l
 		}
 	}
-	return radius, color
+	return radius, light
 }
 
 // LightColor is Light's colour alone (wire light_color).
 func (sc *SkillComponent) LightColor() uint32 {
-	_, c := sc.Light()
-	return c
+	_, l := sc.Light()
+	return l.Color
+}
+
+// LightFlicker is Light's flicker alone (wire light_flicker).
+func (sc *SkillComponent) LightFlicker() bool {
+	_, l := sc.Light()
+	return l.Flicker
 }
 
 // Discover marks a skill as discovered at level 1. Re-discovering (idempotent

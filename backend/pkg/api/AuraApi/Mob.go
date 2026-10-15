@@ -333,8 +333,20 @@ func (rcv *Mob) MutateLightColor(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(58, n)
 }
 
+func (rcv *Mob) LightFlicker() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Mob) MutateLightFlicker(n bool) bool {
+	return rcv._tab.MutateBoolSlot(60, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(28)
+	builder.StartObject(29)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -407,6 +419,9 @@ func MobAddOwnerId(builder *flatbuffers.Builder, ownerId uint64) {
 }
 func MobAddLightColor(builder *flatbuffers.Builder, lightColor uint32) {
 	builder.PrependUint32Slot(27, lightColor, 0)
+}
+func MobAddLightFlicker(builder *flatbuffers.Builder, lightFlicker bool) {
+	builder.PrependBoolSlot(28, lightFlicker, false)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

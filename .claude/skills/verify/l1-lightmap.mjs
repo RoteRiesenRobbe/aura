@@ -33,7 +33,12 @@
 //             unchanged and `near` (0.6 R, just past the core's edge) lifts by
 //             the smoothstep/linear alpha ratio, derived from the shape.
 //
-//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour|single|heart|curve [url]
+//   flicker   L7 (D12): six shots of the campfire's rim with the flicker live,
+//             then six at amplitude 0 (`game.darkness.flicker({size: 0, alpha: 0})`):
+//             the rim's R spreads ≥ 2 % of its steady value, then ≤ 1 level. Every OTHER mode holds the
+//             fires steady before it samples, so its numbers stay comparable.
+//
+//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour|single|heart|curve|flicker [url]
 //
 // ⛔ Pixels, never structure (plan §6): "is the blend mode screen?" passes on
 // a build that composites wrongly.
@@ -209,6 +214,45 @@ function venue() {
     };
     const shapeNow = await page.evaluate(() => window.game.darkness.lightShape && window.game.darkness.lightShape());
     console.log(`  shape ${JSON.stringify(shapeNow)}`);
+
+    // ⚑ The campfire FLICKERS since L7 (D12): a wobbling glow reads up to ~6 %
+    // off between shots, past TOL. `flicker` measures that; every other mode
+    // holds the fires steady first, so its numbers stay comparable to the
+    // baseline.
+    const steady = () => page.evaluate(() => window.game.darkness.flicker && window.game.darkness.flicker({ size: 0, alpha: 0 }));
+    if (mode === 'flicker') {
+      const spread = (runs, k) => {
+        const r = runs.map(s => s[k][0]);
+        return Math.max(...r) - Math.min(...r);
+      };
+      const shots = async () => {
+        const out = [];
+        for (let i = 0; i < 6; i++) { out.push(await shoot()); await sleep(400); }
+        return out;
+      };
+      const amp = await page.evaluate(() => window.game.darkness.flicker());
+      console.log(`  flicker ${JSON.stringify(amp)}`);
+      const live = await shots();
+      await steady();
+      await sleep(300);
+      const still = await shots();
+      for (const k of ['near', 'edge']) {
+        console.log(`  ${k}: R flickering ${live.map(s => s[k][0].toFixed(1)).join(' ')} · steady ${still.map(s => s[k][0].toFixed(1)).join(' ')}`);
+        // Relative: the strength dips by up to the alpha amplitude (6 % today), so
+        // a few shots must spread at least 2 % of the steady value.
+        const rel = spread(live, k) / still[0][k][0];
+        (rel >= 0.02 ? pass : fail)(`${k} flickers`, `R spread ${spread(live, k).toFixed(1)} = ${(rel * 100).toFixed(1)} % of steady`);
+        (spread(still, k) <= 1 ? pass : fail)(`${k} holds steady at amplitude 0`, `R spread ${spread(still, k).toFixed(1)}`);
+      }
+      const dk = (await shoot()).dark;
+      (dk.every(c => c === 0) ? pass : fail)('full darkness shows nothing', `dark rgb(${dk.join(', ')})`);
+      await browser.close();
+      const failed = results.filter(r => r === 'FAIL').length;
+      console.log(`\n${results.length - failed}/${results.length} passed`);
+      process.exit(failed ? 1 : 0);
+    }
+    await steady();
+    await sleep(300);
     const samples = await sampleTwice('default');
 
     if (mode === 'baseline') {

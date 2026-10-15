@@ -213,7 +213,7 @@ export class EntityManager {
         // (plan-lightmap.md D8).
         if (isDefined(entity.lightRadius)) {
             DarknessOverlay.setLightRadius(gameObject, wireLightRadius(entity.lightRadius, entity.dwellRadius),
-                false, entity.lightColor ?? 0);
+                false, entity.lightColor ?? 0, entity.lightFlicker ?? false);
         }
 
         if (Array.isArray(entity.statusEffects)) {

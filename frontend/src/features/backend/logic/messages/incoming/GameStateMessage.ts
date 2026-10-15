@@ -590,6 +590,7 @@ function unmarshalEntity(entity, eType) {
         auraRadius: undefined,
         lightRadius: undefined,
         lightColor: undefined,
+        lightFlicker: undefined,
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
@@ -653,6 +654,8 @@ function unmarshalEntity(entity, eType) {
         result.lightRadius = entity.lightRadius();
         // its colour, 0xRRGGBB, 0 = unauthored white (plan-lightmap.md L2).
         result.lightColor = entity.lightColor();
+        // does it flicker (plan-lightmap.md L7)? Presentation only.
+        result.lightFlicker = entity.lightFlicker();
         // campfire bind radius in px, 0 = not a respawn anchor — drives the
         // inner dwell circle (chunk 4).
         result.dwellRadius = entity.dwellRadius();
@@ -697,6 +700,8 @@ function unmarshalEntity(entity, eType) {
         result.lightRadius = entity.lightRadius();
         // its colour, 0xRRGGBB, 0 = unauthored white (plan-lightmap.md L2).
         result.lightColor = entity.lightColor();
+        // does it flicker (plan-lightmap.md L7)? Presentation only.
+        result.lightFlicker = entity.lightFlicker();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
         // resource cost paid this tick — the blue number (round-7 item 7)

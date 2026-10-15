@@ -16,6 +16,7 @@ import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
 import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightColor';
 import {fadeStops, LightShape, normalizeShape} from './LightShape';
 import {advanceEase, aimColor, aimRadius, drawnColor, gone, leave, LightEase, newEase, revive} from './LightEase';
+import {flicker as flickerMultipliers} from './LightFlicker';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -96,6 +97,10 @@ const DarknessVisuals = {
     // fade in or out (plan-lightmap.md D11): a Lantern switched on, a lit mob
     // walking into view, a fire elemental dying. [PLACEHOLDER]
     LIGHT_RAMP_MS: 300,
+    // A flickering light's size swings ±this fraction and its strength dips by
+    // up to FLICKER_ALPHA (plan-lightmap.md D12). [PLACEHOLDER]
+    FLICKER_SIZE: 0.03,
+    FLICKER_ALPHA: 0.06,
 };
 
 // World campfires glow permanently (chunk 4 follow-up): their wire
@@ -112,6 +117,8 @@ const CAMPFIRE_LIGHT_RADIUS: number = campfireLight?.radius ?? 0;
 // The glow's colour from the same effect (plan-lightmap.md D6): one file, both
 // numbers, so the static glow and the wire-driven one cannot disagree.
 const CAMPFIRE_LIGHT_COLOR: number = authoredLightColor(campfireLight?.color, WHITE_LIGHT);
+// ...and its flicker (D12), the same file again.
+const CAMPFIRE_LIGHT_FLICKER: boolean = campfireLight?.flicker === true;
 
 /**
  * The static light each prop TYPE casts, in world units, keyed by the prop's
@@ -127,9 +134,9 @@ const CAMPFIRE_LIGHT_COLOR: number = authoredLightColor(campfireLight?.color, WH
  * _GameObject, which imports this module, and that cycle would run a class
  * `extends` before its base exists.
  */
-const PROP_LIGHTS = new Map<string, { radius: number, color: number }>(
+const PROP_LIGHTS = new Map<string, { radius: number, color: number, flicker: boolean }>(
     (requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as
-        { name: string, lightFraction?: number, lightColor?: string }[])
+        { name: string, lightFraction?: number, lightColor?: string, lightFlicker?: boolean }[])
         .filter(def => (def.lightFraction ?? 0) > 0)
         // ⚑ A prop is a light SOURCE of its own (PO 2026-10-12, "one colour
         // per source"), so it authors `lightColor`; absent, it reads as a small
@@ -137,7 +144,8 @@ const PROP_LIGHTS = new Map<string, { radius: number, color: number }>(
         .map(def => [def.name, {
             radius: CAMPFIRE_LIGHT_RADIUS * def.lightFraction,
             color: authoredLightColor(def.lightColor, CAMPFIRE_LIGHT_COLOR),
-        }] as [string, { radius: number, color: number }]),
+            flicker: def.lightFlicker === true,
+        }] as [string, { radius: number, color: number, flicker: boolean }]),
 );
 
 interface LightSource {
@@ -156,6 +164,8 @@ interface LightSource {
     wireColor: number;
     /** What is DRAWN, easing toward the wire (D11). */
     ease: LightEase;
+    /** Does it flicker (D12)? From the wire; presentation only. */
+    flicker: boolean;
     /** Is this the LOCAL player's hole? Only that one gets `sight`: it answers
      *  "how far can I see", which is a question about the viewer and not about
      *  the entity. A remote player standing in fog keeps their own light. */
@@ -214,7 +224,12 @@ const darkCircles: Circle[] = [];
 const staticLights: Circle[] = [];
 // The static glows' sprites, kept only so a live shape change (D10) can re-skin
 // them; `staticLights` is what the gameplay answers read.
-const staticSprites: { sprite: Sprite, heart: Sprite, radiusPx: number }[] = [];
+const staticSprites: { sprite: Sprite, heart: Sprite, radiusPx: number, flicker: boolean, seed: number }[] = [];
+// Time for the flicker noise (D12), advanced by `update`'s delta: behind the
+// loop's pause guard like every other animation here.
+let flickerClockMS = 0;
+// The live amplitudes, tunable from the console (D12) like the light shape.
+let flickerAmp = {size: DarknessVisuals.FLICKER_SIZE, alpha: DarknessVisuals.FLICKER_ALPHA};
 let shape: LightShape = {
     heart: DarknessVisuals.LIGHT_HEART_FRACTION,
     core: DarknessVisuals.LIGHT_CORE_FRACTION,
@@ -340,7 +355,8 @@ export function loadZone(zoneName: string) {
         const zone = getZoneData(zoneName);
         const campfires = zone?.bindPoints || [];
         campfires.forEach((fire) => {
-            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS, CAMPFIRE_LIGHT_COLOR);
+            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS, CAMPFIRE_LIGHT_COLOR,
+                CAMPFIRE_LIGHT_FLICKER);
         });
         // Torches (PO 2026-09-20) — a small permanent fire, lighting half as
         // far as a campfire. ⭐ They are read from `zone.props` rather than
@@ -359,7 +375,7 @@ export function loadZone(zoneName: string) {
         flattenProps(zone?.props).forEach((prop) => {
             const light = PROP_LIGHTS.get(prop.type);
             if (light !== undefined) {
-                punchStaticLight(prop.x + ox, prop.y + oy, light.radius, light.color);
+                punchStaticLight(prop.x + ox, prop.y + oy, light.radius, light.color, light.flicker);
             }
         });
     }
@@ -371,7 +387,7 @@ export function loadZone(zoneName: string) {
  * without the other. Positions are world units; the caller has already
  * applied the zone origin.
  */
-function punchStaticLight(x: number, y: number, radius: number, color: number) {
+function punchStaticLight(x: number, y: number, radius: number, color: number, flicker: boolean) {
     const px = meter2px(x);
     const py = meter2px(y);
     const radiusPx = meter2px(radius);
@@ -382,7 +398,9 @@ function punchStaticLight(x: number, y: number, radius: number, color: number) {
     heart.position.set(px, py);
     sizeLight(sprite, heart, radiusPx);
     layer.addChild(sprite, heart);
-    staticSprites.push({sprite, heart, radiusPx});
+    // The seed from the position: a static light has no id, and two fires
+    // must not pulse together.
+    staticSprites.push({sprite, heart, radiusPx, flicker, seed: Math.round(px * 31 + py * 17)});
 
     staticLights.push({x: px, y: py, radiusSq: radiusPx ** 2});
 }
@@ -398,6 +416,7 @@ export function setLightRadius(
     radiusPx: number,
     own = false,
     color = 0,
+    flicker = false,
 ) {
     if (!active) {
         return;
@@ -421,7 +440,10 @@ export function setLightRadius(
         const heart = heartSprite();
         layer.addChild(sprite, heart);
         const wire = Math.max(radiusPx, 0);
-        light = {object, sprite, heart, wireRadiusPx: wire, wireColor: color, own, ease: newEase(wire, lightTint(color))};
+        light = {
+            object, sprite, heart, wireRadiusPx: wire, wireColor: color, own,
+            ease: newEase(wire, lightTint(color)), flicker,
+        };
         lights.set(object.id, light);
     } else if (light.ease.leaving) {
         revive(light.ease);
@@ -430,6 +452,7 @@ export function setLightRadius(
     light.own = light.own || own;
     light.wireRadiusPx = Math.max(radiusPx, 0);
     light.wireColor = color;
+    light.flicker = flicker;
     aimRadius(light.ease, light.wireRadiusPx);
     aimColor(light.ease, targetTint(light));
     applyRadius(light);
@@ -527,9 +550,37 @@ function applyRadius(light: LightSource) {
     const radius = light.own
         ? lightRadiusWithSight(light.ease.radius.value, sightPx.value)
         : light.ease.radius.value;
-    sizeLight(light.sprite, light.heart, radius);
+    // ⚑ The own hole flickers only while its LIGHT wins the radius: sight is
+    // eyes, and eyes do not flicker (D9's rule again).
+    const wobbles = light.flicker && (!light.own || light.wireRadiusPx >= sightPx.value);
+    const f = wobbles ? flickerAt(light.object.id) : STEADY;
+    sizeLight(light.sprite, light.heart, radius * f.size);
     light.sprite.tint = drawnColor(light.ease);
-    light.sprite.alpha = light.heart.alpha = light.ease.fade.value;
+    light.sprite.alpha = light.heart.alpha = light.ease.fade.value * f.alpha;
+}
+
+const STEADY = {size: 1, alpha: 1};
+
+function flickerAt(seed: number): { size: number, alpha: number } {
+    return flickerMultipliers(flickerClockMS, seed, flickerAmp.size, flickerAmp.alpha);
+}
+
+/** The flicker amplitudes now in force (D12). */
+export function flickerAmplitude(): { size: number, alpha: number } {
+    return {...flickerAmp};
+}
+
+/**
+ * Changes how hard every flickering light wobbles, live (the console knob):
+ * `{size: 0, alpha: 0}` holds them steady, which is also how the pixel legs
+ * measure a fire. Clamped to 0..0.5; an unnamed knob keeps its value.
+ */
+export function setFlickerAmplitude(next: { size?: number, alpha?: number }): { size: number, alpha: number } {
+    const pick = (v: unknown, current: number) => typeof v === 'number' && !Number.isNaN(v)
+        ? Math.min(0.5, Math.max(0, v))
+        : current;
+    flickerAmp = {size: pick(next.size, flickerAmp.size), alpha: pick(next.alpha, flickerAmp.alpha)};
+    return flickerAmplitude();
 }
 
 /**
@@ -545,6 +596,15 @@ function update(deltaMS: number) {
     if (!active) {
         return;
     }
+    flickerClockMS += deltaMS;
+    staticSprites.forEach((s) => {
+        if (!s.flicker) {
+            return;
+        }
+        const f = flickerAt(s.seed);
+        sizeLight(s.sprite, s.heart, s.radiusPx * f.size);
+        s.sprite.alpha = s.heart.alpha = f.alpha;
+    });
     lights.forEach((light) => {
         if (!light.ease.leaving && light.object.shape.parent === null) {
             leave(light.ease);

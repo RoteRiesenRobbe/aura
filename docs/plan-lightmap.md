@@ -543,8 +543,8 @@ vanishes.
 | --- | --- | --- | --- |
 | L4 one colour per light | built 2026-10-15 | `3bab952c` | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
 | L5 light shape | built 2026-10-16 | `27dbf718` | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning owed |
-| L6 easing | built 2026-10-16 | see git log | `l6-light-ease.mjs` 5/5 (red-first 2/5 on the L5 overlay: every patch lit and darkened on one frame) · `l1-lightmap.mjs single` 3/3, `heart` 5/5 unchanged · vitest 1701/0 (+9) · tsc clean · PO feel owed |
-| L7 flicker | designed | | |
+| L6 easing | built 2026-10-16 | `46b4362e` | `l6-light-ease.mjs` 5/5 (red-first 2/5 on the L5 overlay: every patch lit and darkened on one frame) · `l1-lightmap.mjs single` 3/3, `heart` 5/5 unchanged · vitest 1701/0 (+9) · tsc clean · PO feel owed |
+| L7 flicker | built 2026-10-16 | see git log | `l1-lightmap.mjs flicker` 5/5 (campfire rim R spreads 4.0-4.5 % live, 0.0 at amplitude 0) · `single` 3/3, `heart` 5/5, `curve` 4/4, `l6-light-ease` 5/5 unchanged · Go green bar the known C1b prop pin (+5 tests red-first) · vitest 1707/0 (+6) · tsc clean · editor smoke 0 findings · PO feel owed |
 
 **L4 notes (2026-10-15).**
 
@@ -598,3 +598,26 @@ vanishes.
   snap, not the ramp's duration; `LIGHT_RAMP_MS` 300 is [PLACEHOLDER] and
   wants the PO's feel on a real GPU.
 - Schema: DB NONE · wire NONE · conf NONE · content NONE.
+
+**L7 notes (2026-10-16).**
+
+- **Content**: `flicker: true` on the light_aura of campfire, camp, Torch,
+  Wildfire, fire elemental and fire totem; `lightFlicker: true` on the torch
+  prop. Lantern and Omni rigs steady. The source list is still the proposed
+  one (§10.4), not a ruling.
+- **Wire**: `light_flicker:bool` appended last to `Mob` and `Character`,
+  both bindings regenerated with the repo's v24.3.25 flatc (the TS diff is the
+  two new accessors and nothing else). `Light()` now returns `LightParams`
+  (colour + flicker) so D5's winner carries both.
+- **Tune it**: `game.darkness.flicker()` reads the amplitudes,
+  `game.darkness.flicker({size: 0.05, alpha: 0.1})` changes every fire live,
+  `{size: 0, alpha: 0}` holds them steady. Defaults `FLICKER_SIZE` 0.03,
+  `FLICKER_ALPHA` 0.06; the noise's speeds (`SLOW_HZ` 4, `FAST_HZ` 11 in
+  `LightFlicker.ts`) are [PLACEHOLDER] too.
+- **The own hole flickers only while its light wins the radius** (D9's rule:
+  sight does not flicker). `isHidden` never sees it.
+- ⚑ **Every other `l1-lightmap` mode now holds the fires steady first**: the
+  campfire flickers, and a 6 % dip is past the legs' ±3 tolerance.
+- Schema: DB NONE · conf NONE · **wire +2 appended fields** · content +1
+  optional effect key (`flicker`), +1 optional prop key (`lightFlicker`).
+

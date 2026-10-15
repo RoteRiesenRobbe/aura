@@ -256,4 +256,9 @@ func TestMobMarshalFlatbuf_LightColor(t *testing.T) {
 
 	unlit := marshalledMob(t, mob.NewMob(testMobDef(mobs.RoleStructure), 0, nil))
 	assert.Zero(t, unlit.LightColor(), "no light → no colour")
+
+	// L7 (D12): the flicker flag rides beside the colour.
+	fire := marshalledMob(t, mob.NewMob(lit(&skills.LightParams{Color: 0xff8a3a, Flicker: true}), 0, nil))
+	assert.True(t, fire.LightFlicker())
+	assert.False(t, warm.LightFlicker(), "absent = steady")
 }

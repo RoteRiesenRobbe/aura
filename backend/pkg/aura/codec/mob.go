@@ -57,6 +57,7 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).
 	AuraApi.MobAddLightRadius(builder, f32ToU16Px(m.LightRadius()))
 	AuraApi.MobAddLightColor(builder, m.LightColor())
+	AuraApi.MobAddLightFlicker(builder, m.LightFlicker())
 	// 0 = not a respawn anchor; the client draws the bind circle (chunk 4).
 	AuraApi.MobAddDwellRadius(builder, f32ToU16Px(m.DwellRadius()))
 	// Aura tick cadence + phase; both 0 while no aura is active. The client

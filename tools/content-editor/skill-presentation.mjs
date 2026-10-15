@@ -191,6 +191,7 @@ export const EFFECT_PRESENTATION = {
 
   // --- light_aura (plan-lightmap.md L2) ---
   color: { control: 'text', group: PAYLOAD, label: 'Light colour', hint: '#rrggbb, the colour this light draws in the dark. Blank = white. #000000 is refused.' },
+  flicker: { control: 'bool', group: PAYLOAD, label: 'Flicker', hint: 'The light wobbles like a fire. Visual only; nameplates and the map ignore it.' },
   calmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks out of combat; breaks on any damage.' },
   calmTicksPerLevel: { control: 'number', group: PAYLOAD },
   charmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks fighting for the charmer; ends by turning on you.' },

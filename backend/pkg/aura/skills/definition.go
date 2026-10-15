@@ -428,8 +428,11 @@ type EffectDef struct {
 // LightParams is the light_aura payload (plan-lightmap.md L2): the colour the
 // light draws in, 0xRRGGBB. 0 = unauthored, which the client draws white
 // (today's look); a black light is refused at load, so 0 never means black.
+// Flicker (L7, D12) wobbles the drawn light, presentation only; absent =
+// steady.
 type LightParams struct {
-	Color uint32 `json:"color"`
+	Color   uint32 `json:"color"`
+	Flicker bool   `json:"flicker"`
 }
 
 // ParseLightColor reads a light_aura's "#rrggbb" into 0xRRGGBB. Absent = 0,
@@ -1260,8 +1263,10 @@ type effectDef struct {
 	Radius         float32 `json:"radius"`
 	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
-	// Color is light_aura's "#rrggbb" (plan-lightmap.md L2).
-	Color string `json:"color"`
+	// Color is light_aura's "#rrggbb" (plan-lightmap.md L2); Flicker its
+	// optional wobble (L7).
+	Color   string `json:"color"`
+	Flicker bool   `json:"flicker"`
 
 	CostFractionOfMax         float32 `json:"costFractionOfMax"`
 	CostFractionOfMaxPerLevel float32 `json:"costFractionOfMaxPerLevel"`
@@ -1538,7 +1543,7 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeDetaunt: mergeKeys(keysGeometry, keysTargetFlags),
 	// Rendering-only (chunk 3): pure geometry — no payload, no targeting, no
 	// cadence, no apply path. The radius streams as the wire light_radius.
-	EffectTypeLightAura: mergeKeys(keysGeometry, []string{"color"}),
+	EffectTypeLightAura: mergeKeys(keysGeometry, []string{"color", "flicker"}),
 	// Shield pair (chunk 2), mirroring resist_aura's shape. The aura form
 	// derives its buff lifetime from the cadence (interval + 1); only the
 	// instant form carries an authored shieldDurationTicks.
@@ -2152,11 +2157,12 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 			def.Stealth = &StealthParams{DurationTicks: e.StealthDurationTicks}
 		}
 	case EffectTypeLightAura:
-		// Geometry plus a colour (plan-lightmap.md L2): the radius streams as
-		// the wire light_radius, the colour as light_color.
+		// Geometry plus a colour and a flicker (plan-lightmap.md L2, L7): the
+		// radius streams as the wire light_radius, the rest as light_color and
+		// light_flicker.
 		var color uint32
 		color, err = ParseLightColor(e.Color)
-		def.Light = &LightParams{Color: color}
+		def.Light = &LightParams{Color: color, Flicker: e.Flicker}
 	case EffectTypeRecall, EffectTypeCharge:
 		// Payload-less by design: recall's destination is the caster's
 		// campfire anchor and charge's is the nearest enemy inside its radius.

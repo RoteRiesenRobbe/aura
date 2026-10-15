@@ -1251,6 +1251,12 @@ func (p *player) LightColor() uint32 {
 	return p.skills.LightColor()
 }
 
+// LightFlicker: does that light flicker (plan-lightmap.md L7)? Serialized as
+// Character.light_flicker.
+func (p *player) LightFlicker() bool {
+	return p.skills.LightFlicker()
+}
+
 // AuraCategories is the active aura's ring-colour bitmask, 0 while none is
 // active. Serialized as Character.aura_category — the client colours the ring
 // from it instead of matching hardcoded skill IDs (triage item 7).

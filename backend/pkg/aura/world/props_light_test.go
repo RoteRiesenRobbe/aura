@@ -27,3 +27,18 @@ func TestParsePropDefinition_LightColor(t *testing.T) {
 	_, err = parsePropDefinition(prop(`, "lightColor": "#ffc070"`))
 	require.Error(t, err, "a colour on a prop that casts no light is refused")
 }
+
+// plan-lightmap.md D12: a light prop may flicker; only one that casts light.
+func TestParsePropDefinition_LightFlicker(t *testing.T) {
+	prop := func(extra string) []byte {
+		return []byte(`{
+		"name": "Torch", "entityType": "House", "sprite": "torch.svg",
+		"body": { "radius": 0.2 }` + extra + `
+	}`)
+	}
+	_, err := parsePropDefinition(prop(`, "lightFraction": 0.3, "lightFlicker": true`))
+	require.NoError(t, err)
+
+	_, err = parsePropDefinition(prop(`, "lightFlicker": true`))
+	require.Error(t, err, "flicker on a prop that casts no light is refused")
+}

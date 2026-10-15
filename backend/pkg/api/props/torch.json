@@ -4,5 +4,6 @@
   "sprite": "torch.svg",
   "body": { "radius": 0.26, "collisionFactor": 0.85 },
   "lightFraction": 0.3,
-  "lightColor": "#ffc070"
+  "lightColor": "#ffc070",
+  "lightFlicker": true
 }

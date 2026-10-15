@@ -50,6 +50,7 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).
 	AuraApi.CharacterAddLightRadius(builder, f32ToU16Px(p.LightRadius()))
 	AuraApi.CharacterAddLightColor(builder, p.LightColor())
+	AuraApi.CharacterAddLightFlicker(builder, p.LightFlicker())
 	AuraApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	AuraApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 	// Resource cost paid this tick (round-7 item 7) — the blue number.

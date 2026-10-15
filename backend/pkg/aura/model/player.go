@@ -132,6 +132,8 @@ type PlayerEntity interface {
 	// LightColor is that light's colour, 0xRRGGBB, 0 = unauthored white (wire
 	// light_color; plan-lightmap.md L2).
 	LightColor() uint32
+	// LightFlicker: does that light flicker (wire light_flicker; L7)?
+	LightFlicker() bool
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32

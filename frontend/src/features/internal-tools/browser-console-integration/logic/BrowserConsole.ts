@@ -125,6 +125,11 @@ function setup() {
             lightShape: (next?: Partial<LightShape>) => next === undefined
                 ? DarknessOverlay.lightShape()
                 : DarknessOverlay.setLightShape(next),
+            // The flicker's amplitudes (plan-lightmap.md D12), same shape:
+            // {size: 0, alpha: 0} holds every fire steady.
+            flicker: (next?: { size?: number, alpha?: number }) => next === undefined
+                ? DarknessOverlay.flickerAmplitude()
+                : DarknessOverlay.setFlickerAmplitude(next),
         };
         // The loaded zone's regions, LIVE (the region title banner, 2026-09-28):
         // `region-banner.mjs` pushes regions carrying a place id around the
