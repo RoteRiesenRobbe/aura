@@ -541,7 +541,27 @@ vanishes.
 
 | Chunk | State | Commit | Verified |
 | --- | --- | --- | --- |
-| L4 one colour per light | designed | | |
+| L4 one colour per light | built 2026-10-15, uncommitted | | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
 | L5 light shape | designed | | |
 | L6 easing | designed | | |
 | L7 flicker | designed | | |
+
+**L4 notes (2026-10-15).**
+
+- **D8 identity check done**: `dwell_radius` is set in exactly one place,
+  `cmd/aurad/aurad.go:262`, on the campfires built from `allCampfires(zones)`
+  (the bind points). Nothing else carries one, so no entity loses its only
+  light. The client helper is `wireLightRadius` (`LightColor.ts`), called from
+  `EntityManager.ts`.
+- **The prediction held to the decimal**: with D8 the tunnel campfire's core
+  reads 141/96.6/48.8 = the white baseline core × `#ffb060`, exactly one
+  screen; without it 141/127/79.4 = the doubled `1-(1-c)²`. The leg derives
+  both from the skill file, so a colour retune never reddens it.
+- **⚑ Campfires got visibly deeper**: `colour`'s core R/B went 1.77 → 2.85
+  (blue in the core 79 → 49). That is the single-light look the PO never saw
+  in the 2026-10-13 pass, so it is the first thing L5's look session checks.
+- **D9 pixels deviate from §10.3**: no venue has a `sight` above a light's
+  radius without a new probe zone (Canopy, sight 2, is not near the tunnel), so
+  D9 is pinned by vitest (`ownLightTint`: light wins, sight wins, tie, no light)
+  plus the PO's look, not by a pixel leg.
+- Schema: DB NONE · wire NONE · conf NONE · content NONE.

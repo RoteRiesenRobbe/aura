@@ -13,7 +13,7 @@ import {
     resolveIn, resolveSight,
 } from '../../regions/logic/Regions';
 import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
-import {authoredLightColor, lightTint, WHITE_LIGHT} from './LightColor';
+import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightColor';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -132,6 +132,10 @@ interface LightSource {
      *  local player's hole is `max(wire, sight)` and sight moves every frame
      *  while the wire value only changes when the server says so (D7). */
     wireRadiusPx: number;
+    /** The wire's colour, 0 = unauthored white. Kept beside the radius for the
+     *  same reason: the own hole's tint depends on whether light or sight wins
+     *  the radius (plan-lightmap.md D9), and sight moves every frame. */
+    wireColor: number;
     /** Is this the LOCAL player's hole? Only that one gets `sight`: it answers
      *  "how far can I see", which is a question about the viewer and not about
      *  the entity. A remote player standing in fog keeps their own light. */
@@ -299,9 +303,11 @@ export function loadZone(zoneName: string) {
     layer.addChild(atmosphereLayer);
 
     // Static campfire glow — screen sprites appended after the dark sprites
-    // so they render on top within this layer's own texture. The wire-driven
-    // light for an in-range fire overlaps this one; two screens of a full
-    // core stay white, exactly as the two erases this replaced did.
+    // so they render on top within this layer's own texture. ⛔ It is the
+    // fire's ONLY light: EntityManager drops the wire light of a respawn
+    // anchor (plan-lightmap.md D8). Two white screens of a full core stay
+    // white, but two COLOURED ones pale the colour, so a fire drawing both
+    // changed hue the moment it streamed in.
     if (active) {
         const zone = getZoneData(zoneName);
         const campfires = zone?.bindPoints || [];
@@ -379,13 +385,13 @@ export function setLightRadius(
     if (!light) {
         const sprite = lightSprite(color);
         layer.addChild(sprite);
-        light = {object, sprite, wireRadiusPx: 0, own};
+        light = {object, sprite, wireRadiusPx: 0, wireColor: 0, own};
         lights.set(object.id, light);
     }
     light.object = object;
     light.own = light.own || own;
     light.wireRadiusPx = Math.max(radiusPx, 0);
-    light.sprite.tint = lightTint(color);
+    light.wireColor = color;
     applyRadius(light);
 }
 
@@ -415,12 +421,18 @@ function lightSprite(color: number): Sprite {
  * light-vs-damage trade-off — the aura is what buys you the room — would be
  * revocable by map data. It also means `sight` can only ever make a place
  * kinder, which is a good property for a knob nobody has tuned.
+ *
+ * ⚑ The tint is set here too, for the same reason: when sight wins the own
+ * hole's radius it draws white, not the light's colour (plan-lightmap.md D9).
  */
 function applyRadius(light: LightSource) {
-    const radius = light.own
-        ? lightRadiusWithSight(light.wireRadiusPx, sightPx.value)
-        : light.wireRadiusPx;
-    light.sprite.width = light.sprite.height = 2 * radius;
+    if (light.own) {
+        light.sprite.width = light.sprite.height = 2 * lightRadiusWithSight(light.wireRadiusPx, sightPx.value);
+        light.sprite.tint = ownLightTint(light.wireRadiusPx, sightPx.value, light.wireColor);
+        return;
+    }
+    light.sprite.width = light.sprite.height = 2 * light.wireRadiusPx;
+    light.sprite.tint = lightTint(light.wireColor);
 }
 
 /**

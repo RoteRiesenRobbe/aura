@@ -20,8 +20,13 @@
 //             and `dark` exactly 0,0,0 (no shine-through, PO 2026-10-13)
 //   colour    L2's exit: `core` and `near` shift warm against the baseline
 //             (R/B up), `dark` still 0,0,0, `lit` unchanged
+//   single    L4's exit (D8): the campfire draws ONE light. In the fully lit
+//             core one coloured screen leaves the world × the colour; the
+//             doubled glow (static + wire) left the world × (1-(1-c)²), paler.
+//             The baseline's white core is the world itself, so `core` must
+//             read baseline × the campfire colour (read from the skill file).
 //
-//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour [url]
+//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour|single [url]
 //
 // ⛔ Pixels, never structure (plan §6): "is the blend mode screen?" passes on
 // a build that composites wrongly.
@@ -63,13 +68,17 @@ function venue() {
   const dark = zone.darkAreas[0];
   const fire = zone.bindPoints[0];
   const campfire = JSON.parse(readFileSync(join(root, 'api/skills/mobs/campfire-aura.json'), 'utf8'));
-  const light = campfire.effects.find(e => e.type === 'light_aura').radius;
+  const lightEffect = campfire.effects.find(e => e.type === 'light_aura');
+  const light = lightEffect.radius;
+  const hex = parseInt((lightEffect.color || '#ffffff').slice(1), 16);
+  const color = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255].map(c => c / 255);
   // A point inside the circle, out of the fire's reach, and the stand a few
   // units off it so the player's own sight hole covers none of the samples.
   // Offsets fitted to the tunnel and a 2400x1300 view at the default zoom:
   // the camera fixes the VERTICAL extent (about ±3.8 u), so samples spread sideways.
   return {
     origin: zone.origin,
+    color,
     stand: { x: fire.x + 1, y: fire.y - 1 },
     points: {
       core: { x: fire.x - 1.5, y: fire.y + 0.5 },
@@ -200,7 +209,15 @@ function venue() {
       const close = (k) => samples[k].every((c, i) => Math.abs(c - base[k][i]) <= TOL);
       const diff = (k) => samples[k].map((c, i) => (c - base[k][i]).toFixed(1)).join('/');
       (close('lit') ? pass : fail)('daylight untouched', `Δ ${diff('lit')}`);
-      if (mode === 'parity') {
+      if (mode === 'single') {
+        // The two predictions sit ~30 levels apart in G and B, so TOL decides.
+        const one = base.core.map((c, i) => c * v.color[i]);
+        const two = base.core.map((c, i) => c * (1 - (1 - v.color[i]) ** 2));
+        const fmt = (s) => s.map(c => c.toFixed(1)).join('/');
+        const near = samples.core.every((c, i) => Math.abs(c - one[i]) <= TOL);
+        (near ? pass : fail)('campfire core is ONE light',
+          `rgb ${fmt(samples.core)} vs one ${fmt(one)}, doubled ${fmt(two)}`);
+      } else if (mode === 'parity') {
         for (const k of ['core', 'near', 'edge']) {
           (close(k) ? pass : fail)(`${k} matches the erase build`, `Δ ${diff(k)}`);
         }

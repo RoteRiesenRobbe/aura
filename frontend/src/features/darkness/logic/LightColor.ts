@@ -15,6 +15,32 @@ export function lightTint(color: number): number {
 }
 
 /**
+ * The tint of the LOCAL player's light, which is drawn at `max(wire, sight)`
+ * (plan-lightmap.md D9). Sight is eyes, not a light, so it takes D5's rule —
+ * the source that wins the radius gives the colour: the wire colour while the
+ * light reaches at least as far as sight, white once sight reaches further. A
+ * small Torch in a high-`sight` profile would otherwise tint everything the
+ * player can see.
+ */
+export function ownLightTint(wireRadiusPx: number, sightPx: number, color: number): number {
+    return wireRadiusPx >= sightPx ? lightTint(color) : WHITE_LIGHT;
+}
+
+/**
+ * The wire light an entity actually draws (plan-lightmap.md D8).
+ *
+ * ⭐ A respawn anchor (`dwell_radius > 0`, which only the `zone.bindPoints`
+ * campfires carry) draws NONE: its static glow is already painted at zone load
+ * and lights the pocket before the fire streams in. Drawing both screens the
+ * colour twice — `1-(1-c)²` — so the fire turned from orange to pale yellow the
+ * moment it entered interest range. Identity, never position: a player standing
+ * beside the fire keeps their own light.
+ */
+export function wireLightRadius(lightRadiusPx: number, dwellRadiusPx: number | undefined): number {
+    return (dwellRadiusPx ?? 0) > 0 ? 0 : lightRadiusPx;
+}
+
+/**
  * The colour of an authored static light — the campfire glow from its skill's
  * `light_aura` effect, a torch prop from its own `lightColor` — with the
  * fallback the caller names (D6: a torch that authors no colour reads as a
