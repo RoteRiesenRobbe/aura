@@ -4,7 +4,7 @@
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (§10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
-**✅ C7 BUILT 2026-10-15 (§10 ledger):** the bundled ARBs ship without their `@` metadata (main bundle −75 KB pre-gzip). **⭐ C8 + C9 planned 2026-10-14 (PO), not built; C7 as planned:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
+**✅ C7 BUILT 2026-10-15 (§10 ledger):** the bundled ARBs ship without their `@` metadata (main bundle −75 KB pre-gzip). **✅ C8 BUILT 2026-10-15, ahead of its trigger (PO asked for every remaining chunk; §10 ledger):** German is its own chunk, and the game's modules evaluate only once the chosen locale's catalog is in. **⭐ C9 planned 2026-10-14 (PO), not built; C7-C9 as planned:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -2082,6 +2082,38 @@ All six chunks built and committed one per chunk; NOT merged to main.
   `i18n-pseudo` 5/5 · `round4-tooltip` passed. The region banner was not
   looked at (its harness needs the debug zones); `REGIONS_ENGLISH` parses the
   same messages from the stripped string.
+- **Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
+
+### C8 (built 2026-10-15, before its trigger: the PO asked for every remaining chunk)
+
+- ⚑ **The entry check found more than the start screen.** Five modules render
+  their partial, and so run `applyI18n`, at IMPORT time (`HUD.ts`,
+  `GameSettingsUI.ts`, `AccountScreens.ts`, `RegistrationNag.ts`,
+  `EndScreen.ts`), long before preloads. Neither of step 2's options covers
+  them, so the wait moved up a level: `src/index.ts` is now a bootstrap that
+  resolves the locale, calls `loadCatalog()` and only then `require('./App')`
+  (the old `index.ts`, by `git mv`). App stays in the main chunk; only its
+  evaluation waits. English has nothing to load and starts synchronously, as
+  before. No flash, and no survey of import-time `t()` calls is needed.
+- ⚑ **`import()` from TypeScript does not split here**: `tsconfig` compiles to
+  CommonJS, which turns it into a synchronous `require()`. The loader map is
+  therefore plain JS (`localization/logic/CatalogLoaders.js` + a `.d.ts`),
+  which webpack parses itself. `SUPPORTED_LOCALES` derives from that map, so a
+  new UI locale is one line there plus its folder.
+- A failed load warns once and degrades the whole client to English
+  (`locale()`, `contentLocale()` and `<html lang>`), keeping the stored choice
+  for the next load.
+- **Tests first** (`LocaleCatalogs.test.ts`, red before the change): an
+  unloaded catalog reads English, en and en-XA need no load, de loads once, a
+  rejected loader degrades to English with one warning. The three German test
+  files load the catalog in a `beforeAll`.
+- **Measured:** main bundle 2,135,050 → 2,114,636 bytes; `lang-de.<hash>.js`
+  21,139 bytes, holding the only copy of the German messages.
+- **Verified:** vitest 1672/0 · typecheck · prod build · new
+  `i18n-catalog-chunk.mjs` 8/8 (chunk held 3 s: nothing renders, then German
+  with no raw key; chunk blocked: English, `lang="en"`, one warning, no page
+  error; English never requests the chunk) · `i18n-de` 7/7 · `i18n-pseudo`
+  5/5 · `round4-tooltip` passed · `chunk2-accounts` 24/24.
 - **Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
 
 ---

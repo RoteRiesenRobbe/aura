@@ -40,6 +40,10 @@ panel, zone editor, console, cheat feedback) are out of scope.
 - A closed code list (damage types, gate keys): one key per code
   (`damage-type.fire`) and a Go test that every code has its key
   (`skills/damage_type_names_test.go` is the model). Unknown code → itself.
+- Only English is bundled. Every other locale's `frontend.arb` is a chunk of
+  its own, listed in `localization/logic/CatalogLoaders.js` (that map IS the
+  list of playable UI locales), and `index.ts` evaluates the game's modules
+  only once it has loaded (C8). Code that runs before then sees English.
 
 ## 3. Names from catalogs
 

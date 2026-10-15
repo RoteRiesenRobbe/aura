@@ -1,8 +1,9 @@
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {
     declarePageLanguage,
     formatList,
     formatNumber,
+    loadCatalog,
     negotiate,
     PSEUDO_LOCALE,
     pseudo,
@@ -14,6 +15,7 @@ import {
     tParts,
 } from './Locale';
 
+beforeAll(() => loadCatalog('de'));
 afterEach(() => setLocaleForTest('en'));
 
 describe('negotiate (D2 amendment (a))', () => {

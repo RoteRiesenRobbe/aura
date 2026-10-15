@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {beforeAll, describe, expect, it} from 'vitest';
 import type {SkillDefinition, SkillEffect} from '../../../../client-data/Skills';
 
 // plan-localization.md C4: the tooltip in German. The locale is resolved once
@@ -30,6 +30,12 @@ const rejuvenation: SkillDefinition = {
         hot: {hp: 4, hpPerLevel: 2, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0, tickCount: 6, interval: 60, targetsSelf: true},
     })],
 };
+
+// C8: the German catalog is a chunk of its own, loaded before anything renders.
+beforeAll(async () => {
+    const {loadCatalog} = await import('../../../localization/logic/Locale');
+    await loadCatalog();
+});
 
 describe('the skill tooltip in German (C4)', () => {
     it('words every line in German, with the decimal comma and spaced units', async () => {
