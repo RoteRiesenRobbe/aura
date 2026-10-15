@@ -94,7 +94,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task",
+            "stock": "ask-assistance",
             "next": "harvest_on_it"
           }
         ]
@@ -162,7 +162,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task-2",
+            "stock": "ask-assistance",
             "next": "meat_on_it"
           }
         ]

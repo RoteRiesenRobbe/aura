@@ -23,7 +23,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { formatArb, JsonEdits, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, parseWithSpans, slugify, spaced, STOCK_PREFIX, textFields } from './content-text.mjs';
+import { arbOf, formatArb, JsonEdits, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, parseWithSpans, slugify, spaced, STOCK_PREFIX, textFields } from './content-text.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -47,10 +47,10 @@ export function contentFiles(root) {
   ];
 }
 
-/** The shared phrases (D28): their English → name, from en/mobs.arb's `stock.*` keys. */
-export function stockByText(mobsArb) {
+/** The shared phrases (D28): their English → name, from en/conversations.arb's `stock.*` keys. */
+export function stockByText(conversationsArb) {
   const out = new Map();
-  for (const [k, v] of mobsArb.entries) {
+  for (const [k, v] of conversationsArb.entries) {
     if (k.startsWith(STOCK_PREFIX)) out.set(v.text, k.slice(STOCK_PREFIX.length));
   }
   return out;
@@ -58,14 +58,16 @@ export function stockByText(mobsArb) {
 
 /**
  * Extracts one file's inline English. `arbs` maps a domain file name to its
- * parsed ARB, mutated in place. Returns {text, changes, problems}: the new
- * file text (unchanged when nothing was inline) and what happened.
+ * parsed ARB, mutated in place; each key goes to the file its kind lives in
+ * (arbOf: a mob's dialogue is not in mobs.arb). Returns {text, changes,
+ * problems}: the new file text (unchanged when nothing was inline) and what
+ * happened.
  */
 export function extractFile(source, domain, arbs, arbName) {
   const parsed = parseWithSpans(source);
   const raw = parsed.v;
   const arb = arbs[arbName].entries;
-  const stock = stockByText(arbs.mobs);
+  const stock = stockByText(arbs.conversations);
   const edits = new JsonEdits(source);
   const changes = [];
   const problems = [];
@@ -74,15 +76,16 @@ export function extractFile(source, domain, arbs, arbName) {
   // A new key gets its whole metadata (note, placeholders, limit); a changed
   // text keeps its (maybe hand-reworded) note and limit, its placeholders follow the text.
   const write = (key, english, field) => {
-    const have = arb.get(key);
+    const target = arbs[arbOf(key)].entries;
+    const have = target.get(key);
     const fresh = newMeta(field, english);
     if (!have) {
-      arb.set(key, { text: english, meta: fresh });
+      target.set(key, { text: english, meta: fresh });
       changes.push(`+ ${key}`);
     } else if (have.text !== english) {
       const meta = { ...(have.meta || fresh) };
       if (fresh.placeholders) meta.placeholders = fresh.placeholders; else delete meta.placeholders;
-      arb.set(key, { text: english, meta });
+      target.set(key, { text: english, meta });
       changes.push(`~ ${key}`);
     }
   };
@@ -107,7 +110,7 @@ export function extractFile(source, domain, arbs, arbName) {
       // Which reference the item ends up carrying: its own id, or a shared phrase.
       let ref;
       if (d.stock) {
-        if (field.text !== (arbs.mobs.entries.get(field.key) || {}).text) {
+        if (field.text !== (arbs.conversations.entries.get(field.key) || {}).text) {
           problems.push(`${field.path.join('.')}: names the shared phrase "${d.stock}" but says ${JSON.stringify(field.text)}; drop the text, or give the line its own id`);
           continue;
         }
@@ -142,7 +145,7 @@ export function extractFile(source, domain, arbs, arbName) {
 
 function main() {
   const check = process.argv.includes('--check');
-  const arbNames = ['mobs', 'quests', 'skills', 'regions'];
+  const arbNames = ['mobs', 'conversations', 'quests', 'skills', 'regions'];
   const arbPath = (n) => join(ROOT, 'api', 'lang', 'en', `${n}.arb`);
   const arbs = Object.fromEntries(arbNames.map((n) => [n, parseArb(readFileSync(arbPath(n), 'utf8'))]));
   const before = Object.fromEntries(arbNames.map((n) => [n, formatArb('en', arbs[n].entries)]));

@@ -258,6 +258,31 @@ function formatWith(message: IntlMessageFormat, params?: Params): string | null 
     }
 }
 
+const textCache = new Map<string, IntlMessageFormat | null>();
+
+/**
+ * Content text that may carry an argument (a shared teach line's {skill},
+ * 2026-10-15), formatted for the locale. Plain text comes back as it is, and
+ * so does a text that will not format (D14: readable, never blank).
+ */
+export function formatText(source: string, params: Params): string {
+    if (source.indexOf('{') < 0) {
+        return source;
+    }
+    const cacheKey = formatLocale() + '\u0000' + source;
+    let message = textCache.get(cacheKey);
+    if (message === undefined) {
+        try {
+            message = new IntlMessageFormat(source, formatLocale());
+        } catch (e) {
+            message = null;
+        }
+        textCache.set(cacheKey, message);
+    }
+    const text = message ? formatWith(message, params) : null;
+    return text === null ? source : text;
+}
+
 /** Whether the shipped English catalog has this key (D10's precedence). */
 export function hasMessage(key: string): boolean {
     return Object.prototype.hasOwnProperty.call(catalogs[SOURCE_LOCALE], key);

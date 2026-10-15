@@ -12,7 +12,7 @@ panel, zone editor, console, cheat feedback) are out of scope.
 | The text is… | Home | Key shape |
 | --- | --- | --- |
 | UI chrome, or a template code fills in | `frontend/src/lang/<locale>/frontend.arb` | `<area>.<thing>[.<part>]` (D32) |
-| Written per content item (quest, mob, skill, NPC line, region) | `api/lang/<locale>/<domain>.arb` | built from content ids (D29); see the `add-content` skill |
+| Written per content item (quest, mob, skill, NPC line, region) | `api/lang/<locale>/<domain>.arb` (`quests`, `mobs` = names, `conversations` = dialogue + shared phrases, `skills`, `regions`) | built from content ids (D29); see the `add-content` skill |
 | A sentence the server sends | a key in `backend/pkg/aura/lang/message.go` + its template in `frontend.arb` | as UI keys |
 
 ## 2. UI text (frontend)

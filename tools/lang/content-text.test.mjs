@@ -64,7 +64,8 @@ test('JSON edits change only what they touch', () => {
 });
 
 const arbsWith = (stock = {}) => ({
-  mobs: { entries: new Map(Object.entries(stock).map(([k, v]) => [`stock.${k}`, { text: v, meta: { description: 'shared' } }])) },
+  mobs: { entries: new Map() },
+  conversations: { entries: new Map(Object.entries(stock).map(([k, v]) => [`stock.${k}`, { text: v, meta: { description: 'shared' } }])) },
   quests: { entries: new Map() },
   skills: { entries: new Map() },
   regions: { entries: new Map() },
@@ -115,7 +116,8 @@ test('extract: dialogue mints slugs, names shared phrases, and never changes an 
   assert.equal(node.options[1].grants[0].id, 'fields-need-work-2', 'unique within the NPC');
   assert.equal(node.options[1].grants[0].line, undefined);
   assert.deepEqual(node.options[1].grants[1], { kind: 'grant_xp', xp: 5 }, 'a follower grant carries nothing');
-  const m = arbs.mobs.entries;
+  assert.deepEqual([...arbs.mobs.entries.keys()], ['mob.Farmer.name'], 'mobs.arb keeps the name only');
+  const m = arbs.conversations.entries;
   assert.equal(m.get('conv.Farmer.kept').text, 'Old words, new text.');
   assert.equal(m.get('conv.Farmer.fields-need-work-2').text, 'Fields need work.');
   assert.match(m.get('conv.Farmer.shoo').meta.description, /walking past/);

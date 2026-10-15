@@ -3,6 +3,7 @@ import {
     declarePageLanguage,
     formatList,
     formatNumber,
+    formatText,
     loadCatalog,
     negotiate,
     PSEUDO_LOCALE,
@@ -74,6 +75,16 @@ describe('t()', () => {
     it('formats rich-text tags to nodes, never innerHTML', () => {
         const nodes = tParts('settings.language.heading', {}, {});
         expect(nodes.map(n => n.textContent).join('')).toBe('Language');
+    });
+});
+
+describe('formatText (content text with arguments)', () => {
+    it('fills a teach line\'s {skill}', () => {
+        expect(formatText('Ich bringe dir {skill} bei.', {skill: 'Fackel'})).toBe('Ich bringe dir Fackel bei.');
+    });
+    it('leaves plain text and an unformattable text as they are (D14)', () => {
+        expect(formatText("I'll teach you Torch.", {skill: 'Torch'})).toBe("I'll teach you Torch.");
+        expect(formatText('Broken {skill', {skill: 'Torch'})).toBe('Broken {skill');
     });
 });
 

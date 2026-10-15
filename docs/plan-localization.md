@@ -2158,6 +2158,40 @@ All six chunks built and committed one per chunk; NOT merged to main.
 - **Schema:** DB NONE · FlatBuffers NONE · ARB files written only by import;
   `frontend.arb` (en, de) re-sorted, no text changed.
 
+### Dialogue file + shared phrases (built 2026-10-15, PO)
+
+- **`conversations.arb`**: every `conv.*` and `stock.*` key (414) moved out
+  of `mobs.arb` (now the 112 names only), English, German and the
+  translated-from record, keys and texts unchanged. Go: a `conversations`
+  domain (served by `/lang`; `mobs` no longer is), the misplaced pin follows.
+  JS: `arbOf(key)` in `content-text.mjs` routes a key by its first part, so
+  the extract tool and the content editor write dialogue there.
+- **Generic lines → shared phrases** (PO's picks):
+  - `stock.teach-skill` "I'll teach you {skill}." / "Ich bringe dir {skill}
+    bei." replaces 17 identical teach lines. `{skill}` is the one argument a
+    dialogue line may carry, and only on a teach_skill grant's line (a boot
+    finding elsewhere); the server's English fills it (`lang.FillSkill`), the
+    client fills its own from the row's `skill_id` (`formatText`).
+    Benjamin's and Henrik's teach lines say more and keep their own.
+  - 20 teaching-option labels that repeated the skill's name are gone: the
+    row shows the skill's localized name (the existing fallback).
+  - `stock.ask-assistance` (12 copies of "Any assistance for the task?") and
+    the two portals' `stock.portal-open`, `step-through`, `you-step-through`.
+  - 55 per-NPC keys removed in every locale. ⚑ The German of the five new
+    phrases is the old lines' German; the records mark it current, so it is
+    part of the PO's string approval.
+- **Tests first:** `TestPresent_TeachReplyFillsTheSkillName`,
+  `TestDialogueEntries_SkillArgOnlyOnATeachLine`, vitest `formatText`, the
+  extract and editor tests moved to `conversations.arb`.
+- **Verified:** Go full suite bar the known prop pin · vitest 1674/0 ·
+  typecheck · `node --test tools/lang` 21/21 + editor 12/12 + editor smoke ·
+  `aurad -validate` 0 findings · `/lang?lang=de` serves the new phrases ·
+  the Hermit's teaching rows in game (en + de): labels are the skill names
+  ("Erste Hilfe"), taking one says "Ich bringe dir Erste Hilfe bei." ·
+  `i18n-de` 7/7 · `i18n-pseudo` 5/5 · `i18n-catalog-chunk` 8/8.
+- **Schema:** DB NONE · FlatBuffers NONE · content: mob JSON references
+  (`id` → `stock`, 20 option ids dropped), ARBs split.
+
 ---
 
 ## 11. Industry-standards review (2026-10-10, for PO review)

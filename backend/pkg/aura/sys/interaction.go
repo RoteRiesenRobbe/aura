@@ -1119,7 +1119,9 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 			// the greying and the named wall already carry the message, so a
 			// locked row rides with an empty Reply and applyTeach refuses it
 			// silently — the deliberate twin that keeps the two ends agreeing.
-			reply, replyID := g.Line, g.LineID
+			// A shared teach line names the skill as {skill} (stock.teach-skill):
+			// the English reply fills it, the client fills its own from SkillID.
+			reply, replyID := lang.FillSkill(g.Line, g.Skill.Display()), g.LineID
 			if locked {
 				reply, replyID = "", ""
 			}

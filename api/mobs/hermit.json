@@ -99,10 +99,9 @@
         ],
         "options": [
           {
-            "id": "first-aid",
             "grants": [
               {
-                "id": "ill-teach-you-first-aid",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2
@@ -110,10 +109,9 @@
             ]
           },
           {
-            "id": "heal",
             "grants": [
               {
-                "id": "ill-teach-you-heal",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Heal",
                 "requiredLevel": 3
@@ -121,10 +119,9 @@
             ]
           },
           {
-            "id": "calm",
             "grants": [
               {
-                "id": "ill-teach-you-calm",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Calm",
                 "requiredLevel": 10
@@ -132,10 +129,9 @@
             ]
           },
           {
-            "id": "charm-beast",
             "grants": [
               {
-                "id": "ill-teach-you-charm-beast",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
                 "requiredLevel": 10

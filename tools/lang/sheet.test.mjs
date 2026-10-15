@@ -229,7 +229,7 @@ test('status agrees with aurad -lang-status for the content keys', (t) => {
   const go = JSON.parse(run.stdout).de;
   const rows = exportRows(root, 'de').slice(1).filter((r) => r[0] !== 'frontend');
   const of = (s) => rows.filter((r) => r[6] === s).map((r) => r[1]).sort();
-  assert.deepEqual(of('missing'), [...go.missing].sort());
+  assert.deepEqual(of('missing'), [...go.missing].sort(), `a stale ${binary}? rebuild it`);
   assert.deepEqual(of('outdated'), go.outdated.map((line) => line.split(': ')[0]).sort());
   assert.deepEqual(of('missing'), [gone]);
   assert.deepEqual(of('outdated'), [changed]);
