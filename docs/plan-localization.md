@@ -4,7 +4,7 @@
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (§10 ledger). Exit check owed: the PO's German playthrough. Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
-**⭐ C7 + C8 + C9 PLANNED 2026-10-14 (PO), not built:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
+**✅ C7 BUILT 2026-10-15 (§10 ledger):** the bundled ARBs ship without their `@` metadata (main bundle −75 KB pre-gzip). **⭐ C8 + C9 planned 2026-10-14 (PO), not built; C7 as planned:** C7 strips the ARB metadata (translator notes) from the client bundle at build time; C8 loads only the chosen locale's UI catalog, on demand (trigger: a third locale); C9 is a spreadsheet (CSV / Google Sheets) export/import of the translations, every language by default. The thematic split of `frontend.arb` is parked in `docs/cleanup.md` #6.
 **DB schema NONE in every chunk; wire schema YES in C2 + C3** (appended fields
 only, both binding regenerations required - see L1). **Content format YES in
 C2 + C3**: quest objectives gain `tracker`, mobs gain `namePlural` (Q2), every
@@ -2066,6 +2066,23 @@ All six chunks built and committed one per chunk; NOT merged to main.
   typecheck · webpack prod build · `i18n-de` 7/7 · `i18n-pseudo` 5/5 ·
   `round4-tooltip` passed · `chunk2-accounts` 24/24.
 - **Schema:** DB NONE · FlatBuffers NONE (the merge adds nothing past C6).
+
+### C7 (built 2026-10-15)
+
+- `frontend/tools/arb-strip-loader.js` deletes every `@` key and re-serialises
+  without whitespace; `webpack.common.js` runs it on `*.arb?raw` and excludes
+  `.arb` from the generic `?raw` rule. Source ARBs, import sites, `raw.d.ts`
+  and vitest untouched, as planned.
+- **Measured:** `en/frontend.arb` 81,104 → 19,071 chars, `regions.arb` 12,326 →
+  2,368, `de/frontend.arb` 22,080 → 20,774 (whitespace and `@@locale` only);
+  the main bundle 2,209,927 → 2,135,050 bytes.
+- **Verified:** prod build; `frontend/dist` holds no translator note ("Login
+  form warning for a guest", "Region banner subtitle under") and keeps the
+  messages beside them · vitest 1667/0 · typecheck · `i18n-de` 7/7 ·
+  `i18n-pseudo` 5/5 · `round4-tooltip` passed. The region banner was not
+  looked at (its harness needs the debug zones); `REGIONS_ENGLISH` parses the
+  same messages from the stripped string.
+- **Schema:** DB NONE · FlatBuffers NONE · ARB files unchanged.
 
 ---
 
