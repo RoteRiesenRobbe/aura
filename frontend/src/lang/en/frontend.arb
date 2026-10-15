@@ -72,10 +72,6 @@
   "@account.fullscreen": {
     "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
   },
-  "account.mute-all": "Mute all",
-  "@account.mute-all": {
-    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
-  },
   "account.have-account": "Already have an account?",
   "@account.have-account": {
     "description": "Account screens: text of the <p> element in #selectLoginPrompt in #characterSelect."
@@ -91,6 +87,10 @@
   "account.login.submit": "Log in",
   "@account.login.submit": {
     "description": "Account screens: the value attribute of the <input> element in #loginForm in #loginPanel."
+  },
+  "account.mute-all": "Mute all",
+  "@account.mute-all": {
+    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
   },
   "account.register.close-button": "Close",
   "@account.register.close-button": {

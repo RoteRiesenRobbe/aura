@@ -19,6 +19,8 @@ import (
 type dialogueEntry struct {
 	lang.Entry
 	where string
+	// args are the placeholders the text may carry: {skill} on a teach line.
+	args []string
 }
 
 func dialogueEntries(defs []*mobs.MobDefinition) ([]dialogueEntry, []string) {
@@ -26,12 +28,22 @@ func dialogueEntries(defs []*mobs.MobDefinition) ([]dialogueEntry, []string) {
 	var findings []string
 	shared := map[string]bool{}
 
-	add := func(mob, where, key, text string) {
+	// teach marks a teach_skill grant's line, the one place {skill} is filled in
+	// (stock.teach-skill, 2026-10-15).
+	add := func(mob, where, key, text string, teach bool) {
 		if strings.TrimSpace(text) == "" {
 			return
 		}
+		var args []string
+		if strings.Contains(text, "{"+lang.SkillArg+"}") {
+			if !teach {
+				findings = append(findings, fmt.Sprintf("lang conversations: %s %s: only a teach_skill grant's line can name {%s}", mob, where, lang.SkillArg))
+				return
+			}
+			args = []string{lang.SkillArg}
+		}
 		if key == "" {
-			findings = append(findings, fmt.Sprintf("lang mobs: %s %s has no id; run node tools/lang/extract-english.mjs (D27)", mob, where))
+			findings = append(findings, fmt.Sprintf("lang conversations: %s %s has no id; run node tools/lang/extract-english.mjs (D27)", mob, where))
 			return
 		}
 		if strings.HasPrefix(key, lang.StockPrefix) {
@@ -40,7 +52,7 @@ func dialogueEntries(defs []*mobs.MobDefinition) ([]dialogueEntry, []string) {
 			}
 			shared[key] = true
 		}
-		out = append(out, dialogueEntry{lang.Entry{Key: key, Text: text}, fmt.Sprintf("mob %q %s", mob, where)})
+		out = append(out, dialogueEntry{lang.Entry{Key: key, Text: text}, fmt.Sprintf("mob %q %s", mob, where), args})
 	}
 
 	for _, d := range defs {
@@ -49,15 +61,15 @@ func dialogueEntries(defs []*mobs.MobDefinition) ([]dialogueEntry, []string) {
 			continue
 		}
 		for i, line := range in.Ambient {
-			add(d.Name, fmt.Sprintf("ambient line %d", i), at(in.AmbientIDs, i), line)
+			add(d.Name, fmt.Sprintf("ambient line %d", i), at(in.AmbientIDs, i), line, false)
 		}
 		for _, n := range in.Nodes {
 			for i, line := range n.Lines {
-				add(d.Name, fmt.Sprintf("node %q line %d", n.ID, i), at(n.LineIDs, i), line)
+				add(d.Name, fmt.Sprintf("node %q line %d", n.ID, i), at(n.LineIDs, i), line, false)
 			}
 			for oi := range n.Options {
 				o := &n.Options[oi]
-				add(d.Name, fmt.Sprintf("node %q option %d", n.ID, oi), o.ID, o.Text)
+				add(d.Name, fmt.Sprintf("node %q option %d", n.ID, oi), o.ID, o.Text, false)
 				for gi := range o.Grants {
 					g := &o.Grants[gi]
 					// Only the lead grant of a quest bundle is ever spoken
@@ -65,7 +77,7 @@ func dialogueEntries(defs []*mobs.MobDefinition) ([]dialogueEntry, []string) {
 					if gi > 0 && o.Grants[0].Kind.IsQuestKind() {
 						continue
 					}
-					add(d.Name, fmt.Sprintf("node %q option %d grant %d", n.ID, oi, gi), g.LineID, g.Line)
+					add(d.Name, fmt.Sprintf("node %q option %d grant %d", n.ID, oi, gi), g.LineID, g.Line, g.Kind == mobs.GrantTeachSkill)
 				}
 			}
 		}

@@ -245,6 +245,11 @@ the bottom. Trust the code over the manual if a path has drifted.
      `node tools/lang/extract-english.mjs --check` exits 1 if inline text is left.
   A dialogue slug is FROZEN once saved: rewording keeps it (the German stays
   attached); only an explicit re-slug in the editor renames it, in every locale.
+  ⭐ **Generic lines are shared phrases** (PO 2026-10-15): a plain teach grant
+  says `{"stock": "teach-skill"}` ("I'll teach you {skill}.", filled per
+  language; `{skill}` is refused anywhere else) and a teaching option carries
+  no label (the row shows the skill's name). Dialogue and `stock.*` live in
+  `api/lang/<locale>/conversations.arb`, mob names in `mobs.arb`.
 - **Every player-visible string is translated (D23).** Write the German into
   `api/lang/de/<domain>.arb` in the SAME change (Claude drafts, the PO reviews),
   following `docs/manual-localization-de.md` (du, the glossary,

@@ -12,7 +12,7 @@ panel, zone editor, console, cheat feedback) are out of scope.
 | The text is… | Home | Key shape |
 | --- | --- | --- |
 | UI chrome, or a template code fills in | `frontend/src/lang/<locale>/frontend.arb` | `<area>.<thing>[.<part>]` (D32) |
-| Written per content item (quest, mob, skill, NPC line, region) | `api/lang/<locale>/<domain>.arb` | built from content ids (D29); see the `add-content` skill |
+| Written per content item (quest, mob, skill, NPC line, region) | `api/lang/<locale>/<domain>.arb` (`quests`, `mobs` = names, `conversations` = dialogue + shared phrases, `skills`, `regions`) | built from content ids (D29); see the `add-content` skill |
 | A sentence the server sends | a key in `backend/pkg/aura/lang/message.go` + its template in `frontend.arb` | as UI keys |
 
 ## 2. UI text (frontend)
@@ -40,6 +40,10 @@ panel, zone editor, console, cheat feedback) are out of scope.
 - A closed code list (damage types, gate keys): one key per code
   (`damage-type.fire`) and a Go test that every code has its key
   (`skills/damage_type_names_test.go` is the model). Unknown code → itself.
+- Only English is bundled. Every other locale's `frontend.arb` is a chunk of
+  its own, listed in `localization/logic/CatalogLoaders.js` (that map IS the
+  list of playable UI locales), and `index.ts` evaluates the game's modules
+  only once it has loaded (C8). Code that runs before then sees English.
 
 ## 3. Names from catalogs
 
@@ -71,3 +75,14 @@ panel, zone editor, console, cheat feedback) are out of scope.
   word on screen is a string that bypassed the catalog (D21).
 - Harness scripts pin `locale: 'en-US'` in `browser.newContext` (D12): this
   machine's browser is German.
+
+## 6. Translating in a spreadsheet
+
+`node tools/lang/sheet.mjs export` writes one CSV per language (`de.csv`:
+key, English, translation, note, length limit, status); `node
+tools/lang/sheet.mjs import de.csv` writes the translation column back into
+the ARBs, or refuses the whole sheet naming the bad rows. It never writes
+English and never refreshes the translated-from records: review the git diff,
+then run §5's record step. `--help` lists the rules and the Google Sheets
+traps (untick "Convert text to numbers, dates, and formulas" on import).
+Tests: `node --test tools/lang/*.test.mjs` (plan-localization.md C9).

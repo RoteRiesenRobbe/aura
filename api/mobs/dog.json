@@ -70,7 +70,6 @@
         ],
         "options": [
           {
-            "id": "summon-companion",
             "grants": [
               {
                 "id": "woof-3",

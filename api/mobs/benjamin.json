@@ -79,7 +79,6 @@
         ],
         "options": [
           {
-            "id": "harvest",
             "grants": [
               {
                 "id": "ill-teach-you-harvest-make",

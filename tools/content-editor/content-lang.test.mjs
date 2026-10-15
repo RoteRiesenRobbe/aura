@@ -26,12 +26,10 @@ function fixture() {
   }));
   write('api/lang/de/quests.arb', arb('de', { 'quest.wolves.title': 'Wölfe', 'quest.wolves.cull.journal': 'Töte sie.', 'quest.wolves.done.journal': 'Fertig.' }));
   write('api/lang/de/quests.translated-from.json', JSON.stringify({ 'quest.wolves.title': 'Wolves', 'quest.wolves.cull.journal': 'Kill them.', 'quest.wolves.done.journal': 'Done.' }, null, 2));
-  write('api/lang/en/mobs.arb', arb('en', {
-    'mob.Farmer.name': 'Farmer',
-    'conv.Farmer.hello': 'Hello.',
-    'stock.good': 'Good.',
-  }));
-  write('api/lang/de/mobs.arb', arb('de', { 'mob.Farmer.name': 'Bauer', 'conv.Farmer.hello': 'Hallo.', 'stock.good': 'Gut.' }));
+  write('api/lang/en/mobs.arb', arb('en', { 'mob.Farmer.name': 'Farmer' }));
+  write('api/lang/de/mobs.arb', arb('de', { 'mob.Farmer.name': 'Bauer' }));
+  write('api/lang/en/conversations.arb', arb('en', { 'conv.Farmer.hello': 'Hello.', 'stock.good': 'Good.' }));
+  write('api/lang/de/conversations.arb', arb('de', { 'conv.Farmer.hello': 'Hallo.', 'stock.good': 'Gut.' }));
   write('api/lang/en/skills.arb', arb('en', {}));
   write('api/lang/en/regions.arb', arb('en', {}));
   return root;
@@ -125,14 +123,15 @@ test('dialogue: a new line gets a slug, a shared-phrase match names the phrase, 
   const plan = planSave('mob', h, farmer(), lang);
   assert.deepEqual(plan.raw.interaction.nodes[0].lines, [{ id: 'greeting' }, { id: 'the-fields-need-work' }, { stock: 'good' }]);
   writeSave(plan.files);
-  const en = JSON.parse(readFileSync(path.join(root, 'api/lang/en/mobs.arb'), 'utf8'));
-  const de = JSON.parse(readFileSync(path.join(root, 'api/lang/de/mobs.arb'), 'utf8'));
+  const en = JSON.parse(readFileSync(path.join(root, 'api/lang/en/conversations.arb'), 'utf8'));
+  const de = JSON.parse(readFileSync(path.join(root, 'api/lang/de/conversations.arb'), 'utf8'));
   assert.equal(en['conv.Farmer.greeting'], 'Hello.');
   assert.equal(de['conv.Farmer.greeting'], 'Hallo.');
   assert.equal(en['conv.Farmer.hello'], undefined);
   assert.equal(en['conv.Farmer.the-fields-need-work'], 'The fields need work.');
   assert.match(en['@conv.Farmer.the-fields-need-work'].description, /Farmer speaks this in the conversation, node "root", line 2/);
   assert.equal(en['stock.good'], 'Good.', 'a shared phrase is never removed by one file');
+  assert.deepEqual(Object.keys(JSON.parse(readFileSync(path.join(root, 'api/lang/en/mobs.arb'), 'utf8'))), ['@@locale', 'mob.Farmer.name', '@mob.Farmer.name'], 'mobs.arb keeps the name only');
 });
 
 test('editing a shared phrase edits it for every line that names it', () => {
@@ -141,6 +140,6 @@ test('editing a shared phrase edits it for every line that names it', () => {
   const h = hydrate('mob', farmer(), lang);
   h.interaction.nodes[0].options[0].text = 'Very good.';
   writeSave(planSave('mob', h, farmer(), lang).files);
-  const en = JSON.parse(readFileSync(path.join(root, 'api/lang/en/mobs.arb'), 'utf8'));
+  const en = JSON.parse(readFileSync(path.join(root, 'api/lang/en/conversations.arb'), 'utf8'));
   assert.equal(en['stock.good'], 'Very good.');
 });

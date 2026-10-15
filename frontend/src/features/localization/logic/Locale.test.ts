@@ -1,8 +1,10 @@
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {
     declarePageLanguage,
     formatList,
     formatNumber,
+    formatText,
+    loadCatalog,
     negotiate,
     PSEUDO_LOCALE,
     pseudo,
@@ -14,6 +16,7 @@ import {
     tParts,
 } from './Locale';
 
+beforeAll(() => loadCatalog('de'));
 afterEach(() => setLocaleForTest('en'));
 
 describe('negotiate (D2 amendment (a))', () => {
@@ -72,6 +75,16 @@ describe('t()', () => {
     it('formats rich-text tags to nodes, never innerHTML', () => {
         const nodes = tParts('settings.language.heading', {}, {});
         expect(nodes.map(n => n.textContent).join('')).toBe('Language');
+    });
+});
+
+describe('formatText (content text with arguments)', () => {
+    it('fills a teach line\'s {skill}', () => {
+        expect(formatText('Ich bringe dir {skill} bei.', {skill: 'Fackel'})).toBe('Ich bringe dir Fackel bei.');
+    });
+    it('leaves plain text and an unformattable text as they are (D14)', () => {
+        expect(formatText("I'll teach you Torch.", {skill: 'Torch'})).toBe("I'll teach you Torch.");
+        expect(formatText('Broken {skill', {skill: 'Torch'})).toBe('Broken {skill');
     });
 });
 

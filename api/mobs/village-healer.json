@@ -99,10 +99,9 @@
         ],
         "options": [
           {
-            "id": "first-aid",
             "grants": [
               {
-                "id": "ill-teach-you-first-aid",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2
@@ -110,10 +109,9 @@
             ]
           },
           {
-            "id": "revive",
             "grants": [
               {
-                "id": "ill-teach-you-revive",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Revive",
                 "requiredLevel": 8

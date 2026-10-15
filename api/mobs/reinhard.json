@@ -137,7 +137,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task",
+            "stock": "ask-assistance",
             "next": "rats_on_it"
           },
           {
@@ -216,7 +216,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task-2",
+            "stock": "ask-assistance",
             "next": "ring_on_it"
           }
         ]
@@ -277,7 +277,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task-3",
+            "stock": "ask-assistance",
             "next": "boars_on_it"
           }
         ]
@@ -345,7 +345,7 @@
             ]
           },
           {
-            "id": "any-assistance-for-the-task-4",
+            "stock": "ask-assistance",
             "next": "beast_on_it"
           }
         ]
@@ -397,7 +397,7 @@
         ],
         "options": [
           {
-            "id": "any-assistance-for-the-task-5",
+            "stock": "ask-assistance",
             "next": "shipment_on_it"
           }
         ]
@@ -482,10 +482,9 @@
         ],
         "options": [
           {
-            "id": "harvest",
             "grants": [
               {
-                "id": "ill-teach-you-harvest",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1

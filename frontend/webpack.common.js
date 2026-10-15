@@ -106,8 +106,19 @@ module.exports = {
 				type: 'asset/source'
 			},
 
+			// An ARB ships without its translator notes (plan-localization.md C7).
+			// Webpack applies EVERY matching rule, so the generic `?raw` rule
+			// below excludes ARBs rather than relying on order.
+			{
+				test: /\.arb$/,
+				resourceQuery: /raw/,
+				type: 'asset/source',
+				use: [path.resolve(__dirname, 'tools/arb-strip-loader.js')],
+			},
+
 			{
 				resourceQuery: /raw/,
+				exclude: /\.arb$/,
 				type: 'asset/source',
 			},
 

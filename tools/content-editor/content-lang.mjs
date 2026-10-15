@@ -22,11 +22,8 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
-  formatArb, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, plainPlaceholders, slugify, spaced, STOCK_PREFIX, textFields,
+  arbOf, formatArb, keys, newMeta, notes, npcSlugs, numberPlaceholders, parseArb, plainPlaceholders, slugify, spaced, STOCK_PREFIX, textFields,
 } from '../lang/content-text.mjs';
-
-/** The ARB a domain's English lives in. */
-export const ARB_OF = { quest: 'quests', mob: 'mobs', skill: 'skills', regions: 'regions' };
 
 /** Every locale's ARBs and translated-from records, read fresh from api/lang. */
 export function loadLang(root) {
@@ -57,7 +54,7 @@ export function english(lang, key) {
 /** The shared phrases (D28): name → English. */
 export function sharedPhrases(lang) {
   const out = {};
-  for (const [k, v] of lang.locales.en.arbs.mobs.entries) {
+  for (const [k, v] of lang.locales.en.arbs.conversations.entries) {
     if (k.startsWith(STOCK_PREFIX)) out[k.slice(STOCK_PREFIX.length)] = v.text;
   }
   return out;
@@ -177,8 +174,6 @@ export function mintIds(domain, raw, lang) {
  * in every locale. Nothing is written.
  */
 export function planSave(domain, raw, diskRaw, lang) {
-  const arbName = ARB_OF[domain];
-  const en = lang.locales.en.arbs[arbName].entries;
   const touched = new Set(); // locale/arb or locale/record names to rewrite
   const moved = [];
   const removed = [];
@@ -205,10 +200,12 @@ export function planSave(domain, raw, diskRaw, lang) {
     const text = obj[f.field];
     if (text === undefined || text === '') continue;
     kept.add(f.key);
+    // A key's file is its kind's (arbOf): a mob's dialogue is not in mobs.arb.
+    const arbName = arbOf(f.key);
+    const en = lang.locales.en.arbs[arbName].entries;
     if (f.dialogue && f.dialogue.stock) {
-      const shared = lang.locales.en.arbs.mobs.entries;
-      const have = shared.get(f.key);
-      if (have && have.text !== text) { shared.set(f.key, { ...have, text }); touched.add('en/arb/mobs'); }
+      const have = en.get(f.key);
+      if (have && have.text !== text) { en.set(f.key, { ...have, text }); touched.add(`en/arb/${arbName}`); }
       continue;
     }
     const englishText = f.tracker ? numberPlaceholders(text) : text;

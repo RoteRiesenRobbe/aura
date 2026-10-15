@@ -120,10 +120,9 @@
         ],
         "options": [
           {
-            "id": "recover",
             "grants": [
               {
-                "id": "ill-teach-you-recover",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Recover",
                 "requiredLevel": 4
@@ -131,10 +130,9 @@
             ]
           },
           {
-            "id": "summon-totem",
             "grants": [
               {
-                "id": "ill-teach-you-summon-totem",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "SummonTotem",
                 "requiredLevel": 5

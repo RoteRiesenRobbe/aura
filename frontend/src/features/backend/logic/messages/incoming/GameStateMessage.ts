@@ -1,5 +1,5 @@
 import {contentText} from '../../../../../client-data/LangBundle';
-import {formatList, t, tKey} from '../../../../localization/logic/Locale';
+import {formatList, formatText, t, tKey} from '../../../../localization/logic/Locale';
 import {mobName} from '../../../../localization/logic/WireText';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
@@ -444,11 +444,13 @@ function rowText(o: AuraApi.ConversationOption): string {
 
 function rowReply(o: AuraApi.ConversationOption): string {
     const english = o.reply() ?? '';
+    const skill = o.skillId() ? skillDisplayName(o.skillId()) : '';
     if (o.replyId()) {
-        return contentText(o.replyId(), english);
+        // A shared teach line names its skill as {skill} (stock.teach-skill).
+        return formatText(contentText(o.replyId(), english), {skill});
     }
     if (o.replyKey()) {
-        return tKey(o.replyKey(), {skill: o.skillId() ? skillDisplayName(o.skillId()) : ''}, english);
+        return tKey(o.replyKey(), {skill}, english);
     }
     return english;
 }

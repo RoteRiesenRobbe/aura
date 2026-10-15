@@ -1,9 +1,10 @@
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {AuraApi} from '../../backend/logic/AuraApi';
 import {objectiveLine, resolveArgs, WireArg} from './WireText';
 import {formatMobName, loadMobCatalog, mobName} from '../../../client-data/Mobs';
-import {setLocaleForTest} from './Locale';
+import {loadCatalog, setLocaleForTest} from './Locale';
 
+beforeAll(() => loadCatalog('de'));
 afterEach(() => setLocaleForTest('en'));
 
 const arg = (a: Partial<WireArg>): WireArg => ({name: '', kind: 0, text: '', number: 0, id: 0, items: [], ...a});
