@@ -1,6 +1,6 @@
 # Plan - Localization (multi-language text; English + German first)
 
-**⭐ C0a-C6 MERGED to main 2026-10-14 (PO; §10 ledger, "Merge").** The German string approval and manual translation pass happen on main (PO 2026-10-15).
+**⭐ C0a-C6 MERGED to main 2026-10-14, C7-C9 + the dialogue file 2026-10-15 (`3cee3500`) (PO; §10 ledger).** The German string approval and manual translation pass happen on main (PO 2026-10-15).
 **Status:** ✅ C0a-C4 BUILT 2026-10-10 on branch `localization` (§10 ledger). Exit check owed: the PO's German string approval and manual translation pass (was "playthrough", corrected 2026-10-15). Detection switched ON 2026-10-13 (PO, Q3). Six chunks (C0a, C0b, C1–C4).
 **✅ C5a + C5b BUILT 2026-10-11 on branch `localization` (§10 ledger):** English lives in `api/lang/en/` (D27), dotted keys (D29, revised 2026-10-12 after a Weblate round-trip), dialogue slugs and shared phrases by reference (D27, D28), mob names carry their plural as ICU (D24), the content editor writes all English text and shows "German owed" (D25), optional length limits (D30), label-shape notes (D31). Everything in C0a-C5b now waits on the PO's German review and playthrough.
 **✅ C6 BUILT 2026-10-14 (PO, D32; §10 ledger):** the UI catalogs live in `frontend/src/lang/<locale>/frontend.arb`, and their 311 keys have the content keys' shape (`spellbook.respec.title`, hyphenated parts). The translation allowlist is removed (D13).
