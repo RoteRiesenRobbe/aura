@@ -1,10 +1,9 @@
 # Plan: Audio, music that follows the game and sounds that answer the player
 
-> **Status: SKETCHED 2026-10-15, nothing ruled, no chunk built.** Written from
-> one survey session after the main title shipped (`1168b00e`). ⭐ **C0 is a
-> DESIGN chunk and comes first**: it narrows the scope below to what v1 needs
-> and turns §5's open questions into rulings. Every chunk after C0 is a
-> proposal that C0 may cut, merge or reorder.
+> **Status: C0 (design) DONE 2026-10-15, all eleven §5 questions ruled (§5a);
+> ⭐ C1 (foundation) is next.** v1 = lanes A-F; G (ambience) and H (stems) are
+> out of v1. §6 is the re-cut chunk list. Sketched the same day from one
+> survey session after the main title shipped (`1168b00e`).
 >
 > ⚑ **Takes over `archive/plan-region-audio.md`** (PO 2026-10-15). Its region
 > music and region footsteps become lanes D and E here. Its design detail
@@ -150,23 +149,73 @@ from the survey above, not what it will cost to compose.
 - **Q11. The old track.** Delete `derpy-berryhunter.mp3`, or keep it as the
   fallback track P5 needs?
 
-## 6. Chunks
+## 5a. C0 rulings (PO, 2026-10-15)
 
-- **C0, design (FIRST).** A planning session with the PO: answer §5, cut the
-  lanes to v1, and rewrite §6 as the real chunk list. No production code.
-  Output: rulings recorded in this doc, the chunks re-cut, `CLAUDE.md` Status
-  updated.
-- *Proposed after C0, to be re-cut:*
-  - **C1, foundation** (lane A), including §19.
-  - **C2, music controller** (lane B); the main title moves onto it.
-  - **C3, one-shots** (lane C), possibly split into UI + progression and
-    combat + deaths.
-  - **C4, region music and footsteps** (lanes D + E), from
-    `archive/plan-region-audio.md` C1-C3.
-  - **C5, event music** (lane F), ascension first.
-  - **C6, credits** (`plan-region-audio.md` C4): attribution for every shipped
-    sound, the existing ones included.
-  - Lanes G and H only if C0 puts them in v1.
+P1-P5 in §4 are confirmed as written, except where a ruling below narrows them.
+
+- **R1 (Q1). Muted stays the default.** PO: *hearing sound on a browser tab
+  should be a choice*. The condition is that the toggle is instantly visible,
+  which the account-screen "Mute all" switch (`4725163d`) already satisfies.
+  No change to `masterMuted`'s default.
+- **R2 (Q2, Q10). v1 = lanes A, B, C, D, E, F.** G (ambience) and H (music
+  stems) are out of v1. P3 stands: the controller must not rule stems out,
+  and must not build them.
+- **R3 (Q3). Music priority: menu < region < event.** No combat, boss or death
+  music in v1. Ascension is the first (and so far only) event.
+- **R4 (Q4). Entering the world crossfades the title to the region track.**
+  Where a region declares no track, the fallback track plays (P5,
+  `plan-region-audio.md` D4). The title is the fallback until a better one
+  exists.
+- **R5 (Q5). Two sliders beside master: Music and SFX.** UI sounds, footsteps
+  and combat all ride SFX. A UI bus can be split out later if clicks annoy.
+- **R6 (Q6). Death sound family is an optional, authored mob field.** Absent
+  means the generic death sound, so only mobs that need a specific family
+  (beast, humanoid, ...) get the line. Content schema: one optional field;
+  the field name and whether the client reads it from the mob catalog it
+  already fetches (wire NONE) or needs it on the wire are settled in C3.
+- **R7 (Q7). Every hit plays, always throttled per target, attenuated by
+  distance AND by involvement.** Hits are positioned (they fade with
+  distance); a hit the own player neither dealt nor took plays at a lower
+  gain (0.5, [PLACEHOLDER]). The exact mix is tuned by ear in C3.
+- **R8 (Q8). World sounds positioned, UI flat.** Positioned: hits, deaths,
+  footsteps, another player's campfire bind and level up. Flat: clicks,
+  spellbook/journal open and close, dialogue start, the own player's level up
+  and campfire bind. The 700 px range moves into the sound table as a
+  [PLACEHOLDER].
+- **R9 (Q9). Sounds come from the internal composer and artist**, the same
+  source as the main title, SFX included; licensed packs may be added later.
+  ⚑ Consequence: until their files land, chunks build and test against
+  placeholder files (or the fallback, P5), and the PO listen judges the
+  mechanism, not the sound. Credits (C6) name the internal team plus any pack
+  licence.
+- **R10 (Q11). Delete `derpy-berryhunter.mp3`** (and its `Zone.Identifier`
+  sidecar). It is unreferenced (grep 2026-10-15) and an open rights question.
+  Done in C1.
+
+## 6. Chunks (re-cut by C0, 2026-10-15)
+
+- **C0, design.** ✅ 2026-10-15: §5a.
+- **C1, foundation** (lane A). One sound table (id, file, channel, default
+  volume, decoded or streamed, spatial or flat per R8); the Music and SFX
+  channels with their sliders (R5); the §19 loading fix (short SFX decoded,
+  long tracks streamed), measured before and after; a loud dev miss plus
+  fallback for an unknown id (P5); every existing Juice file and
+  `SpatialAudio` call site moves onto table ids; delete the old track (R10).
+- **C2, music controller** (lane B). The request stack (R3), crossfade on
+  every change, no restart of the playing track (`plan-region-audio.md` D9),
+  start on the browser's audio unlock (L1, L5); the main title becomes the
+  menu request and the fallback (R4).
+- **C3, one-shots** (lane C). UI (click, spellbook/journal open and close,
+  dialogue start), progression (level up, campfire bind), combat hits (R7),
+  deaths by family (R6, the one content field). May split into
+  UI + progression and combat + deaths if it runs large.
+- **C4, region music and footsteps** (lanes D + E), from
+  `archive/plan-region-audio.md` C1-C3, on the C2 controller (region requests)
+  and the C1 table (footstep sets, the L4 throttle fix).
+- **C5, event music** (lane F): ascension requests the event level while it
+  runs and withdraws when it ends.
+- **C6, credits** (`plan-region-audio.md` C4): attribution for every shipped
+  sound (R9), the existing ones included.
 
 ## 7. Test strategy
 
