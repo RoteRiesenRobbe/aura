@@ -15,6 +15,7 @@ import {
 import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
 import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightColor';
 import {fadeStops, LightShape, normalizeShape} from './LightShape';
+import {advanceEase, aimColor, aimRadius, drawnColor, gone, leave, LightEase, newEase, revive} from './LightEase';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -91,6 +92,10 @@ const DarknessVisuals = {
     // this is short enough to feel like your eyes adjusting and long enough
     // that the boundary is not a line. [PLACEHOLDER]
     SIGHT_RAMP_MS: 400,
+    // How long a wire light takes to ease to a new radius or colour, and to
+    // fade in or out (plan-lightmap.md D11): a Lantern switched on, a lit mob
+    // walking into view, a fire elemental dying. [PLACEHOLDER]
+    LIGHT_RAMP_MS: 300,
 };
 
 // World campfires glow permanently (chunk 4 follow-up): their wire
@@ -149,6 +154,8 @@ interface LightSource {
      *  same reason: the own hole's tint depends on whether light or sight wins
      *  the radius (plan-lightmap.md D9), and sight moves every frame. */
     wireColor: number;
+    /** What is DRAWN, easing toward the wire (D11). */
+    ease: LightEase;
     /** Is this the LOCAL player's hole? Only that one gets `sight`: it answers
      *  "how far can I see", which is a question about the viewer and not about
      *  the entity. A remote player standing in fog keeps their own light. */
@@ -400,9 +407,12 @@ export function setLightRadius(
     // at least their sight floor, and a snapshot with no light_radius means "no
     // light SOURCE", not "no eyes". Removing it would black out the avatar the
     // moment a torch burned out.
+    //
+    // ⭐ Every other light FADES OUT where it stands rather than vanishing
+    // (plan-lightmap.md D11); `update` destroys it once it is gone.
     if (radiusPx <= 0 && !own) {
-        if (light) {
-            removeLight(object.id, light);
+        if (light && !light.ease.leaving) {
+            leave(light.ease);
         }
         return;
     }
@@ -410,14 +420,27 @@ export function setLightRadius(
         const sprite = lightSprite(color);
         const heart = heartSprite();
         layer.addChild(sprite, heart);
-        light = {object, sprite, heart, wireRadiusPx: 0, wireColor: 0, own};
+        const wire = Math.max(radiusPx, 0);
+        light = {object, sprite, heart, wireRadiusPx: wire, wireColor: color, own, ease: newEase(wire, lightTint(color))};
         lights.set(object.id, light);
+    } else if (light.ease.leaving) {
+        revive(light.ease);
     }
     light.object = object;
     light.own = light.own || own;
     light.wireRadiusPx = Math.max(radiusPx, 0);
     light.wireColor = color;
+    aimRadius(light.ease, light.wireRadiusPx);
+    aimColor(light.ease, targetTint(light));
     applyRadius(light);
+}
+
+/** The colour a light is heading for: the own hole's depends on whether light
+ *  or sight wins its radius (D9), every other light's is its wire colour. */
+function targetTint(light: LightSource): number {
+    return light.own
+        ? ownLightTint(light.wireRadiusPx, sightPx.value, light.wireColor)
+        : lightTint(light.wireColor);
 }
 
 /**
@@ -496,37 +519,52 @@ export function setLightShape(next: Partial<LightShape>): LightShape {
  * revocable by map data. It also means `sight` can only ever make a place
  * kinder, which is a good property for a knob nobody has tuned.
  *
- * ⚑ The tint is set here too, for the same reason: when sight wins the own
- * hole's radius it draws white, not the light's colour (plan-lightmap.md D9).
+ * ⚑ The tint and opacity are set here too. The tint eases toward
+ * {@link targetTint} (white while sight wins the own hole, D9), and every
+ * value drawn is the EASED one (D11), never the wire's.
  */
 function applyRadius(light: LightSource) {
-    if (light.own) {
-        sizeLight(light.sprite, light.heart, lightRadiusWithSight(light.wireRadiusPx, sightPx.value));
-        light.sprite.tint = ownLightTint(light.wireRadiusPx, sightPx.value, light.wireColor);
-        return;
-    }
-    sizeLight(light.sprite, light.heart, light.wireRadiusPx);
-    light.sprite.tint = lightTint(light.wireColor);
+    const radius = light.own
+        ? lightRadiusWithSight(light.ease.radius.value, sightPx.value)
+        : light.ease.radius.value;
+    sizeLight(light.sprite, light.heart, radius);
+    light.sprite.tint = drawnColor(light.ease);
+    light.sprite.alpha = light.heart.alpha = light.ease.fade.value;
 }
 
 /**
- * Per-frame: glue light holes to their (interpolated) entity positions and
- * self-clean lights whose entity left the viewport (GameObject.hide detaches
- * the shape from its layer).
+ * Per-frame: glue light holes to their (interpolated) entity positions, ease
+ * every light (D11), and fade out lights whose entity left the viewport
+ * (GameObject.hide detaches the shape from its layer) — where they last stood,
+ * destroyed once gone.
+ *
+ * ⚑ Every light is re-applied every frame. There are a few dozen at most, and
+ * the own hole's colour and size follow `sight`, which moves on its own.
  */
 function update(deltaMS: number) {
     if (!active) {
         return;
     }
+    lights.forEach((light) => {
+        if (!light.ease.leaving && light.object.shape.parent === null) {
+            leave(light.ease);
+        }
+        if (!light.ease.leaving) {
+            light.sprite.position.copyFrom(light.object.shape.position);
+            light.heart.position.copyFrom(light.object.shape.position);
+        }
+    });
+    // After the move: sight resolves at the position just drawn (A2).
+    advanceSight(deltaMS);
     lights.forEach((light, id) => {
-        if (light.object.shape.parent === null) {
+        aimColor(light.ease, targetTint(light));
+        advanceEase(light.ease, deltaMS, DarknessVisuals.LIGHT_RAMP_MS);
+        if (gone(light.ease)) {
             removeLight(id, light);
             return;
         }
-        light.sprite.position.copyFrom(light.object.shape.position);
-        light.heart.position.copyFrom(light.object.shape.position);
+        applyRadius(light);
     });
-    advanceSight(deltaMS);
 }
 
 /**
@@ -559,8 +597,8 @@ function advanceSight(deltaMS: number) {
     if (rampSettled(sightPx)) {
         return;
     }
+    // The own hole is re-applied by `update` right after, with every light.
     advanceRamp(sightPx, deltaMS, DarknessVisuals.SIGHT_RAMP_MS);
-    applyRadius(own);
 }
 
 function ownLight(): LightSource | undefined {
@@ -599,8 +637,18 @@ export function isHidden(x: number, y: number): boolean {
     // Dynamic (wire-driven) lights: the full radius counts, not just the
     // fully-erased core, so a plate reappears as soon as any light reaches the
     // mob — the same moment the mob itself starts to become visible.
+    //
+    // ⛔ The WIRE's radius, never the drawn one (plan-lightmap.md D11): the
+    // drawn radius eases and flickers, and a nameplate must change on the frame
+    // the server says the light changed, as it always has. A light fading out
+    // lights nothing. (The own hole's sight is the eased value, as before D11.)
     for (const light of lights.values()) {
-        const radius = light.sprite.width / 2;
+        if (light.ease.leaving) {
+            continue;
+        }
+        const radius = light.own
+            ? lightRadiusWithSight(light.wireRadiusPx, sightPx.value)
+            : light.wireRadiusPx;
         if ((x - light.sprite.position.x) ** 2 + (y - light.sprite.position.y) ** 2 <= radius ** 2) {
             return false;
         }

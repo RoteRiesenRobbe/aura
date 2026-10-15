@@ -542,8 +542,8 @@ vanishes.
 | Chunk | State | Commit | Verified |
 | --- | --- | --- | --- |
 | L4 one colour per light | built 2026-10-15 | `3bab952c` | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
-| L5 light shape | built 2026-10-16 | see git log | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning owed |
-| L6 easing | designed | | |
+| L5 light shape | built 2026-10-16 | `27dbf718` | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning owed |
+| L6 easing | built 2026-10-16 | see git log | `l6-light-ease.mjs` 5/5 (red-first 2/5 on the L5 overlay: every patch lit and darkened on one frame) · `l1-lightmap.mjs single` 3/3, `heart` 5/5 unchanged · vitest 1701/0 (+9) · tsc clean · PO feel owed |
 | L7 flicker | designed | | |
 
 **L4 notes (2026-10-15).**
@@ -580,4 +580,21 @@ vanishes.
 - `fadeStops` (`LightShape.ts`) keeps curve 0 at exactly the two old stops,
   which is why every L1-L4 pixel number survives unchanged.
 - Dark circles always fade linearly (their rim is the darkness edge).
+- Schema: DB NONE · wire NONE · conf NONE · content NONE.
+
+**L6 notes (2026-10-16).**
+
+- `LightEase.ts` holds the per-light state (radius ramp, colour lerp on a
+  progress ramp of its own, fade, `leaving`), PixiJS-free; `update` moves every
+  light, then advances sight, then eases and re-applies every light each frame
+  (sight must resolve at the position just drawn, A2).
+- **A new light fades in at its full radius; the OWN hole grows instead**,
+  because it already exists at the sight floor and only its wire radius
+  changes. Turning a Lantern off shrinks the own hole back to the floor.
+- `isHidden` reads the wire radius and skips a fading-out light; the leg
+  shows the answer flipping two frames before the outer patch is drawn lit.
+- An entity that returns mid-fade revives from where its light had faded to.
+- ⚑ The leg is frame-rate bound (software GL ~10 fps), so it proves grow vs.
+  snap, not the ramp's duration; `LIGHT_RAMP_MS` 300 is [PLACEHOLDER] and
+  wants the PO's feel on a real GPU.
 - Schema: DB NONE · wire NONE · conf NONE · content NONE.
