@@ -26,7 +26,14 @@
 //             The baseline's white core is the world itself, so `core` must
 //             read baseline × the campfire colour (read from the skill file).
 //
-//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour|single [url]
+//   heart     L5 (D10): the same run sampled at the default shape, then with
+//             `lightShape({heart: 0.6})`: the core turns WHITE (the baseline's
+//             white core, ±TOL), the near/edge rim keeps its colour (Δ ≤ TOL).
+//   curve     L5 (D10): default, then `lightShape({curve: 1})`: the core is
+//             unchanged and `near` (0.6 R, just past the core's edge) lifts by
+//             the smoothstep/linear alpha ratio, derived from the shape.
+//
+//   node .claude/skills/verify/l1-lightmap.mjs baseline|parity|colour|single|heart|curve [url]
 //
 // ⛔ Pixels, never structure (plan §6): "is the blend mode screen?" passes on
 // a build that composites wrongly.
@@ -191,12 +198,18 @@ function venue() {
         return out;
       }, { b64: shot.toString('base64'), pts: screen });
     };
-    const a = await shoot();
-    await sleep(1200);
-    const b = await shoot();
-    const samples = {};
-    for (const k of Object.keys(a)) { samples[k] = a[k].map((x, i) => Math.round((x + b[k][i]) / 2 * 10) / 10); }
-    for (const [k, s] of Object.entries(samples)) { console.log(`  ${k.padEnd(5)} rgb(${s.join(', ')}) @ screen (${screen[k].x}, ${screen[k].y})`); }
+    const sampleTwice = async (label) => {
+      const a = await shoot();
+      await sleep(1200);
+      const b = await shoot();
+      const out = {};
+      for (const k of Object.keys(a)) { out[k] = a[k].map((x, i) => Math.round((x + b[k][i]) / 2 * 10) / 10); }
+      for (const [k, s] of Object.entries(out)) { console.log(`  ${label} ${k.padEnd(5)} rgb(${s.join(', ')}) @ screen (${screen[k].x}, ${screen[k].y})`); }
+      return out;
+    };
+    const shapeNow = await page.evaluate(() => window.game.darkness.lightShape && window.game.darkness.lightShape());
+    console.log(`  shape ${JSON.stringify(shapeNow)}`);
+    const samples = await sampleTwice('default');
 
     if (mode === 'baseline') {
       writeFileSync(BASELINE, JSON.stringify({ samples, screen, at: new Date().toISOString() }, null, 2) + '\n');
@@ -209,7 +222,28 @@ function venue() {
       const close = (k) => samples[k].every((c, i) => Math.abs(c - base[k][i]) <= TOL);
       const diff = (k) => samples[k].map((c, i) => (c - base[k][i]).toFixed(1)).join('/');
       (close('lit') ? pass : fail)('daylight untouched', `Δ ${diff('lit')}`);
-      if (mode === 'single') {
+      if (mode === 'heart' || mode === 'curve') {
+        const next = mode === 'heart' ? { heart: 0.6 } : { curve: 1 };
+        const applied = await page.evaluate((n) => window.game.darkness.lightShape(n), next);
+        console.log(`  shape -> ${JSON.stringify(applied)}`);
+        await sleep(500);
+        const shaped = await sampleTwice(mode.padEnd(7));
+        const same = (k) => shaped[k].every((c, i) => Math.abs(c - samples[k][i]) <= TOL);
+        const d = (k) => shaped[k].map((c, i) => (c - samples[k][i]).toFixed(1)).join('/');
+        if (mode === 'heart') {
+          const white = shaped.core.every((c, i) => Math.abs(c - base.core[i]) <= TOL);
+          (white ? pass : fail)('core turns white under the heart', `rgb ${shaped.core.join('/')} vs white ${base.core.join('/')}`);
+          for (const k of ['near', 'edge']) { (same(k) ? pass : fail)(`${k} keeps its colour`, `Δ ${d(k)}`); }
+        } else {
+          (same('core') ? pass : fail)('core unchanged by the curve', `Δ ${d('core')}`);
+          // near sits 0.6 R out: t across the fade = (0.6 - core) / (1 - core).
+          const t = (0.6 - applied.core) / (1 - applied.core);
+          const ratio = (1 - t * t * (3 - 2 * t)) / (1 - t);
+          const got = shaped.near[0] / samples.near[0];
+          (Math.abs(got - ratio) <= 0.03 ? pass : fail)('near lifts by the smoothstep ratio',
+            `R ${samples.near[0]} → ${shaped.near[0]}, ×${got.toFixed(3)} vs ×${ratio.toFixed(3)}`);
+        }
+      } else if (mode === 'single') {
         // The two predictions sit ~30 levels apart in G and B, so TOL decides.
         const one = base.core.map((c, i) => c * v.color[i]);
         const two = base.core.map((c, i) => c * (1 - (1 - v.color[i]) ** 2));

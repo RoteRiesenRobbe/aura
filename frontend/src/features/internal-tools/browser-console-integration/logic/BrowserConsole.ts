@@ -4,6 +4,7 @@
 import {BackendValidTokenEvent, GameSetupEvent, PlayerCreatedEvent} from '../../../core/logic/Events';
 import * as Console from '../../console/logic/Console';
 import * as DarknessOverlay from '../../../darkness/logic/DarknessOverlay';
+import type {LightShape} from '../../../darkness/logic/LightShape';
 import * as Regions from '../../../regions/logic/Regions';
 import {PLACES} from '../../../regions/logic/RegionNames';
 import {Player} from "../../../player/logic/Player";
@@ -116,7 +117,15 @@ function setup() {
         // ⚑ Same precedent and same reason as `miniMap` and `layers` above: an
         // internal-tools surface, read-only, exposed so the harness can ASSERT
         // rather than screenshot. Nothing in the game reads it back.
-        consoleCommands.darkness = {isHidden: DarknessOverlay.isHidden};
+        // `lightShape` is the one WRITE here (plan-lightmap.md D10): the PO tunes
+        // every light's heart, core and curve by eye in a cave, live. No args
+        // reads the shape; a partial object changes only what it names.
+        consoleCommands.darkness = {
+            isHidden: DarknessOverlay.isHidden,
+            lightShape: (next?: Partial<LightShape>) => next === undefined
+                ? DarknessOverlay.lightShape()
+                : DarknessOverlay.setLightShape(next),
+        };
         // The loaded zone's regions, LIVE (the region title banner, 2026-09-28):
         // `region-banner.mjs` pushes regions carrying a place id around the
         // player into this very array, so the banner is driven through the real

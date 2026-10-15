@@ -14,6 +14,7 @@ import {
 } from '../../regions/logic/Regions';
 import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
 import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightColor';
+import {fadeStops, LightShape, normalizeShape} from './LightShape';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -30,7 +31,9 @@ import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightC
  *   2. dark circles and the darkness atmospheres paint toward their colour;
  *   3. clearings paint WHITE (D4);
  *   4. light sources (wire `light_radius` on Character/Mob, the static
- *      campfire and torch glows) SCREEN in their own colour (D2).
+ *      campfire and torch glows) SCREEN in their own colour (D2), each with
+ *      a white heart sprite over it, hidden while the shape's `heart` is 0
+ *      (plan-lightmap.md D10).
  *
  * ⭐ Screen is `1 - (1-ambient)(1-light)`, which is exactly what the erase holes
  * this replaced computed (`1 - d(1-a)` under a darkness d): white lights are
@@ -70,10 +73,18 @@ const DarknessVisuals = {
     // radius — the authored circle itself is guaranteed fully dark, so
     // overlapping circles chain without bright seams. [PLACEHOLDER]
     EDGE_FADE: 2,
+    // ⭐ THE LIGHT SHAPE (plan-lightmap.md D10), one set for every light, and
+    // tunable live: `game.darkness.lightShape({heart, core, curve})` in the
+    // browser console. The defaults are the pre-D10 picture exactly.
     // Fraction of a light hole's radius that is fully lit before its soft
     // edge starts (light fades inside its radius, unlike dark areas).
     // [PLACEHOLDER]
     LIGHT_CORE_FRACTION: 0.55,
+    // The white heart sprite's radius as a fraction of its light's; the colour
+    // shows outside it. 0 = no heart. [PLACEHOLDER]
+    LIGHT_HEART_FRACTION: 0,
+    // The fade's shape: 0 = linear, 1 = smoothstep. [PLACEHOLDER]
+    LIGHT_CURVE: 0,
     TEXTURE_SIZE: 256,
     // How long a full `sight` crossing takes, in ms (A2). A hole that snapped
     // from the floor to a room's worth of vision at a polygon edge is a pop;
@@ -128,6 +139,8 @@ interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
     object: { id: gameObjectId, shape: Container };
     sprite: Sprite;
+    /** The white heart drawn over the coloured glow (D10). */
+    heart: Sprite;
     /** The wire's own radius in px, kept apart from the DRAWN size because the
      *  local player's hole is `max(wire, sight)` and sight moves every frame
      *  while the wire value only changes when the server says so (D7). */
@@ -192,6 +205,14 @@ const lights = new Map<gameObjectId, LightSource>();
 // count as "hidden".
 const darkCircles: Circle[] = [];
 const staticLights: Circle[] = [];
+// The static glows' sprites, kept only so a live shape change (D10) can re-skin
+// them; `staticLights` is what the gameplay answers read.
+const staticSprites: { sprite: Sprite, heart: Sprite, radiusPx: number }[] = [];
+let shape: LightShape = {
+    heart: DarknessVisuals.LIGHT_HEART_FRACTION,
+    core: DarknessVisuals.LIGHT_CORE_FRACTION,
+    curve: DarknessVisuals.LIGHT_CURVE,
+};
 
 /** Where {@link RegionPaint.paintAtmospheres} draws — emptied and refilled by
  *  Game on every terrain repaint, never re-parented. Null before the first
@@ -349,9 +370,12 @@ function punchStaticLight(x: number, y: number, radius: number, color: number) {
     const radiusPx = meter2px(radius);
 
     const sprite = lightSprite(color);
+    const heart = heartSprite();
     sprite.position.set(px, py);
-    sprite.width = sprite.height = 2 * radiusPx;
-    layer.addChild(sprite);
+    heart.position.set(px, py);
+    sizeLight(sprite, heart, radiusPx);
+    layer.addChild(sprite, heart);
+    staticSprites.push({sprite, heart, radiusPx});
 
     staticLights.push({x: px, y: py, radiusSq: radiusPx ** 2});
 }
@@ -384,8 +408,9 @@ export function setLightRadius(
     }
     if (!light) {
         const sprite = lightSprite(color);
-        layer.addChild(sprite);
-        light = {object, sprite, wireRadiusPx: 0, wireColor: 0, own};
+        const heart = heartSprite();
+        layer.addChild(sprite, heart);
+        light = {object, sprite, heart, wireRadiusPx: 0, wireColor: 0, own};
         lights.set(object.id, light);
     }
     light.object = object;
@@ -406,11 +431,60 @@ export function setLightRadius(
  * blend mode (the clearing build of 2026-09-17 read solid black for it).
  */
 function lightSprite(color: number): Sprite {
-    const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION, true));
+    const sprite = new Sprite(lightTexture());
     sprite.anchor.set(0.5);
     sprite.blendMode = 'screen';
     sprite.tint = lightTint(color);
     return sprite;
+}
+
+/**
+ * The white heart over a light's glow (plan-lightmap.md D10): the same
+ * texture, untinted, at `heart` × the light's size. Screen of white over a
+ * colour lerps it toward white by the heart's alpha, so the heart's own soft
+ * edge fades white into the colour by construction. A tint colours a whole
+ * sprite and cannot leave a white centre, hence a second sprite.
+ */
+function heartSprite(): Sprite {
+    const heart = lightSprite(WHITE_LIGHT);
+    heart.visible = shape.heart > 0;
+    return heart;
+}
+
+function lightTexture(): Texture {
+    return texture(shape.core, true, shape.curve);
+}
+
+/** A light's drawn size: the glow at the radius, the heart inside it. */
+function sizeLight(sprite: Sprite, heart: Sprite, radiusPx: number) {
+    sprite.width = sprite.height = 2 * radiusPx;
+    heart.width = heart.height = 2 * radiusPx * shape.heart;
+    heart.visible = shape.heart > 0;
+}
+
+/** The current light shape (D10). */
+export function lightShape(): LightShape {
+    return {...shape};
+}
+
+/**
+ * Changes the shape of every light, live (D10's console knob): textures are
+ * rebuilt (cached per shape) and every glow and heart on screen re-skinned and
+ * re-sized. Values are clamped to 0..1; an unnamed knob keeps its value.
+ * Returns the shape now in force.
+ */
+export function setLightShape(next: Partial<LightShape>): LightShape {
+    shape = normalizeShape(next, shape);
+    const tex = lightTexture();
+    staticSprites.forEach((s) => {
+        s.sprite.texture = s.heart.texture = tex;
+        sizeLight(s.sprite, s.heart, s.radiusPx);
+    });
+    lights.forEach((light) => {
+        light.sprite.texture = light.heart.texture = tex;
+        applyRadius(light);
+    });
+    return lightShape();
 }
 
 /**
@@ -427,11 +501,11 @@ function lightSprite(color: number): Sprite {
  */
 function applyRadius(light: LightSource) {
     if (light.own) {
-        light.sprite.width = light.sprite.height = 2 * lightRadiusWithSight(light.wireRadiusPx, sightPx.value);
+        sizeLight(light.sprite, light.heart, lightRadiusWithSight(light.wireRadiusPx, sightPx.value));
         light.sprite.tint = ownLightTint(light.wireRadiusPx, sightPx.value, light.wireColor);
         return;
     }
-    light.sprite.width = light.sprite.height = 2 * light.wireRadiusPx;
+    sizeLight(light.sprite, light.heart, light.wireRadiusPx);
     light.sprite.tint = lightTint(light.wireColor);
 }
 
@@ -450,6 +524,7 @@ function update(deltaMS: number) {
             return;
         }
         light.sprite.position.copyFrom(light.object.shape.position);
+        light.heart.position.copyFrom(light.object.shape.position);
     });
     advanceSight(deltaMS);
 }
@@ -496,8 +571,9 @@ function ownLight(): LightSource | undefined {
 }
 
 function removeLight(id: gameObjectId, light: LightSource) {
-    layer.removeChild(light.sprite);
+    layer.removeChild(light.sprite, light.heart);
     light.sprite.destroy();
+    light.heart.destroy();
     lights.delete(id);
 }
 
@@ -598,6 +674,7 @@ function clear() {
     hazeActive = false;
     darkCircles.length = 0;
     staticLights.length = 0;
+    staticSprites.length = 0;
     active = false;
     layer.visible = false;
 }
@@ -608,11 +685,16 @@ function clear() {
  * BLACK for the dark circles (normal blend, fraction depends on the authored
  * radius so the fade width stays constant in world units) and WHITE for the
  * lights (screen blend, tinted per source; alpha = strength → soft rim).
+ *
+ * `curve` shapes the fade (plan-lightmap.md D10, {@link fadeStops}); the dark
+ * circles always fade linearly, since their rim is the darkness edge, not a
+ * light.
  */
-function texture(coreFraction: number, white = false): Texture {
-    // Round the cache key so near-identical fractions share a texture.
+function texture(coreFraction: number, white = false, curve = 0): Texture {
+    // Round the cache key so near-identical shapes share a texture.
     const fraction = Math.round(coreFraction * 100) / 100;
-    const key = (white ? 'w' : 'k') + fraction;
+    const bend = Math.round(curve * 100) / 100;
+    const key = (white ? 'w' : 'k') + fraction + '/' + bend;
     let cached = radialTextures.get(key);
     if (!cached) {
         const size = DarknessVisuals.TEXTURE_SIZE;
@@ -624,8 +706,7 @@ function texture(coreFraction: number, white = false): Texture {
             size / 2, size / 2, size / 2,
         );
         const rgb = white ? '255, 255, 255' : '0, 0, 0';
-        gradient.addColorStop(0, `rgba(${rgb}, 1)`);
-        gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+        fadeStops(bend).forEach((stop) => gradient.addColorStop(stop.offset, `rgba(${rgb}, ${stop.alpha})`));
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
         cached = Texture.from(canvas);

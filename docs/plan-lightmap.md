@@ -541,8 +541,8 @@ vanishes.
 
 | Chunk | State | Commit | Verified |
 | --- | --- | --- | --- |
-| L4 one colour per light | built 2026-10-15, uncommitted | | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
-| L5 light shape | designed | | |
+| L4 one colour per light | built 2026-10-15 | `3bab952c` | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
+| L5 light shape | built 2026-10-16 | see git log | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning owed |
 | L6 easing | designed | | |
 | L7 flicker | designed | | |
 
@@ -564,4 +564,20 @@ vanishes.
   radius without a new probe zone (Canopy, sight 2, is not near the tunnel), so
   D9 is pinned by vitest (`ownLightTint`: light wins, sight wins, tie, no light)
   plus the PO's look, not by a pixel leg.
+- Schema: DB NONE · wire NONE · conf NONE · content NONE.
+
+**L5 notes (2026-10-16).**
+
+- **Tune it**: open the game with `&develop`, then in the browser console
+  `game.darkness.lightShape()` reads the shape and
+  `game.darkness.lightShape({heart: 0.4, curve: 1})` changes every light on
+  screen at once (an unnamed knob keeps its value; all clamp to 0..1). The
+  values the PO picks go into `DarknessVisuals` (`LIGHT_HEART_FRACTION`,
+  `LIGHT_CORE_FRACTION`, `LIGHT_CURVE`). A reload returns to the defaults.
+- **`heart` is the heart SPRITE's radius**, so its fully white part is
+  `heart × core` of the radius and its soft edge fades white into the colour
+  out to `heart`.
+- `fadeStops` (`LightShape.ts`) keeps curve 0 at exactly the two old stops,
+  which is why every L1-L4 pixel number survives unchanged.
+- Dark circles always fade linearly (their rim is the darkness edge).
 - Schema: DB NONE · wire NONE · conf NONE · content NONE.
