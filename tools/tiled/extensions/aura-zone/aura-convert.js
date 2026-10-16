@@ -377,8 +377,16 @@ var AuraConvert = (function () {
      * ⚑ PATH_SHAPE_DEFAULT must equal the palette members' own default
      * (generate-palette.mjs reads it from here). */
     var PATH_SHAPE_DEFAULT = '(default)';
-    var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: ['round', 'flat', 'point']};
-    var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds'};
+    var PATH_ENDS = ['round', 'flat', 'point'];
+    var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: PATH_ENDS,
+        endsStart: PATH_ENDS, endsEnd: PATH_ENDS};
+    var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds',
+        endsStart: 'AuraPathEnds', endsEnd: 'AuraPathEnds'};
+    /* The keys in zone.go's struct order. endsStart / endsEnd override ends for
+     * one end each (plan-cliffs.md D1), so all three are "an end" to the ring
+     * rule. */
+    var PATH_SHAPE_KEYS = ['corners', 'ends', 'endsStart', 'endsEnd'];
+    var PATH_END_KEYS = ['ends', 'endsStart', 'endsEnd'];
 
     /* Read a path's corners or ends back to the zone value: the sentinel, a
      * blank and an absent property are all "not authored". An unrecognised
@@ -396,7 +404,7 @@ var AuraConvert = (function () {
      * byte-identical (writeOutline's rule, and the shadowing trap the prop
      * writer records). */
     function writePathShape(o, src) {
-        ['corners', 'ends'].forEach(function (k) {
+        PATH_SHAPE_KEYS.forEach(function (k) {
             if (!src[k]) { return; }
             o.properties[k] = src[k];
             o.enums = o.enums || {};
@@ -690,6 +698,8 @@ var AuraConvert = (function () {
                         // absent stays absent.
                         corners: p2.corners || undefined,
                         ends: p2.ends || undefined,
+                        endsStart: p2.endsStart || undefined,
+                        endsEnd: p2.endsEnd || undefined,
                         // The area effect (plan-area-effects.md E1). Key order
                         // follows zone.go's struct order like everything else
                         // here, and absent stays absent: no shipped path names
@@ -1399,6 +1409,8 @@ var AuraConvert = (function () {
                         alignTexture: get(o, 'alignTexture') ? true : undefined,
                         corners: readPathShape(o, 'corners'),
                         ends: readPathShape(o, 'ends'),
+                        endsStart: readPathShape(o, 'endsStart'),
+                        endsEnd: readPathShape(o, 'endsEnd'),
                         effect: readEffect(o),
                     };
                 }),
@@ -2122,17 +2134,19 @@ var AuraConvert = (function () {
                 checkEffect(o, i);
                 // Mirrors validatePathShape in world/zone.go, said while the author
                 // is still looking at the line.
-                ['corners', 'ends'].forEach(function (k) {
+                PATH_SHAPE_KEYS.forEach(function (k) {
                     var v = readPathShape(o, k);
                     if (v !== undefined && !hasValue(PATH_SHAPE_VALUES[k], v)) {
                         bad(o, i, k + ' ' + JSON.stringify(v) + ' must be one of "' + PATH_SHAPE_DEFAULT
                             + '", ' + PATH_SHAPE_VALUES[k].join(', '));
                     }
                 });
-                if (o.shape === 'polygon' && readPathShape(o, 'ends') !== undefined) {
-                    bad(o, i, 'ends is "' + readPathShape(o, 'ends') + '" but this path is a closed'
-                        + ' ring, which has no ends. Put ends back to "' + PATH_SHAPE_DEFAULT + '"');
-                }
+                PATH_END_KEYS.forEach(function (k) {
+                    if (o.shape === 'polygon' && readPathShape(o, k) !== undefined) {
+                        bad(o, i, k + ' is "' + readPathShape(o, k) + '" but this path is a closed'
+                            + ' ring, which has no ends. Put ' + k + ' back to "' + PATH_SHAPE_DEFAULT + '"');
+                    }
+                });
                 var n = (o.polygon || []).length;
                 // ⭐ BOTH shapes are legal here, and which one it is IS the closed
                 // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,

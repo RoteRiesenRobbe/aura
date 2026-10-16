@@ -629,6 +629,18 @@
                     "value": "(default)"
                 },
                 {
+                    "name": "endsStart",
+                    "type": "string",
+                    "propertyType": "AuraPathEnds",
+                    "value": "(default)"
+                },
+                {
+                    "name": "endsEnd",
+                    "type": "string",
+                    "propertyType": "AuraPathEnds",
+                    "value": "(default)"
+                },
+                {
                     "name": "outlineProfile",
                     "type": "string",
                     "propertyType": "AuraTerrainProfile",

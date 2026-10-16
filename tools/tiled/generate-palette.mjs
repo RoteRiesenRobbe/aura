@@ -489,6 +489,9 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
                 member('alignTexture', 'bool', false),
                 member('corners', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.corners),
                 member('ends', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.ends),
+                // One end each, overriding ends (plan-cliffs.md D1); the same enum.
+                member('endsStart', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.endsStart),
+                member('endsEnd', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.endsEnd),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⚑ A filled AREA, sharing the paths layer and told apart by this class
         // (plan-zone-polygons.md D5). It has NO width member on purpose: a

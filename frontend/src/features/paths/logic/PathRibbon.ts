@@ -115,17 +115,25 @@ export interface TaperedCentreline {
  * (`paths_collision.go` pathTaper).
  *
  * ⚑ Clamped to half the path, so on a short one the two tapers meet in the
- * middle and nothing is full width, rather than overlapping.
+ * middle and nothing is full width, rather than overlapping. A lone taper
+ * (one pointed end) is clamped the same way, as the server's is.
  *
  * ⚑ A vertex is inserted where each taper begins, so the linear ramp starts
  * exactly there and a renderer can split the full-width middle off cleanly.
  * A cut landing on an existing vertex reuses it instead of doubling it.
  *
- * @returns null when there is no length to taper.
+ * @param pointed which ends narrow, [first, last] (plan-cliffs.md D1: each
+ *                end has its own shape). An end not pointed stays full width.
+ * @returns null when there is no length, or no pointed end, to taper.
  */
-export function taperedCentreline(points: RegionPoint[], width: number): TaperedCentreline | null {
+export function taperedCentreline(
+    points: RegionPoint[],
+    width: number,
+    pointed: [boolean, boolean] = [true, true],
+): TaperedCentreline | null {
+    const [atStart, atEnd] = pointed;
     const pts = distinct(points, false).map(i => points[i]);
-    if (pts.length < 2 || !(width > 0)) { return null; }
+    if (pts.length < 2 || !(width > 0) || !(atStart || atEnd)) { return null; }
     const arc = [0];
     for (let i = 1; i < pts.length; i++) {
         arc.push(arc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
@@ -133,7 +141,9 @@ export function taperedCentreline(points: RegionPoint[], width: number): Tapered
     const total = arc[arc.length - 1];
     if (!(total > 0)) { return null; }
     const taper = Math.min(TAPER_LENGTH_PER_WIDTH * width, total / 2);
-    const cuts = taper < total / 2 ? [taper, total - taper] : [taper];
+    const cuts: number[] = [];
+    if (atStart) { cuts.push(taper); }
+    if (atEnd && !(atStart && taper >= total / 2)) { cuts.push(total - taper); }
 
     // World px: a cut closer than this to a vertex IS that vertex.
     const EPS = 1e-3;
@@ -156,13 +166,44 @@ export function taperedCentreline(points: RegionPoint[], width: number): Tapered
         at.push(arc[i]);
     }
 
-    const first = at.findIndex(s => s >= taper - EPS);
+    const first = atStart ? at.findIndex(s => s >= taper - EPS) : 0;
     let last = first;
-    at.forEach((s, i) => { if (s <= total - taper + EPS) { last = i; } });
+    at.forEach((s, i) => { if (!atEnd || s <= total - taper + EPS) { last = i; } });
     const factors = at.map((s, i) => (i >= first && i <= last)
         ? 1
-        : Math.max(0, Math.min(1, Math.min(s, total - s) / taper)));
+        : Math.max(0, Math.min(1, (atStart ? s : Infinity) / taper, (atEnd ? total - s : Infinity) / taper)));
     return {points: out, factors, full: [first, last]};
+}
+
+/**
+ * The half disc a `round` end adds past one endpoint, as ONE polygon, for a
+ * path whose two ends differ (plan-cliffs.md D1): a stroke has one cap, so
+ * the stroke is butt-capped and each round end is filled on its own. It sits
+ * wholly OUTSIDE the endpoint, so it meets the butt cap edge to edge rather
+ * than overlapping it (an overlap would double a semi-transparent tile).
+ *
+ * @param atStart the first point's end (facing backwards) or the last's
+ * @returns flat `[x0, y0, …]`, or null when the end has no direction.
+ */
+export function roundCapOutline(points: RegionPoint[], width: number, atStart: boolean): number[] | null {
+    const pts = distinct(points, false).map(i => points[i]);
+    if (pts.length < 2 || !(width > 0)) { return null; }
+    const tip = atStart ? pts[0] : pts[pts.length - 1];
+    const prev = atStart ? pts[1] : pts[pts.length - 2];
+    const dx = tip.x - prev.x;
+    const dy = tip.y - prev.y;
+    const len = Math.hypot(dx, dy);
+    if (!(len > 0)) { return null; }
+    const out = Math.atan2(dy, dx);
+    const r = width / 2;
+    // ⚑ Fine enough that the facets never read at a cliff's or road's width.
+    const STEPS = 16;
+    const flat: number[] = [];
+    for (let i = 0; i <= STEPS; i++) {
+        const a = out - Math.PI / 2 + (Math.PI * i) / STEPS;
+        flat.push(tip.x + Math.cos(a) * r, tip.y + Math.sin(a) * r);
+    }
+    return flat;
 }
 
 /**

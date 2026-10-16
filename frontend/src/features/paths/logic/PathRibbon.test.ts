@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {ribbonGeometry, ribbonOutline, taperedCentreline} from './PathRibbon';
+import {ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline} from './PathRibbon';
 import {TAPER_LENGTH_PER_WIDTH} from './Paths';
 import {RegionPoint} from '../../regions/logic/Regions';
 
@@ -295,5 +295,57 @@ describe('ribbonOutline', () => {
         // tip (both rims), then the far pair on the far side, round to the near side.
         // (`+ 0` folds the -0 a zero-width rim produces into 0.)
         expect(flat.map(n => n + 0)).toEqual([0, 0, 400, -50, 400, 50, 0, 0]);
+    });
+});
+
+describe('taperedCentreline with one pointed end (plan-cliffs.md D1)', () => {
+    it('tapers only the LAST end', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [false, true])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 800, 1000]);
+        expect(t.factors).toEqual([1, 1, 0]);
+        expect(t.full).toEqual([0, 1]);
+    });
+
+    it('tapers only the FIRST end', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [true, false])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 200, 1000]);
+        expect(t.factors).toEqual([0, 1, 1]);
+        expect(t.full).toEqual([1, 2]);
+    });
+
+    it('clamps a lone taper to half the path, as the server does', () => {
+        // ⚑ paths_collision.go pathTaper clamps the same way.
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 200, y: 0}], 100, [false, true])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 100, 200]);
+        expect(t.factors).toEqual([1, 1, 0]);
+        expect(t.full).toEqual([0, 1]);
+    });
+
+    it('has nothing to taper when neither end is pointed', () => {
+        expect(taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [false, false])).toBeNull();
+    });
+});
+
+describe('roundCapOutline', () => {
+    it('is a half disc OUTSIDE the last point', () => {
+        const cap = roundCapOutline([{x: 0, y: 0}, {x: 400, y: 0}], 100, false)!;
+        const pts: { x: number, y: number }[] = [];
+        for (let i = 0; i < cap.length; i += 2) { pts.push({x: cap[i], y: cap[i + 1]}); }
+        pts.forEach((p) => {
+            expect(p.x).toBeGreaterThanOrEqual(400 - 1e-6);
+            expect(Math.hypot(p.x - 400, p.y)).toBeCloseTo(50, FLOAT32);
+        });
+        expect(Math.max(...pts.map(p => p.x))).toBeCloseTo(450, FLOAT32);
+        expect(Math.min(...pts.map(p => p.y))).toBeCloseTo(-50, FLOAT32);
+        expect(Math.max(...pts.map(p => p.y))).toBeCloseTo(50, FLOAT32);
+    });
+
+    it('faces backwards at the first point', () => {
+        const cap = roundCapOutline([{x: 0, y: 0}, {x: 400, y: 0}], 100, true)!;
+        for (let i = 0; i < cap.length; i += 2) { expect(cap[i]).toBeLessThanOrEqual(1e-6); }
+    });
+
+    it('refuses what has no direction', () => {
+        expect(roundCapOutline([{x: 5, y: 5}, {x: 5, y: 5}], 100, false)).toBeNull();
     });
 });

@@ -38,7 +38,7 @@ import {
 import {Path, PathShape} from '../../paths/logic/Paths';
 import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
 import {
-    MITRE_LIMIT, ribbonGeometry, ribbonOutline, taperedCentreline,
+    MITRE_LIMIT, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline,
 } from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -1202,7 +1202,7 @@ function paintRibbon(
 ): boolean {
     const {closed, width, aligned, shape} = spec;
     if (!aligned) { return false; }
-    if (shape.corners !== 'sharp' || (!closed && shape.ends === 'round')) { return false; }
+    if (shape.corners !== 'sharp' || (!closed && shape.ends.includes('round'))) { return false; }
     const authored = regionScroll(surface, TERRAIN_PROFILES);
     if (authored.x !== 0 || authored.y !== 0) { return false; }
 
@@ -1225,7 +1225,7 @@ function paintRibbon(
     const overdraw = mask !== null ? mask.bandPx * 1.5 : 0;
     // A pointed end narrows the mesh itself, so a HARD edge (no mask) tapers
     // too; the texture compresses into the tip rather than being cropped.
-    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, spec.taperWidth) : null;
+    const taper = closed ? null : taperedCentreline(points, spec.taperWidth, pointedEnds(shape));
     const ribbon = taper !== null
         ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
         : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
@@ -1252,7 +1252,12 @@ function paintRibbon(
 }
 
 /** A polygon's outline has no authored shape: round, as every stroke was (D10). */
-const ROUND_SHAPE: PathShape = {corners: 'round', ends: 'round'};
+const ROUND_SHAPE: PathShape = {corners: 'round', ends: ['round', 'round']};
+
+/** Which of a path's two ends are `point`, in taperedCentreline's order. */
+function pointedEnds(shape: PathShape): [boolean, boolean] {
+    return [shape.ends[0] === 'point', shape.ends[1] === 'point'];
+}
 
 /** Everything about a stroked surface a ribbon mesh needs beyond its points. */
 interface RibbonSpec {
@@ -1301,22 +1306,30 @@ function pathSilhouette(
         // gives up at the same angle drawn as a stroke or as the mesh.
         miterLimit: MITRE_LIMIT,
     };
-    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, taperWidth) : null;
-    if (taper === null) {
-        const cap = shape.ends === 'flat' || shape.ends === 'point' ? 'butt' as const : 'round' as const;
+    const [start, end] = shape.ends;
+    const taper = closed ? null : taperedCentreline(points, taperWidth, pointedEnds(shape));
+    if (taper === null && start === end) {
+        // One cap for both ends: the stroke draws it, exactly as before D1.
+        const cap = start === 'round' ? 'round' as const : 'butt' as const;
         return (g, style) => g.poly(points, closed).stroke({...style, ...line, cap});
     }
-    const [a, b] = taper.full;
-    const middle = taper.points.slice(a, b + 1);
-    const tips = [
-        ribbonOutline(taper.points.slice(0, a + 1), width, taper.factors.slice(0, a + 1)),
-        ribbonOutline(taper.points.slice(b), width, taper.factors.slice(b)),
+    // ⭐ The ends differ, or one is pointed: the stroke is butt-capped and each
+    // end that is not flat is filled on its own (plan-cliffs.md D1) — a taper
+    // as a narrowing outline, a round end as a half disc past the endpoint.
+    const pts = taper ? taper.points : points;
+    const [a, b] = taper ? taper.full : [0, points.length - 1];
+    const middle = pts.slice(a, b + 1);
+    const pieces = [
+        start === 'point' && taper ? ribbonOutline(pts.slice(0, a + 1), width, taper.factors.slice(0, a + 1)) : null,
+        end === 'point' && taper ? ribbonOutline(pts.slice(b), width, taper.factors.slice(b)) : null,
+        start === 'round' ? roundCapOutline(points, width, true) : null,
+        end === 'round' ? roundCapOutline(points, width, false) : null,
     ].filter((t): t is number[] => t !== null);
     return (g, style) => {
         if (middle.length >= 2) {
             g.poly(middle, false).stroke({...style, ...line, cap: 'butt'});
         }
-        tips.forEach(t => g.poly(t).fill(style));
+        pieces.forEach(t => g.poly(t).fill(style));
         return g;
     };
 }

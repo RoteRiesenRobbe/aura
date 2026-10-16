@@ -297,22 +297,32 @@ describe('toPaths corners and ends', () => {
         const [aligned] = toPaths([{profile: 'Fence', width: 1, points: line, alignTexture: true}]);
         for (const p of [plain, aligned]) {
             expect(p.corners).toBe('round');
-            expect(p.ends).toBe('round');
+            expect(p.ends).toEqual(['round', 'round']);
         }
     });
 
     it('carries what the zone authored', () => {
         const [p] = toPaths([{profile: 'Rock', width: 1, points: line, corners: 'sharp', ends: 'point'}]);
         expect(p.corners).toBe('sharp');
-        expect(p.ends).toBe('point');
+        expect(p.ends).toEqual(['point', 'point']);
         const [q] = toPaths([{profile: 'Rock', width: 1, points: line, ends: 'flat'}]);
-        expect(q.ends).toBe('flat');
+        expect(q.ends).toEqual(['flat', 'flat']);
     });
 
     it('degrades an unknown value to the default rather than handing it to Pixi', () => {
         const [p] = toPaths([{profile: 'Rock', width: 1, points: line,
             corners: 'bevel', ends: 'square'} as never]);
         expect(p.corners).toBe('round');
-        expect(p.ends).toBe('round');
+        expect(p.ends).toEqual(['round', 'round']);
+    });
+
+    // plan-cliffs.md D1: each end has its own key, absent follows `ends`.
+    it('lets endsStart and endsEnd override ends, one end each', () => {
+        const [p] = toPaths([{profile: 'Cliff', width: 1, points: line, ends: 'point', endsStart: 'flat'}]);
+        expect(p.ends).toEqual(['flat', 'point']);
+        const [q] = toPaths([{profile: 'Cliff', width: 1, points: line, endsEnd: 'point'}]);
+        expect(q.ends).toEqual(['round', 'point']);
+        const [r] = toPaths([{profile: 'Cliff', width: 1, points: line, endsStart: 'square'} as never]);
+        expect(r.ends).toEqual(['round', 'round']);
     });
 });

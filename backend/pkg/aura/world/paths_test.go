@@ -545,3 +545,71 @@ func TestShortPointedPathTapersToItsMiddle(t *testing.T) {
 		assert.InDelta(t, 2*min32(c.X, 4-c.X)/2, c.Width, 1e-3)
 	}
 }
+
+// ---- per-end shapes (plan-cliffs.md D1) -------------------------------------
+
+func TestPerEndKeysOverrideEnds(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},"paths":[
+		{"profile":"Cliff","width":2,"ends":"point","endsStart":"flat",
+		 "points":[{"x":0,"y":0},{"x":5,"y":0}]},
+		{"profile":"Cliff","width":2,"endsEnd":"point",
+		 "points":[{"x":0,"y":0},{"x":5,"y":0}]},
+		{"profile":"Road","width":2,"points":[{"x":0,"y":0},{"x":5,"y":0}]}
+	]}`))
+	require.NoError(t, err)
+	assert.Equal(t, "flat", z.Paths[0].endOf(true), "endsStart overrides ends")
+	assert.Equal(t, "point", z.Paths[0].endOf(false), "an absent endsEnd follows ends")
+	assert.Equal(t, "", z.Paths[1].endOf(true), "absent everywhere is round")
+	assert.Equal(t, "point", z.Paths[1].endOf(false))
+	assert.Equal(t, "", z.Paths[2].endOf(true))
+	assert.Equal(t, "", z.Paths[2].endOf(false))
+}
+
+func TestPerEndKeysAreClosedVocabularies(t *testing.T) {
+	cases := []struct {
+		name, path, want string
+	}{
+		{"unknown endsStart",
+			`{"profile":"Road","width":2,"endsStart":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
+			`path 0: endsStart "square" is not one of round, flat, point`},
+		{"unknown endsEnd",
+			`{"profile":"Road","width":2,"endsEnd":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
+			`path 0: endsEnd "square" is not one of round, flat, point`},
+		{"endsStart on a ring",
+			`{"profile":"Road","width":2,"closed":true,"endsStart":"flat",` + ringPoints + `}`,
+			`path 0: endsStart "flat" on a closed path, which has no ends`},
+		{"endsEnd on a ring",
+			`{"profile":"Road","width":2,"closed":true,"endsEnd":"point",` + ringPoints + `}`,
+			`path 0: endsEnd "point" on a closed path, which has no ends`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			doc := `{"name":"P","bounds":{"width":60,"height":40},"paths":[` + c.path + `]}`
+			_, err := parseZone([]byte(doc))
+			assert.EqualError(t, err, c.want)
+		})
+	}
+}
+
+// A 20-unit wall, width 2, pointed at its LAST end only: full width from the
+// start, a 4-unit taper into x = 20.
+func TestOnePointedEndTapersOnlyThatEnd(t *testing.T) {
+	for _, keys := range []string{`"endsEnd":"point"`, `"ends":"point","endsStart":"flat"`} {
+		z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,`+keys+`,
+			"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+		var covered, full float32
+		for _, c := range PathCorridors(z) {
+			covered += c.Length
+			left, right := c.X-c.Length/2, c.X+c.Length/2
+			if right <= 16+1e-3 {
+				assert.EqualValues(t, 2, c.Width, "%s: the start is full width", keys)
+				full += c.Length
+				continue
+			}
+			assert.GreaterOrEqual(t, left, float32(16)-1e-3, "%s: only the last 4 units taper", keys)
+			assert.InDelta(t, 2*(20-c.X)/4, c.Width, 1e-3, keys)
+		}
+		assert.InDelta(t, 20, covered, 1e-3, keys)
+		assert.InDelta(t, 16, full, 1e-3, keys)
+	}
+}

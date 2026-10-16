@@ -2525,6 +2525,8 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // while a writer drops them.
             profile: 'Cliff', points: [{x: 1, y: 7}, {x: 6, y: 7}], width: 1,
             corners: 'sharp', ends: 'point',
+            // plan-cliffs.md D1: both per-end keys, non-default for the same reason.
+            endsStart: 'flat', endsEnd: 'round',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
@@ -2753,7 +2755,7 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     // the world grows a key on its first save from a Tiled that keeps defaults.
     it("⭐ AuraPath's corners and ends default to the converter's sentinel", () => {
         const members = byName('AuraPath').members ?? [];
-        (['corners', 'ends'] as const).forEach((k) => {
+        (['corners', 'ends', 'endsStart', 'endsEnd'] as const).forEach((k) => {
             const m = members.filter(x => x.name === k)[0];
             expect(m, `AuraPath carries ${k}`).toBeDefined();
             expect(m.propertyType).toBe(C.PATH_SHAPE_ENUMS[k]);
@@ -2789,6 +2791,35 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         o.properties.ends = 'point';
         const errors = C.validateModel(m) as string[];
         expect(errors.join('\n')).toContain('closed ring, which has no ends');
+    });
+
+    // plan-cliffs.md D1: one shape per end, same vocabulary, same ring rule.
+    it('round-trips endsStart and endsEnd, and writes nothing for the default', () => {
+        const line = [{x: 0, y: 0}, {x: 5, y: 0}];
+        const authored = roundTrip(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1, endsStart: 'flat', endsEnd: 'point'},
+        ]})).paths[0] as Record<string, unknown>;
+        expect(authored.endsStart).toBe('flat');
+        expect(authored.endsEnd).toBe('point');
+
+        const plain = roundTrip(zone({paths: [{profile: 'Road', points: line, width: 1}]}))
+            .paths[0] as Record<string, unknown>;
+        expect('endsStart' in plain).toBe(false);
+        expect('endsEnd' in plain).toBe(false);
+    });
+
+    it('refuses endsStart and endsEnd on a ring, and an unknown value', () => {
+        for (const k of ['endsStart', 'endsEnd']) {
+            const m = C.zoneToModel(zone({paths: [
+                {profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], width: 1, closed: true},
+            ]})) as {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+            o.properties[k] = 'flat';
+            expect((C.validateModel(m) as string[]).join('\n'), k)
+                .toContain(k + ' is "flat" but this path is a closed ring, which has no ends');
+            o.properties[k] = 'square';
+            expect((C.validateModel(m) as string[]).join('\n'), k).toContain(k + ' "square" must be one of');
+        }
     });
 
     // ⚑ And the enum behind it must actually offer the three values the

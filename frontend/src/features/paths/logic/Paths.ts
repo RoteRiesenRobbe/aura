@@ -29,10 +29,14 @@ export type PathCorners = 'round' | 'sharp';
 /** How it stops: `point` narrows the last stretch to nothing, a cliff fading out. */
 export type PathEnds = 'round' | 'flat' | 'point';
 
-/** The two AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
+/** The AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
 export interface PathShape {
     corners: PathCorners;
-    ends: PathEnds;
+    /**
+     * [the first point's end, the last point's end], resolved: `endsStart` /
+     * `endsEnd` where authored, else `ends` (plan-cliffs.md D1).
+     */
+    ends: [PathEnds, PathEnds];
 }
 
 /**
@@ -96,6 +100,15 @@ export interface PathDefinition {
     /** world.Path.Corners / Ends; absent = `round`. */
     corners?: PathCorners;
     ends?: PathEnds;
+    /** world.Path.EndsStart / EndsEnd: one end each; absent follows `ends`. */
+    endsStart?: PathEnds;
+    endsEnd?: PathEnds;
+}
+
+/** One authored end value, or the default; an unknown value is the default. */
+function endShape(own: PathEnds | undefined, both: PathEnds | undefined): PathEnds {
+    const v = own || both;
+    return v === 'flat' || v === 'point' ? v : 'round';
 }
 
 /**
@@ -219,7 +232,7 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             // (the server refuses it) degrades to the default rather than
             // reaching Pixi as a cap it does not know.
             corners: p.corners === 'sharp' ? 'sharp' : 'round',
-            ends: p.ends === 'flat' || p.ends === 'point' ? p.ends : 'round',
+            ends: [endShape(p.endsStart, p.ends), endShape(p.endsEnd, p.ends)],
             ...outlineOf(p),
         };
         })

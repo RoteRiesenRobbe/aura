@@ -198,6 +198,9 @@ export interface ZonePath extends InArea {
     // never edited; absent = round, and absent must stay absent.
     corners?: string;
     ends?: string;
+    // One end each, overriding ends (plan-cliffs.md D1). Carried, never edited.
+    endsStart?: string;
+    endsEnd?: string;
     // An authored skill applied to whatever stands in this shape
     // (plan-area-effects.md E1). Carried, never edited, like everything else
     // here. Absent = inert, which is every path in every shipped zone.
@@ -472,6 +475,8 @@ export class ZoneModel {
             alignTexture: p.alignTexture,
             corners: p.corners,
             ends: p.ends,
+            endsStart: p.endsStart,
+            endsEnd: p.endsEnd,
             effect: p.effect,
             area: p.area,
         }));
@@ -750,6 +755,8 @@ export class ZoneModel {
                     // stays absent for alignTexture's reason.
                     corners: p.corners || undefined,
                     ends: p.ends || undefined,
+                    endsStart: p.endsStart || undefined,
+                    endsEnd: p.endsEnd || undefined,
                     // ⚑ Absent stays absent (plan-area-effects.md D10): no
                     // shipped path names an effect, so an empty string here must
                     // serialize to no key at all or every existing zone changes.

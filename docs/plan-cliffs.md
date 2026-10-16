@@ -165,7 +165,12 @@ chunk B (the mesh learning round corners and ends) HELD, not closed: a curved fe
 with rounded ends may still want it. Cliffs no longer need it, because `fade` and
 welds replace every use a cliff had for `round`.
 
-⚑ PO call (Q5): refuse for every aligned path, or only for profiles with a `cap`.
+⚑ ~~PO call (Q5)~~ **Settled by the content (C1, 2026-10-16): cap profiles only, so D4
+moves to C2.** The `Water` river is `alignTexture` with round ends and corners
+(absent), and it draws through the stroke because its profile DRIFTS. Refusing every
+aligned `round` would refuse `world.json`. And the server cannot tell which profiles
+drift or have caps (the profile table is client-only), so the refusal lives where that
+table is read: the client's content tests and the Tiled save.
 
 ### D5 — placeholder caps from the existing generators
 
@@ -216,8 +221,8 @@ ramps. Nothing in it blocks B later.
 
 | Chunk | What | Depends on |
 |---|---|---|
-| **C1** | D1 per-end keys through every writer and validator · D4 refusal | — |
-| **C2** | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
+| **C1** ✅ | D1 per-end keys through every writer and validator | — |
+| **C2** | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D4 refusal for cap profiles · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
 | **C3** | D3 welds in `aura-convert.js`: end-to-end merge, the direction refusal, the T-weld | C1 (C2 for the scope rule) |
 | **C4** | D6 `outlineFacing` through every polygon writer (Go `world.Polygon`, `aura-convert.js` + an `AuraOutlineFacing` enum on `AuraPolygon`, `ZoneModel.ts` `ZonePolygon`) · the rim as an aligned sharp inset ribbon · direction from signed area · one test mountain and one test pit | none (independent of C1-C3) |
 
@@ -260,7 +265,8 @@ rebuild before restarting (`dev-restart-windows.sh` does).
 - **Q3 — snap distance** for welds [PLACEHOLDER 0.5 u].
 - **Q4 — the T-weld from the high side.** It may need the stem drawn above, not below,
   when it approaches from the lip side. Decided in-game.
-- **Q5 — D4's scope:** every aligned path, or cap profiles only.
+- ✅ **Q5 — D4's scope: cap profiles only**, forced by the river (D4).
+- ✅ **Q2 — key names:** shipped as proposed, `endsStart` / `endsEnd` (C1).
 - ✅ **Q6 — `outlineFacing` names: `out` / `in`** (PO 2026-10-16).
 - ✅ **Q7 — a narrow neck: left to the eye** (PO 2026-10-16). An inset rim folds over
   itself where the polygon is narrower than twice `outlineWidth` (the mitre limit
@@ -307,4 +313,33 @@ facing is the ring B would draw.
 
 ## 10. Chunk ledgers
 
-None yet.
+### C1 — SHIPPED 2026-10-16 on branch `cliffs` (PO in-game look passed)
+
+`endsStart` / `endsEnd` on `paths[]`, each overriding `ends` for one end.
+
+- **Go:** `world.Path.EndsStart` / `EndsEnd`, `endOf(start)`, the same vocabulary and
+  ring refusal for all three end keys (`validatePathShape`); `pathTaper` tapers each
+  pointed end on its own, a lone taper clamped to half the path like a pair.
+- **Client:** `PathShape.ends` is now a resolved pair `[start, end]` (`toPaths`);
+  `taperedCentreline` takes which ends are pointed; `pathSilhouette` keeps the one
+  stroke when both ends match, otherwise butt-caps it and fills each end on its own
+  (a taper outline, or a new `roundCapOutline` half disc that meets the butt edge
+  without overlapping it). `paintRibbon` falls back if EITHER end is round.
+- **Writers:** `aura-convert.js` (read, write, validation; both keys use the existing
+  `AuraPathEnds` enum), `generate-palette.mjs` → `AuraPath` members, `ZoneModel.ts`
+  (carried). The completeness pin now includes both keys.
+- ⚑ D4 moved to C2 (see D4: the drifting river is aligned + round).
+
+**Schema:** DB none · wire none · conf none · zone format +2 keys (absent-safe; no
+shipped zone changes).
+
+**Verified:** Go `world` red-first then green, full suite bar the known prop pin
+(`TestPropContent_C1bMigrationPreservesLookAndCollision`) · `-validate` 0 findings on
+both zone sets · vitest 1717/0 (11 new/updated red-first) · typecheck clean · Tiled
+extension reinstalled · `tools/tiled/verify.sh` all green (its palette leg reads
+"stale" only on an EOL difference after a restore; `project-palette-regen-dirties-tree`).
+✅ **PO in-game look passed** (a cliff authored `endsStart: point`, `endsEnd: flat` in
+Tiled; that `world.json` edit stays the PO's, uncommitted) · pre-commit join smoke
+`hygiene-wire-prune.mjs` against the dev client: 0 console errors, 0 WebGL losses.
+⚑ A `round` end on an `alignTexture` path still drops the whole path to the stroke
+(D4, C2).

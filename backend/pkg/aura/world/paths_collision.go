@@ -58,13 +58,18 @@ const taperLengthPerWidth = 2
 // nothing, which is every path that does not author "point".
 type taper struct {
 	length, total float32
+	// start and end say which ends narrow (plan-cliffs.md D1: each end has
+	// its own shape).
+	start, end bool
 }
 
-// pathTaper measures the taper an open path authoring "point" gets: 2 × width
-// at each end, clamped to half the path so the two never overlap. The taper is
-// INSIDE the drawn length (PO-ruled) — the endpoint is the tip.
+// pathTaper measures the taper an open path's "point" ends get: 2 × width at
+// each pointed end, clamped to half the path so two never overlap (and one
+// alone is clamped the same way, as the client does). The taper is INSIDE the
+// drawn length (PO-ruled) — the endpoint is the tip.
 func pathTaper(p *Path) taper {
-	if p.Ends != "point" || p.Closed {
+	start, end := p.endOf(true) == "point", p.endOf(false) == "point"
+	if !(start || end) || p.Closed {
 		return taper{}
 	}
 	var total float32
@@ -72,14 +77,21 @@ func pathTaper(p *Path) taper {
 		a, b := p.Points[i], p.Points[i+1]
 		total += float32(math.Hypot(float64(b.X-a.X), float64(b.Y-a.Y)))
 	}
-	return taper{length: min(taperLengthPerWidth*p.Width, total/2), total: total}
+	return taper{length: min(taperLengthPerWidth*p.Width, total/2), total: total, start: start, end: end}
 }
 
 func (tp taper) at(s float32) float32 {
 	if tp.length <= 0 {
 		return 1
 	}
-	return max(0, min(1, s/tp.length, (tp.total-s)/tp.length))
+	f := float32(1)
+	if tp.start {
+		f = min(f, s/tp.length)
+	}
+	if tp.end {
+		f = min(f, (tp.total-s)/tp.length)
+	}
+	return max(0, f)
 }
 
 // PathCorridors builds the static collision shapes for every blocking path in

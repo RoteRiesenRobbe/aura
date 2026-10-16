@@ -497,6 +497,13 @@ type Path struct {
 	// the mitre is not solid.
 	Corners string `json:"corners,omitempty"`
 	Ends    string `json:"ends,omitempty"`
+	// EndsStart and EndsEnd override Ends for one end each (plan-cliffs.md D1):
+	// the first authored point and the last. Absent follows Ends, so a path
+	// authoring neither is exactly what it was. They exist so a cliff can fade
+	// at one end and meet a wall at the other without being split in two, and
+	// every split is a join that looks choppy.
+	EndsStart string `json:"endsStart,omitempty"`
+	EndsEnd   string `json:"endsEnd,omitempty"`
 	// Effect names an authored skill applied to whatever stands inside this
 	// shape — a lava river, a stream that heals (plan-area-effects.md E1).
 	// Absent = inert, which is every path authored before this.
@@ -1484,6 +1491,19 @@ var (
 	PathEnds    = []string{"round", "flat", "point"}
 )
 
+// endOf is the shape of one end, start or not: its own key if authored, else
+// Ends. The empty string is "round".
+func (p *Path) endOf(start bool) string {
+	own := p.EndsEnd
+	if start {
+		own = p.EndsStart
+	}
+	if own != "" {
+		return own
+	}
+	return p.Ends
+}
+
 // validatePathShape refuses a corners or ends value outside its vocabulary,
 // and any ends on a closed path: a ring has no ends, so the key would silently
 // do nothing.
@@ -1491,11 +1511,15 @@ func validatePathShape(ref string, p *Path) error {
 	if p.Corners != "" && !slices.Contains(PathCorners, p.Corners) {
 		return fmt.Errorf("%s: corners %q is not one of %s", ref, p.Corners, strings.Join(PathCorners, ", "))
 	}
-	if p.Ends != "" && !slices.Contains(PathEnds, p.Ends) {
-		return fmt.Errorf("%s: ends %q is not one of %s", ref, p.Ends, strings.Join(PathEnds, ", "))
-	}
-	if p.Ends != "" && p.Closed {
-		return fmt.Errorf("%s: ends %q on a closed path, which has no ends", ref, p.Ends)
+	for _, e := range []struct{ key, value string }{
+		{"ends", p.Ends}, {"endsStart", p.EndsStart}, {"endsEnd", p.EndsEnd},
+	} {
+		if e.value != "" && !slices.Contains(PathEnds, e.value) {
+			return fmt.Errorf("%s: %s %q is not one of %s", ref, e.key, e.value, strings.Join(PathEnds, ", "))
+		}
+		if e.value != "" && p.Closed {
+			return fmt.Errorf("%s: %s %q on a closed path, which has no ends", ref, e.key, e.value)
+		}
 	}
 	return nil
 }
