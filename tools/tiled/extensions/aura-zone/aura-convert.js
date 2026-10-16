@@ -381,6 +381,11 @@ var AuraConvert = (function () {
      * ⚑ PATH_SHAPE_DEFAULT must equal the palette members' own default
      * (generate-palette.mjs reads it from here). */
     var PATH_SHAPE_DEFAULT = '(default)';
+    /* A structure's outline as a cliff RIM (plan-cliffs.md D6): `out` a
+     * mountain, `in` a pit; the sentinel (PATH_SHAPE_DEFAULT, read back as
+     * absent) is the plain outline. Mirrors world.OutlineFacings. */
+    var OUTLINE_FACING_VALUES = ['out', 'in'];
+    var OUTLINE_FACING_ENUM = 'AuraOutlineFacing';
     var PATH_ENDS = ['round', 'flat', 'point', 'fade'];
     var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: PATH_ENDS,
         endsStart: PATH_ENDS, endsEnd: PATH_ENDS};
@@ -725,6 +730,7 @@ var AuraConvert = (function () {
                         blocksMovement: g.blocksMovement ? true : undefined,
                         outlineProfile: g.outlineProfile || undefined,
                         outlineWidth: g.outlineProfile ? round(g.outlineWidth, 2) : undefined,
+                        outlineFacing: g.outlineFacing || undefined,
                         effect: g.effect || undefined,
                     };
                 })
@@ -1604,6 +1610,7 @@ var AuraConvert = (function () {
                         outlineWidth: readOutlineProfile(o) !== undefined
                             ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                             : undefined,
+                        outlineFacing: readOutlineFacing(o),
                         effect: readEffect(o),
                     };
                 }),
@@ -1661,6 +1668,20 @@ var AuraConvert = (function () {
         o.properties.outlineWidth = src.outlineWidth;
         o.enums = o.enums || {};
         o.enums.outlineProfile = REGION_ENUMS.profile;
+        // Only a structure carries it; a path's src never has the key.
+        if (src.outlineFacing) {
+            o.properties.outlineFacing = src.outlineFacing;
+            o.enums.outlineFacing = OUTLINE_FACING_ENUM;
+        }
+    }
+
+    /* The rim's facing, or undefined for the plain outline (D6). */
+    function readOutlineFacing(o) {
+        var v = o.properties && o.properties.outlineFacing !== undefined
+            && o.properties.outlineFacing !== null
+            ? plainValue(o.properties.outlineFacing) : undefined;
+        if (v === undefined || v === '' || v === PATH_SHAPE_DEFAULT) { return undefined; }
+        return v;
     }
 
     /* The zone's base fill, a MAP property (PO 2026-09-27). PROFILE_UNSET is
@@ -2326,6 +2347,16 @@ var AuraConvert = (function () {
             onLayer('paths', 'AuraStructure').forEach(function (o, i) {
                 checkProfile(o, i, profilesKnown);
                 checkEffect(o, i);
+                // Mirrors validateOutlineFacing in world/zone.go.
+                var facing = readOutlineFacing(o);
+                if (facing !== undefined && !hasValue(OUTLINE_FACING_VALUES, facing)) {
+                    bad(o, i, 'outlineFacing ' + JSON.stringify(facing) + ' must be one of "'
+                        + PATH_SHAPE_DEFAULT + '", ' + OUTLINE_FACING_VALUES.join(', '));
+                } else if (facing !== undefined && readOutlineProfile(o) === undefined) {
+                    bad(o, i, 'outlineFacing is "' + facing + '" but there is no outline to face.'
+                        + ' Pick an outlineProfile and width, or put outlineFacing back to "'
+                        + PATH_SHAPE_DEFAULT + '"');
+                }
                 checkClosedArea(o, i, 'an AuraStructure',
                     ' — or change its Class to AuraPath if you meant a line');
             });
@@ -2732,6 +2763,8 @@ var AuraConvert = (function () {
         modelToZone: modelToZone,
         validateModel: validateModel,
         weldPaths: weldPaths,
+        OUTLINE_FACING_VALUES: OUTLINE_FACING_VALUES,
+        OUTLINE_FACING_ENUM: OUTLINE_FACING_ENUM,
         WELD_SNAP: WELD_SNAP,
         polygonNotices: polygonNotices,
         formatErrors: formatErrors,

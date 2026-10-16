@@ -402,6 +402,11 @@
       "point",
       "fade"
     ],
+    "AuraOutlineFacing": [
+      "(default)",
+      "out",
+      "in"
+    ],
     "AuraAreaId": [
       "(pick an area)",
       "farmlands",

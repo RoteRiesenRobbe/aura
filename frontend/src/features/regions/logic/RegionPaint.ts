@@ -38,7 +38,8 @@ import {
 import {Path, PathShape} from '../../paths/logic/Paths';
 import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
 import {
-    fadedRibbon, MITRE_LIMIT, Ribbon, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline,
+    fadedRibbon, MITRE_LIMIT, Ribbon, ribbonGeometry, ribbonOutline, rimCentreline, roundCapOutline,
+    taperedCentreline,
 } from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -90,7 +91,7 @@ export function loadZoneTextures(
     const wanted = neededTextures(regions, profiles).filter(name => loaded[name] === undefined);
     // A path's cap art (plan-cliffs.md D2) is drawn ONCE over u 0 → 1, so it
     // must CLAMP: repeating would bleed its first column into the tip.
-    const caps = regions.map(r => regionCap(r, profiles)).filter((c): c is string => c !== null);
+    const caps = Object.keys(profiles).map(n => profiles[n].cap);
     if (wanted.length === 0) {
         return Promise.resolve(false);
     }
@@ -1157,7 +1158,15 @@ export function paintPolygons(
         // definition. An OPEN filled shape is not a thing this primitive can
         // express, deliberately — that shape is a path.
         paintFilled(container, polygon, polygon.points, false, renderer, out);
-        paintOutline(container, polygon, polygon.points, true, renderer, out);
+        if (polygon.outlineFacing && polygon.outlineWidth) {
+            // ⭐ A cliff RIM (plan-cliffs.md D6): the EXISTING mitred mesh as a
+            // closed ring fitted to whole tiles, inset so it never hangs over
+            // the boundary, ordered so the face drops the authored way.
+            const rim = rimCentreline(polygon.points, polygon.outlineFacing, polygon.outlineWidth);
+            paintOutline(container, polygon, rim, true, renderer, out, 0, null, true, RIM_SHAPE);
+        } else {
+            paintOutline(container, polygon, polygon.points, true, renderer, out);
+        }
     });
     return out;
 }
@@ -1276,6 +1285,9 @@ function paintRibbon(
 
 /** A polygon's outline has no authored shape: round, as every stroke was (D10). */
 const ROUND_SHAPE: PathShape = {corners: 'round', ends: ['round', 'round']};
+
+/** A polygon's cliff rim: sharp, the one shape the mesh draws (a ring has no ends). */
+const RIM_SHAPE: PathShape = {corners: 'sharp', ends: ['flat', 'flat']};
 
 /** Which of a path's two ends are `point`, in taperedCentreline's order. */
 function pointedEnds(shape: PathShape): [boolean, boolean] {

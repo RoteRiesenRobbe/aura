@@ -759,6 +759,13 @@ describe('PROFILES — the cap key (plan-cliffs.md D2)', () => {
         expect(regionCap(square('no-such-profile', 0, 0), CAPS)).toBeNull();
     });
 
+    // ⚑ An outline wears its OWN profile; missed here, a rim on a profile no
+    // other surface wears painted its fallback colour for the whole session.
+    it("loads an outline profile's tile", () => {
+        const rimmed = {...square('plain', 0, 0), outlineProfile: 'cliff', outlineWidth: 10};
+        expect(neededTextures([rimmed], CAPS).sort()).toEqual(['cliff-cap', 'cliff-tile', 'road-tile']);
+    });
+
     it('loads the cap with the tile', () => {
         expect(neededTextures([square('cliff', 0, 0)], CAPS).sort()).toEqual(['cliff-cap', 'cliff-tile']);
     });

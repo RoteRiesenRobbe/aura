@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {fadedRibbon, Ribbon, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline} from './PathRibbon';
+import {fadedRibbon, Ribbon, ribbonGeometry, ribbonOutline, rimCentreline, roundCapOutline, taperedCentreline} from './PathRibbon';
 import {CAP_LENGTH_PER_WIDTH, TAPER_LENGTH_PER_WIDTH} from './Paths';
 import {RegionPoint} from '../../regions/logic/Regions';
 
@@ -448,5 +448,52 @@ describe('fadedRibbon', () => {
 
     it('is null when no end fades', () => {
         expect(fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['point', 'flat'])).toBeNull();
+    });
+});
+
+// ---- the cliff rim of a polygon (plan-cliffs.md D6) -------------------------
+
+describe('rimCentreline', () => {
+    // A 1000 x 800 px rectangle at awkward coordinates, wound both ways.
+    const cw = [{x: 13.7, y: 21.3}, {x: 1013.7, y: 21.3}, {x: 1013.7, y: 821.3}, {x: 13.7, y: 821.3}];
+    const ccw = [...cw].reverse();
+    const W = 150;
+    const inside = (p: { x: number, y: number }) => p.x > 13.7 + 1e-3 && p.x < 1013.7 - 1e-3
+        && p.y > 21.3 + 1e-3 && p.y < 821.3 - 1e-3;
+    const onBoundary = (p: { x: number, y: number }) =>
+        (Math.abs(p.x - 13.7) < 1e-2 || Math.abs(p.x - 1013.7) < 1e-2)
+        && (Math.abs(p.y - 21.3) < 1e-2 || Math.abs(p.y - 821.3) < 1e-2);
+
+    for (const [name, pts] of [['clockwise', cw], ['counter-clockwise', ccw]] as const) {
+        it(`out (a mountain): the foot on the boundary, the lip inside, wound ${name}`, () => {
+            const r = ribbonGeometry(rimCentreline(pts, 'out', W), W, true, TILE_W, TILE_H)!;
+            rims(r).forEach(({lo, hi}) => {
+                // ⚑ v > 0.5 (hi) is the tile's foot side: the low ground.
+                expect(onBoundary(hi)).toBe(true);
+                expect(inside(lo)).toBe(true);
+            });
+        });
+
+        it(`in (a pit): the lip on the boundary, the foot inside, wound ${name}`, () => {
+            const r = ribbonGeometry(rimCentreline(pts, 'in', W), W, true, TILE_W, TILE_H)!;
+            rims(r).forEach(({lo, hi}) => {
+                expect(onBoundary(lo)).toBe(true);
+                expect(inside(hi)).toBe(true);
+            });
+        });
+    }
+
+    it('insets by exactly the width at a corner', () => {
+        const r = ribbonGeometry(rimCentreline(cw, 'out', W), W, true, TILE_W, TILE_H)!;
+        const corner = rims(r).find(({hi}) => Math.abs(hi.x - 13.7) < 1e-2 && Math.abs(hi.y - 21.3) < 1e-2)!;
+        expect(corner.lo.x).toBeCloseTo(13.7 + W, 3);
+        expect(corner.lo.y).toBeCloseTo(21.3 + W, 3);
+    });
+
+    it('fits the ring to whole tiles', () => {
+        const r = ribbonGeometry(rimCentreline(cw, 'in', W), W, true, TILE_W, TILE_H)!;
+        const us = rims(r).map(p => p.lo.u);
+        expect(us[0]).toBe(0);
+        expect(us[us.length - 1]).toBeCloseTo(Math.round(us[us.length - 1]), FLOAT32);
     });
 });

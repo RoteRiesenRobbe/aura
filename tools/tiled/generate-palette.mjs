@@ -445,6 +445,9 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
         // dropped default and a kept one reach the same answer.
         enumType(C.PATH_SHAPE_ENUMS.corners, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.corners)),
         enumType(C.PATH_SHAPE_ENUMS.ends, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.ends)),
+        // A structure's outline as a cliff rim (plan-cliffs.md D6). Mirrors
+        // world.OutlineFacings; the sentinel leads and reads back as absent.
+        enumType(C.OUTLINE_FACING_ENUM, [C.PATH_SHAPE_DEFAULT].concat(C.OUTLINE_FACING_VALUES)),
         classType('AuraDecal', '#ff8bc34a'),
         // ⭐ ONE member, and the enum above is what makes it safe — see the
         // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
@@ -503,7 +506,9 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
         classType('AuraStructure', '#ff8d6e63',
             [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('blocksMovement', 'bool', false),
-                ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
+                ...OUTLINE_MEMBERS,
+                member('outlineFacing', 'string', C.PATH_SHAPE_DEFAULT, C.OUTLINE_FACING_ENUM),
+                EFFECT_MEMBER]),
         // ⭐ The AIR over an area (plan-region-atmosphere.md A0) — and the ONE
         // class with a layer of its own rather than a share of `paths` (D16),
         // because `darkAreas` (the primitive it retires) already has one, and

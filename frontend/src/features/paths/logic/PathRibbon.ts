@@ -345,6 +345,69 @@ export function ribbonOutline(points: RegionPoint[], width: number, factors: num
 }
 
 /**
+ * ⭐ The mitre at a vertex: the bisector of the two segment normals,
+ * lengthened by 1/cos(θ/2) so the rim stays `half` from the centreline
+ * THROUGH the corner. Without the lengthening the band pinches at every bend.
+ * At an open end there is one normal, and that is the answer.
+ */
+function mitre(prev: { x: number, y: number } | null, next: { x: number, y: number } | null): { x: number, y: number } {
+    if (prev && next) {
+        const bx = prev.x + next.x;
+        const by = prev.y + next.y;
+        const blen = Math.hypot(bx, by);
+        if (blen < 1e-6) {
+            // A perfect reversal: the bisector is undefined. Fall back to
+            // the outgoing normal rather than dividing by nothing.
+            return {x: next.x, y: next.y};
+        }
+        const ux = bx / blen;
+        const uy = by / blen;
+        const cos = ux * next.x + uy * next.y;
+        const scale = Math.min(MITRE_LIMIT, 1 / Math.max(1e-3, cos));
+        return {x: ux * scale, y: uy * scale};
+    }
+    const only = (prev || next) as { x: number, y: number };
+    return {x: only.x, y: only.y};
+}
+
+/**
+ * The centreline a polygon's CLIFF RIM is drawn along (plan-cliffs.md D6,
+ * `outlineFacing`), for {@link ribbonGeometry} with `closed`.
+ *
+ * ⭐ The direction is DERIVED from the polygon's signed area, never from how
+ * it was drawn: `out` (a mountain) orders the ring so the tile's foot side
+ * (+normal, `v > 0.5`) faces OUT of the shape, `in` (a pit) so it faces in.
+ *
+ * ⭐ The rim sits INSIDE the boundary, never across it: the centreline is
+ * moved inward by half the width along each vertex's own mitre, so one rim of
+ * the ribbon lands ON the boundary (where you stop: a mountain's foot, a
+ * pit's lip) and the other `width` inside it. An offset ring has the same
+ * segment directions, so the ribbon's mitres there are these mitres, and the
+ * outer rim is exact. ⚑ Where the shape is narrower than twice the width the
+ * rim folds over itself (Q7: left to the eye).
+ */
+export function rimCentreline(points: RegionPoint[], facing: 'out' | 'in', width: number): RegionPoint[] {
+    let pts = distinct(points, true).map(i => points[i]);
+    if (pts.length < 3) { return pts; }
+    let area = 0;
+    for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        area += a.x * b.y - b.x * a.y;
+    }
+    // ⚑ With area > 0 (y down) the +normal points INTO the ring. A pit wants
+    // that; a mountain wants it reversed.
+    if ((area > 0) !== (facing === 'in')) { pts = pts.slice().reverse(); }
+    // Inward is +normal for a pit and -normal for a mountain.
+    const inward = (facing === 'in' ? 1 : -1) * width / 2;
+    const n = pts.length;
+    return pts.map((p, i) => {
+        const m = mitre(segmentNormal(pts[(i - 1 + n) % n], p), segmentNormal(p, pts[(i + 1) % n]));
+        return {x: p.x + m.x * inward, y: p.y + m.y * inward};
+    });
+}
+
+/**
  * Builds the ribbon for one path.
  *
  * @param points     centreline, world px
@@ -437,33 +500,7 @@ export function ribbonGeometry(
         const prev = closed || i > 0 ? normalAt((i - 1 + n) % n) : null;
         const next = closed || i < n - 1 ? normalAt(i % n) : null;
 
-        // ⭐ The mitre: the bisector of the two segment normals, lengthened by
-        // 1/cos(θ/2) so the rim stays `half` from the centreline THROUGH the
-        // corner. Without the lengthening the band pinches at every bend.
-        let mx: number;
-        let my: number;
-        if (prev && next) {
-            const bx = prev.x + next.x;
-            const by = prev.y + next.y;
-            const blen = Math.hypot(bx, by);
-            if (blen < 1e-6) {
-                // A perfect reversal: the bisector is undefined. Fall back to
-                // the outgoing normal rather than dividing by nothing.
-                mx = next.x;
-                my = next.y;
-            } else {
-                const ux = bx / blen;
-                const uy = by / blen;
-                const cos = ux * next.x + uy * next.y;
-                const scale = Math.min(MITRE_LIMIT, 1 / Math.max(1e-3, cos));
-                mx = ux * scale;
-                my = uy * scale;
-            }
-        } else {
-            const only = (prev || next) as { x: number, y: number };
-            mx = only.x;
-            my = only.y;
-        }
+        const {x: mx, y: my} = mitre(prev, next);
 
         if (i > 0) {
             const q = pts[(i - 1 + n) % n];

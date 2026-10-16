@@ -562,6 +562,15 @@ type Polygon struct {
 	// so all four writers stay a one-line mapping each.
 	OutlineProfile string  `json:"outlineProfile,omitempty"`
 	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
+	// OutlineFacing turns the outline into a cliff RIM (plan-cliffs.md D6):
+	// "out" is a mountain (the face drops away from the shape), "in" a pit
+	// (the face drops towards its centre). The client draws the rim as an
+	// aligned, sharp ribbon INSIDE the boundary and derives its direction
+	// from the shape's winding, so how it was drawn never matters. Absent =
+	// the plain centred outline, every shape authored before this.
+	//
+	// ⛔ Decoration like the outline itself: collision never reads it.
+	OutlineFacing string `json:"outlineFacing,omitempty"`
 	// Effect names an authored skill applied to whatever stands inside this
 	// shape — the lava pool, the bog (plan-area-effects.md E1). Absent = inert,
 	// and no shipped zone authors one, so the feature costs exactly zero (D10).
@@ -1271,6 +1280,9 @@ func (z *Zone) validate() error {
 		if err := validateOutline(ref, z.Structures[i].OutlineProfile, z.Structures[i].OutlineWidth); err != nil {
 			return err
 		}
+		if err := validateOutlineFacing(ref, &z.Structures[i]); err != nil {
+			return err
+		}
 		if err := validateEffect(ref, z.Structures[i].Effect); err != nil {
 			return err
 		}
@@ -1520,6 +1532,24 @@ func validatePathShape(ref string, p *Path) error {
 		if e.value != "" && p.Closed {
 			return fmt.Errorf("%s: %s %q on a closed path, which has no ends", ref, e.key, e.value)
 		}
+	}
+	return nil
+}
+
+// OutlineFacings is the closed vocabulary of Polygon.OutlineFacing.
+var OutlineFacings = []string{"out", "in"}
+
+// validateOutlineFacing refuses an unknown facing, and a facing with no
+// outline to face: a key that silently does nothing.
+func validateOutlineFacing(ref string, p *Polygon) error {
+	if p.OutlineFacing == "" {
+		return nil
+	}
+	if !slices.Contains(OutlineFacings, p.OutlineFacing) {
+		return fmt.Errorf("%s: outlineFacing %q is not one of %s", ref, p.OutlineFacing, strings.Join(OutlineFacings, ", "))
+	}
+	if strings.TrimSpace(p.OutlineProfile) == "" {
+		return fmt.Errorf("%s: outlineFacing %q needs an outlineProfile to face", ref, p.OutlineFacing)
 	}
 	return nil
 }

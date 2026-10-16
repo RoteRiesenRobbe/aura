@@ -31,7 +31,17 @@ import {meter2px} from '../../../client-data/BasicConfig';
  * profile table, three shapes" true in the type system and not only in the
  * comments.
  */
-export interface Polygon extends Region, Outlined {}
+export interface Polygon extends Region, Outlined {
+    /**
+     * The outline drawn as a cliff RIM (plan-cliffs.md D6): `out` a mountain,
+     * `in` a pit. Absent = the plain centred outline. Only present when there
+     * IS an outline to face.
+     */
+    outlineFacing?: OutlineFacing;
+}
+
+/** Which way a polygon's cliff rim drops: away from the shape, or into it. */
+export type OutlineFacing = 'out' | 'in';
 
 /** Authored shape, straight out of the zone file: server units. */
 export interface PolygonDefinition {
@@ -40,6 +50,8 @@ export interface PolygonDefinition {
     blocksMovement?: boolean;
     outlineProfile?: string;
     outlineWidth?: number;
+    /** world.Polygon.OutlineFacing; absent = a plain outline. */
+    outlineFacing?: OutlineFacing;
 }
 
 let polygons: Polygon[] = [];
@@ -58,11 +70,18 @@ export function toPolygons(
     const ox = origin ? origin.x : 0;
     const oy = origin ? origin.y : 0;
     return (defs || [])
-        .map(p => ({
-            profile: p.profile,
-            points: (p.points || []).map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)})),
-            ...outlineOf(p),
-        }))
+        .map((p): Polygon => {
+            const outline = outlineOf(p);
+            const facing = p.outlineFacing === 'out' || p.outlineFacing === 'in' ? p.outlineFacing : undefined;
+            return {
+                profile: p.profile,
+                points: (p.points || []).map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)})),
+                ...outline,
+                // ⚑ Dropped with no outline to face, the client's degrade for
+                // what the server refuses; an unknown value likewise.
+                ...(facing && outline.outlineProfile ? {outlineFacing: facing} : {}),
+            };
+        })
         // THREE points to enclose an area — the same rule a region has, and the
         // reason this is not two. The server refuses fewer, so this is the
         // client's own degrade path for a hand-edited file, and it drops one

@@ -220,6 +220,9 @@ export interface ZonePolygon extends InArea {
     blocksMovement?: boolean;
     outlineProfile?: string;
     outlineWidth?: number;
+    // The outline as a cliff rim, `out` or `in` (plan-cliffs.md D6). Carried,
+    // never edited.
+    outlineFacing?: string;
     // The lava pool, the bog (plan-area-effects.md E1). ⚑ On the SHAPE and never
     // on the profile (D2): the profile tables are client-side, so a profile key
     // would make the look table gameplay-authoritative — and a profile is a
@@ -486,6 +489,7 @@ export class ZoneModel {
             blocksMovement: g.blocksMovement,
             outlineProfile: g.outlineProfile,
             outlineWidth: g.outlineWidth,
+            outlineFacing: g.outlineFacing,
             effect: g.effect,
             area: g.area,
         }));
@@ -773,6 +777,7 @@ export class ZoneModel {
                     blocksMovement: g.blocksMovement ? true : undefined,
                     outlineProfile: g.outlineProfile || undefined,
                     outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
+                    outlineFacing: g.outlineFacing || undefined,
                     effect: g.effect || undefined,
                 }))
                 : undefined,

@@ -1,6 +1,6 @@
 # Plan: Cliffs that join and end — per-end shapes, end caps, welds
 
-**Status: C1 shipped; C2 + C3 code shipped (PO look, the fade migration and one Tiled save owed), 2026-10-16. 4 chunks (C1-C4).**
+**Status: C1 shipped; C2-C4 code shipped 2026-10-16 (owed: the PO look, the fade migration, one Tiled save of world.json).**
 Open PO calls in §7. ⏸ The raised-area model (Option B) is PARKED, not dropped (§8);
 C4 (mountains and pits) is its enclosed first slice.
 
@@ -224,7 +224,7 @@ ramps. Nothing in it blocks B later.
 | **C1** ✅ | D1 per-end keys through every writer and validator | — |
 | **C2** ✅ code | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D4 refusal for cap profiles · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
 | **C3** ✅ code | D3 welds in `aura-convert.js`: end-to-end merge, the direction refusal, the T-weld | C1 (C2 for the scope rule) |
-| **C4** | D6 `outlineFacing` through every polygon writer (Go `world.Polygon`, `aura-convert.js` + an `AuraOutlineFacing` enum on `AuraPolygon`, `ZoneModel.ts` `ZonePolygon`) · the rim as an aligned sharp inset ribbon · direction from signed area · one test mountain and one test pit | none (independent of C1-C3) |
+| **C4** ✅ code | D6 `outlineFacing` through every polygon writer (Go `world.Polygon`, `aura-convert.js` + an `AuraOutlineFacing` enum on `AuraPolygon`, `ZoneModel.ts` `ZonePolygon`) · the rim as an aligned sharp inset ribbon · direction from signed area · one test mountain and one test pit | none (independent of C1-C3) |
 
 ## 5. Schema impact
 
@@ -423,3 +423,44 @@ boundary, opposite-ways refusal, mismatch refusal naming the key, roads untouche
 T-weld end and start, idempotent, half-width boundary, refusal naming both objects
 on save) · the weld of the shipped world checked by hand: only the T above, and
 stable on a second pass · Tiled extension reinstalled.
+
+### C4 — CODE SHIPPED 2026-10-16 on branch `cliffs`; ⛔ PO look OWED
+
+`outlineFacing` (`out` · `in`) on `structures[]`, the outline drawn as a cliff rim.
+
+- **Go:** `world.Polygon.OutlineFacing`, `OutlineFacings`, `validateOutlineFacing`
+  (unknown value, or a facing with no `outlineProfile`, refuses the boot). Collision
+  untouched, pinned byte-identical with and without the key.
+- **Client:** `Polygons.ts` carries it (dropped when unknown or with no outline).
+  `rimCentreline` (PathRibbon.ts) orders the ring by its signed area so the tile's
+  foot side faces out (`out`, a mountain) or in (`in`, a pit) whichever way it was
+  drawn, and moves the centreline inward by half the width along each vertex's own
+  mitre, so one rim lands ON the boundary and the other `outlineWidth` inside it (the
+  plan's "asymmetric reach", done as an offset ring, which needs no change to
+  `ribbonGeometry`; the mitre is now one shared helper). `paintPolygons` draws it
+  through the EXISTING path: `paintOutline` with `aligned`, sharp corners, closed,
+  whole-tile fit. The stroke fallback (colour, loading) follows the same inset line.
+- ⚑ **Fixed on the way:** `neededTextures` never loaded an OUTLINE profile's tile, so
+  a rim on a profile no other surface wore painted its fallback colour all session
+  (the wreckers-bluff `Pit`'s `Cliff Smooth` rim did). A profile's `cap` now loads
+  wherever the profile is worn, and every cap texture clamps.
+- **Writers:** `aura-convert.js` (read, write, serializer in zone.go's order,
+  validation), a new `AuraOutlineFacing` enum + `AuraStructure` member
+  (`generate-palette.mjs`), `ZoneModel.ts` `ZonePolygon` (carried). The completeness
+  pin now authors it.
+- **Test shapes:** a mountain (`Mountains` + `Cliff` rim, `out`, wound clockwise) at
+  (-24, 12) and a pit (`Pit` + `Cliff Smooth` rim, `in`, wound the other way) at
+  (-30, -14) in the DEBUG world (`api/zones/.debug/world_debug.json`; boot with
+  `dev-restart-windows.sh server debug`). Not in `world.json`, which is the PO's
+  uncommitted file.
+
+**Schema:** DB none · wire none · conf none · zone format +1 key on `structures[]`
+(absent-safe; no shipped `world.json` change).
+
+**Verified:** Go red-first then green, full suite bar the known prop pin · `-validate`
+0 findings on both zone sets · vitest 1765 + the two C3 world legs (rim legs and the
+completeness pin red-first) · typecheck clean · Tiled extension reinstalled ·
+`verify.sh`: only the C3 world-weld legs red · `hygiene-wire-prune.mjs` on the dev
+client: 0 console errors, 0 WebGL losses (it does not reach the debug world's rims).
+⛔ **Owed:** the PO look (§6: the mountain and the pit walked round, on the world view
+and the full-screen map).

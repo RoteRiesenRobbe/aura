@@ -2536,6 +2536,8 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
             blocksMovement: true,
             outlineProfile: 'Ice', outlineWidth: 1.25,
+            // plan-cliffs.md D6: absent is the plain outline, so it is authored.
+            outlineFacing: 'in',
             effect: 'Immolate',
         }],
         // ⛔ NO blocksMovement, NO outline, NO width — the D15 ruling in the
@@ -2872,6 +2874,39 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
                 {profile: 'Water', points: line, width: 3, alignTexture: true},
             ]}))) as string[];
             expect(errors).toEqual([]);
+        });
+    });
+
+    // plan-cliffs.md D6: a structure's outline as a cliff rim.
+    describe('outlineFacing on a structure', () => {
+        const square = [{x: -4.3, y: -3.7}, {x: 5.1, y: -3.7}, {x: 5.1, y: 6.2}];
+        const structure = (over: Record<string, unknown>) => zone({structures: [{
+            profile: 'Mountains', points: square, blocksMovement: true,
+            outlineProfile: 'Cliff', outlineWidth: 1.5, ...over,
+        }]});
+
+        it('round-trips out and in, and writes nothing when unset', () => {
+            for (const facing of ['out', 'in']) {
+                const s = roundTrip(structure({outlineFacing: facing})).structures[0];
+                expect(s.outlineFacing).toBe(facing);
+            }
+            expect('outlineFacing' in roundTrip(structure({})).structures[0]).toBe(false);
+        });
+
+        it('offers the sentinel first, then out and in', () => {
+            expect(byName(C.OUTLINE_FACING_ENUM).values).toEqual([C.PATH_SHAPE_DEFAULT, 'out', 'in']);
+        });
+
+        it('refuses an unknown value, and a facing with no outline', () => {
+            const m = C.zoneToModel(structure({outlineFacing: 'out'})) as
+                {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+            o.properties.outlineFacing = 'up';
+            expect((C.validateModel(m) as string[]).join('\n')).toContain('outlineFacing "up" must be one of');
+            o.properties.outlineFacing = 'out';
+            o.properties.outlineProfile = C.PROFILE_UNSET;
+            o.properties.outlineWidth = 0;
+            expect((C.validateModel(m) as string[]).join('\n')).toContain('outlineFacing is "out" but there is no outline');
         });
     });
 

@@ -1189,15 +1189,20 @@ export function neededTextures(
         if (profile && typeof profile.texture === 'string') {
             seen[profile.texture] = true;
         }
+        // ⚑ A cap loads with its tile whether or not a path fades: only
+        // cliffs name one, and it is one small file.
+        if (profile && typeof profile.cap === 'string') {
+            seen[profile.cap] = true;
+        }
     };
     inRegions.forEach((region) => {
         add(region.profile);
         const overlay = regionOverlay(region, profiles);
         if (overlay !== null) { add(overlay.profile); }
-        // ⚑ A cap loads with its tile whether or not a path fades: only
-        // paths name cap profiles, and a cap is one small file.
-        const cap = regionCap(region, profiles);
-        if (cap !== null) { seen[cap] = true; }
+        // ⚑ An outline wears its OWN profile. Missed here, a rim on a profile
+        // no other surface wears paints its fallback colour all session.
+        const outline = (region as Outlined).outlineProfile;
+        if (outline) { add(outline); }
     });
     return Object.keys(seen);
 }
