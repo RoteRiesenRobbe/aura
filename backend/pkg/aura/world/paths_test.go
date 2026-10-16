@@ -1,6 +1,7 @@
 package world
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -461,7 +462,7 @@ func TestCornersAndEndsAreClosedVocabularies(t *testing.T) {
 			`path 0: corners "mitre" is not one of round, sharp`},
 		{"unknown ends",
 			`{"profile":"Road","width":2,"ends":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
-			`path 0: ends "square" is not one of round, flat, point`},
+			`path 0: ends "square" is not one of round, flat, point, fade`},
 		// ⛔ A ring has no ends: a key that silently did nothing is refused.
 		{"ends on a ring",
 			`{"profile":"Road","width":2,"closed":true,"ends":"point",` + ringPoints + `}`,
@@ -571,10 +572,10 @@ func TestPerEndKeysAreClosedVocabularies(t *testing.T) {
 	}{
 		{"unknown endsStart",
 			`{"profile":"Road","width":2,"endsStart":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
-			`path 0: endsStart "square" is not one of round, flat, point`},
+			`path 0: endsStart "square" is not one of round, flat, point, fade`},
 		{"unknown endsEnd",
 			`{"profile":"Road","width":2,"endsEnd":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
-			`path 0: endsEnd "square" is not one of round, flat, point`},
+			`path 0: endsEnd "square" is not one of round, flat, point, fade`},
 		{"endsStart on a ring",
 			`{"profile":"Road","width":2,"closed":true,"endsStart":"flat",` + ringPoints + `}`,
 			`path 0: endsStart "flat" on a closed path, which has no ends`},
@@ -612,4 +613,108 @@ func TestOnePointedEndTapersOnlyThatEnd(t *testing.T) {
 		assert.InDelta(t, 20, covered, 1e-3, keys)
 		assert.InDelta(t, 16, full, 1e-3, keys)
 	}
+}
+
+// ---- fade ends (plan-cliffs.md D2) ------------------------------------------
+
+// ⚑ Pinned, because the CLIENT holds the same number (Paths.ts
+// CAP_LENGTH_PER_WIDTH): it draws the cap this length, and the wall stops
+// inside it.
+func TestCapLengthIsTwoWidths(t *testing.T) {
+	assert.EqualValues(t, 2, capLengthPerWidth)
+}
+
+func TestFadeWallFractionIsAFraction(t *testing.T) {
+	assert.GreaterOrEqual(t, float32(fadeWallFraction), float32(0))
+	assert.LessOrEqual(t, float32(fadeWallFraction), float32(1))
+}
+
+func TestFadeIsAnEndsValue(t *testing.T) {
+	for _, keys := range []string{`"ends":"fade"`, `"endsStart":"fade"`, `"endsEnd":"fade","ends":"point"`} {
+		_, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},"paths":[
+			{"profile":"Cliff","width":2,` + keys + `,"points":[{"x":0,"y":0},{"x":5,"y":0}]}]}`))
+		assert.NoError(t, err, keys)
+	}
+}
+
+// wallExtent is the arc span a straight path along +x is walled over, and
+// whether every rect in it is the given width.
+func wallExtent(t *testing.T, cs []Corridor, width float32) (from, to, covered float32) {
+	t.Helper()
+	from, to = float32(math.Inf(1)), float32(math.Inf(-1))
+	for _, c := range cs {
+		require.False(t, c.IsCircle(), "a straight path has no joints")
+		assert.EqualValues(t, width, c.Width, "a faded end never narrows the wall")
+		from = min32(from, c.X-c.Length/2)
+		to = max32(to, c.X+c.Length/2)
+		covered += c.Length
+	}
+	return from, to, covered
+}
+
+// A 20-unit wall, width 2, faded at both ends: each cap is 4 units, and the
+// wall reaches fadeWallFraction of the way into each one, at full width.
+func TestFadeEndsStopTheWallInsideTheCap(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"ends":"fade",
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	cut := float32(4 * (1 - fadeWallFraction))
+	from, to, covered := wallExtent(t, PathCorridors(z), 2)
+	assert.InDelta(t, cut, from, 1e-3)
+	assert.InDelta(t, 20-cut, to, 1e-3)
+	assert.InDelta(t, 20-2*cut, covered, 1e-3, "no gaps in between")
+}
+
+func TestOneFadedEndLeavesTheOtherAtTheEndpoint(t *testing.T) {
+	for _, keys := range []string{`"endsEnd":"fade"`, `"ends":"fade","endsStart":"flat"`} {
+		z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,`+keys+`,
+			"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+		from, to, _ := wallExtent(t, PathCorridors(z), 2)
+		assert.InDelta(t, 0, from, 1e-3, keys)
+		assert.InDelta(t, 20-4*(1-fadeWallFraction), to, 1e-3, keys)
+	}
+}
+
+// Shorter than two caps: each is clamped to half the path, like the taper.
+func TestShortFadedPathClampsItsCaps(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"ends":"fade",
+		"points":[{"x":0,"y":0},{"x":4,"y":0}]}`)
+	cs := PathCorridors(z)
+	if fadeWallFraction == 0 {
+		assert.Empty(t, cs, "two caps meeting in the middle leave no wall")
+		return
+	}
+	cut := float32(2 * (1 - fadeWallFraction))
+	from, to, _ := wallExtent(t, cs, 2)
+	assert.InDelta(t, cut, from, 1e-3)
+	assert.InDelta(t, 4-cut, to, 1e-3)
+}
+
+// A bend inside the unwalled part of a cap gets no joint: a circle there would
+// be an invisible wall where the cliff has sloped away.
+func TestFadeDropsAJointOutsideTheWall(t *testing.T) {
+	cut := float32(4 * (1 - fadeWallFraction))
+	if cut <= 0 {
+		t.Skip("fadeWallFraction 1 walls the whole cap")
+	}
+	bend := cut / 2
+	z := blockingZone(t, fmt.Sprintf(`{"profile":"Cliff","width":2,"blocksMovement":true,"endsStart":"fade",
+		"points":[{"x":0,"y":0},{"x":%g,"y":0},{"x":%g,"y":20}]}`, bend, bend))
+	assert.Empty(t, circlesIn(PathCorridors(z)))
+}
+
+// One end pointed and one faded: the pointed end still narrows, the faded one
+// still stops short at full width.
+func TestPointAndFadeEndsMix(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"endsStart":"point","endsEnd":"fade",
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	var to float32
+	for _, c := range PathCorridors(z) {
+		to = max32(to, c.X+c.Length/2)
+		if c.X < 4 {
+			assert.InDelta(t, 2*c.X/4, c.Width, 1e-3, "the pointed start tapers")
+		} else {
+			assert.EqualValues(t, 2, c.Width)
+		}
+	}
+	assert.InDelta(t, 20-4*(1-fadeWallFraction), to, 1e-3)
 }

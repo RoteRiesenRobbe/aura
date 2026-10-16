@@ -131,6 +131,15 @@ export interface TerrainProfile {
     // ⛔ Ground only. An atmosphere profile's overlay is parsed (the parser does
     // not know which table it is building) and never drawn.
     overlay?: Overlay | null;
+    // The art a path's `fade` end is drawn with (plan-cliffs.md D2), named by
+    // file stem like `texture`. Absent = this profile has no cap, and `fade`
+    // on it is refused by the content tests and the Tiled save (the server
+    // cannot see this table).
+    //
+    // ⚑ Read off the surface's OWN profile ({@link regionCap}), never
+    // resolved: a cap belongs to the tile it continues. ⚑ The art shares the
+    // tile's height and scale, and its left column continues the tile's.
+    cap?: string | null;
 }
 
 /** An authored overlay, as the parser keeps it: the two required keys and
@@ -317,6 +326,8 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // default would put a second mask and a second masked draw under every
     // surface that never asked for one.
     overlay: null,
+    // No cap: only a path's `fade` end reads it, and only a cliff names one.
+    cap: null,
     // The world before atmosphere: nothing is dark except the authored
     // `darkAreas` circles. ⚑ A non-zero default would black out every zone the
     // moment A1 shipped — the feature has to cost exactly zero until a profile
@@ -514,6 +525,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown, blendOutward?: unknown,
             wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown,
             overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown, motes?: unknown,
+            cap?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -583,6 +595,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'motes' in entry) {
             const parsed = parseMotes(entry.motes);
             if (parsed !== undefined) { profile.motes = parsed; }
+        }
+        if (entry && 'cap' in entry) {
+            const parsed = parseTextureName(entry.cap);
+            if (parsed !== undefined) { profile.cap = parsed; }
         }
         out[name] = profile;
     });
@@ -1178,6 +1194,22 @@ export function neededTextures(
         add(region.profile);
         const overlay = regionOverlay(region, profiles);
         if (overlay !== null) { add(overlay.profile); }
+        // ⚑ A cap loads with its tile whether or not a path fades: only
+        // paths name cap profiles, and a cap is one small file.
+        const cap = regionCap(region, profiles);
+        if (cap !== null) { seen[cap] = true; }
     });
     return Object.keys(seen);
+}
+
+/**
+ * The cap art a `fade` end of this surface draws with (plan-cliffs.md D2), or
+ * null for none. Its OWN profile's, never resolved through containment.
+ */
+export function regionCap(
+    region: Region,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): string | null {
+    const profile = profiles[region.profile];
+    return profile && typeof profile.cap === 'string' ? profile.cap : null;
 }

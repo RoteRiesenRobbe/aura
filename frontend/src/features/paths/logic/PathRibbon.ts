@@ -37,7 +37,7 @@
  * half that must touch the GPU is `RegionPaint.paintRibbon`.
  */
 import {RegionPoint} from '../../regions/logic/Regions';
-import {TAPER_LENGTH_PER_WIDTH} from './Paths';
+import {CAP_LENGTH_PER_WIDTH, PathEnds, TAPER_LENGTH_PER_WIDTH} from './Paths';
 
 /** A triangle strip over a polyline, in the three buffers a Pixi mesh wants. */
 export interface Ribbon {
@@ -134,21 +134,47 @@ export function taperedCentreline(
     const [atStart, atEnd] = pointed;
     const pts = distinct(points, false).map(i => points[i]);
     if (pts.length < 2 || !(width > 0) || !(atStart || atEnd)) { return null; }
-    const arc = [0];
-    for (let i = 1; i < pts.length; i++) {
-        arc.push(arc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-    }
+    const arc = arcOf(pts);
     const total = arc[arc.length - 1];
     if (!(total > 0)) { return null; }
     const taper = Math.min(TAPER_LENGTH_PER_WIDTH * width, total / 2);
     const cuts: number[] = [];
     if (atStart) { cuts.push(taper); }
     if (atEnd && !(atStart && taper >= total / 2)) { cuts.push(total - taper); }
+    const {points: out, at} = cutAt(pts, arc, cuts);
 
-    // World px: a cut closer than this to a vertex IS that vertex.
-    const EPS = 1e-3;
+    const first = atStart ? at.findIndex(s => s >= taper - EPS) : 0;
+    let last = first;
+    at.forEach((s, i) => { if (!atEnd || s <= total - taper + EPS) { last = i; } });
+    const factors = at.map((s, i) => (i >= first && i <= last)
+        ? 1
+        : Math.max(0, Math.min(1, (atStart ? s : Infinity) / taper, (atEnd ? total - s : Infinity) / taper)));
+    return {points: out, factors, full: [first, last]};
+}
+
+/** World px: a cut closer than this to a vertex IS that vertex. */
+const EPS = 1e-3;
+
+/** The arc length at each point of a polyline, from 0. */
+function arcOf(pts: RegionPoint[]): number[] {
+    const arc = [0];
+    for (let i = 1; i < pts.length; i++) {
+        arc.push(arc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    }
+    return arc;
+}
+
+/**
+ * Inserts a vertex at each arc position in `cuts` (ascending), so a renderer
+ * can split the line there. A cut landing on an existing vertex reuses it.
+ * Returns the points, each one's arc position, and for each the index of the
+ * original point it IS (-1 for an inserted one).
+ */
+function cutAt(pts: RegionPoint[], arc: number[], cuts: number[]):
+    { points: RegionPoint[], at: number[], source: number[] } {
     const out: RegionPoint[] = [];
     const at: number[] = [];
+    const source: number[] = [];
     for (let i = 0; i < pts.length; i++) {
         if (i > 0) {
             cuts.forEach((c) => {
@@ -159,20 +185,112 @@ export function taperedCentreline(
                         y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t,
                     });
                     at.push(c);
+                    source.push(-1);
                 }
             });
         }
         out.push(pts[i]);
         at.push(arc[i]);
+        source.push(i);
     }
+    return {points: out, at, source};
+}
 
-    const first = atStart ? at.findIndex(s => s >= taper - EPS) : 0;
-    let last = first;
-    at.forEach((s, i) => { if (!atEnd || s <= total - taper + EPS) { last = i; } });
-    const factors = at.map((s, i) => (i >= first && i <= last)
-        ? 1
-        : Math.max(0, Math.min(1, (atStart ? s : Infinity) / taper, (atEnd ? total - s : Infinity) / taper)));
-    return {points: out, factors, full: [first, last]};
+/**
+ * A path with a `fade` end, as up to three meshes (plan-cliffs.md D2): the cap
+ * texture at each faded end, the path's own tile between them.
+ */
+export interface FadedRibbon {
+    /** The first point's cap, u running 1 at the tip → 0 at the inner edge. */
+    start: Ribbon | null;
+    /** The tile between the caps; null when the two caps meet. */
+    middle: Ribbon | null;
+    /** The last point's cap, u running 0 at the inner edge → 1 at the tip. */
+    end: Ribbon | null;
+}
+
+/**
+ * Splits a path with a `fade` end into its caps and its middle.
+ *
+ * ⭐ Each cap is `CAP_LENGTH_PER_WIDTH × capWidth` long, measured along the
+ * arc, and its art is stretched over it: u 0 → 1 from the inner edge to the
+ * tip. ONE cap texture serves both ends: the start's is MIRRORED in u only, so
+ * v (and with it the face side) never flips.
+ *
+ * ⭐ The middle is fitted to a WHOLE number of tiles, the correction a closed
+ * ring gets (see {@link ribbonGeometry}), so it meets each cap on the tile's
+ * u = 0 column, and the cap art is drawn to continue that column.
+ *
+ * ⚑ Clamped to half the path, like the taper: on a short path the two caps
+ * meet and there is no middle. A `point` other end still narrows (its taper is
+ * in the middle piece).
+ *
+ * ⚑ All three pieces are cut from ONE ribbon, so where two meet they share the
+ * same rim pair, mitre included, even when a cut lands on a bend.
+ *
+ * @param capWidth the width the cap (and a taper) LENGTH is measured from: the
+ *                 path's own, even for its outline.
+ * @returns null when no end fades, or there is no length.
+ */
+export function fadedRibbon(
+    points: RegionPoint[],
+    width: number,
+    tileW: number,
+    tileH: number,
+    ends: [PathEnds, PathEnds],
+    capWidth = width,
+    overdraw = 0,
+): FadedRibbon | null {
+    const faded = [ends[0] === 'fade', ends[1] === 'fade'];
+    if (!faded[0] && !faded[1]) { return null; }
+    const taper = taperedCentreline(points, capWidth, [ends[0] === 'point', ends[1] === 'point']);
+    const base = taper ? taper.points : distinct(points, false).map(i => points[i]);
+    if (base.length < 2 || !(tileW > 0)) { return null; }
+    const arc = arcOf(base);
+    const total = arc[arc.length - 1];
+    if (!(total > 0)) { return null; }
+    const cap = Math.min(CAP_LENGTH_PER_WIDTH * capWidth, total / 2);
+    const a = faded[0] ? cap : 0;
+    const b = faded[1] ? total - cap : total;
+    // Two caps clamped to half the path meet at ONE cut, never a doubled vertex.
+    const cut = cutAt(base, arc, a === b ? [a] : [a, b]);
+    // An inserted vertex takes its factor from the segment it was cut into.
+    const factors = taper ? cut.source.map((j, i) => {
+        if (j >= 0) { return taper.factors[j]; }
+        const k = arc.findIndex(s => s > cut.at[i]);
+        const t = (cut.at[i] - arc[k - 1]) / (arc[k] - arc[k - 1]);
+        return taper.factors[k - 1] + (taper.factors[k] - taper.factors[k - 1]) * t;
+    }) : undefined;
+    // ⚑ u comes out in px here (tileW 1); each piece rewrites it.
+    const full = ribbonGeometry(cut.points, width, false, 1, tileH, overdraw, factors);
+    if (full === null) { return null; }
+
+    const indexAt = (s: number) => cut.at.findIndex(x => Math.abs(x - s) <= EPS);
+    const iA = indexAt(a);
+    const iB = indexAt(b);
+    const piece = (from: number, to: number, uOf: (s: number) => number): Ribbon | null => {
+        if (to <= from) { return null; }
+        const n = to - from + 1;
+        const positions = full.positions.slice(from * 4, (to + 1) * 4);
+        const uvs = full.uvs.slice(from * 4, (to + 1) * 4);
+        const indices = new Uint32Array((n - 1) * 6);
+        for (let k = 0; k < n; k++) {
+            const u = uOf(cut.at[from + k]);
+            uvs[k * 4] = u;
+            uvs[k * 4 + 2] = u;
+            if (k > 0) {
+                const q = (k - 1) * 2;
+                indices.set([q, q + 1, q + 2, q + 1, q + 3, q + 2], (k - 1) * 6);
+            }
+        }
+        return {positions, uvs, indices};
+    };
+    const tiles = Math.max(1, Math.round((b - a) / tileW));
+    return {
+        start: faded[0] ? piece(0, iA, s => (a - s) / a) : null,
+        middle: b - a > EPS ? piece(iA, iB, s => (s - a) * tiles / (b - a)) : null,
+        end: faded[1] ? piece(iB, cut.points.length - 1, s => (s - b) / (total - b)) : null,
+    };
 }
 
 /**

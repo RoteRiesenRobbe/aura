@@ -488,7 +488,8 @@
                 "(default)",
                 "round",
                 "flat",
-                "point"
+                "point",
+                "fade"
             ],
             "valuesAsFlags": false
         },

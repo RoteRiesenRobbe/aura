@@ -2822,6 +2822,59 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         }
     });
 
+    // plan-cliffs.md D2 + D4: the two rules the server cannot check, because
+    // only the client and this save can see the profile table.
+    describe('fade ends and cap profiles', () => {
+        const line = [{x: 0.37, y: 1.19}, {x: 7.43, y: 2.61}];
+        const errorsFor = (path: Record<string, unknown>) => C.validateModel(C.zoneToModel(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1.5, ...path},
+        ]}))) as string[];
+
+        it('publishes the cap profiles from terrain-profiles.json', () => {
+            expect(content.CAP_PROFILES).toEqual(expect.arrayContaining(['Cliff', 'Cliff Smooth']));
+            expect(content.CAP_PROFILES).not.toContain('Road');
+        });
+
+        it('round-trips fade', () => {
+            const p = roundTrip(zone({paths: [
+                {profile: 'Cliff', points: line, width: 1.5, alignTexture: true, corners: 'sharp',
+                    ends: 'fade', endsStart: 'point'},
+            ]})).paths[0] as Record<string, unknown>;
+            expect(p.ends).toBe('fade');
+            expect(p.endsStart).toBe('point');
+        });
+
+        it('accepts fade on a cap profile, aligned and sharp', () => {
+            expect(errorsFor({alignTexture: true, corners: 'sharp', ends: 'fade'})).toEqual([]);
+        });
+
+        it('refuses fade on a profile with no cap', () => {
+            for (const keys of [{ends: 'fade'}, {endsEnd: 'fade'}]) {
+                const errors = C.validateModel(C.zoneToModel(zone({paths: [
+                    {profile: 'Road', points: line, width: 1.5, ...keys},
+                ]}))) as string[];
+                expect(errors.join('\n')).toContain('profile "Road" has no cap');
+            }
+        });
+
+        it('refuses round corners or a round end on an aligned cap profile', () => {
+            expect(errorsFor({alignTexture: true, ends: 'fade'}).join('\n'))
+                .toContain('corners are round');
+            expect(errorsFor({alignTexture: true, corners: 'sharp', endsEnd: 'fade'}).join('\n'))
+                .toContain('the start is round');
+            expect(errorsFor({alignTexture: true, corners: 'sharp', ends: 'fade', endsEnd: 'round'}).join('\n'))
+                .toContain('the end is round');
+        });
+
+        it('leaves round alone where the mesh is not asked for, or the profile has no cap', () => {
+            expect(errorsFor({})).toEqual([]);
+            const errors = C.validateModel(C.zoneToModel(zone({paths: [
+                {profile: 'Water', points: line, width: 3, alignTexture: true},
+            ]}))) as string[];
+            expect(errors).toEqual([]);
+        });
+    });
+
     // ⚑ And the enum behind it must actually offer the three values the
     // converter maps, with the sentinel leading so it is the natural default.
     it('offers inherit, blocks and walk-through, sentinel first', () => {

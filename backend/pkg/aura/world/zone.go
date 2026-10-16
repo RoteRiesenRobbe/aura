@@ -1488,7 +1488,7 @@ func validateEffect(ref string, effect string) error {
 // Path.Ends; the empty string (absent) is "round" in both.
 var (
 	PathCorners = []string{"round", "sharp"}
-	PathEnds    = []string{"round", "flat", "point"}
+	PathEnds    = []string{"round", "flat", "point", "fade"}
 )
 
 // endOf is the shape of one end, start or not: its own key if authored, else

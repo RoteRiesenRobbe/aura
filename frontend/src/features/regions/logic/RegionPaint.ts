@@ -27,7 +27,7 @@ import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clea
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, paintedRegions, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
-    regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
+    regionCap, regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
     regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
 } from './Regions';
@@ -38,7 +38,7 @@ import {
 import {Path, PathShape} from '../../paths/logic/Paths';
 import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
 import {
-    MITRE_LIMIT, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline,
+    fadedRibbon, MITRE_LIMIT, Ribbon, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline,
 } from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -88,6 +88,9 @@ export function loadZoneTextures(
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
 ): Promise<boolean> {
     const wanted = neededTextures(regions, profiles).filter(name => loaded[name] === undefined);
+    // A path's cap art (plan-cliffs.md D2) is drawn ONCE over u 0 → 1, so it
+    // must CLAMP: repeating would bleed its first column into the tip.
+    const caps = regions.map(r => regionCap(r, profiles)).filter((c): c is string => c !== null);
     if (wanted.length === 0) {
         return Promise.resolve(false);
     }
@@ -112,7 +115,7 @@ export function loadZoneTextures(
             // last pixel column down the whole run, which reads as the texture
             // simply being wrong. Free and harmless for the Graphics callers,
             // which were already setting it on first use.
-            texture.source.style.addressMode = 'repeat';
+            texture.source.style.addressMode = caps.indexOf(name) >= 0 ? 'clamp-to-edge' : 'repeat';
             texture.source.style.update();
             loaded[name] = texture;
             landed = true;
@@ -1223,22 +1226,42 @@ function paintRibbon(
     // outward half of the ramp by nothing and end the edge in a 50 % step —
     // the same trap `addFeathered` exists to dodge for regions.
     const overdraw = mask !== null ? mask.bandPx * 1.5 : 0;
-    // A pointed end narrows the mesh itself, so a HARD edge (no mask) tapers
-    // too; the texture compresses into the tip rather than being cropped.
-    const taper = closed ? null : taperedCentreline(points, spec.taperWidth, pointedEnds(shape));
-    const ribbon = taper !== null
-        ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
-        : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
-    if (ribbon === null) { return false; }
+    // ⭐ A `fade` end draws the profile's CAP art at full width (plan-cliffs.md
+    // D2): up to three meshes, cap / tile / cap. Until the cap has loaded, or
+    // on a profile with none (the content tests refuse that), it draws flat.
+    const capName = closed ? null : regionCap(surface, TERRAIN_PROFILES);
+    const capTexture = capName !== null ? loaded[capName] : undefined;
+    const faded = capTexture !== undefined
+        ? fadedRibbon(points, width, tileW, tileH, shape.ends, spec.taperWidth, overdraw)
+        : null;
+    const pieces: { ribbon: Ribbon, texture: Texture }[] = [];
+    if (faded !== null && capTexture !== undefined) {
+        if (faded.start) { pieces.push({ribbon: faded.start, texture: capTexture}); }
+        if (faded.middle) { pieces.push({ribbon: faded.middle, texture}); }
+        if (faded.end) { pieces.push({ribbon: faded.end, texture: capTexture}); }
+    } else {
+        // A pointed end narrows the mesh itself, so a HARD edge (no mask)
+        // tapers too; the texture compresses into the tip rather than being
+        // cropped.
+        const taper = closed ? null : taperedCentreline(points, spec.taperWidth, pointedEnds(shape));
+        const ribbon = taper !== null
+            ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
+            : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
+        if (ribbon !== null) { pieces.push({ribbon, texture}); }
+    }
+    if (pieces.length === 0) { return false; }
 
-    const mesh = new Mesh({
+    const meshes = pieces.map(p => new Mesh({
         geometry: new MeshGeometry({
-            positions: ribbon.positions,
-            uvs: ribbon.uvs,
-            indices: ribbon.indices,
+            positions: p.ribbon.positions,
+            uvs: p.ribbon.uvs,
+            indices: p.ribbon.indices,
         }),
-        texture,
-    });
+        texture: p.texture,
+    }));
+    // ⚑ ONE display object, so one mask covers every piece.
+    const mesh = meshes.length === 1 ? meshes[0] : new Container();
+    if (mesh !== meshes[0]) { meshes.forEach(m => mesh.addChild(m)); }
     container.addChild(mesh);
     if (mask !== null) {
         // ⚑ The mask sprite must be IN the scene graph to have a world

@@ -399,7 +399,8 @@
       "(default)",
       "round",
       "flat",
-      "point"
+      "point",
+      "fade"
     ],
     "AuraAreaId": [
       "(pick an area)",
@@ -915,6 +916,10 @@
     "Ash Fall",
     "Sandstorm",
     "Fairy Dust"
+  ],
+  "CAP_PROFILES": [
+    "Cliff",
+    "Cliff Smooth"
   ],
   "EFFECT_NAMES": [
     "Aegis",

@@ -621,6 +621,11 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas
         // actually act on.
         PROFILE_NAMES: profiles,
         AIR_PROFILE_NAMES: airProfiles,
+        // The terrain profiles that name a `cap` (plan-cliffs.md D2): the only
+        // ones a path may `fade` on, and the ones whose aligned paths must be
+        // sharp (D4). The server cannot see the profile table, so this save
+        // and the client's content tests are the two places that check.
+        CAP_PROFILES: capProfiles,
         // ⚑ The effect names WITHOUT the sentinel, the same rule the two profile
         // lists follow: ENUM_VALUES carries the placeholder at index 0, and the
         // converter checks membership against this list so the placeholder earns
@@ -662,6 +667,10 @@ const props = readProps();
 const mobs = readMobs();
 const profiles = readProfileTable('terrain-profiles.json');
 const airProfiles = readProfileTable('api/atmospheres/profiles.json');
+const capProfiles = (() => {
+    const table = JSON.parse(readFileSync(path.join(ROOT, 'frontend/src/client-data/terrain-profiles.json'), 'utf8'));
+    return profiles.filter(n => table[n] && typeof table[n].cap === 'string');
+})();
 // ⛔ The two namespaces must stay DISJOINT: every accessor picks its table by
 // call site, so a name in both would make "which Fog?" depend on which lookup
 // ran. Regions.test.ts pins the same thing client-side; this is the half that

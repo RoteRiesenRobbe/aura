@@ -1,6 +1,6 @@
 # Plan: Cliffs that join and end — per-end shapes, end caps, welds
 
-**Status: DESIGNED 2026-10-16 (PO session), NOT approved, nothing built, 4 chunks (C1-C4).**
+**Status: C1 shipped, C2 code shipped (PO look + migration owed), 2026-10-16. 4 chunks (C1-C4).**
 Open PO calls in §7. ⏸ The raised-area model (Option B) is PARKED, not dropped (§8);
 C4 (mountains and pits) is its enclosed first slice.
 
@@ -222,7 +222,7 @@ ramps. Nothing in it blocks B later.
 | Chunk | What | Depends on |
 |---|---|---|
 | **C1** ✅ | D1 per-end keys through every writer and validator | — |
-| **C2** | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D4 refusal for cap profiles · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
+| **C2** ✅ code | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D4 refusal for cap profiles · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
 | **C3** | D3 welds in `aura-convert.js`: end-to-end merge, the direction refusal, the T-weld | C1 (C2 for the scope rule) |
 | **C4** | D6 `outlineFacing` through every polygon writer (Go `world.Polygon`, `aura-convert.js` + an `AuraOutlineFacing` enum on `AuraPolygon`, `ZoneModel.ts` `ZonePolygon`) · the rim as an aligned sharp inset ribbon · direction from signed area · one test mountain and one test pit | none (independent of C1-C3) |
 
@@ -343,3 +343,45 @@ Tiled; that `world.json` edit stays the PO's, uncommitted) · pre-commit join sm
 `hygiene-wire-prune.mjs` against the dev client: 0 console errors, 0 WebGL losses.
 ⚑ A `round` end on an `alignTexture` path still drops the whole path to the stroke
 (D4, C2).
+
+### C2 — CODE SHIPPED 2026-10-16 on branch `cliffs`; ⛔ PO look + migration OWED
+
+The `fade` end, the profile `cap`, D4's refusal and the placeholder caps.
+
+- **Go:** `fade` joins `PathEnds`. `capLengthPerWidth` = 2 (pinned against the TS
+  side) and `fadeWallFraction` = 0.5 [PLACEHOLDER, Q1: server-only, set it to 0 / 0.5 /
+  1 in the look and rebuild]. `pathTaper` also measures each faded end's open stretch:
+  the wall stops there at FULL width, rects clipped to the exact cut, no joint in the
+  open part, clamped to half the path like the taper.
+- **Client:** `PathEnds` + `fade`, `CAP_LENGTH_PER_WIDTH` = 2. Profiles parse `cap` (a
+  file stem, read off the surface's OWN profile, `regionCap`), and `neededTextures`
+  loads it with the tile; a cap texture CLAMPS instead of repeating, or its first column
+  would bleed into the tip. `fadedRibbon` cuts ONE ribbon into cap / middle / cap (rim
+  pairs shared where pieces meet, mitres included), the start cap mirrored in `u`
+  only, the middle fitted to whole tiles; a `point` other end still narrows.
+  `paintRibbon` draws the pieces as up to three meshes in one masked container; while
+  the cap is loading, or on a profile without one, `fade` draws as `flat`. The stroke
+  silhouette treats `fade` as `flat`.
+- **D4 + "fade needs a cap"** (the server cannot see the profile table): a content test
+  over every shipped zone file, areas included (`Paths.test.ts`), and the Tiled save
+  (`checkCapShape`, from a generated `content.json` `CAP_PROFILES`). Every shipped
+  aligned cliff is already sharp with no round end.
+- **D5:** `make-cliff-tile.mjs` and `make-cliff-smooth-tile.mjs` write
+  `cliff-cap-placeholder.png` / `cliff-smooth-cap-placeholder.png`, 360×320 (2 × 1.5 u
+  at scale 1, so unstretched at the documented width): everything above the foot sinks
+  toward it, the shadow and talus thin out. Checked: the left column equals the tile's
+  column 0 to the byte, the tip column is clear. Both profiles name their cap. The
+  tiles themselves regenerate byte-identical.
+
+**Schema:** DB none · wire none · conf none · zone format: the value `fade` (no shipped
+zone uses it yet) · `terrain-profiles.json`: `cap` on `Cliff` and `Cliff Smooth`.
+
+**Verified:** Go `world` red-first then green, full suite bar the known prop pin ·
+`-validate` 0 findings on both zone sets · vitest 1742/0 (new legs red-first) ·
+typecheck clean · Tiled extension reinstalled · `tools/tiled/verify.sh` all green ·
+`hygiene-wire-prune.mjs` against the dev client: 0 console errors, 0 WebGL losses.
+
+⛔ **Owed:** the PO look (§6: `point` and `fade` side by side, a faded cliff from both
+sides, walking into a faded end at 0 / 0.5 / 1), then Q1's ruling, then migrating the
+cliffs in `world.json` from `point` to `fade` (9 in the working copy, the PO's
+uncommitted edits included, so the migration waits for that file to be committed).

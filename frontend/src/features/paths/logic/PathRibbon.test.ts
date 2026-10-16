@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
-import {ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline} from './PathRibbon';
-import {TAPER_LENGTH_PER_WIDTH} from './Paths';
+import {fadedRibbon, Ribbon, ribbonGeometry, ribbonOutline, roundCapOutline, taperedCentreline} from './PathRibbon';
+import {CAP_LENGTH_PER_WIDTH, TAPER_LENGTH_PER_WIDTH} from './Paths';
 import {RegionPoint} from '../../regions/logic/Regions';
 
 /**
@@ -347,5 +347,106 @@ describe('roundCapOutline', () => {
 
     it('refuses what has no direction', () => {
         expect(roundCapOutline([{x: 5, y: 5}, {x: 5, y: 5}], 100, false)).toBeNull();
+    });
+});
+
+// ---- fade ends (plan-cliffs.md D2) ------------------------------------------
+
+/** Every rim pair of a ribbon: [the v-low vertex, the v-high vertex]. */
+const rims = (r: Ribbon) => {
+    const out: { lo: { x: number, y: number, u: number, v: number }, hi: { x: number, y: number, u: number, v: number } }[] = [];
+    for (let i = 0; i < count(r); i += 2) { out.push({lo: vertex(r, i), hi: vertex(r, i + 1)}); }
+    return out;
+};
+
+describe('fadedRibbon', () => {
+    // Width 150 (a 1.5 u cliff at 100 px/u), so each cap is 300 px.
+    const W = 150;
+    const CAP = CAP_LENGTH_PER_WIDTH * W;
+
+    it('holds the cap length the server walls by', () => {
+        // ⚑ paths_collision.go capLengthPerWidth holds the same number.
+        expect(CAP_LENGTH_PER_WIDTH).toBe(2);
+    });
+
+    it('splits off a cap at each faded end', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const xs = (r: Ribbon) => rims(r).map(p => p.lo.x);
+        expect(xs(f.start!)).toEqual([0, CAP]);
+        expect(xs(f.end!)).toEqual([2000 - CAP, 2000]);
+        expect(xs(f.middle!)[0]).toBe(CAP);
+        expect(xs(f.middle!)[1]).toBe(2000 - CAP);
+    });
+
+    it('runs the end cap 0 → 1 outwards and mirrors the start cap', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        expect(rims(f.end!).map(p => p.lo.u)).toEqual([0, 1]);
+        // ⭐ Mirrored in u ONLY: the tip is u = 1 at both ends, and the start
+        // cap's inner edge meets the middle's u = 0.
+        expect(rims(f.start!).map(p => p.lo.u)).toEqual([1, 0]);
+    });
+
+    it('fits the middle to whole tiles, so each cap meets the tile at u = 0', () => {
+        // ⚑ Awkward on purpose: 2000 − 2 × 300 = 1400 px is 1.94 tiles.
+        const f = fadedRibbon([{x: 13, y: 7}, {x: 2013, y: 7}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const us = rims(f.middle!).map(p => p.lo.u);
+        expect(us[0]).toBe(0);
+        expect(us[us.length - 1]).toBeCloseTo(2, FLOAT32);
+    });
+
+    it('keeps the face on the same side in every piece', () => {
+        // A bend inside the end cap, at awkward coordinates.
+        const pts = [{x: 3.7, y: 11.2}, {x: 1503.7, y: 11.2}, {x: 1603.7, y: 211.2}];
+        const f = fadedRibbon(pts, W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        [f.start!, f.middle!, f.end!].forEach((r) => {
+            rims(r).forEach(({lo, hi}) => {
+                expect(hi.v).toBeGreaterThan(lo.v);
+                expect(hi.v + lo.v).toBeCloseTo(1, FLOAT32);
+            });
+        });
+        // ⚑ (−dy, dx) is the face side: on the first leg (+x) that is +y.
+        expect(rims(f.start!)[0].hi.y).toBeGreaterThan(rims(f.start!)[0].lo.y);
+    });
+
+    it('shares the rim pair where two pieces meet', () => {
+        const pts = [{x: 3.7, y: 11.2}, {x: 1503.7, y: 11.2}, {x: 1603.7, y: 211.2}];
+        const f = fadedRibbon(pts, W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const a = rims(f.middle!);
+        const b = rims(f.end!);
+        expect(b[0].lo.x).toBe(a[a.length - 1].lo.x);
+        expect(b[0].lo.y).toBe(a[a.length - 1].lo.y);
+        expect(b[0].hi.x).toBe(a[a.length - 1].hi.x);
+        expect(b[0].hi.y).toBe(a[a.length - 1].hi.y);
+    });
+
+    it('clamps each cap to half a path shorter than two', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 400, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        expect(rims(f.start!).map(p => p.lo.x)).toEqual([0, 200]);
+        expect(rims(f.end!).map(p => p.lo.x)).toEqual([200, 400]);
+        expect(f.middle).toBeNull();
+    });
+
+    it('leaves a non-faded end in the middle piece', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['flat', 'fade'])!;
+        expect(f.start).toBeNull();
+        expect(rims(f.middle!)[0].lo.x).toBe(0);
+        expect(rims(f.end!).map(p => p.lo.x)).toEqual([2000 - CAP, 2000]);
+    });
+
+    it('still narrows a pointed other end', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['point', 'fade'])!;
+        const first = rims(f.middle!)[0];
+        expect(first.hi.y - first.lo.y).toBeCloseTo(0, FLOAT32);
+        const cap = rims(f.end!)[0];
+        expect(cap.hi.y - cap.lo.y).toBeCloseTo(W, FLOAT32);
+    });
+
+    it('measures the cap from capWidth, so a rim matches its body', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], 50, TILE_W, TILE_H, ['flat', 'fade'], W)!;
+        expect(rims(f.end!)[0].lo.x).toBe(2000 - CAP);
+    });
+
+    it('is null when no end fades', () => {
+        expect(fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['point', 'flat'])).toBeNull();
     });
 });

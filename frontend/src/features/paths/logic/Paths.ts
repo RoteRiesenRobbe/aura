@@ -26,8 +26,12 @@ import {meter2px} from '../../../client-data/BasicConfig';
 
 /** How a path's stroke turns at a bend: `sharp` is a brick wall's mitre. */
 export type PathCorners = 'round' | 'sharp';
-/** How it stops: `point` narrows the last stretch to nothing, a cliff fading out. */
-export type PathEnds = 'round' | 'flat' | 'point';
+/**
+ * How it stops: `point` narrows the last stretch to nothing; `fade` draws it
+ * with the profile's `cap` art at full width, a cliff sloping down to the
+ * ground (plan-cliffs.md D2).
+ */
+export type PathEnds = 'round' | 'flat' | 'point' | 'fade';
 
 /** The AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
 export interface PathShape {
@@ -48,6 +52,16 @@ export interface PathShape {
  * Each side pins it with a test.
  */
 export const TAPER_LENGTH_PER_WIDTH = 2;
+
+/**
+ * How long a `fade` end's cap is drawn, as a multiple of the path's width; the
+ * cap art is stretched to it. [PLACEHOLDER] (plan-cliffs.md D2).
+ *
+ * ⚑ The SERVER holds the same number (`paths_collision.go` capLengthPerWidth)
+ * and stops the wall inside the cap: change one, change both. Each side pins
+ * it with a test.
+ */
+export const CAP_LENGTH_PER_WIDTH = 2;
 
 /**
  * A path as the renderer uses it: polyline in WORLD PIXELS.
@@ -108,7 +122,7 @@ export interface PathDefinition {
 /** One authored end value, or the default; an unknown value is the default. */
 function endShape(own: PathEnds | undefined, both: PathEnds | undefined): PathEnds {
     const v = own || both;
-    return v === 'flat' || v === 'point' ? v : 'round';
+    return v === 'flat' || v === 'point' || v === 'fade' ? v : 'round';
 }
 
 /**

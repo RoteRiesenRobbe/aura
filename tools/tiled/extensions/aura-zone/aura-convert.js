@@ -188,6 +188,10 @@ var AuraConvert = (function () {
             // the same posture every other content check here takes.
             PROFILE_NAMES: (c && c.PROFILE_NAMES) || [],
             AIR_PROFILE_NAMES: (c && c.AIR_PROFILE_NAMES) || [],
+            // The terrain profiles that name a `cap` (plan-cliffs.md D2).
+            // Absent (null) means "no vocabulary loaded", and both cap checks
+            // skip themselves.
+            CAP_PROFILES: (c && c.CAP_PROFILES) || null,
             // The skills an area may name (plan-area-effects.md E1). ⚑ A THIRD
             // vocabulary and not a profile table: `effect` names an authored
             // SKILL, so this list comes out of api/skills/ rather than out of
@@ -377,7 +381,7 @@ var AuraConvert = (function () {
      * ⚑ PATH_SHAPE_DEFAULT must equal the palette members' own default
      * (generate-palette.mjs reads it from here). */
     var PATH_SHAPE_DEFAULT = '(default)';
-    var PATH_ENDS = ['round', 'flat', 'point'];
+    var PATH_ENDS = ['round', 'flat', 'point', 'fade'];
     var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: PATH_ENDS,
         endsStart: PATH_ENDS, endsEnd: PATH_ENDS};
     var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds',
@@ -2127,6 +2131,39 @@ var AuraConvert = (function () {
                     ' — or change its Class to AuraPath if you meant a line');
             });
 
+            /* plan-cliffs.md D2 + D4: the two shape rules that need the profile
+             * table, which the server cannot see. A `fade` end draws the
+             * profile's cap art, so a profile with none would fade into a quiet
+             * no-op. And on a cap profile (a cliff) with alignTexture, a round
+             * corner or end drops the whole path off the ribbon mesh onto the
+             * one-matrix stroke, which breaks past the first bend. */
+            function checkCapShape(o, i) {
+                if (content.CAP_PROFILES === null) { return; }
+                var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
+                var capped = hasValue(content.CAP_PROFILES, profile);
+                var both = readPathShape(o, 'ends');
+                var start = readPathShape(o, 'endsStart') || both || 'round';
+                var end = readPathShape(o, 'endsEnd') || both || 'round';
+                var open = o.shape !== 'polygon';
+                if (!capped && open && (start === 'fade' || end === 'fade')) {
+                    bad(o, i, 'an end is "fade" but profile "' + profile + '" has no cap art to fade'
+                        + ' with. Use point or flat, or give the profile a "cap" in'
+                        + ' frontend/src/client-data/terrain-profiles.json');
+                }
+                if (!capped || !prop(o, 'alignTexture')) { return; }
+                var fix = ' — a "' + profile + '" path with alignTexture needs sharp corners and no'
+                    + ' round end, or it drops off the mesh and its texture breaks past the first bend';
+                if ((readPathShape(o, 'corners') || 'round') === 'round') {
+                    bad(o, i, 'its corners are round' + fix + '. Set corners to sharp');
+                }
+                if (open && start === 'round') {
+                    bad(o, i, 'the start is round' + fix + '. Set endsStart (or ends) to fade, flat or point');
+                }
+                if (open && end === 'round') {
+                    bad(o, i, 'the end is round' + fix + '. Set endsEnd (or ends) to fade, flat or point');
+                }
+            }
+
             // Paths carry the SAME profile vocabulary as regions, so the same three
             // profile mistakes get the same three messages, from the same function.
             onLayer('paths', 'AuraPath').forEach(function (o, i) {
@@ -2147,6 +2184,7 @@ var AuraConvert = (function () {
                             + ' ring, which has no ends. Put ' + k + ' back to "' + PATH_SHAPE_DEFAULT + '"');
                     }
                 });
+                checkCapShape(o, i);
                 var n = (o.polygon || []).length;
                 // ⭐ BOTH shapes are legal here, and which one it is IS the closed
                 // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
