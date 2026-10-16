@@ -2875,6 +2875,133 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         });
     });
 
+    // plan-cliffs.md D3: cliffs that touch are joined in the SAVE, so client and
+    // server read one geometry. ⚑ Awkward coordinates, never round ones.
+    describe('welds (plan-cliffs.md D3)', () => {
+        type P = Record<string, unknown> & { points: { x: number, y: number }[] };
+        const cliff = (points: { x: number, y: number }[], over: Record<string, unknown> = {}): P => ({
+            profile: 'Cliff', points, width: 1.5, blocksMovement: true, alignTexture: true,
+            corners: 'sharp', ...over,
+        });
+        const weld = (paths: P[]) => C.weldPaths(paths) as { paths: P[], problems: { a: number, b: number, message: string }[] };
+        const A = [{x: -8.37, y: 1.19}, {x: -2.11, y: 2.03}];
+        const B = [{x: -1.93, y: 2.21}, {x: 3.83, y: 4.41}];   // 0.25 from A's end
+
+        it('merges an end onto the next start into ONE path', () => {
+            const out = weld([cliff(A, {endsStart: 'point'}), cliff(B, {endsEnd: 'fade'})]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(1);
+            expect(out.paths[0].points).toEqual([A[0], A[1], B[1]]);
+            expect(out.paths[0].endsStart).toBe('point');
+            expect(out.paths[0].endsEnd).toBe('fade');
+        });
+
+        it('keeps A\'s start and B\'s end when both author ends', () => {
+            const out = weld([cliff(A, {ends: 'point'}), cliff(B, {ends: 'fade'})]);
+            expect(out.paths[0].ends).toBeUndefined();
+            expect([out.paths[0].endsStart, out.paths[0].endsEnd]).toEqual(['point', 'fade']);
+            const same = weld([cliff(A, {ends: 'fade'}), cliff(B, {ends: 'fade'})]);
+            expect(same.paths[0].ends).toBe('fade');
+            expect(same.paths[0].endsStart).toBeUndefined();
+        });
+
+        it('merges whatever the array order, and chains', () => {
+            const C3 = [{x: 3.97, y: 4.52}, {x: 7.13, y: -1.07}];
+            const out = weld([cliff(C3), cliff(B), cliff(A)]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(1);
+            expect(out.paths[0].points).toEqual([A[0], A[1], B[1], C3[1]]);
+        });
+
+        it('leaves ends further apart than the snap distance alone', () => {
+            const far = [{x: A[1].x + C.WELD_SNAP + 0.07, y: A[1].y}, {x: 5.5, y: 3.3}];
+            expect(weld([cliff(A), cliff(far)]).paths).toHaveLength(2);
+        });
+
+        it('refuses an end meeting an END: one would have to be reversed', () => {
+            const reversed = [B[1], B[0]];
+            const out = weld([cliff(A), cliff(reversed)]);
+            expect(out.problems).toHaveLength(1);
+            expect(out.problems[0].message).toContain('face opposite ways');
+            expect(out.paths).toHaveLength(2);
+            const starts = weld([cliff([A[1], A[0]]), cliff(B)]);
+            expect(starts.problems[0].message).toContain('face opposite ways');
+        });
+
+        it('refuses to merge cliffs that differ, naming what differs', () => {
+            expect(weld([cliff(A), cliff(B, {width: 2})]).problems[0].message).toContain('width');
+            expect(weld([cliff(A), cliff(B, {profile: 'Cliff Smooth'})]).problems[0].message).toContain('profile');
+            expect(weld([cliff(A), cliff(B, {blocksMovement: undefined})]).problems[0].message)
+                .toContain('blocksMovement');
+        });
+
+        it('leaves paths without a cap profile alone: roads may overlap', () => {
+            const road = (points: { x: number, y: number }[]) => ({profile: 'Road', points, width: 1.5});
+            const out = weld([road(A), road([B[1], B[0]])] as P[]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(2);
+            expect(out.paths[0].points).toEqual(A);
+        });
+
+        describe('the T-weld', () => {
+            const bar = [{x: -6.13, y: 0.27}, {x: 6.41, y: 0.27}];
+            const stem = [{x: 1.37, y: 4.91}, {x: 1.61, y: 0.73}];   // 0.46 off the bar's centreline
+
+            it('moves the stem\'s end onto the bar, flat, and draws the stem first', () => {
+                const out = weld([cliff(bar), cliff(stem, {ends: 'fade'})]);
+                expect(out.problems).toEqual([]);
+                expect(out.paths).toHaveLength(2);
+                const [s, b] = out.paths;
+                expect(b.points).toEqual(bar);
+                expect(s.points[0]).toEqual(stem[0]);
+                expect(s.points[1].x).toBeCloseTo(1.61, 6);
+                expect(s.points[1].y).toBeCloseTo(0.27, 6);
+                expect(s.endsEnd).toBe('flat');
+                expect(s.ends).toBe('fade');
+            });
+
+            it('welds a stem\'s START too', () => {
+                const out = weld([cliff([stem[1], stem[0]]), cliff(bar)]);
+                expect(out.paths[0].endsStart).toBe('flat');
+                expect(out.paths[0].points[0].y).toBeCloseTo(0.27, 6);
+            });
+
+            it('is stable: welding the result again changes nothing', () => {
+                const once = weld([cliff(bar), cliff(stem)]).paths;
+                const twice = weld(JSON.parse(JSON.stringify(once))).paths;
+                expect(twice).toEqual(once);
+            });
+
+            it('ignores an end further than half the bar\'s width off it', () => {
+                const off = [stem[0], {x: 1.61, y: 0.27 + 0.75 + 0.03}];
+                const out = weld([cliff(bar), cliff(off)]);
+                expect(out.paths[1].points).toEqual(off);
+                expect(out.paths[1].endsEnd).toBeUndefined();
+            });
+        });
+
+        it('applies on save, and the refusal names both objects', () => {
+            const saved = roundTrip(zone({paths: [cliff(A), cliff(B)]})).paths as P[];
+            expect(saved).toHaveLength(1);
+            const m = C.zoneToModel(zone({paths: [cliff(A), cliff([B[1], B[0]])]}));
+            const errors = (C.validateModel(m) as string[]).join('\n');
+            const line = errors.split('\n').filter(e => e.indexOf('face opposite ways') >= 0);
+            expect(line).toHaveLength(1);
+            expect(line[0]).toContain('(paths[0]) and ');
+            expect(line[0]).toContain('(paths[1]): ');
+        });
+
+        it('finds nothing to weld in the shipped world', () => {
+            const world = JSON.parse(worldText);
+            const all = [world.paths || []].concat((world.areas || []).map((a: { paths?: P[] }) => a.paths || []));
+            all.forEach((paths: P[]) => {
+                const out = weld(JSON.parse(JSON.stringify(paths)));
+                expect(out.problems).toEqual([]);
+                expect(out.paths).toEqual(paths);
+            });
+        });
+    });
+
     // ⚑ And the enum behind it must actually offer the three values the
     // converter maps, with the sentinel leading so it is the natural default.
     it('offers inherit, blocks and walk-through, sentinel first', () => {

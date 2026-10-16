@@ -1263,8 +1263,175 @@ var AuraConvert = (function () {
         return v === undefined || v === null || v === '' ? AREA_UNSET : String(v);
     }
 
+    /* ---- welds (plan-cliffs.md D3) -----------------------------------------
+     * Cliffs whose ends touch are joined HERE, on save, so the client and the
+     * server read one geometry and no constant needs a second copy.
+     *
+     *   end to start   the two become ONE path (A's points, then B's): the
+     *                  texture runs on unbroken and the meeting point is an
+     *                  ordinary mitred corner. Only when they agree on every
+     *                  WELD_SAME key; otherwise refused, naming the key.
+     *   end to end     refused (and start to start): joining needs one path
+     *                  reversed, which flips its face to the other side, and
+     *                  the direction is the only thing that says which side is
+     *                  high. Never guessed.
+     *   end on a side  the T-weld: the stem's end moves onto the bar's
+     *                  centreline, that end becomes flat, and the stem is drawn
+     *                  BEFORE the bar, so its cut end hides in the bar's face.
+     *
+     * ⚑ Only paths on a cap profile (a cliff): roads and rivers may overlap.
+     * ⚑ Within one array: a cliff in an area never welds to the zone level's.
+     * ⚑ PERMANENT in the file: reopening the map shows the merged object. */
+
+    /* How near two endpoints must be to weld, world units. [PLACEHOLDER] (Q3). */
+    var WELD_SNAP = 0.5;
+    /* What two cliffs must agree on to become one path. */
+    var WELD_SAME = ['profile', 'width', 'blocksMovement', 'alignTexture', 'outlineProfile',
+        'outlineWidth', 'corners', 'effect'];
+
+    /* Welds one array of zone paths (server units). Returns the new array and
+     * the refusals, each naming two indices into the INPUT array. Pure: the
+     * input is not modified. With no cap vocabulary loaded nothing welds. */
+    function weldPaths(paths) {
+        var out = (paths || []).map(function (p) { return copyPath(p); });
+        var from = out.map(function (_p, i) { return i; });
+        var problems = [];
+        if (content.CAP_PROFILES === null) { return {paths: out, problems: problems}; }
+
+        function capped(p) {
+            return hasValue(content.CAP_PROFILES, p.profile) && p.points && p.points.length >= 2;
+        }
+        function open(p) { return capped(p) && !p.closed; }
+        function first(p) { return p.points[0]; }
+        function last(p) { return p.points[p.points.length - 1]; }
+        function near(a, b) { return Math.hypot(a.x - b.x, a.y - b.y) <= WELD_SNAP; }
+        function same(a, b) {
+            return (a === undefined || a === false || a === '' ? undefined : a)
+                === (b === undefined || b === false || b === '' ? undefined : b);
+        }
+        function refuse(i, j, message) { problems.push({a: from[i], b: from[j], message: message}); }
+
+        // End to start, until nothing more joins; a chain A→B→C ends as one.
+        var refused = {};
+        for (var again = true; again;) {
+            again = false;
+            for (var i = 0; i < out.length && !again; i++) {
+                for (var j = 0; j < out.length && !again; j++) {
+                    var a = out[i], b = out[j];
+                    if (i === j || !open(a) || !open(b) || !near(last(a), first(b))) { continue; }
+                    var differ = WELD_SAME.filter(function (k) { return !same(a[k], b[k]); });
+                    if (differ.length > 0) {
+                        if (!refused[from[i] + ':' + from[j]]) {
+                            refused[from[i] + ':' + from[j]] = true;
+                            refuse(i, j, 'these two cliffs meet end to start but differ in '
+                                + differ.join(', ') + ', so they cannot be joined into one.'
+                                + ' Make them match, or move the ends more than ' + WELD_SNAP
+                                + ' apart');
+                        }
+                        continue;
+                    }
+                    out[i] = joined(a, b);
+                    out.splice(j, 1);
+                    from.splice(j, 1);
+                    again = true;
+                }
+            }
+        }
+
+        // Ends that would only meet with one path reversed.
+        for (var p = 0; p < out.length; p++) {
+            for (var q = p + 1; q < out.length; q++) {
+                if (!open(out[p]) || !open(out[q])) { continue; }
+                if (near(last(out[p]), last(out[q])) || near(first(out[p]), first(out[q]))) {
+                    refuse(p, q, 'these two cliffs meet but face opposite ways (an end meets an'
+                        + ' end, or a start a start). Reverse one of them (select it, then'
+                        + ' Reverse in the Edit menu) so one runs on from the other');
+                }
+            }
+        }
+
+        // The T-weld: an end that meets no other end, lying on another cliff.
+        var before = [];
+        out.forEach(function (stem, s) {
+            if (!open(stem)) { return; }
+            [true, false].forEach(function (atStart) {
+                var e = atStart ? first(stem) : last(stem);
+                var meets = out.some(function (o, k) {
+                    return k !== s && open(o) && (near(e, first(o)) || near(e, last(o)));
+                });
+                if (meets) { return; }
+                var best = null;
+                out.forEach(function (bar, k) {
+                    if (k === s || !capped(bar)) { return; }
+                    var hit = nearestOn(bar.points, bar.closed === true, e);
+                    if (hit.d > bar.width / 2 || (best !== null && hit.d >= best.d)) { return; }
+                    if (!bar.closed && (near(hit.at, first(bar)) || near(hit.at, last(bar)))) { return; }
+                    best = {bar: bar, at: hit.at, d: hit.d};
+                });
+                if (best === null) { return; }
+                // ⚑ Already on the line: kept as is, so a second save is a no-op.
+                if (best.d > 1e-9) {
+                    stem.points[atStart ? 0 : stem.points.length - 1] = best.at;
+                }
+                stem[atStart ? 'endsStart' : 'endsEnd'] = 'flat';
+                before.push({stem: stem, bar: best.bar});
+            });
+        });
+        // Each stem before its bar, moving as little as possible.
+        for (var pass = 0; pass <= out.length; pass++) {
+            var moved = false;
+            before.forEach(function (c) {
+                var si = out.indexOf(c.stem), bi = out.indexOf(c.bar);
+                if (si > bi) {
+                    out.splice(si, 1);
+                    out.splice(bi, 0, c.stem);
+                    var f = from.splice(si, 1)[0];
+                    from.splice(bi, 0, f);
+                    moved = true;
+                }
+            });
+            if (!moved) { break; }
+        }
+        return {paths: out, problems: problems};
+    }
+
+    function copyPath(p) {
+        var c = {};
+        for (var k in p) { if (Object.prototype.hasOwnProperty.call(p, k)) { c[k] = p[k]; } }
+        c.points = (p.points || []).map(function (v) { return {x: v.x, y: v.y}; });
+        return c;
+    }
+
+    /* A then B as one path: A's start shape and B's end shape. */
+    function joined(a, b) {
+        var c = copyPath(a);
+        c.points = a.points.concat(b.points.slice(1)).map(function (v) { return {x: v.x, y: v.y}; });
+        var s = a.endsStart || a.ends;
+        var e = b.endsEnd || b.ends;
+        c.ends = s === e ? s : undefined;
+        c.endsStart = s === e ? undefined : (s || 'round');
+        c.endsEnd = s === e ? undefined : (e || 'round');
+        return c;
+    }
+
+    /* The nearest point to e on a polyline, and how far it is. */
+    function nearestOn(points, closed, e) {
+        var best = {d: Infinity, at: points[0]};
+        var n = closed ? points.length : points.length - 1;
+        for (var i = 0; i < n; i++) {
+            var a = points[i], b = points[(i + 1) % points.length];
+            var dx = b.x - a.x, dy = b.y - a.y;
+            var len2 = dx * dx + dy * dy;
+            var t = len2 > 0 ? Math.max(0, Math.min(1, ((e.x - a.x) * dx + (e.y - a.y) * dy) / len2)) : 0;
+            var at = {x: a.x + dx * t, y: a.y + dy * t};
+            var d = Math.hypot(e.x - at.x, e.y - at.y);
+            if (d < best.d) { best = {d: d, at: at}; }
+        }
+        return best;
+    }
+
     /* ---- plain model  ->  zone JSON ---------------------------------------- */
-    function modelToZone(m) {
+    function modelToZone(m, noWeld) {
         var hw = m.boundsWidth / 2, hh = m.boundsHeight / 2;
         function u(p2, half) { return p2 / PX - half; }
         function get(o, k) {
@@ -1285,14 +1452,22 @@ var AuraConvert = (function () {
                 ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
                 : undefined,
             ground: readGround(m.ground),
-        }, readKinds(m.layers));
+        }, welded(m.layers));
         // Each area group back to its entry, in stack order. undefined when
         // there are none, so a zone without areas is written as before.
         var areas = areaGroups(m);
         zone.areas = areas.length > 0 ? areas.map(function (g) {
-            return copyInto({id: areaId(g)}, readKinds(g.layers));
+            return copyInto({id: areaId(g)}, welded(g.layers));
         }) : undefined;
         return zone;
+
+        // ⭐ Cliffs that touch are joined here (plan-cliffs.md D3); validateModel
+        // reads the same arrays UNwelded (noWeld) to refuse what cannot join.
+        function welded(layers) {
+            var kinds = readKinds(layers);
+            if (!noWeld) { kinds.paths = weldPaths(kinds.paths).paths; }
+            return kinds;
+        }
 
         // Every object array of one group: the zone level's layers, or an
         // area group's. Layers are read BY NAME, so the stack order never
@@ -1770,7 +1945,31 @@ var AuraConvert = (function () {
         var hw = m.boundsWidth / 2, hh = m.boundsHeight / 2;
         [m.layers].concat(areaGroups(m).map(function (g) { return g.layers; }))
             .forEach(function (layers) { scope = layers; checkScope(); });
+        checkWelds();
         return errors;
+
+        /* plan-cliffs.md D3: the welds the save would refuse, naming both
+         * objects. Read off the UNwelded zone, whose path arrays are the
+         * AuraPath objects of each scope in order. */
+        function checkWelds() {
+            var z;
+            try { z = modelToZone(m, true); } catch (e) { return; }
+            var scopes = [{layers: m.layers, paths: z.paths}];
+            areaGroups(m).forEach(function (g, k) {
+                scopes.push({layers: g.layers, paths: z.areas && z.areas[k] ? z.areas[k].paths : []});
+            });
+            scopes.forEach(function (sc) {
+                scope = sc.layers;
+                var objs = onLayer('paths', 'AuraPath');
+                weldPaths(sc.paths).problems.forEach(function (pr) {
+                    errors.push(label(objs[pr.a], pr.a) + ' and ' + label(objs[pr.b], pr.b) + ': ' + pr.message);
+                });
+            });
+        }
+        function label(o, i) {
+            return o ? o.layer + ' #' + (o.id !== undefined ? o.id : '?')
+                + (o.name ? ' "' + o.name + '"' : '') + ' (' + o.layer + '[' + i + '])' : 'path ' + i;
+        }
 
         function checkScope() {
             // ⭐ decals[].type is the one field validated NOWHERE else: the server
@@ -2532,6 +2731,8 @@ var AuraConvert = (function () {
         zoneToModel: zoneToModel,
         modelToZone: modelToZone,
         validateModel: validateModel,
+        weldPaths: weldPaths,
+        WELD_SNAP: WELD_SNAP,
         polygonNotices: polygonNotices,
         formatErrors: formatErrors,
         layerRefusals: layerRefusals,

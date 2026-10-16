@@ -362,6 +362,35 @@ footsteps and atmosphere are later consumers of the same region.
     is not announced again for about 30 seconds [PLACEHOLDER numbers,
     `RegionNames.ts`].
 
+### Cliffs: ends and welds
+
+A cliff is an `AuraPath` on a `Cliff` or `Cliff Smooth` profile, with
+`alignTexture` on and `corners` set to `sharp` (`docs/plan-cliffs.md`).
+
+- ⭐ **Direction is the face side.** The face falls to the same side of the
+  line the way you drew it; nothing in Tiled shows which. Reverse the path to
+  flip it.
+- **Each end has its own shape**: `endsStart` (the first point) and `endsEnd`
+  override `ends`. `fade` draws the cliff sloping down to the ground with the
+  profile's cap art; `point` narrows it; `flat` cuts it.
+- ⛔ The save refuses `fade` on a profile with no cap art, and `round` corners
+  or ends on an aligned cliff (they drop it off the mesh, and the texture breaks
+  past the first bend).
+- ⭐ **Cliffs that touch are joined when you save** (welds):
+  - the END of one within 0.5 u of the START of another: the two become **one
+    path**. Reopen the map and you see one object; splitting it again is a
+    manual edit. They must match in profile, width, blocking, alignment,
+    corners, outline and effect, or the save refuses and names both.
+  - an end meeting an END (or a start a start): refused, "face opposite ways".
+    Reverse one.
+  - an end on another cliff's SIDE (within half its width, away from its ends):
+    the end snaps onto that cliff's centreline, becomes `flat`, and is drawn
+    under it (a T).
+  - Only cliffs weld (profiles with cap art); roads and rivers may overlap.
+    Only within one area group, never across groups.
+- ⚑ **Only the Tiled save welds.** A hand edit to `world.json`, or the in-game
+  zone editor (which carries paths without editing them), does not.
+
 ### Area effects — making a shape *do* something
 
 A **path**, a **structure** and an **atmosphere** each carry an optional

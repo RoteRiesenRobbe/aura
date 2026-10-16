@@ -1,6 +1,6 @@
 # Plan: Cliffs that join and end — per-end shapes, end caps, welds
 
-**Status: C1 shipped, C2 code shipped (PO look + migration owed), 2026-10-16. 4 chunks (C1-C4).**
+**Status: C1 shipped; C2 + C3 code shipped (PO look, the fade migration and one Tiled save owed), 2026-10-16. 4 chunks (C1-C4).**
 Open PO calls in §7. ⏸ The raised-area model (Option B) is PARKED, not dropped (§8);
 C4 (mountains and pits) is its enclosed first slice.
 
@@ -223,7 +223,7 @@ ramps. Nothing in it blocks B later.
 |---|---|---|
 | **C1** ✅ | D1 per-end keys through every writer and validator | — |
 | **C2** ✅ code | D2 `fade`: profile `cap`, the cap mesh, whole-tile middle, collision, the constant ×2 · D4 refusal for cap profiles · D5 placeholder caps · migrate the 7 cliffs after the look | C1 |
-| **C3** | D3 welds in `aura-convert.js`: end-to-end merge, the direction refusal, the T-weld | C1 (C2 for the scope rule) |
+| **C3** ✅ code | D3 welds in `aura-convert.js`: end-to-end merge, the direction refusal, the T-weld | C1 (C2 for the scope rule) |
 | **C4** | D6 `outlineFacing` through every polygon writer (Go `world.Polygon`, `aura-convert.js` + an `AuraOutlineFacing` enum on `AuraPolygon`, `ZoneModel.ts` `ZonePolygon`) · the rim as an aligned sharp inset ribbon · direction from signed area · one test mountain and one test pit | none (independent of C1-C3) |
 
 ## 5. Schema impact
@@ -385,3 +385,41 @@ typecheck clean · Tiled extension reinstalled · `tools/tiled/verify.sh` all gr
 sides, walking into a faded end at 0 / 0.5 / 1), then Q1's ruling, then migrating the
 cliffs in `world.json` from `point` to `fade` (9 in the working copy, the PO's
 uncommitted edits included, so the migration waits for that file to be committed).
+
+### C3 — CODE SHIPPED 2026-10-16 on branch `cliffs`; ⛔ one Tiled save + PO look OWED
+
+Welds in the Tiled save, `weldPaths` in `aura-convert.js`, run by `modelToZone` on each
+array (the zone level's and each area's, never across them).
+
+- **End to start** within `WELD_SNAP` [PLACEHOLDER 0.5 u, Q3] → ONE path (A's points,
+  then B's minus its first), A's start shape and B's end shape (`ends` when they agree,
+  else `endsStart` / `endsEnd`). Chains (A→B→C) and either array order work. Refused
+  when they differ in `profile`, `width`, `blocksMovement`, `alignTexture`, the outline
+  pair, `corners` or `effect`, naming the keys.
+- **End to end / start to start** → refused, "face opposite ways; reverse one".
+- **T-weld:** an end that meets no other end, within half a bar's width of the bar's
+  centreline and more than `WELD_SNAP` from the bar's own ends (a ring bar has none):
+  the end is projected onto the bar, set `flat`, and the stem moved before the bar. A
+  second save changes nothing (an end already on the line is not re-projected).
+- Cap profiles only; roads and rivers never weld. `validateModel` reads the zone
+  UNwelded (`modelToZone(m, true)`) and turns each refusal into one error naming both
+  objects.
+
+⛔ **The shipped world has ONE T-junction, and it welds on the next Tiled save**: root
+path 10 (`Cliff`, 9 points) starts 0.001 u off root path 5's centreline, 2.7 u before
+path 5's pointed end. The save sets its `endsStart` to `flat` and moves it before path
+5 (the point rounds back to the same 0.01 u). Not applied here: `world.json` carries
+the PO's uncommitted edits. Until the PO saves it once in Tiled, the four
+`world.json` round-trip legs of `verify.sh` and two vitest legs ("a full Tiled-model
+round-trip reproduces world.json exactly", "finds nothing to weld in the shipped
+world") are red, by that diff alone. Then Q4 (that T from the high and the low side)
+in the look.
+
+**Schema:** DB none · wire none · conf none · zone format none (welds write keys that
+already exist).
+
+**Verified:** converter vitest legs red-first then green (merge, chain, order, snap
+boundary, opposite-ways refusal, mismatch refusal naming the key, roads untouched,
+T-weld end and start, idempotent, half-width boundary, refusal naming both objects
+on save) · the weld of the shipped world checked by hand: only the T above, and
+stable on a second pass · Tiled extension reinstalled.
