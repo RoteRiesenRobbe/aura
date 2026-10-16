@@ -11,8 +11,8 @@ fields (L2) · content +1 optional effect key, +1 optional prop key (L2),
 profile colours (L3).** Line refs as of `38bd612c`. Ledger: §9.
 
 **Round 2 (L4-L7): BUILT 2026-10-15/16 (`3bab952c` · `27dbf718` · `46b4362e` ·
-`8a391139`), PO look + tuning OK and the flicker list ruled 2026-10-16;
-pushed on branch `lightmap`, the merge to main is the one thing left** (§10). A review after the rebase onto main: L4 removes a colour pop the
+`8a391139`), PO look + tuning OK and the flicker list ruled 2026-10-16.**
+**✅ COMPLETE: merged to main and archived 2026-10-16; nothing open** (§10). A review after the rebase onto main: L4 removes a colour pop the
 doubled campfire glow brings back and colours the sight floor correctly, L5
 gives every light an adjustable SHAPE (white heart, fade start, falloff curve,
 tunable live from the console), L6 eases lights instead of snapping them, L7
