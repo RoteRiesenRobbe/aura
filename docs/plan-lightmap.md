@@ -10,8 +10,9 @@ rulings). **Schema: DB NONE · conf NONE · wire NONE (L1, L3) / +2 appended
 fields (L2) · content +1 optional effect key, +1 optional prop key (L2),
 profile colours (L3).** Line refs as of `38bd612c`. Ledger: §9.
 
-**Round 2 (L4-L7): DESIGNED 2026-10-15, PO "I like all of them", nothing built**
-(§10). A review after the rebase onto main: L4 removes a colour pop the
+**Round 2 (L4-L7): BUILT 2026-10-15/16 (`3bab952c` · `27dbf718` · `46b4362e` ·
+`8a391139`), PO look + tuning OK and the flicker list ruled 2026-10-16;
+pushed on branch `lightmap`, the merge to main is the one thing left** (§10). A review after the rebase onto main: L4 removes a colour pop the
 doubled campfire glow brings back and colours the sight floor correctly, L5
 gives every light an adjustable SHAPE (white heart, fade start, falloff curve,
 tunable live from the console), L6 eases lights instead of snapping them, L7
@@ -531,20 +532,23 @@ vanishes.
 - **In-game (PO)**: after L5, the shape + colour look; after L7, the flicker
   amplitude and speed.
 
-### 10.4 Open
+### 10.4 PO rulings (2026-10-16)
 
-- ⚑ **Flicker sources**: D12's list is proposed, not ruled (camp is listed
-  because its aura already rises fire particles).
-- ⚑ **Every number in §10** waits for the PO's look sessions.
+- **Look + tuning: OK** ("Look and tuning looks good to me"): the shipped
+  defaults stand (heart 0, core 0.55, curve 0, flicker size 0.03 / alpha
+  0.06, LIGHT_RAMP_MS 300), every one still [PLACEHOLDER]. The deeper L4
+  campfire passed with its colour unchanged.
+- **Flicker sources: OK** as D12 lists them (campfire, camp, Torch, torch prop,
+  Wildfire, fire elemental, fire totem; Lantern and Omni rigs steady).
 
 ### 10.5 Chunk ledger
 
 | Chunk | State | Commit | Verified |
 | --- | --- | --- | --- |
-| L4 one colour per light | built 2026-10-15 | `3bab952c` | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look owed |
-| L5 light shape | built 2026-10-16 | `27dbf718` | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning owed |
-| L6 easing | built 2026-10-16 | `46b4362e` | `l6-light-ease.mjs` 5/5 (red-first 2/5 on the L5 overlay: every patch lit and darkened on one frame) · `l1-lightmap.mjs single` 3/3, `heart` 5/5 unchanged · vitest 1701/0 (+9) · tsc clean · PO feel owed |
-| L7 flicker | built 2026-10-16 | see git log | `l1-lightmap.mjs flicker` 5/5 (campfire rim R spreads 4.0-4.5 % live, 0.0 at amplitude 0) · `single` 3/3, `heart` 5/5, `curve` 4/4, `l6-light-ease` 5/5 unchanged · Go green bar the known C1b prop pin (+5 tests red-first) · vitest 1707/0 (+6) · tsc clean · editor smoke 0 findings · PO feel owed |
+| L4 one colour per light | built 2026-10-15 | `3bab952c` | `l1-lightmap.mjs single` 3/3 (red-first: 2/3 with D8 reverted, core read the doubled prediction 141/127/79.4) · `colour` 4/4 · vitest 1685/0 (+6) · tsc clean · PO look OK 2026-10-16 |
+| L5 light shape | built 2026-10-16 | `27dbf718` | `l1-lightmap.mjs single` 3/3 at the defaults (identical numbers to L4: the defaults are the old texture) · `heart` 5/5 (core 141/140/129.7 = the white baseline exactly; near/edge Δ ≤ 0.5) · `curve` 4/4 (near ×1.082 vs the predicted ×1.086) · vitest 1692/0 (+7) · tsc clean · PO tuning OK 2026-10-16 |
+| L6 easing | built 2026-10-16 | `46b4362e` | `l6-light-ease.mjs` 5/5 (red-first 2/5 on the L5 overlay: every patch lit and darkened on one frame) · `l1-lightmap.mjs single` 3/3, `heart` 5/5 unchanged · vitest 1701/0 (+9) · tsc clean · PO feel OK 2026-10-16 |
+| L7 flicker | built 2026-10-16 | `8a391139` | `l1-lightmap.mjs flicker` 5/5 (campfire rim R spreads 4.0-4.5 % live, 0.0 at amplitude 0) · `single` 3/3, `heart` 5/5, `curve` 4/4, `l6-light-ease` 5/5 unchanged · Go green bar the known C1b prop pin (+5 tests red-first) · vitest 1707/0 (+6) · tsc clean · editor smoke 0 findings · PO feel OK 2026-10-16 |
 
 **L4 notes (2026-10-15).**
 
