@@ -801,6 +801,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.EliteWolf]: Mobs.EliteWolf,
     [AuraApi.EntityType.Bramble]: Mobs.Bramble,
     [AuraApi.EntityType.Signpost]: Mobs.Signpost,
+    [AuraApi.EntityType.Passage]: Mobs.Passage,
     [AuraApi.EntityType.Hermit]: Mobs.Hermit,
     [AuraApi.EntityType.DogNpc]: Mobs.DogNpc,
     [AuraApi.EntityType.Kobold]: Mobs.Kobold,

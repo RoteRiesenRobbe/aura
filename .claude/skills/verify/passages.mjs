@@ -1,17 +1,24 @@
 #!/usr/bin/env node
-// plan-passages.md P1 verification: a door authored in `exits` (not `spawns`)
-// still talks and still moves you, at the real game surface.
+// plan-passages.md verification at the real game surface, one leg block per
+// chunk. Every venue is DERIVED from the zone files, so a re-placement moves
+// the legs rather than rotting them.
 //
-// Two doors, both derived from the zone files so a re-placement moves them
-// rather than rotting this: the world's door to `barn-inside` (no `door`, so
-// the GENERIC CaveMouth) and the barn's way back up (`door: "CaveExit"`). The
-// two must open DIFFERENT panels (the `door` field is honoured) and each row
-// must land beside its anchor.
+// P1: a door authored in `exits` (not `spawns`) still talks and still moves
+// you. The world's door to `barn-inside` (no `door`, so the GENERIC CaveMouth)
+// and the barn's way back up (`door: "CaveExit"`) must open DIFFERENT panels
+// and each row must land beside its anchor.
+//
+// P2: the door mob is a Passage, so it draws NOTHING of its own (R3): no
+// visible Graphics under its shape (the health bar and the tier frame are
+// Graphics) and no text on its plate. Read from 4 u away, outside the 2 u
+// reach, so the E badge is not up. The picture is the exit's look in the
+// `exitLooks` layer: the barn door draws the default cave mouth, the barn's
+// way up draws `stairs-up`, and a `hidden` exit draws nothing.
 //
 // ⚑ GOD on throughout: nothing here is about combat, and a wolf on the way
 // to the barn door would null the scene graph mid-leg.
 //
-// Usage: node p1-exits.mjs [url] [outdir]
+// Usage: node passages.mjs [url] [outdir]
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -23,10 +30,10 @@ import { joinAsNewCharacter } from './lib/join.mjs';
 import { readZone } from './lib/zone.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
-const outdir = process.argv[3] || '/tmp/p1-exits-shots';
+const outdir = process.argv[3] || '/tmp/passages-shots';
 mkdirSync(outdir, { recursive: true });
 
-// --- venue, derived from the zone files ---------------------------------------
+// --- venues, derived from the zone files --------------------------------------
 const root = new URL('../../../', import.meta.url);
 const zones = Object.fromEntries(['world', 'barn'].map(n =>
   [n, readZone(new URL(`api/zones/${n}.json`, root).pathname.replace(/^\/([A-Za-z]:)/, '$1'))]));
@@ -40,12 +47,15 @@ const anchorAt = (name) => {
 };
 const barnDoor = zones.world.exits.find(e => e.anchor === 'barn-inside');
 const barnUp = zones.barn.exits[0];
+const hidden = zones.world.exits.find(e => e.look === 'hidden');
 if (!barnDoor || !barnUp || barnDoor.door || barnUp.door !== 'CaveExit') {
   throw new Error('venue drifted: expected a generic door to barn-inside and a CaveExit in barn.json');
 }
 const CASES = [
-  { leg: 'generic door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor) },
-  { leg: 'CaveExit door (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor) },
+  { leg: 'generic door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor),
+    look: barnDoor.look || 'cave-mouth' },
+  { leg: 'CaveExit door (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor),
+    look: barnUp.look || 'cave-mouth' },
 ];
 
 const results = [];
@@ -53,7 +63,8 @@ const pass = (leg, note) => { results.push(['PASS', leg]); console.log(`  ✔ ${
 const fail = (leg, note) => { results.push(['FAIL', leg]); console.log(`  ✘ ${leg} - ${note}`); };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
+const page = await context.newPage();
 const consoleErrors = [];
 page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
 
@@ -64,6 +75,10 @@ const cmd = async (c) => {
     document.querySelector('#console').dispatchEvent(new Event('submit', { cancelable: true }));
   }, c);
   await page.waitForTimeout(350);
+};
+const warp = async (p) => {
+  await cmd(`WARP ${Math.round(p.x * 120)} ${Math.round(p.y * 120)}`);
+  await page.waitForTimeout(2500);
 };
 const pos = () => page.evaluate(() => ({ x: window.game.character.getX() / 120, y: window.game.character.getY() / 120 }));
 const panel = () => page.evaluate(() => {
@@ -93,16 +108,67 @@ const clickFirstRow = async () => {
   return true;
 };
 
-console.log('p1-exits');
+// One sample of everything P2 asserts about the door at `at` (world units),
+// read in one evaluate: the npcs-layer entity standing there, its visible
+// Graphics, its plate's text, and the exit looks drawn within 0.5 u.
+const doorSample = (at) => page.evaluate(({ x, y }) => {
+  let r = window.game.character.plate.parent;
+  while (r.parent) r = r.parent;
+  const byLabel = (c, name) => {
+    if (c.label === name) return c;
+    for (const k of c.children || []) { const f = byLabel(k, name); if (f) return f; }
+    return null;
+  };
+  const near = (o) => Math.hypot(o.position.x / 120 - x, o.position.y / 120 - y) < 0.5;
+  const npcs = byLabel(r, 'npcs');
+  const door = (npcs?.children || []).find(near);
+  const visibleGraphics = (c) => (c.visible === false ? 0 : (c.context ? 1 : 0)
+    + (c.children || []).reduce((n, k) => n + visibleGraphics(k), 0));
+  const texts = (c) => (c.text !== undefined ? [c.text] : []).concat(...(c.children || []).map(texts));
+  const plates = byLabel(r, 'namePlates');
+  const plate = (plates?.children || []).find(near);
+  const looks = (byLabel(r, 'exitLooks')?.children || []).filter(near).map(s => s.label);
+  // The control: some OTHER mob in view does draw Graphics (its health bar),
+  // or a zero above proves nothing.
+  const others = ['npcs', 'turnip', 'wildlife'].flatMap(l => byLabel(r, l)?.children || []).filter(o => o !== door);
+  const control = Math.max(0, ...others.map(visibleGraphics));
+  return {
+    found: !!door,
+    graphics: door ? visibleGraphics(door) : null,
+    plateText: plate ? texts(plate).filter(t => t !== '') : null,
+    looks,
+    control,
+  };
+}, at);
+
+console.log('passages');
 await page.goto(url);
-await joinAsNewCharacter(page, 'p1exits');
+await joinAsNewCharacter(page, 'passages');
 await cmd('GOD on');
 
 const actors = [];
 for (const c of CASES) {
-  // One unit beside the door: inside its 2 u reach, clear of its body.
-  await cmd(`WARP ${Math.round((c.at.x + 1) * 120)} ${Math.round(c.at.y * 120)}`);
-  await page.waitForTimeout(2500);
+  // P2: from 4 u off, outside the door's reach, so no E badge is drawn.
+  await warp({ x: c.at.x + 4, y: c.at.y });
+  const s = await doorSample(c.at);
+  if (!s.found) {
+    fail(`${c.leg}: bare`, 'no entity on the npcs layer at the exit');
+  } else if (!(s.control > 0)) {
+    fail(`${c.leg}: bare`, 'no other mob in view draws Graphics, so a zero proves nothing');
+  } else if (s.graphics === 0 && (s.plateText === null || s.plateText.length === 0)) {
+    pass(`${c.leg}: bare`, 'the door draws no bar, no frame and no plate text');
+  } else {
+    fail(`${c.leg}: bare`, `${s.graphics} visible Graphics, plate text ${JSON.stringify(s.plateText)}`);
+  }
+  if (s.looks.length === 1 && s.looks[0] === `exitLook:${c.look}`) {
+    pass(`${c.leg}: look`, `draws ${s.looks[0]}`);
+  } else {
+    fail(`${c.leg}: look`, `expected exitLook:${c.look}, got ${JSON.stringify(s.looks)}`);
+  }
+  await page.screenshot({ path: join(outdir, `${c.leg.split(' ')[0]}-look.png`) });
+
+  // P1: one unit beside the door, inside its 2 u reach, clear of its body.
+  await warp({ x: c.at.x + 1, y: c.at.y });
   await pressInteract();
   const p = await panel();
   if (!p || !p.actor || !p.rows.some(r => !r.locked)) {
@@ -120,7 +186,6 @@ for (const c of CASES) {
   } else {
     fail(c.leg, `"${p.actor}" → at (${at.x.toFixed(1)}, ${at.y.toFixed(1)}), ${d.toFixed(1)} u from its anchor`);
   }
-  await page.screenshot({ path: join(outdir, `${c.leg.split(' ')[0]}.png`) });
 }
 
 if (actors.length === 2 && actors[0] !== actors[1]) {
@@ -128,6 +193,21 @@ if (actors.length === 2 && actors[0] !== actors[1]) {
 } else {
   fail('door field', `expected two different actors, got ${JSON.stringify(actors)}`);
 }
+
+// P2: a hidden exit draws no look, and its door is still there to talk to.
+if (hidden) {
+  const at = world('world', hidden);
+  await warp({ x: at.x + 4, y: at.y });
+  const s = await doorSample(at);
+  if (s.found && s.looks.length === 0) {
+    pass('hidden look', `the exit to ${hidden.anchor} draws nothing, its door stands`);
+  } else {
+    fail('hidden look', `door found ${s.found}, looks ${JSON.stringify(s.looks)}`);
+  }
+} else {
+  fail('hidden look', 'no world exit is hidden; the venue drifted');
+}
+
 if (consoleErrors.length) { fail('page errors', consoleErrors.slice(0, 3).join(' | ')); }
 
 await browser.close();

@@ -1170,6 +1170,27 @@ if ! grep -q '"door"' api/zones/*.json; then
     bad "no zone authors a door — the typed member above went untested"
 fi
 
+# P2: a TURNED exit with a typed look. No shipped exit is turned, so the loop
+# above never sees a point object's rotation go through Tiled and back.
+echo
+echo "a turned exit with a look round-trips"
+node -e '
+const fs = require("fs");
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/barn.json", "utf8"));
+Object.assign(z.exits[0], {rotation: 1.571, look: "door"});
+fs.writeFileSync("tools/tiled/.verify/exit-turn.json", C.serializeZone(z, true));
+'
+if grep -q '"rotation": 1.571' tools/tiled/.verify/exit-turn.json \
+   && "$TILED" --export-map aura-zone tools/tiled/.verify/exit-turn.json \
+        "$(native "$ROOT/tools/tiled/.verify/exit-turn-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/exit-turn.json tools/tiled/.verify/exit-turn-out.json; then
+    ok "byte-identical — rotation and look survive"
+else
+    bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-turn.json tools/tiled/.verify/exit-turn-out.json 2>&1 | head -1)"
+fi
+
 # ⛔ D11/L2: a zone still placing a door in `spawns` is VALID to the server, so
 # only the converter stops it opening and the next save keeping the old shape.
 echo

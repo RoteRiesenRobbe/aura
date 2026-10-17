@@ -436,7 +436,13 @@ presses E.
 3. Type the destination into **`anchor`**: the **Name** of an `anchors`
    point, in this zone or any other. A typo saves, then refuses the server's
    boot naming the exit.
-4. Leave **`door`** at `(generic door)`, or pick the conversation it talks
+4. Pick its **`look`**: `cave-mouth` (the default), `stairs-down`,
+   `stairs-up`, `door`, or `hidden` (no picture; players find it by its E
+   prompt). Rotate the point to turn the art: stairs and doors point UP at 0°.
+   The door itself draws nothing, no health bar and no name: the look is the
+   whole picture. ⚑ The look comes from the frontend's bundled copy of the
+   zone, so it shows after a frontend rebuild.
+5. Leave **`door`** at `(generic door)`, or pick the conversation it talks
    as. `CaveExit` reads "a narrow shaft with daylight"; the generic one is
    the cave mouth's words. A door that needs a quest gate or its own lines is a
    new mob in `api/mobs/` with one anchor travel row, then it shows in this

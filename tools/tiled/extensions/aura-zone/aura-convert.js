@@ -90,6 +90,14 @@ var AuraConvert = (function () {
     var EXIT_DOOR_ENUM = 'AuraExitDoor';
     var EXIT_DOOR_UNSET = '(generic door)';
     var MIGRATED_DOORS = ['CaveMouth', 'CaveExit'];
+    /* The art the client draws at an exit (P2, R4/D5), zone.go's ExitLooks in
+     * its order (a vitest scrapes the two together). The DEFAULT leads and is
+     * the AuraExitLook member's default: it reads back as ABSENT, so a Tiled
+     * that drops the member and one that keeps it write the same file. The
+     * look's turn is the point object's own rotation. */
+    var EXIT_LOOK_ENUM = 'AuraExitLook';
+    var EXIT_LOOKS = ['cave-mouth', 'hidden', 'stairs-down', 'stairs-up', 'door'];
+    var EXIT_LOOK_DEFAULT = EXIT_LOOKS[0];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -688,11 +696,19 @@ var AuraConvert = (function () {
                     anchor: s.anchor || undefined,
                 };
             }),
-            // Talk exits (plan-passages.md P1), key order as zone.go's Exit.
-            // `door` is absent for the generic door, so absent stays absent.
+            // Talk exits (plan-passages.md P1/P2), key order as zone.go's Exit.
+            // Every optional key is absent at its default: no turn, the cave
+            // mouth look (EXIT_LOOK_DEFAULT), the generic door.
             exits: z.exits && z.exits.length > 0
                 ? z.exits.map(function (e) {
-                    return {x: round(e.x, 2), y: round(e.y, 2), anchor: e.anchor, door: e.door || undefined};
+                    return {
+                        x: round(e.x, 2),
+                        y: round(e.y, 2),
+                        rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
+                        anchor: e.anchor,
+                        look: e.look && e.look !== EXIT_LOOK_DEFAULT ? e.look : undefined,
+                        door: e.door || undefined,
+                    };
                 })
                 : undefined,
             bindPoints: z.bindPoints && z.bindPoints.length > 0
@@ -996,17 +1012,23 @@ var AuraConvert = (function () {
             // ⚑ The NAME is the anchor, so the Objects panel reads where each
             // exit leads; the typed property is what modelToZone reads back
             // (never the name: the class-member sentinel rule). `door` only
-            // when authored, so the panel shows the member at its default.
+            // when authored, so the panel shows the member at its default; the
+            // same for `look` (P2). The turn is the object's own rotation.
             var exits = (src.exits || []).map(function (e) {
                 var o = {
                     shape: 'point', layer: prefix + 'exits', name: e.anchor, cls: EXIT_CLASS,
                     x: px(e.x, hw), y: px(e.y, hh),
-                    width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+                    width: 0, height: 0, rotation: rad2deg(e.rotation || 0), flipH: false, flipV: false,
                     properties: {anchor: e.anchor},
+                    enums: {},
                 };
+                if (e.look && e.look !== EXIT_LOOK_DEFAULT) {
+                    o.properties.look = e.look;
+                    o.enums.look = EXIT_LOOK_ENUM;
+                }
                 if (e.door) {
                     o.properties.door = e.door;
-                    o.enums = {door: EXIT_DOOR_ENUM};
+                    o.enums.door = EXIT_DOOR_ENUM;
                 }
                 return o;
             });
@@ -1618,7 +1640,13 @@ var AuraConvert = (function () {
                     return s;
                 }),
                 exits: layer('exits').map(function (o) {
-                    return {x: u(o.x, hw), y: u(o.y, hh), anchor: readText(o, 'anchor'), door: readExitDoor(o)};
+                    return {
+                        x: u(o.x, hw), y: u(o.y, hh),
+                        rotation: deg2rad(o.rotation || 0),
+                        anchor: readText(o, 'anchor'),
+                        look: readExitLook(o),
+                        door: readExitDoor(o),
+                    };
                 }),
                 bindPoints: layer('bindPoints').map(function (o) {
                     return {
@@ -1817,6 +1845,13 @@ var AuraConvert = (function () {
     function readExitDoor(o) {
         var v = readText(o, 'door');
         return v === EXIT_DOOR_UNSET ? undefined : v;
+    }
+
+    /* An exit's look, or undefined for the default (the cave mouth): the
+     * default, a blank and an absent member alike. */
+    function readExitLook(o) {
+        var v = readText(o, 'look');
+        return v === EXIT_LOOK_DEFAULT ? undefined : v;
     }
 
     function readRegionProfile(o) {
@@ -2257,6 +2292,10 @@ var AuraConvert = (function () {
                 if (d !== undefined && doorsKnown && !hasValue(content.DOOR_NAMES, d)) {
                     bad(o, i, 'unknown door "' + d + '" — a door is a mob with exactly one'
                         + ' anchor-mode travel_to row: ' + content.DOOR_NAMES.join(', '));
+                }
+                var look = readExitLook(o);
+                if (look !== undefined && !hasValue(EXIT_LOOKS, look)) {
+                    bad(o, i, 'unknown look "' + look + '" — the looks are ' + EXIT_LOOKS.join(', '));
                 }
                 var x = o.x / PX - hw, y = o.y / PX - hh;
                 if (x < -hw || x > hw || y < -hh || y > hh) {
@@ -2856,6 +2895,9 @@ var AuraConvert = (function () {
         EXIT_CLASS: EXIT_CLASS,
         EXIT_DOOR_ENUM: EXIT_DOOR_ENUM,
         EXIT_DOOR_UNSET: EXIT_DOOR_UNSET,
+        EXIT_LOOK_ENUM: EXIT_LOOK_ENUM,
+        EXIT_LOOKS: EXIT_LOOKS,
+        EXIT_LOOK_DEFAULT: EXIT_LOOK_DEFAULT,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
         // through propSize(): that helper falls back to a 1-unit box when the
         // vocabulary is absent, which is right for a conversion (the geometry

@@ -2490,7 +2490,9 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         }],
         // ⚑ `door` authored: absent is the generic door, so a fixture without
         // it would let both writers drop every custom door (plan-passages.md P1).
-        exits: [{x: 6, y: 5, anchor: 'under-west', door: 'CaveExit'}],
+        // `rotation` and `look` (P2) non-default for the same reason: no turn
+        // and the cave mouth both write no key.
+        exits: [{x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', door: 'CaveExit'}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3302,10 +3304,48 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         const cls = types.filter(t => t.name === C.EXIT_CLASS)[0];
         expect(cls.members).toEqual([
             {name: 'anchor', type: 'string', value: ''},
+            {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
             {name: 'door', type: 'string', propertyType: C.EXIT_DOOR_ENUM, value: C.EXIT_DOOR_UNSET},
         ]);
         const doors = types.filter(t => t.name === C.EXIT_DOOR_ENUM)[0].values;
         expect(doors).toEqual([C.EXIT_DOOR_UNSET, ...content.DOOR_NAMES]);
         expect(content.DOOR_NAMES).toEqual(expect.arrayContaining(['CaveMouth', 'CaveExit']));
+        expect(types.filter(t => t.name === C.EXIT_LOOK_ENUM)[0].values).toEqual(C.EXIT_LOOKS);
+    });
+
+    // ⭐ P2: the look names are THREE lists (zone.go's ExitLooks, this
+    // converter, the client's table), and the server refuses what the client
+    // cannot draw. The client table is pinned to the palette next door
+    // (ExitLookTable.test.ts); this pins the converter to zone.go's set.
+    it('the look set is exits.go\'s, default first', () => {
+        const go = readFileSync(nodeRequire.resolve('../../../../../backend/pkg/aura/world/exits.go'), 'utf8');
+        const block = /const \(\s*([\s\S]*?)\)/.exec(go.slice(go.indexOf('ExitLookCaveMouth') - 200));
+        expect(block, 'exits.go no longer declares the looks where this test looks').not.toBeNull();
+        const goLooks = [...block![1].matchAll(/ExitLook\w+\s*=\s*"([^"]+)"/g)].map(m => m[1]);
+        expect(goLooks).toEqual(C.EXIT_LOOKS);
+        expect(C.EXIT_LOOK_DEFAULT).toBe('cave-mouth');
+    });
+
+    it('round-trips a turn and a look, and writes neither at its default', () => {
+        const exits = [
+            {x: 1, y: 2, rotation: 1.571, anchor: 'a', look: 'stairs-down'},
+            {x: 3, y: 4, anchor: 'b', look: 'hidden', door: 'CaveExit'},
+        ];
+        expect(roundTrip(zone({exits})).exits).toEqual(exits);
+        expect(roundTrip(zone({exits: [{x: 1, y: 2, rotation: 0, anchor: 'a', look: 'cave-mouth'}]})).exits)
+            .toEqual([{x: 1, y: 2, anchor: 'a'}]);
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, rotation: Math.PI / 2, anchor: 'a', look: 'door'}]}));
+        const o = exitObjects(m)[0];
+        expect(o.rotation).toBeCloseTo(90);
+        expect(o.properties.look).toBe('door');
+        expect(o.enums.look).toBe(C.EXIT_LOOK_ENUM);
+        expect(exitObjects(C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]})))[0].properties)
+            .not.toHaveProperty('look');
+    });
+
+    it('refuses a look the client cannot draw', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
+        exitObjects(m)[0].properties.look = 'trapdoor';
+        expect(C.validateModel(m).join(' ')).toContain('unknown look "trapdoor"');
     });
 });

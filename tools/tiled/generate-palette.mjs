@@ -615,8 +615,14 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     // door, so it maps back to absent (the EFFECT_UNSET reading). 'anchor' is
     // free text whose default '' is "not authored", which the save refuses.
     types.push(enumType(C.EXIT_DOOR_ENUM, [C.EXIT_DOOR_UNSET].concat(mobs.filter(m => m.door).map(m => m.name))));
+    // ⚑ `look` (P2) defaults to the cave mouth, the converter's
+    // EXIT_LOOK_DEFAULT, which reads back as absent; its enum is pushed AFTER
+    // the class so no existing type id moves.
     types.push(classType(C.EXIT_CLASS, '#ff009688',
-        [member('anchor', 'string', ''), member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
+        [member('anchor', 'string', ''),
+            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
+            member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
+    types.push(enumType(C.EXIT_LOOK_ENUM, C.EXIT_LOOKS));
     return types;
 }
 

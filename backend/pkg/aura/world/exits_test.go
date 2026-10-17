@@ -16,10 +16,18 @@ import (
 // definitions a test hands it.
 func doorRegistry(extra ...*mobs.MobDefinition) *fakeMobRegistry {
 	r := newFakeMobRegistry()
-	for _, d := range append([]*mobs.MobDefinition{door(GenericDoor, ""), door("CaveExit", "")}, extra...) {
+	for _, d := range append([]*mobs.MobDefinition{passage(GenericDoor), passage("CaveExit")}, extra...) {
 		r.byName[d.Name] = d
 	}
 	return r
+}
+
+// passage is a door definition the way the shipped ones author it: one
+// anchor travel row, drawn as a Passage (plan-passages.md D4).
+func passage(name string) *mobs.MobDefinition {
+	d := door(name, "")
+	d.EntityType = "Passage"
+	return d
 }
 
 func loadExits(t *testing.T, exits string) (*Zone, error) {
@@ -166,4 +174,36 @@ func TestCrossValidateExitClearance_ComparesAcrossTheSet(t *testing.T) {
 	b := zoneAt("b", 10, 10, 0, 0)
 	b.Exits = []Exit{{X: 1, Y: 0, Anchor: "x", Def: mouth}}
 	assert.Error(t, CrossValidateExitClearance([]*Zone{a, b}, 2))
+}
+
+// ⭐ P2 (D4/D5): the look and the turn belong to the exit and are drawn by the
+// client; the server only refuses a look the client has no art for.
+func TestExits_LookAndRotation(t *testing.T) {
+	z, err := loadExits(t, `{"x": 1, "y": 2, "rotation": 1.5, "anchor": "a", "look": "stairs-down"},
+		{"x": 3, "y": 4, "anchor": "b"}`)
+	require.NoError(t, err)
+	assert.Equal(t, float32(1.5), z.Exits[0].Rotation)
+	assert.Equal(t, ExitLookStairsDown, z.Exits[0].EffectiveLook())
+	assert.Equal(t, ExitLookCaveMouth, z.Exits[1].EffectiveLook(), "absent is the cave mouth")
+
+	for _, look := range ExitLooks {
+		_, err := loadExits(t, `{"x": 1, "y": 2, "anchor": "a", "look": "`+look+`"}`)
+		assert.NoError(t, err, look)
+	}
+	_, err = loadExits(t, `{"x": 1, "y": 2, "anchor": "a", "look": "trapdoor"}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `exit 0: look "trapdoor" must be one of`)
+}
+
+// D3/D4: a door is drawn by its exit, so its mob must draw nothing itself. A
+// door definition on any other entityType would put a sprite, a health bar
+// and a plate on top of the exit's look.
+func TestExits_ADoorMustBeAPassage(t *testing.T) {
+	signpost := door("OldDoor", "")
+	signpost.EntityType = "Signpost"
+	_, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
+		"exits": [{"x": 1, "y": 2, "anchor": "a", "door": "OldDoor"}]}`),
+		"", doorRegistry(signpost), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `door "OldDoor" must have entityType "Passage"`)
 }

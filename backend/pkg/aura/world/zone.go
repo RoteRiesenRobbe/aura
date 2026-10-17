@@ -275,7 +275,8 @@ type Spawn struct {
 	Def *mobs.MobDefinition `json:"-"`
 }
 
-// Exit is a talk exit (plan-passages.md P1; its loader halves live in exits.go): a point you press E at to be moved to a zone anchor.
+// Exit is a talk exit (plan-passages.md P1; its loader halves live in
+// exits.go): a point you press E at to be moved to a zone anchor.
 //
 // ⭐ IT IS STILL A MOB UNDER THE HOOD (D3). Interactables must be mobs
 // (underworld L6), so the loader resolves Door and ExitSpawns synthesizes the
@@ -287,11 +288,19 @@ type Spawn struct {
 type Exit struct {
 	X float32 `json:"x"`
 	Y float32 `json:"y"`
+	// Rotation turns the look's art, radians (stairs point a way). Client
+	// only: the server parses it and never reads it (P2, D5).
+	Rotation float32 `json:"rotation,omitempty"`
 	// Anchor is where the exit leads, by zone-anchor name. Required: a door
 	// with nowhere to go takes the keypress and moves nobody.
 	Anchor string `json:"anchor"`
+	// Look names the art the client draws at the exit (R4, D5), one of
+	// ExitLooks; absent = ExitLookCaveMouth. Client only, like Rotation: the
+	// server refuses a name outside the set, because the client would draw
+	// nothing for it and a door would vanish without a word.
+	Look string `json:"look,omitempty"`
 	// Door names the conversation definition (a mob with exactly one
-	// anchor-mode travel_to row). Absent = GenericDoor.
+	// anchor-mode travel_to row and entityType Passage). Absent = GenericDoor.
 	Door string `json:"door,omitempty"`
 	InArea
 

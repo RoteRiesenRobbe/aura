@@ -38,6 +38,7 @@ import {packIconsReady} from '../../../client-data/icons/PackIconFiles';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
+import * as ExitLooks from '../../exits/logic/ExitLooks';
 import * as Polygons from '../../polygons/logic/Polygons';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
@@ -280,6 +281,11 @@ export class Game implements IGame {
                 polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
+                // The exits' looks (plan-passages.md P2, D5): ground-level
+                // art (a cave mouth, stairs, a door) drawn from the bundled
+                // zone, ON the blobs and under every entity. Its door mob is a
+                // Passage, which draws nothing, so this is the only picture.
+                exits: createNamedContainer('exitLooks'),
                 // No `resourceSpots`: the tree/rock ground decals were retired
                 // with their bespoke classes (plan-prop-draw-order.md P2, D8).
                 // Ground scuffing is authored as a terrain decal where wanted.
@@ -387,6 +393,7 @@ export class Game implements IGame {
             this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
+            this.layers.terrain.exits,
             this.layers.props.underfoot,
         );
 
@@ -780,6 +787,7 @@ export class Game implements IGame {
         });
         Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
+        ExitLooks.loadExitLooks(this.layers.terrain.exits, zoneData?.exits, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so
         // the server leaves it zone-local and the origin goes in HERE.

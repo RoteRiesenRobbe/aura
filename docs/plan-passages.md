@@ -1,7 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
-**Status: P1 BUILT 2026-10-17 (branch `passages`, uncommitted, PO review owed).** R1-R6 RULED,
-D1-D11 PROPOSED (P1 implemented D1-D3 + D11 as written). Open PO calls in §7; P2 next.
+**Status: P1 + P2 BUILT 2026-10-17 (branch `passages`; P1 committed `31b87226`, P2 uncommitted,
+PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written; Q7 taken as proposed). Open PO
+calls in §7; P3 next.
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -440,3 +441,36 @@ byte-identical, the door-in-spawns open refused). In game: `.claude/skills/verif
 
 **Schema:** DB none · wire none · conf none · **zone format +1 array (`exits`)**, doors migrated out
 of `spawns` · content: `cave-mouth.json` comment only.
+
+### P2 — `Passage` + looks ✅ BUILT 2026-10-17 (uncommitted on `passages`)
+
+**What landed.** ⭐ **`EntityType Passage = 122`**, not D4's 120 (BerryBush took 120, main's Sheep
+took 121 after this branch forked; the merge brings 121 in). Client `Mobs.Passage`: an empty
+texture at the wire size (so the E badge floats at the reach, not on the centre), and a new
+`Mob.isBare()` hook skips the health bar and the plate text; the quest glyph and the badge stay.
+`CaveMouth`/`CaveExit` → `entityType: Passage`, and the boot REFUSES an exit whose door is any other
+entityType (D3, now possible). Zone format: `exits[].rotation` (radians, absent = 0) and
+`exits[].look` (`world.ExitLooks`: `cave-mouth` default, `hidden`, `stairs-down`, `stairs-up`,
+`door`; the server refuses any other), key order `x, y, rotation, anchor, look, door`. Both JS
+writers drop the defaults. Tiled: `look` member on `AuraExit` (`AuraExitLook` enum, pushed
+last), the turn is the point's own rotation. Client: `features/exits/` (`ExitLookTable.ts` pure:
+names, [PLACEHOLDER] sizes, placements; `ExitLooks.ts` draws sprites into a new `terrain.exits`
+layer above the decals, from the bundled zone, origin applied). Art: `stairs-down.svg`,
+`stairs-up.svg`, `door.svg` placeholders; `cave-mouth` reuses the prop's `caveMouth.svg`. Looks
+migrated by D11a (Q7 as proposed): `hidden` at the two doors a CaveMouth prop already draws
+(`koboldcave-inside`, `tunnel-west`), `stairs-up` on the 10 CaveExits, the default elsewhere;
+`migrate-exits.mjs` now applies the same rule. The stale `CaveMouth = 98` fbs comment is fixed.
+
+**For the PO:** the barn door (`barn-inside`) draws a CAVE MOUTH beside the barn, per D11a. It
+probably wants `look: door`; one property in Tiled.
+
+**Checks.** Go: `world` look/rotation + Passage-refusal tests; `cmd/aurad`, `mobs`, `sys`,
+`codec` green; `aurad -validate` 0 findings (disk, `-debug-zones`). Vitest: the look table vs
+the palette enum, placements, the converter's look/rotation round trip and refusal, the look set
+scraped from `exits.go`, the completeness pin (`rotation` + `look` authored). `verify.sh` all
+green incl. a new turned-exit leg. In game: `passages.mjs` (renamed from `p1-exits.mjs`) 8/8:
+both doors bare (no visible Graphics, no plate text, with a control mob that has some), the
+cave-mouth and stairs-up looks drawn, a hidden exit drawing nothing, and the P1 legs.
+
+**Schema:** DB none · conf none · **wire +1 EntityType (`Passage = 122`)** · zone format `exits[]`
++`rotation` +`look` · content: `CaveMouth`/`CaveExit` `entityType`.

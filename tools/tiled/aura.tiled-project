@@ -1045,12 +1045,32 @@
                     "value": ""
                 },
                 {
+                    "name": "look",
+                    "type": "string",
+                    "propertyType": "AuraExitLook",
+                    "value": "cave-mouth"
+                },
+                {
                     "name": "door",
                     "type": "string",
                     "propertyType": "AuraExitDoor",
                     "value": "(generic door)"
                 }
             ]
+        },
+        {
+            "id": 32,
+            "name": "AuraExitLook",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "cave-mouth",
+                "hidden",
+                "stairs-down",
+                "stairs-up",
+                "door"
+            ],
+            "valuesAsFlags": false
         }
     ]
 }

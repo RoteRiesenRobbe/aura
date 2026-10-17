@@ -8043,7 +8043,8 @@
         {
           "x": -162.53,
           "y": -21.15,
-          "anchor": "koboldcave-inside"
+          "anchor": "koboldcave-inside",
+          "look": "hidden"
         }
       ],
       "bindPoints": [
@@ -10244,7 +10245,8 @@
         {
           "x": -113.63,
           "y": -52.54,
-          "anchor": "tunnel-west"
+          "anchor": "tunnel-west",
+          "look": "hidden"
         }
       ],
       "bindPoints": [

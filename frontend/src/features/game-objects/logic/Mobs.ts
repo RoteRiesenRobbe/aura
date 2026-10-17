@@ -181,13 +181,25 @@ export abstract class Mob extends GameObject
         anchor?: IVector
     ) {
         super(id, gameLayer, x, y, size, 0, svg, anchor);
-        this.initHealthBar();
+        if (!this.isBare()) {
+            this.initHealthBar();
+        }
         this.isMovable = true;
 
         this.plate = createNamedContainer('mobPlate');
         this.plate.position.copyFrom(this.shape.position);
         Game.layers.characterAdditions.namePlates.addChild(this.plate);
         this.plateSubToken = PrerenderEvent.subscribe(this.updatePlate, this);
+    }
+
+    /**
+     * A bare mob draws nothing of its own: no health bar, no nameplate (the
+     * Passage, plan-passages.md D4/R3). The interact badge and a quest glyph
+     * still show. A method, not a field: the constructor reads it before any
+     * subclass field initializer has run.
+     */
+    protected isBare(): boolean {
+        return false;
     }
 
     /**
@@ -213,7 +225,7 @@ export abstract class Mob extends GameObject
         // things you fight. Conversants (intake round 9 item 1) DO plate:
         // name-only, so the journal's "Return to the Lamplighter" has an
         // in-world anchor.
-        if (!definition || !(definition.combatTarget || definition.conversant)) {
+        if (!definition || !(definition.combatTarget || definition.conversant) || this.isBare()) {
             this.nameElement?.destroy();
             this.nameElement = null;
             return;
@@ -583,11 +595,11 @@ export abstract class Mob extends GameObject
     }
 
     setHealth(health: number, maxHealth: number) {
-        this.overheadBar.setHealth(health, maxHealth);
+        this.overheadBar?.setHealth(health, maxHealth);
     }
 
     setShield(shieldHp: number, maxHealth: number) {
-        this.overheadBar.setShield(shieldHp, maxHealth);
+        this.overheadBar?.setShield(shieldHp, maxHealth);
     }
 
     protected override createStatusEffects() {
@@ -1694,6 +1706,26 @@ export class Signpost extends Mob {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Signpost, npcFile('signpost'), npcCfg('signpost').maxSize);
+
+/**
+ * A talk exit's door (plan-passages.md D4): the thing you press E at, drawing
+ * NOTHING (R3): no art, no health bar, no frame, no plate. The picture is the
+ * exit's look, drawn from the bundled zone into `terrain.exits`
+ * (ExitLooks.ts), so a `hidden` exit is found by its E badge alone.
+ *
+ * ⚑ The empty texture still gets the wire size, so the art box is ±size and
+ * the E badge (anchored off the art's bounds) floats at the door's reach
+ * rather than on its centre.
+ */
+export class Passage extends Mob {
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.npcs, x, y, size, PIXI.Texture.EMPTY);
+    }
+
+    protected override isBare(): boolean {
+        return true;
+    }
+}
 
 const hermitBorder = registerBorder(
     GraphicsConfig.npcs.hermit.borderFile, GraphicsConfig.npcs.hermit.maxSize);

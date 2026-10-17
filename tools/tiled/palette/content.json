@@ -467,6 +467,13 @@
       "(generic door)",
       "CaveExit",
       "CaveMouth"
+    ],
+    "AuraExitLook": [
+      "cave-mouth",
+      "hidden",
+      "stairs-down",
+      "stairs-up",
+      "door"
     ]
   },
   "TERRAIN_TYPES": [

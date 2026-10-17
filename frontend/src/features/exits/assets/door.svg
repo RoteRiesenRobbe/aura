@@ -1,0 +1,13 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 200 100" preserveAspectRatio="none">
+  <!-- Placeholder DOOR (plan-passages.md P2, R4): a plank door in its frame,
+       seen from above as it would sit in a wall line, 2:1. The dark sill on
+       the TOP edge is the inside (the exit's rotation turns it). -->
+  <rect x="4" y="10" width="192" height="80" rx="6" fill="#4a3424" stroke="#24180f" stroke-width="6"/>
+  <rect x="18" y="16" width="164" height="16" fill="#140e09"/>
+  <rect x="18" y="34" width="38" height="48" fill="#8a6440"/>
+  <rect x="60" y="34" width="38" height="48" fill="#7c5a39"/>
+  <rect x="102" y="34" width="38" height="48" fill="#8a6440"/>
+  <rect x="144" y="34" width="38" height="48" fill="#7c5a39"/>
+  <circle cx="160" cy="58" r="6" fill="#c9a24a" stroke="#5b4416" stroke-width="2"/>
+</svg>

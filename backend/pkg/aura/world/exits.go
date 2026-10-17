@@ -6,6 +6,7 @@ package world
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -15,6 +16,33 @@ import (
 // `door` (D3): the shipped CaveMouth, whose lines become every door's words
 // until an exit or its destination authors better ones (P3).
 const GenericDoor = "CaveMouth"
+
+// PassageEntityType is the entityType a door definition must author (D4): a
+// Passage draws nothing of its own, so the exit's look is the only picture.
+const PassageEntityType = "Passage"
+
+// The closed set an exit's `look` names (R4, D5). The client's look table
+// (ExitLookTable.ts) draws each; Tiled offers them as AuraExitLook.
+// [PLACEHOLDER] art for all but the cave mouth.
+const (
+	ExitLookCaveMouth  = "cave-mouth"
+	ExitLookHidden     = "hidden"
+	ExitLookStairsDown = "stairs-down"
+	ExitLookStairsUp   = "stairs-up"
+	ExitLookDoor       = "door"
+)
+
+// ExitLooks is that set, the default first.
+var ExitLooks = []string{ExitLookCaveMouth, ExitLookHidden, ExitLookStairsDown, ExitLookStairsUp, ExitLookDoor}
+
+// EffectiveLook is the look the client draws: absent is the cave mouth
+// [PLACEHOLDER default, D1].
+func (e *Exit) EffectiveLook() string {
+	if e.Look == "" {
+		return ExitLookCaveMouth
+	}
+	return e.Look
+}
 
 // DoorName is the definition this exit talks as.
 func (e *Exit) DoorName() string {
@@ -34,6 +62,10 @@ func (z *Zone) validateExits() error {
 		}
 		if e.Door != "" && strings.TrimSpace(e.Door) == "" {
 			return fmt.Errorf("%s: door must not be blank (omit it for the generic door)", ref)
+		}
+		if e.Look != "" && !slices.Contains(ExitLooks, e.Look) {
+			return fmt.Errorf("%s: look %q must be one of %s (omit it for the cave mouth)",
+				ref, e.Look, strings.Join(ExitLooks, ", "))
 		}
 		if e.X < -z.Bounds.Width/2 || e.X > z.Bounds.Width/2 ||
 			e.Y < -z.Bounds.Height/2 || e.Y > z.Bounds.Height/2 {
@@ -58,6 +90,11 @@ func (z *Zone) resolveExits(mr mobs.Registry) error {
 		if rows != 1 {
 			return fmt.Errorf("%s: door %q must have exactly one anchor-mode travel_to row, has %d",
 				objectRef("exit", z.Exits, i), def.Name, rows)
+		}
+		if def.EntityType != PassageEntityType {
+			return fmt.Errorf("%s: door %q must have entityType %q, has %q: the exit's look is the picture, "+
+				"and any other entityType draws its own sprite, health bar and plate on top of it (D4)",
+				objectRef("exit", z.Exits, i), def.Name, PassageEntityType, def.EntityType)
 		}
 		e.Def = def
 	}

@@ -9,6 +9,7 @@
  */
 import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PROP_LAYERS, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
 import {AreaJSON, flattenAreas, ObjectKind} from '../../zones/logic/ZoneAreas';
+import {DEFAULT_EXIT_LOOK} from '../../exits/logic/ExitLookTable';
 
 // IN MEMORY ONLY, on every object: the zone file's area it came from
 // (plan-prop-draw-order.md P4), so a save puts it back in that group. The file
@@ -156,11 +157,14 @@ export interface ZoneAnchor extends InArea {
 
 // A talk exit (plan-passages.md P1): a door to a zone anchor, authored in
 // Tiled on the `exits` layer. The server turns each into a door mob at load.
-// door undefined = the generic door (CaveMouth).
+// door undefined = the generic door (CaveMouth). rotation (radians) and look
+// are the client's picture (P2); undefined = no turn / the default look.
 export interface ZoneExit extends InArea {
     x: number;
     y: number;
+    rotation?: number;
     anchor: string;
+    look?: string;
     door?: string;
 }
 
@@ -484,7 +488,9 @@ export class ZoneModel {
         model.exits = (data.exits || []).map(e => ({
             x: e.x,
             y: e.y,
+            rotation: e.rotation,
             anchor: e.anchor,
+            look: e.look,
             door: e.door,
             area: e.area,
         }));
@@ -723,9 +729,17 @@ export class ZoneModel {
             })),
             // ⚑ The L1 comment again: this editor cannot author an exit, so a
             // missing line here deletes every door Tiled placed (plan-passages.md
-            // P1). serializeZone's shape exactly; `door` absent = generic.
+            // P1). serializeZone's shape exactly: every optional key absent at
+            // its default (no turn, the default look, the generic door).
             exits: exits.length > 0
-                ? exits.map(e => ({x: round(e.x, 2), y: round(e.y, 2), anchor: e.anchor, door: e.door || undefined}))
+                ? exits.map(e => ({
+                    x: round(e.x, 2),
+                    y: round(e.y, 2),
+                    rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
+                    anchor: e.anchor,
+                    look: e.look && e.look !== DEFAULT_EXIT_LOOK ? e.look : undefined,
+                    door: e.door || undefined,
+                }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
