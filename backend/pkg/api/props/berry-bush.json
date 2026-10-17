@@ -1,0 +1,7 @@
+{
+  "name": "BerryBush",
+  "entityType": "BerryBush",
+  "sprite": "berryBush.svg",
+  "body": { "radius": 0.45 },
+  "blocksMovement": false
+}

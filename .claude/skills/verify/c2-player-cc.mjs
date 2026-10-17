@@ -265,7 +265,7 @@ const threat = async () => {
 };
 
 // --- setup: level, the rig skills, the loadout ------------------------------
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 99999999');
 await cmd('SKILL OmniStrike');
 await cmd('SKILL FirstAid');
@@ -496,7 +496,7 @@ const snapRate = await page.evaluate(() => {
 note(`snapshot clock: ${f2(snapRate)} own-player snapshots per second (server tick 30/s)`);
 
 // --- GOD on: the positive control for leg 7 -----------------------------------
-await cmd('GOD');
+await cmd('GOD on');
 const meAfterStun = await state();
 let fired = false;
 for (let attempt = 0; attempt < 2 && !fired; attempt++) {
@@ -654,7 +654,7 @@ for (let attempt = 0; attempt < 3; attempt++) {
   if (!fresh) break;
   await cmd('GOD off', 200);
   const r = await walkThrough(fresh.web, 'web');
-  await cmd('GOD', 300);
+  await cmd('GOD on', 300);
   webTries.push(r);
   if (r.stuns.length === 0 && r.crossed && r.inside.ms >= 500 && r.inside.pace > 0.2) { webLeg = r; break; }
   // Walk back into the pack for the next one.

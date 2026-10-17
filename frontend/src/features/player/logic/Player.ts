@@ -136,7 +136,8 @@ export class Player {
         // hole at the old constant and silently cap every authored `sight`
         // below it, which no test would catch because both numbers are right.
         if (isDefined(entity.lightRadius)) {
-            DarknessOverlay.setLightRadius(this.character, entity.lightRadius, true);
+            DarknessOverlay.setLightRadius(this.character, entity.lightRadius, true, entity.lightColor ?? 0,
+                entity.lightFlicker ?? false);
         }
         if (isDefined(entity.level)) {
             // Level-up notification: the server sends no event — detect the

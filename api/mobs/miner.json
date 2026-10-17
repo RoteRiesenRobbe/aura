@@ -100,10 +100,9 @@
         ],
         "options": [
           {
-            "id": "pickaxe",
             "grants": [
               {
-                "id": "ill-teach-you-pickaxe",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Pickaxe",
                 "requiredLevel": 4

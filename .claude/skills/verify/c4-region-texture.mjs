@@ -318,7 +318,7 @@ function classifyRun(run) {
       }, text);
       await sleep(600);
     };
-    await cmd('GOD');
+    await cmd('GOD on');
     await sleep(3000);
 
     // --- 1. the zone's tiles were fetched as FILES ------------------------

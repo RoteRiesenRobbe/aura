@@ -1,33 +1,20 @@
 // plan-localization.md C0a: resolve the locale and declare the page language first.
-import './features/localization/logic/Locale';
-import * as Preloading from './features/core/logic/Preloading';
-import * as Events from './features/core/logic/Events';
+import {loadCatalog} from './features/localization/logic/Locale';
 
 // Import shims for ES5, ES6, ES7
 import 'core-js';
 
-// Import all modules that listen for Events to ensure the listeners are actually registered
-import './features/audio/logic/Audio';
-import './features/audio/logic/Music';
-import './features/backend/logic/Backend';
-import './features/internal-tools/develop/logic/DebugCircle';
-import './features/internal-tools/develop/logic/_Develop';
-import './features/game-objects/logic/Character';
-import './features/game-objects/logic/Mobs';
-import './features/game-objects/logic/Props';
-import './features/game-settings/logic/GameSettingsUI';
-import './features/ground-textures/logic/GroundTexture';
-import './features/ground-textures/logic/_GroundTexturesPanel';
-import './features/user-interface/logic/UserInterface';
-import './features/user-interface/changelog/logic/Changelog';
-import './features/user-interface/end-screen/logic/EndScreen';
-import './features/user-interface/start-screen/logic/StartScreen';
+// C8: a locale other than English loads its UI catalog chunk before the game's
+// modules run, because several of them render text at import time (the HUD,
+// the settings, the account screens). English needs no load and starts
+// synchronously, as before. App stays in this chunk: only its evaluation waits.
+function start() {
+    require('./App');
+}
 
-import './features/internal-tools/browser-console-integration/logic/BrowserConsole';
-import './features/controls/logic/Controls';
-import './features/full-screen/logic/FullScreen';
-import './features/core/logic/Game';
-
-Preloading.executePreload().then(function () {
-    Events.ModulesLoadedEvent.trigger();
-});
+const catalog = loadCatalog();
+if (catalog) {
+    catalog.then(start);
+} else {
+    start();
+}

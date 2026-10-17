@@ -13,6 +13,7 @@ import {Vector} from '../../core/logic/Vector';
 import {IMiniMapRendered} from '../../map/logic/MiniMapInterfaces';
 import {MiniMap} from '../../map/logic/MiniMap';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import {wireLightRadius} from '../../darkness/logic/LightColor';
 import type {
     AuraDisplay,
     DwellRing,
@@ -208,8 +209,11 @@ export class EntityManager {
 
         // Light hole in the darkness overlay (chunk 3): characters and mobs
         // alike; 0 removes the hole. No-op while the zone has no dark areas.
+        // A campfire's own glow is static, so its wire light is dropped
+        // (plan-lightmap.md D8).
         if (isDefined(entity.lightRadius)) {
-            DarknessOverlay.setLightRadius(gameObject, entity.lightRadius);
+            DarknessOverlay.setLightRadius(gameObject, wireLightRadius(entity.lightRadius, entity.dwellRadius),
+                false, entity.lightColor ?? 0, entity.lightFlicker ?? false);
         }
 
         if (Array.isArray(entity.statusEffects)) {

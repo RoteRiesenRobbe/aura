@@ -82,7 +82,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING');
-await cmd('GOD'); // a dead player nulls character.plate and kills the run
+await cmd('GOD on'); // a dead player nulls character.plate and kills the run
 await cmd('SKILL CharmBeast');
 await cmd(`WARP ${LONE}`);
 await page.waitForTimeout(20_000); // the camera interpolates slowly (backlog §20)

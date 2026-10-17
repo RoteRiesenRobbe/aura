@@ -393,7 +393,7 @@ try {
   }
 
   // GOD from here on: every remaining leg stands still for tens of seconds.
-  await A.cmd('GOD');
+  await A.cmd('GOD on');
 
   // ------------------------------------------------------------------ LEG D
   console.log('\n== LEG D: "Leave." declines, and nothing moves ==');
@@ -484,7 +484,7 @@ try {
   console.log('\n== LEG G: a SECOND player steps through - the point of the spell ==');
   const B = await newClient('portalb');
   const bHomeBefore = await B.homeFire();
-  await B.cmd('GOD');
+  await B.cmd('GOD on');
   await B.warpTo(VENUE.x, VENUE.y);
   await A.warpTo(VENUE.x, VENUE.y);
 
@@ -640,7 +640,7 @@ try {
   if (cHome) {
     inconclusive('J · unbound refusal', `the fresh character bound to ${cHome} before the WARP landed - the ~1.7 s dwell window beat the harness. The property is owned by the Go pins TestSpawn_RequiresAnchorRejectsThePress and TestSpawn_RequiresAnchorRejectsAtCompletionWhenTheAnchorIsLost`);
   } else {
-    await C.cmd('GOD');
+    await C.cmd('GOD on');
     await C.cmd('SKILL OpenPortal');
     await pageC.waitForTimeout(1_500);
     const eq = await equipCooldown(C, /Open Portal/i);

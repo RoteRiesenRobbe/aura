@@ -125,6 +125,14 @@ for (const k of Object.keys(z).concat(KINDS.filter(k => !(k in z)))) {
         for (const l of Object.keys(z.props)) { flat.props[l] = parts.flatMap(p => (p.props && p.props[l]) || []); }
     } else { flat[k] = z[k]; }
 }
+// ⚑ Flattening can bring two cliffs from different groups end to end, and a
+// save would weld them (plan-cliffs.md D3). Weld here, so the fixture is
+// already what a save writes and the legs below stay byte-identical.
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const welded = C.weldPaths(flat.paths);
+if (welded.problems.length) { throw new Error("flattened world does not weld: " + JSON.stringify(welded.problems)); }
+flat.paths = welded.paths;
 fs.writeFileSync("tools/tiled/.verify/flat-world.json", JSON.stringify(flat, null, 2) + "\n");
 '
 

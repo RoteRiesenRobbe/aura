@@ -14376,6 +14376,94 @@
       "width": 3
     }
   ],
+  "structures": [
+    {
+      "profile": "Mountains",
+      "points": [
+        {
+          "x": -20.6,
+          "y": 12
+        },
+        {
+          "x": -21.63,
+          "y": 13.99
+        },
+        {
+          "x": -23.37,
+          "y": 15.55
+        },
+        {
+          "x": -25.45,
+          "y": 14.51
+        },
+        {
+          "x": -27.1,
+          "y": 13.13
+        },
+        {
+          "x": -27.48,
+          "y": 10.73
+        },
+        {
+          "x": -25.5,
+          "y": 9.4
+        },
+        {
+          "x": -23.39,
+          "y": 8.55
+        },
+        {
+          "x": -21.55,
+          "y": 9.94
+        }
+      ],
+      "blocksMovement": true,
+      "outlineProfile": "Cliff",
+      "outlineWidth": 1.5,
+      "outlineFacing": "out"
+    },
+    {
+      "profile": "Pit",
+      "points": [
+        {
+          "x": -26.8,
+          "y": -14
+        },
+        {
+          "x": -28.02,
+          "y": -15.98
+        },
+        {
+          "x": -30,
+          "y": -17.4
+        },
+        {
+          "x": -32.12,
+          "y": -16.12
+        },
+        {
+          "x": -32.7,
+          "y": -14
+        },
+        {
+          "x": -32.33,
+          "y": -11.67
+        },
+        {
+          "x": -30,
+          "y": -10.9
+        },
+        {
+          "x": -27.95,
+          "y": -11.95
+        }
+      ],
+      "blocksMovement": true,
+      "outlineProfile": "Cliff Smooth",
+      "outlineWidth": 1.5,
+      "outlineFacing": "in"
+    }
+  ],
   "anchors": [
     {
       "name": "warlord-home",

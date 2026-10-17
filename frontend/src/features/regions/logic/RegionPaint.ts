@@ -27,7 +27,7 @@ import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clea
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, paintedRegions, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
-    regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
+    regionCap, regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
     regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
 } from './Regions';
@@ -38,7 +38,8 @@ import {
 import {Path, PathShape} from '../../paths/logic/Paths';
 import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
 import {
-    MITRE_LIMIT, ribbonGeometry, ribbonOutline, taperedCentreline,
+    fadedRibbon, MITRE_LIMIT, Ribbon, ribbonGeometry, ribbonOutline, rimCentreline, roundCapOutline,
+    taperedCentreline,
 } from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -88,6 +89,9 @@ export function loadZoneTextures(
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
 ): Promise<boolean> {
     const wanted = neededTextures(regions, profiles).filter(name => loaded[name] === undefined);
+    // A path's cap art (plan-cliffs.md D2) is drawn ONCE over u 0 → 1, so it
+    // must CLAMP: repeating would bleed its first column into the tip.
+    const caps = Object.keys(profiles).map(n => profiles[n].cap);
     if (wanted.length === 0) {
         return Promise.resolve(false);
     }
@@ -112,7 +116,7 @@ export function loadZoneTextures(
             // last pixel column down the whole run, which reads as the texture
             // simply being wrong. Free and harmless for the Graphics callers,
             // which were already setting it on first use.
-            texture.source.style.addressMode = 'repeat';
+            texture.source.style.addressMode = caps.indexOf(name) >= 0 ? 'clamp-to-edge' : 'repeat';
             texture.source.style.update();
             loaded[name] = texture;
             landed = true;
@@ -896,9 +900,9 @@ export function paintAtmospheres(
     // construction, which is the property D3 had and A4 must not lose.
     clearings.forEach((clearing) => {
         if (clearsDarkness(clearing)) {
-            cutHole(darknessContainer, clearing, renderer, out);
+            cutHole(darknessContainer, clearing, renderer, out, 'normal');
         }
-        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out); }
+        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out, 'erase'); }
     });
     return out;
 }
@@ -915,6 +919,13 @@ const CLEARING_FADE = 2;
 
 /**
  * One clearing's hole in one layer.
+ *
+ * ⭐ TWO BLENDS, one per layer (plan-lightmap.md D4). The darkness layer is a
+ * LIGHTMAP since L1 (white = lit), so its clearing PAINTS WHITE, `normal`: the
+ * same picture an erase used to give, and a coloured light drawn after it can
+ * still colour it — an erase would leave transparent, which the light's screen
+ * cannot tint without also tinting daylight. The haze layer is still an overlay,
+ * so its clearing still ERASES.
  *
  * ⭐ A stencil-shaped erase, exactly like a light hole — the same blend mode the
  * campfire glow and the player's own lantern already use, so nothing new
@@ -946,6 +957,7 @@ function cutHole(
     clearing: Clearing,
     renderer: Renderer,
     out: PaintedSurfaces,
+    blendMode: 'normal' | 'erase',
 ): void {
     const draw: DrawSurface = (g, style) => g.poly(clearing.points).fill(style);
     const ramp = buildBlendMask(renderer, clearing.points, CLEARING_FADE,
@@ -954,11 +966,11 @@ function cutHole(
         // Sub-texel band or a degenerate shape — take the hard edge honestly,
         // exactly as buildBlendMask's own bail-out intends.
         const hole = draw(new Graphics(), {color: 0xffffff});
-        hole.blendMode = 'erase';
+        hole.blendMode = blendMode;
         container.addChild(hole);
         return;
     }
-    ramp.sprite.blendMode = 'erase';
+    ramp.sprite.blendMode = blendMode;
     container.addChild(ramp.sprite);
     // ⚑ Ours to free, on the same schedule as every other blend mask: the sprite
     // dies with its container, the RenderTexture behind it does not.
@@ -1146,7 +1158,15 @@ export function paintPolygons(
         // definition. An OPEN filled shape is not a thing this primitive can
         // express, deliberately — that shape is a path.
         paintFilled(container, polygon, polygon.points, false, renderer, out);
-        paintOutline(container, polygon, polygon.points, true, renderer, out);
+        if (polygon.outlineFacing && polygon.outlineWidth) {
+            // ⭐ A cliff RIM (plan-cliffs.md D6): the EXISTING mitred mesh as a
+            // closed ring fitted to whole tiles, inset so it never hangs over
+            // the boundary, ordered so the face drops the authored way.
+            const rim = rimCentreline(polygon.points, polygon.outlineFacing, polygon.outlineWidth);
+            paintOutline(container, polygon, rim, true, renderer, out, 0, null, true, RIM_SHAPE);
+        } else {
+            paintOutline(container, polygon, polygon.points, true, renderer, out);
+        }
     });
     return out;
 }
@@ -1194,7 +1214,7 @@ function paintRibbon(
 ): boolean {
     const {closed, width, aligned, shape} = spec;
     if (!aligned) { return false; }
-    if (shape.corners !== 'sharp' || (!closed && shape.ends === 'round')) { return false; }
+    if (shape.corners !== 'sharp' || (!closed && shape.ends.includes('round'))) { return false; }
     const authored = regionScroll(surface, TERRAIN_PROFILES);
     if (authored.x !== 0 || authored.y !== 0) { return false; }
 
@@ -1215,22 +1235,42 @@ function paintRibbon(
     // outward half of the ramp by nothing and end the edge in a 50 % step —
     // the same trap `addFeathered` exists to dodge for regions.
     const overdraw = mask !== null ? mask.bandPx * 1.5 : 0;
-    // A pointed end narrows the mesh itself, so a HARD edge (no mask) tapers
-    // too; the texture compresses into the tip rather than being cropped.
-    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, spec.taperWidth) : null;
-    const ribbon = taper !== null
-        ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
-        : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
-    if (ribbon === null) { return false; }
+    // ⭐ A `fade` end draws the profile's CAP art at full width (plan-cliffs.md
+    // D2): up to three meshes, cap / tile / cap. Until the cap has loaded, or
+    // on a profile with none (the content tests refuse that), it draws flat.
+    const capName = closed ? null : regionCap(surface, TERRAIN_PROFILES);
+    const capTexture = capName !== null ? loaded[capName] : undefined;
+    const faded = capTexture !== undefined
+        ? fadedRibbon(points, width, tileW, tileH, shape.ends, spec.taperWidth, overdraw)
+        : null;
+    const pieces: { ribbon: Ribbon, texture: Texture }[] = [];
+    if (faded !== null && capTexture !== undefined) {
+        if (faded.start) { pieces.push({ribbon: faded.start, texture: capTexture}); }
+        if (faded.middle) { pieces.push({ribbon: faded.middle, texture}); }
+        if (faded.end) { pieces.push({ribbon: faded.end, texture: capTexture}); }
+    } else {
+        // A pointed end narrows the mesh itself, so a HARD edge (no mask)
+        // tapers too; the texture compresses into the tip rather than being
+        // cropped.
+        const taper = closed ? null : taperedCentreline(points, spec.taperWidth, pointedEnds(shape));
+        const ribbon = taper !== null
+            ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
+            : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
+        if (ribbon !== null) { pieces.push({ribbon, texture}); }
+    }
+    if (pieces.length === 0) { return false; }
 
-    const mesh = new Mesh({
+    const meshes = pieces.map(p => new Mesh({
         geometry: new MeshGeometry({
-            positions: ribbon.positions,
-            uvs: ribbon.uvs,
-            indices: ribbon.indices,
+            positions: p.ribbon.positions,
+            uvs: p.ribbon.uvs,
+            indices: p.ribbon.indices,
         }),
-        texture,
-    });
+        texture: p.texture,
+    }));
+    // ⚑ ONE display object, so one mask covers every piece.
+    const mesh = meshes.length === 1 ? meshes[0] : new Container();
+    if (mesh !== meshes[0]) { meshes.forEach(m => mesh.addChild(m)); }
     container.addChild(mesh);
     if (mask !== null) {
         // ⚑ The mask sprite must be IN the scene graph to have a world
@@ -1244,7 +1284,15 @@ function paintRibbon(
 }
 
 /** A polygon's outline has no authored shape: round, as every stroke was (D10). */
-const ROUND_SHAPE: PathShape = {corners: 'round', ends: 'round'};
+const ROUND_SHAPE: PathShape = {corners: 'round', ends: ['round', 'round']};
+
+/** A polygon's cliff rim: sharp, the one shape the mesh draws (a ring has no ends). */
+const RIM_SHAPE: PathShape = {corners: 'sharp', ends: ['flat', 'flat']};
+
+/** Which of a path's two ends are `point`, in taperedCentreline's order. */
+function pointedEnds(shape: PathShape): [boolean, boolean] {
+    return [shape.ends[0] === 'point', shape.ends[1] === 'point'];
+}
 
 /** Everything about a stroked surface a ribbon mesh needs beyond its points. */
 interface RibbonSpec {
@@ -1293,22 +1341,30 @@ function pathSilhouette(
         // gives up at the same angle drawn as a stroke or as the mesh.
         miterLimit: MITRE_LIMIT,
     };
-    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, taperWidth) : null;
-    if (taper === null) {
-        const cap = shape.ends === 'flat' || shape.ends === 'point' ? 'butt' as const : 'round' as const;
+    const [start, end] = shape.ends;
+    const taper = closed ? null : taperedCentreline(points, taperWidth, pointedEnds(shape));
+    if (taper === null && start === end) {
+        // One cap for both ends: the stroke draws it, exactly as before D1.
+        const cap = start === 'round' ? 'round' as const : 'butt' as const;
         return (g, style) => g.poly(points, closed).stroke({...style, ...line, cap});
     }
-    const [a, b] = taper.full;
-    const middle = taper.points.slice(a, b + 1);
-    const tips = [
-        ribbonOutline(taper.points.slice(0, a + 1), width, taper.factors.slice(0, a + 1)),
-        ribbonOutline(taper.points.slice(b), width, taper.factors.slice(b)),
+    // ⭐ The ends differ, or one is pointed: the stroke is butt-capped and each
+    // end that is not flat is filled on its own (plan-cliffs.md D1) — a taper
+    // as a narrowing outline, a round end as a half disc past the endpoint.
+    const pts = taper ? taper.points : points;
+    const [a, b] = taper ? taper.full : [0, points.length - 1];
+    const middle = pts.slice(a, b + 1);
+    const pieces = [
+        start === 'point' && taper ? ribbonOutline(pts.slice(0, a + 1), width, taper.factors.slice(0, a + 1)) : null,
+        end === 'point' && taper ? ribbonOutline(pts.slice(b), width, taper.factors.slice(b)) : null,
+        start === 'round' ? roundCapOutline(points, width, true) : null,
+        end === 'round' ? roundCapOutline(points, width, false) : null,
     ].filter((t): t is number[] => t !== null);
     return (g, style) => {
         if (middle.length >= 2) {
             g.poly(middle, false).stroke({...style, ...line, cap: 'butt'});
         }
-        tips.forEach(t => g.poly(t).fill(style));
+        pieces.forEach(t => g.poly(t).fill(style));
         return g;
     };
 }

@@ -102,10 +102,9 @@
         ],
         "options": [
           {
-            "id": "torch",
             "grants": [
               {
-                "id": "ill-teach-you-torch",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Torch",
                 "requiredLevel": 1
@@ -113,10 +112,9 @@
             ]
           },
           {
-            "id": "ignite",
             "grants": [
               {
-                "id": "ill-teach-you-ignite",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Ignite",
                 "requiredLevel": 7
@@ -124,10 +122,9 @@
             ]
           },
           {
-            "id": "immolate",
             "grants": [
               {
-                "id": "ill-teach-you-immolate",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Immolate",
                 "requiredLevel": 12
@@ -135,10 +132,9 @@
             ]
           },
           {
-            "id": "bind-elemental",
             "grants": [
               {
-                "id": "ill-teach-you-bind-elemental",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "BindElemental",
                 "requiredLevel": 15

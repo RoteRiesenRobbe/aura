@@ -158,7 +158,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');  // this run parks in the open; a dead player nulls the scene graph
+await cmd('GOD on');  // this run parks in the open; a dead player nulls the scene graph
 
 // --- leg A: the panel opens and closes --------------------------------------
 

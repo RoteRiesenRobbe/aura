@@ -84,7 +84,7 @@ export function onDomReady() {
 
     Credits.setup();
 
-    PlayerCount.setup(rootElement);
+    PlayerCount.mount(startForm);
 
     StartScreenDomReadyEvent.trigger(rootElement);
 }

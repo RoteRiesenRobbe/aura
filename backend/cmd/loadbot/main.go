@@ -412,7 +412,7 @@ func (l loadout) targetLevel() int {
 func setupSeq(id int) [][]byte {
 	var msgs [][]byte
 	if *god {
-		msgs = append(msgs, buildCheat(*token, "GOD"))
+		msgs = append(msgs, buildCheat(*token, "GOD on"))
 	}
 	for _, l := range equipPlan {
 		msgs = append(msgs, buildCheat(*token, "SKILL "+l.name))

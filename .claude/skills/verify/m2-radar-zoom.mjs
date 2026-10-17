@@ -121,7 +121,7 @@ const enterWorld = async () => {
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   console.log(`\njoined as ${await enterWorld()}\n`);
-  await cmd('GOD');
+  await cmd('GOD on');
 
   // --- 1. the default ---------------------------------------------------
   let s = await sample();

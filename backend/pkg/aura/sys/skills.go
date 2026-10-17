@@ -1806,7 +1806,10 @@ func (s *SkillSystem) fireAndCharge(e skillEntity, es *skills.EquippedSkill) {
 	if payer != nil {
 		chargeCost(payer, cost)
 	}
-	e.SkillComponent().StartCooldown(es)
+	// The WIZARD cheat: ready again at once.
+	if p, ok := e.(model.PlayerEntity); !ok || !p.NoCooldownCheat() {
+		e.SkillComponent().StartCooldown(es)
+	}
 	// Paid for and consumed, hit or whiff: that is a cast, and a cast is
 	// drawn (see noteCooldownCast).
 	noteCooldownCast(e, es)

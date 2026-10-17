@@ -271,7 +271,7 @@ const trackerOf = (questId, stageId) => {
 const titleOf = (questId) => (Array.isArray(catalog) ? catalog.find((x) => x.id === questId)?.title : null) ?? `??${questId}`;
 
 await cmd('PING'); // the first command after joining is dropped
-await cmd('GOD');  // standing in aggro radii for minutes
+await cmd('GOD on');  // standing in aggro radii for minutes
 await cmd('XP 20000'); // → L15: strong aura, and every mob near the farm is gray (see header)
 await ensureJournalOpen();
 

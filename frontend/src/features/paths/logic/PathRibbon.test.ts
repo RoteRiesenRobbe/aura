@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
-import {ribbonGeometry, ribbonOutline, taperedCentreline} from './PathRibbon';
-import {TAPER_LENGTH_PER_WIDTH} from './Paths';
+import {fadedRibbon, Ribbon, ribbonGeometry, ribbonOutline, rimCentreline, roundCapOutline, taperedCentreline} from './PathRibbon';
+import {CAP_LENGTH_PER_WIDTH, TAPER_LENGTH_PER_WIDTH} from './Paths';
 import {RegionPoint} from '../../regions/logic/Regions';
 
 /**
@@ -295,5 +295,205 @@ describe('ribbonOutline', () => {
         // tip (both rims), then the far pair on the far side, round to the near side.
         // (`+ 0` folds the -0 a zero-width rim produces into 0.)
         expect(flat.map(n => n + 0)).toEqual([0, 0, 400, -50, 400, 50, 0, 0]);
+    });
+});
+
+describe('taperedCentreline with one pointed end (plan-cliffs.md D1)', () => {
+    it('tapers only the LAST end', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [false, true])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 800, 1000]);
+        expect(t.factors).toEqual([1, 1, 0]);
+        expect(t.full).toEqual([0, 1]);
+    });
+
+    it('tapers only the FIRST end', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [true, false])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 200, 1000]);
+        expect(t.factors).toEqual([0, 1, 1]);
+        expect(t.full).toEqual([1, 2]);
+    });
+
+    it('clamps a lone taper to half the path, as the server does', () => {
+        // ⚑ paths_collision.go pathTaper clamps the same way.
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 200, y: 0}], 100, [false, true])!;
+        expect(t.points.map(p => p.x)).toEqual([0, 100, 200]);
+        expect(t.factors).toEqual([1, 1, 0]);
+        expect(t.full).toEqual([0, 1]);
+    });
+
+    it('has nothing to taper when neither end is pointed', () => {
+        expect(taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100, [false, false])).toBeNull();
+    });
+});
+
+describe('roundCapOutline', () => {
+    it('is a half disc OUTSIDE the last point', () => {
+        const cap = roundCapOutline([{x: 0, y: 0}, {x: 400, y: 0}], 100, false)!;
+        const pts: { x: number, y: number }[] = [];
+        for (let i = 0; i < cap.length; i += 2) { pts.push({x: cap[i], y: cap[i + 1]}); }
+        pts.forEach((p) => {
+            expect(p.x).toBeGreaterThanOrEqual(400 - 1e-6);
+            expect(Math.hypot(p.x - 400, p.y)).toBeCloseTo(50, FLOAT32);
+        });
+        expect(Math.max(...pts.map(p => p.x))).toBeCloseTo(450, FLOAT32);
+        expect(Math.min(...pts.map(p => p.y))).toBeCloseTo(-50, FLOAT32);
+        expect(Math.max(...pts.map(p => p.y))).toBeCloseTo(50, FLOAT32);
+    });
+
+    it('faces backwards at the first point', () => {
+        const cap = roundCapOutline([{x: 0, y: 0}, {x: 400, y: 0}], 100, true)!;
+        for (let i = 0; i < cap.length; i += 2) { expect(cap[i]).toBeLessThanOrEqual(1e-6); }
+    });
+
+    it('refuses what has no direction', () => {
+        expect(roundCapOutline([{x: 5, y: 5}, {x: 5, y: 5}], 100, false)).toBeNull();
+    });
+});
+
+// ---- fade ends (plan-cliffs.md D2) ------------------------------------------
+
+/** Every rim pair of a ribbon: [the v-low vertex, the v-high vertex]. */
+const rims = (r: Ribbon) => {
+    const out: { lo: { x: number, y: number, u: number, v: number }, hi: { x: number, y: number, u: number, v: number } }[] = [];
+    for (let i = 0; i < count(r); i += 2) { out.push({lo: vertex(r, i), hi: vertex(r, i + 1)}); }
+    return out;
+};
+
+describe('fadedRibbon', () => {
+    // Width 150 (a 1.5 u cliff at 100 px/u), so each cap is 300 px.
+    const W = 150;
+    const CAP = CAP_LENGTH_PER_WIDTH * W;
+
+    it('holds the cap length the server walls by', () => {
+        // ⚑ paths_collision.go capLengthPerWidth holds the same number.
+        expect(CAP_LENGTH_PER_WIDTH).toBe(2);
+    });
+
+    it('splits off a cap at each faded end', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const xs = (r: Ribbon) => rims(r).map(p => p.lo.x);
+        expect(xs(f.start!)).toEqual([0, CAP]);
+        expect(xs(f.end!)).toEqual([2000 - CAP, 2000]);
+        expect(xs(f.middle!)[0]).toBe(CAP);
+        expect(xs(f.middle!)[1]).toBe(2000 - CAP);
+    });
+
+    it('runs the end cap 0 → 1 outwards and mirrors the start cap', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        expect(rims(f.end!).map(p => p.lo.u)).toEqual([0, 1]);
+        // ⭐ Mirrored in u ONLY: the tip is u = 1 at both ends, and the start
+        // cap's inner edge meets the middle's u = 0.
+        expect(rims(f.start!).map(p => p.lo.u)).toEqual([1, 0]);
+    });
+
+    it('fits the middle to whole tiles, so each cap meets the tile at u = 0', () => {
+        // ⚑ Awkward on purpose: 2000 − 2 × 300 = 1400 px is 1.94 tiles.
+        const f = fadedRibbon([{x: 13, y: 7}, {x: 2013, y: 7}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const us = rims(f.middle!).map(p => p.lo.u);
+        expect(us[0]).toBe(0);
+        expect(us[us.length - 1]).toBeCloseTo(2, FLOAT32);
+    });
+
+    it('keeps the face on the same side in every piece', () => {
+        // A bend inside the end cap, at awkward coordinates.
+        const pts = [{x: 3.7, y: 11.2}, {x: 1503.7, y: 11.2}, {x: 1603.7, y: 211.2}];
+        const f = fadedRibbon(pts, W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        [f.start!, f.middle!, f.end!].forEach((r) => {
+            rims(r).forEach(({lo, hi}) => {
+                expect(hi.v).toBeGreaterThan(lo.v);
+                expect(hi.v + lo.v).toBeCloseTo(1, FLOAT32);
+            });
+        });
+        // ⚑ (−dy, dx) is the face side: on the first leg (+x) that is +y.
+        expect(rims(f.start!)[0].hi.y).toBeGreaterThan(rims(f.start!)[0].lo.y);
+    });
+
+    it('shares the rim pair where two pieces meet', () => {
+        const pts = [{x: 3.7, y: 11.2}, {x: 1503.7, y: 11.2}, {x: 1603.7, y: 211.2}];
+        const f = fadedRibbon(pts, W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        const a = rims(f.middle!);
+        const b = rims(f.end!);
+        expect(b[0].lo.x).toBe(a[a.length - 1].lo.x);
+        expect(b[0].lo.y).toBe(a[a.length - 1].lo.y);
+        expect(b[0].hi.x).toBe(a[a.length - 1].hi.x);
+        expect(b[0].hi.y).toBe(a[a.length - 1].hi.y);
+    });
+
+    it('clamps each cap to half a path shorter than two', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 400, y: 0}], W, TILE_W, TILE_H, ['fade', 'fade'])!;
+        expect(rims(f.start!).map(p => p.lo.x)).toEqual([0, 200]);
+        expect(rims(f.end!).map(p => p.lo.x)).toEqual([200, 400]);
+        expect(f.middle).toBeNull();
+    });
+
+    it('leaves a non-faded end in the middle piece', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['flat', 'fade'])!;
+        expect(f.start).toBeNull();
+        expect(rims(f.middle!)[0].lo.x).toBe(0);
+        expect(rims(f.end!).map(p => p.lo.x)).toEqual([2000 - CAP, 2000]);
+    });
+
+    it('still narrows a pointed other end', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['point', 'fade'])!;
+        const first = rims(f.middle!)[0];
+        expect(first.hi.y - first.lo.y).toBeCloseTo(0, FLOAT32);
+        const cap = rims(f.end!)[0];
+        expect(cap.hi.y - cap.lo.y).toBeCloseTo(W, FLOAT32);
+    });
+
+    it('measures the cap from capWidth, so a rim matches its body', () => {
+        const f = fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], 50, TILE_W, TILE_H, ['flat', 'fade'], W)!;
+        expect(rims(f.end!)[0].lo.x).toBe(2000 - CAP);
+    });
+
+    it('is null when no end fades', () => {
+        expect(fadedRibbon([{x: 0, y: 0}, {x: 2000, y: 0}], W, TILE_W, TILE_H, ['point', 'flat'])).toBeNull();
+    });
+});
+
+// ---- the cliff rim of a polygon (plan-cliffs.md D6) -------------------------
+
+describe('rimCentreline', () => {
+    // A 1000 x 800 px rectangle at awkward coordinates, wound both ways.
+    const cw = [{x: 13.7, y: 21.3}, {x: 1013.7, y: 21.3}, {x: 1013.7, y: 821.3}, {x: 13.7, y: 821.3}];
+    const ccw = [...cw].reverse();
+    const W = 150;
+    const inside = (p: { x: number, y: number }) => p.x > 13.7 + 1e-3 && p.x < 1013.7 - 1e-3
+        && p.y > 21.3 + 1e-3 && p.y < 821.3 - 1e-3;
+    const onBoundary = (p: { x: number, y: number }) =>
+        (Math.abs(p.x - 13.7) < 1e-2 || Math.abs(p.x - 1013.7) < 1e-2)
+        && (Math.abs(p.y - 21.3) < 1e-2 || Math.abs(p.y - 821.3) < 1e-2);
+
+    for (const [name, pts] of [['clockwise', cw], ['counter-clockwise', ccw]] as const) {
+        it(`out (a mountain): the foot on the boundary, the lip inside, wound ${name}`, () => {
+            const r = ribbonGeometry(rimCentreline(pts, 'out', W), W, true, TILE_W, TILE_H)!;
+            rims(r).forEach(({lo, hi}) => {
+                // ⚑ v > 0.5 (hi) is the tile's foot side: the low ground.
+                expect(onBoundary(hi)).toBe(true);
+                expect(inside(lo)).toBe(true);
+            });
+        });
+
+        it(`in (a pit): the lip on the boundary, the foot inside, wound ${name}`, () => {
+            const r = ribbonGeometry(rimCentreline(pts, 'in', W), W, true, TILE_W, TILE_H)!;
+            rims(r).forEach(({lo, hi}) => {
+                expect(onBoundary(lo)).toBe(true);
+                expect(inside(hi)).toBe(true);
+            });
+        });
+    }
+
+    it('insets by exactly the width at a corner', () => {
+        const r = ribbonGeometry(rimCentreline(cw, 'out', W), W, true, TILE_W, TILE_H)!;
+        const corner = rims(r).find(({hi}) => Math.abs(hi.x - 13.7) < 1e-2 && Math.abs(hi.y - 21.3) < 1e-2)!;
+        expect(corner.lo.x).toBeCloseTo(13.7 + W, 3);
+        expect(corner.lo.y).toBeCloseTo(21.3 + W, 3);
+    });
+
+    it('fits the ring to whole tiles', () => {
+        const r = ribbonGeometry(rimCentreline(cw, 'in', W), W, true, TILE_W, TILE_H)!;
+        const us = rims(r).map(p => p.lo.u);
+        expect(us[0]).toBe(0);
+        expect(us[us.length - 1]).toBeCloseTo(Math.round(us[us.length - 1]), FLOAT32);
     });
 });

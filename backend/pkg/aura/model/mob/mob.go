@@ -743,6 +743,18 @@ func (m *Mob) LightRadius() float32 {
 	return m.skills.LightRadius()
 }
 
+// LightColor is the colour of the light LightRadius reports, 0xRRGGBB, 0 =
+// unauthored white (plan-lightmap.md L2). Serialized as Mob.light_color.
+func (m *Mob) LightColor() uint32 {
+	return m.skills.LightColor()
+}
+
+// LightFlicker: does that light flicker (plan-lightmap.md L7)? Serialized as
+// Mob.light_flicker.
+func (m *Mob) LightFlicker() bool {
+	return m.skills.LightFlicker()
+}
+
 // AuraCategories is the active aura's ring-colour bitmask, 0 while none is
 // active — mirrors player.AuraCategories. Serialized as Mob.aura_category, so a
 // mob's ring reads the same colour language as a player's (triage item 7).

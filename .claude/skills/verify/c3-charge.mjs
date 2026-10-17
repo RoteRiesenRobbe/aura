@@ -190,7 +190,7 @@ const pressQ = async () => {
 };
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('SKILL Charge');
 
 // Equip into cooldown slot 1: click the NAME, then the slot.

@@ -74,7 +74,7 @@ async function runCommand(command) {
 const BRAMBLES = [[-68.7, -4.8], [-67.5, -4.8], [-66.3, -4.8], [-65.1, -4.8]];
 const STAND = { x: -67.5, y: -3.4 };
 
-await runCommand('GOD'); // survival only - GOD never touches the MOB's takeDamage
+await runCommand('GOD on'); // survival only - GOD never touches the MOB's takeDamage
 await runCommand(`WARP ${Math.round(STAND.x * 120)} ${Math.round(STAND.y * 120)}`);
 
 // Wait until the character actually reports the warped position (world units).

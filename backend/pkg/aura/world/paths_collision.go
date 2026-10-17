@@ -53,18 +53,47 @@ const maxCorridorSegment = 8
 // other walls it. Each side pins it with a test.
 const taperLengthPerWidth = 2
 
-// taper is a pointed path's width profile along its arc: the factor, 1 down to
-// 0, the width is multiplied by at arc position s. The zero value tapers
-// nothing, which is every path that does not author "point".
+// capLengthPerWidth is how long a faded end's cap is drawn (Path.Ends "fade",
+// plan-cliffs.md D2), as a multiple of the path's width. [PLACEHOLDER].
+//
+// ⚑ The client holds the SAME number (frontend Paths.ts CAP_LENGTH_PER_WIDTH):
+// it stretches the cap art over this length, and the wall below stops inside
+// it. Each side pins it with a test.
+const capLengthPerWidth = 2
+
+// fadeWallFraction is how far into a faded end's cap the wall reaches: 0 stops
+// it where the cap starts (the slope is walkable, a ramp), 1 runs it to the
+// tip. [PLACEHOLDER] — plan-cliffs.md Q1, tried at 0, 0.5 and 1 in the look.
+// Server-only: the client draws the cap whole either way.
+const fadeWallFraction = 0.5
+
+// taper is a pointed or faded path's profile along its arc: the factor, 1 down
+// to 0, the width is multiplied by at arc position s, and the stretch a faded
+// end leaves unwalled. The zero value changes nothing, which is every path
+// that authors neither "point" nor "fade".
 type taper struct {
 	length, total float32
+	// start and end say which ends narrow (plan-cliffs.md D1: each end has
+	// its own shape).
+	start, end bool
+	// openStart and openEnd are how much arc a faded end leaves unwalled:
+	// the part of its cap past fadeWallFraction. The wall stops there at full
+	// width; it never narrows (plan-cliffs.md D2).
+	openStart, openEnd float32
 }
 
-// pathTaper measures the taper an open path authoring "point" gets: 2 × width
-// at each end, clamped to half the path so the two never overlap. The taper is
-// INSIDE the drawn length (PO-ruled) — the endpoint is the tip.
+// pathTaper measures the taper an open path's "point" ends get: 2 × width at
+// each pointed end, clamped to half the path so two never overlap (and one
+// alone is clamped the same way, as the client does). The taper is INSIDE the
+// drawn length (PO-ruled) — the endpoint is the tip.
+//
+// A "fade" end is measured the same way: a cap of capLengthPerWidth × width,
+// clamped to half the path, of which the last (1 − fadeWallFraction) is left
+// unwalled.
 func pathTaper(p *Path) taper {
-	if p.Ends != "point" || p.Closed {
+	start, end := p.endOf(true) == "point", p.endOf(false) == "point"
+	fadeStart, fadeEnd := p.endOf(true) == "fade", p.endOf(false) == "fade"
+	if !(start || end || fadeStart || fadeEnd) || p.Closed {
 		return taper{}
 	}
 	var total float32
@@ -72,14 +101,52 @@ func pathTaper(p *Path) taper {
 		a, b := p.Points[i], p.Points[i+1]
 		total += float32(math.Hypot(float64(b.X-a.X), float64(b.Y-a.Y)))
 	}
-	return taper{length: min(taperLengthPerWidth*p.Width, total/2), total: total}
+	tp := taper{total: total, start: start, end: end}
+	if start || end {
+		tp.length = min(taperLengthPerWidth*p.Width, total/2)
+	}
+	open := min(capLengthPerWidth*p.Width, total/2) * (1 - fadeWallFraction)
+	if fadeStart {
+		tp.openStart = open
+	}
+	if fadeEnd {
+		tp.openEnd = open
+	}
+	return tp
+}
+
+// walled reports whether arc position s is inside the wall, i.e. not in the
+// open part of a faded end's cap.
+func (tp taper) walled(s float32) bool {
+	return s >= tp.openStart && s <= tp.total-tp.openEnd || tp.openStart == 0 && tp.openEnd == 0
+}
+
+// wallSpan is the part of a segment [along, along+length) the wall covers, in
+// segment-local arc: [lo, hi), empty when hi <= lo. Rects are clipped to it so
+// a faded wall stops exactly where it should, not at the nearest sample.
+func (tp taper) wallSpan(along, length float32) (lo, hi float32) {
+	lo, hi = 0, length
+	if tp.openStart > 0 {
+		lo = max(lo, tp.openStart-along)
+	}
+	if tp.openEnd > 0 {
+		hi = min(hi, tp.total-tp.openEnd-along)
+	}
+	return lo, hi
 }
 
 func (tp taper) at(s float32) float32 {
 	if tp.length <= 0 {
 		return 1
 	}
-	return max(0, min(1, s/tp.length, (tp.total-s)/tp.length))
+	f := float32(1)
+	if tp.start {
+		f = min(f, s/tp.length)
+	}
+	if tp.end {
+		f = min(f, (tp.total-s)/tp.length)
+	}
+	return max(0, f)
 }
 
 // PathCorridors builds the static collision shapes for every blocking path in
@@ -173,23 +240,31 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// width the drawing has at that sample's middle: the wall narrows with
 		// the cliff instead of standing full width round a tip the eye sees as
 		// nothing. Only full-width samples merge.
+		//
+		// ⭐ A faded end's open stretch is simply not blocked, and every rect
+		// is clipped to the walled span, so the wall ends exactly at the cut.
+		lo, hi := tp.wallSpan(along, length)
+		clip := func(from, to float32) (float32, float32) { return max(from, lo), min(to, hi) }
 		runStart := -1
 		for s := 0; s <= steps; s++ {
 			blocked := false
 			f := float32(1)
 			if s < steps {
 				t := (float32(s) + 0.5) * step
-				blocked = !coveredByBridge(a.X+ux*t, a.Y+uy*t, bridges)
+				blocked = !coveredByBridge(a.X+ux*t, a.Y+uy*t, bridges) &&
+					float32(s+1)*step > lo && float32(s)*step < hi
 				f = tp.at(along + t)
 			}
 			tapered := blocked && f < 1
 			if runStart >= 0 && (!blocked || tapered) {
-				out = emitRun(out, a.X, a.Y, ux, uy, float32(runStart)*step, float32(s)*step, p.Width, angle)
+				from, to := clip(float32(runStart)*step, float32(s)*step)
+				out = emitRun(out, a.X, a.Y, ux, uy, from, to, p.Width, angle)
 				runStart = -1
 			}
 			switch {
 			case tapered:
-				out = emitRun(out, a.X, a.Y, ux, uy, float32(s)*step, float32(s+1)*step, p.Width*f, angle)
+				from, to := clip(float32(s)*step, float32(s+1)*step)
+				out = emitRun(out, a.X, a.Y, ux, uy, from, to, p.Width*f, angle)
 			case blocked && runStart < 0:
 				runStart = s
 			}
@@ -215,7 +290,9 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// walkable deck. A vertex UNDER a deck has no clearance and no joint.
 		// What that gives up is a sliver of the outer wedge beside the deck — a
 		// notch in the bank, never a way across.
-		hasNextSegment := i+1 < segments || p.Closed
+		//
+		// ⚑ And a vertex in a faded end's open stretch gets none at all.
+		hasNextSegment := (i+1 < segments || p.Closed) && tp.walled(along)
 		if r := min(half*tp.at(along), bridgeClearance(b.X, b.Y, bridges)); hasNextSegment && r > 0 {
 			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: r})
 		}

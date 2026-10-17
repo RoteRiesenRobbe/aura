@@ -206,7 +206,7 @@ if (engaged === null) {
 // cheat-mode player would walk the world slowing everything that brushed them.
 // Only meaningful if something was actually in melee range above.
 if (engaged !== null) {
-  await cmd('GOD');
+  await cmd('GOD on');
   await page.waitForTimeout(7_000); // > the 5 s slow, so anything left is fresh
   let godPip = false;
   for (let i = 0; i < 6; i++) {

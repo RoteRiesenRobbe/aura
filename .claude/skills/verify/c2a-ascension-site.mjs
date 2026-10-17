@@ -305,7 +305,7 @@ const xpText = () => page.evaluate(() =>
 // GOD because the run stands still for a while beside a village full of aggro
 // radii, and a dead player nulls character.plate - every scene-graph read then
 // throws mid-assertion and reads exactly like a crash in the feature.
-await cmd('GOD');
+await cmd('GOD on');
 await cmd(WARP_TO);
 // The camera interpolates slowly across a large jump; the badge is server
 // state and arrives sooner, but settle anyway so a screenshot is honest.

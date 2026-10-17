@@ -131,7 +131,7 @@ const witness = await newPlayer(botName('witness'));
 const control = await newPlayer(botName('control'));
 
 for (const [page, name] of [[fighter, 'A'], [witness, 'B'], [control, 'C']]) {
-  await cmd(page, 'GOD');
+  await cmd(page, 'GOD on');
   void name;
 }
 

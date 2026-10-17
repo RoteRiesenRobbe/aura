@@ -18,7 +18,7 @@ module.exports = {
 				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content',
 				// Address-bar tint on mobile. Used to come from the favicons android
 				// platform; that platform is off (see below), so it is authored here.
-				'theme-color': '#E66CEF'
+				'theme-color': '#E37313'
 			}
 		}),
 		new FaviconWebpackPlugin({
@@ -28,10 +28,10 @@ module.exports = {
 			inject: true,
 			favicons: {
 				appName: 'Aura',
-				appDescription: 'A 2D multiplayer stone age survival game',
+				appDescription: 'A top-down multiplayer browser MMO',
 				developerName: 'Team Dodo',
 				developerURL: 'https://berryhunter.io',
-				theme_color: '#E66CEF',
+				theme_color: '#E37313',
 				version: 'Open Beta',
 				icons: {
 					// Aura is played in the browser; it is deliberately NOT installable.
@@ -106,8 +106,19 @@ module.exports = {
 				type: 'asset/source'
 			},
 
+			// An ARB ships without its translator notes (plan-localization.md C7).
+			// Webpack applies EVERY matching rule, so the generic `?raw` rule
+			// below excludes ARBs rather than relying on order.
+			{
+				test: /\.arb$/,
+				resourceQuery: /raw/,
+				type: 'asset/source',
+				use: [path.resolve(__dirname, 'tools/arb-strip-loader.js')],
+			},
+
 			{
 				resourceQuery: /raw/,
+				exclude: /\.arb$/,
 				type: 'asset/source',
 			},
 

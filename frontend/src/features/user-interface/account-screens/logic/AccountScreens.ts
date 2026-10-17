@@ -3,6 +3,7 @@ import * as Preloading from '../../../core/logic/Preloading';
 import {preventInputPropagation} from '../../../common/logic/Utils';
 import {registerFullscreenToggle} from '../../../full-screen/logic/FullScreen';
 import {registerMuteToggle} from '../../../audio/logic/Audio';
+import * as PlayerCount from '../../start-screen/logic/PlayerCount';
 
 /**
  * The DOM shell for the pre-game account screens
@@ -25,8 +26,11 @@ function onDomReady() {
     // the input-system listens on the document, not on the canvas.
     preventInputPropagation(rootElement);
 
+    // Below whichever panel is showing (the container is a column).
+    PlayerCount.mount(element('accountPlayerCount'));
+
     // ⚑ Registered here, not in each panel's module: the two switches and the
-    // start screen's are three views of one preference, and FullScreen keeps
+    // settings panel's are three views of one preference, and FullScreen keeps
     // them agreeing. (preventInputPropagation only stops propagation — it never
     // preventDefaults — so the checkbox still toggles and still fires `change`.)
     registerFullscreenToggle(element<HTMLInputElement>('creationFullscreenToggle'));

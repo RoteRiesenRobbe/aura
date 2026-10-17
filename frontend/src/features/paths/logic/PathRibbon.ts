@@ -37,7 +37,7 @@
  * half that must touch the GPU is `RegionPaint.paintRibbon`.
  */
 import {RegionPoint} from '../../regions/logic/Regions';
-import {TAPER_LENGTH_PER_WIDTH} from './Paths';
+import {CAP_LENGTH_PER_WIDTH, PathEnds, TAPER_LENGTH_PER_WIDTH} from './Paths';
 
 /** A triangle strip over a polyline, in the three buffers a Pixi mesh wants. */
 export interface Ribbon {
@@ -115,30 +115,66 @@ export interface TaperedCentreline {
  * (`paths_collision.go` pathTaper).
  *
  * ⚑ Clamped to half the path, so on a short one the two tapers meet in the
- * middle and nothing is full width, rather than overlapping.
+ * middle and nothing is full width, rather than overlapping. A lone taper
+ * (one pointed end) is clamped the same way, as the server's is.
  *
  * ⚑ A vertex is inserted where each taper begins, so the linear ramp starts
  * exactly there and a renderer can split the full-width middle off cleanly.
  * A cut landing on an existing vertex reuses it instead of doubling it.
  *
- * @returns null when there is no length to taper.
+ * @param pointed which ends narrow, [first, last] (plan-cliffs.md D1: each
+ *                end has its own shape). An end not pointed stays full width.
+ * @returns null when there is no length, or no pointed end, to taper.
  */
-export function taperedCentreline(points: RegionPoint[], width: number): TaperedCentreline | null {
+export function taperedCentreline(
+    points: RegionPoint[],
+    width: number,
+    pointed: [boolean, boolean] = [true, true],
+): TaperedCentreline | null {
+    const [atStart, atEnd] = pointed;
     const pts = distinct(points, false).map(i => points[i]);
-    if (pts.length < 2 || !(width > 0)) { return null; }
+    if (pts.length < 2 || !(width > 0) || !(atStart || atEnd)) { return null; }
+    const arc = arcOf(pts);
+    const total = arc[arc.length - 1];
+    if (!(total > 0)) { return null; }
+    const taper = Math.min(TAPER_LENGTH_PER_WIDTH * width, total / 2);
+    const cuts: number[] = [];
+    if (atStart) { cuts.push(taper); }
+    if (atEnd && !(atStart && taper >= total / 2)) { cuts.push(total - taper); }
+    const {points: out, at} = cutAt(pts, arc, cuts);
+
+    const first = atStart ? at.findIndex(s => s >= taper - EPS) : 0;
+    let last = first;
+    at.forEach((s, i) => { if (!atEnd || s <= total - taper + EPS) { last = i; } });
+    const factors = at.map((s, i) => (i >= first && i <= last)
+        ? 1
+        : Math.max(0, Math.min(1, (atStart ? s : Infinity) / taper, (atEnd ? total - s : Infinity) / taper)));
+    return {points: out, factors, full: [first, last]};
+}
+
+/** World px: a cut closer than this to a vertex IS that vertex. */
+const EPS = 1e-3;
+
+/** The arc length at each point of a polyline, from 0. */
+function arcOf(pts: RegionPoint[]): number[] {
     const arc = [0];
     for (let i = 1; i < pts.length; i++) {
         arc.push(arc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
     }
-    const total = arc[arc.length - 1];
-    if (!(total > 0)) { return null; }
-    const taper = Math.min(TAPER_LENGTH_PER_WIDTH * width, total / 2);
-    const cuts = taper < total / 2 ? [taper, total - taper] : [taper];
+    return arc;
+}
 
-    // World px: a cut closer than this to a vertex IS that vertex.
-    const EPS = 1e-3;
+/**
+ * Inserts a vertex at each arc position in `cuts` (ascending), so a renderer
+ * can split the line there. A cut landing on an existing vertex reuses it.
+ * Returns the points, each one's arc position, and for each the index of the
+ * original point it IS (-1 for an inserted one).
+ */
+function cutAt(pts: RegionPoint[], arc: number[], cuts: number[]):
+    { points: RegionPoint[], at: number[], source: number[] } {
     const out: RegionPoint[] = [];
     const at: number[] = [];
+    const source: number[] = [];
     for (let i = 0; i < pts.length; i++) {
         if (i > 0) {
             cuts.forEach((c) => {
@@ -149,20 +185,143 @@ export function taperedCentreline(points: RegionPoint[], width: number): Tapered
                         y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t,
                     });
                     at.push(c);
+                    source.push(-1);
                 }
             });
         }
         out.push(pts[i]);
         at.push(arc[i]);
+        source.push(i);
     }
+    return {points: out, at, source};
+}
 
-    const first = at.findIndex(s => s >= taper - EPS);
-    let last = first;
-    at.forEach((s, i) => { if (s <= total - taper + EPS) { last = i; } });
-    const factors = at.map((s, i) => (i >= first && i <= last)
-        ? 1
-        : Math.max(0, Math.min(1, Math.min(s, total - s) / taper)));
-    return {points: out, factors, full: [first, last]};
+/**
+ * A path with a `fade` end, as up to three meshes (plan-cliffs.md D2): the cap
+ * texture at each faded end, the path's own tile between them.
+ */
+export interface FadedRibbon {
+    /** The first point's cap, u running 1 at the tip → 0 at the inner edge. */
+    start: Ribbon | null;
+    /** The tile between the caps; null when the two caps meet. */
+    middle: Ribbon | null;
+    /** The last point's cap, u running 0 at the inner edge → 1 at the tip. */
+    end: Ribbon | null;
+}
+
+/**
+ * Splits a path with a `fade` end into its caps and its middle.
+ *
+ * ⭐ Each cap is `CAP_LENGTH_PER_WIDTH × capWidth` long, measured along the
+ * arc, and its art is stretched over it: u 0 → 1 from the inner edge to the
+ * tip. ONE cap texture serves both ends: the start's is MIRRORED in u only, so
+ * v (and with it the face side) never flips.
+ *
+ * ⭐ The middle is fitted to a WHOLE number of tiles, the correction a closed
+ * ring gets (see {@link ribbonGeometry}), so it meets each cap on the tile's
+ * u = 0 column, and the cap art is drawn to continue that column.
+ *
+ * ⚑ Clamped to half the path, like the taper: on a short path the two caps
+ * meet and there is no middle. A `point` other end still narrows (its taper is
+ * in the middle piece).
+ *
+ * ⚑ All three pieces are cut from ONE ribbon, so where two meet they share the
+ * same rim pair, mitre included, even when a cut lands on a bend.
+ *
+ * @param capWidth the width the cap (and a taper) LENGTH is measured from: the
+ *                 path's own, even for its outline.
+ * @returns null when no end fades, or there is no length.
+ */
+export function fadedRibbon(
+    points: RegionPoint[],
+    width: number,
+    tileW: number,
+    tileH: number,
+    ends: [PathEnds, PathEnds],
+    capWidth = width,
+    overdraw = 0,
+): FadedRibbon | null {
+    const faded = [ends[0] === 'fade', ends[1] === 'fade'];
+    if (!faded[0] && !faded[1]) { return null; }
+    const taper = taperedCentreline(points, capWidth, [ends[0] === 'point', ends[1] === 'point']);
+    const base = taper ? taper.points : distinct(points, false).map(i => points[i]);
+    if (base.length < 2 || !(tileW > 0)) { return null; }
+    const arc = arcOf(base);
+    const total = arc[arc.length - 1];
+    if (!(total > 0)) { return null; }
+    const cap = Math.min(CAP_LENGTH_PER_WIDTH * capWidth, total / 2);
+    const a = faded[0] ? cap : 0;
+    const b = faded[1] ? total - cap : total;
+    // Two caps clamped to half the path meet at ONE cut, never a doubled vertex.
+    const cut = cutAt(base, arc, a === b ? [a] : [a, b]);
+    // An inserted vertex takes its factor from the segment it was cut into.
+    const factors = taper ? cut.source.map((j, i) => {
+        if (j >= 0) { return taper.factors[j]; }
+        const k = arc.findIndex(s => s > cut.at[i]);
+        const t = (cut.at[i] - arc[k - 1]) / (arc[k] - arc[k - 1]);
+        return taper.factors[k - 1] + (taper.factors[k] - taper.factors[k - 1]) * t;
+    }) : undefined;
+    // ⚑ u comes out in px here (tileW 1); each piece rewrites it.
+    const full = ribbonGeometry(cut.points, width, false, 1, tileH, overdraw, factors);
+    if (full === null) { return null; }
+
+    const indexAt = (s: number) => cut.at.findIndex(x => Math.abs(x - s) <= EPS);
+    const iA = indexAt(a);
+    const iB = indexAt(b);
+    const piece = (from: number, to: number, uOf: (s: number) => number): Ribbon | null => {
+        if (to <= from) { return null; }
+        const n = to - from + 1;
+        const positions = full.positions.slice(from * 4, (to + 1) * 4);
+        const uvs = full.uvs.slice(from * 4, (to + 1) * 4);
+        const indices = new Uint32Array((n - 1) * 6);
+        for (let k = 0; k < n; k++) {
+            const u = uOf(cut.at[from + k]);
+            uvs[k * 4] = u;
+            uvs[k * 4 + 2] = u;
+            if (k > 0) {
+                const q = (k - 1) * 2;
+                indices.set([q, q + 1, q + 2, q + 1, q + 3, q + 2], (k - 1) * 6);
+            }
+        }
+        return {positions, uvs, indices};
+    };
+    const tiles = Math.max(1, Math.round((b - a) / tileW));
+    return {
+        start: faded[0] ? piece(0, iA, s => (a - s) / a) : null,
+        middle: b - a > EPS ? piece(iA, iB, s => (s - a) * tiles / (b - a)) : null,
+        end: faded[1] ? piece(iB, cut.points.length - 1, s => (s - b) / (total - b)) : null,
+    };
+}
+
+/**
+ * The half disc a `round` end adds past one endpoint, as ONE polygon, for a
+ * path whose two ends differ (plan-cliffs.md D1): a stroke has one cap, so
+ * the stroke is butt-capped and each round end is filled on its own. It sits
+ * wholly OUTSIDE the endpoint, so it meets the butt cap edge to edge rather
+ * than overlapping it (an overlap would double a semi-transparent tile).
+ *
+ * @param atStart the first point's end (facing backwards) or the last's
+ * @returns flat `[x0, y0, …]`, or null when the end has no direction.
+ */
+export function roundCapOutline(points: RegionPoint[], width: number, atStart: boolean): number[] | null {
+    const pts = distinct(points, false).map(i => points[i]);
+    if (pts.length < 2 || !(width > 0)) { return null; }
+    const tip = atStart ? pts[0] : pts[pts.length - 1];
+    const prev = atStart ? pts[1] : pts[pts.length - 2];
+    const dx = tip.x - prev.x;
+    const dy = tip.y - prev.y;
+    const len = Math.hypot(dx, dy);
+    if (!(len > 0)) { return null; }
+    const out = Math.atan2(dy, dx);
+    const r = width / 2;
+    // ⚑ Fine enough that the facets never read at a cliff's or road's width.
+    const STEPS = 16;
+    const flat: number[] = [];
+    for (let i = 0; i <= STEPS; i++) {
+        const a = out - Math.PI / 2 + (Math.PI * i) / STEPS;
+        flat.push(tip.x + Math.cos(a) * r, tip.y + Math.sin(a) * r);
+    }
+    return flat;
 }
 
 /**
@@ -183,6 +342,69 @@ export function ribbonOutline(points: RegionPoint[], width: number, factors: num
     for (let i = 0; i < n; i++) { flat.push(r.positions[i * 4], r.positions[i * 4 + 1]); }
     for (let i = n - 1; i >= 0; i--) { flat.push(r.positions[i * 4 + 2], r.positions[i * 4 + 3]); }
     return flat;
+}
+
+/**
+ * ⭐ The mitre at a vertex: the bisector of the two segment normals,
+ * lengthened by 1/cos(θ/2) so the rim stays `half` from the centreline
+ * THROUGH the corner. Without the lengthening the band pinches at every bend.
+ * At an open end there is one normal, and that is the answer.
+ */
+function mitre(prev: { x: number, y: number } | null, next: { x: number, y: number } | null): { x: number, y: number } {
+    if (prev && next) {
+        const bx = prev.x + next.x;
+        const by = prev.y + next.y;
+        const blen = Math.hypot(bx, by);
+        if (blen < 1e-6) {
+            // A perfect reversal: the bisector is undefined. Fall back to
+            // the outgoing normal rather than dividing by nothing.
+            return {x: next.x, y: next.y};
+        }
+        const ux = bx / blen;
+        const uy = by / blen;
+        const cos = ux * next.x + uy * next.y;
+        const scale = Math.min(MITRE_LIMIT, 1 / Math.max(1e-3, cos));
+        return {x: ux * scale, y: uy * scale};
+    }
+    const only = (prev || next) as { x: number, y: number };
+    return {x: only.x, y: only.y};
+}
+
+/**
+ * The centreline a polygon's CLIFF RIM is drawn along (plan-cliffs.md D6,
+ * `outlineFacing`), for {@link ribbonGeometry} with `closed`.
+ *
+ * ⭐ The direction is DERIVED from the polygon's signed area, never from how
+ * it was drawn: `out` (a mountain) orders the ring so the tile's foot side
+ * (+normal, `v > 0.5`) faces OUT of the shape, `in` (a pit) so it faces in.
+ *
+ * ⭐ The rim sits INSIDE the boundary, never across it: the centreline is
+ * moved inward by half the width along each vertex's own mitre, so one rim of
+ * the ribbon lands ON the boundary (where you stop: a mountain's foot, a
+ * pit's lip) and the other `width` inside it. An offset ring has the same
+ * segment directions, so the ribbon's mitres there are these mitres, and the
+ * outer rim is exact. ⚑ Where the shape is narrower than twice the width the
+ * rim folds over itself (Q7: left to the eye).
+ */
+export function rimCentreline(points: RegionPoint[], facing: 'out' | 'in', width: number): RegionPoint[] {
+    let pts = distinct(points, true).map(i => points[i]);
+    if (pts.length < 3) { return pts; }
+    let area = 0;
+    for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        area += a.x * b.y - b.x * a.y;
+    }
+    // ⚑ With area > 0 (y down) the +normal points INTO the ring. A pit wants
+    // that; a mountain wants it reversed.
+    if ((area > 0) !== (facing === 'in')) { pts = pts.slice().reverse(); }
+    // Inward is +normal for a pit and -normal for a mountain.
+    const inward = (facing === 'in' ? 1 : -1) * width / 2;
+    const n = pts.length;
+    return pts.map((p, i) => {
+        const m = mitre(segmentNormal(pts[(i - 1 + n) % n], p), segmentNormal(p, pts[(i + 1) % n]));
+        return {x: p.x + m.x * inward, y: p.y + m.y * inward};
+    });
 }
 
 /**
@@ -278,33 +500,7 @@ export function ribbonGeometry(
         const prev = closed || i > 0 ? normalAt((i - 1 + n) % n) : null;
         const next = closed || i < n - 1 ? normalAt(i % n) : null;
 
-        // ⭐ The mitre: the bisector of the two segment normals, lengthened by
-        // 1/cos(θ/2) so the rim stays `half` from the centreline THROUGH the
-        // corner. Without the lengthening the band pinches at every bend.
-        let mx: number;
-        let my: number;
-        if (prev && next) {
-            const bx = prev.x + next.x;
-            const by = prev.y + next.y;
-            const blen = Math.hypot(bx, by);
-            if (blen < 1e-6) {
-                // A perfect reversal: the bisector is undefined. Fall back to
-                // the outgoing normal rather than dividing by nothing.
-                mx = next.x;
-                my = next.y;
-            } else {
-                const ux = bx / blen;
-                const uy = by / blen;
-                const cos = ux * next.x + uy * next.y;
-                const scale = Math.min(MITRE_LIMIT, 1 / Math.max(1e-3, cos));
-                mx = ux * scale;
-                my = uy * scale;
-            }
-        } else {
-            const only = (prev || next) as { x: number, y: number };
-            mx = only.x;
-            my = only.y;
-        }
+        const {x: mx, y: my} = mitre(prev, next);
 
         if (i > 0) {
             const q = pts[(i - 1 + n) % n];

@@ -26,6 +26,7 @@
     "AuraPropType": [
       "Barn",
       "Bedroll",
+      "BerryBush",
       "Boulder",
       "Bridge",
       "BrokenCrate",
@@ -156,6 +157,7 @@
       "ReinhardsWife",
       "Rockfall",
       "SandBasilisk",
+      "SandClamper",
       "Seaweed",
       "Shaman",
       "Sheep",
@@ -399,7 +401,13 @@
       "(default)",
       "round",
       "flat",
-      "point"
+      "point",
+      "fade"
+    ],
+    "AuraOutlineFacing": [
+      "(default)",
+      "out",
+      "in"
     ],
     "AuraAreaId": [
       "(pick an area)",
@@ -487,6 +495,10 @@
       "w": 0.5,
       "h": 1.4
     },
+    "BerryBush": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Boulder": {
       "w": 2.2,
       "h": 2.2
@@ -548,7 +560,7 @@
       "h": 2.4
     },
     "Gate": {
-      "w": 2,
+      "w": 4,
       "h": 1.6
     },
     "GateWall": {
@@ -723,6 +735,7 @@
     "ReinhardsWife": "talker",
     "Rockfall": "fixture",
     "SandBasilisk": "combat",
+    "SandClamper": "combat",
     "Seaweed": "fixture",
     "Shaman": "talker",
     "Sheep": "combat",
@@ -837,6 +850,7 @@
     "ReinhardsWife": 0,
     "Rockfall": 0,
     "SandBasilisk": 0.45,
+    "SandClamper": 0.5,
     "Seaweed": 0,
     "Shaman": 0,
     "Sheep": 0,
@@ -915,6 +929,10 @@
     "Ash Fall",
     "Sandstorm",
     "Fairy Dust"
+  ],
+  "CAP_PROFILES": [
+    "Cliff",
+    "Cliff Smooth"
   ],
   "EFFECT_NAMES": [
     "Aegis",

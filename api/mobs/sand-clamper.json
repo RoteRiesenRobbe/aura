@@ -1,0 +1,27 @@
+{
+  "_comment": "A beach crab on Saltgrass Strand, the Farmlands' north shore. Aggressive (no faction = the default hostile: hunts players, ignores wildlife). Shell over speed: 75 HP (1.36 x the Wolf), speed 0.5, short 2.0 aggro so the strand stays walkable. Borrows RatBite (quick nips) until it gets its own pincer skill. entityType NpcPlaceholder: art owed. All values [PLACEHOLDER].",
+  "id": 123,
+  "name": "SandClamper",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "tier": "normal",
+  "curveLevel": 3,
+  "factors": {
+    "baseMaxHealth": 75,
+    "maxHealthVariance": 0.1,
+    "speed": 0.5,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 1.5,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 180,
+    "idleDwellMaxTicks": 700
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 2.0
+  },
+  "skills": [
+    { "skillName": "RatBite", "level": 1 }
+  ]
+}

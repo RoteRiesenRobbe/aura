@@ -70,7 +70,7 @@ const cmd = async (text) => {
 
 // GOD is fine here (unlike the FrostShield harness): nothing in a stun is
 // suppressed by cheat mode, and a dead player nulls every read.
-await cmd('GOD');
+await cmd('GOD on');
 
 // --- leg 1: learn it --------------------------------------------------------
 await cmd('SKILL Paralyze');

@@ -100,10 +100,9 @@
         ],
         "options": [
           {
-            "id": "torch",
             "grants": [
               {
-                "id": "ill-teach-you-torch",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Torch"
               }

@@ -1,0 +1,22 @@
+// The "players online" readout (PlayerCount.ts). Deliberately subdued: it is
+// information, not an action, and must not compete with the panel above it.
+.playerCount {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4em;
+
+	margin-top: 0.7rem;
+	font-size: 1.25rem; // [PLACEHOLDER] against the forms' 2rem
+	line-height: 1;
+	color: rgba(255, 255, 255, 0.75);
+
+	&.hidden {
+		display: none;
+	}
+
+	> svg {
+		width: 1.15em;
+		height: 1.15em;
+	}
+}

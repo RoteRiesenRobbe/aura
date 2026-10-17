@@ -53,7 +53,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 await cmd(`WARP ${WARP}`);
 // The camera interpolates slowly across a warp (backlog §20) — allow the
 // settle, then let the wolves notice and gather.

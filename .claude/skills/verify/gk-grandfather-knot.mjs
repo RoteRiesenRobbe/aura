@@ -198,7 +198,7 @@ const equipAndActivateAura = async (skillRe) => {
 };
 
 await page.keyboard.press('KeyJ'); // journal open for the whole run
-await cmd('GOD');
+await cmd('GOD on');
 // The heaps carry the Glimmerwood's spawn level (12); a level-1 character's
 // Harvest barely dents them, so play at the zone's band like a real visitor.
 await cmd('XP 20000');

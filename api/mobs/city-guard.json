@@ -120,10 +120,9 @@
         ],
         "options": [
           {
-            "id": "strong",
             "grants": [
               {
-                "id": "ill-teach-you-strong",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Strong",
                 "requiredLevel": 3

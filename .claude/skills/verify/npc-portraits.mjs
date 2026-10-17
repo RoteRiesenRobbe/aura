@@ -69,7 +69,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // first command after joining is dropped (harness note)
-await cmd('GOD');  // a parked level-1 player is inside plenty of aggro radii
+await cmd('GOD on');  // a parked level-1 player is inside plenty of aggro radii
 
 // Cache the scene root while the character is alive — Character.destroy() nulls
 // `plate`, so the documented way in dies with the player.

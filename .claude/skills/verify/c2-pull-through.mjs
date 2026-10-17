@@ -529,7 +529,7 @@ try {
   // ------------------------------------------------------------------ LEG O
   console.log('\n== LEG O: the observer parks AT the fire (the portal never streams to A) ==');
   B = await newClient('ptb');
-  await B.cmd('GOD');
+  await B.cmd('GOD on');
   const bAt = await B.warpTo(FIRE_TILE.x, FIRE_TILE.y);
   const bToFire = dist(bAt, FIRE);
   if (bToFire <= DWELL_RADIUS) pass('O · observer', `B stands ${bToFire.toFixed(2)} u from ${FIRE.id}, inside the ${DWELL_RADIUS} u bind circle - every portal on the ${RING} u ring is in its view`);
@@ -606,7 +606,7 @@ try {
   }
 
   // GOD from here on: every remaining leg stands still for tens of seconds.
-  await A.cmd('GOD');
+  await A.cmd('GOD on');
 
   // ------------------------------------------------------------------ CAST 2
   console.log('\n== CAST 2: the D8 annulus - both presses (§10 item 10) ==');
@@ -824,7 +824,7 @@ try {
   if (made2.home !== FIRE.id || !made2.eq.ok) {
     inconclusive('G · caster disconnects', `the second caster did not set up (home ${made2.home}, equip ${JSON.stringify(made2.eq)})`);
   } else {
-    await D.cmd('GOD');
+    await D.cmd('GOD on');
     const cast5 = await castPullThrough(D, B, { requireFullPool: true });
     const portal5 = cast5.completed ? cast5.portal : null;
     if (!portal5) {
@@ -933,7 +933,7 @@ try {
   if (uHome) {
     inconclusive('U · unbound refusal', `the fresh character bound to ${uHome} before the WARP landed - the ~1.7 s dwell window beat the harness. The property is owned by the Go pins on spawn_at_anchor's press and completion checks`);
   } else {
-    await U.cmd('GOD');
+    await U.cmd('GOD on');
     await U.cmd('SKILL PullThrough');
     await pageU.waitForTimeout(1_500);
     const eq = await equipCooldown(U, /Pull Through/i);

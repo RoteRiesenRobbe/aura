@@ -111,7 +111,7 @@ try {
   await enterWorld();
   const spawn = await pos();
   await cmd('PING'); // the first command after joining is dropped
-  await cmd('GOD');
+  await cmd('GOD on');
   await cmd('XP 99999999');
   await cmd('SKILL Lantern');
 

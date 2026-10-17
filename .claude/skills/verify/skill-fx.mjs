@@ -356,7 +356,7 @@ async function warpTo(spot, label) {
 
 const OPEN_GROUND = { x: -23, y: 14 };
 
-await runCommand('GOD');
+await runCommand('GOD on');
 
 // LEG 0 - negative control: open ground, no aura on, nothing may spawn.
 console.log('\n== LEG 0: negative control (open ground, 5 s) ==');
@@ -698,7 +698,7 @@ async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay
   const census = await stopCensus();
   const maulRun = mauls ? await stopMaulProbe() : null;
   const fx = delta(a, await fxCounts());
-  await runCommand('GOD');
+  await runCommand('GOD on');
   console.log(`leg ${n}: fx ${JSON.stringify(fx)}`);
   // ⚑ A dead client never re-points `window.game.character`, so every later
   // warp check would read a corpse: stop the mob legs here, loudly.
@@ -1192,11 +1192,11 @@ async function mobStrikeLeg(n, spot, label, shot, waitMs) {
       } else if (Date.now() - started > timeout) { clearInterval(poll); resolve(false); }
     }, 5);
   }), { timeout: 25_000 });
-  if (!armed) { await page.screenshot({ path: join(outdir, `leg${n}-nothing.png`) }); console.log(`INCONCLUSIVE: leg ${n}: nothing struck within 25 s`); await runCommand('GOD'); inconclusive = true; return; }
+  if (!armed) { await page.screenshot({ path: join(outdir, `leg${n}-nothing.png`) }); console.log(`INCONCLUSIVE: leg ${n}: nothing struck within 25 s`); await runCommand('GOD on'); inconclusive = true; return; }
   await page.waitForTimeout(waitMs);
   await page.screenshot({ path: join(outdir, shot) });
   await page.evaluate(() => { performance.now = window.__realNow; });
-  await runCommand('GOD');
+  await runCommand('GOD on');
   const d = delta(a, await fxCounts());
   pass(`leg ${n}: ${d.strike} strike(s) spawned by ${label}`);
   if (!(await playerAlive())) {
@@ -1251,7 +1251,7 @@ if (!inconclusive) {
     const census = await stopCensus();
     const maulRun = await stopMaulProbe();
     const d = delta(a, await fxCounts());
-    await runCommand('GOD');
+    await runCommand('GOD on');
     const wolfBites = countOf(census, 110, PHASE.direct) + countOf(census, 114, PHASE.direct);
     const landings = censusRows(census)
       .filter(r => !r.fired && r.phase === PHASE.direct && (r.kind === 0 || r.kind === 1))
@@ -1480,7 +1480,7 @@ async function lungeWindow(label, ms, shot) {
   const census = await stopCensus();
   const b = await fxCounts();
   const fx = delta(a, b);
-  await runCommand('GOD');
+  await runCommand('GOD on');
   const bites = countOf(census, 110, PHASE.direct) + countOf(census, 114, PHASE.direct);
   console.log(`${label}: fx ${JSON.stringify(fx)}, ambient ${b.ambient}, live ${b.live}`);
   console.log(`${label}: wolf bites on the wire ${bites}, census gaps ${census.gaps}, lunge bound ${plannedBound(census, 'lunge')}; probe ${JSON.stringify(probe)}`);

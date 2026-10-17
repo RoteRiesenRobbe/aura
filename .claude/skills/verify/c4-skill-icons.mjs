@@ -126,7 +126,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 for (const skill of CHEATS) {
   await cmd(`SKILL ${skill}`);
 }
@@ -232,7 +232,7 @@ const mobCmd = async (text) => {
   await mob.waitForTimeout(400);
 };
 await mobCmd('PING');
-await mobCmd('GOD');
+await mobCmd('GOD on');
 for (const skill of CHEATS.slice(0, 12)) {
   await mobCmd(`SKILL ${skill}`);
 }

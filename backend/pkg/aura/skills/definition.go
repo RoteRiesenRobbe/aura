@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
@@ -421,6 +422,37 @@ type EffectDef struct {
 	// shape under its own name (C5).
 	Fear    *StunParams    `json:"fear,omitempty"`    // fear
 	Stealth *StealthParams `json:"stealth,omitempty"` // stealth
+	Light   *LightParams   `json:"light,omitempty"`   // light_aura
+}
+
+// LightParams is the light_aura payload (plan-lightmap.md L2): the colour the
+// light draws in, 0xRRGGBB. 0 = unauthored, which the client draws white
+// (today's look); a black light is refused at load, so 0 never means black.
+// Flicker (L7, D12) wobbles the drawn light, presentation only; absent =
+// steady.
+type LightParams struct {
+	Color   uint32 `json:"color"`
+	Flicker bool   `json:"flicker"`
+}
+
+// ParseLightColor reads a light_aura's "#rrggbb" into 0xRRGGBB. Absent = 0,
+// the unauthored white. ⛔ "#000000" is refused: a black light lights nothing,
+// and the wire's 0 must stay free to mean "unauthored".
+func ParseLightColor(raw string) (uint32, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	if len(raw) != 7 || raw[0] != '#' {
+		return 0, fmt.Errorf("color: want \"#rrggbb\", got %q", raw)
+	}
+	v, err := strconv.ParseUint(raw[1:], 16, 32)
+	if err != nil {
+		return 0, fmt.Errorf("color: want \"#rrggbb\", got %q", raw)
+	}
+	if v == 0 {
+		return 0, fmt.Errorf("color: a light cannot be black (#000000)")
+	}
+	return uint32(v), nil
 }
 
 // StealthParams is the stealth payload (C6, D1): the cap on how long the
@@ -1231,6 +1263,11 @@ type effectDef struct {
 	Radius         float32 `json:"radius"`
 	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
+	// Color is light_aura's "#rrggbb" (plan-lightmap.md L2); Flicker its
+	// optional wobble (L7).
+	Color   string `json:"color"`
+	Flicker bool   `json:"flicker"`
+
 	CostFractionOfMax         float32 `json:"costFractionOfMax"`
 	CostFractionOfMaxPerLevel float32 `json:"costFractionOfMaxPerLevel"`
 
@@ -1506,7 +1543,7 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeDetaunt: mergeKeys(keysGeometry, keysTargetFlags),
 	// Rendering-only (chunk 3): pure geometry — no payload, no targeting, no
 	// cadence, no apply path. The radius streams as the wire light_radius.
-	EffectTypeLightAura: keysGeometry,
+	EffectTypeLightAura: mergeKeys(keysGeometry, []string{"color", "flicker"}),
 	// Shield pair (chunk 2), mirroring resist_aura's shape. The aura form
 	// derives its buff lifetime from the cadence (interval + 1); only the
 	// instant form carries an authored shieldDurationTicks.
@@ -2119,11 +2156,17 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		} else {
 			def.Stealth = &StealthParams{DurationTicks: e.StealthDurationTicks}
 		}
-	case EffectTypeLightAura, EffectTypeRecall, EffectTypeCharge:
-		// Payload-less by design: light_aura is pure geometry (its radius
-		// streams as the wire light_radius), recall's destination is the
-		// caster's campfire anchor and charge's is the nearest enemy inside
-		// its radius. All three intentionally leave every payload nil.
+	case EffectTypeLightAura:
+		// Geometry plus a colour and a flicker (plan-lightmap.md L2, L7): the
+		// radius streams as the wire light_radius, the rest as light_color and
+		// light_flicker.
+		var color uint32
+		color, err = ParseLightColor(e.Color)
+		def.Light = &LightParams{Color: color, Flicker: e.Flicker}
+	case EffectTypeRecall, EffectTypeCharge:
+		// Payload-less by design: recall's destination is the caster's
+		// campfire anchor and charge's is the nearest enemy inside its radius.
+		// Both intentionally leave every payload nil.
 	default:
 		// A type in effectTypeMap but absent from this switch would parse into
 		// an EffectDef with every payload nil — the exact invariant the struct

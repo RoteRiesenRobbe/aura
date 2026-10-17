@@ -81,7 +81,7 @@ const pos = () => page.evaluate(() => ({
 }));
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('SKILL SummonCompanion');
 
 await page.evaluate(() => {

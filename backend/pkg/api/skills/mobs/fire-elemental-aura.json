@@ -29,6 +29,8 @@
     },
     {
       "type": "light_aura",
+      "color": "#ff8a3a",
+      "flicker": true,
       "radius": 2.5,
       "radiusPerLevel": 0.0
     }

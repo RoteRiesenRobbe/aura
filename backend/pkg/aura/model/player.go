@@ -104,6 +104,11 @@ type PlayerEntity interface {
 	SetSpeedCheat(factor float32)
 	SpeedCheatFactor() float32
 
+	// SetNoCooldownCheat sets the dev WIZARD command's switch: while on, a
+	// fired cooldown starts no cooldown. Testing-only, never persisted.
+	SetNoCooldownCheat(on bool)
+	NoCooldownCheat() bool
+
 	Config() *cfg.PlayerConfig
 	Stats() *Stats
 	AddExperience(xp uint64)
@@ -129,6 +134,11 @@ type PlayerEntity interface {
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).
 	LightRadius() float32
+	// LightColor is that light's colour, 0xRRGGBB, 0 = unauthored white (wire
+	// light_color; plan-lightmap.md L2).
+	LightColor() uint32
+	// LightFlicker: does that light flicker (wire light_flicker; L7)?
+	LightFlicker() bool
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32

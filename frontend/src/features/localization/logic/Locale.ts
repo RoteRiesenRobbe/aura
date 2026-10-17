@@ -9,13 +9,15 @@
  *   because the conversation view re-renders every tick (D14 (3)).
  * - A missing or broken message degrades readable, never blank (D14).
  * - `en-XA` is the dev-only pseudo-locale (D21), chosen only by an explicit pin.
+ * - English is bundled; every other locale's catalog is its own chunk, loaded
+ *   once by `loadCatalog` before the game's modules run (C8, index.ts).
  */
 import IntlMessageFormat from 'intl-messageformat';
 import enArb from '../../../lang/en/frontend.arb?raw';
-import deArb from '../../../lang/de/frontend.arb?raw';
+import {CATALOG_LOADERS} from './CatalogLoaders';
 
 export const SOURCE_LOCALE = 'en';
-export const SUPPORTED_LOCALES: readonly string[] = ['en', 'de'];
+export const SUPPORTED_LOCALES: readonly string[] = [SOURCE_LOCALE].concat(Object.keys(CATALOG_LOADERS));
 export const PSEUDO_LOCALE = 'en-XA';
 export const STORAGE_KEY = 'aura.locale';
 
@@ -99,7 +101,6 @@ function browserLanguages(): readonly string[] {
 
 const catalogs: Record<string, Messages> = {
     en: parseArb(enArb),
-    de: parseArb(deArb),
 };
 
 let currentLocale = resolveLocale(readStoredLocale(), browserLanguages());
@@ -120,6 +121,34 @@ export function formatLocale(): string {
 /** The locale whose catalogs (server content too) this client asks for. */
 export function contentLocale(): string {
     return currentLocale;
+}
+
+/**
+ * Loads a locale's UI catalog chunk (C8), the resolved one by default. Answers
+ * null when there is nothing to load (English, the pseudo-locale, a catalog
+ * already in), so the caller can stay synchronous. A failed load degrades the
+ * whole client to English (D14: readable, never blank) with one warning; the
+ * stored choice is kept, so the next page load tries again.
+ */
+export function loadCatalog(tag: string = catalogFor(currentLocale)): Promise<void> | null {
+    const loader = CATALOG_LOADERS[tag];
+    if (!loader || catalogs[tag]) {
+        return null;
+    }
+    return loader()
+        .then(module => {
+            catalogs[tag] = parseArb(module.default);
+            cache.clear();
+        })
+        .catch(error => {
+            console.warn(`UI catalog "${tag}" unavailable - the game stays English`, error);
+            if (catalogFor(currentLocale) === tag) {
+                currentLocale = SOURCE_LOCALE;
+                if (typeof document !== 'undefined') {
+                    declarePageLanguage();
+                }
+            }
+        });
 }
 
 /** Test seam: re-resolve with explicit inputs. */
@@ -227,6 +256,31 @@ function formatWith(message: IntlMessageFormat, params?: Params): string | null 
         // A missing argument throws; fall back rather than blank the row.
         return null;
     }
+}
+
+const textCache = new Map<string, IntlMessageFormat | null>();
+
+/**
+ * Content text that may carry an argument (a shared teach line's {skill},
+ * 2026-10-15), formatted for the locale. Plain text comes back as it is, and
+ * so does a text that will not format (D14: readable, never blank).
+ */
+export function formatText(source: string, params: Params): string {
+    if (source.indexOf('{') < 0) {
+        return source;
+    }
+    const cacheKey = formatLocale() + '\u0000' + source;
+    let message = textCache.get(cacheKey);
+    if (message === undefined) {
+        try {
+            message = new IntlMessageFormat(source, formatLocale());
+        } catch (e) {
+            message = null;
+        }
+        textCache.set(cacheKey, message);
+    }
+    const text = message ? formatWith(message, params) : null;
+    return text === null ? source : text;
 }
 
 /** Whether the shipped English catalog has this key (D10's precedence). */

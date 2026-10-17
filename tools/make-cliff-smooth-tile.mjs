@@ -422,6 +422,67 @@ function reportScale() {
         + `${(CLIFF_H / U).toFixed(2)}, alignTexture true — same contract as \`Cliff\`.`);
 }
 
+/* ---- the cap (plan-cliffs.md D5) ----------------------------------------- */
+
+/**
+ * ⭐ THE ART A `fade` END IS DRAWN WITH: the cliff sloping down to the ground.
+ * The renderer draws it over the last CAP_LENGTH_PER_WIDTH × width of the path
+ * (Paths.ts), stretched to that length, u 0 → 1 from the tile to the tip; the
+ * start of a path uses it mirrored in u only.
+ *
+ * ⚑ CAP_W is that length at the documented width, so the art draws unstretched
+ * on a cliff authored at it: 2 × 1.5 u at scale 1.
+ *
+ * ⚑ Its LEFT COLUMN IS THE TILE'S COLUMN 0, to the byte (assertCapMeetsTile):
+ * the renderer fits the middle of the path to whole tiles, so the cap always
+ * meets the tile there. Its height, and so its v registration, is the tile's.
+ *
+ * ⭐ How it slopes: everything above the foot sinks TOWARD the foot as the drop
+ * runs out, so the face narrows and the lip descends to meet the low ground;
+ * the shadow and the talus below the foot thin out with it. At the tip nothing
+ * is left (assertCapTipIsClear), which is what clamp-to-edge then holds.
+ */
+const CAP_W = 360;
+const CAP_FILE = 'cliff-smooth-cap-placeholder.png';
+
+function capPixel(t, x, y) {
+    const k = x / CAP_W;
+    const h = 1 - ramp(k, 0, 1);    // how much of the drop is left
+    const u = (y - TILE_H / 2) / U;
+    const foot = t.face.to;
+    if (u >= foot) {
+        const p = pixel(t, x, y);
+        return [p[0], p[1], p[2], Math.round(p[3] * h)];
+    }
+    if (h <= 1e-6) { return [0, 0, 0, 0]; }
+    return pixel(t, x, TILE_H / 2 + (foot - (foot - u) / h) * U);
+}
+
+/** The cap continues the tile: its column 0 IS the tile's column 0. */
+function assertCapMeetsTile(t) {
+    for (let y = 0; y < TILE_H; y++) {
+        const a = capPixel(t, 0, y);
+        const b = pixel(t, 0, y);
+        for (let c = 0; c < 4; c++) {
+            if (a[c] !== b[c]) {
+                throw new Error(`the cap's left column differs from the tile's at row ${y}; `
+                    + 'the renderer meets them there, so the join would show.');
+            }
+        }
+    }
+    console.log('  cap: its left column is the tile\'s column 0, to the byte');
+}
+
+/** Nothing is left at the tip, so clamp-to-edge holds a clear column. */
+function assertCapTipIsClear(t) {
+    let worst = 0;
+    for (let y = 0; y < TILE_H; y++) { worst = Math.max(worst, capPixel(t, CAP_W - 1, y)[3]); }
+    if (worst > 2) {
+        throw new Error(`the cap's last column still has alpha ${worst}/255; the tip must be clear.`);
+    }
+    console.log(`  cap: ${CAP_W}x${TILE_H}, tip alpha <= ${worst}/255`);
+}
+
 /* ---- a minimal PNG writer ------------------------------------------------ */
 
 const CRC_TABLE = (() => {
@@ -488,4 +549,7 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('make-cliff-
     assertSeamless(TILE);
     assertMatchesProfile(TILE);
     writeRGBA(TILE_W, TILE_H, (x, y) => pixel(TILE, x, y), join(GROUND, TILE.file));
+    assertCapMeetsTile(TILE);
+    assertCapTipIsClear(TILE);
+    writeRGBA(CAP_W, TILE_H, (x, y) => capPixel(TILE, x, y), join(GROUND, CAP_FILE));
 }

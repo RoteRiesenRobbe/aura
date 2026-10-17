@@ -29,6 +29,16 @@ export const keys = {
   stock: (name) => `${STOCK_PREFIX}${name}`,
 };
 
+/**
+ * The English ARB (api/lang/en/<name>.arb) a content key lives in, by its first
+ * part: Go's langDomains. The dialogue and the shared phrases have their own
+ * file since 2026-10-15 (PO); a mob's name stays in mobs.
+ */
+export function arbOf(key) {
+  const root = String(key).split('.')[0];
+  return { quest: 'quests', mob: 'mobs', conv: 'conversations', stock: 'conversations', skill: 'skills', region: 'regions', zone: 'regions' }[root];
+}
+
 /** A content key: dot-separated parts of letters, digits, `-` and `_`, a letter first (D29). */
 export const KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$/;
 

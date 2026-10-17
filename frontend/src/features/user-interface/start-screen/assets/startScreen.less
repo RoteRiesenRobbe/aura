@@ -13,88 +13,41 @@
 		z-index: @z-start-screen;
 	}
 
-	> header {
+	// The title above the visible panel, centred as one block.
+	> .startColumn {
 		position: absolute;
-		top: 41%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		margin-left: -12vh; // half of 40% (image ratio) of the 60vh of #hunter
-		text-align: center;
-		letter-spacing: 0.04em;
-		color: @brand;
-		text-shadow: rgb(255, 255, 255) 5px 0 0, rgb(255, 255, 255) 4.9px 1px 0, rgb(255, 255, 255) 4.6px 1.95px 0, rgb(255, 255, 255) 4.13333px 2.81667px 0, rgb(255, 255, 255) 3.48333px 3.58333px 0, rgb(255, 255, 255) 2.7px 4.2px 0, rgb(255, 255, 255) 1.81667px 4.66667px 0, rgb(255, 255, 255) 0.85px 4.93333px 0, rgb(255, 255, 255) -0.15px 5px 0, rgb(255, 255, 255) -1.13333px 4.86667px 0, rgb(255, 255, 255) -2.08333px 4.55px 0, rgb(255, 255, 255) -2.95px 4.05px 0, rgb(255, 255, 255) -3.68333px 3.38333px 0, rgb(255, 255, 255) -4.28333px 2.58333px 0, rgb(255, 255, 255) -4.71667px 1.66667px 0, rgb(255, 255, 255) -4.95px 0.7px 0, rgb(255, 255, 255) -4.98333px -0.3px 0, rgb(255, 255, 255) -4.83333px -1.28333px 0, rgb(255, 255, 255) -4.48333px -2.21667px 0, rgb(255, 255, 255) -3.95px -3.06667px 0, rgb(255, 255, 255) -3.26667px -3.78333px 0, rgb(255, 255, 255) -2.45px -4.35px 0, rgb(255, 255, 255) -1.53333px -4.75px 0, rgb(255, 255, 255) -0.566667px -4.96667px 0, rgb(255, 255, 255) 0.433333px -4.98333px 0, rgb(255, 255, 255) 1.41667px -4.8px 0, rgb(255, 255, 255) 2.35px -4.41667px 0, rgb(255, 255, 255) 3.16667px -3.86667px 0, rgb(255, 255, 255) 3.88333px -3.15px 0, rgb(255, 255, 255) 4.43333px -2.31667px 0, rgb(255, 255, 255) 4.8px -1.4px 0, rgb(255, 255, 255) 4.98333px -0.416667px 0;
-
-		div {
-			position: relative;
-			top: 30%;
-			margin-top: -7vw;
-		}
-
-		> h1 {
-			font-size: 32.5vmin;
-			margin: 0;
-		}
-	}
-
-	> .playerForm {
-		position: absolute;
-		top: 55%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-	}
-
-	.startFormToggle {
-		cursor: pointer;
-
-		> .switch {
-			margin-right: 12px;
-		}
-
-		> label {
-			transition: color 0.18s;
-		}
-
-		&:hover {
-			> label {
-				color: @brand;
-			}
-		}
-	}
-
-	.optionsContainer {
-		margin-bottom: 16px;
-	}
-
-	// Players online, under the Play button. Deliberately subdued — it is
-	// information, not an action, and must not compete with Play.
-	#playerCount {
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.4em;
+		gap: 4vh;
+		pointer-events: none; // the menu and side links below must stay clickable
 
-		margin-top: 0.7rem;
-		font-size: 1.25rem; // [PLACEHOLDER] against the form's 2rem
-		line-height: 1;
-		color: rgba(255, 255, 255, 0.75);
-
-		// #id outranks the global .hidden, so restate it here.
-		&.hidden {
-			display: none;
+		> * {
+			pointer-events: auto;
 		}
 
-		> svg {
-			width: 1.15em;
-			height: 1.15em;
+		> header > h1 {
+			.aura-title();
+			font-size: 22vmin;
+		}
+
+		> .playerForm {
+			position: relative; // anchors #betaStamp at its corner
+			isolation: isolate; // keeps #loadingBar's z-index: -1 above this panel's background
+			box-sizing: border-box;
+			width: 32rem;
+			max-width: 90vw;
+			margin: 0;
 		}
 	}
 
 	&.loading,
 	&.failure {
-		#hunter {
-			opacity: 0;
-		}
-
 		> .infoContainer {
 			background-color: @backgroundColor;
 		}
@@ -105,6 +58,11 @@
 	}
 
 	&.finished {
+		// The account screens carry their own smaller title from here on.
+		header {
+			display: none;
+		}
+
 		#splashScreen {
 			opacity: 0;
 		}
@@ -214,19 +172,13 @@
 }
 
 #splashScreen {
-	background-color: #2FA107; // Color of the trees
-	background-image: url("loadingScreen.jpg");
-	background-position: center center;
-	background-size: cover;
+	// A faint brand-coloured glow over near-black.
+	background-color: #0D0E0F;
+	background-image: radial-gradient(ellipse at center, fade(@brand, 55%) 0%, transparent 65%);
 
 	width: 100%;
 	height: 100%;
 
-	transition: opacity @splashScreenAnimation;
-}
-
-#hunter {
-	height: 60vh;
 	transition: opacity @splashScreenAnimation;
 }
 

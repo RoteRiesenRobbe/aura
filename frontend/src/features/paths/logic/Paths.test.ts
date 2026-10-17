@@ -1,6 +1,8 @@
 import {describe, it, expect} from 'vitest';
-import {toPaths} from './Paths';
-import {regionBlend, regionPaintSpec, regionScroll, Profile} from '../../regions/logic/Regions';
+import {readdirSync, readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {PathDefinition, toPaths} from './Paths';
+import {regionBlend, regionCap, regionPaintSpec, regionScroll, Profile} from '../../regions/logic/Regions';
 
 // 1 unit = 120 px (api/shared-constants.json pointsPerMeter), the same
 // conversion Regions.toRegions applies — pinned here because the world and the
@@ -297,22 +299,85 @@ describe('toPaths corners and ends', () => {
         const [aligned] = toPaths([{profile: 'Fence', width: 1, points: line, alignTexture: true}]);
         for (const p of [plain, aligned]) {
             expect(p.corners).toBe('round');
-            expect(p.ends).toBe('round');
+            expect(p.ends).toEqual(['round', 'round']);
         }
     });
 
     it('carries what the zone authored', () => {
         const [p] = toPaths([{profile: 'Rock', width: 1, points: line, corners: 'sharp', ends: 'point'}]);
         expect(p.corners).toBe('sharp');
-        expect(p.ends).toBe('point');
+        expect(p.ends).toEqual(['point', 'point']);
         const [q] = toPaths([{profile: 'Rock', width: 1, points: line, ends: 'flat'}]);
-        expect(q.ends).toBe('flat');
+        expect(q.ends).toEqual(['flat', 'flat']);
     });
 
     it('degrades an unknown value to the default rather than handing it to Pixi', () => {
         const [p] = toPaths([{profile: 'Rock', width: 1, points: line,
             corners: 'bevel', ends: 'square'} as never]);
         expect(p.corners).toBe('round');
-        expect(p.ends).toBe('round');
+        expect(p.ends).toEqual(['round', 'round']);
+    });
+
+    // plan-cliffs.md D1: each end has its own key, absent follows `ends`.
+    it('lets endsStart and endsEnd override ends, one end each', () => {
+        const [p] = toPaths([{profile: 'Cliff', width: 1, points: line, ends: 'point', endsStart: 'flat'}]);
+        expect(p.ends).toEqual(['flat', 'point']);
+        const [q] = toPaths([{profile: 'Cliff', width: 1, points: line, endsEnd: 'point'}]);
+        expect(q.ends).toEqual(['round', 'point']);
+        const [r] = toPaths([{profile: 'Cliff', width: 1, points: line, endsStart: 'square'} as never]);
+        expect(r.ends).toEqual(['round', 'round']);
+    });
+});
+
+// ---- fade ends and cap profiles (plan-cliffs.md D2, D4) -----------------------
+
+describe('toPaths fade', () => {
+    it('carries fade like any other end', () => {
+        const line = [{x: 0, y: 0}, {x: 10, y: 0}];
+        const [p] = toPaths([{profile: 'Cliff', width: 1, points: line, ends: 'point', endsEnd: 'fade'}]);
+        expect(p.ends).toEqual(['point', 'fade']);
+    });
+});
+
+/** Every path in every shipped zone file, areas included, with where it is. */
+function shippedPaths(): { where: string, path: PathDefinition }[] {
+    const out: { where: string, path: PathDefinition }[] = [];
+    const walk = (z: { paths?: PathDefinition[], areas?: unknown[], id?: string }, where: string) => {
+        (z.paths || []).forEach((p, i) => out.push({where: `${where} path ${i}`, path: p}));
+        (z.areas || []).forEach((a, i) => walk(a as never, `${where}/${(a as { id?: string }).id || i}`));
+    };
+    const root = resolve(process.cwd(), '../api/zones');
+    [root, resolve(root, '.debug')].forEach((dir) => {
+        readdirSync(dir).filter(f => f.endsWith('.json')).forEach((f) => {
+            walk(JSON.parse(readFileSync(resolve(dir, f), 'utf-8')), f);
+        });
+    });
+    return out;
+}
+
+// ⭐ The server cannot see the profile table (it is client-only), so these two
+// content rules live here and in the Tiled save, which can.
+describe('shipped paths and cap profiles', () => {
+    const paths = shippedPaths();
+
+    it('reads some paths at all', () => {
+        expect(paths.length).toBeGreaterThan(0);
+    });
+
+    it('fade only on a profile with a cap (else it would be a quiet no-op)', () => {
+        const bad = paths.filter(({path: p}) => {
+            const [path] = toPaths([p]);
+            return path && path.ends.includes('fade') && !regionCap(path);
+        }).map(b => `${b.where} (${b.path.profile})`);
+        expect(bad).toEqual([]);
+    });
+
+    it('no round corner or end on an aligned cap profile (D4: it drops the mesh)', () => {
+        const bad = paths.filter(({path: p}) => {
+            const [path] = toPaths([p]);
+            if (!path || p.alignTexture !== true || !regionCap(path)) { return false; }
+            return path.corners === 'round' || (!path.closed && path.ends.includes('round'));
+        }).map(b => `${b.where} (${b.path.profile})`);
+        expect(bad).toEqual([]);
     });
 });

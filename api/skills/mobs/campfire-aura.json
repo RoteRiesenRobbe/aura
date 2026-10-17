@@ -20,6 +20,8 @@
     },
     {
       "type": "light_aura",
+      "color": "#ffb060",
+      "flicker": true,
       "radius": 7.0
     }
   ]

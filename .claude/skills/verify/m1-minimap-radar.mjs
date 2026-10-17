@@ -142,7 +142,7 @@ try {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';
   });
-  await cmd('GOD');
+  await cmd('GOD on');
   await sleep(2500);
 
   // --- 1. the docked scale is the radar's -------------------------------
@@ -218,7 +218,7 @@ try {
   await cmd(`WARP ${w(SPOT_B.x, SPOT_B.y)}`);
   await settleAt(SPOT_B);
   const before = await sample();
-  await cmd('GOD');           // off: DAMAGE 100 must be allowed to kill
+  await cmd('GOD on');           // off: DAMAGE 100 must be allowed to kill
   await cmd('DAMAGE 100');
   // The end screen is the death signal (filler-batch). An ordinary death does
   // NOT null the map's character: it keeps reading where it fell.

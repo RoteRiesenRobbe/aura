@@ -100,7 +100,7 @@ const openClient = async (tag) => {
   };
   const warp = (p, dx = 0) => cmd(`WARP ${Math.round(p.x * 120 + dx * 120)} ${Math.round(p.y * 120)}`, 2500);
   await cmd('PING');
-  await cmd('GOD');
+  await cmd('GOD on');
   return { page, cmd, warp };
 };
 
@@ -248,7 +248,7 @@ if (playerFear && bvSlotted) {
   await pressQ(b.page);
   fearFloat = await waitFor(b.page, () => b.page.evaluate(() => window.__floats.find((f) => /Feared|Stunned/.test(f)) || null), 2500);
 }
-await b.cmd('GOD', 300);
+await b.cmd('GOD on', 300);
 check('The BroodScreech lands a harmful Fear circle on the player',
   playerFear ? playerFear.harmful : null,
   playerFear ? `circle ${JSON.stringify(playerFear)}` : 'INCONCLUSIVE: no fear within 22 s (the screech came after ~11 s when measured; the mother wandered off, or B died)');

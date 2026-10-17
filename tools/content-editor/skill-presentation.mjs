@@ -100,7 +100,7 @@ export const COST_PRESENTATION = {
   costFractionOfMaxPerLevel: { control: 'number', group: SHARED },
 };
 
-// The 81 effect keys (effectDef's json tags, fixture `effectKeys`).
+// The 82 effect keys (effectDef's json tags, fixture `effectKeys`).
 export const EFFECT_PRESENTATION = {
   // --- the shared group (§B4.3): geometry, cadence, cap, target flags ---
   radius: { control: 'number', unit: 'units', group: SHARED, hint: 'World units; must be > 0 on every geometry type.' },
@@ -188,6 +188,10 @@ export const EFFECT_PRESENTATION = {
   fearTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks the target runs from the caster, unable to act. Shares the stun\'s diminishing returns.' },
   fearTicksPerLevel: { control: 'number', group: PAYLOAD },
   stealthDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'The cap: how long the caster stays hidden if no damage, dealt or taken, ends it first.' },
+
+  // --- light_aura (plan-lightmap.md L2) ---
+  color: { control: 'text', group: PAYLOAD, label: 'Light colour', hint: '#rrggbb, the colour this light draws in the dark. Blank = white. #000000 is refused.' },
+  flicker: { control: 'bool', group: PAYLOAD, label: 'Flicker', hint: 'The light wobbles like a fire. Visual only; nameplates and the map ignore it.' },
   calmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks out of combat; breaks on any damage.' },
   calmTicksPerLevel: { control: 'number', group: PAYLOAD },
   charmTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hint: 'Ticks fighting for the charmer; ends by turning on you.' },

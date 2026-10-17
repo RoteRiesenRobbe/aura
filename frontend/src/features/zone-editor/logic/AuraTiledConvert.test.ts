@@ -2525,6 +2525,8 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // while a writer drops them.
             profile: 'Cliff', points: [{x: 1, y: 7}, {x: 6, y: 7}], width: 1,
             corners: 'sharp', ends: 'point',
+            // plan-cliffs.md D1: both per-end keys, non-default for the same reason.
+            endsStart: 'flat', endsEnd: 'round',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
@@ -2534,6 +2536,8 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
             blocksMovement: true,
             outlineProfile: 'Ice', outlineWidth: 1.25,
+            // plan-cliffs.md D6: absent is the plain outline, so it is authored.
+            outlineFacing: 'in',
             effect: 'Immolate',
         }],
         // ⛔ NO blocksMovement, NO outline, NO width — the D15 ruling in the
@@ -2753,7 +2757,7 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     // the world grows a key on its first save from a Tiled that keeps defaults.
     it("⭐ AuraPath's corners and ends default to the converter's sentinel", () => {
         const members = byName('AuraPath').members ?? [];
-        (['corners', 'ends'] as const).forEach((k) => {
+        (['corners', 'ends', 'endsStart', 'endsEnd'] as const).forEach((k) => {
             const m = members.filter(x => x.name === k)[0];
             expect(m, `AuraPath carries ${k}`).toBeDefined();
             expect(m.propertyType).toBe(C.PATH_SHAPE_ENUMS[k]);
@@ -2789,6 +2793,259 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         o.properties.ends = 'point';
         const errors = C.validateModel(m) as string[];
         expect(errors.join('\n')).toContain('closed ring, which has no ends');
+    });
+
+    // plan-cliffs.md D1: one shape per end, same vocabulary, same ring rule.
+    it('round-trips endsStart and endsEnd, and writes nothing for the default', () => {
+        const line = [{x: 0, y: 0}, {x: 5, y: 0}];
+        const authored = roundTrip(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1, endsStart: 'flat', endsEnd: 'point'},
+        ]})).paths[0] as Record<string, unknown>;
+        expect(authored.endsStart).toBe('flat');
+        expect(authored.endsEnd).toBe('point');
+
+        const plain = roundTrip(zone({paths: [{profile: 'Road', points: line, width: 1}]}))
+            .paths[0] as Record<string, unknown>;
+        expect('endsStart' in plain).toBe(false);
+        expect('endsEnd' in plain).toBe(false);
+    });
+
+    it('refuses endsStart and endsEnd on a ring, and an unknown value', () => {
+        for (const k of ['endsStart', 'endsEnd']) {
+            const m = C.zoneToModel(zone({paths: [
+                {profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], width: 1, closed: true},
+            ]})) as {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+            o.properties[k] = 'flat';
+            expect((C.validateModel(m) as string[]).join('\n'), k)
+                .toContain(k + ' is "flat" but this path is a closed ring, which has no ends');
+            o.properties[k] = 'square';
+            expect((C.validateModel(m) as string[]).join('\n'), k).toContain(k + ' "square" must be one of');
+        }
+    });
+
+    // plan-cliffs.md D2 + D4: the two rules the server cannot check, because
+    // only the client and this save can see the profile table.
+    describe('fade ends and cap profiles', () => {
+        const line = [{x: 0.37, y: 1.19}, {x: 7.43, y: 2.61}];
+        const errorsFor = (path: Record<string, unknown>) => C.validateModel(C.zoneToModel(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1.5, ...path},
+        ]}))) as string[];
+
+        it('publishes the cap profiles from terrain-profiles.json', () => {
+            expect(content.CAP_PROFILES).toEqual(expect.arrayContaining(['Cliff', 'Cliff Smooth']));
+            expect(content.CAP_PROFILES).not.toContain('Road');
+        });
+
+        it('round-trips fade', () => {
+            const p = roundTrip(zone({paths: [
+                {profile: 'Cliff', points: line, width: 1.5, alignTexture: true, corners: 'sharp',
+                    ends: 'fade', endsStart: 'point'},
+            ]})).paths[0] as Record<string, unknown>;
+            expect(p.ends).toBe('fade');
+            expect(p.endsStart).toBe('point');
+        });
+
+        it('accepts fade on a cap profile, aligned and sharp', () => {
+            expect(errorsFor({alignTexture: true, corners: 'sharp', ends: 'fade'})).toEqual([]);
+        });
+
+        it('refuses fade on a profile with no cap', () => {
+            for (const keys of [{ends: 'fade'}, {endsEnd: 'fade'}]) {
+                const errors = C.validateModel(C.zoneToModel(zone({paths: [
+                    {profile: 'Road', points: line, width: 1.5, ...keys},
+                ]}))) as string[];
+                expect(errors.join('\n')).toContain('profile "Road" has no cap');
+            }
+        });
+
+        it('refuses round corners or a round end on an aligned cap profile', () => {
+            expect(errorsFor({alignTexture: true, ends: 'fade'}).join('\n'))
+                .toContain('corners are round');
+            expect(errorsFor({alignTexture: true, corners: 'sharp', endsEnd: 'fade'}).join('\n'))
+                .toContain('the start is round');
+            expect(errorsFor({alignTexture: true, corners: 'sharp', ends: 'fade', endsEnd: 'round'}).join('\n'))
+                .toContain('the end is round');
+        });
+
+        it('leaves round alone where the mesh is not asked for, or the profile has no cap', () => {
+            expect(errorsFor({})).toEqual([]);
+            const errors = C.validateModel(C.zoneToModel(zone({paths: [
+                {profile: 'Water', points: line, width: 3, alignTexture: true},
+            ]}))) as string[];
+            expect(errors).toEqual([]);
+        });
+    });
+
+    // plan-cliffs.md D6: a structure's outline as a cliff rim.
+    describe('outlineFacing on a structure', () => {
+        const square = [{x: -4.3, y: -3.7}, {x: 5.1, y: -3.7}, {x: 5.1, y: 6.2}];
+        const structure = (over: Record<string, unknown>) => zone({structures: [{
+            profile: 'Mountains', points: square, blocksMovement: true,
+            outlineProfile: 'Cliff', outlineWidth: 1.5, ...over,
+        }]});
+
+        it('round-trips out and in, and writes nothing when unset', () => {
+            for (const facing of ['out', 'in']) {
+                const s = roundTrip(structure({outlineFacing: facing})).structures[0];
+                expect(s.outlineFacing).toBe(facing);
+            }
+            expect('outlineFacing' in roundTrip(structure({})).structures[0]).toBe(false);
+        });
+
+        it('offers the sentinel first, then out and in', () => {
+            expect(byName(C.OUTLINE_FACING_ENUM).values).toEqual([C.PATH_SHAPE_DEFAULT, 'out', 'in']);
+        });
+
+        it('refuses an unknown value, and a facing with no outline', () => {
+            const m = C.zoneToModel(structure({outlineFacing: 'out'})) as
+                {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+            o.properties.outlineFacing = 'up';
+            expect((C.validateModel(m) as string[]).join('\n')).toContain('outlineFacing "up" must be one of');
+            o.properties.outlineFacing = 'out';
+            o.properties.outlineProfile = C.PROFILE_UNSET;
+            o.properties.outlineWidth = 0;
+            expect((C.validateModel(m) as string[]).join('\n')).toContain('outlineFacing is "out" but there is no outline');
+        });
+    });
+
+    // plan-cliffs.md D3: cliffs that touch are joined in the SAVE, so client and
+    // server read one geometry. ⚑ Awkward coordinates, never round ones.
+    describe('welds (plan-cliffs.md D3)', () => {
+        type P = Record<string, unknown> & { points: { x: number, y: number }[] };
+        const cliff = (points: { x: number, y: number }[], over: Record<string, unknown> = {}): P => ({
+            profile: 'Cliff', points, width: 1.5, blocksMovement: true, alignTexture: true,
+            corners: 'sharp', ...over,
+        });
+        const weld = (paths: P[]) => C.weldPaths(paths) as { paths: P[], problems: { a: number, b: number, message: string }[] };
+        const A = [{x: -8.37, y: 1.19}, {x: -2.11, y: 2.03}];
+        const B = [{x: -1.93, y: 2.21}, {x: 3.83, y: 4.41}];   // 0.25 from A's end
+
+        it('merges an end onto the next start into ONE path', () => {
+            const out = weld([cliff(A, {endsStart: 'point'}), cliff(B, {endsEnd: 'fade'})]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(1);
+            expect(out.paths[0].points).toEqual([A[0], A[1], B[1]]);
+            expect(out.paths[0].endsStart).toBe('point');
+            expect(out.paths[0].endsEnd).toBe('fade');
+        });
+
+        it('keeps A\'s start and B\'s end when both author ends', () => {
+            const out = weld([cliff(A, {ends: 'point'}), cliff(B, {ends: 'fade'})]);
+            expect(out.paths[0].ends).toBeUndefined();
+            expect([out.paths[0].endsStart, out.paths[0].endsEnd]).toEqual(['point', 'fade']);
+            const same = weld([cliff(A, {ends: 'fade'}), cliff(B, {ends: 'fade'})]);
+            expect(same.paths[0].ends).toBe('fade');
+            expect(same.paths[0].endsStart).toBeUndefined();
+        });
+
+        it('merges whatever the array order, and chains', () => {
+            const C3 = [{x: 3.97, y: 4.52}, {x: 7.13, y: -1.07}];
+            const out = weld([cliff(C3), cliff(B), cliff(A)]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(1);
+            expect(out.paths[0].points).toEqual([A[0], A[1], B[1], C3[1]]);
+        });
+
+        it('leaves ends further apart than the snap distance alone', () => {
+            const far = [{x: A[1].x + C.WELD_SNAP + 0.07, y: A[1].y}, {x: 5.5, y: 3.3}];
+            expect(weld([cliff(A), cliff(far)]).paths).toHaveLength(2);
+        });
+
+        it('refuses an end meeting an END: one would have to be reversed', () => {
+            const reversed = [B[1], B[0]];
+            const out = weld([cliff(A), cliff(reversed)]);
+            expect(out.problems).toHaveLength(1);
+            expect(out.problems[0].message).toContain('face opposite ways');
+            expect(out.paths).toHaveLength(2);
+            const starts = weld([cliff([A[1], A[0]]), cliff(B)]);
+            expect(starts.problems[0].message).toContain('face opposite ways');
+        });
+
+        it('refuses to merge cliffs that differ, naming what differs', () => {
+            expect(weld([cliff(A), cliff(B, {width: 2})]).problems[0].message).toContain('width');
+            expect(weld([cliff(A), cliff(B, {profile: 'Cliff Smooth'})]).problems[0].message).toContain('profile');
+            expect(weld([cliff(A), cliff(B, {blocksMovement: undefined})]).problems[0].message)
+                .toContain('blocksMovement');
+        });
+
+        it('leaves paths without a cap profile alone: roads may overlap', () => {
+            const road = (points: { x: number, y: number }[]) => ({profile: 'Road', points, width: 1.5});
+            const out = weld([road(A), road([B[1], B[0]])] as P[]);
+            expect(out.problems).toEqual([]);
+            expect(out.paths).toHaveLength(2);
+            expect(out.paths[0].points).toEqual(A);
+        });
+
+        describe('the T-weld', () => {
+            const bar = [{x: -6.13, y: 0.27}, {x: 6.41, y: 0.27}];
+            const stem = [{x: 1.37, y: 4.91}, {x: 1.61, y: 0.73}];   // 0.46 off the bar's centreline
+
+            it('moves the stem\'s end onto the bar, flat, and draws the stem first', () => {
+                const out = weld([cliff(bar), cliff(stem, {ends: 'fade'})]);
+                expect(out.problems).toEqual([]);
+                expect(out.paths).toHaveLength(2);
+                const [s, b] = out.paths;
+                expect(b.points).toEqual(bar);
+                expect(s.points[0]).toEqual(stem[0]);
+                expect(s.points[1].x).toBeCloseTo(1.61, 6);
+                expect(s.points[1].y).toBeCloseTo(0.27, 6);
+                expect(s.endsEnd).toBe('flat');
+                expect(s.ends).toBe('fade');
+            });
+
+            it('welds a stem\'s START too', () => {
+                const out = weld([cliff([stem[1], stem[0]]), cliff(bar)]);
+                expect(out.paths[0].endsStart).toBe('flat');
+                expect(out.paths[0].points[0].y).toBeCloseTo(0.27, 6);
+            });
+
+            it('is stable: welding the result again changes nothing', () => {
+                const once = weld([cliff(bar), cliff(stem)]).paths;
+                const twice = weld(JSON.parse(JSON.stringify(once))).paths;
+                expect(twice).toEqual(once);
+            });
+
+            // ⚑ The save writes every point at 0.01 u, so a projected end
+            // reads back a hair off the line. The shipped world's T came back
+            // 0.001 off on every save and never settled.
+            it('is stable through the save\'s rounding', () => {
+                const slant = [{x: -6.13, y: 0.27}, {x: 6.41, y: 1.94}];
+                const r2 = (v: number) => Math.round(v * 100) / 100;
+                const once = weld([cliff(slant), cliff(stem)]).paths;
+                const saved = once.map(p => ({...p, points: p.points.map(v => ({x: r2(v.x), y: r2(v.y)}))}));
+                expect(weld(JSON.parse(JSON.stringify(saved))).paths).toEqual(saved);
+            });
+
+            it('ignores an end further than half the bar\'s width off it', () => {
+                const off = [stem[0], {x: 1.61, y: 0.27 + 0.75 + 0.03}];
+                const out = weld([cliff(bar), cliff(off)]);
+                expect(out.paths[1].points).toEqual(off);
+                expect(out.paths[1].endsEnd).toBeUndefined();
+            });
+        });
+
+        it('applies on save, and the refusal names both objects', () => {
+            const saved = roundTrip(zone({paths: [cliff(A), cliff(B)]})).paths as P[];
+            expect(saved).toHaveLength(1);
+            const m = C.zoneToModel(zone({paths: [cliff(A), cliff([B[1], B[0]])]}));
+            const errors = (C.validateModel(m) as string[]).join('\n');
+            const line = errors.split('\n').filter(e => e.indexOf('face opposite ways') >= 0);
+            expect(line).toHaveLength(1);
+            expect(line[0]).toContain('(paths[0]) and ');
+            expect(line[0]).toContain('(paths[1]): ');
+        });
+
+        it('finds nothing to weld in the shipped world', () => {
+            const world = JSON.parse(worldText);
+            const all = [world.paths || []].concat((world.areas || []).map((a: { paths?: P[] }) => a.paths || []));
+            all.forEach((paths: P[]) => {
+                const out = weld(JSON.parse(JSON.stringify(paths)));
+                expect(out.problems).toEqual([]);
+                expect(out.paths).toEqual(paths);
+            });
+        });
     });
 
     // ⚑ And the enum behind it must actually offer the three values the

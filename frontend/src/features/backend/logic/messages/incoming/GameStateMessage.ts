@@ -1,5 +1,5 @@
 import {contentText} from '../../../../../client-data/LangBundle';
-import {formatList, t, tKey} from '../../../../localization/logic/Locale';
+import {formatList, formatText, t, tKey} from '../../../../localization/logic/Locale';
 import {mobName} from '../../../../localization/logic/WireText';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
@@ -444,11 +444,13 @@ function rowText(o: AuraApi.ConversationOption): string {
 
 function rowReply(o: AuraApi.ConversationOption): string {
     const english = o.reply() ?? '';
+    const skill = o.skillId() ? skillDisplayName(o.skillId()) : '';
     if (o.replyId()) {
-        return contentText(o.replyId(), english);
+        // A shared teach line names its skill as {skill} (stock.teach-skill).
+        return formatText(contentText(o.replyId(), english), {skill});
     }
     if (o.replyKey()) {
-        return tKey(o.replyKey(), {skill: o.skillId() ? skillDisplayName(o.skillId()) : ''}, english);
+        return tKey(o.replyKey(), {skill}, english);
     }
     return english;
 }
@@ -587,6 +589,8 @@ function unmarshalEntity(entity, eType) {
         levelProgress: undefined,
         auraRadius: undefined,
         lightRadius: undefined,
+        lightColor: undefined,
+        lightFlicker: undefined,
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
@@ -648,6 +652,10 @@ function unmarshalEntity(entity, eType) {
         result.auraRadius = entity.auraRadius();
         // light emitted in px, 0 = none — hole-punches the darkness overlay.
         result.lightRadius = entity.lightRadius();
+        // its colour, 0xRRGGBB, 0 = unauthored white (plan-lightmap.md L2).
+        result.lightColor = entity.lightColor();
+        // does it flicker (plan-lightmap.md L7)? Presentation only.
+        result.lightFlicker = entity.lightFlicker();
         // campfire bind radius in px, 0 = not a respawn anchor — drives the
         // inner dwell circle (chunk 4).
         result.dwellRadius = entity.dwellRadius();
@@ -690,6 +698,10 @@ function unmarshalEntity(entity, eType) {
         result.auraRadius = entity.auraRadius();
         // light emitted in px, 0 = none — hole-punches the darkness overlay.
         result.lightRadius = entity.lightRadius();
+        // its colour, 0xRRGGBB, 0 = unauthored white (plan-lightmap.md L2).
+        result.lightColor = entity.lightColor();
+        // does it flicker (plan-lightmap.md L7)? Presentation only.
+        result.lightFlicker = entity.lightFlicker();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
         // resource cost paid this tick — the blue number (round-7 item 7)
@@ -869,6 +881,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
     [AuraApi.EntityType.OakTree]: Props.genericPropClasses.OakTree,
     [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
+    [AuraApi.EntityType.BerryBush]: Props.genericPropClasses.BerryBush,
     [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
     [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
     // Generic, like the Gate it shares a body with — what makes it passable is

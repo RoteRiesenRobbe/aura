@@ -141,6 +141,10 @@ type player struct {
 	// 0/1 = off (input path treats <= 0 as 1).
 	speedCheatFactor float32
 
+	// noCooldownCheat is the dev WIZARD command's switch (cooldowns fire
+	// without starting one).
+	noCooldownCheat bool
+
 	stats       model.Stats
 	progression model.PlayerProgression
 
@@ -1245,6 +1249,18 @@ func (p *player) LightRadius() float32 {
 	return p.skills.LightRadius()
 }
 
+// LightColor is the colour of the light LightRadius reports, 0xRRGGBB, 0 =
+// unauthored white (plan-lightmap.md L2). Serialized as Character.light_color.
+func (p *player) LightColor() uint32 {
+	return p.skills.LightColor()
+}
+
+// LightFlicker: does that light flicker (plan-lightmap.md L7)? Serialized as
+// Character.light_flicker.
+func (p *player) LightFlicker() bool {
+	return p.skills.LightFlicker()
+}
+
 // AuraCategories is the active aura's ring-colour bitmask, 0 while none is
 // active. Serialized as Character.aura_category — the client colours the ring
 // from it instead of matching hardcoded skill IDs (triage item 7).
@@ -1568,6 +1584,14 @@ func (p *player) IsGod() bool {
 
 func (p *player) SetSpeedCheat(factor float32) {
 	p.speedCheatFactor = factor
+}
+
+func (p *player) SetNoCooldownCheat(on bool) {
+	p.noCooldownCheat = on
+}
+
+func (p *player) NoCooldownCheat() bool {
+	return p.noCooldownCheat
 }
 
 func (p *player) SpeedCheatFactor() float32 {

@@ -87,7 +87,7 @@ const results = [];
 const check = (name, pass, detail) => results.push({ name, pass, detail });
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await warp({ x: -23, y: 14 });
 await page.waitForTimeout(24_000);   // the camera interpolates slowly (backlog §20)
 

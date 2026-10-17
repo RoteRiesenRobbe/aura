@@ -78,6 +78,7 @@ type fakePlayer struct {
 	aura          *phy.Circle
 	body          *phy.Circle // main physical body (Bodies()[0], player layer)
 	god           bool
+	noCooldowns   bool // the WIZARD cheat
 	poolFactor    float32
 	maxHealth     vitals.VitalSign
 	level         uint32
@@ -169,6 +170,7 @@ func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusE
 func (f *fakePlayer) PoolFactor() float32                    { return f.poolFactor }
 func (f *fakePlayer) PowerScale() float32                    { return f.powerScale }
 func (f *fakePlayer) IsGod() bool                            { return f.god }
+func (f *fakePlayer) NoCooldownCheat() bool                  { return f.noCooldowns }
 func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
 func (f *fakePlayer) NoteCostPaid(paid vitals.VitalSign)     { f.costPaid += paid }

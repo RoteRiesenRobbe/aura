@@ -24,7 +24,8 @@ vi.mock('./AccountScreens', () => {
             if (!panel) {
                 panel = document.createElement('div');
                 if (id === 'characterSelect') {
-                    panel.innerHTML = '<div class="slotCards"></div>'
+                    panel.innerHTML = '<p class="selectGreeting hidden"></p>'
+                        + '<div class="slotCards"></div>'
                         + '<p class="playingWarning hidden"></p>';
                 }
                 panels.set(id, panel);
@@ -282,5 +283,28 @@ describe('every empty slot', () => {
         expect(cards()[2].textContent).not.toContain('Create character');
         cards().forEach((card) => card.dispatchEvent(new Event('pointerdown')));
         expect(created).toHaveLength(0);
+    });
+});
+
+/** The greeting above the heading: a registered account's name, nothing for a guest. */
+describe('the greeting', () => {
+    function greeting(): HTMLElement {
+        return AccountScreens.element('characterSelect').querySelector('.selectGreeting') as HTMLElement;
+    }
+    const list = () => aList([], [aBloodline(0), aBloodline(1), aBloodline(2)]);
+
+    it('greets a registered player by their account name', () => {
+        CharacterSelect.show(list(), {...aSession, username: 'Nullformed'});
+
+        expect(greeting().classList.contains('hidden')).toBe(false);
+        expect(greeting().textContent).toBe('Welcome, Nullformed!');
+    });
+
+    it('says nothing to a guest, even one the previous account greeted', () => {
+        CharacterSelect.show(list(), {...aSession, username: 'Nullformed'});
+        CharacterSelect.show(list(), {...aSession, registered: false});
+
+        expect(greeting().classList.contains('hidden')).toBe(true);
+        expect(greeting().textContent).toBe('');
     });
 });

@@ -70,7 +70,7 @@ async function runCommand(command) {
   await page.waitForTimeout(400);
 }
 
-await runCommand('GOD');
+await runCommand('GOD on');
 await runCommand('SKILL Rejuvenation');
 await page.waitForTimeout(800);
 

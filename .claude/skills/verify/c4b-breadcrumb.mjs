@@ -160,7 +160,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 await page.waitForTimeout(1500);
 
 // --- leg 1: the baseline is all-seen BY CONSTRUCTION -------------------------
@@ -466,7 +466,7 @@ const mobCmd = async (text) => {
   await mob.waitForTimeout(500);
 };
 await mobCmd('PING');
-await mobCmd('GOD');
+await mobCmd('GOD on');
 await mob.waitForTimeout(1500);
 
 const mobBaseline = await mob.evaluate(TRAIL);

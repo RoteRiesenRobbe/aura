@@ -198,6 +198,9 @@ export interface ZonePath extends InArea {
     // never edited; absent = round, and absent must stay absent.
     corners?: string;
     ends?: string;
+    // One end each, overriding ends (plan-cliffs.md D1). Carried, never edited.
+    endsStart?: string;
+    endsEnd?: string;
     // An authored skill applied to whatever stands in this shape
     // (plan-area-effects.md E1). Carried, never edited, like everything else
     // here. Absent = inert, which is every path in every shipped zone.
@@ -217,6 +220,9 @@ export interface ZonePolygon extends InArea {
     blocksMovement?: boolean;
     outlineProfile?: string;
     outlineWidth?: number;
+    // The outline as a cliff rim, `out` or `in` (plan-cliffs.md D6). Carried,
+    // never edited.
+    outlineFacing?: string;
     // The lava pool, the bog (plan-area-effects.md E1). ⚑ On the SHAPE and never
     // on the profile (D2): the profile tables are client-side, so a profile key
     // would make the look table gameplay-authoritative — and a profile is a
@@ -472,6 +478,8 @@ export class ZoneModel {
             alignTexture: p.alignTexture,
             corners: p.corners,
             ends: p.ends,
+            endsStart: p.endsStart,
+            endsEnd: p.endsEnd,
             effect: p.effect,
             area: p.area,
         }));
@@ -481,6 +489,7 @@ export class ZoneModel {
             blocksMovement: g.blocksMovement,
             outlineProfile: g.outlineProfile,
             outlineWidth: g.outlineWidth,
+            outlineFacing: g.outlineFacing,
             effect: g.effect,
             area: g.area,
         }));
@@ -750,6 +759,8 @@ export class ZoneModel {
                     // stays absent for alignTexture's reason.
                     corners: p.corners || undefined,
                     ends: p.ends || undefined,
+                    endsStart: p.endsStart || undefined,
+                    endsEnd: p.endsEnd || undefined,
                     // ⚑ Absent stays absent (plan-area-effects.md D10): no
                     // shipped path names an effect, so an empty string here must
                     // serialize to no key at all or every existing zone changes.
@@ -766,6 +777,7 @@ export class ZoneModel {
                     blocksMovement: g.blocksMovement ? true : undefined,
                     outlineProfile: g.outlineProfile || undefined,
                     outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
+                    outlineFacing: g.outlineFacing || undefined,
                     effect: g.effect || undefined,
                 }))
                 : undefined,

@@ -243,7 +243,7 @@ const openAt = async (warp) => {
 // GOD because the run stands still at the orc line, and a dead player nulls
 // character.plate — every scene-graph read then throws mid-assertion and reads
 // exactly like a crash in the feature.
-await cmd('GOD');
+await cmd('GOD on');
 
 // ===========================================================================
 // Leg 1 — the second stone stands at the front, and it is IT that answers.

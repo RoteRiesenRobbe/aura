@@ -15,6 +15,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/google/flatbuffers/go"
+	"github.com/google/uuid"
 )
 
 var commands = map[string]Command{
@@ -55,42 +56,18 @@ var commands = map[string]Command{
 
 		return nil
 	},
-	"WARP": func(g model.Game, p model.PlayerEntity, arg *string) error {
-		if arg == nil {
-			return fmt.Errorf("no arguments, usage: 'WARP <X> <Y>'")
-		}
-
-		argv := strings.Split(*arg, " ")
-		if len(argv) != 2 {
-			return fmt.Errorf("to many or too few arguments, expected 2 and got %d", len(argv))
-		}
-
-		x, err := strconv.ParseInt(argv[0], 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse argument X: %s", err)
-		}
-
-		y, err := strconv.ParseInt(argv[1], 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse argument Y: %s", err)
-		}
-
-		xf := float32(x / codec.Points2px)
-		yf := float32(y / codec.Points2px)
-		// A warp cancels a running flight (plan-flight-paths.md L9): Ground()
-		// is the one re-entry (shapes back, viewport restored, flight
-		// cleared) — without it the next tick's lerp would silently snap the
-		// warp back. No-op on the ground.
-		p.Ground()
-		p.SetPosition(phy.Vec2f{X: xf, Y: yf})
-
-		return nil
-	},
+	// GOD [on|off]: bare GOD toggles, 'on' and 'off' set it (scripts use
+	// those, so sending one twice cannot flip it back).
 	"GOD": func(g model.Game, p model.PlayerEntity, arg *string) error {
-		if arg != nil && *arg == "off" {
-			p.SetGodmode(false)
-		} else {
+		switch {
+		case arg == nil || *arg == "":
+			p.SetGodmode(!p.IsGod())
+		case strings.EqualFold(*arg, "on"):
 			p.SetGodmode(true)
+		case strings.EqualFold(*arg, "off"):
+			p.SetGodmode(false)
+		default:
+			return fmt.Errorf("usage: 'GOD', 'GOD on' or 'GOD off'")
 		}
 
 		return nil
@@ -137,7 +114,11 @@ var commands = map[string]Command{
 	// like the real milestone/kill-drop paths.
 	"SKILL": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
-			return fmt.Errorf("no argument, usage: 'SKILL <name>'")
+			return fmt.Errorf("no argument, usage: 'SKILL <name>' or 'SKILL all'")
+		}
+		if strings.EqualFold(*arg, "all") {
+			discoverAll(g, p)
+			return nil
 		}
 
 		def, err := g.Skills().GetByName(*arg)
@@ -152,6 +133,28 @@ var commands = map[string]Command{
 		}
 		p.ApplyRecipeCascade()
 
+		return nil
+	},
+	// WIZARD [on|off]: on grants every skill (SKILL all), resets every running
+	// cooldown and fires cooldowns without starting one; off restores
+	// cooldowns and keeps the skills. Bare WIZARD toggles, like GOD.
+	"WIZARD": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		var on bool
+		switch {
+		case arg == nil || *arg == "":
+			on = !p.NoCooldownCheat()
+		case strings.EqualFold(*arg, "on"):
+			on = true
+		case strings.EqualFold(*arg, "off"):
+			on = false
+		default:
+			return fmt.Errorf("usage: 'WIZARD', 'WIZARD on' or 'WIZARD off'")
+		}
+		p.SetNoCooldownCheat(on)
+		if on {
+			discoverAll(g, p)
+			p.SkillComponent().ResetCooldowns()
+		}
 		return nil
 	},
 	// QUEST inspects and drives the quest ledger (plan-quests.md C1) — the
@@ -211,6 +214,17 @@ var commands = map[string]Command{
 	},
 }
 
+// discoverAll adds every skill in the registry to the spellbook, mob skills
+// included, then runs the recipe cascade once. No unlock banner: one per
+// skill would bury the screen.
+func discoverAll(g model.Game, p model.PlayerEntity) {
+	sc := p.SkillComponent()
+	for _, def := range g.Skills().All() {
+		sc.Discover(def.ID)
+	}
+	p.ApplyRecipeCascade()
+}
+
 type CommandSystem struct {
 	players  []model.PlayerEntity
 	tokens   []string
@@ -230,19 +244,84 @@ type MapRevealer interface {
 	RevealMap(p model.PlayerEntity, zones []cfg.PlacedBounds)
 }
 
+// Campfires resolves campfire destinations for WARP and HOME
+// (sys.ConnectionStateSystem), narrow for Announcer's reason.
+type Campfires interface {
+	CampfirePosition(id string) (phy.Vec2f, bool)
+	AnchorOf(client uuid.UUID) (phy.Vec2f, bool)
+}
+
 // NewCommandSystem wires the cheat set: the static package commands plus the
 // space-bound THREAT closure (the space enables the query-nearby-mobs form),
-// the announcer-bound ANNOUNCE closure and the zone-bound REVEALMAP closure.
+// the announcer-bound ANNOUNCE closure, the zone-bound REVEALMAP closure and
+// the campfire-bound WARP and HOME closures.
 func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer Announcer,
-	revealer MapRevealer, zones []cfg.PlacedBounds) *CommandSystem {
-	cmds := make(map[string]Command, len(commands)+3)
+	revealer MapRevealer, zones []cfg.PlacedBounds, fires Campfires) *CommandSystem {
+	cmds := make(map[string]Command, len(commands)+5)
 	for name, action := range commands {
 		cmds[name] = action
 	}
 	cmds["THREAT"] = threatCommand(space)
 	cmds["ANNOUNCE"] = announceCommand(announcer)
 	cmds["REVEALMAP"] = revealCommand(revealer, zones)
+	cmds["WARP"] = warpCommand(fires)
+	cmds["HOME"] = homeCommand(fires)
 	return &CommandSystem{tokens: tokens, g: g, commands: cmds}
+}
+
+// warpCommand builds WARP <x> <y> (world px, 120 per unit; the client's
+// JUMPER sends this form) and WARP <spawnpoint-id> (onto that campfire).
+func warpCommand(fires Campfires) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || *arg == "" {
+			return fmt.Errorf("usage: 'WARP <x> <y>' (px) or 'WARP <spawnpoint-id>'")
+		}
+
+		argv := strings.Split(*arg, " ")
+		switch len(argv) {
+		case 1:
+			pos, ok := fires.CampfirePosition(argv[0])
+			if !ok {
+				return fmt.Errorf("no campfire with the id '%s'", argv[0])
+			}
+			teleport(p, pos)
+			return nil
+		case 2:
+			x, err := strconv.ParseFloat(argv[0], 32)
+			if err != nil {
+				return fmt.Errorf("cannot parse argument X: %s", err)
+			}
+			y, err := strconv.ParseFloat(argv[1], 32)
+			if err != nil {
+				return fmt.Errorf("cannot parse argument Y: %s", err)
+			}
+			teleport(p, phy.Vec2f{X: float32(x / codec.Points2px), Y: float32(y / codec.Points2px)})
+			return nil
+		}
+		return fmt.Errorf("expected 1 or 2 arguments, got %d", len(argv))
+	}
+}
+
+// homeCommand builds HOME: onto the campfire the player is bound to, at once
+// (the Recall utility's destination, without its cast).
+func homeCommand(fires Campfires) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		pos, ok := fires.AnchorOf(p.Client().UUID())
+		if !ok {
+			return fmt.Errorf("no campfire bound")
+		}
+		teleport(p, pos)
+		return nil
+	}
+}
+
+// teleport moves a player, cancelling a running flight first
+// (plan-flight-paths.md L9): Ground() is the one re-entry (shapes back,
+// viewport restored, flight cleared) — without it the next tick's lerp would
+// silently snap the warp back. No-op on the ground.
+func teleport(p model.PlayerEntity, pos phy.Vec2f) {
+	p.Ground()
+	p.SetPosition(pos)
 }
 
 // announceCommand builds ANNOUNCE <text> — the dev shortcut onto the same

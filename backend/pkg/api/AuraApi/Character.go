@@ -414,8 +414,32 @@ func (rcv *Character) MutateFlightArrivalTick(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(72, n)
 }
 
+func (rcv *Character) LightColor() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(76))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateLightColor(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(76, n)
+}
+
+func (rcv *Character) LightFlicker() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(78))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateLightFlicker(n bool) bool {
+	return rcv._tab.MutateBoolSlot(78, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(36)
+	builder.StartObject(38)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -509,6 +533,12 @@ func CharacterAddFlightDest(builder *flatbuffers.Builder, flightDest flatbuffers
 }
 func CharacterAddFlightArrivalTick(builder *flatbuffers.Builder, flightArrivalTick uint64) {
 	builder.PrependUint64Slot(34, flightArrivalTick, 0)
+}
+func CharacterAddLightColor(builder *flatbuffers.Builder, lightColor uint32) {
+	builder.PrependUint32Slot(36, lightColor, 0)
+}
+func CharacterAddLightFlicker(builder *flatbuffers.Builder, lightFlicker bool) {
+	builder.PrependBoolSlot(37, lightFlicker, false)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

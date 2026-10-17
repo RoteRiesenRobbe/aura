@@ -13,6 +13,10 @@ import {
     resolveIn, resolveSight,
 } from '../../regions/logic/Regions';
 import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
+import {authoredLightColor, lightTint, ownLightTint, WHITE_LIGHT} from './LightColor';
+import {fadeStops, LightShape, normalizeShape} from './LightShape';
+import {advanceEase, aimColor, aimRadius, drawnColor, gone, leave, LightEase, newEase, revive} from './LightEase';
+import {flicker as flickerMultipliers} from './LightFlicker';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -20,14 +24,31 @@ import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
  * Dark areas are authored per zone (`zone.darkAreas`, circles in server
  * units) and are constantly dark — independent of the day/night cycle (§6.5),
  * which is why this layer is deliberately NOT in the DayCycle filtered set.
- * Light sources (wire `light_radius` on Character/Mob) punch soft holes into
- * the darkness via erase-blend sprites.
  *
- * The AlphaFilter forces the layer to render into its own texture, which
- * (a) confines the erase blending to the darkness instead of the world
- * beneath, and (b) flattens overlapping dark circles to one uniform opacity
- * before the alpha applies — chained circles ("tunnels") show no darker
- * intersections.
+ * ⭐ THE LAYER IS A LIGHTMAP (plan-lightmap.md L1). It renders how LIT each
+ * pixel is — white = fully lit, black = nothing seen — and the AlphaFilter
+ * composites the finished texture over the world with `multiply`:
+ *   1. a white base quad over the whole zone (D3: the map is opaque, so a
+ *      coloured light can never tint daylight around it);
+ *   2. dark circles and the darkness atmospheres paint toward their colour;
+ *   3. clearings paint WHITE (D4);
+ *   4. light sources (wire `light_radius` on Character/Mob, the static
+ *      campfire and torch glows) SCREEN in their own colour (D2), each with
+ *      a white heart sprite over it, hidden while the shape's `heart` is 0
+ *      (plan-lightmap.md D10).
+ *
+ * ⭐ Screen is `1 - (1-ambient)(1-light)`, which is exactly what the erase holes
+ * this replaced computed (`1 - d(1-a)` under a darkness d): white lights are
+ * pixel-identical to the old build, partial darkness and soft rims included.
+ *
+ * The filter also forces the layer into its own render texture, which flattens
+ * overlapping dark circles to one uniform value before the composite —
+ * chained circles ("tunnels") show no darker intersections.
+ *
+ * ⛔ FULL DARKNESS SHOWS NOTHING (PO 2026-10-13, "no shine through ever"): a
+ * black lightmap pixel multiplies the world to exactly 0. That holds only while
+ * MAX_ALPHA is 1 and a darkness-1 profile is black, and the Go loader refuses
+ * any other colour there (plan-lightmap.md D7).
  */
 
 const DarknessVisuals = {
@@ -42,21 +63,44 @@ const DarknessVisuals = {
     // placeholder. Vision now comes exclusively from the light holes, of which
     // the player's own sight floor (Regions.SELF_SIGHT_FLOOR_PX, authorable
     // per profile since A2) is the guaranteed minimum.
+    // ⛔ Under the multiply composite (plan-lightmap.md D1) anything below 1
+    // mixes the world back in under every black pixel: shine-through.
     MAX_ALPHA: 1,
+    // How far past the zone's bounds the white base quad reaches, in world
+    // units: lights near the edge glow over the zone's outer ground, and a
+    // light outside the base would screen onto transparent and tint daylight
+    // (plan-lightmap.md D3).
+    BASE_MARGIN: 64,
     // Width (world units) of the soft edge appended OUTSIDE the authored
     // radius — the authored circle itself is guaranteed fully dark, so
     // overlapping circles chain without bright seams. [PLACEHOLDER]
     EDGE_FADE: 2,
+    // ⭐ THE LIGHT SHAPE (plan-lightmap.md D10), one set for every light, and
+    // tunable live: `game.darkness.lightShape({heart, core, curve})` in the
+    // browser console. The defaults are the pre-D10 picture exactly.
     // Fraction of a light hole's radius that is fully lit before its soft
     // edge starts (light fades inside its radius, unlike dark areas).
     // [PLACEHOLDER]
     LIGHT_CORE_FRACTION: 0.55,
+    // The white heart sprite's radius as a fraction of its light's; the colour
+    // shows outside it. 0 = no heart. [PLACEHOLDER]
+    LIGHT_HEART_FRACTION: 0,
+    // The fade's shape: 0 = linear, 1 = smoothstep. [PLACEHOLDER]
+    LIGHT_CURVE: 0,
     TEXTURE_SIZE: 256,
     // How long a full `sight` crossing takes, in ms (A2). A hole that snapped
     // from the floor to a room's worth of vision at a polygon edge is a pop;
     // this is short enough to feel like your eyes adjusting and long enough
     // that the boundary is not a line. [PLACEHOLDER]
     SIGHT_RAMP_MS: 400,
+    // How long a wire light takes to ease to a new radius or colour, and to
+    // fade in or out (plan-lightmap.md D11): a Lantern switched on, a lit mob
+    // walking into view, a fire elemental dying. [PLACEHOLDER]
+    LIGHT_RAMP_MS: 300,
+    // A flickering light's size swings ±this fraction and its strength dips by
+    // up to FLICKER_ALPHA (plan-lightmap.md D12). [PLACEHOLDER]
+    FLICKER_SIZE: 0.03,
+    FLICKER_ALPHA: 0.06,
 };
 
 // World campfires glow permanently (chunk 4 follow-up): their wire
@@ -68,8 +112,13 @@ const DarknessVisuals = {
 // bundling the zone data uses — so retuning the content value cannot desync
 // the static glow from the wire-driven hole.
 const campfireAura = require('../../../../../api/skills/mobs/campfire-aura.json');
-const CAMPFIRE_LIGHT_RADIUS: number =
-    campfireAura.effects.find((e) => e.type === 'light_aura')?.radius ?? 0;
+const campfireLight = campfireAura.effects.find((e) => e.type === 'light_aura');
+const CAMPFIRE_LIGHT_RADIUS: number = campfireLight?.radius ?? 0;
+// The glow's colour from the same effect (plan-lightmap.md D6): one file, both
+// numbers, so the static glow and the wire-driven one cannot disagree.
+const CAMPFIRE_LIGHT_COLOR: number = authoredLightColor(campfireLight?.color, WHITE_LIGHT);
+// ...and its flicker (D12), the same file again.
+const CAMPFIRE_LIGHT_FLICKER: boolean = campfireLight?.flicker === true;
 
 /**
  * The static light each prop TYPE casts, in world units, keyed by the prop's
@@ -85,21 +134,38 @@ const CAMPFIRE_LIGHT_RADIUS: number =
  * _GameObject, which imports this module, and that cycle would run a class
  * `extends` before its base exists.
  */
-const PROP_LIGHT_RADIUS = new Map<string, number>(
+const PROP_LIGHTS = new Map<string, { radius: number, color: number, flicker: boolean }>(
     (requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as
-        { name: string, lightFraction?: number }[])
+        { name: string, lightFraction?: number, lightColor?: string, lightFlicker?: boolean }[])
         .filter(def => (def.lightFraction ?? 0) > 0)
-        .map(def => [def.name, CAMPFIRE_LIGHT_RADIUS * def.lightFraction] as [string, number]),
+        // ⚑ A prop is a light SOURCE of its own (PO 2026-10-12, "one colour
+        // per source"), so it authors `lightColor`; absent, it reads as a small
+        // campfire. Client-only: the server's map fog reads the radius alone.
+        .map(def => [def.name, {
+            radius: CAMPFIRE_LIGHT_RADIUS * def.lightFraction,
+            color: authoredLightColor(def.lightColor, CAMPFIRE_LIGHT_COLOR),
+            flicker: def.lightFlicker === true,
+        }] as [string, { radius: number, color: number, flicker: boolean }]),
 );
 
 interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
     object: { id: gameObjectId, shape: Container };
     sprite: Sprite;
+    /** The white heart drawn over the coloured glow (D10). */
+    heart: Sprite;
     /** The wire's own radius in px, kept apart from the DRAWN size because the
      *  local player's hole is `max(wire, sight)` and sight moves every frame
      *  while the wire value only changes when the server says so (D7). */
     wireRadiusPx: number;
+    /** The wire's colour, 0 = unauthored white. Kept beside the radius for the
+     *  same reason: the own hole's tint depends on whether light or sight wins
+     *  the radius (plan-lightmap.md D9), and sight moves every frame. */
+    wireColor: number;
+    /** What is DRAWN, easing toward the wire (D11). */
+    ease: LightEase;
+    /** Does it flicker (D12)? From the wire; presentation only. */
+    flicker: boolean;
     /** Is this the LOCAL player's hole? Only that one gets `sight`: it answers
      *  "how far can I see", which is a question about the viewer and not about
      *  the entity. A remote player standing in fog keeps their own light. */
@@ -116,10 +182,10 @@ interface Circle {
 let layer: Container = null;
 // ⭐ THE HAZE LAYER IS A SEPARATE FILTERED CONTAINER, and that separation is the
 // whole feature (PO 2026-09-14). The darkness layer's AlphaFilter forces it into
-// its own render texture, and an erase sprite removes alpha from everything
-// already in that texture — which is exactly why a lantern cuts fog today. A
-// sibling container INSIDE the darkness layer would not help: it composites into
-// the same target before the holes are punched.
+// its own render texture, and a light lifts everything already in that texture
+// toward white — so fog painted there would be cut by every lantern. A sibling
+// container INSIDE the darkness layer would not help: it composites into the
+// same target before the lights are drawn.
 //
 // ⛔ So haze lives outside the darkness layer entirely, with a filter of its own,
 // and nothing in the darkness layer can reach it. A lamp shows you the fog; it
@@ -133,17 +199,17 @@ let layer: Container = null;
 let hazeLayer: Container = null;
 let hazeActive = false;
 // The atmosphere shapes' own child container, inserted BETWEEN the dark
-// circles and the erase holes (plan-region-atmosphere.md A1).
+// circles and the lights (plan-region-atmosphere.md A1).
 //
 // ⭐ A child container rather than shapes added straight to the layer, and the
-// reason is ORDER. Three things share this layer and the order is load-bearing:
-// dark circles, then the DARKNESS shapes, then every erase hole (static campfire glows and
+// reason is ORDER. Four things share this layer and the order is load-bearing:
+// the white base, dark circles, then the DARKNESS shapes, then every light (static campfire glows and
 // the wire-driven lights that `setLightRadius` appends later). Game repaints
 // the atmospheres a SECOND time when the zone's ground tiles land, and a repaint
 // that re-added them to the layer would put the fog on top of the campfire
 // glows and quietly seal them shut. Emptying one container in place cannot.
 let atmosphereLayer: Container = null;
-const radialTextures = new Map<number, Texture>();
+const radialTextures = new Map<string, Texture>();
 let active = false;
 /** The local player's unaided sight radius in world PX, easing across
  *  boundaries rather than snapping (A2). Starts at the shipped floor, which is
@@ -156,6 +222,19 @@ const lights = new Map<gameObjectId, LightSource>();
 // count as "hidden".
 const darkCircles: Circle[] = [];
 const staticLights: Circle[] = [];
+// The static glows' sprites, kept only so a live shape change (D10) can re-skin
+// them; `staticLights` is what the gameplay answers read.
+const staticSprites: { sprite: Sprite, heart: Sprite, radiusPx: number, flicker: boolean, seed: number }[] = [];
+// Time for the flicker noise (D12), advanced by `update`'s delta: behind the
+// loop's pause guard like every other animation here.
+let flickerClockMS = 0;
+// The live amplitudes, tunable from the console (D12) like the light shape.
+let flickerAmp = {size: DarknessVisuals.FLICKER_SIZE, alpha: DarknessVisuals.FLICKER_ALPHA};
+let shape: LightShape = {
+    heart: DarknessVisuals.LIGHT_HEART_FRACTION,
+    core: DarknessVisuals.LIGHT_CORE_FRACTION,
+    curve: DarknessVisuals.LIGHT_CURVE,
+};
 
 /** Where {@link RegionPaint.paintAtmospheres} draws — emptied and refilled by
  *  Game on every terrain repaint, never re-parented. Null before the first
@@ -166,7 +245,10 @@ export function atmosphereContainer(): Container {
 
 export function setup(darknessLayer: Container, hazeContainer: Container) {
     layer = darknessLayer;
-    layer.filters = [new AlphaFilter({alpha: DarknessVisuals.MAX_ALPHA})];
+    // ⭐ `multiply` composites the lightmap over the world (plan-lightmap.md D1):
+    // a native blend on WebGL and WebGPU, set on the filter because the filter
+    // is what draws the layer's texture back onto the screen.
+    layer.filters = [new AlphaFilter({alpha: DarknessVisuals.MAX_ALPHA, blendMode: 'multiply'})];
     layer.visible = false;
     // ⚑ Full alpha, unlike the darkness: MAX_ALPHA is how much of the world a
     // DARK AREA hides, and a fog bank's thickness is its own `haze` value. The
@@ -225,6 +307,20 @@ export function loadZone(zoneName: string) {
     hazeActive = air.some(a => declaresHaze(a));
     if (hazeLayer !== null) { hazeLayer.visible = hazeActive; }
 
+    // ⭐ The lightmap's white base (plan-lightmap.md D3), first child, so
+    // everything after it paints toward dark or back toward light. Without it
+    // the render target clears to transparent, which multiplies as "lit" too —
+    // but a coloured light screened onto transparent would tint daylight.
+    // ⚑ The whole zone plus a margin, never just the dark shapes: a light can
+    // stand anywhere in the zone.
+    const bounds = getZoneData(zoneName)?.bounds;
+    const base = new Sprite(Texture.WHITE);
+    base.anchor.set(0.5);
+    base.position.set(meter2px(ox), meter2px(oy));
+    base.width = meter2px((bounds ? bounds.width : 0) + 2 * DarknessVisuals.BASE_MARGIN);
+    base.height = meter2px((bounds ? bounds.height : 0) + 2 * DarknessVisuals.BASE_MARGIN);
+    layer.addChild(base);
+
     darkAreas.forEach((area) => {
         // Fully dark up to the authored radius; the fade lives outside it.
         const fadeRadius = area.radius + DarknessVisuals.EDGE_FADE;
@@ -244,20 +340,23 @@ export function loadZone(zoneName: string) {
     });
 
     // The atmosphere shapes' container, added AFTER the circles and BEFORE
-    // every erase hole. Empty here: Game paints into it, and repaints it when
+    // every light. Empty here: Game paints into it, and repaints it when
     // the zone's ground tiles land (fog can name a texture too).
     atmosphereLayer = new Container();
     layer.addChild(atmosphereLayer);
 
-    // Static campfire glow — erase sprites appended after the dark sprites so
-    // they render on top within this layer's own texture. The wire-driven
-    // hole for an in-range fire overlaps this one; double-erase clamps, the
-    // result is identical.
+    // Static campfire glow — screen sprites appended after the dark sprites
+    // so they render on top within this layer's own texture. ⛔ It is the
+    // fire's ONLY light: EntityManager drops the wire light of a respawn
+    // anchor (plan-lightmap.md D8). Two white screens of a full core stay
+    // white, but two COLOURED ones pale the colour, so a fire drawing both
+    // changed hue the moment it streamed in.
     if (active) {
         const zone = getZoneData(zoneName);
         const campfires = zone?.bindPoints || [];
         campfires.forEach((fire) => {
-            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS);
+            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS, CAMPFIRE_LIGHT_COLOR,
+                CAMPFIRE_LIGHT_FLICKER);
         });
         // Torches (PO 2026-09-20) — a small permanent fire, lighting half as
         // far as a campfire. ⭐ They are read from `zone.props` rather than
@@ -274,45 +373,50 @@ export function loadZone(zoneName: string) {
         // verbatim (see the comment on `inDarkness`). `punchStaticLight` does
         // both, which is why it exists rather than two call sites.
         flattenProps(zone?.props).forEach((prop) => {
-            const radius = PROP_LIGHT_RADIUS.get(prop.type);
-            if (radius !== undefined) {
-                punchStaticLight(prop.x + ox, prop.y + oy, radius);
+            const light = PROP_LIGHTS.get(prop.type);
+            if (light !== undefined) {
+                punchStaticLight(prop.x + ox, prop.y + oy, light.radius, light.color, light.flicker);
             }
         });
     }
 }
 
 /**
- * One authored, never-moving light: the erase hole the player SEES and the
+ * One authored, never-moving light: the glow the player SEES and the
  * circle `isHidden` ANSWERS FROM, written together so neither can be added
  * without the other. Positions are world units; the caller has already
  * applied the zone origin.
  */
-function punchStaticLight(x: number, y: number, radius: number) {
+function punchStaticLight(x: number, y: number, radius: number, color: number, flicker: boolean) {
     const px = meter2px(x);
     const py = meter2px(y);
     const radiusPx = meter2px(radius);
 
-    const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
-    sprite.anchor.set(0.5);
-    sprite.blendMode = 'erase';
+    const sprite = lightSprite(color);
+    const heart = heartSprite();
     sprite.position.set(px, py);
-    sprite.width = sprite.height = 2 * radiusPx;
-    layer.addChild(sprite);
+    heart.position.set(px, py);
+    sizeLight(sprite, heart, radiusPx);
+    layer.addChild(sprite, heart);
+    // The seed from the position: a static light has no id, and two fires
+    // must not pulse together.
+    staticSprites.push({sprite, heart, radiusPx, flicker, seed: Math.round(px * 31 + py * 17)});
 
     staticLights.push({x: px, y: py, radiusSq: radiusPx ** 2});
 }
 
 /**
- * Sizes (or removes, radiusPx <= 0) the light hole an entity punches into
- * the darkness. Wire light_radius is already in px. Erase sprites are
- * appended after the dark sprites, so they always render on top of them
- * within this layer's own render texture.
+ * Sizes (or removes, radiusPx <= 0) the light an entity casts into the
+ * darkness. Wire light_radius is already in px; wire light_color is 0 when
+ * unauthored (white). Light sprites are appended after the dark sprites, so
+ * they always render on top of them within this layer's own render texture.
  */
 export function setLightRadius(
     object: { id: gameObjectId, shape: Container },
     radiusPx: number,
     own = false,
+    color = 0,
+    flicker = false,
 ) {
     if (!active) {
         return;
@@ -322,24 +426,111 @@ export function setLightRadius(
     // at least their sight floor, and a snapshot with no light_radius means "no
     // light SOURCE", not "no eyes". Removing it would black out the avatar the
     // moment a torch burned out.
+    //
+    // ⭐ Every other light FADES OUT where it stands rather than vanishing
+    // (plan-lightmap.md D11); `update` destroys it once it is gone.
     if (radiusPx <= 0 && !own) {
-        if (light) {
-            removeLight(object.id, light);
+        if (light && !light.ease.leaving) {
+            leave(light.ease);
         }
         return;
     }
     if (!light) {
-        const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
-        sprite.anchor.set(0.5);
-        sprite.blendMode = 'erase';
-        layer.addChild(sprite);
-        light = {object, sprite, wireRadiusPx: 0, own};
+        const sprite = lightSprite(color);
+        const heart = heartSprite();
+        layer.addChild(sprite, heart);
+        const wire = Math.max(radiusPx, 0);
+        light = {
+            object, sprite, heart, wireRadiusPx: wire, wireColor: color, own,
+            ease: newEase(wire, lightTint(color)), flicker,
+        };
         lights.set(object.id, light);
+    } else if (light.ease.leaving) {
+        revive(light.ease);
     }
     light.object = object;
     light.own = light.own || own;
     light.wireRadiusPx = Math.max(radiusPx, 0);
+    light.wireColor = color;
+    light.flicker = flicker;
+    aimRadius(light.ease, light.wireRadiusPx);
+    aimColor(light.ease, targetTint(light));
     applyRadius(light);
+}
+
+/** The colour a light is heading for: the own hole's depends on whether light
+ *  or sight wins its radius (D9), every other light's is its wire colour. */
+function targetTint(light: LightSource): number {
+    return light.own
+        ? ownLightTint(light.wireRadiusPx, sightPx.value, light.wireColor)
+        : lightTint(light.wireColor);
+}
+
+/**
+ * One light's sprite (plan-lightmap.md D2): the WHITE radial ramp, tinted, and
+ * SCREENED onto the lightmap. Screen is `1 - (1-ambient)(1-light)`: it can only
+ * lift a pixel toward the light's colour, never past white, so a light over
+ * lit ground changes nothing and two overlapping lights combine exactly as the
+ * erase holes this replaced did.
+ *
+ * ⛔ Never masked: a masked sprite draws through a filter pass and loses its
+ * blend mode (the clearing build of 2026-09-17 read solid black for it).
+ */
+function lightSprite(color: number): Sprite {
+    const sprite = new Sprite(lightTexture());
+    sprite.anchor.set(0.5);
+    sprite.blendMode = 'screen';
+    sprite.tint = lightTint(color);
+    return sprite;
+}
+
+/**
+ * The white heart over a light's glow (plan-lightmap.md D10): the same
+ * texture, untinted, at `heart` × the light's size. Screen of white over a
+ * colour lerps it toward white by the heart's alpha, so the heart's own soft
+ * edge fades white into the colour by construction. A tint colours a whole
+ * sprite and cannot leave a white centre, hence a second sprite.
+ */
+function heartSprite(): Sprite {
+    const heart = lightSprite(WHITE_LIGHT);
+    heart.visible = shape.heart > 0;
+    return heart;
+}
+
+function lightTexture(): Texture {
+    return texture(shape.core, true, shape.curve);
+}
+
+/** A light's drawn size: the glow at the radius, the heart inside it. */
+function sizeLight(sprite: Sprite, heart: Sprite, radiusPx: number) {
+    sprite.width = sprite.height = 2 * radiusPx;
+    heart.width = heart.height = 2 * radiusPx * shape.heart;
+    heart.visible = shape.heart > 0;
+}
+
+/** The current light shape (D10). */
+export function lightShape(): LightShape {
+    return {...shape};
+}
+
+/**
+ * Changes the shape of every light, live (D10's console knob): textures are
+ * rebuilt (cached per shape) and every glow and heart on screen re-skinned and
+ * re-sized. Values are clamped to 0..1; an unnamed knob keeps its value.
+ * Returns the shape now in force.
+ */
+export function setLightShape(next: Partial<LightShape>): LightShape {
+    shape = normalizeShape(next, shape);
+    const tex = lightTexture();
+    staticSprites.forEach((s) => {
+        s.sprite.texture = s.heart.texture = tex;
+        sizeLight(s.sprite, s.heart, s.radiusPx);
+    });
+    lights.forEach((light) => {
+        light.sprite.texture = light.heart.texture = tex;
+        applyRadius(light);
+    });
+    return lightShape();
 }
 
 /**
@@ -350,31 +541,90 @@ export function setLightRadius(
  * light-vs-damage trade-off — the aura is what buys you the room — would be
  * revocable by map data. It also means `sight` can only ever make a place
  * kinder, which is a good property for a knob nobody has tuned.
+ *
+ * ⚑ The tint and opacity are set here too. The tint eases toward
+ * {@link targetTint} (white while sight wins the own hole, D9), and every
+ * value drawn is the EASED one (D11), never the wire's.
  */
 function applyRadius(light: LightSource) {
     const radius = light.own
-        ? lightRadiusWithSight(light.wireRadiusPx, sightPx.value)
-        : light.wireRadiusPx;
-    light.sprite.width = light.sprite.height = 2 * radius;
+        ? lightRadiusWithSight(light.ease.radius.value, sightPx.value)
+        : light.ease.radius.value;
+    // ⚑ The own hole flickers only while its LIGHT wins the radius: sight is
+    // eyes, and eyes do not flicker (D9's rule again).
+    const wobbles = light.flicker && (!light.own || light.wireRadiusPx >= sightPx.value);
+    const f = wobbles ? flickerAt(light.object.id) : STEADY;
+    sizeLight(light.sprite, light.heart, radius * f.size);
+    light.sprite.tint = drawnColor(light.ease);
+    light.sprite.alpha = light.heart.alpha = light.ease.fade.value * f.alpha;
+}
+
+const STEADY = {size: 1, alpha: 1};
+
+function flickerAt(seed: number): { size: number, alpha: number } {
+    return flickerMultipliers(flickerClockMS, seed, flickerAmp.size, flickerAmp.alpha);
+}
+
+/** The flicker amplitudes now in force (D12). */
+export function flickerAmplitude(): { size: number, alpha: number } {
+    return {...flickerAmp};
 }
 
 /**
- * Per-frame: glue light holes to their (interpolated) entity positions and
- * self-clean lights whose entity left the viewport (GameObject.hide detaches
- * the shape from its layer).
+ * Changes how hard every flickering light wobbles, live (the console knob):
+ * `{size: 0, alpha: 0}` holds them steady, which is also how the pixel legs
+ * measure a fire. Clamped to 0..0.5; an unnamed knob keeps its value.
+ */
+export function setFlickerAmplitude(next: { size?: number, alpha?: number }): { size: number, alpha: number } {
+    const pick = (v: unknown, current: number) => typeof v === 'number' && !Number.isNaN(v)
+        ? Math.min(0.5, Math.max(0, v))
+        : current;
+    flickerAmp = {size: pick(next.size, flickerAmp.size), alpha: pick(next.alpha, flickerAmp.alpha)};
+    return flickerAmplitude();
+}
+
+/**
+ * Per-frame: glue light holes to their (interpolated) entity positions, ease
+ * every light (D11), and fade out lights whose entity left the viewport
+ * (GameObject.hide detaches the shape from its layer) — where they last stood,
+ * destroyed once gone.
+ *
+ * ⚑ Every light is re-applied every frame. There are a few dozen at most, and
+ * the own hole's colour and size follow `sight`, which moves on its own.
  */
 function update(deltaMS: number) {
     if (!active) {
         return;
     }
+    flickerClockMS += deltaMS;
+    staticSprites.forEach((s) => {
+        if (!s.flicker) {
+            return;
+        }
+        const f = flickerAt(s.seed);
+        sizeLight(s.sprite, s.heart, s.radiusPx * f.size);
+        s.sprite.alpha = s.heart.alpha = f.alpha;
+    });
+    lights.forEach((light) => {
+        if (!light.ease.leaving && light.object.shape.parent === null) {
+            leave(light.ease);
+        }
+        if (!light.ease.leaving) {
+            light.sprite.position.copyFrom(light.object.shape.position);
+            light.heart.position.copyFrom(light.object.shape.position);
+        }
+    });
+    // After the move: sight resolves at the position just drawn (A2).
+    advanceSight(deltaMS);
     lights.forEach((light, id) => {
-        if (light.object.shape.parent === null) {
+        aimColor(light.ease, targetTint(light));
+        advanceEase(light.ease, deltaMS, DarknessVisuals.LIGHT_RAMP_MS);
+        if (gone(light.ease)) {
             removeLight(id, light);
             return;
         }
-        light.sprite.position.copyFrom(light.object.shape.position);
+        applyRadius(light);
     });
-    advanceSight(deltaMS);
 }
 
 /**
@@ -407,8 +657,8 @@ function advanceSight(deltaMS: number) {
     if (rampSettled(sightPx)) {
         return;
     }
+    // The own hole is re-applied by `update` right after, with every light.
     advanceRamp(sightPx, deltaMS, DarknessVisuals.SIGHT_RAMP_MS);
-    applyRadius(own);
 }
 
 function ownLight(): LightSource | undefined {
@@ -419,8 +669,9 @@ function ownLight(): LightSource | undefined {
 }
 
 function removeLight(id: gameObjectId, light: LightSource) {
-    layer.removeChild(light.sprite);
+    layer.removeChild(light.sprite, light.heart);
     light.sprite.destroy();
+    light.heart.destroy();
     lights.delete(id);
 }
 
@@ -446,8 +697,18 @@ export function isHidden(x: number, y: number): boolean {
     // Dynamic (wire-driven) lights: the full radius counts, not just the
     // fully-erased core, so a plate reappears as soon as any light reaches the
     // mob — the same moment the mob itself starts to become visible.
+    //
+    // ⛔ The WIRE's radius, never the drawn one (plan-lightmap.md D11): the
+    // drawn radius eases and flickers, and a nameplate must change on the frame
+    // the server says the light changed, as it always has. A light fading out
+    // lights nothing. (The own hole's sight is the eased value, as before D11.)
     for (const light of lights.values()) {
-        const radius = light.sprite.width / 2;
+        if (light.ease.leaving) {
+            continue;
+        }
+        const radius = light.own
+            ? lightRadiusWithSight(light.wireRadiusPx, sightPx.value)
+            : light.wireRadiusPx;
         if ((x - light.sprite.position.x) ** 2 + (y - light.sprite.position.y) ** 2 <= radius ** 2) {
             return false;
         }
@@ -521,20 +782,27 @@ function clear() {
     hazeActive = false;
     darkCircles.length = 0;
     staticLights.length = 0;
+    staticSprites.length = 0;
     active = false;
     layer.visible = false;
 }
 
 /**
  * Soft radial gradient textures (opaque up to `coreFraction` of the radius,
- * transparent rim), generated on a canvas and cached per fraction — used for
- * the dark circles (normal blend, fraction depends on the authored radius so
- * the fade width stays constant in world units) and the light holes (erase
- * blend, alpha = erase strength → soft light edge).
+ * transparent rim), generated on a canvas and cached per fraction and colour —
+ * BLACK for the dark circles (normal blend, fraction depends on the authored
+ * radius so the fade width stays constant in world units) and WHITE for the
+ * lights (screen blend, tinted per source; alpha = strength → soft rim).
+ *
+ * `curve` shapes the fade (plan-lightmap.md D10, {@link fadeStops}); the dark
+ * circles always fade linearly, since their rim is the darkness edge, not a
+ * light.
  */
-function texture(coreFraction: number): Texture {
-    // Round the cache key so near-identical fractions share a texture.
-    const key = Math.round(coreFraction * 100) / 100;
+function texture(coreFraction: number, white = false, curve = 0): Texture {
+    // Round the cache key so near-identical shapes share a texture.
+    const fraction = Math.round(coreFraction * 100) / 100;
+    const bend = Math.round(curve * 100) / 100;
+    const key = (white ? 'w' : 'k') + fraction + '/' + bend;
     let cached = radialTextures.get(key);
     if (!cached) {
         const size = DarknessVisuals.TEXTURE_SIZE;
@@ -542,11 +810,11 @@ function texture(coreFraction: number): Texture {
         canvas.width = canvas.height = size;
         const ctx = canvas.getContext('2d');
         const gradient = ctx.createRadialGradient(
-            size / 2, size / 2, (size / 2) * key,
+            size / 2, size / 2, (size / 2) * fraction,
             size / 2, size / 2, size / 2,
         );
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        const rgb = white ? '255, 255, 255' : '0, 0, 0';
+        fadeStops(bend).forEach((stop) => gradient.addColorStop(stop.offset, `rgba(${rgb}, ${stop.alpha})`));
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
         cached = Texture.from(canvas);

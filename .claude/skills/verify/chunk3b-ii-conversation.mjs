@@ -271,7 +271,7 @@ await page.evaluate(() => {
 });
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 await primeRoot();
 
 const results = [];

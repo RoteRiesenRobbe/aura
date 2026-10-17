@@ -41,7 +41,14 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
   content editor does the same on save, and moves a renamed id's keys in every
   language. German goes into `api/lang/de/` in the same change (D23); see the
   `add-content` skill for the steps and `docs/manual-localization-de.md` for
-  the style.
+  the style. Dialogue and shared phrases live in `conversations.arb`, a mob's
+  name in `mobs.arb`.
+- **Generic dialogue is a shared phrase, never a fresh line** (PO 2026-10-15).
+  A plain teach grant says `{"stock": "teach-skill"}` ("I'll teach you
+  {skill}.", the skill filled in per language); a teaching option needs no
+  label, the row shows the skill's own name. Write an own line only when the
+  NPC says more than that. The phrases: `stock.*` in
+  `api/lang/en/conversations.arb`.
 - **A mob a kill or harvest objective counts carries its plural in its name**
   (D24): `"mob_Wolf_name": "{count, plural, one {Wolf} other {Wolves}}"`. Every
   other mob name is plain text. The old `namePlural` field is retired.

@@ -238,6 +238,24 @@ export function worldToMap(world: number, scale: number, originPx: number = 0): 
 }
 
 /**
+ * The inverse of worldToMap plus the layer offset: a point in canvas px (from
+ * the canvas's top-left) back to the WORLD px it shows — what the JUMPER cheat
+ * warps to. `offset` is the layers' position (layerOffset), the zone origin
+ * the same one worldToMap subtracted.
+ */
+export function mapToWorld(
+    canvasPx: {x: number, y: number},
+    offset: {x: number, y: number},
+    scale: number,
+    originPx: {x: number, y: number} = {x: 0, y: 0},
+): {x: number, y: number} {
+    return {
+        x: (canvasPx.x - offset.x) / scale + originPx.x,
+        y: (canvasPx.y - offset.y) / scale + originPx.y,
+    };
+}
+
+/**
  * A world coordinate in its ZONE's own space — the space the map is baked in.
  *
  * ⚑ `originPx` is the ACTIVE zone's origin in the client's px space

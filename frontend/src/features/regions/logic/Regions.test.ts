@@ -10,6 +10,7 @@ import {
     regionBlend,
     REGION_BLEND_OUTWARD,
     regionBlendOutward,
+    regionCap,
     regionOverlay,
     regionPaintSpec,
     regionScroll,
@@ -736,5 +737,42 @@ describe('groundColor — the flat fill behind everything', () => {
 
     it("is the profile's colour otherwise", () => {
         expect(groundColor('bog', PROFILES)).toBe(0x222222);
+    });
+});
+
+// plan-cliffs.md D2: a profile may name the cap art a `fade` end draws.
+describe('PROFILES — the cap key (plan-cliffs.md D2)', () => {
+    const CAPS = buildProfiles({
+        cliff: {texture: 'cliff-tile', cap: 'cliff-cap'},
+        badCap: {texture: 'cliff-tile', cap: 'not a stem!'},
+        plain: {texture: 'road-tile'},
+    });
+
+    it('keeps a stem and drops what cannot name a file', () => {
+        expect(CAPS.cliff.cap).toBe('cliff-cap');
+        expect('cap' in CAPS.badCap).toBe(false);
+    });
+
+    it('is read off the surface\'s OWN profile, never resolved', () => {
+        expect(regionCap(square('cliff', 0, 0), CAPS)).toBe('cliff-cap');
+        expect(regionCap(square('plain', 0, 0), CAPS)).toBeNull();
+        expect(regionCap(square('no-such-profile', 0, 0), CAPS)).toBeNull();
+    });
+
+    // ⚑ An outline wears its OWN profile; missed here, a rim on a profile no
+    // other surface wears painted its fallback colour for the whole session.
+    it("loads an outline profile's tile", () => {
+        const rimmed = {...square('plain', 0, 0), outlineProfile: 'cliff', outlineWidth: 10};
+        expect(neededTextures([rimmed], CAPS).sort()).toEqual(['cliff-cap', 'cliff-tile', 'road-tile']);
+    });
+
+    it('loads the cap with the tile', () => {
+        expect(neededTextures([square('cliff', 0, 0)], CAPS).sort()).toEqual(['cliff-cap', 'cliff-tile']);
+    });
+
+    it('names a cap for both shipped cliff profiles', () => {
+        const shipped = buildProfiles(terrainProfilesJson as { [k: string]: unknown });
+        expect(regionCap(square('Cliff', 0, 0), shipped)).toBe('cliff-cap-placeholder');
+        expect(regionCap(square('Cliff Smooth', 0, 0), shipped)).toBe('cliff-smooth-cap-placeholder');
     });
 });

@@ -182,7 +182,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 await cmd(`SKILL ${CD_SKILL}`);
 await cmd(`SKILL ${PASSIVE_SKILL}`);
 await page.waitForTimeout(1500);

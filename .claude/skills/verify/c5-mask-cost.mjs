@@ -68,7 +68,7 @@ await joinAsNewCharacter(page, 'mask');
 await page.waitForSelector('#console_command', { state: 'attached' });
 await page.evaluate(() => {
   const input = document.getElementById('console_command');
-  input.value = 'GOD';
+  input.value = 'GOD on';
   document.getElementById('console')
     .dispatchEvent(new Event('submit', { cancelable: true }));
   const panel = document.getElementById('developPanel');

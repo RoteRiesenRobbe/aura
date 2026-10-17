@@ -71,7 +71,7 @@ const openClient = async (tag) => {
     if (wait) await page.waitForTimeout(wait);
   };
   await cmd('PING');
-  await cmd('GOD');
+  await cmd('GOD on');
   return { page, cmd };
 };
 

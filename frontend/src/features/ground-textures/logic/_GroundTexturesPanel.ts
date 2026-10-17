@@ -34,7 +34,7 @@ GamePlayingEvent.subscribe((game: IGame) => {
     }
 
     Console.log('GroundTexturePanel activated - try to activate GODMODE now.');
-    Console.run('GOD');
+    Console.run('GOD on');
 
     PrerenderEvent.subscribe( () => {
         if (Game.state === GameState.PLAYING) {

@@ -121,7 +121,7 @@ await joinAsNewCharacter(page, 'propord');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
 await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
 await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
-await cmd('GOD');
+await cmd('GOD on');
 
 console.log(`venue: Flora (${eliza.x}, ${eliza.y}); cottage ${cottage.where}, oak ${oak.where}`);
 await warp(HOME);

@@ -116,3 +116,22 @@ describe('polygon outlines', () => {
         expect(s).not.toHaveProperty('outlineWidth');
     });
 });
+
+// plan-cliffs.md D6: a polygon's outline as a cliff rim.
+describe('polygon outlineFacing', () => {
+    const square = [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}, {x: 0, y: 4}];
+    const one = (over: Record<string, unknown>) => toPolygons([{
+        profile: 'Mountains', points: square, outlineProfile: 'Cliff', outlineWidth: 1.5, ...over,
+    } as never])[0];
+
+    it('carries out and in', () => {
+        expect(one({outlineFacing: 'out'}).outlineFacing).toBe('out');
+        expect(one({outlineFacing: 'in'}).outlineFacing).toBe('in');
+    });
+
+    it('is absent when unauthored, unknown, or there is no outline to face', () => {
+        expect(one({}).outlineFacing).toBeUndefined();
+        expect(one({outlineFacing: 'up'}).outlineFacing).toBeUndefined();
+        expect(one({outlineFacing: 'out', outlineProfile: undefined}).outlineFacing).toBeUndefined();
+    });
+});

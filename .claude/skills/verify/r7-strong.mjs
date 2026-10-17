@@ -68,7 +68,7 @@ async function runCommand(command) {
   await page.waitForTimeout(400);
 }
 
-await runCommand('GOD');
+await runCommand('GOD on');
 // Damage is the creation-seeded milestone — wait for its spellbook row rather
 // than sleeping (GameState rides the throttled rAF loop).
 await page.waitForFunction(

@@ -281,7 +281,10 @@ enum EntityType : ushort {
   RemainsProp = 117,
   // The Ashen Fields fire pair: the Firelord hits, the Fire Stirer marks.
   Firelord = 118,
-  FireStirer = 119
+  FireStirer = 119,
+  // Bush (91) with Berryhunter's berries baked into the art: a second drawing
+  // on the same non-blocking body, set dressing only (nothing to harvest).
+  BerryBush = 120
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -525,6 +528,21 @@ table Mob {
   // FlatBuffers omits defaults, so only summons pay for it. Appended at the
   // table end so existing field IDs stay stable.
   owner_id:ulong = 0;
+
+  // colour of the light light_radius reports, 0xRRGGBB (plan-lightmap.md
+  // L2): the client tints the mob's light with it. 0 = unauthored, drawn
+  // white; a black light is refused at load, so 0 never means black. The
+  // colour of the light_aura effect that won the radius (D5). Mirrors
+  // Character.light_color. Appended at the table end so existing field IDs
+  // stay stable; omitted for every unlit or uncoloured mob.
+  light_color:uint = 0;
+
+  // does that light flicker (plan-lightmap.md L7, D12)? The flag of the
+  // light_aura effect that won the radius, like light_color. Presentation
+  // only: the client wobbles the drawn light, nothing reads it for gameplay.
+  // Mirrors Character.light_flicker. Appended at the table end; omitted for
+  // every steady light.
+  light_flicker:bool = false;
 }
 
 table Character {
@@ -666,6 +684,16 @@ table Character {
   // Mob.immune_hit. Appended at the table end so existing field IDs stay
   // stable.
   immune_hit:bool = false (deprecated);
+
+  // colour of the light light_radius reports, 0xRRGGBB (plan-lightmap.md
+  // L2), 0 = unauthored white. Mirrors Mob.light_color. Appended at the table
+  // end so existing field IDs stay stable.
+  light_color:uint = 0;
+
+  // does that light flicker (plan-lightmap.md L7, D12)? Mirrors
+  // Mob.light_flicker. Appended at the table end so existing field IDs stay
+  // stable.
+  light_flicker:bool = false;
 }
 
 table Spectator {

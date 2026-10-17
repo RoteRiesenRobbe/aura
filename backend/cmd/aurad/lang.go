@@ -26,7 +26,10 @@ var langDomains = []struct {
 	bundle bool
 }{
 	{"quests", false},
-	{"mobs", true}, // names ride /mobs; the dialogue (C3) rides /lang
+	{"mobs", false}, // the names ride /mobs
+	// The NPC dialogue and the shared phrases (C3, D28): split out of mobs
+	// 2026-10-15 (PO), one translator component of its own.
+	{"conversations", true},
 	{"skills", false},
 	{"regions", true},
 }
@@ -105,7 +108,7 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 		dialogue, dialogueFindings := dialogueEntries(mobDefs)
 		findings = append(findings, dialogueFindings...)
 		for _, e := range dialogue {
-			add("mobs", e.where, e.Entry)
+			add("conversations", e.where, e.Entry, e.args...)
 		}
 	}
 
@@ -191,9 +194,6 @@ func langBundleHandler(b *lang.Bundle, entries map[string][]lang.Entry) (http.Ha
 				continue
 			}
 			for _, e := range entries[d.name] {
-				if strings.HasPrefix(e.Key, "mob.") {
-					continue // names ride /mobs
-				}
 				flat[e.Key] = tr(e.Key, e.Text)
 			}
 		}

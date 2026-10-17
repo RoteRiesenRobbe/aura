@@ -188,6 +188,10 @@ var AuraConvert = (function () {
             // the same posture every other content check here takes.
             PROFILE_NAMES: (c && c.PROFILE_NAMES) || [],
             AIR_PROFILE_NAMES: (c && c.AIR_PROFILE_NAMES) || [],
+            // The terrain profiles that name a `cap` (plan-cliffs.md D2).
+            // Absent (null) means "no vocabulary loaded", and both cap checks
+            // skip themselves.
+            CAP_PROFILES: (c && c.CAP_PROFILES) || null,
             // The skills an area may name (plan-area-effects.md E1). ⚑ A THIRD
             // vocabulary and not a profile table: `effect` names an authored
             // SKILL, so this list comes out of api/skills/ rather than out of
@@ -377,8 +381,21 @@ var AuraConvert = (function () {
      * ⚑ PATH_SHAPE_DEFAULT must equal the palette members' own default
      * (generate-palette.mjs reads it from here). */
     var PATH_SHAPE_DEFAULT = '(default)';
-    var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: ['round', 'flat', 'point']};
-    var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds'};
+    /* A structure's outline as a cliff RIM (plan-cliffs.md D6): `out` a
+     * mountain, `in` a pit; the sentinel (PATH_SHAPE_DEFAULT, read back as
+     * absent) is the plain outline. Mirrors world.OutlineFacings. */
+    var OUTLINE_FACING_VALUES = ['out', 'in'];
+    var OUTLINE_FACING_ENUM = 'AuraOutlineFacing';
+    var PATH_ENDS = ['round', 'flat', 'point', 'fade'];
+    var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: PATH_ENDS,
+        endsStart: PATH_ENDS, endsEnd: PATH_ENDS};
+    var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds',
+        endsStart: 'AuraPathEnds', endsEnd: 'AuraPathEnds'};
+    /* The keys in zone.go's struct order. endsStart / endsEnd override ends for
+     * one end each (plan-cliffs.md D1), so all three are "an end" to the ring
+     * rule. */
+    var PATH_SHAPE_KEYS = ['corners', 'ends', 'endsStart', 'endsEnd'];
+    var PATH_END_KEYS = ['ends', 'endsStart', 'endsEnd'];
 
     /* Read a path's corners or ends back to the zone value: the sentinel, a
      * blank and an absent property are all "not authored". An unrecognised
@@ -396,7 +413,7 @@ var AuraConvert = (function () {
      * byte-identical (writeOutline's rule, and the shadowing trap the prop
      * writer records). */
     function writePathShape(o, src) {
-        ['corners', 'ends'].forEach(function (k) {
+        PATH_SHAPE_KEYS.forEach(function (k) {
             if (!src[k]) { return; }
             o.properties[k] = src[k];
             o.enums = o.enums || {};
@@ -690,6 +707,8 @@ var AuraConvert = (function () {
                         // absent stays absent.
                         corners: p2.corners || undefined,
                         ends: p2.ends || undefined,
+                        endsStart: p2.endsStart || undefined,
+                        endsEnd: p2.endsEnd || undefined,
                         // The area effect (plan-area-effects.md E1). Key order
                         // follows zone.go's struct order like everything else
                         // here, and absent stays absent: no shipped path names
@@ -711,6 +730,7 @@ var AuraConvert = (function () {
                         blocksMovement: g.blocksMovement ? true : undefined,
                         outlineProfile: g.outlineProfile || undefined,
                         outlineWidth: g.outlineProfile ? round(g.outlineWidth, 2) : undefined,
+                        outlineFacing: g.outlineFacing || undefined,
                         effect: g.effect || undefined,
                     };
                 })
@@ -1249,8 +1269,179 @@ var AuraConvert = (function () {
         return v === undefined || v === null || v === '' ? AREA_UNSET : String(v);
     }
 
+    /* ---- welds (plan-cliffs.md D3) -----------------------------------------
+     * Cliffs whose ends touch are joined HERE, on save, so the client and the
+     * server read one geometry and no constant needs a second copy.
+     *
+     *   end to start   the two become ONE path (A's points, then B's): the
+     *                  texture runs on unbroken and the meeting point is an
+     *                  ordinary mitred corner. Only when they agree on every
+     *                  WELD_SAME key; otherwise refused, naming the key.
+     *   end to end     refused (and start to start): joining needs one path
+     *                  reversed, which flips its face to the other side, and
+     *                  the direction is the only thing that says which side is
+     *                  high. Never guessed.
+     *   end on a side  the T-weld: the stem's end moves onto the bar's
+     *                  centreline, that end becomes flat, and the stem is drawn
+     *                  BEFORE the bar, so its cut end hides in the bar's face.
+     *
+     * ⚑ Only paths on a cap profile (a cliff): roads and rivers may overlap.
+     * ⚑ Within one array: a cliff in an area never welds to the zone level's.
+     * ⚑ PERMANENT in the file: reopening the map shows the merged object. */
+
+    /* How near two endpoints must be to weld, world units. [PLACEHOLDER] (Q3). */
+    var WELD_SNAP = 0.5;
+    /* How near a T's end must lie to the bar to count as already welded: one
+     * step of the save's 0.01 u rounding, which leaves a projected end up to
+     * ~0.007 u off the line. Any less and every save moves it again. */
+    var WELD_ON_LINE = 0.01;
+    /* What two cliffs must agree on to become one path. */
+    var WELD_SAME = ['profile', 'width', 'blocksMovement', 'alignTexture', 'outlineProfile',
+        'outlineWidth', 'corners', 'effect'];
+
+    /* Welds one array of zone paths (server units). Returns the new array and
+     * the refusals, each naming two indices into the INPUT array. Pure: the
+     * input is not modified. With no cap vocabulary loaded nothing welds. */
+    function weldPaths(paths) {
+        var out = (paths || []).map(function (p) { return copyPath(p); });
+        var from = out.map(function (_p, i) { return i; });
+        var problems = [];
+        if (content.CAP_PROFILES === null) { return {paths: out, problems: problems}; }
+
+        function capped(p) {
+            return hasValue(content.CAP_PROFILES, p.profile) && p.points && p.points.length >= 2;
+        }
+        function open(p) { return capped(p) && !p.closed; }
+        function first(p) { return p.points[0]; }
+        function last(p) { return p.points[p.points.length - 1]; }
+        function near(a, b) { return Math.hypot(a.x - b.x, a.y - b.y) <= WELD_SNAP; }
+        function same(a, b) {
+            return (a === undefined || a === false || a === '' ? undefined : a)
+                === (b === undefined || b === false || b === '' ? undefined : b);
+        }
+        function refuse(i, j, message) { problems.push({a: from[i], b: from[j], message: message}); }
+
+        // End to start, until nothing more joins; a chain A→B→C ends as one.
+        var refused = {};
+        for (var again = true; again;) {
+            again = false;
+            for (var i = 0; i < out.length && !again; i++) {
+                for (var j = 0; j < out.length && !again; j++) {
+                    var a = out[i], b = out[j];
+                    if (i === j || !open(a) || !open(b) || !near(last(a), first(b))) { continue; }
+                    var differ = WELD_SAME.filter(function (k) { return !same(a[k], b[k]); });
+                    if (differ.length > 0) {
+                        if (!refused[from[i] + ':' + from[j]]) {
+                            refused[from[i] + ':' + from[j]] = true;
+                            refuse(i, j, 'these two cliffs meet end to start but differ in '
+                                + differ.join(', ') + ', so they cannot be joined into one.'
+                                + ' Make them match, or move the ends more than ' + WELD_SNAP
+                                + ' apart');
+                        }
+                        continue;
+                    }
+                    out[i] = joined(a, b);
+                    out.splice(j, 1);
+                    from.splice(j, 1);
+                    again = true;
+                }
+            }
+        }
+
+        // Ends that would only meet with one path reversed.
+        for (var p = 0; p < out.length; p++) {
+            for (var q = p + 1; q < out.length; q++) {
+                if (!open(out[p]) || !open(out[q])) { continue; }
+                if (near(last(out[p]), last(out[q])) || near(first(out[p]), first(out[q]))) {
+                    refuse(p, q, 'these two cliffs meet but face opposite ways (an end meets an'
+                        + ' end, or a start a start). Reverse one of them (select it, then'
+                        + ' Reverse in the Edit menu) so one runs on from the other');
+                }
+            }
+        }
+
+        // The T-weld: an end that meets no other end, lying on another cliff.
+        var before = [];
+        out.forEach(function (stem, s) {
+            if (!open(stem)) { return; }
+            [true, false].forEach(function (atStart) {
+                var e = atStart ? first(stem) : last(stem);
+                var meets = out.some(function (o, k) {
+                    return k !== s && open(o) && (near(e, first(o)) || near(e, last(o)));
+                });
+                if (meets) { return; }
+                var best = null;
+                out.forEach(function (bar, k) {
+                    if (k === s || !capped(bar)) { return; }
+                    var hit = nearestOn(bar.points, bar.closed === true, e);
+                    if (hit.d > bar.width / 2 || (best !== null && hit.d >= best.d)) { return; }
+                    if (!bar.closed && (near(hit.at, first(bar)) || near(hit.at, last(bar)))) { return; }
+                    best = {bar: bar, at: hit.at, d: hit.d};
+                });
+                if (best === null) { return; }
+                // ⚑ Already on the line: kept as is, so a second save is a no-op.
+                if (best.d > WELD_ON_LINE) {
+                    stem.points[atStart ? 0 : stem.points.length - 1] = best.at;
+                }
+                stem[atStart ? 'endsStart' : 'endsEnd'] = 'flat';
+                before.push({stem: stem, bar: best.bar});
+            });
+        });
+        // Each stem before its bar, moving as little as possible.
+        for (var pass = 0; pass <= out.length; pass++) {
+            var moved = false;
+            before.forEach(function (c) {
+                var si = out.indexOf(c.stem), bi = out.indexOf(c.bar);
+                if (si > bi) {
+                    out.splice(si, 1);
+                    out.splice(bi, 0, c.stem);
+                    var f = from.splice(si, 1)[0];
+                    from.splice(bi, 0, f);
+                    moved = true;
+                }
+            });
+            if (!moved) { break; }
+        }
+        return {paths: out, problems: problems};
+    }
+
+    function copyPath(p) {
+        var c = {};
+        for (var k in p) { if (Object.prototype.hasOwnProperty.call(p, k)) { c[k] = p[k]; } }
+        c.points = (p.points || []).map(function (v) { return {x: v.x, y: v.y}; });
+        return c;
+    }
+
+    /* A then B as one path: A's start shape and B's end shape. */
+    function joined(a, b) {
+        var c = copyPath(a);
+        c.points = a.points.concat(b.points.slice(1)).map(function (v) { return {x: v.x, y: v.y}; });
+        var s = a.endsStart || a.ends;
+        var e = b.endsEnd || b.ends;
+        c.ends = s === e ? s : undefined;
+        c.endsStart = s === e ? undefined : (s || 'round');
+        c.endsEnd = s === e ? undefined : (e || 'round');
+        return c;
+    }
+
+    /* The nearest point to e on a polyline, and how far it is. */
+    function nearestOn(points, closed, e) {
+        var best = {d: Infinity, at: points[0]};
+        var n = closed ? points.length : points.length - 1;
+        for (var i = 0; i < n; i++) {
+            var a = points[i], b = points[(i + 1) % points.length];
+            var dx = b.x - a.x, dy = b.y - a.y;
+            var len2 = dx * dx + dy * dy;
+            var t = len2 > 0 ? Math.max(0, Math.min(1, ((e.x - a.x) * dx + (e.y - a.y) * dy) / len2)) : 0;
+            var at = {x: a.x + dx * t, y: a.y + dy * t};
+            var d = Math.hypot(e.x - at.x, e.y - at.y);
+            if (d < best.d) { best = {d: d, at: at}; }
+        }
+        return best;
+    }
+
     /* ---- plain model  ->  zone JSON ---------------------------------------- */
-    function modelToZone(m) {
+    function modelToZone(m, noWeld) {
         var hw = m.boundsWidth / 2, hh = m.boundsHeight / 2;
         function u(p2, half) { return p2 / PX - half; }
         function get(o, k) {
@@ -1271,14 +1462,22 @@ var AuraConvert = (function () {
                 ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
                 : undefined,
             ground: readGround(m.ground),
-        }, readKinds(m.layers));
+        }, welded(m.layers));
         // Each area group back to its entry, in stack order. undefined when
         // there are none, so a zone without areas is written as before.
         var areas = areaGroups(m);
         zone.areas = areas.length > 0 ? areas.map(function (g) {
-            return copyInto({id: areaId(g)}, readKinds(g.layers));
+            return copyInto({id: areaId(g)}, welded(g.layers));
         }) : undefined;
         return zone;
+
+        // ⭐ Cliffs that touch are joined here (plan-cliffs.md D3); validateModel
+        // reads the same arrays UNwelded (noWeld) to refuse what cannot join.
+        function welded(layers) {
+            var kinds = readKinds(layers);
+            if (!noWeld) { kinds.paths = weldPaths(kinds.paths).paths; }
+            return kinds;
+        }
 
         // Every object array of one group: the zone level's layers, or an
         // area group's. Layers are read BY NAME, so the stack order never
@@ -1399,6 +1598,8 @@ var AuraConvert = (function () {
                         alignTexture: get(o, 'alignTexture') ? true : undefined,
                         corners: readPathShape(o, 'corners'),
                         ends: readPathShape(o, 'ends'),
+                        endsStart: readPathShape(o, 'endsStart'),
+                        endsEnd: readPathShape(o, 'endsEnd'),
                         effect: readEffect(o),
                     };
                 }),
@@ -1413,6 +1614,7 @@ var AuraConvert = (function () {
                         outlineWidth: readOutlineProfile(o) !== undefined
                             ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                             : undefined,
+                        outlineFacing: readOutlineFacing(o),
                         effect: readEffect(o),
                     };
                 }),
@@ -1470,6 +1672,20 @@ var AuraConvert = (function () {
         o.properties.outlineWidth = src.outlineWidth;
         o.enums = o.enums || {};
         o.enums.outlineProfile = REGION_ENUMS.profile;
+        // Only a structure carries it; a path's src never has the key.
+        if (src.outlineFacing) {
+            o.properties.outlineFacing = src.outlineFacing;
+            o.enums.outlineFacing = OUTLINE_FACING_ENUM;
+        }
+    }
+
+    /* The rim's facing, or undefined for the plain outline (D6). */
+    function readOutlineFacing(o) {
+        var v = o.properties && o.properties.outlineFacing !== undefined
+            && o.properties.outlineFacing !== null
+            ? plainValue(o.properties.outlineFacing) : undefined;
+        if (v === undefined || v === '' || v === PATH_SHAPE_DEFAULT) { return undefined; }
+        return v;
     }
 
     /* The zone's base fill, a MAP property (PO 2026-09-27). PROFILE_UNSET is
@@ -1754,7 +1970,31 @@ var AuraConvert = (function () {
         var hw = m.boundsWidth / 2, hh = m.boundsHeight / 2;
         [m.layers].concat(areaGroups(m).map(function (g) { return g.layers; }))
             .forEach(function (layers) { scope = layers; checkScope(); });
+        checkWelds();
         return errors;
+
+        /* plan-cliffs.md D3: the welds the save would refuse, naming both
+         * objects. Read off the UNwelded zone, whose path arrays are the
+         * AuraPath objects of each scope in order. */
+        function checkWelds() {
+            var z;
+            try { z = modelToZone(m, true); } catch (e) { return; }
+            var scopes = [{layers: m.layers, paths: z.paths}];
+            areaGroups(m).forEach(function (g, k) {
+                scopes.push({layers: g.layers, paths: z.areas && z.areas[k] ? z.areas[k].paths : []});
+            });
+            scopes.forEach(function (sc) {
+                scope = sc.layers;
+                var objs = onLayer('paths', 'AuraPath');
+                weldPaths(sc.paths).problems.forEach(function (pr) {
+                    errors.push(label(objs[pr.a], pr.a) + ' and ' + label(objs[pr.b], pr.b) + ': ' + pr.message);
+                });
+            });
+        }
+        function label(o, i) {
+            return o ? o.layer + ' #' + (o.id !== undefined ? o.id : '?')
+                + (o.name ? ' "' + o.name + '"' : '') + ' (' + o.layer + '[' + i + '])' : 'path ' + i;
+        }
 
         function checkScope() {
             // ⭐ decals[].type is the one field validated NOWHERE else: the server
@@ -2111,9 +2351,52 @@ var AuraConvert = (function () {
             onLayer('paths', 'AuraStructure').forEach(function (o, i) {
                 checkProfile(o, i, profilesKnown);
                 checkEffect(o, i);
+                // Mirrors validateOutlineFacing in world/zone.go.
+                var facing = readOutlineFacing(o);
+                if (facing !== undefined && !hasValue(OUTLINE_FACING_VALUES, facing)) {
+                    bad(o, i, 'outlineFacing ' + JSON.stringify(facing) + ' must be one of "'
+                        + PATH_SHAPE_DEFAULT + '", ' + OUTLINE_FACING_VALUES.join(', '));
+                } else if (facing !== undefined && readOutlineProfile(o) === undefined) {
+                    bad(o, i, 'outlineFacing is "' + facing + '" but there is no outline to face.'
+                        + ' Pick an outlineProfile and width, or put outlineFacing back to "'
+                        + PATH_SHAPE_DEFAULT + '"');
+                }
                 checkClosedArea(o, i, 'an AuraStructure',
                     ' — or change its Class to AuraPath if you meant a line');
             });
+
+            /* plan-cliffs.md D2 + D4: the two shape rules that need the profile
+             * table, which the server cannot see. A `fade` end draws the
+             * profile's cap art, so a profile with none would fade into a quiet
+             * no-op. And on a cap profile (a cliff) with alignTexture, a round
+             * corner or end drops the whole path off the ribbon mesh onto the
+             * one-matrix stroke, which breaks past the first bend. */
+            function checkCapShape(o, i) {
+                if (content.CAP_PROFILES === null) { return; }
+                var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
+                var capped = hasValue(content.CAP_PROFILES, profile);
+                var both = readPathShape(o, 'ends');
+                var start = readPathShape(o, 'endsStart') || both || 'round';
+                var end = readPathShape(o, 'endsEnd') || both || 'round';
+                var open = o.shape !== 'polygon';
+                if (!capped && open && (start === 'fade' || end === 'fade')) {
+                    bad(o, i, 'an end is "fade" but profile "' + profile + '" has no cap art to fade'
+                        + ' with. Use point or flat, or give the profile a "cap" in'
+                        + ' frontend/src/client-data/terrain-profiles.json');
+                }
+                if (!capped || !prop(o, 'alignTexture')) { return; }
+                var fix = ' — a "' + profile + '" path with alignTexture needs sharp corners and no'
+                    + ' round end, or it drops off the mesh and its texture breaks past the first bend';
+                if ((readPathShape(o, 'corners') || 'round') === 'round') {
+                    bad(o, i, 'its corners are round' + fix + '. Set corners to sharp');
+                }
+                if (open && start === 'round') {
+                    bad(o, i, 'the start is round' + fix + '. Set endsStart (or ends) to fade, flat or point');
+                }
+                if (open && end === 'round') {
+                    bad(o, i, 'the end is round' + fix + '. Set endsEnd (or ends) to fade, flat or point');
+                }
+            }
 
             // Paths carry the SAME profile vocabulary as regions, so the same three
             // profile mistakes get the same three messages, from the same function.
@@ -2122,17 +2405,20 @@ var AuraConvert = (function () {
                 checkEffect(o, i);
                 // Mirrors validatePathShape in world/zone.go, said while the author
                 // is still looking at the line.
-                ['corners', 'ends'].forEach(function (k) {
+                PATH_SHAPE_KEYS.forEach(function (k) {
                     var v = readPathShape(o, k);
                     if (v !== undefined && !hasValue(PATH_SHAPE_VALUES[k], v)) {
                         bad(o, i, k + ' ' + JSON.stringify(v) + ' must be one of "' + PATH_SHAPE_DEFAULT
                             + '", ' + PATH_SHAPE_VALUES[k].join(', '));
                     }
                 });
-                if (o.shape === 'polygon' && readPathShape(o, 'ends') !== undefined) {
-                    bad(o, i, 'ends is "' + readPathShape(o, 'ends') + '" but this path is a closed'
-                        + ' ring, which has no ends. Put ends back to "' + PATH_SHAPE_DEFAULT + '"');
-                }
+                PATH_END_KEYS.forEach(function (k) {
+                    if (o.shape === 'polygon' && readPathShape(o, k) !== undefined) {
+                        bad(o, i, k + ' is "' + readPathShape(o, k) + '" but this path is a closed'
+                            + ' ring, which has no ends. Put ' + k + ' back to "' + PATH_SHAPE_DEFAULT + '"');
+                    }
+                });
+                checkCapShape(o, i);
                 var n = (o.polygon || []).length;
                 // ⭐ BOTH shapes are legal here, and which one it is IS the closed
                 // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
@@ -2480,6 +2766,10 @@ var AuraConvert = (function () {
         zoneToModel: zoneToModel,
         modelToZone: modelToZone,
         validateModel: validateModel,
+        weldPaths: weldPaths,
+        OUTLINE_FACING_VALUES: OUTLINE_FACING_VALUES,
+        OUTLINE_FACING_ENUM: OUTLINE_FACING_ENUM,
+        WELD_SNAP: WELD_SNAP,
         polygonNotices: polygonNotices,
         formatErrors: formatErrors,
         layerRefusals: layerRefusals,

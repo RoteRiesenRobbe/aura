@@ -100,10 +100,9 @@
         ],
         "options": [
           {
-            "id": "vanguard",
             "grants": [
               {
-                "id": "ill-teach-you-vanguard",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Vanguard",
                 "requiredLevel": 15

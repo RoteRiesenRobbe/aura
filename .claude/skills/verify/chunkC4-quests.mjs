@@ -334,7 +334,7 @@ check('Z ⭐ a fresh character owns Damage at creation — no NPC involved (the 
   `spellbook at spawn=${JSON.stringify(bookAtSpawn)}`);
 
 await cmd('PING'); // the first command after joining is dropped
-await cmd('GOD');  // this script stands still in aggro radii for minutes
+await cmd('GOD on');  // this script stands still in aggro radii for minutes
 await page.keyboard.press('KeyJ'); // journal open for the whole run
 await page.waitForTimeout(600);
 

@@ -1,4 +1,4 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" preserveAspectRatio="none">
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" preserveAspectRatio="none">
   <!-- Placeholder FIELD GATE art: the break in a `Fence` path
        (docs/art/assets.csv prop-gate, "Field gate on the fence line").
 
@@ -36,7 +36,7 @@
 
        ⚑ A rect prop turns with its collider (plan-prop-scale.md C2b), so this
        is rotated to whatever direction its fence runs. The viewBox aspect
-       MUST stay 5:4 to match the 2.0 x 1.6 body in api/props/gate.json.
+       MUST stay 5:2 to match the 4.0 x 1.6 body in api/props/gate.json.
 
        ⛔ ...AND `preserveAspectRatio="none"` IS LOAD-BEARING WITH IT. The SVG
        bake is SQUARE (Preloading.registerGameObjectSVG passes one `maxSize`
@@ -49,24 +49,9 @@
        ⚑ Timber palette lifted from tools/make-fence-tile.mjs so the gate and
        the fence it interrupts are the same wood. -->
 
-  <!-- ⛔ Bare earth is drawn OPAQUE, never as a brown wash: a low-opacity
-       brown over grass only dims the grass, and dim grass reads as shade.
-       (burntCart.svg's scorch had to be re-done for exactly this.) -->
-  <defs>
-    <radialGradient id="gateWorn">
-      <stop offset="0" stop-color="#7a6648" stop-opacity="0.92"/>
-      <stop offset="0.55" stop-color="#7a6648" stop-opacity="0.76"/>
-      <stop offset="1" stop-color="#7a6648" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
-  <!-- the trodden ground in the gap — this is the way through, and it is the
-       cue that survives being small. Not a swing arc: just where feet go. -->
-  <ellipse cx="100" cy="82" rx="56" ry="44" fill="url(#gateWorn)"/>
-
   <!-- shadows, offset down-right (light from the top-left) -->
   <rect x="15" y="67" width="32" height="36" rx="5" fill="#000000" opacity="0.26"/>
-  <rect x="163" y="67" width="32" height="36" rx="5" fill="#000000" opacity="0.26"/>
+  <rect x="363" y="67" width="32" height="36" rx="5" fill="#000000" opacity="0.26"/>
   <rect x="40" y="86" width="15" height="74" rx="7" fill="#000000" opacity="0.22"/>
 
   <!-- THE LEAF, square to the fence line. One bar, because that is all the
@@ -88,10 +73,10 @@
   <circle cx="42" cy="86" r="5.5" fill="#4a4844" stroke="#23211e" stroke-width="2.4"/>
 
   <!-- the latch post, and the KEEPER standing empty -->
-  <rect x="158" y="62" width="32" height="36" rx="5"
+  <rect x="358" y="62" width="32" height="36" rx="5"
         fill="#6f5735" stroke="#2f2418" stroke-width="5"/>
-  <rect x="161" y="65" width="26" height="6" rx="2" fill="#a68a63" opacity="0.5"/>
-  <path d="M158,72 Q145,80 158,88" fill="none" stroke="#6a6862" stroke-width="4.5"
+  <rect x="361" y="65" width="26" height="6" rx="2" fill="#a68a63" opacity="0.5"/>
+  <path d="M358,72 Q345,80 358,88" fill="none" stroke="#6a6862" stroke-width="4.5"
         stroke-linecap="round"/>
 
   <!-- the latch tongue, on the free end of the leaf where it now points -->

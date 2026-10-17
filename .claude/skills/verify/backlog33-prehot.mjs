@@ -179,7 +179,7 @@ const healer = await newPlayer('healer');
 const ally = await newPlayer('patient');
 const control = await newPlayer('control');
 
-for (const p of [healer, ally, control]) await cmd(p, 'GOD');
+for (const p of [healer, ally, control]) await cmd(p, 'GOD on');
 await cmd(healer, 'WARP ' + wire(HEALER));
 await cmd(ally, 'WARP ' + wire(ALLY));
 await cmd(control, 'WARP ' + wire(CONTROL));

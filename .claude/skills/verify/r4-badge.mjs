@@ -170,7 +170,7 @@ const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');
+await cmd('GOD on');
 await primeRoot();
 
 // --- 1. the anchor ---

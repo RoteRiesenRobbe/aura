@@ -414,6 +414,22 @@ func TestPresent_RowUsesTheAuthoredDisplayName(t *testing.T) {
 	assert.Equal(t, "Rime-Burst", rows[0].Text, "the override wins over CamelCase→spaces")
 }
 
+// A shared teach line names the skill as {skill} (stock.teach-skill, 2026-10-15):
+// the English reply fills it with the skill's display name, the reply id stays
+// the shared key so the client fills it in its own language.
+func TestPresent_TeachReplyFillsTheSkillName(t *testing.T) {
+	g := namedGrant(1, "RimeBurst", 1, "I'll teach you {skill}.")
+	g.Skill.DisplayName = "Rime-Burst"
+	g.LineID = "stock.teach-skill"
+	in := teachingInteraction([]string{"greetings"}, g)
+
+	rows := rowsOf(t, present(in, newLearner(2), noRows, noTravel), "root")
+
+	require.Len(t, rows, 1)
+	assert.Equal(t, "I'll teach you Rime-Burst.", rows[0].Reply)
+	assert.Equal(t, "stock.teach-skill", rows[0].ReplyID)
+}
+
 // The row carries what the actor will say, chosen by the row's own state — which
 // is what lets the panel answer on click with no round-trip (L24). A locked row
 // carries NOTHING (Q1/R1): the greying and the named wall are the whole message.

@@ -72,10 +72,6 @@
   "@account.fullscreen": {
     "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
   },
-  "account.mute-all": "Mute all",
-  "@account.mute-all": {
-    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
-  },
   "account.have-account": "Already have an account?",
   "@account.have-account": {
     "description": "Account screens: text of the <p> element in #selectLoginPrompt in #characterSelect."
@@ -91,6 +87,10 @@
   "account.login.submit": "Log in",
   "@account.login.submit": {
     "description": "Account screens: the value attribute of the <input> element in #loginForm in #loginPanel."
+  },
+  "account.mute-all": "Mute all",
+  "@account.mute-all": {
+    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
   },
   "account.register.close-button": "Close",
   "@account.register.close-button": {
@@ -111,6 +111,13 @@
   "account.register.submit": "Create account",
   "@account.register.submit": {
     "description": "Account screens: the value attribute of the <input> element in #registerForm in #registerPanel."
+  },
+  "account.select.greeting": "Welcome, {name}!",
+  "@account.select.greeting": {
+    "description": "Character select, above the heading: greets a registered player by their account name (guests see nothing). The name stays as typed (nominative).",
+    "placeholders": {
+      "name": {"type": "String", "description": "The account's username", "example": "Nullformed"}
+    }
   },
   "account.select.heading": "Choose your character",
   "@account.select.heading": {
@@ -798,6 +805,10 @@
   "@settings.graphics.full": {
     "description": "Settings panel: text of the <label> element in #vfxDensity in #gameSettingsPanel."
   },
+  "settings.graphics.fullscreen": "Fullscreen",
+  "@settings.graphics.fullscreen": {
+    "description": "Settings panel, Graphics group: label of the fullscreen checkbox."
+  },
   "settings.graphics.heading": "Graphics",
   "@settings.graphics.heading": {
     "description": "Settings panel: text of the <h3> element in #gameSettingsPanel in #gameSettings."
@@ -925,21 +936,17 @@
   "@start.credits": {
     "description": "Start screen: text of the <a> element in #startScreen."
   },
-  "start.fullscreen": "Fullscreen",
-  "@start.fullscreen": {
-    "description": "Start screen: text of the <label> element in #startForm in #startScreen."
-  },
   "start.loading": "Loading…",
   "@start.loading": {
     "description": "Start screen: text of the <div id=loadingStatus> element in #startForm in #startScreen."
   },
   "start.player-count.label": "currently online",
   "@start.player-count.label": {
-    "description": "Start screen: text of the <span> element in #playerCount in #startForm."
+    "description": "Players-online readout (loading screen and under the account screens): the label before the person icon and the number."
   },
   "start.player-count.title": "Players online",
   "@start.player-count.title": {
-    "description": "Start screen: the title attribute of the <div id=playerCount> element in #startForm in #startScreen."
+    "description": "Players-online readout (loading screen and under the account screens): its hover tooltip."
   },
   "tooltip.affects": "Affects: {factions}",
   "@tooltip.affects": {

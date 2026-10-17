@@ -178,7 +178,7 @@ const waitFor = async (predicate, timeout = 15_000) => {
   return false;
 };
 
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 2000');
 
 // --- leg A: the lore body at the burnt cart -----------------------------------

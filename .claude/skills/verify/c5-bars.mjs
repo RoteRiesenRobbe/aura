@@ -128,7 +128,7 @@ const shot = (name, clip) => page.screenshot({ path: join(outDir, `c5-bars-${lab
 const CENTER = { x: 420, y: 180, width: 440, height: 440 };
 const out = { label };
 
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 99999999');
 await cmd('SKILL Warbanner');
 await cmd('SKILL Rejuvenation');

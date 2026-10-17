@@ -109,7 +109,7 @@ try {
   await enterWorld();
 
   await cmd('PING'); // the first command after joining is dropped (harness note)
-  await cmd('GOD');
+  await cmd('GOD on');
   await cmd(`WARP ${w(VISITED.x, VISITED.y)}`);
   await page.waitForTimeout(8_000);
   const there = await pos();

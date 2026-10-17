@@ -206,7 +206,7 @@ try {
   b = await newPlayer('c3b');
   console.log(`B joined as ${b.name}`);
   await cmd(b.page, 'PING'); // the first command after joining is dropped
-  await cmd(b.page, 'GOD');  // B must not die mid-run and vanish for the wrong reason
+  await cmd(b.page, 'GOD on');  // B must not die mid-run and vanish for the wrong reason
   await cmd(b.page, `WARP ${w(B_FIRST)}`);
   await a.page.waitForTimeout(ROSTER_WINDOW * 2);
 

@@ -123,7 +123,7 @@ try {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';
   });
-  await cmd('GOD');
+  await cmd('GOD on');
 
   const start = await waitForZone('world');
   const world = zone('world');

@@ -387,3 +387,15 @@ func TestCostDrawback_CanMakeACooldownUnaffordable(t *testing.T) {
 	assert.Equal(t, model.ActivationRejectedNotEnoughResource,
 		testSkillSystem().activationPrecondition(caster, es), "40 HP at 30 HP: rejected")
 }
+
+// --- the WIZARD cheat: cooldowns fire without starting one (2026-10-17) ---
+
+func TestCooldownCheat_FiresWithoutStartingACooldown(t *testing.T) {
+	caster := newFakePlayer()
+	caster.noCooldowns = true
+	es := equippedCooldown(tauntEffect())
+
+	testSkillSystem().fireAndCharge(caster, es)
+
+	assert.Zero(t, caster.sc.CooldownRemaining(es.Def.ID), "ready again at once")
+}

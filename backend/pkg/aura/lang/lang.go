@@ -411,3 +411,13 @@ const StockPrefix = "stock."
 
 // StockPhrase is a shared phrase's key (D28).
 func StockPhrase(name string) string { return StockPrefix + name }
+
+// SkillArg is the one argument a dialogue line may carry: the name of the
+// skill its teach_skill grant teaches (stock.teach-skill, 2026-10-15).
+const SkillArg = "skill"
+
+// FillSkill is a teach line's English with {skill} filled in. Plain
+// replacement is exact: CheckAuthoredText refuses every other brace.
+func FillSkill(text, skillName string) string {
+	return strings.ReplaceAll(text, "{"+SkillArg+"}", skillName)
+}

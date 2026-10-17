@@ -73,21 +73,32 @@ func (es *EquippedSkill) EffectiveRadius() float32 {
 	return max
 }
 
-// LightRadius is the level-scaled light radius: the maximum over the skill's
-// light_aura effects; 0 = the skill emits no light. Streams as the wire
-// light_radius so the client can hole-punch the darkness overlay.
-func (es *EquippedSkill) LightRadius() float32 {
-	var max float32
+// Light is the level-scaled light radius — the maximum over the skill's
+// light_aura effects, 0 = the skill emits no light — and the payload (colour,
+// flicker) of the effect that supplied it (zero = unauthored white, steady;
+// plan-lightmap.md D5, D12). The first effect keeps a tie. Streams as the wire
+// light_radius / light_color / light_flicker.
+func (es *EquippedSkill) Light() (radius float32, light LightParams) {
 	for _, e := range es.Def.Effects {
 		if e.Type != EffectTypeLightAura {
 			continue
 		}
 		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
-		if r > max {
-			max = r
+		if r > radius {
+			radius = r
+			light = LightParams{}
+			if e.Light != nil {
+				light = *e.Light
+			}
 		}
 	}
-	return max
+	return radius, light
+}
+
+// LightRadius is Light's radius alone (the map fog reads only this).
+func (es *EquippedSkill) LightRadius() float32 {
+	r, _ := es.Light()
+	return r
 }
 
 // SkillComponent holds all skill slots and spellbook state for one entity.
@@ -553,6 +564,11 @@ func (sc *SkillComponent) SetCooldownRemaining(id SkillID, ticks int) {
 	sc.cooldowns[id] = ticks
 }
 
+// ResetCooldowns makes every skill ready at once (the WIZARD cheat).
+func (sc *SkillComponent) ResetCooldowns() {
+	clear(sc.cooldowns)
+}
+
 // StartCooldown puts the skill on its full level-scaled cooldown — what firing
 // it consumes.
 func (sc *SkillComponent) StartCooldown(es *EquippedSkill) {
@@ -774,19 +790,39 @@ func (sc *SkillComponent) AuraCategories() AuraCategory {
 // a combat aura holds the one active slot; GDD §7 trade-off). Max, not sum —
 // light sources overlap, they don't amplify. 0 = no light.
 func (sc *SkillComponent) LightRadius() float32 {
-	var max float32
+	r, _ := sc.Light()
+	return r
+}
+
+// Light is LightRadius plus the payload of the source that won it
+// (plan-lightmap.md D5, D12): one colour and one flicker per entity, never a
+// blend of two. A tie keeps the earlier source — the active aura, then the
+// passive slots in order.
+func (sc *SkillComponent) Light() (radius float32, light LightParams) {
 	if slot := sc.ActiveAuraSlot; slot >= 0 && sc.AuraSlots[slot] != nil {
-		max = sc.AuraSlots[slot].LightRadius()
+		radius, light = sc.AuraSlots[slot].Light()
 	}
 	for _, es := range sc.PassiveSlots {
 		if es == nil {
 			continue
 		}
-		if r := es.LightRadius(); r > max {
-			max = r
+		if r, l := es.Light(); r > radius {
+			radius, light = r, l
 		}
 	}
-	return max
+	return radius, light
+}
+
+// LightColor is Light's colour alone (wire light_color).
+func (sc *SkillComponent) LightColor() uint32 {
+	_, l := sc.Light()
+	return l.Color
+}
+
+// LightFlicker is Light's flicker alone (wire light_flicker).
+func (sc *SkillComponent) LightFlicker() bool {
+	_, l := sc.Light()
+	return l.Flicker
 }
 
 // Discover marks a skill as discovered at level 1. Re-discovering (idempotent

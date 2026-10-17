@@ -459,7 +459,9 @@ does), or `DisallowUnknownFields` refuses `world.json`.
 
 ⏸ **Chunk B is HELD** (PO 2026-09-29): no path is both aligned and round
 after the migration, so it changes nothing shipped. Resume when one is
-authored, e.g. a curved fence with rounded ends.
+authored, e.g. a curved fence with rounded ends. ⚑ Cliffs no longer need it:
+`plan-cliffs.md` (2026-10-16) replaces their round ends with `fade` + welds and
+proposes refusing aligned `round` instead of falling back (its D4).
 
 **Schema: DB none · FlatBuffers none · conf none · ZONE FORMAT two additive
 keys.**

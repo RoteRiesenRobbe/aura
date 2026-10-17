@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // PropBody describes the body of a prop type: either a circle (radius) or an
@@ -266,6 +267,14 @@ type propDefinitionDoc struct {
 	BlocksMovement *bool `json:"blocksMovement"`
 	// LightFraction: see PropDefinition. DisallowUnknownFields again.
 	LightFraction float32 `json:"lightFraction"`
+	// LightColor is the prop light's "#rrggbb" (plan-lightmap.md D6: a torch is
+	// a light source of its own). Only the client draws it; it is checked here
+	// so a bad value fails at boot, the posture roof.revealAlpha takes.
+	// DisallowUnknownFields again.
+	LightColor string `json:"lightColor"`
+	// LightFlicker: does the prop's light flicker (plan-lightmap.md D12)?
+	// Client-only like LightColor, checked here for the same reason.
+	LightFlicker bool `json:"lightFlicker"`
 	// Roof: see PropDefinition. Present = a roof. DisallowUnknownFields again,
 	// and it reaches into the object too, so a typo inside refuses by name.
 	Roof *propRoofDoc `json:"roof"`
@@ -323,6 +332,17 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	// crossesPaths itself lives at.
 	if doc.LightFraction < 0 {
 		return nil, fmt.Errorf("lightFraction must not be negative, got %g", doc.LightFraction)
+	}
+	if doc.LightColor != "" {
+		if doc.LightFraction <= 0 {
+			return nil, fmt.Errorf("lightColor needs a lightFraction > 0: a prop that casts no light has nothing to colour")
+		}
+		if _, err := skills.ParseLightColor(doc.LightColor); err != nil {
+			return nil, fmt.Errorf("lightColor: %w", err)
+		}
+	}
+	if doc.LightFlicker && doc.LightFraction <= 0 {
+		return nil, fmt.Errorf("lightFlicker needs a lightFraction > 0: a prop that casts no light has nothing to flicker")
 	}
 	if doc.CrossesPaths && (doc.BlocksMovement == nil || *doc.BlocksMovement) {
 		return nil, fmt.Errorf("crossesPaths needs blocksMovement: false — a prop you walk " +

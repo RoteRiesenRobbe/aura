@@ -26,15 +26,15 @@
       {
         "id": "root",
         "lines": [
-          {"id": "a-portal-stands-open"},
+          {"stock": "portal-open"},
           {"id": "it-leads-to-whoever-opened"}
         ],
         "options": [
           {
-            "id": "step-through",
+            "stock": "step-through",
             "grants": [
               {
-                "id": "you-step-through",
+                "stock": "you-step-through",
                 "kind": "travel_to",
                 "mode": "caster"
               }

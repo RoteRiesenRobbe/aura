@@ -26,13 +26,21 @@ import {meter2px} from '../../../client-data/BasicConfig';
 
 /** How a path's stroke turns at a bend: `sharp` is a brick wall's mitre. */
 export type PathCorners = 'round' | 'sharp';
-/** How it stops: `point` narrows the last stretch to nothing, a cliff fading out. */
-export type PathEnds = 'round' | 'flat' | 'point';
+/**
+ * How it stops: `point` narrows the last stretch to nothing; `fade` draws it
+ * with the profile's `cap` art at full width, a cliff sloping down to the
+ * ground (plan-cliffs.md D2).
+ */
+export type PathEnds = 'round' | 'flat' | 'point' | 'fade';
 
-/** The two AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
+/** The AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
 export interface PathShape {
     corners: PathCorners;
-    ends: PathEnds;
+    /**
+     * [the first point's end, the last point's end], resolved: `endsStart` /
+     * `endsEnd` where authored, else `ends` (plan-cliffs.md D1).
+     */
+    ends: [PathEnds, PathEnds];
 }
 
 /**
@@ -44,6 +52,16 @@ export interface PathShape {
  * Each side pins it with a test.
  */
 export const TAPER_LENGTH_PER_WIDTH = 2;
+
+/**
+ * How long a `fade` end's cap is drawn, as a multiple of the path's width; the
+ * cap art is stretched to it. [PLACEHOLDER] (plan-cliffs.md D2).
+ *
+ * ⚑ The SERVER holds the same number (`paths_collision.go` capLengthPerWidth)
+ * and stops the wall inside the cap: change one, change both. Each side pins
+ * it with a test.
+ */
+export const CAP_LENGTH_PER_WIDTH = 2;
 
 /**
  * A path as the renderer uses it: polyline in WORLD PIXELS.
@@ -96,6 +114,15 @@ export interface PathDefinition {
     /** world.Path.Corners / Ends; absent = `round`. */
     corners?: PathCorners;
     ends?: PathEnds;
+    /** world.Path.EndsStart / EndsEnd: one end each; absent follows `ends`. */
+    endsStart?: PathEnds;
+    endsEnd?: PathEnds;
+}
+
+/** One authored end value, or the default; an unknown value is the default. */
+function endShape(own: PathEnds | undefined, both: PathEnds | undefined): PathEnds {
+    const v = own || both;
+    return v === 'flat' || v === 'point' || v === 'fade' ? v : 'round';
 }
 
 /**
@@ -219,7 +246,7 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             // (the server refuses it) degrades to the default rather than
             // reaching Pixi as a cap it does not know.
             corners: p.corners === 'sharp' ? 'sharp' : 'round',
-            ends: p.ends === 'flat' || p.ends === 'point' ? p.ends : 'round',
+            ends: [endShape(p.endsStart, p.ends), endShape(p.endsEnd, p.ends)],
             ...outlineOf(p),
         };
         })

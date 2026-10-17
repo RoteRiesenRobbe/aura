@@ -79,6 +79,12 @@ export function show(list: CharacterList, state: SessionState, autoSelectFirst =
     }
     AccountScreens.element('logoutButton').textContent = t('account.select.logout-button');
 
+    // A guest has no name to greet: their account is the browser they play in.
+    const greeting = panel.querySelector('.selectGreeting') as HTMLElement;
+    const greet = state.registered && !!state.username;
+    greeting.classList.toggle('hidden', !greet);
+    greeting.textContent = greet ? t('account.select.greeting', {name: state.username}) : '';
+
     // Logout for registered accounts, Log in for guests — never both, and never
     // neither. A guest reaching this screen has characters they could lose, so
     // the login it offers routes through §6's warning.

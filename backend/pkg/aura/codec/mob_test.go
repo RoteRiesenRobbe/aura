@@ -233,3 +233,32 @@ func TestMobMarshalFlatbuf_OwnerID(t *testing.T) {
 			"the client reads this to tell its own summon's hits from a stranger's")
 	})
 }
+
+// Mob.light_color (plan-lightmap.md L2): the colour of the light the wire's
+// light_radius reports, 0 when unauthored. A structure's aura is always on, so
+// its light streams without an aggro.
+func TestMobMarshalFlatbuf_LightColor(t *testing.T) {
+	lit := func(light *skills.LightParams) *mobs.MobDefinition {
+		def := testMobDef(mobs.RoleStructure)
+		def.Skills[0].Def = &skills.SkillDefinition{
+			ID: 198, Name: "TestGlow", Category: skills.SkillCategoryActiveAura, MaxLevel: 1,
+			Effects: []skills.EffectDef{{Type: skills.EffectTypeLightAura, Radius: 7, Light: light}},
+		}
+		return def
+	}
+
+	warm := marshalledMob(t, mob.NewMob(lit(&skills.LightParams{Color: 0xffb060}), 0, nil))
+	assert.Equal(t, uint32(0xffb060), warm.LightColor())
+	assert.Equal(t, uint16(7*Points2px), warm.LightRadius())
+
+	plain := marshalledMob(t, mob.NewMob(lit(&skills.LightParams{}), 0, nil))
+	assert.Zero(t, plain.LightColor(), "unauthored → 0 (white on the client)")
+
+	unlit := marshalledMob(t, mob.NewMob(testMobDef(mobs.RoleStructure), 0, nil))
+	assert.Zero(t, unlit.LightColor(), "no light → no colour")
+
+	// L7 (D12): the flicker flag rides beside the colour.
+	fire := marshalledMob(t, mob.NewMob(lit(&skills.LightParams{Color: 0xff8a3a, Flicker: true}), 0, nil))
+	assert.True(t, fire.LightFlicker())
+	assert.False(t, warm.LightFlicker(), "absent = steady")
+}

@@ -88,7 +88,7 @@ const results = [];
 const check = (name, pass, detail) => results.push({ name, pass, detail });
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd(`WARP ${START.x * 120} ${START.y * 120}`);
 await page.waitForTimeout(24_000);
 

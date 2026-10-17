@@ -338,7 +338,7 @@ export class Game implements IGame {
             //
             // ⭐ Both halves of that sentence are load-bearing. Its own filter
             // is what puts it in a separate render target, out of reach of the
-            // darkness layer's erase holes: a lantern cuts the black and leaves
+            // darkness layer's lights (a lightmap since plan-lightmap.md L1): a lantern cuts the black and leaves
             // the fog. And drawing it UNDER means fog is only visible where
             // there is light to see it by — an unlit smoky cave reads black,
             // and its fog appears inside the lantern pocket.
@@ -963,7 +963,7 @@ export class Game implements IGame {
         // ground tiles land — and a fog bank that names a texture would
         // otherwise keep its fallback colour for the life of the session, the
         // same trap the region tiles already document. The overlay owns the
-        // ORDER (its container sits between the dark circles and every erase
+        // ORDER (its container sits between the dark circles and every light
         // hole); this owns the GPU resources, where the destroy-and-replace
         // discipline above already lives.
         //
@@ -994,7 +994,7 @@ export class Game implements IGame {
             return {masks: [], scrollers: [], swarms: []};
         }
         // Emptied IN PLACE, never re-parented — the container's position
-        // between the dark circles and the erase holes is what keeps a
+        // between the dark circles and the lights is what keeps a
         // campfire's glow from being sealed over by the fog.
         container.removeChildren().forEach(child => child.destroy({children: true}));
         // ⚑ The haze layer is emptied in place for the same reason — it is a
