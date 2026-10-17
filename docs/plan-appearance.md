@@ -556,7 +556,7 @@ Still open, each with a ruled owner and moment:
 
 ## 12. Chunk ledgers
 
-### C0a - SHIPPED 2026-10-17 `[uncommitted]`
+### C0a - SHIPPED 2026-10-17 `b9cf2d5e`
 
 The named sub-container refactor (M-§5.2) and the M-D15 measurement table
 (M-§5.3). No art, nothing on screen changed.
