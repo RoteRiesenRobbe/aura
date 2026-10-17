@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-17, the appearance C0a wrap: the FARMLAND QUEST SHEET entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: THE FARMLAND QUEST SHEET as content** ✅ 2026-10-13 `82044c23` (record: `docs/content-zone-1-farmland.md` §2.0 + §2.6a; wiring: `docs/content-npcs.md`): the PO's Google Sheet of quest dialogue built into Zone 1 (Flora, Reinhard, Hans, Lionett, the Governor of Dionsburg). Reused quests keep ids AND stage ids so saved ledgers stay valid. ⚑ `:2000` serves `frontend/dist`, which bundles `world.json`: rebuild it after a spawn rename or the map markers miss. **Schema: DB/wire NONE.**
+
 *(2026-10-16, the lightmap wrap: the EFFECT TYPES ROUND 2 C4-C7 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: IMMUNE TARGETS C1, an aura prefers targets it can hurt, COMPLETE + archived** ✅ 2026-10-12 `863f3884` (ledger: `docs/archive/plan-immune-targets.md` §9): when a damage cap drops someone, targets it can damage go first; only the species file demotes (an unlisted gate key, or resistances multiplying to exactly 0). `selectDamageTargets` beside `selectTargets`. ⚑ `dev-restart.sh` does not rebuild `aurad`. **Schema: NONE.**

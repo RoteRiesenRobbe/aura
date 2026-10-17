@@ -1,4 +1,5 @@
-import {GameObject, readTokenOffset, TOKEN_LABEL, writeTokenOffset} from './_GameObject';
+import {GameObject, readTokenOffset, writeTokenOffset} from './_GameObject';
+import {createTokenSlots} from './TokenSlots';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {isDefined} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
@@ -63,7 +64,9 @@ export class Character extends GameObject
     // The portrait and the medallion frame as ONE node, the only thing a
     // lunge moves (plan-natural-weapons.md §3.2, D9). Assigned in initShape,
     // so declared WITHOUT an initializer (an `= null` would overwrite it).
+    // aboveArt likewise (createTokenSlots, plan-appearance.md C0a).
     private token: Container;
+    private aboveArt: Container;
     private auraRings: AuraRingStack;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
@@ -115,24 +118,23 @@ export class Character extends GameObject
         const group = new Container();
         group.position.set(x, y);
 
+        // The named slots (createTokenSlots, plan-appearance.md C0a): the token
+        // (plan-natural-weapons.md §3.2, D9) holds portrait and frame, above
+        // the aura rings in belowArt, which stay on the logical position.
+        const slots = createTokenSlots(group, super.initShape(svg, 0, 0, size, rotation));
+        this.token = slots.token;
+        this.actualShape = slots.actualShape;
+        this.aboveArt = slots.aboveArt;
+
         this.auraRings = new AuraRingStack();
-        group.addChild(this.auraRings.container);
+        slots.belowArt.addChild(this.auraRings.container);
 
-        // The token (plan-natural-weapons.md §3.2, D9): portrait and frame,
-        // above the aura rings, which stay on the logical position.
-        this.token = createNamedContainer(TOKEN_LABEL);
-        group.addChild(this.token);
-
-        this.actualShape = createNamedContainer('actualShape');
-        this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
-        this.token.addChild(this.actualShape);
-
-        // In the token, deliberately NOT in `actualShape`: the damage flash is
-        // bound to actualShape (see createStatusEffects), so a frame inside it
-        // would flash red with the portrait. Added last so it draws on top.
+        // In the token's frame slot, deliberately NOT in `actualShape`: the
+        // damage flash is bound to actualShape (see createStatusEffects), so a
+        // frame inside it would flash red with the portrait.
         // Truthiness, not isDefined — the preload may not have resolved yet.
         if (Character.border.svg) {
-            this.token.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
+            slots.frame.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
         }
 
         return group;
@@ -321,7 +323,7 @@ export class Character extends GameObject
 
     private ensureAscensionFx(): AscensionChannelFx {
         if (this.ascensionFx === null) {
-            this.ascensionFx = new AscensionChannelFx(this.shape);
+            this.ascensionFx = new AscensionChannelFx(this.aboveArt);
         }
         return this.ascensionFx;
     }

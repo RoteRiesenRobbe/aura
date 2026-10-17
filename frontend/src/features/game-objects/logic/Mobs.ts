@@ -1,5 +1,6 @@
 import {IVector} from "../../core/logic/Vector";
-import {GameObject, readTokenOffset, TOKEN_LABEL, writeTokenOffset} from './_GameObject';
+import {GameObject, readTokenOffset, writeTokenOffset} from './_GameObject';
+import {createTokenSlots, FRAME_LABEL} from './TokenSlots';
 import * as Preloading from '../../core/logic/Preloading';
 import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -64,7 +65,9 @@ function file(mob: keyof typeof GraphicsConfig.mobs): Preloading.PortraitSource 
  *
  * Since plan-natural-weapons.md (PO ruling D9) "the outer group" means the
  * group's TOKEN container, the sibling of the portrait that a lunge moves, so
- * the frame jabs with the face it frames. `withBorder` finds it by label.
+ * the frame jabs with the face it frames. Since plan-appearance.md C0a the
+ * border goes into the token's FRAME slot (createTokenSlots), above the tier
+ * frame; `withBorder` finds it by label.
  */
 function registerBorder(borderFile: string, size: number): ISvgContainer {
     const holder: ISvgContainer = {svg: undefined};
@@ -78,9 +81,9 @@ function withBorder(group: PIXI.Container, border: ISvgContainer, size: number):
     // preload may not have resolved by the time the first entity is built.
     if (border.svg) {
         // Every caller hands in a Mob.initShape group, which always holds the
-        // token: a missing one throws here rather than drawing a frame that
-        // stays behind when the body jabs.
-        group.getChildByLabel(TOKEN_LABEL).addChild(createInjectedSVG(border.svg, 0, 0, size, 0));
+        // frame slot: a missing one throws here rather than drawing a frame
+        // that stays behind when the body jabs.
+        group.getChildByLabel(FRAME_LABEL, true).addChild(createInjectedSVG(border.svg, 0, 0, size, 0));
     }
     return group;
 }
@@ -120,8 +123,14 @@ export abstract class Mob extends GameObject
     protected actualShape: PIXI.Container;
     // The portrait, the tier frame and the species border as ONE node
     // (plan-natural-weapons.md §3.2, D9): the only thing a lunge moves.
-    // Declared WITHOUT an initializer, like actualShape (see tierFrame below).
+    // belowArt and aboveArt are the slots under and over it
+    // (createTokenSlots, plan-appearance.md C0a). All declared WITHOUT an
+    // initializer, like actualShape (see tierFrame below).
     private token: PIXI.Container;
+    protected belowArt: PIXI.Container;
+    private aboveArt: PIXI.Container;
+    // Created in the constructor body (after field initializers), so the
+    // initializer here is safe.
     private auraRings: AuraRingStack = null;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body,
@@ -181,6 +190,12 @@ export abstract class Mob extends GameObject
         anchor?: IVector
     ) {
         super(id, gameLayer, x, y, size, 0, svg, anchor);
+        // Bottom of belowArt: the ring renders behind the mob art and under
+        // the campfire's dwell ring. Every mob gets one, as it already did on
+        // its first snapshot (setAuraCategories); it stays empty until an
+        // aura is drawn.
+        this.auraRings = new AuraRingStack();
+        this.belowArt.addChild(this.auraRings.container);
         this.initHealthBar();
         this.isMovable = true;
 
@@ -407,10 +422,10 @@ export abstract class Mob extends GameObject
             return; // the common case: no badge, and none wanted
         }
         if (this.interactBadge === null) {
-            // Drawn into the shape group so it fades and darkens with the mob,
-            // but anchored off the art alone — the group also carries the aura
-            // rings, the dwell ring and the health bar (R4).
-            this.interactBadge = new InteractBadge(this.shape, this.actualShape);
+            // Drawn into the shape group (its aboveArt slot) so it fades and
+            // darkens with the mob, but anchored off the art alone — the group
+            // also carries the aura rings, the dwell ring and the health bar (R4).
+            this.interactBadge = new InteractBadge(this.aboveArt, this.actualShape);
         }
         this.interactBadge.setVisible(interactable);
     }
@@ -447,16 +462,14 @@ export abstract class Mob extends GameObject
      */
     setAuraRadius(radiusPx: number) {
         if (radiusPx <= 0) {
-            if (this.auraRings !== null) {
-                this.auraRings.setRadius(0);
-            }
+            this.auraRings.setRadius(0);
             SkillFx.setGlowRadius(this, 0);
             return;
         }
         // Like hit reach, the visual ring extends by the player collider
         // radius (collision is shape-vs-shape).
         const ringRadius = radiusPx + meter2px(GraphicsConfig.character.colliderRadiusMeters);
-        this.ensureAuraRings().setRadius(ringRadius);
+        this.auraRings.setRadius(ringRadius);
         SkillFx.setGlowRadius(this, ringRadius);
     }
 
@@ -472,16 +485,7 @@ export abstract class Mob extends GameObject
     // damage sprite regardless of what the aura actually did — a healer's and a
     // slower's aura were indistinguishable from a damage aura.
     setAuraCategories(mask: number) {
-        this.ensureAuraRings().setCategories(mask);
-    }
-
-    private ensureAuraRings(): AuraRingStack {
-        if (this.auraRings === null) {
-            this.auraRings = new AuraRingStack();
-            // Bottom of the display list: the ring renders behind the mob art.
-            this.shape.addChildAt(this.auraRings.container, 0);
-        }
-        return this.auraRings;
+        this.auraRings.setCategories(mask);
     }
 
     // setAuraTick drives the wind-up glow from the wire aura_tick_interval /
@@ -502,9 +506,7 @@ export abstract class Mob extends GameObject
         SkillFx.setAmbient(
             this, interval > 0 ? (mobDefinition(this.plateMobId)?.auraSkillId ?? 0) : 0, false);
         const landed = this.auraBeat.observe(0, interval, phase);
-        // The ring stack is created lazily with the first visible radius; a
-        // gated aura has no ring to pulse.
-        this.auraRings?.beat(landed);
+        this.auraRings.beat(landed);
         return landed;
     }
 
@@ -512,16 +514,16 @@ export abstract class Mob extends GameObject
         const group = new PIXI.Container();
         group.position.set(x, y);
 
-        // The token (plan-natural-weapons.md §3.2, D9): portrait, tier frame
-        // and species border (withBorder) in this draw order, under `group` at
-        // the portrait's old place, so the rings, the bar and the badge
-        // around it stay on the logical position while a lunge moves it.
-        this.token = createNamedContainer(TOKEN_LABEL);
-        group.addChild(this.token);
-
-        this.actualShape = new PIXI.Container();
-        this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation, anchor));
-        this.token.addChild(this.actualShape);
+        // The named slots (createTokenSlots, plan-appearance.md C0a): the token
+        // (plan-natural-weapons.md §3.2, D9) holds the portrait, then the frame
+        // slot with the tier frame and the species border (withBorder), so
+        // the rings, the bar and the badge in belowArt / aboveArt stay on the
+        // logical position while a lunge moves it.
+        const slots = createTokenSlots(group, super.initShape(svg, 0, 0, size, rotation, anchor));
+        this.belowArt = slots.belowArt;
+        this.token = slots.token;
+        this.actualShape = slots.actualShape;
+        this.aboveArt = slots.aboveArt;
 
         // Tier frame ring (triage item 15) — drawn over the portrait so it reads
         // against dark mob art. Sized from the mob's own graphic, and left
@@ -529,7 +531,7 @@ export abstract class Mob extends GameObject
         this.tierFrame = new PIXI.Graphics();
         this.tierFrame.visible = false;
         this.tierFrameRadius = size;
-        this.token.addChild(this.tierFrame);
+        slots.frame.addChild(this.tierFrame);
 
         return group;
     }
@@ -598,7 +600,7 @@ export abstract class Mob extends GameObject
 
     private initHealthBar() {
         // Below the mob (positive y is down); item-11 VFX pass moved it under.
-        // On `shape` (not the plate) the bar inherits the night tint, the
+        // On `shape` (aboveArt, not the plate) the bar inherits the night tint, the
         // corpse fade and the darkness hide — deliberate, unlike Character's.
         //
         // ⚑ 1.08, not 0.9: the sprite box spans ±size, so anything under 1.0
@@ -607,7 +609,7 @@ export abstract class Mob extends GameObject
         // Medallion PNGs fill the box edge to edge, so the bar has to clear
         // 1.0 outright. The 0.08 overshoot is the gap the old art used to have.
         this.overheadBar = new OverheadHealthBar(this.size, Math.max(30, this.size * 1.08));
-        this.shape.addChild(this.overheadBar.container);
+        this.aboveArt.addChild(this.overheadBar.container);
     }
 }
 
@@ -685,8 +687,9 @@ export class Campfire extends Mob implements DwellRing {
         }
         if (this.dwellRing === null) {
             this.dwellRing = new PIXI.Graphics();
-            // above the aura ring sprite (child 0), below the fire itself
-            this.shape.addChildAt(this.dwellRing, Math.min(1, this.shape.children.length));
+            // belowArt: above the aura ring (the constructor put it there
+            // first), below the fire itself
+            this.belowArt.addChild(this.dwellRing);
         }
         this.dwellRing.clear()
             .circle(0, 0, radiusPx)

@@ -51,8 +51,9 @@ export class InteractBadge {
     private offsetX = 0;
 
     /**
-     * @param parent the container the cap is drawn into — the mob's whole
-     *               shape group, so the prompt fades and darkens with it
+     * @param parent the container the cap is drawn into — the aboveArt slot
+     *               of the mob's shape group, so the prompt fades and darkens
+     *               with it
      * @param sprite the mob's art alone, the thing the cap is anchored above
      */
     constructor(private readonly parent: PIXI.Container,

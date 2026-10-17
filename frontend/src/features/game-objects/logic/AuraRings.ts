@@ -93,8 +93,8 @@ const PULSE_DECAY = 0.82;
 export class AuraRingStack {
     /**
      * The rings live on their own container so the caller decides where they sit
-     * in the entity's display list — the character appends it below the avatar,
-     * the mob inserts it at the bottom of `shape`.
+     * in the entity's display list: both the character and the mob put it first
+     * in their `belowArt` slot (createTokenSlots).
      */
     readonly container: Container = new Container();
 

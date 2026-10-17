@@ -1,7 +1,7 @@
 # Appearance: the player chooses their token, and every actor wears a medallion
 
 > **Status: APPROVED 2026-10-17 (planning session, five PO prompt rounds, D1-D22;
-> refined the same day, D23-D30, §3.7), nothing built. Next: C0a.** Order (D24):
+> refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17 (§12). Next: C1.** Order (D24):
 > C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
@@ -551,3 +551,51 @@ Still open, each with a ruled owner and moment:
 - **Backlog §56** (origins): deferred (D22).
 - **`plan-ascension-sites.md`** (archived): D21's stone rewards extend its
   per-site reward lists.
+
+---
+
+## 12. Chunk ledgers
+
+### C0a - SHIPPED 2026-10-17 `[uncommitted]`
+
+The named sub-container refactor (M-§5.2) and the M-D15 measurement table
+(M-§5.3). No art, nothing on screen changed.
+
+- **Slots:** `createTokenSlots` (`TokenSlots.ts`) builds every token entity's
+  `shape` as `belowArt` (aura ring stack, then the campfire's dwell ring) ·
+  `token` (M-§5.2's `art`; the shipped name stays: `actualShape`, then a `frame`
+  slot with tier frame and border) · `aboveArt` (Mob: health bar, interact
+  badge; Character: ascension channel effect). Mob and Character both use it;
+  `withBorder` finds `frame` by label. Every `addChildAt(i)` is gone. The burst
+  ring still appends to `shape` above all three (base class, every entity kind).
+- **Room left, nothing built:** the tier rim (M-D16) and the stance disc go into
+  `token` BELOW `actualShape`; the medallion stays outside `actualShape`, which
+  the damage flash scales (M-§5.1).
+- **Mob aura rings are made in the constructor** now, not on first use. Every
+  mob already got one on its first snapshot (`setAuraCategories` runs every
+  tick), so this is no change on screen; it is what lets the dwell ring append
+  after it without an index.
+- **The table:** `plan-entity-medallions.md` Appendix A, 102 eligible species
+  (rolled / wire-radius / player / excluded). Rolled combat mobs draw 1.00-1.50×
+  their collider (most 1.0-1.25); only Deadwood (0.72-0.89) and the low ends of
+  AlphaBoar, Boar, Bear, Troll draw smaller. NPCs, placeholders and the player
+  are 1.00 by construction. "Summon" = a species a skill's `spawnMob` names (a
+  reading, not a code flag). Observations only; D15 is the PO's.
+- ⚑ **M-§2.4's container rows are stale** (written 2026-08-20, before the
+  natural-weapons token); the slot list in `TokenSlots.ts` is the current truth.
+- ⚑ **`r4-badge.mjs` was red at HEAD**, unrelated: it warped to the Hermit's
+  pre-rebuild spot (-55, 25). Moved to (-121, -29), and its geometry probe now
+  steps out of `aboveArt` to the shape group (harness rule 8).
+
+**Schema:** DB none · wire none · conf none · content none.
+
+**Verified:** typecheck clean · vitest 1773/0 (+1 `TokenSlots.test.ts`, the slot
+order) · backend build green (no Go change) · before/after on fresh builds, five
+venues (starting campfire: ring + dwell + border; Hermit: border + badge;
+Elite Wolf with its aggro ring; Alpha Boar: tier frame; the tunnel campfire and
+dire wolves under darkness; the player in every shot): every drawn leaf in
+order, kind, visibility, alpha, blend and texture identical on 27/29 matched
+shapes, the other 2 differing only in zero-size empty Graphics whose reported
+origin follows the camera by 1 px; fixed-size bounds identical; screenshots
+match by eye; 0 page errors both runs · `r4-badge.mjs vanilla` 7/7 after the
+venue fix.

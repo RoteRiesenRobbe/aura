@@ -291,6 +291,12 @@ with named sub-containers** (`belowArt`, `art`, `aboveArt`) before any
 medallion art lands. Small refactor; the difference between this plan costing
 one bug and costing three.
 
+✅ **Shipped in `plan-appearance.md` C0a (2026-10-17):** `createTokenSlots`
+(`TokenSlots.ts`) gives Mob and Character `belowArt` (aura rings, dwell ring),
+`token` (this doc's `art`: `actualShape`, then a `frame` slot with tier frame
+and border) and `aboveArt` (health bar, interact badge, ascension effect).
+The rim and the disc go into `token` below `actualShape` when they are built.
+
 ### 5.3 Sizing: the D15 constraint reframes grow-vs-shrink
 
 The 2026-08-10 fork was: *grow the medallion* around the current art (one
@@ -318,6 +324,8 @@ What makes this non-trivial:
 eligible species with authored `body.radius`, current `minSize`/`maxSize`
 roll range, and the ratio. The PO decides D15's final rule off that table,
 per-species outliers visible. Until then, neither grow nor shrink is final.
+
+✅ **The table is Appendix A** (measured 2026-10-17, C0a).
 
 Known offset consequences whichever way it lands (each one expression): the
 overhead bar anchor, the nameplate offset, the character name/level offsets,
@@ -617,3 +625,183 @@ Still open:
    `Graphics` circles.)
 8. **Prey/flee stance semantics** (§6.2): neutral-until-retaliating proposed,
    needs a PO nod in C2.
+
+---
+
+## Appendix A. The M-D15 measurement table (C0a, measured 2026-10-17)
+
+Input for the PO's D15 sizing ruling (§5.3, Q1 in §12). It measures; it does
+not pick a rule. Read from the working tree at `99be48bf`: `api/mobs/*.json`,
+`frontend/src/client-data/Graphics.ts`, the sprite classes in `Mobs.ts`, the
+class map in `GameStateMessage.ts`.
+
+How the numbers are derived:
+
+- **Collider diameter** = `body.radius` × 120 × 2 px (`PIXEL_PER_METER` 120,
+  `BasicConfig.ts`; the wire sends `uint16(radius × 120)`, `codec/mob.go`).
+- **Visual diameter** = 2 × `size`: `size` is the sprite's HALF-extent
+  (`createInjectedSVG` doubles it, `InjectedSVG.ts`). It is the sprite BOX:
+  the old SVG placeholders fill about 82 % of their box, the medallion PNGs
+  (border "yes") fill it edge to edge (`Mobs.ts` `initHealthBar` comment). The
+  border is drawn at the same `size`.
+- **Ratio** = visual / collider, min-max over the per-instance roll
+  `randomInt(minSize, maxSize)`.
+- **Eligible** is M-D14's predicate as the server derives it: CT = combat target
+  (`xpFactor > 0 && !friendlyToPlayers`, absent `xpFactor` = 1,
+  `IsCombatTarget`), CV = conversant (authors an `interaction`), SU = summon.
+  ⚑ SU is a reading, not a code fact: the species a skill's `spawnMob` names.
+- Classes resolve `entityType` (else `name`) → `EntityType` → the client class.
+
+### A.1 Rolled from `Graphics.ts` minSize/maxSize (sorted by max ratio)
+
+| Species (file) | Eligible by | Tier | Faction | Client class | Graphics key | body.radius m (collider diam px) | medallion border | size min-max (visual diam px) | ratio visual/collider | roll |
+|---|---|---|---|---|---|---|---|---|---|---|
+| BurstTotem (burst-totem.json) | SU | normal | (none) | Totem | totem | 0.25 (60) | no | 50-50 (100-100) | 1.67-1.67 | fixed |
+| FireTotem (fire-totem.json) | SU | normal | (none) | FireTotem | fireTotem | 0.25 (60) | no | 50-50 (100-100) | 1.67-1.67 | fixed |
+| Totem (totem.json) | SU | normal | (none) | Totem | totem | 0.25 (60) | no | 50-50 (100-100) | 1.67-1.67 | fixed |
+| DireBear (dire-bear.json) | CT | normal | wildlife_predator | DireBear | direBear | 0.5 (120) | yes | 78-90 (156-180) | 1.30-1.50 | rolled |
+| BanditPyromancer (bandit-pyromancer.json) | CT | normal | bandit | BanditPyromancer | banditPyromancer | 0.3 (72) | yes | 46-52 (92-104) | 1.28-1.44 | rolled |
+| Beet (beet.json) | CT | normal | (none) | Turnip | turnip | 0.15 (36) | no | 20-26 (40-52) | 1.11-1.44 | rolled |
+| BlueMushroom (blue-mushroom.json) | CT | normal | (none) | BlueMushroom | blueMushroom | 0.15 (36) | no | 20-26 (40-52) | 1.11-1.44 | rolled |
+| RedMushroom (red-mushroom.json) | CT | normal | (none) | RedMushroom | redMushroom | 0.15 (36) | no | 20-26 (40-52) | 1.11-1.44 | rolled |
+| Turnip (turnip.json) | CT | normal | (none) | Turnip | turnip | 0.15 (36) | no | 20-26 (40-52) | 1.11-1.44 | rolled |
+| Seaweed (seaweed.json) | CT | normal | (none) | Seaweed | seaweed | 0.2 (48) | no | 26-34 (52-68) | 1.08-1.42 | rolled |
+| Companion (companion.json) | SU | normal | (none) | Companion | companion | 0.25 (60) | yes | 40-40 (80-80) | 1.33-1.33 | fixed |
+| FireElemental (fire-elemental.json) | CT | normal | elemental | FireElemental | fireElemental | 0.4 (96) | yes | 52-62 (104-124) | 1.08-1.29 | rolled |
+| DeadCarter (dead-carter.json) | CV | normal | townsfolk | Remains | mobs.remains | 0.35 (84) | no | 54-54 (108-108) | 1.29-1.29 | fixed |
+| FallenTraveller (fallen-traveller.json) | CV | normal | townsfolk | Remains | mobs.remains | 0.35 (84) | no | 54-54 (108-108) | 1.29-1.29 | fixed |
+| Spider (spider.json) | CT+SU | normal | spider | Spider | spider | 0.3 (72) | yes | 38-46 (76-92) | 1.06-1.28 | rolled |
+| Wolf (wolf.json) | CT | normal | wildlife_predator | Wolf | wolf | 0.3 (72) | yes | 38-46 (76-92) | 1.06-1.28 | rolled |
+| GreaterFireElemental (greater-fire-elemental.json) | CT | elite | elemental | GreaterFireElemental | greaterFireElemental | 0.55 (132) | no | 72-84 (144-168) | 1.09-1.27 | rolled |
+| SoldierCompanion (soldier-companion.json) | SU | normal | (none) | SoldierCompanion | soldierCompanion | 0.25 (60) | yes | 34-38 (68-76) | 1.13-1.27 | rolled |
+| AlphaWolf (alpha-wolf.json) | CT | normal | wildlife_predator | AlphaWolf | alphaWolf | 0.45 (108) | yes | 58-68 (116-136) | 1.07-1.26 | rolled |
+| BroodMother (brood-mother.json) | CT | normal | spider | GiantSpider | giantSpider | 0.45 (108) | yes | 58-68 (116-136) | 1.07-1.26 | rolled |
+| GiantSpider (giant-spider.json) | CT | normal | spider | GiantSpider | giantSpider | 0.45 (108) | yes | 58-68 (116-136) | 1.07-1.26 | rolled |
+| MedicCompanion (medic-companion.json) | SU | normal | (none) | MedicCompanion | medicCompanion | 0.24 (58) | no | 32-36 (64-72) | 1.11-1.25 | rolled |
+| FireStirer (fire-stirer.json) | CT | normal | elemental | FireStirer | fireStirer | 0.4 (96) | yes | 50-60 (100-120) | 1.04-1.25 | rolled |
+| Orc (orc.json) | CT | elite | orc | Orc | orc | 0.4 (96) | yes | 52-60 (104-120) | 1.08-1.25 | rolled |
+| ShieldbearerCompanion (shieldbearer-companion.json) | SU | normal | (none) | ShieldbearerCompanion | shieldbearerCompanion | 0.28 (67) | yes | 38-42 (76-84) | 1.13-1.25 | rolled |
+| Marauder (marauder.json) | CT | normal | bandit | Marauder | marauder | 0.35 (84) | yes | 44-52 (88-104) | 1.05-1.24 | rolled |
+| EliteBandit (elite-bandit.json) | CT | elite | bandit | EliteBandit | eliteBandit | 0.4 (96) | yes | 50-58 (100-116) | 1.04-1.21 | rolled |
+| KoboldRanged (kobold-ranged.json) | CT | normal | kobold | KoboldRanged | koboldRanged | 0.25 (60) | yes | 30-36 (60-72) | 1.00-1.20 | rolled |
+| Kobold (kobold.json) | CT | normal | kobold | Kobold | kobold | 0.25 (60) | yes | 30-36 (60-72) | 1.00-1.20 | rolled |
+| PortalHome (portal-home.json) | CV | normal | townsfolk | FireTotem | fireTotem | 0.35 (84) | no | 50-50 (100-100) | 1.19-1.19 | fixed |
+| PortalSummon (portal-summon.json) | CV | normal | townsfolk | FireTotem | fireTotem | 0.35 (84) | no | 50-50 (100-100) | 1.19-1.19 | fixed |
+| RallyDrummer (rally-drummer.json) | CT | normal | bandit | RallyDrummer | rallyDrummer | 0.35 (84) | yes | 44-50 (88-100) | 1.05-1.19 | rolled |
+| Stag (stag.json) | CT | normal | wildlife_prey | Stag | stag | 0.35 (84) | yes | 42-50 (84-100) | 1.00-1.19 | rolled |
+| VenomSpider (venom-spider.json) | CT | normal | spider | VenomSpider | venomSpider | 0.35 (84) | no | 42-50 (84-100) | 1.00-1.19 | rolled |
+| EliteWolf (elite-wolf.json) | CT | elite | wildlife_predator | EliteWolf | eliteWolf | 0.45 (108) | yes | 56-64 (112-128) | 1.04-1.19 | rolled |
+| Firelord (firelord.json) | CT | normal | elemental | Firelord | firelord | 0.45 (108) | yes | 54-64 (108-128) | 1.00-1.19 | rolled |
+| BanditHealer (bandit-healer.json) | CT | normal | bandit | BanditHealer | banditHealer | 0.3 (72) | yes | 36-42 (72-84) | 1.00-1.17 | rolled |
+| BanditRanged (bandit-ranged.json) | CT | normal | bandit | BanditRanged | banditRanged | 0.3 (72) | yes | 36-42 (72-84) | 1.00-1.17 | rolled |
+| Bandit (bandit.json) | CT | normal | bandit | Bandit | bandit | 0.3 (72) | yes | 36-42 (72-84) | 1.00-1.17 | rolled |
+| Boar (boar.json) | CT | normal | wildlife_prey | Boar | boar | 0.4 (96) | yes | 46-56 (92-112) | 0.96-1.17 | rolled |
+| DireWolf (dire-wolf.json) | CT | normal | wildlife_predator | DireWolf | direWolf | 0.4 (96) | yes | 48-56 (96-112) | 1.00-1.17 | rolled |
+| OrcWarlord (orc-warlord.json) | CT | boss | orc | OrcWarlord | orcWarlord | 0.6 (144) | yes | 78-84 (156-168) | 1.08-1.17 | rolled |
+| OrcGrunt (orc-grunt.json) | CT | normal | orc | OrcGrunt | orcGrunt | 0.35 (84) | yes | 42-48 (84-96) | 1.00-1.14 | rolled |
+| Bear (bear.json) | CT | normal | wildlife_predator | Bear | bear | 0.6 (144) | yes | 70-82 (140-164) | 0.97-1.14 | rolled |
+| Troll (troll.json) | CT | elite | troll | Troll | troll | 0.55 (132) | yes | 64-72 (128-144) | 0.97-1.09 | rolled |
+| AlphaBoar (alpha-boar.json) | CT | elite | wildlife_prey | AlphaBoar | alphaBoar | 0.5 (120) | yes | 52-62 (104-124) | 0.87-1.03 | rolled |
+| Deadwood (deadwood.json) | CT | normal | (none) | Deadwood | deadwood | 0.3 (72) | no | 26-32 (52-64) | 0.72-0.89 | rolled |
+
+### A.2 Sized from the WIRE radius: ratio 1.00 by construction
+
+All NPC classes (`Mobs.ts`, the comment above `npcCfg`): the sprite takes the
+wire radius as `size`, so it draws `body.radius × 240` px, the collider
+diameter up to 1 px truncation. No roll. `NpcPlaceholder` rows draw the loud
+placeholder and have no real art to compare yet.
+
+| Species (file) | Eligible by | Tier | Faction | Client class | body.radius m | diameter px (visual = collider) | medallion border | note |
+|---|---|---|---|---|---|---|---|---|
+| CityGuard (city-guard.json) | CV | normal | townsfolk | CityGuard | 0.35 | 84 | yes |  |
+| Dog (dog.json) | CV | normal | townsfolk | DogNpc | 0.35 | 84 | no |  |
+| Benjamin (benjamin.json) | CV | normal | townsfolk | Farmer | 0.35 | 84 | yes |  |
+| Farmhand (farmhand.json) | CV | normal | townsfolk | Farmer | 0.3 | 72 | yes |  |
+| Hans (shepherd.json) | CV | normal | townsfolk | Farmer | 0.35 | 84 | yes |  |
+| Reinhard (reinhard.json) | CV | normal | townsfolk | Farmer | 0.35 | 84 | yes |  |
+| ReinhardsWife (miller.json) | CV | normal | townsfolk | Farmer | 0.35 | 84 | yes |  |
+| Tobias (tobias.json) | CV | normal | townsfolk | Farmer | 0.35 | 84 | yes |  |
+| FrontCaptain (front-captain.json) | CV | normal | townsfolk | FrontCaptain | 0.35 | 84 | yes |  |
+| GrandfatherKnot (grandfather-knot.json) | CV | normal | townsfolk | GrandfatherKnot | 0.7 | 168 | yes |  |
+| Emberkeeper (emberkeeper.json) | CV | normal | townsfolk | Hermit | 0.35 | 84 | yes |  |
+| Governor (governor.json) | CV | normal | townsfolk | Hermit | 0.35 | 84 | yes |  |
+| Hermit (hermit.json) | CV | normal | townsfolk | Hermit | 0.35 | 84 | yes |  |
+| Lamplighter (lamplighter.json) | CV | normal | townsfolk | Hermit | 0.35 | 84 | yes |  |
+| Shaman (shaman.json) | CV | normal | townsfolk | Hermit | 0.35 | 84 | yes |  |
+| Miner (miner.json) | CV | normal | townsfolk | Miner | 0.35 | 84 | yes |  |
+| Baabara (baabara.json) | CV | normal | townsfolk | NpcPlaceholder | 0.35 | 84 | no | placeholder art, no real portrait |
+| BlightedTreant (blighted-treant.json) | CT | elite | undead | NpcPlaceholder | 0.55 | 132 | no | placeholder art, no real portrait |
+| CultAcolyte (cult-acolyte.json) | CT | normal | cult | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| CultHighPriest (cult-high-priest.json) | CT | elite | cult | NpcPlaceholder | 0.4 | 96 | no | placeholder art, no real portrait |
+| Cultist (cultist.json) | CT | normal | cult | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| DeathKnight (death-knight.json) | CT | elite | undead | NpcPlaceholder | 0.4 | 96 | no | placeholder art, no real portrait |
+| Dragon (dragon.json) | CT | boss | dragonkin | NpcPlaceholder | 0.8 | 192 | no | placeholder art, no real portrait |
+| DragonkinWarrior (dragonkin-warrior.json) | CT | elite | dragonkin | NpcPlaceholder | 0.45 | 108 | no | placeholder art, no real portrait |
+| Drakeling (drakeling.json) | CT | normal | dragonkin | NpcPlaceholder | 0.4 | 96 | no | placeholder art, no real portrait |
+| Ghoul (ghoul.json) | CT | normal | undead | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| GiantRat (giant-rat.json) | CT | normal | wildlife_predator | NpcPlaceholder | 0.25 | 60 | no | placeholder art, no real portrait |
+| GiantScorpion (giant-scorpion.json) | CT | normal | wildlife_predator | NpcPlaceholder | 0.4 | 96 | no | placeholder art, no real portrait |
+| Lambert (lambert.json) | CV | normal | townsfolk | NpcPlaceholder | 0.35 | 84 | no | placeholder art, no real portrait |
+| Mercenary (mercenary.json) | CT | normal | mercenary | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| MercenaryCaptain (mercenary-captain.json) | CT | elite | mercenary | NpcPlaceholder | 0.4 | 96 | no | placeholder art, no real portrait |
+| MercenaryCrossbowman (mercenary-crossbowman.json) | CT | normal | mercenary | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| SandBasilisk (sand-basilisk.json) | CT | elite | wildlife_predator | NpcPlaceholder | 0.55 | 132 | no | placeholder art, no real portrait |
+| SandClamper (sand-clamper.json) | CT | normal | (none) | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| Skeleton (skeleton.json) | CT | normal | undead | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| SkeletonArcher (skeleton-archer.json) | CT | normal | undead | NpcPlaceholder | 0.3 | 72 | no | placeholder art, no real portrait |
+| Treant (treant.json) | CT | normal | fey | NpcPlaceholder | 0.55 | 132 | no | placeholder art, no real portrait |
+| Wisp (wisp.json) | CT | normal | fey | NpcPlaceholder | 0.25 | 60 | no | placeholder art, no real portrait |
+| Woolliam (woolliam.json) | CV | normal | townsfolk | NpcPlaceholder | 0.35 | 84 | no | placeholder art, no real portrait |
+| AscensionStone (ascension-stone.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| CaveExit (cave-exit.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| CaveMouth (cave-mouth.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| ForestSign (forest-sign.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| FrontAscensionStone (front-ascension-stone.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| GladeRoot (glade-root.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| MemorialStone (memorial-stone.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| StoneRoot (stone-root.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| StreamRoot (stream-root.json) | CV | normal | townsfolk | Signpost | 0.35 | 84 | no |  |
+| TownCrier (town-crier.json) | CV | normal | townsfolk | TownCrier | 0.35 | 84 | yes |  |
+| LamplessTraveller (lampless-traveller.json) | CV | normal | townsfolk | Traveller | 0.35 | 84 | yes |  |
+| Flora (eliza.json) | CV | normal | townsfolk | VillageHealer | 0.35 | 84 | yes |  |
+| Lionett (lionett.json) | CV | normal | townsfolk | VillageHealer | 0.35 | 84 | yes |  |
+| VillageHealer (village-healer.json) | CV | normal | townsfolk | VillageHealer | 0.35 | 84 | yes |  |
+| Henrik (hendrik.json) | CV | normal | townsfolk | Wanderer | 0.35 | 84 | yes |  |
+| Wanderer (wanderer.json) | CV | normal | townsfolk | Wanderer | 0.35 | 84 | yes |  |
+
+### A.3 The player
+
+| Entity | size | colliderRadiusMeters | collider diam px | visual diam px | ratio |
+|---|---|---|---|---|---|
+| Character | GraphicsConfig.character.size = meter2px(0.25) = 30 (Graphics.ts:33) | 0.25 (Graphics.ts:47, tied to shared constant by SharedConstants.test.ts:219) | 60 | 60 | 1.00 (has medallion border) |
+
+### A.4 Not eligible (not CT, CV or SU)
+
+- ArmySoldier (army-soldier.json): tier=normal faction=human_army xpFactor=0 friendly no interaction
+- Bramble (bramble.json): tier=normal faction=(none) xpFactor=0 no interaction
+- Camp (camp.json): tier=normal faction=(none) xpFactor=0 no interaction
+- Campfire (campfire.json): tier=normal faction=(none) xpFactor=0 no interaction
+- PoisonPool (poison-pool.json): tier=normal faction=(none) xpFactor=0 no interaction
+- ProjectileBomb (projectile-bomb.json): tier=normal faction=(none) xpFactor=0 no interaction
+- Rockfall (rockfall.json): tier=normal faction=(none) xpFactor=0 no interaction
+- Sheep (sheep.json): tier=normal faction=townsfolk xpFactor=0 friendly no interaction
+- SpiderWeb (spider-web.json): tier=normal faction=(none) xpFactor=0 no interaction
+- SpikeBarricade (spike-barricade.json): tier=normal faction=(none) xpFactor=0 no interaction
+- WarbannerTotem (warbanner-totem.json): tier=normal faction=orc xpFactor=0 no interaction
+
+### A.5 What the table shows (observations only)
+
+- No rolled combat species draws smaller than its collider except **Deadwood**
+  (0.72-0.89) and the low ends of **AlphaBoar** (0.87), **Boar** (0.96),
+  **Bear** and **Troll** (0.97).
+- The rest sit at 1.00-1.50, most between 1.0 and 1.25. The largest:
+  **DireBear** 1.30-1.50, **BanditPyromancer** 1.28-1.44, the harvest mobs
+  (Turnip, Beet, the mushrooms) up to 1.44, **Seaweed** 1.42, and the fixed
+  **totems** at 1.67 (no border).
+- The roll spans about 0.1-0.2 of ratio within a species, i.e. roughly ±8 %
+  visual size between two instances.
+- Every NPC, every placeholder and the player already draw at the collider
+  (1.00): "ring = body" is true for them today and false for rolled mobs.
+- Fixed-size oddities: the two **Remains** conversants (DeadCarter,
+  FallenTraveller) draw the prop's 54 at radius 0.35 (1.29); the portals draw
+  the FireTotem sprite (1.19).
