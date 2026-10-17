@@ -26,6 +26,7 @@
     "AuraPropType": [
       "Barn",
       "Bedroll",
+      "BerryBush",
       "Boulder",
       "Bridge",
       "BrokenCrate",
@@ -492,6 +493,10 @@
     "Bedroll": {
       "w": 0.5,
       "h": 1.4
+    },
+    "BerryBush": {
+      "w": 0.9,
+      "h": 0.9
     },
     "Boulder": {
       "w": 2.2,

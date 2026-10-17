@@ -881,6 +881,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
     [AuraApi.EntityType.OakTree]: Props.genericPropClasses.OakTree,
     [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
+    [AuraApi.EntityType.BerryBush]: Props.genericPropClasses.BerryBush,
     [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
     [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
     // Generic, like the Gate it shares a body with — what makes it passable is
