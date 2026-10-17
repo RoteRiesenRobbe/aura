@@ -89,7 +89,7 @@
   "mob.SandClamper.name": "Sandzwicker",
   "mob.Seaweed.name": "{count, plural, one {Seetang} other {Seetang}}",
   "mob.Shaman.name": "Schamane",
-  "mob.Sheep.name": "Schaf",
+  "mob.Sheep.name": "{count, plural, one {Schaf} other {Schafe}}",
   "mob.ShieldbearerCompanion.name": "Schildträger-Gefährte",
   "mob.Skeleton.name": "Skelett",
   "mob.SkeletonArcher.name": "Skelettbogenschütze",

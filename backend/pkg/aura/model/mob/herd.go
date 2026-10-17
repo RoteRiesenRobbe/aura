@@ -53,10 +53,19 @@ func (m *Mob) HerdPen() string {
 // drops it from the herders too.
 func (m *Mob) herdPush() (from phy.Vec2f, ok bool) {
 	pos := m.Position()
+	runRadius := m.definition.Body.AggroRadius
 	var push phy.Vec2f
 	for c := range m.aggroAura.Collisions() {
 		p, isPlayer := c.Shape().UserData.(model.PlayerEntity)
 		if !isPlayer || p.Flying() || model.IsStealthed(p) {
+			continue
+		}
+		// The sensor is the wider of the run radius and a talking stray's
+		// talk range (SenseRadius), so the run radius is judged here, centre
+		// to centre (D12): a stubborn stray lets you into talk range.
+		delta := pos.Sub(p.Position())
+		d2 := delta.AbsSq()
+		if d2 > runRadius*runRadius {
 			continue
 		}
 		if m.herders == nil {
@@ -65,8 +74,7 @@ func (m *Mob) herdPush() (from phy.Vec2f, ok bool) {
 		m.herders[p.Basic().ID()] = herder{player: p, lastTick: m.herdTick}
 		ok = true
 
-		delta := pos.Sub(p.Position())
-		if d2 := delta.AbsSq(); d2 > 1e-8 {
+		if d2 > 1e-8 {
 			push = push.Add(delta.Div(d2))
 		}
 	}

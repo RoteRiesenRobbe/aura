@@ -1183,7 +1183,12 @@ func (m *Mob) Update(dt float32) bool {
 	herded := false
 	if m.definition.Herd != nil {
 		m.tickHerd()
-		herdFrom, herded = m.herdPush()
+		// A talk holds a herd animal where it stands, as it holds a patrolling
+		// NPC (plan-herding.md D13): otherwise the panel would close the moment
+		// it opened, the animal running out of talk range.
+		if !m.conversing {
+			herdFrom, herded = m.herdPush()
+		}
 	}
 
 	switch {

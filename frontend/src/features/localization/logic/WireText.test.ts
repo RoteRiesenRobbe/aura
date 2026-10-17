@@ -47,6 +47,14 @@ describe('objectiveLine (Q2)', () => {
         const talk = {...kill, kind: AuraApi.QuestObjectiveKind.TalkTo, done: true};
         expect(objectiveLine('q', talk)).toBe('Talk to 999 ✓');
     });
+
+    it('words a herd line, and ticks none without a named tracker (plan-herding.md D6)', () => {
+        const herd = {...kill, kind: AuraApi.QuestObjectiveKind.Herd, n: 2, m: 6};
+        expect(objectiveLine('q', herd)).toBe('2/6 999 brought back');
+        expect(objectiveLine('q', {...herd, n: 6, done: true})).toBe('6/6 999 brought back');
+        setLocaleForTest('de');
+        expect(objectiveLine('q', herd)).toBe('2/6 999 zurückgebracht');
+    });
 });
 
 // plan-localization.md C5b (D24): a mob name carries its plural as ICU; the

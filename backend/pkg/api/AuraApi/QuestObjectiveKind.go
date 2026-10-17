@@ -11,6 +11,7 @@ const (
 	QuestObjectiveKindHarvest QuestObjectiveKind = 1
 	QuestObjectiveKindTalkTo  QuestObjectiveKind = 2
 	QuestObjectiveKindReach   QuestObjectiveKind = 3
+	QuestObjectiveKindHerd    QuestObjectiveKind = 4
 )
 
 var EnumNamesQuestObjectiveKind = map[QuestObjectiveKind]string{
@@ -18,6 +19,7 @@ var EnumNamesQuestObjectiveKind = map[QuestObjectiveKind]string{
 	QuestObjectiveKindHarvest: "Harvest",
 	QuestObjectiveKindTalkTo:  "TalkTo",
 	QuestObjectiveKindReach:   "Reach",
+	QuestObjectiveKindHerd:    "Herd",
 }
 
 var EnumValuesQuestObjectiveKind = map[string]QuestObjectiveKind{
@@ -25,6 +27,7 @@ var EnumValuesQuestObjectiveKind = map[string]QuestObjectiveKind{
 	"Harvest": QuestObjectiveKindHarvest,
 	"TalkTo":  QuestObjectiveKindTalkTo,
 	"Reach":   QuestObjectiveKindReach,
+	"Herd":    QuestObjectiveKindHerd,
 }
 
 func (v QuestObjectiveKind) String() string {

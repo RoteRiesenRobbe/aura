@@ -544,6 +544,15 @@
       "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Turnips"}
     }
   },
+  "journal.objective.herd": "{n, number}/{m, number} {mob} brought back",
+  "@journal.objective.herd": {
+    "description": "Quest tracker line for a herd objective (plan-herding.md): animals driven back into their pen; as journal.objective.kill. {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (D31).",
+    "placeholders": {
+      "n": {"type": "int", "description": "Brought back so far", "example": "2"},
+      "m": {"type": "int", "description": "Required", "example": "6"},
+      "mob": {"type": "String", "description": "Mob name, in its form for the required count {m}", "example": "Sheep"}
+    }
+  },
   "journal.objective.kill": "{n, number}/{m, number} {mob} slain",
   "@journal.objective.kill": {
     "description": "Quest tracker line for a kill objective. {mob} is the mob name already in its form for the required count {m} (each language authors its plural forms in the mob name, D24). {mob} is a bare name in the nominative; if your language would inflect it here, phrase the line as a label instead (\"Source: {mob}\") (D31).",

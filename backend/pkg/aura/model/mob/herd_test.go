@@ -229,3 +229,35 @@ func TestHerd_SleepForgetsHerdersAndAPenTimerKeepsItAwake(t *testing.T) {
 	sheep.UpdatePen(true)
 	assert.False(t, sheep.Pristine(), "a running pen timer must not freeze")
 }
+
+func TestHerd_AnAnimalInConversationHoldsStill(t *testing.T) {
+	sheep := newSheep(phy.VEC2F_ZERO)
+	sensesAll(sheep, playerAt(-1, 0))
+	sheep.SetConversing(true)
+
+	require.True(t, sheep.Update(0))
+	assert.Equal(t, phy.VEC2F_ZERO, sheep.Position(), "a talk holds it, as it holds a patrolling NPC (D13)")
+
+	sheep.SetConversing(false)
+	require.True(t, sheep.Update(0))
+	assert.Greater(t, sheep.Position().X, float32(0), "and it runs again once the talk ends")
+}
+
+// A talking stray's sensor is the wider of its run radius and its talk range
+// (SenseRadius), so the run radius must be judged on its own: a stubborn stray
+// lets you walk into talk range before it moves (plan-herding.md D12).
+func TestHerd_TheRunRadiusIsAggroRadiusNotTheTalkRange(t *testing.T) {
+	def := sheepDefinition()
+	def.Body.AggroRadius = 1.5
+	def.Interaction = &mobs.Interaction{Range: 2.0}
+	stray := NewMob(def, 0, nil)
+	stray.SetPosition(phy.VEC2F_ZERO)
+
+	sensesAll(stray, playerAt(-1.9, 0))
+	require.True(t, stray.Update(0))
+	assert.Equal(t, phy.VEC2F_ZERO, stray.Position(), "in talk range, outside the run radius: it stays")
+
+	sensesAll(stray, playerAt(-1.2, 0))
+	require.True(t, stray.Update(0))
+	assert.Greater(t, stray.Position().X, float32(0), "inside the run radius: it runs")
+}

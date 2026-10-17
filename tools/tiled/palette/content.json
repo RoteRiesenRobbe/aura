@@ -769,7 +769,7 @@
     "AlphaWolf": 0.5,
     "ArmySoldier": 0.6,
     "AscensionStone": 0,
-    "Baabara": 0,
+    "Baabara": 0.75,
     "Bandit": 0.55,
     "BanditHealer": 0.6,
     "BanditPyromancer": 0.55,
@@ -827,7 +827,7 @@
     "Hermit": 0,
     "Kobold": 0.6,
     "KoboldRanged": 0.55,
-    "Lambert": 0,
+    "Lambert": 0.6,
     "LamplessTraveller": 0,
     "Lamplighter": 0,
     "Lionett": 0,
@@ -877,7 +877,7 @@
     "WarbannerTotem": 0,
     "Wisp": 0.55,
     "Wolf": 0.7,
-    "Woolliam": 0
+    "Woolliam": 0.4
   },
   "PROFILE_NAMES": [
     "Fields",

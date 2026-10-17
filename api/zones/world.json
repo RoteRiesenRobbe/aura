@@ -3733,25 +3733,31 @@
         },
         {
           "mob": "Lambert",
-          "x": -225.1,
-          "y": -13.58,
+          "x": -255,
+          "y": -14,
           "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
           "idleSpeedFactor": 0.3,
           "level": 5
         },
         {
           "mob": "Woolliam",
-          "x": -215.87,
-          "y": 16.41,
+          "x": -251,
+          "y": -28.8,
           "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
           "idleSpeedFactor": 0.3,
           "level": 5
         },
         {
           "mob": "Baabara",
-          "x": -260.54,
-          "y": -0.11,
+          "x": -202.5,
+          "y": -15,
           "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
           "idleSpeedFactor": 0.3,
           "level": 5
         },

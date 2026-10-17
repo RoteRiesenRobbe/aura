@@ -1,7 +1,7 @@
 # Plan: Herding — Hans's sheep run from you, and you drive them into his pen
 
 **Status: DESIGNED 2026-10-17 (planning session, PO in chat). R1-R16 RULED, D1-D11 ⭐ APPROVED
-2026-10-17, D12-D13 PROPOSED (R15/R16). H1 BUILT (§10), H2 next.** Two chunks (§5).
+2026-10-17, D12-D13 built for the PO look (R15/R16). H1 BUILT + committed, H2 BUILT (§10).** Two chunks (§5).
 
 **Owns:** the mob `herd` block (a sheep that runs from players and counts in its pen), the
 herder list, the pen check, the `herd` objective kind, and Hans's new quest.
@@ -395,3 +395,31 @@ No open PO calls.
   probe samples every ~1 s), 0 page errors. The named strays are excluded by their spawns.
 - **Schema:** DB/conf NONE · wire +1 EntityType · content +`herd` block · zone +1 region +10
   spawns.
+- **Committed** `c5ca34c6` (with the whole `world.json`, PO ask).
+
+### H2 — BUILT 2026-10-17, uncommitted, PO look + text approval owed
+
+- **Quest engine:** `ObjectiveHerd` (`"herd"`): shares the species counters, refuses a species
+  without a herd pen and a chance; a count-1 herd objective with its own tracker ticks ✓ like a
+  talk_to (server line and client `objectiveLine`); derived line "{n}/{m} X brought back"
+  (`journal.objective.herd`, en + de); the lang check asks a counted herd animal for its plural.
+- **Wire:** `QuestObjectiveKind.Herd = 4` (appended, the codec mirror test extended).
+- **Mob:** D13 built: a conversing herd animal does not run. ⚑ **Found while building D12:** a
+  talking stray's sensor is `SenseRadius` (the wider of run radius and talk range), so the run
+  radius is now judged centre to centre against `aggroRadius` in `herdPush` (a flock sheep now
+  runs at 2.5 u from a player's centre, was 2.5 + the player's radius).
+- **Content:** `back-to-the-pen.json` (flock → strays → report → done, 180 XP on Hans's
+  turn-in); Hans's strays rows re-pointed (`a-herd-astray` offers it, two progress answers by
+  stage, a new turn-in row; `ive-found-your-herd` removed); the three strays herdable with the
+  D12 table and moved: **Baabara (-202.5, -15) by the wolves, Woolliam (-251, -28.8) on the
+  beach among the Sand Clampers, Lambert (-255, -14) by the Rockfall**, `respawnTicks 1800`;
+  `Sheep` named with its plural (en "Sheep", de "Schaf/Schafe"). Text drafted, en + de, PO
+  approval owed. `the-strays` parked: `parkedQuests` in `quests/content_test.go` + cleanup.md
+  entry 7.
+- **Verified:** Go tests first (`quests` herd_test 7, `model/mob` +2); full suite green bar
+  the two known reds; `aurad -validate` 0 findings (one expected warning: the-strays offered by
+  nobody); TestLang refreshed; extract-english --check clean; vitest 1773/0 (incl. the
+  byte-stable world.json); tsc; palette regenerated; harness `herd-h2.mjs` 4/4: accept reads
+  0/6, six real pennings walk 1/6 … 5/6 into the three stray lines, Woolliam holds at 1.8 u and
+  runs at 1.0 u, 0 page errors.
+- **Schema:** DB/conf NONE · wire +1 `QuestObjectiveKind` value · content +`herd` objective.

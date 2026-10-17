@@ -891,7 +891,8 @@ table QuestProgress {
   objective_list:[QuestObjective];
 }
 
-enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3 }
+// Herd (plan-herding.md D6): a herd animal penned. Appended; mirrors quests.ObjectiveKind.
+enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3, Herd = 4 }
 
 // One current-stage objective line as data. stage = the stage's own tracker,
 // the single line that replaces every objective line (kind/target then name

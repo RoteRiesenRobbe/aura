@@ -1,5 +1,5 @@
 {
-  "_comment": "Shepherd Hans, on the north pasture. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `the-strays` (A Herd Astray); offers `he-who-cried-wolf` and advances it from the report stage to the Town Crier leg, the Governor of Dionsburg turns it in. One stage answer per non-terminal stage of the wolf quest so his progress row lasts the whole quest. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
+  "_comment": "Shepherd Hans, on the north pasture. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `back-to-the-pen` (plan-herding.md H2, two herding stages; it replaced `the-strays`, which he no longer offers, R7); offers `he-who-cried-wolf` and advances it from the report stage to the Town Crier leg, the Governor of Dionsburg turns it in. One stage answer per non-terminal stage of the wolf quest so his progress row lasts the whole quest. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 75,
   "name": "Hans",
   "type": "MOB",
@@ -52,7 +52,8 @@
         "id": "strays",
         "lines": [
           {"id": "wolves-scared-away-my-sheep"},
-          {"id": "please-help-me-find-them"}
+          {"id": "please-help-me-find-them"},
+          {"id": "they-wont-follow-you-mind"}
         ],
         "options": [
           {
@@ -61,7 +62,7 @@
               {
                 "id": "thank-you-stranger",
                 "kind": "offer_quest",
-                "quest": "the-strays"
+                "quest": "back-to-the-pen"
               }
             ]
           }
@@ -74,12 +75,12 @@
         ],
         "options": [
           {
-            "id": "ive-found-your-herd",
+            "id": "theyre-all-back",
             "grants": [
               {
                 "id": "really-thank-you",
                 "kind": "advance_quest",
-                "quest": "the-strays",
+                "quest": "back-to-the-pen",
                 "fromStage": "report",
                 "toStage": "done"
               },
@@ -92,6 +93,10 @@
           {
             "stock": "ask-assistance",
             "next": "strays_on_it"
+          },
+          {
+            "stock": "ask-assistance",
+            "next": "strays_far"
           }
         ]
       },
@@ -100,12 +105,27 @@
         "conditions": [
           {
             "kind": "quest_at_stage",
-            "quest": "the-strays",
-            "stage": "find"
+            "quest": "back-to-the-pen",
+            "stage": "flock"
           }
         ],
         "lines": [
-          {"id": "they-are-a-featherbrained-lot"}
+          {"id": "they-are-a-featherbrained-lot"},
+          {"id": "come-up-behind-them"}
+        ]
+      },
+      {
+        "id": "strays_far",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "back-to-the-pen",
+            "stage": "strays"
+          }
+        ],
+        "lines": [
+          {"id": "the-flocks-home-thank-you"},
+          {"id": "baabara-bolts-if-you-come"}
         ]
       },
       {

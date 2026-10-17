@@ -6,5 +6,6 @@ export enum QuestObjectiveKind {
   Kill = 0,
   Harvest = 1,
   TalkTo = 2,
-  Reach = 3
+  Reach = 3,
+  Herd = 4
 }

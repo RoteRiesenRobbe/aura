@@ -69,6 +69,13 @@ the objective instead (`{ "kind": "talk_to", "npc": "Baabara", "tracker":
 "Find Baabara" }`, as `the-strays` does). It is `talk_to` only, and rejected
 beside a stage tracker, which would hide it.
 
+A `herd` objective (`{ "kind": "herd", "species": "Sheep", "count": 6 }`,
+plan-herding.md) counts a herd animal driven into its pen: same counters as
+kill/harvest, keyed by definition, so each named stray is its own target. Its
+species must carry a herd pen; a `tracker` on a count-1 herd objective ticks
+like a talk_to line ("Bring Baabara home ✓"). `back-to-the-pen` is the worked
+example.
+
 A kill/harvest objective with `chance` (0-1) is a **find**: each credit of the
 target while the stage is current rolls it, and a hit advances the stage at
 once. `guaranteedAt` (optional) is the hidden pity: the Nth credit since stage
