@@ -530,6 +530,8 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
         spellbook unlocks). **Designed together with the avatar picker below as
         one system — see `plan-avatar-system.md` (design sketch 2026-07-14).**
+        **Superseded 2026-10-17 by `plan-appearance.md`** (unlocks via conditions,
+        owned per character, bloodline or account).**
   - [ ] Unlock & level-up popups (collected 2026-07-11) — **PO ruling
         2026-07-21: implement via the existing in-game announcement system
         (AlertBanner lane), not a new overlay mechanism** — designed in-game
@@ -560,7 +562,8 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   item starts clean. Portrait art [PLACEHOLDER]. **Design sketch fusing this
   with the icon-unlock track above (unlock gating, per-account ownership,
   mid-game re-selection, wire + build order): `plan-avatar-system.md`
-  (2026-07-14).**
+  (2026-07-14).** **Superseded 2026-10-17 by `plan-appearance.md`**, which
+  builds it together with the entity medallions.
 
 ## 9. Remaining unlock sources
 
@@ -1069,9 +1072,9 @@ system ships blind.
    8a does not close it (that independence is exactly why the split exists).
    The styling pass
    (`plan-ui-polish.md`, chunk 1 done, rest deferred) and avatar selection
-   (`plan-avatar-system.md`, design sketch, unscheduled). Largely independent of
-   8a — only avatar *persistence* (`plan-avatar-system.md` §7 chunk 4) needs 8a's
-   storage; that plan's chunks 1–3 ship without accounts.
+   (`plan-appearance.md`, designed 2026-10-17, not approved: the player's chosen
+   portrait and ring, built together with the entity medallions; it superseded
+   `archive/plan-avatar-system.md`).
    **Audio — location-music half only (added 2026-07-09; combat SFX split to
    step 6 on 2026-07-14; needs a go/no-go review when reached; may still be cut):**
    location-based background music (forest vs. cave *within* a zone), music

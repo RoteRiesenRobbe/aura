@@ -1,5 +1,11 @@
 # Entity Medallions: the token as the base presentation of every actor
 
+> **⭐ 2026-10-17: the chunks of this plan are now owned by `plan-appearance.md`**
+> (PO: build the medallion and the player's Appearance together). This doc stays
+> the design reference for the token: layers (§3), decisions D1-D18, the
+> compositor (§7) and the asset contract. Its §9 and §10 are replaced by
+> `plan-appearance.md` §3 and §7; §5.7 (corpses) is answered there by D14.
+
 > **Status: DESIGN SKETCH 2026-08-10 · REVISED 2026-08-20 (PO mockup session)
 > · REVISED 2026-08-22 (artist feedback round 1, D16-D18), nothing scheduled,
 > nothing built beyond the shipped border pattern.**
