@@ -564,6 +564,11 @@ func (sc *SkillComponent) SetCooldownRemaining(id SkillID, ticks int) {
 	sc.cooldowns[id] = ticks
 }
 
+// ResetCooldowns makes every skill ready at once (the WIZARD cheat).
+func (sc *SkillComponent) ResetCooldowns() {
+	clear(sc.cooldowns)
+}
+
 // StartCooldown puts the skill on its full level-scaled cooldown — what firing
 // it consumes.
 func (sc *SkillComponent) StartCooldown(es *EquippedSkill) {

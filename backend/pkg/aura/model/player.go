@@ -104,6 +104,11 @@ type PlayerEntity interface {
 	SetSpeedCheat(factor float32)
 	SpeedCheatFactor() float32
 
+	// SetNoCooldownCheat sets the dev WIZARD command's switch: while on, a
+	// fired cooldown starts no cooldown. Testing-only, never persisted.
+	SetNoCooldownCheat(on bool)
+	NoCooldownCheat() bool
+
 	Config() *cfg.PlayerConfig
 	Stats() *Stats
 	AddExperience(xp uint64)

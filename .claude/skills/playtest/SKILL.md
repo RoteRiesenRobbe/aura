@@ -121,7 +121,7 @@ serves `frontend/dist`, so it only reflects frontend changes after a prod
 build.
 
 Useful additions: `&develop` (dev panel), `&start-cmds=GOD,XP,...`.
-Dev cheats in-game: `GOD` (toggles; `GOD on`/`GOD off`), `WARP <x·120> <y·120>` or `WARP <spawnpoint-id>`, `HOME`, `#JUMPER` (click the world, minimap or map to warp there), `SPEED [factor|off]`, `XP`,
+Dev cheats in-game: `GOD` (toggles; `GOD on`/`GOD off`), `WARP <x·120> <y·120>` or `WARP <spawnpoint-id>`, `HOME`, `#JUMPER` (click the world, minimap or map to warp there), `SKILL all`, `WIZARD` (toggles: every skill + no cooldowns), `SPEED [factor|off]`, `XP`,
 `SKILL <name>`, `ANNOUNCE <text>`, `THREAT [id]`, `REVEALMAP` (whole world map seen, persists).
 
 ## Scope

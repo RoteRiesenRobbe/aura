@@ -114,7 +114,11 @@ var commands = map[string]Command{
 	// like the real milestone/kill-drop paths.
 	"SKILL": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
-			return fmt.Errorf("no argument, usage: 'SKILL <name>'")
+			return fmt.Errorf("no argument, usage: 'SKILL <name>' or 'SKILL all'")
+		}
+		if strings.EqualFold(*arg, "all") {
+			discoverAll(g, p)
+			return nil
 		}
 
 		def, err := g.Skills().GetByName(*arg)
@@ -129,6 +133,28 @@ var commands = map[string]Command{
 		}
 		p.ApplyRecipeCascade()
 
+		return nil
+	},
+	// WIZARD [on|off]: on grants every skill (SKILL all), resets every running
+	// cooldown and fires cooldowns without starting one; off restores
+	// cooldowns and keeps the skills. Bare WIZARD toggles, like GOD.
+	"WIZARD": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		var on bool
+		switch {
+		case arg == nil || *arg == "":
+			on = !p.NoCooldownCheat()
+		case strings.EqualFold(*arg, "on"):
+			on = true
+		case strings.EqualFold(*arg, "off"):
+			on = false
+		default:
+			return fmt.Errorf("usage: 'WIZARD', 'WIZARD on' or 'WIZARD off'")
+		}
+		p.SetNoCooldownCheat(on)
+		if on {
+			discoverAll(g, p)
+			p.SkillComponent().ResetCooldowns()
+		}
 		return nil
 	},
 	// QUEST inspects and drives the quest ledger (plan-quests.md C1) — the
@@ -186,6 +212,17 @@ var commands = map[string]Command{
 
 		return nil
 	},
+}
+
+// discoverAll adds every skill in the registry to the spellbook, mob skills
+// included, then runs the recipe cascade once. No unlock banner: one per
+// skill would bury the screen.
+func discoverAll(g model.Game, p model.PlayerEntity) {
+	sc := p.SkillComponent()
+	for _, def := range g.Skills().All() {
+		sc.Discover(def.ID)
+	}
+	p.ApplyRecipeCascade()
 }
 
 type CommandSystem struct {

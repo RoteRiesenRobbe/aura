@@ -141,6 +141,10 @@ type player struct {
 	// 0/1 = off (input path treats <= 0 as 1).
 	speedCheatFactor float32
 
+	// noCooldownCheat is the dev WIZARD command's switch (cooldowns fire
+	// without starting one).
+	noCooldownCheat bool
+
 	stats       model.Stats
 	progression model.PlayerProgression
 
@@ -1580,6 +1584,14 @@ func (p *player) IsGod() bool {
 
 func (p *player) SetSpeedCheat(factor float32) {
 	p.speedCheatFactor = factor
+}
+
+func (p *player) SetNoCooldownCheat(on bool) {
+	p.noCooldownCheat = on
+}
+
+func (p *player) NoCooldownCheat() bool {
+	return p.noCooldownCheat
 }
 
 func (p *player) SpeedCheatFactor() float32 {

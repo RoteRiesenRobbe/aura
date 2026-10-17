@@ -84,9 +84,10 @@ func TestXpCommand_NegativeArgumentRejected(t *testing.T) {
 // command touches: spellbook discovery + the recipe cascade.
 type fakeSkillPlayer struct {
 	model.PlayerEntity
-	sc       *skills.SkillComponent
-	cascades int
-	client   *cmdFakeClient
+	sc          *skills.SkillComponent
+	cascades    int
+	client      *cmdFakeClient
+	noCooldowns bool
 }
 
 // cmdFakeClient captures SendUnlock; the rest of model.Client is unused.
@@ -524,4 +525,67 @@ func TestHomeCommand_UnboundFails(t *testing.T) {
 
 	assert.Error(t, homeCommand(&fakeCampfires{})(nil, p, nil))
 	assert.Equal(t, phy.Vec2f{X: 9, Y: 9}, p.pos)
+}
+
+// --- SKILL all and WIZARD (2026-10-17) ---
+
+func (f *fakeSkillPlayer) SetNoCooldownCheat(on bool) { f.noCooldowns = on }
+func (f *fakeSkillPlayer) NoCooldownCheat() bool      { return f.noCooldowns }
+
+func twoSkillTestGame(t *testing.T) *fakeSkillGame {
+	t.Helper()
+	r, err := skills.RegistryFromFS(fstest.MapFS{
+		"fire-ward.json": {Data: []byte(`{
+		  "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
+		  "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire"], "resistFactor": 0.6, "targetsAllies": true, "targetsSelf": true}]
+		}`)},
+		"taunt.json": {Data: []byte(`{
+		  "id": 41, "name": "Taunt", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
+		  "effects": [{"type": "taunt", "radius": 2, "threatMargin": 1}]
+		}`)},
+	}, nil)
+	require.NoError(t, err)
+	return &fakeSkillGame{registry: r}
+}
+
+func TestSkillCommand_AllDiscoversEverySkillAndCascadesOnce(t *testing.T) {
+	g := twoSkillTestGame(t)
+	p := newFakeSkillPlayer()
+
+	require.NoError(t, commands["SKILL"](g, p, strPtr("all")))
+
+	assert.True(t, p.sc.HasDiscovered(40))
+	assert.True(t, p.sc.HasDiscovered(41))
+	assert.Equal(t, 1, p.cascades, "one cascade after the whole batch")
+	assert.Empty(t, p.client.unlocks, "no banner per skill: SKILL all would bury the screen")
+}
+
+func TestWizardCommand_OnGrantsAllAndClearsCooldowns(t *testing.T) {
+	g := twoSkillTestGame(t)
+	p := newFakeSkillPlayer()
+	p.sc.SetCooldownRemaining(41, 200)
+
+	require.NoError(t, commands["WIZARD"](g, p, nil))
+
+	assert.True(t, p.noCooldowns, "bare WIZARD turns it on")
+	assert.True(t, p.sc.HasDiscovered(40))
+	assert.True(t, p.sc.HasDiscovered(41))
+	assert.Zero(t, p.sc.CooldownRemaining(41), "running cooldowns are reset")
+}
+
+func TestWizardCommand_TogglesAndTakesOnOff(t *testing.T) {
+	g := twoSkillTestGame(t)
+	p := newFakeSkillPlayer()
+
+	require.NoError(t, commands["WIZARD"](g, p, nil))
+	require.NoError(t, commands["WIZARD"](g, p, nil))
+	assert.False(t, p.noCooldowns, "a second bare WIZARD turns it off")
+	assert.True(t, p.sc.HasDiscovered(40), "off keeps the skills")
+
+	require.NoError(t, commands["WIZARD"](g, p, strPtr("on")))
+	require.NoError(t, commands["WIZARD"](g, p, strPtr("on")))
+	assert.True(t, p.noCooldowns)
+	require.NoError(t, commands["WIZARD"](g, p, strPtr("off")))
+	assert.False(t, p.noCooldowns)
+	assert.Error(t, commands["WIZARD"](g, p, strPtr("maybe")))
 }
