@@ -8,7 +8,7 @@
 // find the object where it sits (c2-mob-level.mjs does).
 import { readFileSync } from 'node:fs';
 
-const KINDS = ['decals', 'spawns', 'bindPoints', 'darkAreas', 'regions',
+const KINDS = ['decals', 'spawns', 'exits', 'bindPoints', 'darkAreas', 'regions',
   'paths', 'structures', 'atmospheres', 'clearings', 'anchors'];
 const PROP_LAYERS = ['underfoot', 'default', 'buildings', 'canopy'];
 

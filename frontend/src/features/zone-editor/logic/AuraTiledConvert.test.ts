@@ -252,6 +252,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
             'decals',       // terrain.textures — blobs ON the ground
             'props',        // props.standing / props.underfoot
             'spawns',       // mobs.*
+            'exits',        // mobs.* (door mobs, plan-passages.md D3)
             'bindPoints',   // not rendered from this array
             'darkAreas',    // darkness
             'atmospheres',  // haze + darkness
@@ -2487,6 +2488,9 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // writers quietly dropped every cave mouth’s destination.
             anchor: 'underworld-entry',
         }],
+        // ⚑ `door` authored: absent is the generic door, so a fixture without
+        // it would let both writers drop every custom door (plan-passages.md P1).
+        exits: [{x: 6, y: 5, anchor: 'under-west', door: 'CaveExit'}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3187,5 +3191,121 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     it('does not mistake its own sentinels for bad values', () => {
         expect(C.validateModel(C.zoneToModel(oneSpawn()))).toEqual([]);
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
+    });
+});
+
+/**
+ * plan-passages.md P1 — talk exits on their own `exits` layer (D1/D2), and the
+ * refusals that keep a door from living in `spawns` again (D11, L2).
+ */
+describe('AuraConvert — exits (plan-passages.md P1)', () => {
+    const exitObjects = (m: {layers: {name: string; objects?: unknown[]}[]}) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        layerNamed(m, 'exits').objects as any[];
+
+    it('round-trips an exit with and without a door, at the zone level and in an area', () => {
+        const exits = [{x: 1, y: 2, anchor: 'below'}, {x: -3, y: 4, anchor: 'above', door: 'CaveExit'}];
+        const out = roundTrip(zone({
+            exits,
+            areas: [{id: 'farmlands', exits: [{x: 5, y: -1, anchor: 'barn-inside'}]}],
+        }));
+        expect(out.exits).toEqual(exits);
+        expect(out.areas[0].exits).toEqual([{x: 5, y: -1, anchor: 'barn-inside'}]);
+    });
+
+    it('writes no exits key for a zone without exits', () => {
+        expect(roundTrip(zone())).not.toHaveProperty('exits');
+    });
+
+    it('opens an exit as an AuraExit point named by its anchor, door typed only when authored', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}, {x: 0, y: 0, anchor: 'b', door: 'CaveExit'}]}));
+        const [plain, custom] = exitObjects(m);
+        expect(plain).toMatchObject({shape: 'point', cls: C.EXIT_CLASS, name: 'a', properties: {anchor: 'a'}});
+        expect(plain.properties).not.toHaveProperty('door');
+        expect(custom.properties.door).toBe('CaveExit');
+        expect(custom.enums).toEqual({door: C.EXIT_DOOR_ENUM});
+    });
+
+    // The C6 rule: a Tiled that drops the member at its default and one that
+    // keeps it must reach the same file.
+    it('reads the door sentinel, a typed index and an absent member alike', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
+        const o = exitObjects(m)[0];
+        o.properties.door = C.EXIT_DOOR_UNSET;
+        expect(C.modelToZone(m).exits[0].door).toBeUndefined();
+        const values = content.ENUM_VALUES[C.EXIT_DOOR_ENUM] as string[];
+        o.properties.door = {typeName: C.EXIT_DOOR_ENUM, value: values.indexOf('CaveExit')};
+        expect(C.modelToZone(m).exits[0].door).toBe('CaveExit');
+    });
+
+    // ⛔ D11/L2: the old shape is still VALID, so only the converter can stop
+    // a stale file opening and the next save keeping its doors in spawns.
+    it('refuses to open a zone that still places a door in spawns, pointing at the script', () => {
+        const door = {mob: 'CaveMouth', x: 0, y: 0, angle: 0, anchor: 'a'};
+        expect(() => C.zoneToModel(zone({spawns: [door]}))).toThrow(/migrate-exits\.mjs/);
+        expect(() => C.zoneToModel(zone({areas: [{id: 'farmlands', spawns: [{...door, mob: 'CaveExit'}]}]})))
+            .toThrow(/doors live in\s+exits/);
+    });
+
+    describe('save-time validation', () => {
+        function modelOf(z: unknown) {
+            const m = C.zoneToModel(z);
+            let id = 100;
+            allObjects(m).forEach((o: {id: number}) => { o.id = ++id; });
+            return m;
+        }
+        const exitZone = (over: Record<string, unknown> = {}) => zone({exits: [{x: 0, y: 0, anchor: 'a', ...over}]});
+
+        it('accepts a plain exit and one with a listed door', () => {
+            expect(C.validateModel(modelOf(exitZone()))).toEqual([]);
+            expect(C.validateModel(modelOf(exitZone({door: 'CaveExit'})))).toEqual([]);
+        });
+
+        it('refuses an exit with no anchor', () => {
+            const m = modelOf(exitZone());
+            exitObjects(m)[0].properties.anchor = '  ';
+            expect(C.validateModel(m).join(' ')).toContain('no anchor');
+        });
+
+        it('refuses a door that is not a door', () => {
+            expect(C.validateModel(modelOf(exitZone({door: 'Wolf'}))).join(' ')).toContain('unknown door "Wolf"');
+        });
+
+        it('refuses an object of another class, which would vanish on save', () => {
+            const m = modelOf(exitZone());
+            exitObjects(m)[0].cls = 'AuraAnchor';
+            expect(C.validateModel(m).join(' ')).toContain('is on the exits layer');
+        });
+
+        it('refuses an exit outside the bounds', () => {
+            expect(C.validateModel(modelOf(exitZone({x: 100}))).join(' ')).toContain('outside the bounds');
+        });
+
+        // A door drawn on the spawns layer in Tiled never went through the
+        // open-refusal above, so the save says it too.
+        it('refuses a door placed on the spawns layer', () => {
+            const m = modelOf(zone());
+            layerNamed(m, 'spawns').objects.push({
+                shape: 'point', layer: 'spawns', id: 7, name: 'CaveMouth', cls: 'AuraSpawnTalker',
+                x: 0, y: 0, width: 0, height: 0, rotation: 0, properties: {mob: 'CaveMouth', anchor: 'a'},
+            });
+            expect(C.validateModel(m).join(' ')).toContain('doors live on the "exits" layer');
+        });
+    });
+
+    // ⚑ The class and its enum are what Tiled shows; verify.sh cannot see
+    // either, so the palette is pinned to the converter here.
+    it('the palette declares AuraExit with the converter\'s defaults, and every door', () => {
+        const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
+            .propertyTypes as {name: string; values?: string[];
+                members?: {name: string; value?: unknown; propertyType?: string}[]}[];
+        const cls = types.filter(t => t.name === C.EXIT_CLASS)[0];
+        expect(cls.members).toEqual([
+            {name: 'anchor', type: 'string', value: ''},
+            {name: 'door', type: 'string', propertyType: C.EXIT_DOOR_ENUM, value: C.EXIT_DOOR_UNSET},
+        ]);
+        const doors = types.filter(t => t.name === C.EXIT_DOOR_ENUM)[0].values;
+        expect(doors).toEqual([C.EXIT_DOOR_UNSET, ...content.DOOR_NAMES]);
+        expect(content.DOOR_NAMES).toEqual(expect.arrayContaining(['CaveMouth', 'CaveExit']));
     });
 });

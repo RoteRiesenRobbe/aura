@@ -16,6 +16,7 @@
       {"mob": "Wolf", "x": 1, "y": 0, "angle": 0},
       {"mob": "Wolf", "x": 2, "y": 0, "angle": 0}
     ],
+    "exits": [{"x": 1, "y": 0, "anchor": "zone-a"}],
     "bindPoints": [{"id": "spawnpoint-1", "x": 1, "y": 0}],
     "darkAreas": [{"x": 1, "y": 0, "radius": 1}],
     "regions": [{"profile": "Grass", "points": [{"x": 1, "y": 0}, {"x": 3, "y": 0}, {"x": 3, "y": 2}]}],
@@ -37,6 +38,7 @@
           "canopy": [{"type": "OakTree", "x": 11, "y": 0, "rotation": 0}]
         },
         "spawns": [{"mob": "Wolf", "x": 11, "y": 0, "angle": 0}],
+        "exits": [{"x": 11, "y": 0, "anchor": "farm-a", "door": "CaveExit"}, {"x": 12, "y": 0, "anchor": "zone-a"}],
         "bindPoints": [{"id": "spawnpoint-2", "x": 11, "y": 0}],
         "darkAreas": [{"x": 11, "y": 0, "radius": 1}],
         "regions": [
@@ -78,6 +80,7 @@
       {"x": 23, "area": "dark-woods", "layer": "canopy"}
     ],
     "spawns": [{"x": 1, "area": ""}, {"x": 2, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "exits": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 12, "area": "farmlands"}],
     "bindPoints": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
     "darkAreas": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
     "regions": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 12, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],

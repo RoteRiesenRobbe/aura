@@ -1007,6 +1007,42 @@
         "farmreinhard"
       ],
       "valuesAsFlags": false
+    },
+    {
+      "id": 30,
+      "name": "AuraExitDoor",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(generic door)",
+        "CaveExit",
+        "CaveMouth"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 31,
+      "name": "AuraExit",
+      "type": "class",
+      "color": "#ff009688",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "anchor",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "door",
+          "type": "string",
+          "propertyType": "AuraExitDoor",
+          "value": "(generic door)"
+        }
+      ]
     }
   ]
 }

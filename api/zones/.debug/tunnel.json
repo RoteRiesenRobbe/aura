@@ -17,20 +17,6 @@
   },
   "spawns": [
     {
-      "mob": "CaveExit",
-      "x": -18,
-      "y": -3,
-      "angle": 0,
-      "anchor": "surface-west"
-    },
-    {
-      "mob": "CaveExit",
-      "x": 18,
-      "y": -3,
-      "angle": 0,
-      "anchor": "surface-east"
-    },
-    {
       "mob": "DireWolf",
       "x": -14.47,
       "y": 8.93,
@@ -129,6 +115,20 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "level": 14
+    }
+  ],
+  "exits": [
+    {
+      "x": -18,
+      "y": -3,
+      "anchor": "surface-west",
+      "door": "CaveExit"
+    },
+    {
+      "x": 18,
+      "y": -3,
+      "anchor": "surface-east",
+      "door": "CaveExit"
     }
   ],
   "bindPoints": [

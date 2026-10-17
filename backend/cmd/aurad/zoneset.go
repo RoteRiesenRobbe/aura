@@ -4,7 +4,10 @@ import (
 	"log/slog"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
@@ -45,17 +48,17 @@ func zoneIDs(zones []*world.Zone) []string {
 	return ids
 }
 
+// allSpawns is every zone's spawns plus the door mobs its exits synthesize
+// (plan-passages.md D3): the MobSystem places both alike.
 func allSpawns(zones []*world.Zone) []world.Spawn {
-	if len(zones) == 1 {
-		return zones[0].Spawns
-	}
 	total := 0
 	for _, z := range zones {
-		total += len(z.Spawns)
+		total += len(z.Spawns) + len(z.Exits)
 	}
 	out := make([]world.Spawn, 0, total)
 	for _, z := range zones {
 		out = append(out, z.Spawns...)
+		out = append(out, z.ExitSpawns()...)
 	}
 	return out
 }
@@ -73,6 +76,18 @@ func allCampfires(zones []*world.Zone) []world.Campfire {
 		out = append(out, z.BindPoints...)
 	}
 	return out
+}
+
+// campfireDwellRadius is the bind circle every placed campfire gets, derived
+// the way the boot derives it (aurad.go): the Campfire mob's aura radius times
+// sys.CampfireDwellRadiusFactor. 0 when no Campfire is defined, in which case
+// a zone with fires fails the boot later anyway.
+func campfireDwellRadius(mr mobs.Registry) float32 {
+	def, err := mr.GetByName("Campfire")
+	if err != nil {
+		return 0
+	}
+	return mob.NewMob(def, 0, nil).AuraRadius() * sys.CampfireDwellRadiusFactor
 }
 
 // allAnchors flattens every zone's named anchors into the one lookup a

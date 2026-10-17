@@ -150,13 +150,29 @@ function readRegionIds() {
     return regions.map(r => r.id);
 }
 
+// How many anchor-mode travel_to rows a definition authors. Exactly one makes
+// it a door an exit may talk as (plan-passages.md D3); zone.go's resolveExits
+// is the authority and refuses the rest at boot.
+function anchorRows(def) {
+    let n = 0;
+    for (const node of (def.interaction && def.interaction.nodes) || []) {
+        for (const option of node.options || []) {
+            for (const g of option.grants || []) {
+                if (g.kind === 'travel_to' && g.mode === 'anchor') { n++; }
+            }
+        }
+    }
+    return n;
+}
+
 function readMobs() {
     const dir = path.join(ROOT, 'api', 'mobs');
     return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => {
         const def = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
         // speed feeds the save-time mirror of zone.go's resolve() check: a mob that
         // cannot walk cannot wander or patrol. Absent is 0 there, so absent is 0 here.
-        return {name: def.name, kind: kindOf(def), speed: (def.factors && def.factors.speed) || 0};
+        return {name: def.name, kind: kindOf(def), speed: (def.factors && def.factors.speed) || 0,
+            door: anchorRows(def) === 1};
     }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -594,6 +610,13 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     // renumbers. The sentinel leads and means "no place": a region that only
     // paints ground is the common case, not a mistake.
     types.push(enumType(C.REGION_ID_ENUM, [C.REGION_ID_UNSET].concat(regionIds)));
+    // ⭐ The talk exit (plan-passages.md P1), LAST for AuraAreaId's reason.
+    // The doors an exit may talk as: the sentinel leads and means the GENERIC
+    // door, so it maps back to absent (the EFFECT_UNSET reading). 'anchor' is
+    // free text whose default '' is "not authored", which the save refuses.
+    types.push(enumType(C.EXIT_DOOR_ENUM, [C.EXIT_DOOR_UNSET].concat(mobs.filter(m => m.door).map(m => m.name))));
+    types.push(classType(C.EXIT_CLASS, '#ff009688',
+        [member('anchor', 'string', ''), member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
     return types;
 }
 
@@ -659,6 +682,9 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas
         // ⚑ The place ids WITHOUT the sentinel (plan-region-identity.md D2):
         // the converter refuses a region id outside this list.
         REGION_IDS: regionIds,
+        // ⚑ The doors WITHOUT the sentinel (plan-passages.md D3): the
+        // converter refuses an exit's door outside this list.
+        DOOR_NAMES: mobs.filter(m => m.door).map(m => m.name),
     }, null, 2) + '\n';
 }
 
@@ -739,3 +765,4 @@ console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}
 console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);
 console.log(`areas              ${areas.length} ids → AuraAreaId + AuraArea (a group layer's class)`);
 console.log(`places             ${regionIds.length} ids → AuraRegionId + AuraRegion`);
+console.log(`doors              ${mobs.filter(m => m.door).length} → AuraExitDoor + AuraExit`);

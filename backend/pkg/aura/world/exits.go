@@ -1,0 +1,111 @@
+package world
+
+// Exits: a way between places, authored as level geometry rather than as a
+// talking mob in `spawns` (plan-passages.md P1, D1/D3).
+
+import (
+	"fmt"
+	"math"
+	"strings"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+)
+
+// GenericDoor is the conversation definition an exit uses when it names no
+// `door` (D3): the shipped CaveMouth, whose lines become every door's words
+// until an exit or its destination authors better ones (P3).
+const GenericDoor = "CaveMouth"
+
+// DoorName is the definition this exit talks as.
+func (e *Exit) DoorName() string {
+	if e.Door == "" {
+		return GenericDoor
+	}
+	return e.Door
+}
+
+// validateExits is the file-only half: what needs no registry.
+func (z *Zone) validateExits() error {
+	for i := range z.Exits {
+		ref := objectRef("exit", z.Exits, i)
+		e := &z.Exits[i]
+		if strings.TrimSpace(e.Anchor) == "" {
+			return fmt.Errorf("%s: anchor must not be empty (where does it lead?)", ref)
+		}
+		if e.Door != "" && strings.TrimSpace(e.Door) == "" {
+			return fmt.Errorf("%s: door must not be blank (omit it for the generic door)", ref)
+		}
+		if e.X < -z.Bounds.Width/2 || e.X > z.Bounds.Width/2 ||
+			e.Y < -z.Bounds.Height/2 || e.Y > z.Bounds.Height/2 {
+			return fmt.Errorf("%s: (%g, %g) is outside the bounds", ref, e.X, e.Y)
+		}
+	}
+	return nil
+}
+
+// resolveExits binds each exit's door to its definition and refuses one that
+// is not a door: exactly one anchor-mode travel_to row, or the exit's single
+// anchor has no row to deliver through (none) or two rows to share (several).
+func (z *Zone) resolveExits(mr mobs.Registry) error {
+	for i := range z.Exits {
+		e := &z.Exits[i]
+		def, err := mr.GetByName(e.DoorName())
+		if err != nil {
+			return fmt.Errorf("%s: unknown door %q", objectRef("exit", z.Exits, i), e.DoorName())
+		}
+		rows := 0
+		anchorGrants(def, func(string, *mobs.InteractionGrant) { rows++ })
+		if rows != 1 {
+			return fmt.Errorf("%s: door %q must have exactly one anchor-mode travel_to row, has %d",
+				objectRef("exit", z.Exits, i), def.Name, rows)
+		}
+		e.Def = def
+	}
+	return nil
+}
+
+// ExitSpawns is every exit as the spawn the MobSystem places (D3): the door's
+// definition, standing where the exit stands, delivering to its anchor. Field
+// for field what the door spawns it replaces authored (P1 changes no
+// behaviour).
+func (z *Zone) ExitSpawns() []Spawn {
+	out := make([]Spawn, 0, len(z.Exits))
+	for _, e := range z.Exits {
+		out = append(out, Spawn{Mob: e.Def.Name, X: e.X, Y: e.Y, Anchor: e.Anchor, InArea: e.InArea, Def: e.Def})
+	}
+	return out
+}
+
+// CrossValidateExitClearance refuses a talk exit standing inside a campfire's
+// dwell circle (D3, underworld L8, portal-spells D8): the client synthesizes a
+// campfire interact offer that OVERRIDES the server's, so such a door loses
+// every E press to the flight map, silently.
+//
+// ⚑ The bound is the two circles fully apart: the fire's dwell radius plus
+// the door's own sensor (SenseRadius), so no spot that reaches the door is
+// also claimed by the fire. dwellRadius is the caller's, because the boot
+// derives it from the Campfire mob, which this package does not build.
+//
+// ⚑ One flat pass over the whole set: positions are world coordinates once
+// placed, and Place keeps zones far enough apart that a cross-zone pair can
+// never be near.
+func CrossValidateExitClearance(zones []*Zone, dwellRadius float32) error {
+	for _, ze := range zones {
+		for i := range ze.Exits {
+			e := &ze.Exits[i]
+			clearance := float64(dwellRadius + e.Def.SenseRadius())
+			for _, zf := range zones {
+				for _, c := range zf.BindPoints {
+					if d := math.Hypot(float64(c.X-e.X), float64(c.Y-e.Y)); d <= clearance {
+						return fmt.Errorf("zone %q: %s to %q stands %.2f units from campfire %q, inside the "+
+							"%.2f it needs (dwell radius %.2f + the door's reach %.2f); every E press there "+
+							"would open the flight map instead (plan-passages.md D3). Move it further out",
+							ze.ID, objectRef("exit", ze.Exits, i), e.Anchor, d, c.ID, clearance,
+							dwellRadius, e.Def.SenseRadius())
+					}
+				}
+			}
+		}
+	}
+	return nil
+}

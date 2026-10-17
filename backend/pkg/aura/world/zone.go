@@ -264,11 +264,38 @@ type Spawn struct {
 	// ⚑ An OVERRIDE with a definition-level default, the idiom the three knobs
 	// above already use (wanderRadius, idleSpeedFactor, level): absent inherits.
 	// A generic door - the shipped CaveMouth/CaveExit - authors no default at
-	// all and takes its destination entirely from here.
+	// all and takes its destination entirely from here. ⚑ Since
+	// plan-passages.md P1 a door is authored as an Exit, whose synthesized spawn
+	// carries the exit's anchor in this field; a spawn naming one is for a real
+	// NPC that also takes you somewhere.
 	Anchor string `json:"anchor"`
 	InArea
 
 	// Def is the mob definition resolved from Mob; not part of the JSON.
+	Def *mobs.MobDefinition `json:"-"`
+}
+
+// Exit is a talk exit (plan-passages.md P1; its loader halves live in exits.go): a point you press E at to be moved to a zone anchor.
+//
+// ⭐ IT IS STILL A MOB UNDER THE HOOD (D3). Interactables must be mobs
+// (underworld L6), so the loader resolves Door and ExitSpawns synthesizes the
+// spawn the MobSystem places. The author never sees a spawn and the file never
+// holds one.
+//
+// ⚑ `spawns[].anchor` stays: a real NPC that also takes you somewhere is still
+// a spawn. Exits are for doors.
+type Exit struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+	// Anchor is where the exit leads, by zone-anchor name. Required: a door
+	// with nowhere to go takes the keypress and moves nobody.
+	Anchor string `json:"anchor"`
+	// Door names the conversation definition (a mob with exactly one
+	// anchor-mode travel_to row). Absent = GenericDoor.
+	Door string `json:"door,omitempty"`
+	InArea
+
+	// Def is Door resolved; not part of the JSON.
 	Def *mobs.MobDefinition `json:"-"`
 }
 
@@ -726,6 +753,9 @@ type Objects struct {
 	// placement and every reader iterates Props.
 	PropLayers PropLayers `json:"props"`
 	Spawns     []Spawn    `json:"spawns"`
+	// Exits are the talk exits, doors to a zone anchor (plan-passages.md P1).
+	// Each becomes a door mob at load (ExitSpawns); the file holds no spawn.
+	Exits []Exit `json:"exits"`
 	// BindPoints are where a character binds and respawns. The key was
 	// `campfires` until N2, named for the art; the fires a player sees are mobs.
 	BindPoints []Campfire `json:"bindPoints"`
@@ -1109,6 +1139,7 @@ func (z *Zone) flatten() {
 	for _, a := range z.Areas {
 		z.Decals = appendArea(z.Decals, a.Decals, a.ID)
 		z.Spawns = appendArea(z.Spawns, a.Spawns, a.ID)
+		z.Exits = appendArea(z.Exits, a.Exits, a.ID)
 		z.BindPoints = appendArea(z.BindPoints, a.BindPoints, a.ID)
 		z.DarkAreas = appendArea(z.DarkAreas, a.DarkAreas, a.ID)
 		z.Regions = appendArea(z.Regions, a.Regions, a.ID)
@@ -1208,6 +1239,9 @@ func (z *Zone) validate() error {
 		if s.PatrolMode != "" && len(s.Waypoints) == 0 {
 			return fmt.Errorf("%s: patrolMode without waypoints", ref)
 		}
+	}
+	if err := z.validateExits(); err != nil {
+		return err
 	}
 	for i := range z.DarkAreas {
 		ref := objectRef("darkArea", z.DarkAreas, i)
@@ -1414,6 +1448,9 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 				objectRef("spawn", z.Spawns, i), s.Mob)
 		}
 		s.Def = def
+	}
+	if err := z.resolveExits(mr); err != nil {
+		return err
 	}
 	for i := range z.Props {
 		p := &z.Props[i]

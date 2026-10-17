@@ -162,20 +162,24 @@
           "y": 23.86
         },
         {
-          "x": -231.03,
-          "y": 27.55
+          "x": -229.93,
+          "y": 27.92
         },
         {
-          "x": -231.6,
-          "y": 30.55
+          "x": -229.17,
+          "y": 31.08
         },
         {
-          "x": -231.12,
-          "y": 36.2
+          "x": -228.48,
+          "y": 33.94
         },
         {
-          "x": -229.76,
-          "y": 39.57
+          "x": -226.42,
+          "y": 37.17
+        },
+        {
+          "x": -209.24,
+          "y": 46.41
         }
       ],
       "width": 1.5,
@@ -1612,8 +1616,16 @@
         },
         {
           "type": "Pebble",
-          "x": -197.26,
-          "y": -3.41,
+          "x": -193.63,
+          "y": -5.11,
+          "size": 0.42,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Pebble",
+          "x": -197.03,
+          "y": -7.58,
           "size": 0.42,
           "rotation": 0,
           "flipped": "none"
@@ -2026,8 +2038,8 @@
           },
           {
             "type": "FencePost",
-            "x": -199.94,
-            "y": 31.2,
+            "x": -202.31,
+            "y": 31.15,
             "rotation": 0.053
           },
           {
@@ -2125,8 +2137,8 @@
           },
           {
             "type": "BurntCart",
-            "x": -188.6,
-            "y": 35.39,
+            "x": -204.4,
+            "y": 36.46,
             "rotation": 5.944,
             "scale": 0.833
           },
@@ -2141,6 +2153,18 @@
             "x": -196.08,
             "y": 34.18,
             "rotation": 0.641
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -201.36,
+            "y": 35.27,
+            "rotation": 0.031
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -202.49,
+            "y": 34.91,
+            "rotation": 0.031
           },
           {
             "type": "Crate",
@@ -2248,8 +2272,8 @@
           },
           {
             "type": "RuinedHouse",
-            "x": -191.63,
-            "y": 30.62,
+            "x": -191.73,
+            "y": 29.99,
             "rotation": 0.289,
             "scale": 0.833
           },
@@ -2263,10 +2287,17 @@
         "canopy": [
           {
             "type": "Tree",
-            "x": -187.88,
-            "y": 32.26,
+            "x": -189.77,
+            "y": 33.65,
             "rotation": 0,
             "scale": 1.278
+          },
+          {
+            "type": "Tree",
+            "x": -201.33,
+            "y": 41.28,
+            "rotation": 1.001,
+            "scale": 1.615
           },
           {
             "type": "Tree",
@@ -2291,8 +2322,43 @@
           },
           {
             "type": "Tree",
-            "x": -262.52,
-            "y": -8.94,
+            "x": -269.89,
+            "y": -15.13,
+            "rotation": 0,
+            "scale": 1.278
+          },
+          {
+            "type": "Tree",
+            "x": -270.32,
+            "y": -13.79,
+            "rotation": 0,
+            "scale": 1.278
+          },
+          {
+            "type": "Tree",
+            "x": -268.69,
+            "y": -17.56,
+            "rotation": 0,
+            "scale": 1.543
+          },
+          {
+            "type": "Tree",
+            "x": -269.96,
+            "y": -26.93,
+            "rotation": 0,
+            "scale": 1.543
+          },
+          {
+            "type": "Tree",
+            "x": -269.79,
+            "y": -7.88,
+            "rotation": 0,
+            "scale": 1.278
+          },
+          {
+            "type": "Tree",
+            "x": -268.1,
+            "y": -8.51,
             "rotation": 0,
             "scale": 1.278
           },
@@ -2319,10 +2385,136 @@
           },
           {
             "type": "Tree",
-            "x": -249.67,
-            "y": -14.56,
+            "x": -268.13,
+            "y": -14.21,
             "rotation": 0,
             "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -252.99,
+            "y": -20.13,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -254.16,
+            "y": -21.9,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -256.9,
+            "y": -24.6,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -253.95,
+            "y": -23.5,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -255.3,
+            "y": -26.37,
+            "rotation": 0.618,
+            "scale": 1.55
+          },
+          {
+            "type": "Tree",
+            "x": -255.58,
+            "y": -24.17,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -258.94,
+            "y": -26.84,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -256.96,
+            "y": -26.4,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -262.74,
+            "y": -26.98,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -268.81,
+            "y": -25.38,
+            "rotation": 0,
+            "scale": 1.075
+          },
+          {
+            "type": "Tree",
+            "x": -264.92,
+            "y": -26.51,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -268.22,
+            "y": -26.66,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -270.25,
+            "y": -6.18,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -266.51,
+            "y": -27.03,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -269.39,
+            "y": -11.98,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -269.49,
+            "y": -20.09,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -270.28,
+            "y": -24.79,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -270.21,
+            "y": -16.39,
+            "rotation": 0,
+            "scale": 1.27
           },
           {
             "type": "Tree",
@@ -2330,6 +2522,13 @@
             "y": -16.56,
             "rotation": 0,
             "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -262.32,
+            "y": -24.84,
+            "rotation": 0,
+            "scale": 1.3
           },
           {
             "type": "Tree",
@@ -2347,8 +2546,113 @@
           },
           {
             "type": "Tree",
-            "x": -266.67,
-            "y": -3.29,
+            "x": -269.74,
+            "y": -4.02,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -269.26,
+            "y": -9.71,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -252.32,
+            "y": -16.54,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -255.25,
+            "y": -7.05,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -263.52,
+            "y": -8.75,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -266.62,
+            "y": -9.51,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -264.79,
+            "y": -8.04,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -262.86,
+            "y": -7.27,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -260.82,
+            "y": -7.07,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -258.52,
+            "y": -7.54,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -254.94,
+            "y": -8.56,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -260.86,
+            "y": -25.88,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -253.54,
+            "y": -9.56,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -250.94,
+            "y": -13.63,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -250.84,
+            "y": -15.83,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -251.67,
+            "y": -18.06,
             "rotation": 0,
             "scale": 1.661
           },
@@ -2409,9 +2713,31 @@
           },
           {
             "type": "Tree",
-            "x": -245.62,
-            "y": -10.87,
-            "rotation": 0
+            "x": -256.76,
+            "y": -7.91,
+            "rotation": 0,
+            "scale": 1.661
+          },
+          {
+            "type": "Tree",
+            "x": -259.55,
+            "y": -6.04,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -249.39,
+            "y": -14.8,
+            "rotation": 0,
+            "scale": 1.3
+          },
+          {
+            "type": "Tree",
+            "x": -251.52,
+            "y": -19.84,
+            "rotation": 0,
+            "scale": 1.3
           },
           {
             "type": "Tree",
@@ -2457,8 +2783,49 @@
           },
           {
             "type": "Tree",
-            "x": -256.29,
-            "y": -13.05,
+            "x": -264.77,
+            "y": -21.79,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -269.88,
+            "y": -23.15,
+            "rotation": 0,
+            "scale": 1.227
+          },
+          {
+            "type": "Tree",
+            "x": -269.04,
+            "y": -21.79,
+            "rotation": 0,
+            "scale": 1.227
+          },
+          {
+            "type": "Tree",
+            "x": -271.01,
+            "y": -21.69,
+            "rotation": 0,
+            "scale": 1.227
+          },
+          {
+            "type": "Tree",
+            "x": -270.48,
+            "y": -18.13,
+            "rotation": 0,
+            "scale": 1.227
+          },
+          {
+            "type": "Tree",
+            "x": -267.91,
+            "y": -10.9,
+            "rotation": 0,
+            "scale": 1.227
+          },
+          {
+            "type": "Tree",
+            "x": -268.49,
+            "y": -6.74,
             "rotation": 0
           },
           {
@@ -2926,16 +3293,16 @@
         },
         {
           "mob": "Baabara",
-          "x": -263.31,
-          "y": -14.78,
+          "x": -260.54,
+          "y": -0.11,
           "angle": 0,
           "idleSpeedFactor": 0.3,
           "level": 5
         },
         {
           "mob": "Dog",
-          "x": -215.02,
-          "y": 29.96,
+          "x": -216.89,
+          "y": 27.64,
           "angle": 0,
           "idleSpeedFactor": 0.3,
           "level": 5
@@ -3003,8 +3370,8 @@
         },
         {
           "mob": "Boar",
-          "x": -192.56,
-          "y": -12.51,
+          "x": -192.63,
+          "y": -11.04,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3014,8 +3381,8 @@
         },
         {
           "mob": "Boar",
-          "x": -197.29,
-          "y": -8.76,
+          "x": -195.82,
+          "y": -7.39,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3036,6 +3403,17 @@
         },
         {
           "mob": "Boar",
+          "x": -193.25,
+          "y": 39.67,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 2
+        },
+        {
+          "mob": "Boar",
           "x": -198.69,
           "y": -6.82,
           "angle": 2.496,
@@ -3047,8 +3425,8 @@
         },
         {
           "mob": "Boar",
-          "x": -194.73,
-          "y": -11.68,
+          "x": -194.83,
+          "y": -10.88,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3069,8 +3447,8 @@
         },
         {
           "mob": "Boar",
-          "x": -193.06,
-          "y": -8.21,
+          "x": -193.09,
+          "y": -7.01,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3080,8 +3458,8 @@
         },
         {
           "mob": "Boar",
-          "x": -236.55,
-          "y": -9.62,
+          "x": -237.18,
+          "y": -11.82,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3091,13 +3469,43 @@
         },
         {
           "mob": "Boar",
-          "x": -250.39,
-          "y": -7.42,
+          "x": -247.12,
+          "y": -7.85,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.4,
+          "level": 1
+        },
+        {
+          "mob": "Rockfall",
+          "x": -252.43,
+          "y": -10.93,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "level": 1
+        },
+        {
+          "mob": "Rockfall",
+          "x": -251.92,
+          "y": -11.35,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "level": 1
+        },
+        {
+          "mob": "Rockfall",
+          "x": -251.62,
+          "y": -11.9,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
           "level": 1
         },
         {
@@ -3123,9 +3531,20 @@
           "level": 3
         },
         {
+          "mob": "Boar",
+          "x": -198.7,
+          "y": 38.62,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
           "mob": "Stag",
-          "x": -256.64,
-          "y": -8.41,
+          "x": -248.37,
+          "y": -4.91,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3157,8 +3576,8 @@
         },
         {
           "mob": "Stag",
-          "x": -265.78,
-          "y": 6.06,
+          "x": -266.85,
+          "y": 5.26,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3168,8 +3587,8 @@
         },
         {
           "mob": "Stag",
-          "x": -233.06,
-          "y": -9.62,
+          "x": -234.03,
+          "y": -13.49,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3179,8 +3598,8 @@
         },
         {
           "mob": "Stag",
-          "x": -253.07,
-          "y": -5.42,
+          "x": -251.74,
+          "y": -4.22,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3190,8 +3609,8 @@
         },
         {
           "mob": "Stag",
-          "x": -215.27,
-          "y": -13.82,
+          "x": -222.67,
+          "y": -16.02,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3201,8 +3620,8 @@
         },
         {
           "mob": "Stag",
-          "x": -221.54,
-          "y": -15.95,
+          "x": -227.24,
+          "y": -20.22,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3212,8 +3631,8 @@
         },
         {
           "mob": "Stag",
-          "x": -207.94,
-          "y": -10.42,
+          "x": -200.44,
+          "y": -19.62,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3234,8 +3653,8 @@
         },
         {
           "mob": "Stag",
-          "x": -207.8,
-          "y": -16.82,
+          "x": -218.23,
+          "y": -20.55,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3245,8 +3664,8 @@
         },
         {
           "mob": "Stag",
-          "x": -198.14,
-          "y": -9.35,
+          "x": -203.37,
+          "y": -21.62,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3264,27 +3683,6 @@
           "wanderRadius": 2,
           "idleSpeedFactor": 0.5,
           "level": 1
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -256.27,
-          "y": 0.06,
-          "angle": 0,
-          "anchor": "under-west"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -196.23,
-          "y": -12.64,
-          "angle": 0,
-          "anchor": "under-east"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -197.37,
-          "y": 13.03,
-          "angle": 0,
-          "anchor": "barn-inside"
         },
         {
           "mob": "Stag",
@@ -3509,8 +3907,8 @@
         },
         {
           "mob": "Boar",
-          "x": -264,
-          "y": 21.57,
+          "x": -260.93,
+          "y": 22.77,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3520,8 +3918,8 @@
         },
         {
           "mob": "Boar",
-          "x": -262.8,
-          "y": 11.1,
+          "x": -260.4,
+          "y": 12.43,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3531,8 +3929,8 @@
         },
         {
           "mob": "Stag",
-          "x": -264.27,
-          "y": 33.3,
+          "x": -259.07,
+          "y": 31.43,
           "angle": 3.35,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3562,8 +3960,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -219.87,
-          "y": -17.08,
+          "x": -257.67,
+          "y": 25.24,
           "angle": 2.2,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3572,8 +3970,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -265.8,
-          "y": 30.31,
+          "x": -213.57,
+          "y": -23.42,
           "angle": 2.2,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3582,8 +3980,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -267.8,
-          "y": 11.32,
+          "x": -196.1,
+          "y": -22.08,
           "angle": 2.2,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3592,28 +3990,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -212.67,
-          "y": -13.35,
-          "angle": 2.2,
-          "respawnTicks": 1800,
-          "respawnVariancePct": 0.2,
-          "wanderRadius": 1,
-          "level": 3
-        },
-        {
-          "mob": "Wolf",
-          "x": -203.13,
-          "y": -17.75,
-          "angle": 2.2,
-          "respawnTicks": 1800,
-          "respawnVariancePct": 0.2,
-          "wanderRadius": 1,
-          "level": 3
-        },
-        {
-          "mob": "Wolf",
-          "x": -203.6,
-          "y": -11.22,
+          "x": -199.87,
+          "y": -21.02,
           "angle": 2.2,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -3875,6 +4253,23 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "level": 4
+        }
+      ],
+      "exits": [
+        {
+          "x": -260.87,
+          "y": -18.21,
+          "anchor": "under-west"
+        },
+        {
+          "x": -196.23,
+          "y": -12.64,
+          "anchor": "under-east"
+        },
+        {
+          "x": -197.51,
+          "y": 14.59,
+          "anchor": "barn-inside"
         }
       ],
       "bindPoints": [
@@ -4278,8 +4673,8 @@
               "y": 31.25
             },
             {
-              "x": -199.9,
-              "y": 31.18
+              "x": -202.32,
+              "y": 31.15
             }
           ],
           "width": 0.15,
@@ -4957,75 +5352,75 @@
           "points": [
             {
               "x": -197.84,
-              "y": -12.92
+              "y": -13.42
             },
             {
               "x": -196.67,
-              "y": -12.86
+              "y": -13.36
             },
             {
               "x": -194.77,
-              "y": -12.84
+              "y": -13.34
             },
             {
               "x": -192.64,
-              "y": -12.94
+              "y": -13.44
             },
             {
               "x": -191.73,
-              "y": -13.01
+              "y": -13.51
             },
             {
               "x": -190.98,
-              "y": -12.88
+              "y": -13.38
             },
             {
               "x": -190.75,
-              "y": -12.37
+              "y": -12.87
             },
             {
               "x": -190.58,
-              "y": -11.32
+              "y": -11.82
             },
             {
               "x": -190.41,
-              "y": -3.96
+              "y": -4.46
             },
             {
               "x": -190.86,
-              "y": -3.37
+              "y": -3.87
             },
             {
               "x": -191.69,
-              "y": -3.17
+              "y": -3.67
             },
             {
               "x": -200.05,
-              "y": -3.15
+              "y": -3.65
             },
             {
               "x": -200.96,
-              "y": -3.43
+              "y": -3.93
             },
             {
               "x": -201.22,
-              "y": -4.09
+              "y": -4.59
             },
             {
               "x": -200.45,
-              "y": -11.98
+              "y": -12.48
             },
             {
               "x": -200.18,
-              "y": -12.64
+              "y": -13.14
             },
             {
               "x": -199.82,
-              "y": -12.88
+              "y": -13.38
             },
             {
               "x": -198.71,
-              "y": -13.03
+              "y": -13.53
             }
           ]
         },
@@ -5376,6 +5771,87 @@
               "y": 11.08
             }
           ]
+        },
+        {
+          "profile": "Mountains",
+          "points": [
+            {
+              "x": -266.2,
+              "y": 14.67
+            },
+            {
+              "x": -267.17,
+              "y": 18.87
+            },
+            {
+              "x": -265.99,
+              "y": 39.41
+            },
+            {
+              "x": -268.32,
+              "y": 61.67
+            },
+            {
+              "x": -266.21,
+              "y": 77.59
+            },
+            {
+              "x": -271.52,
+              "y": 78.59
+            },
+            {
+              "x": -279.02,
+              "y": 79.35
+            },
+            {
+              "x": -305.87,
+              "y": 81.27
+            },
+            {
+              "x": -306.73,
+              "y": 22.53
+            },
+            {
+              "x": -313.77,
+              "y": 4.8
+            },
+            {
+              "x": -298.3,
+              "y": -6.7
+            },
+            {
+              "x": -299.47,
+              "y": -23.47
+            },
+            {
+              "x": -287.24,
+              "y": -29.21
+            },
+            {
+              "x": -270.84,
+              "y": -38.22
+            },
+            {
+              "x": -271.04,
+              "y": -4.52
+            },
+            {
+              "x": -269.29,
+              "y": -1.93
+            },
+            {
+              "x": -268.67,
+              "y": 8.05
+            },
+            {
+              "x": -266.56,
+              "y": 11.12
+            }
+          ],
+          "blocksMovement": true,
+          "outlineProfile": "Cliff",
+          "outlineWidth": 1.5,
+          "outlineFacing": "out"
         }
       ],
       "atmospheres": [
@@ -5419,18 +5895,71 @@
               "y": -1.95
             }
           ]
+        },
+        {
+          "profile": "Fog",
+          "points": [
+            {
+              "x": -271.39,
+              "y": -45.68
+            },
+            {
+              "x": -271.59,
+              "y": -8.95
+            },
+            {
+              "x": -267,
+              "y": -6.91
+            },
+            {
+              "x": -261.19,
+              "y": -4.81
+            },
+            {
+              "x": -253.78,
+              "y": -7.24
+            },
+            {
+              "x": -248.72,
+              "y": -9.08
+            },
+            {
+              "x": -245.1,
+              "y": -15.03
+            },
+            {
+              "x": -241.38,
+              "y": -19.47
+            },
+            {
+              "x": -237.66,
+              "y": -21.72
+            },
+            {
+              "x": -235.74,
+              "y": -24.87
+            },
+            {
+              "x": -233.84,
+              "y": -29.16
+            },
+            {
+              "x": -233.75,
+              "y": -45.35
+            }
+          ]
         }
       ],
       "anchors": [
         {
           "name": "surface-west",
-          "x": -256.42,
-          "y": 1.35
+          "x": -260.82,
+          "y": -17.68
         },
         {
           "name": "barn-surface",
-          "x": -197.38,
-          "y": 13.76
+          "x": -197.39,
+          "y": 13.86
         },
         {
           "name": "surface-east",
@@ -5474,8 +6003,41 @@
       "spawns": [
         {
           "mob": "Boar",
-          "x": -210.56,
-          "y": 36.22,
+          "x": -210.33,
+          "y": 36.78,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -214.47,
+          "y": 34.3,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -211.34,
+          "y": 32.76,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -217.1,
+          "y": 34.53,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -5485,8 +6047,8 @@
         },
         {
           "mob": "AlphaBoar",
-          "x": -213.36,
-          "y": 35.94,
+          "x": -215.35,
+          "y": 36.19,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -6822,13 +7384,6 @@
           "angle": 0
         },
         {
-          "mob": "CaveMouth",
-          "x": -162.53,
-          "y": -21.15,
-          "angle": 0,
-          "anchor": "koboldcave-inside"
-        },
-        {
           "mob": "KoboldRanged",
           "x": -160.1,
           "y": -19.09,
@@ -7482,6 +8037,13 @@
           "x": -143.73,
           "y": -10.83,
           "angle": 2.2
+        }
+      ],
+      "exits": [
+        {
+          "x": -162.53,
+          "y": -21.15,
+          "anchor": "koboldcave-inside"
         }
       ],
       "bindPoints": [
@@ -8751,12 +9313,12 @@
           "x": -46.47,
           "y": -1.99,
           "angle": 0
-        },
+        }
+      ],
+      "exits": [
         {
-          "mob": "CaveMouth",
           "x": -65.64,
           "y": 1.02,
-          "angle": 0,
           "anchor": "tunnel-east"
         }
       ],
@@ -9618,13 +10180,6 @@
       },
       "spawns": [
         {
-          "mob": "CaveMouth",
-          "x": -113.63,
-          "y": -52.54,
-          "angle": 0,
-          "anchor": "tunnel-west"
-        },
-        {
           "mob": "Bandit",
           "x": -129.47,
           "y": -48.42,
@@ -9683,6 +10238,13 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 6
+        }
+      ],
+      "exits": [
+        {
+          "x": -113.63,
+          "y": -52.54,
+          "anchor": "tunnel-west"
         }
       ],
       "bindPoints": [

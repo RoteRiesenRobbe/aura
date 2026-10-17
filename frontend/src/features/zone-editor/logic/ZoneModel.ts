@@ -154,6 +154,16 @@ export interface ZoneAnchor extends InArea {
     y: number;
 }
 
+// A talk exit (plan-passages.md P1): a door to a zone anchor, authored in
+// Tiled on the `exits` layer. The server turns each into a door mob at load.
+// door undefined = the generic door (CaveMouth).
+export interface ZoneExit extends InArea {
+    x: number;
+    y: number;
+    anchor: string;
+    door?: string;
+}
+
 // A polygon naming a client-side presentation profile — ground colour today,
 // footsteps/music/atmosphere later (plan-region-primitive.md).
 //
@@ -291,6 +301,8 @@ export interface ZoneData {
     // getZoneAsJSON regroups.
     props: PropLayersJSON<ZoneProp>;
     spawns: ZoneSpawn[];
+    // Omitted when empty, so a zone without exits round-trips diff-clean.
+    exits?: ZoneExit[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     bindPoints?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
@@ -408,6 +420,8 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
+    // Carried, never edited: exits are a Tiled job (plan-passages.md P1).
+    exits: ZoneExit[] = [];
     structures: ZonePolygon[] = [];
     atmospheres: ZoneAtmosphere[] = [];
     clearings: ZoneClearing[] = [];
@@ -466,6 +480,13 @@ export class ZoneModel {
             profile: r.profile,
             points: (r.points || []).map(p => ({...p})),
             area: r.area,
+        }));
+        model.exits = (data.exits || []).map(e => ({
+            x: e.x,
+            y: e.y,
+            anchor: e.anchor,
+            door: e.door,
+            area: e.area,
         }));
         model.paths = (data.paths || []).map(p => ({
             profile: p.profile,
@@ -634,6 +655,7 @@ export class ZoneModel {
         const decals = mine(this.decals);
         const props = mine(this.props);
         const spawns = mine(this.spawns);
+        const exits = mine(this.exits);
         const bindPoints = mine(this.bindPoints);
         const darkAreas = mine(this.darkAreas);
         const regions = mine(this.regions);
@@ -699,6 +721,12 @@ export class ZoneModel {
                 // would then take the keypress and move nobody.
                 anchor: s.anchor || undefined,
             })),
+            // ⚑ The L1 comment again: this editor cannot author an exit, so a
+            // missing line here deletes every door Tiled placed (plan-passages.md
+            // P1). serializeZone's shape exactly; `door` absent = generic.
+            exits: exits.length > 0
+                ? exits.map(e => ({x: round(e.x, 2), y: round(e.y, 2), anchor: e.anchor, door: e.door || undefined}))
+                : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
             bindPoints: bindPoints.length > 0

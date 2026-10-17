@@ -263,6 +263,10 @@ export interface ZoneJSON {
     // Placed mobs, areas folded in (flattenAreas). Only the quest-giver map
     // markers read them (plan-quest-giver-markers.md C3): name + zone-local spot.
     spawns?: {mob?: string, x: number, y: number}[];
+    // Talk exits (plan-passages.md P1): each is a door mob on the server, so
+    // the quest-giver markers read them as spawns of their door. door absent =
+    // the generic door.
+    exits?: {x: number, y: number, anchor: string, door?: string}[];
     // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
     // entities, and does not read this array to draw them. It is read for what
     // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into

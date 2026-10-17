@@ -192,13 +192,6 @@
       "angle": 0.6
     },
     {
-      "mob": "CaveExit",
-      "x": -9.43,
-      "y": 12.37,
-      "angle": 0,
-      "anchor": "koboldcave-surface"
-    },
-    {
       "mob": "Kobold",
       "x": -5.9,
       "y": 1.43,
@@ -395,6 +388,14 @@
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
       "level": 5
+    }
+  ],
+  "exits": [
+    {
+      "x": -9.43,
+      "y": 12.37,
+      "anchor": "koboldcave-surface",
+      "door": "CaveExit"
     }
   ],
   "regions": [

@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 
 	"github.com/stretchr/testify/assert"
@@ -32,8 +30,11 @@ func placedDoors(t *testing.T, zones []*world.Zone) map[string]*world.Spawn {
 	t.Helper()
 	doors := map[string]*world.Spawn{}
 	for _, z := range zones {
-		for i := range z.Spawns {
-			s := &z.Spawns[i]
+		// Doors authored as exits (plan-passages.md P1) and any still placed
+		// as spawns, alike.
+		placed := append(append([]world.Spawn(nil), z.Spawns...), z.ExitSpawns()...)
+		for i := range placed {
+			s := &placed[i]
 			if s.Def == nil || s.Def.Interaction == nil {
 				continue
 			}
@@ -126,54 +127,19 @@ func TestPassages_NoDoorStandsInsideACampfiresDwellCircle(t *testing.T) {
 	mobsRegistry, _ := repoZoneRegistries(t)
 	zones := shippedZones(t)
 
-	// ⭐ DERIVED, NOT GUESSED. The bound is the two radii that actually decide
-	// the overlap — the fire's bind circle and the door's own interact sensor —
-	// so a retune of either moves this test with it, and a map edit that keeps
-	// the door out of the circle never reddens it. The constant this replaced
-	// was 8.0 against a real bound of 2.75, which made it a false-positive
-	// generator on every map edit and proved nothing when it passed.
-	dwell := campfireDwellRadius(t, mobsRegistry)
+	// ⭐ DERIVED, NOT GUESSED: the bound is the fire's bind circle plus the
+	// door's own sensor, so a retune of either moves the check with it.
+	// ⚑ Since plan-passages.md P1 the boot itself refuses this for every talk
+	// exit (loadZones); this pins that the shipped world passes it.
+	dwell := campfireDwellRadius(mobsRegistry)
 	require.Greater(t, dwell, float32(0), "the Campfire mob must publish a bind radius")
-
-	for anchor, door := range placedDoors(t, zones) {
-		require.NotNil(t, door.Def.Interaction)
-		// Full separation of the two circles: no spot a player could stand in to
-		// use the door is also a spot the flight offer would claim.
-		clearance := float64(dwell + door.Def.Interaction.Range)
-		for _, z := range zones {
-			for _, c := range z.BindPoints {
-				d := math.Hypot(float64(c.X-door.X), float64(c.Y-door.Y))
-				assert.Greater(t, d, clearance,
-					"the door to %q stands %.2f units from campfire %q, inside the %.2f it needs "+
-						"(bind radius %.2f + interact range %.2f) - it would lose interact presses "+
-						"to the flight map (D8)", anchor, d, c.ID, clearance, dwell, door.Def.Interaction.Range)
-			}
+	require.NoError(t, world.CrossValidateExitClearance(zones, dwell))
+	for _, z := range zones {
+		for _, s := range z.Spawns {
+			assert.NotContains(t, []string{"CaveMouth", "CaveExit"}, s.Mob,
+				"zone %q still places a door in spawns; doors live in exits (plan-passages.md D11)", z.ID)
 		}
 	}
-}
-
-// campfireDwellRadius reproduces the boot-time derivation in aurad.go: a
-// campfire's bind circle is its aura radius scaled by CampfireDwellRadiusFactor.
-// ⚑ Read from the registry rather than restated, so a content or factor change
-// cannot leave this test asserting against a number the game no longer uses.
-func campfireDwellRadius(t *testing.T, mr mobs.Registry) float32 {
-	t.Helper()
-	def, err := mr.GetByName("Campfire")
-	require.NoError(t, err, "no Campfire mob is defined")
-
-	var radius float32
-	for _, s := range def.Skills {
-		require.NotNil(t, s.Def, "a campfire skill did not resolve")
-		for _, e := range s.Def.Effects {
-			if e.Type == skills.EffectTypeLightAura {
-				continue // light never sizes the aura (EffectiveRadius)
-			}
-			if r := skills.Scaled(e.Radius, e.RadiusPerLevel, s.Level); r > radius {
-				radius = r
-			}
-		}
-	}
-	return radius * sys.CampfireDwellRadiusFactor
 }
 
 // Every arrival point must be somewhere a body can actually stand: inside its

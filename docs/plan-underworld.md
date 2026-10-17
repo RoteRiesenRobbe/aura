@@ -523,7 +523,8 @@ players. The underworld is **content plus a small placement seam**.
   `Welcome.zone_name`, `ZoneModel`/`ZoneEditor`), and all this feature does is
   let the server hold **more than one at a time**. §2.1.
 - **D2 — entry is an interact prompt**, reusing the shipped `travel_to` grant.
-  Not a walk-in trigger volume.
+  Not a walk-in trigger volume. ⚑ **AMENDED 2026-10-17 (PO, `plan-passages.md` R2):**
+  talk exits stay, and walk-in touch exits are added beside them.
 - **D3 — the map swaps with you.** Underground, the map panel shows the
   underworld; on the surface, the surface.
 - **D4 — one layer now, pockets later.** Author one underworld rectangle;

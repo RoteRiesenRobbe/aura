@@ -84,8 +84,11 @@ func CrossValidateTravelAnchors(mr conversantSource, zones []*Zone) ([]string, e
 
 	placedDefs := map[string]bool{}
 	for _, z := range zones {
-		for si := range z.Spawns {
-			spawn := &z.Spawns[si]
+		// A door authored as an exit is placed exactly like one authored as a
+		// spawn (plan-passages.md D3), so both are walked.
+		placed := append(append([]Spawn(nil), z.Spawns...), z.ExitSpawns()...)
+		for si := range placed {
+			spawn := &placed[si]
 			def := spawn.Def
 			if def == nil {
 				// An unresolved spawn is the zone loader's error, not this pass's.

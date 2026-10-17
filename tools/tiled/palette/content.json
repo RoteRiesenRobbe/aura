@@ -462,6 +462,11 @@
       "den-of-evil",
       "homestead",
       "farmreinhard"
+    ],
+    "AuraExitDoor": [
+      "(generic door)",
+      "CaveExit",
+      "CaveMouth"
     ]
   },
   "TERRAIN_TYPES": [
@@ -1123,5 +1128,9 @@
     "den-of-evil",
     "homestead",
     "farmreinhard"
+  ],
+  "DOOR_NAMES": [
+    "CaveExit",
+    "CaveMouth"
   ]
 }

@@ -124,6 +124,10 @@ func placeOne(z *Zone) error {
 			z.Spawns[i].Waypoints[j].Y += oy
 		}
 	}
+	for i := range z.Exits {
+		z.Exits[i].X += ox
+		z.Exits[i].Y += oy
+	}
 	for i := range z.BindPoints {
 		z.BindPoints[i].X += ox
 		z.BindPoints[i].Y += oy

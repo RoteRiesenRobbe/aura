@@ -1,7 +1,7 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
-**Status: DESIGNED 2026-10-17 (planning session, PO in chat). R1-R6 RULED, D1-D11 PROPOSED, nothing built.**
-Open PO calls in §7. Five chunks (§5); P1 can start once the D's are approved.
+**Status: P1 BUILT 2026-10-17 (branch `passages`, uncommitted, PO review owed).** R1-R6 RULED,
+D1-D11 PROPOSED (P1 implemented D1-D3 + D11 as written). Open PO calls in §7; P2 next.
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -399,4 +399,44 @@ the experiment.
 
 ## 10. Chunk ledgers
 
-*(none yet)*
+### P1 — the `exits` layer ✅ BUILT 2026-10-17 (branch `passages`, worktree `aura-passages`)
+
+**What landed.** `zone.exits[]` = `{x, y, anchor, door?}` (Go `world.Exit` in `zone.go`, loader halves
+in `world/exits.go`), after `spawns` in `Objects` order. `door` absent = `world.GenericDoor`
+(`CaveMouth`). Each exit resolves its door (exactly one anchor-mode `travel_to` row, else refused)
+and `Zone.ExitSpawns()` synthesizes the spawn the MobSystem places (`allSpawns`), field for field the
+old door spawn. `CrossValidateTravelAnchors` walks exits too. ⭐ **L8 is a boot refusal now:**
+`world.CrossValidateExitClearance` in `loadZones` (dwell radius from the Campfire mob, the boot's
+own derivation, + the door's `SenseRadius`). Four writers: `zone.go` · `aura-convert.js` (layer
+`exits` after `spawns`, class `AuraExit`, `AuraExitDoor` enum, sentinel `(generic door)`) ·
+`ZoneModel.getZoneAsJSON` (carried, never edited) · `aura-world-format.js` (generic, unchanged,
+verified through real Tiled). Palette: `AuraExitDoor` + `AuraExit` appended LAST (no renumber),
+`DOOR_NAMES` in content.json. Migration: `scripts/migrate-exits.mjs` (KEPT, the open-refusal points
+at it; lossless-or-nothing) moved all 18 doors (12 + 6 in `.debug/`); the converter refuses to OPEN a
+zone with a `CaveMouth`/`CaveExit` spawn and to SAVE one on the spawns layer. Also: `ZoneAreas` +
+verify `lib/zone.mjs` kind lists, map quest markers read exits as their door, manual section
+"Exits", underworld D2 pointer (R2).
+
+**Decisions made in the chunk (flag for the PO):**
+- **P1 carries only `x, y, anchor, door`.** `look`/`rotation` are P2, `id` is P3, per §5; each
+  later chunk pays the four-writer tax for its own keys.
+- **The open/save refusal is keyed on the two migrated definitions** (`MIGRATED_DOORS`), not on "every
+  door": a ferryman with one anchor row must stay placeable as a spawn (D1). P2 can narrow it to
+  `entityType: Passage`.
+- **The Passage `entityType` check (D3) waits for P2**, the EntityType does not exist yet.
+- ⚑ **`EntityType 120` is TAKEN** (`BerryBush`, `5cf3b781`), and herding claims one more (`Sheep`).
+  P2 must pick the next free value at its own time; D4's "120" is stale.
+
+**Checks.** Go: `world` exits tests (load, flatten, refusals, exactly-one row, synthesized spawn,
+Place offset, travel pass, clearance) · `cmd/aurad` passages tests over the migrated content ·
+`go test ./...` green except two **pre-existing at HEAD** reds, measured with this change stashed:
+`TestPropContent_C1bMigrationPreservesLookAndCollision` (Tree/Boulder, already on the
+known-inconclusive list) and `simharness TestRunPlacementsBattery_ReconcilesAgainstTheAuthoredWorld`.
+`aurad -validate` 0 findings (disk, embedded, `-debug-zones`). Vitest 1784/1784 incl. the
+completeness pin (`exits` + `door` authored), the stack order, and an exits block; `tsc` clean.
+`tools/tiled/verify.sh` all green through real Tiled, incl. new leg 2e (every zone with exits
+byte-identical, the door-in-spawns open refused). In game: `.claude/skills/verify/p1-exits.mjs` 3/3
+(the generic barn door → barn, the barn's CaveExit → surface, the two talk as different definitions).
+
+**Schema:** DB none · wire none · conf none · **zone format +1 array (`exits`)**, doors migrated out
+of `spawns` · content: `cave-mouth.json` comment only.

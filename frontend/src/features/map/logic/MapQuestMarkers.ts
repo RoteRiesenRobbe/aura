@@ -53,7 +53,12 @@ export class MapQuestMarkers {
 
     /** Points the markers at another zone's spawns; the markers themselves are the character's. */
     setZone(zoneName: string) {
-        this.spawns = (getZoneData(zoneName)?.spawns || []) as ZoneSpawnPoint[];
+        const zone = getZoneData(zoneName);
+        // An exit is its door mob standing at that spot (plan-passages.md D3),
+        // so a door that gives a quest marks the map like any giver.
+        // 'CaveMouth' is world.GenericDoor.
+        const doors = (zone?.exits || []).map(e => ({mob: e.door || 'CaveMouth', x: e.x, y: e.y}));
+        this.spawns = [...(zone?.spawns || []) as ZoneSpawnPoint[], ...doors];
     }
 
     /**

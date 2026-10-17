@@ -28,7 +28,8 @@ var AuraConvert = (function () {
     // to answer "is this a layer we know?" — but a whitelist that disagrees with
     // the stack is a second, wrong answer to "what order are the layers in" for
     // the next reader. Keep the two in step.
-    var LAYERS = ['regions', 'paths', 'decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'atmospheres', 'anchors'];
+    var LAYERS = ['regions', 'paths', 'decals', 'props', 'spawns', 'exits', 'bindPoints', 'darkAreas', 'atmospheres',
+        'anchors'];
 
     /* ---- the prop layers (plan-prop-draw-order.md D1-D3) -------------------
      * `props` is the one GROUP in the stack: a group layer holding these four
@@ -57,7 +58,7 @@ var AuraConvert = (function () {
      * (api/areas/areas.json). The group's NAME is a free label, so a typo in
      * it can no longer make a second area. AREA_UNSET is the member's default
      * and the save refuses it: the MOB_UNSET reading of a sentinel. */
-    var OBJECT_KINDS = ['decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'regions',
+    var OBJECT_KINDS = ['decals', 'props', 'spawns', 'exits', 'bindPoints', 'darkAreas', 'regions',
         'paths', 'structures', 'atmospheres', 'clearings', 'anchors'];
     var AREA_ID = /^[a-z0-9-]+$/;
     var AREA_CLASS = 'AuraArea';
@@ -72,6 +73,23 @@ var AuraConvert = (function () {
      * sentinel, not the MOB_UNSET one). */
     var REGION_ID_ENUM = 'AuraRegionId';
     var REGION_ID_UNSET = '(no place)';
+
+    /* ---- exits (plan-passages.md P1) ---------------------------------------
+     * A talk exit is a POINT of class AuraExit on the `exits` layer: where it
+     * leads (`anchor`, free text, refused at boot when no zone authors it) and
+     * optionally which conversation it talks as (`door`, from the AuraExitDoor
+     * dropdown). EXIT_DOOR_UNSET is that member's default and means the
+     * generic door, so it maps back to ABSENT (the EFFECT_UNSET reading).
+     *
+     * ⛔ MIGRATED_DOORS are the definitions D11 moved out of `spawns`. A zone
+     * that still places one there refuses to OPEN (checkDoorSpawns) and a spawn
+     * naming one refuses to SAVE: read leniently, a stale file would keep the
+     * old shape forever. Hardcoded rather than "every door": a real NPC that
+     * also takes you somewhere is still a spawn (D1). */
+    var EXIT_CLASS = 'AuraExit';
+    var EXIT_DOOR_ENUM = 'AuraExitDoor';
+    var EXIT_DOOR_UNSET = '(generic door)';
+    var MIGRATED_DOORS = ['CaveMouth', 'CaveExit'];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -160,7 +178,7 @@ var AuraConvert = (function () {
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
-        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [],
+        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [], DOOR_NAMES: [],
     };
     function useContent(c) {
         content = {
@@ -206,6 +224,10 @@ var AuraConvert = (function () {
             // api/regions/regions.json, the ids a region may name (R1, D2),
             // WITHOUT the sentinel. Absent skips the not-listed check, as above.
             REGION_IDS: (c && c.REGION_IDS) || [],
+            // The mobs an exit may talk as (plan-passages.md D3): exactly one
+            // anchor-mode travel_to row, WITHOUT the sentinel. Absent skips the
+            // unknown-door check, as above.
+            DOOR_NAMES: (c && c.DOOR_NAMES) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -554,6 +576,19 @@ var AuraConvert = (function () {
         });
     }
 
+    /* ⛔ The same refusal for the doors plan-passages.md D11 moved into `exits`.
+     * The old shape is still a VALID zone, so nothing else would stop a stale
+     * file opening and the next save writing the door back into `spawns`. */
+    function checkDoorSpawns(spawns) {
+        (spawns || []).forEach(function (s) {
+            if (s && hasValue(MIGRATED_DOORS, s.mob)) {
+                throw new Error('this zone file still places a ' + s.mob + ' in spawns; doors live in'
+                    + ' exits since plan-passages.md P1. Migrate it with'
+                    + ' node scripts/migrate-exits.mjs <file>');
+            }
+        });
+    }
+
     /* ---- The canonical serializer ------------------------------------------
      * Field order, rounding and omit rules mirror ZoneModel.getZoneAsJSON().
      * undefined values are dropped by JSON.stringify — that is how every
@@ -653,6 +688,13 @@ var AuraConvert = (function () {
                     anchor: s.anchor || undefined,
                 };
             }),
+            // Talk exits (plan-passages.md P1), key order as zone.go's Exit.
+            // `door` is absent for the generic door, so absent stays absent.
+            exits: z.exits && z.exits.length > 0
+                ? z.exits.map(function (e) {
+                    return {x: round(e.x, 2), y: round(e.y, 2), anchor: e.anchor, door: e.door || undefined};
+                })
+                : undefined,
             bindPoints: z.bindPoints && z.bindPoints.length > 0
                 ? z.bindPoints.map(function (c) {
                     return {
@@ -803,10 +845,13 @@ var AuraConvert = (function () {
         checkKeyNames(z);
         checkPropsShape(z.props);
         checkRegionTitles(z.regions);
+        checkDoorSpawns(z.spawns);
         var areas = z.areas || [];
         // The same open refusals inside every area: read leniently, either
         // would open with that array empty and the next save would delete it.
-        areas.forEach(function (a) { checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); });
+        areas.forEach(function (a) {
+            checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); checkDoorSpawns(a.spawns);
+        });
         /* ⭐ THE ZONE LEVEL, THEN ONE GROUP PER AREA in file order
          * (plan-prop-draw-order.md D14). Tiled's list is bottom-to-top, so an
          * area later in the file stacks higher, which is also where the game
@@ -944,6 +989,24 @@ var AuraConvert = (function () {
                     o.polygon = s.waypoints.map(function (w) {
                         return {x: px(w.x, hw) - o.x, y: px(w.y, hh) - o.y};
                     });
+                }
+                return o;
+            });
+
+            // ⚑ The NAME is the anchor, so the Objects panel reads where each
+            // exit leads; the typed property is what modelToZone reads back
+            // (never the name: the class-member sentinel rule). `door` only
+            // when authored, so the panel shows the member at its default.
+            var exits = (src.exits || []).map(function (e) {
+                var o = {
+                    shape: 'point', layer: prefix + 'exits', name: e.anchor, cls: EXIT_CLASS,
+                    x: px(e.x, hw), y: px(e.y, hh),
+                    width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+                    properties: {anchor: e.anchor},
+                };
+                if (e.door) {
+                    o.properties.door = e.door;
+                    o.enums = {door: EXIT_DOOR_ENUM};
                 }
                 return o;
             });
@@ -1156,6 +1219,7 @@ var AuraConvert = (function () {
              *   props       -> props.standing / .underfoot (a GROUP: one
              *                  sub-layer per prop layer, bottom to top)
              *   spawns      -> layers.mobs.*
+             *   exits       -> layers.mobs.* (each is a door mob, D3)
              *   bindPoints  -> (not rendered from this array at all)
              *   darkAreas   -> layers.darkness
              *   atmospheres -> layers.haze + layers.darkness
@@ -1204,6 +1268,7 @@ var AuraConvert = (function () {
                 // sub-layer over a lower one, exactly as Tiled stacks them.
                 {name: PROPS_GROUP, layers: propLayers},
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
+                {name: 'exits', drawOrder: 'index', objects: exits},
                 {name: 'bindPoints', drawOrder: 'index', objects: bindPoints},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
                 // Atmosphere array order is draw order AND resolution order,
@@ -1552,6 +1617,9 @@ var AuraConvert = (function () {
                     }
                     return s;
                 }),
+                exits: layer('exits').map(function (o) {
+                    return {x: u(o.x, hw), y: u(o.y, hh), anchor: readText(o, 'anchor'), door: readExitDoor(o)};
+                }),
                 bindPoints: layer('bindPoints').map(function (o) {
                     return {
                         id: o.name,
@@ -1742,6 +1810,13 @@ var AuraConvert = (function () {
         var v = o.properties && o.properties[k] !== undefined && o.properties[k] !== null
             ? String(plainValue(o.properties[k])).replace(/^\s+|\s+$/g, '') : '';
         return v === '' ? undefined : v;
+    }
+
+    /* An exit's door, or undefined for the generic one: the sentinel, a blank
+     * and an absent member alike. */
+    function readExitDoor(o) {
+        var v = readText(o, 'door');
+        return v === EXIT_DOOR_UNSET ? undefined : v;
     }
 
     function readRegionProfile(o) {
@@ -2117,6 +2192,10 @@ var AuraConvert = (function () {
                     known = false;
                 } else if (!known) {
                     bad(o, i, unknownName('spawns', p.mob, 'mob'));
+                } else if (hasValue(MIGRATED_DOORS, p.mob)) {
+                    bad(o, i, p.mob + ' is a door, and doors live on the "exits" layer since'
+                        + ' plan-passages.md P1: Insert Point there, Class ' + EXIT_CLASS
+                        + ', and give it this spawn\'s anchor. Then delete this spawn');
                 }
 
                 var waypoints = p.waypointCount;
@@ -2153,6 +2232,35 @@ var AuraConvert = (function () {
                     if (moves && !(content.MOB_SPEED[p.mob] > 0)) {
                         bad(o, i, 'stationary mob "' + p.mob + '" (speed 0) cannot wander or patrol');
                     }
+                }
+            });
+
+            /* Talk exits (plan-passages.md P1), mirroring zone.go's
+             * validateExits and resolveExits. ⚑ The class is checked although
+             * the layer holds one class today: P4 adds AuraExitArea beside it,
+             * and an object of neither class would then vanish on save (L2b). */
+            var doorsKnown = content.DOOR_NAMES.length > 0;
+            layer('exits').forEach(function (o, i) {
+                if (o.cls !== EXIT_CLASS) {
+                    bad(o, i, 'is on the exits layer but its Class is '
+                        + (o.cls ? '"' + o.cls + '"' : 'not set') + ' — set it to ' + EXIT_CLASS
+                        + ' in the Properties panel, or the exit is DROPPED on save');
+                    return;
+                }
+                if (o.shape !== 'point') {
+                    bad(o, i, 'an exit is a POINT — draw it with Insert Point');
+                }
+                if (readText(o, 'anchor') === undefined) {
+                    bad(o, i, 'no anchor — where does this exit lead? Type an anchor name into "anchor"');
+                }
+                var d = readExitDoor(o);
+                if (d !== undefined && doorsKnown && !hasValue(content.DOOR_NAMES, d)) {
+                    bad(o, i, 'unknown door "' + d + '" — a door is a mob with exactly one'
+                        + ' anchor-mode travel_to row: ' + content.DOOR_NAMES.join(', '));
+                }
+                var x = o.x / PX - hw, y = o.y / PX - hh;
+                if (x < -hw || x > hw || y < -hh || y > hh) {
+                    bad(o, i, 'at (' + round(x, 2) + ', ' + round(y, 2) + ') is outside the bounds');
                 }
             });
 
@@ -2745,6 +2853,9 @@ var AuraConvert = (function () {
         AREA_UNSET: AREA_UNSET,
         REGION_ID_ENUM: REGION_ID_ENUM,
         REGION_ID_UNSET: REGION_ID_UNSET,
+        EXIT_CLASS: EXIT_CLASS,
+        EXIT_DOOR_ENUM: EXIT_DOOR_ENUM,
+        EXIT_DOOR_UNSET: EXIT_DOOR_UNSET,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
         // through propSize(): that helper falls back to a 1-unit box when the
         // vocabulary is absent, which is right for a conversion (the geometry

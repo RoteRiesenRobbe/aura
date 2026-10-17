@@ -48,7 +48,7 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see eight object layers and one group, `props`, and no tile layers.
+You should see nine object layers and one group, `props`, and no tile layers.
 They are listed here in
 the order Tiled shows them — **top of the panel is the top of the stack**, so
 read the table bottom-up to walk from the ground to the sky:
@@ -59,6 +59,7 @@ read the table bottom-up to walk from the ground to the sky:
 | `atmospheres` | the air over an area — fog, gloom, canopy — and the **clearings** that cut holes in it | **polygon** | 🔒 |
 | `darkAreas` | the unlit circles (the older primitive `atmospheres` is replacing) | ellipse | |
 | `bindPoints` | bind points / starting spawns (`AuraBindPoint`) | point | |
+| `exits` | doors to another place (`AuraExit`), see Exits | point | |
 | `spawns` | every mob and NPC | point, or a **polyline** if it patrols | |
 | `props` ▾ | a **group** of four prop layers, top to bottom `canopy` · `buildings` · `default` · `underfoot` (see Props) | tile object at its true physics size | |
 | `decals` | ground-texture patches (`AuraDecal`) | tile object (the art itself) | |
@@ -424,6 +425,31 @@ healing spring heals, because the same machinery runs both directions.
   clearing only erases atmosphere, and an erase that also burned you would be one
   shape doing two jobs.
 
+### Exits
+
+A way to another place (a cave mouth, a shaft up, the barn's cellar door) is an
+**exit**, not a spawn (plan-passages.md P1). The player walks up to it and
+presses E.
+
+1. Select the **`exits`** layer and click once with **Insert Point** (I).
+2. Set **Class** to `AuraExit`. That brings up the form.
+3. Type the destination into **`anchor`**: the **Name** of an `anchors`
+   point, in this zone or any other. A typo saves, then refuses the server's
+   boot naming the exit.
+4. Leave **`door`** at `(generic door)`, or pick the conversation it talks
+   as. `CaveExit` reads "a narrow shaft with daylight"; the generic one is
+   the cave mouth's words. A door that needs a quest gate or its own lines is a
+   new mob in `api/mobs/` with one anchor travel row, then it shows in this
+   list after `node tools/tiled/generate-palette.mjs`.
+
+⛔ **Keep exits out of a campfire's circle.** The fire's flight map takes every
+E press near it, so the server refuses to boot when an exit stands inside a
+bind circle plus its own reach, and names both.
+
+⚑ A door placed on the `spawns` layer is refused on save, and a zone file that
+still has one there refuses to open: run
+`node scripts/migrate-exits.mjs <file>` once.
+
 ### Bind points, dark areas, anchors
 
 - **Bind point** (`bindPoints`, drawn in game as a campfire): a point whose
@@ -478,7 +504,7 @@ What needs rebuilding depends on what you touched:
 
 | You changed | What is needed |
 |---|---|
-| `props`, `spawns`, `anchors`, bounds | **backend restart** |
+| `props`, `spawns`, `exits`, `anchors`, bounds | **backend restart** |
 | `decals`, `darkAreas`, `regions` | **frontend rebuild** (the client bundles zone terrain) |
 | `bindPoints` | **both** |
 
@@ -589,6 +615,7 @@ after touching anything under `tools/tiled/`.
 | Move / rotate / scale a texture | Select Objects (S), drag or use the handles |
 | Scale a prop | Select Objects (S), drag a corner handle with **Shift** held |
 | Place a mob | Insert Point on `spawns`, set `mob` in the Properties panel |
+| Place a way to another place | Insert Point on `exits`, Class `AuraExit`, type its `anchor` |
 | Make it patrol | Insert Polyline on `spawns` — every vertex is a waypoint, the first is also the spawn |
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |

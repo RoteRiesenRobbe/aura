@@ -116,13 +116,6 @@
   },
   "spawns": [
     {
-      "mob": "CaveExit",
-      "x": 0.11,
-      "y": 4.66,
-      "angle": 0,
-      "anchor": "barn-surface"
-    },
-    {
       "mob": "GiantRat",
       "x": 2.7,
       "y": -2.81,
@@ -209,6 +202,14 @@
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
       "level": 1
+    }
+  ],
+  "exits": [
+    {
+      "x": 0.11,
+      "y": 4.66,
+      "anchor": "barn-surface",
+      "door": "CaveExit"
     }
   ],
   "regions": [

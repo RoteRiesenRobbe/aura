@@ -3685,27 +3685,6 @@
           "level": 1
         },
         {
-          "mob": "CaveMouth",
-          "x": -260.87,
-          "y": -18.21,
-          "angle": 0,
-          "anchor": "under-west"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -196.23,
-          "y": -12.64,
-          "angle": 0,
-          "anchor": "under-east"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -197.51,
-          "y": 14.59,
-          "angle": 0,
-          "anchor": "barn-inside"
-        },
-        {
           "mob": "Stag",
           "x": -253.2,
           "y": 30.53,
@@ -4274,6 +4253,23 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "level": 4
+        }
+      ],
+      "exits": [
+        {
+          "x": -260.87,
+          "y": -18.21,
+          "anchor": "under-west"
+        },
+        {
+          "x": -196.23,
+          "y": -12.64,
+          "anchor": "under-east"
+        },
+        {
+          "x": -197.51,
+          "y": 14.59,
+          "anchor": "barn-inside"
         }
       ],
       "bindPoints": [
@@ -7388,13 +7384,6 @@
           "angle": 0
         },
         {
-          "mob": "CaveMouth",
-          "x": -162.53,
-          "y": -21.15,
-          "angle": 0,
-          "anchor": "koboldcave-inside"
-        },
-        {
           "mob": "KoboldRanged",
           "x": -160.1,
           "y": -19.09,
@@ -8048,6 +8037,13 @@
           "x": -143.73,
           "y": -10.83,
           "angle": 2.2
+        }
+      ],
+      "exits": [
+        {
+          "x": -162.53,
+          "y": -21.15,
+          "anchor": "koboldcave-inside"
         }
       ],
       "bindPoints": [
@@ -9317,12 +9313,12 @@
           "x": -46.47,
           "y": -1.99,
           "angle": 0
-        },
+        }
+      ],
+      "exits": [
         {
-          "mob": "CaveMouth",
           "x": -65.64,
           "y": 1.02,
-          "angle": 0,
           "anchor": "tunnel-east"
         }
       ],
@@ -10184,13 +10180,6 @@
       },
       "spawns": [
         {
-          "mob": "CaveMouth",
-          "x": -113.63,
-          "y": -52.54,
-          "angle": 0,
-          "anchor": "tunnel-west"
-        },
-        {
           "mob": "Bandit",
           "x": -129.47,
           "y": -48.42,
@@ -10249,6 +10238,13 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 6
+        }
+      ],
+      "exits": [
+        {
+          "x": -113.63,
+          "y": -52.54,
+          "anchor": "tunnel-west"
         }
       ],
       "bindPoints": [
