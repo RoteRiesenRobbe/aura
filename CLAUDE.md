@@ -19,6 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
+- **⭐ PASSAGES: DESIGNED 2026-10-17, approval owed** (`docs/plan-passages.md`): exits get their own Tiled layer (talk exits + touch areas), a `Passage` entity with no health bar, five looks, words from the destination or the exit. P1 (the layer + migration) is first; §7 holds Q1-Q9. **Schema: DB/conf NONE · wire +1 EntityType +2 fields · zone +2 arrays.**
+
 - **⭐ LOCALIZATION C0a-C9: MERGED to main** (C0a-C6 2026-10-14, C7-C9 `3cee3500` 2026-10-15; `docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON, no allowlist (D13). ⭐ Owed (PO 2026-10-15): a German string approval and a manual translation pass, nothing else. Dialogue + `stock.*` live in `conversations.arb`; `tools/lang/sheet.mjs` round-trips a CSV (manual-localization.md §6).
 
 - **⭐ AUDIO: plan SKETCHED 2026-10-15, C0 (design) is next** (`docs/plan-audio.md`): music per state (menu, region, ascension) and one-shot sounds; C0 narrows eight lanes to v1 and answers §5. Takes over `archive/plan-region-audio.md`. The main title plays since `1168b00e` (loops forever, menus and world alike). ⚑ `masterMuted` defaults to `true` (Q1); since `4725163d` (deployed 2026-10-15) a "Mute all" switch sits beside Fullscreen on the account screens and music defaults to 50.
