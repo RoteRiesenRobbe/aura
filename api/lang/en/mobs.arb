@@ -463,6 +463,11 @@
     "description": "Name of the SandBasilisk (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
+  "mob.SandClamper.name": "Sand Clamper",
+  "@mob.SandClamper.name": {
+    "description": "Name of the SandClamper (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
   "mob.Seaweed.name": "{count, plural, one {Seaweed} other {Seaweed}}",
   "@mob.Seaweed.name": {
     "description": "Name of the Seaweed (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",

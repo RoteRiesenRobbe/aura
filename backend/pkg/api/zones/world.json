@@ -3805,6 +3805,76 @@
           "respawnTicks": 600,
           "respawnVariancePct": 0.2,
           "level": 1
+        },
+        {
+          "mob": "SandClamper",
+          "x": -262,
+          "y": -31,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 3
+        },
+        {
+          "mob": "SandClamper",
+          "x": -252,
+          "y": -31.2,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 3
+        },
+        {
+          "mob": "SandClamper",
+          "x": -248.4,
+          "y": -31.6,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 4
+        },
+        {
+          "mob": "SandClamper",
+          "x": -243.5,
+          "y": -31,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 3
+        },
+        {
+          "mob": "SandClamper",
+          "x": -218.5,
+          "y": -30.8,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 3
+        },
+        {
+          "mob": "SandClamper",
+          "x": -214,
+          "y": -31.4,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 4
+        },
+        {
+          "mob": "SandClamper",
+          "x": -190.5,
+          "y": -31.5,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 4
         }
       ],
       "bindPoints": [

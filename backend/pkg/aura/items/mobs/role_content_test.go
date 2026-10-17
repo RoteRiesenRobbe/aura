@@ -125,7 +125,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// fighting creatures): 89 -> 91.
 	// + Lionett, Tobias and the Governor (the quest sheet's newcomers, the
 	// standing talkable-NPC shape): 91 -> 94.
-	assert.Len(t, byRole[RoleCreature], 94, "everything else is a creature")
+	// + SandClamper (the Saltgrass Strand crab, a walking, fighting
+	// creature): 94 -> 95.
+	assert.Len(t, byRole[RoleCreature], 95, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 
