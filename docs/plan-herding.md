@@ -369,7 +369,7 @@ No open PO calls.
 
 ## 10. Chunk ledgers
 
-### H1 — BUILT 2026-10-17, uncommitted, PO look owed
+### H1 — BUILT 2026-10-17, committed `75376c13`, PO look owed
 
 - **Engine:** `mobs.Herd` + `BindHerdPens` (boot: unlisted pen fails, undrawn warns),
   `model/mob/herd.go` (`herdPush`, `tickHerd`, `UpdatePen`), the `herded` case in
@@ -395,9 +395,9 @@ No open PO calls.
   probe samples every ~1 s), 0 page errors. The named strays are excluded by their spawns.
 - **Schema:** DB/conf NONE · wire +1 EntityType · content +`herd` block · zone +1 region +10
   spawns.
-- **Committed** `c5ca34c6` (with the whole `world.json`, PO ask).
+- **Committed** `75376c13` (with the whole `world.json`, PO ask; rebased onto `origin/main` 2026-10-18, was `c5ca34c6`).
 
-### H2 — BUILT 2026-10-17, uncommitted, PO look + text approval owed
+### H2 — BUILT 2026-10-17, committed `c9fa2bb4`, PO look + text approval owed
 
 - **Quest engine:** `ObjectiveHerd` (`"herd"`): shares the species counters, refuses a species
   without a herd pen and a chance; a count-1 herd objective with its own tracker ticks ✓ like a
