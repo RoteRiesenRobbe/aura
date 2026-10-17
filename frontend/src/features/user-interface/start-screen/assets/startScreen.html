@@ -33,35 +33,13 @@
 		  here meant a slow boot (or a stalled one) showed the player a name box and
 		  a button reading "Loading..." that never became clickable — it looked like
 		  the game had hung on a form it was waiting for them to fill in.
-		  The fullscreen toggle stays: it is a device preference, not a join step.
+		  Fullscreen is not offered here: the account screens and the settings
+		  panel carry it. The players-online readout is appended by PlayerCount.ts.
 		-->
 		<div id="startForm" class="playerForm layout-column hideForCredits hideForChangelog">
-			<div class="optionsContainer layout-row layout-align-space-around-center">
-				<div class="layout-row layout-align-center-end startFormToggle">
-					<div class="switch">
-						<input type="checkbox" id="fullscreenToggle">
-						<label><i></i></label>
-						<span></span>
-					</div>
-					<label data-i18n="start.fullscreen" for="fullscreenToggle">Fullscreen</label>
-				</div>
-			</div>
 			<div class="submitContainer">
 				<div data-i18n="start.loading" id="loadingStatus">Loading…</div>
 				<div id="loadingBar"></div>
-			</div>
-
-			<!-- Players online (PlayerCount.ts). Starts hidden; the first successful
-			     GET /players reveals it, so a server without the endpoint shows
-			     nothing rather than a placeholder. -->
-			<div data-i18n-attr="title:start.player-count.title" id="playerCount" class="hidden" title="Players online">
-				<span data-i18n="start.player-count.label">currently online</span>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-				     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-					<circle cx="12" cy="7" r="4"/>
-				</svg>
-				<span id="playerCountValue"></span>
 			</div>
 
 			<!--		<a href="#changelog" id="betaStamp"><img src="./betaStamp.svg" /></a>-->

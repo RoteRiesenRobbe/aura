@@ -81,6 +81,8 @@
 	  player's slots reshuffling under them.
 	-->
 	<div id="characterSelect" class="accountPanel hidden">
+		<!-- "Welcome, <username>!" for a registered account; filled in by CharacterSelect. -->
+		<p class="selectGreeting hidden"></p>
 		<h2 data-i18n="account.select.heading">Choose your character</h2>
 		<div class="slotCards layout-row layout-align-center-center"></div>
 		<!-- Shown when this account has a character in the world — which takes
@@ -183,6 +185,9 @@
 			<a data-i18n="account.register.close-button" href="#" class="button secondary" id="registerBackButton">Close</a>
 		</div>
 	</div>
+
+	<!-- Players online, under the visible panel (PlayerCount.ts fills it). -->
+	<div id="accountPlayerCount"></div>
 
 	<!--
 	  Net-new UI: no modal/confirm pattern existed anywhere in the frontend

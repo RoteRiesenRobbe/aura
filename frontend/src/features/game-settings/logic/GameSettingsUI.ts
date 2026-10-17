@@ -9,6 +9,7 @@ import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {BackendState} from '../../backend/logic/IBackend';
 import * as Locale from '../../localization/logic/Locale';
 import {registerMuteToggle} from '../../audio/logic/Audio';
+import {registerFullscreenToggle} from '../../full-screen/logic/FullScreen';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;
@@ -120,6 +121,9 @@ function setupAudioSettings() {
  * control's only job is to write the value.
  */
 function setupGraphicsSettings() {
+    // One preference with the account screens' switches; FullScreen keeps them agreeing.
+    registerFullscreenToggle(rootElement.querySelector('#settingsFullscreenToggle'));
+
     setupRadioGroup<VfxDensity>(
         'vfxDensity',
         () => gameSettings.vfx.density,

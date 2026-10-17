@@ -1,11 +1,11 @@
 import fscreen from 'fscreen';
-import {GameJoinEvent, screen, StartScreenDomReadyEvent} from "../../core/logic/Events";
+import {GameJoinEvent, screen} from "../../core/logic/Events";
 import {DevicePrefs} from "../../common/logic/DevicePrefs";
 
 /**
  * The fullscreen device preference and every control that edits it.
  *
- * ⚑ There is more than one toggle now (start screen + the account screens), and
+ * ⚑ There is more than one toggle now (the account screens + settings), and
  * they all edit ONE value. So this module owns the list rather than each screen
  * owning its own checkbox: a screen that read `DevicePrefs.fullScreen` at mount
  * and never heard about later changes would show a stale switch the moment the
@@ -62,10 +62,6 @@ fscreen.addEventListener('fullscreenchange', () => {
     const active = isFullscreenActive();
     DevicePrefs.fullScreen = active;
     syncToggles(active);
-});
-
-StartScreenDomReadyEvent.subscribe(() => {
-    registerFullscreenToggle(document.getElementById('fullscreenToggle') as HTMLInputElement);
 });
 
 // Backstop for the case no toggle was ever touched this session: the preference
