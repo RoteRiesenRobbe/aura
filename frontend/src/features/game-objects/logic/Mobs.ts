@@ -936,6 +936,28 @@ export class Stag extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Stag, file('stag'), maxSize('stag'));
 
+// The placeholder sheep (plan-herding.md D11): the stag's medallion over a
+// woolly face, on the same wildlife layer.
+const sheepBorder = registerBorder(GraphicsConfig.mobs.sheep.borderFile, maxSize('sheep'));
+
+export class Sheep extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('sheep'), maxSize('sheep')),
+            Sheep.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), sheepBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Sheep, file('sheep'), maxSize('sheep'));
+
 const eliteWolfBorder = registerBorder(GraphicsConfig.mobs.eliteWolf.borderFile, maxSize('eliteWolf'));
 
 export class EliteWolf extends Mob {

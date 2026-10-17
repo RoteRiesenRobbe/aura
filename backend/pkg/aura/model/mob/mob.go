@@ -550,6 +550,13 @@ type Mob struct {
 	invulnerable bool
 	fleeOverride bool
 
+	// Herding (plan-herding.md D3/D4, herd.go): the players this herd animal
+	// ran from by id, its own tick clock for their expiry, and how long it has
+	// stood in its pen. All zero on every mob without a herd block.
+	herders  map[uint64]herder
+	herdTick uint64
+	penTicks int
+
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
@@ -919,7 +926,9 @@ func (m *Mob) refreshSensorMask() {
 	// would be silently mute, with every evaluator test still green. Same
 	// shape as the support widening above: the cost is confined to the mobs
 	// that need it.
-	if m.definition.Interaction != nil {
+	// A herd animal runs from players whatever it aggros (plan-herding.md D2),
+	// the same widening for the same reason.
+	if m.definition.Interaction != nil || m.definition.Herd != nil {
 		mask |= int(model.LayerPlayerCollision)
 	}
 	m.aggroAura.Shape().Mask = mask
@@ -1170,6 +1179,12 @@ func (m *Mob) Update(dt float32) bool {
 		fleeFrom = m.highestThreatTarget()
 	}
 	fearFrom, feared := m.fearFrom()
+	var herdFrom phy.Vec2f
+	herded := false
+	if m.definition.Herd != nil {
+		m.tickHerd()
+		herdFrom, herded = m.herdPush()
+	}
 
 	switch {
 	// A feared mob runs from the fearer ahead of everything else
@@ -1203,6 +1218,12 @@ func (m *Mob) Update(dt float32) bool {
 		} else {
 			m.resetChaseWatchdog()
 		}
+	// A herd animal runs from the players close by (plan-herding.md D2). Below
+	// every combat case on purpose: it is movement, not a fight, so a stag
+	// that is being hit still flees its attacker the combat way.
+	case herded:
+		m.resetChaseWatchdog()
+		m.moveAwayFrom(herdFrom)
 	default:
 		m.resetChaseWatchdog()
 		m.updateIdleMovement()
@@ -1870,6 +1891,8 @@ func (m *Mob) ForgetEntity(id uint64) {
 	if m.supportTarget != nil && m.supportTarget.Basic().ID() == id {
 		m.supportTarget = nil
 	}
+	// A departed player herds nothing any more (plan-herding.md D3).
+	delete(m.herders, id)
 }
 
 // InCombat reports whether this mob is currently engaged (model.Combatant;

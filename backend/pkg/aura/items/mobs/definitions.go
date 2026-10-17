@@ -3,6 +3,7 @@ package mobs
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
@@ -210,6 +211,16 @@ type Body struct {
 	AggroRadius    float32
 }
 
+// Herd makes an animal herdable (plan-herding.md D1): it runs from every
+// player inside its sensor (body.aggroRadius is the run radius, no second
+// knob), and with a Pen it counts when driven into that place (D4). Pen is a
+// region id from api/regions/regions.json, checked at boot against the list
+// (an unknown id fails); empty = it only runs (R14). The pen sits on the
+// definition, so one species has one pen (R14).
+type Herd struct {
+	Pen string
+}
+
 // MobSkill is one entry of a mob's skill loadout, resolved against the skill
 // registry at load time.
 type MobSkill struct {
@@ -296,6 +307,10 @@ type MobDefinition struct {
 	// interaction block, needing no new type and no new branch).
 	Interaction *Interaction
 
+	// Herd is the herdable-animal block (plan-herding.md D1); nil for every
+	// mob that does not run from players.
+	Herd *Herd
+
 	// Faction is the species' allegiance, AggroMask the bitmask of faction IDs
 	// it proactively acquires in its aggro sensor (mob-depth chunk 6.6, both
 	// resolved against the factions registry at load time). A definition
@@ -344,6 +359,12 @@ type mobDefinition struct {
 	// Interaction is the authored conversation (chunk 3a); absent → nil, which
 	// is every mob that is not an NPC.
 	Interaction *jsonInteraction `json:"interaction"`
+
+	// Herd is the herdable-animal block (plan-herding.md D1); absent → nil.
+	// `"herd": {}` is legal: it runs and counts nowhere (R14).
+	Herd *struct {
+		Pen string `json:"pen"`
+	} `json:"herd"`
 
 	Factors struct {
 		// BaseMaxHealth is the tier+baseline authoring value (C0): the HP
@@ -711,8 +732,43 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		return nil, fmt.Errorf("mob %q: a mob carrying an interaction must author body.collisionLayer explicitly — the unset default is aura-targetable", m.Name)
 	}
 
+	// A herd animal runs, so it must be able to move and must have a sensor to
+	// see players with; a structure is neither (plan-herding.md D1). The pen
+	// id is only shaped here — whether the place exists is a boot check, the
+	// region list not being this loader's input (BindHerdPens).
+	if m.Herd != nil {
+		switch {
+		case role == RoleStructure:
+			return nil, fmt.Errorf("mob %q: a structure cannot carry herd — it never moves", m.Name)
+		case m.Factors.Speed <= 0:
+			return nil, fmt.Errorf("mob %q: herd needs factors.speed > 0 — a herd animal runs from players", m.Name)
+		}
+		mob.Herd = &Herd{Pen: m.Herd.Pen}
+	}
+
 	mob.LegacyRefs = legacyRefs
 	return mob, nil
+}
+
+// BindHerdPens checks every herd pen against the place list and the drawn
+// zones (plan-herding.md D1), the quests.BindRegions shape: an UNLISTED pen is
+// a boot failure (a typo), an UNDRAWN one a warning (the debug zone set draws
+// none of the shipped places). All failures are reported at once.
+func BindHerdPens(defs []*MobDefinition, listed, drawn map[string]bool) (warnings []string, err error) {
+	var errs []error
+	for _, d := range defs {
+		if d.Herd == nil || d.Herd.Pen == "" {
+			continue
+		}
+		switch {
+		case !listed[d.Herd.Pen]:
+			errs = append(errs, fmt.Errorf("mob %q: herd.pen %q is not in api/regions/regions.json", d.Name, d.Herd.Pen))
+		case !drawn[d.Herd.Pen]:
+			warnings = append(warnings, fmt.Sprintf("mob %q: herd.pen %q is drawn by no loaded zone, so it "+
+				"can never be penned in this world", d.Name, d.Herd.Pen))
+		}
+	}
+	return warnings, errors.Join(errs...)
 }
 
 // SenseRadius is the radius of the actor's one sensor: the wider of its aggro

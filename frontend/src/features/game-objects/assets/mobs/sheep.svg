@@ -1,0 +1,42 @@
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder sheep avatar (plan-herding.md D11), the stag's medallion shape: a woolly crown over a dark face, ears out to the sides. Replaced at the Zone 1 art pass. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(62,105,74);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <g fill="#f2efe6" stroke="#8f8a7c" stroke-width="2.5">
+          <circle cx="50" cy="60" r="34"/>
+          <circle cx="24" cy="44" r="13"/>
+          <circle cx="76" cy="44" r="13"/>
+          <circle cx="34" cy="26" r="14"/>
+          <circle cx="50" cy="20" r="14"/>
+          <circle cx="66" cy="26" r="14"/>
+        </g>
+        <circle cx="50" cy="60" r="32" fill="#f2efe6"/>
+        <ellipse cx="22" cy="50" rx="11" ry="5.5" transform="rotate(-20 22 50)" fill="#3a3530" stroke="#1c1916" stroke-width="2.5"/>
+        <ellipse cx="78" cy="50" rx="11" ry="5.5" transform="rotate(20 78 50)" fill="#3a3530" stroke="#1c1916" stroke-width="2.5"/>
+        <path d="M 36 40 Q 50 34 64 40 Q 66 62 60 78 Q 55 90 50 90 Q 45 90 40 78 Q 34 62 36 40 Z" fill="#3a3530" stroke="#1c1916" stroke-width="3" stroke-linejoin="round"/>
+        <g fill="#f2efe6" stroke="#8f8a7c" stroke-width="2">
+          <circle cx="42" cy="38" r="7"/>
+          <circle cx="50" cy="35" r="7.5"/>
+          <circle cx="58" cy="38" r="7"/>
+        </g>
+        <ellipse cx="43" cy="54" rx="3.5" ry="4" fill="#f5e9c8"/>
+        <ellipse cx="57" cy="54" rx="3.5" ry="4" fill="#f5e9c8"/>
+        <ellipse cx="43" cy="55" rx="1.8" ry="2.6" fill="#120f0c"/>
+        <ellipse cx="57" cy="55" rx="1.8" ry="2.6" fill="#120f0c"/>
+        <path d="M 45 80 Q 50 84 55 80" fill="none" stroke="#120f0c" stroke-width="2.5"/>
+        <ellipse cx="47" cy="76" rx="1.6" ry="1.2" fill="#120f0c"/>
+        <ellipse cx="53" cy="76" rx="1.6" ry="1.2" fill="#120f0c"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
+</svg>
