@@ -1291,6 +1291,10 @@ var AuraConvert = (function () {
 
     /* How near two endpoints must be to weld, world units. [PLACEHOLDER] (Q3). */
     var WELD_SNAP = 0.5;
+    /* How near a T's end must lie to the bar to count as already welded: one
+     * step of the save's 0.01 u rounding, which leaves a projected end up to
+     * ~0.007 u off the line. Any less and every save moves it again. */
+    var WELD_ON_LINE = 0.01;
     /* What two cliffs must agree on to become one path. */
     var WELD_SAME = ['profile', 'width', 'blocksMovement', 'alignTexture', 'outlineProfile',
         'outlineWidth', 'corners', 'effect'];
@@ -1376,7 +1380,7 @@ var AuraConvert = (function () {
                 });
                 if (best === null) { return; }
                 // ⚑ Already on the line: kept as is, so a second save is a no-op.
-                if (best.d > 1e-9) {
+                if (best.d > WELD_ON_LINE) {
                     stem.points[atStart ? 0 : stem.points.length - 1] = best.at;
                 }
                 stem[atStart ? 'endsStart' : 'endsEnd'] = 'flat';

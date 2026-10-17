@@ -3007,6 +3007,17 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
                 expect(twice).toEqual(once);
             });
 
+            // ⚑ The save writes every point at 0.01 u, so a projected end
+            // reads back a hair off the line. The shipped world's T came back
+            // 0.001 off on every save and never settled.
+            it('is stable through the save\'s rounding', () => {
+                const slant = [{x: -6.13, y: 0.27}, {x: 6.41, y: 1.94}];
+                const r2 = (v: number) => Math.round(v * 100) / 100;
+                const once = weld([cliff(slant), cliff(stem)]).paths;
+                const saved = once.map(p => ({...p, points: p.points.map(v => ({x: r2(v.x), y: r2(v.y)}))}));
+                expect(weld(JSON.parse(JSON.stringify(saved))).paths).toEqual(saved);
+            });
+
             it('ignores an end further than half the bar\'s width off it', () => {
                 const off = [stem[0], {x: 1.61, y: 0.27 + 0.75 + 0.03}];
                 const out = weld([cliff(bar), cliff(off)]);
