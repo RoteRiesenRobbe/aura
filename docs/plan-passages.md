@@ -1,8 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
-**Status: P1 + P2 BUILT 2026-10-17 (branch `passages`; P1 committed `31b87226`, P2 uncommitted,
-PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written; Q7 taken as proposed). Open PO
-calls in §7; P3 next.
+**Status: P1-P3 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 uncommitted;
+PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written; Q5 + Q7 taken as proposed). Open PO
+calls in §7; P4 next.
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -442,7 +442,7 @@ byte-identical, the door-in-spawns open refused). In game: `.claude/skills/verif
 **Schema:** DB none · wire none · conf none · **zone format +1 array (`exits`)**, doors migrated out
 of `spawns` · content: `cave-mouth.json` comment only.
 
-### P2 — `Passage` + looks ✅ BUILT 2026-10-17 (uncommitted on `passages`)
+### P2 — `Passage` + looks ✅ BUILT 2026-10-17 (`0bc12406` on `passages`)
 
 **What landed.** ⭐ **`EntityType Passage = 122`**, not D4's 120 (BerryBush took 120, main's Sheep
 took 121 after this branch forked; the merge brings 121 in). Client `Mobs.Passage`: an empty
@@ -474,3 +474,54 @@ cave-mouth and stairs-up looks drawn, a hidden exit drawing nothing, and the P1 
 
 **Schema:** DB none · conf none · **wire +1 EntityType (`Passage = 122`)** · zone format `exits[]`
 +`rotation` +`look` · content: `CaveMouth`/`CaveExit` `entityType`.
+
+### P3 — words ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+
+**What landed.** `exits[].id` (D7): optional slug, FIRST key, refused unless `^[a-z0-9-]+$`, unique
+across the placed set (`checkSetWide`, beside the anchor rule); Tiled `id` member on `AuraExit`
+(first, free text, '' = none), the converter refuses a non-slug and a repeat in one file. Keys in
+`regions.arb` (Q5 as proposed): `exit.<id>.title/.text/.go`, `anchor.<name>.text`
+(`lang.ExitTitle/ExitText/ExitGo/AnchorText`). **Text and row on the server** (D6):
+`world.ApplyExitWords` runs in `loadContent` after the lang stage and gives EVERY exit its own
+shallow copy of its door's definition (the registry's is never touched; same `ID`/`Name`) whose
+travel node carries the chosen line key and whose travel row carries the chosen row key; the keys
+travel as `line_ids` / `text_id`, so German comes from `/lang` as for any line. The copy also
+carries `Interaction.ExitID` (the id, else `@<anchor>`), stamped onto the panel as **`Conversation.exit_id`**
+(appended). **Header on the client:** `exits/logic/ExitHeader.ts` (pure): `exit.<id>.title`, else the
+place at the anchor via `RegionNames.placeInZone`, which is `Game.arrivalPlace`'s lookup moved out so
+both share it (L8: off the bundle), else the catalog name. `langEntries` emits an entry for every
+authored key of a placed exit/anchor (so `/lang` serves them and `TestLangEnglishBelongsToContent…`
+refuses an orphan). `tools/lang` `arbOf` learned `exit.`/`anchor.` (sheet.mjs is generic). First
+content: `anchor.barn-inside.text` ("A low door into the barn's cellar.") and the barn's way up
+`id: barn-cellar-stairs` with `.text` + `.go` ("Climb the stairs."), en + de.
+
+**Decisions made in the chunk (flag for the PO):**
+- ⭐ **Which doors take the destination's line (tier 2).** D6 says a custom door's lines win over
+  tier 2, but `CaveExit` is a shipped generic door too. Built: `world.StockDoors` =
+  `CaveMouth` + `CaveExit` take tier 2; any other door keeps its lines. A per-exit key (tier 1)
+  beats every door.
+- **The words replace the TRAVEL node's lines and row** (on a stock door that is its only node), so
+  a custom door with gates keeps every other node as authored.
+- **No reply column.** D6 has none, so the line spoken after the row stays the definition's: the
+  barn door still answers "You climb down into the dark." Say if exits want `exit.<id>.reply`.
+- **The header always comes from the exit**, even on a custom door (D6's header column has no
+  definition tier); the catalog name is only the fallback for a door whose destination the bundle
+  does not know.
+- P1's harness leg "the two doors talk as different definitions" compared HEADERS, which are now
+  the destination's; it is dropped (the Go door-resolution tests still cover `door`).
+
+**Checks.** Go: `world` id slug / set-wide duplicate / tiers (each column, stock vs custom door,
+per-column fallthrough) / the definition untouched / the key stamped; `sys` the panel carries
+`ExitID`; `codec` `exit_id` round-trip; `cmd/aurad` over the real content: every door carries its
+key and every authored `anchor.*.text` reaches a door; TestLang green after `UPDATE_LANG=1`. Full
+`go test ./...` green bar the two known reds. `aurad -validate` 0 findings (disk, embedded,
+`-debug-zones`). Vitest 1797/0 incl. `ExitHeader.test.ts` (each tier, origin applied, the zone-name
+fallback, misses) and the converter's id round trip/refusals + palette member; `tsc` clean;
+`tools/lang` tests 21/0 (the sheet-vs-`-lang-status` test needs a REBUILT `aurad.exe`). `verify.sh`
+all green through real Tiled (the barn's id rides the exits round trip). In game `passages.mjs`
+12/12: the world's barn door reads "Barn" + the anchor line, the barn's way up reads the place at
+its anchor ("Reinhard's Farm") + its exit's own line and row, every expectation derived from the
+zone files and `regions.arb`.
+
+**Schema:** DB none · conf none · **wire +1 appended `Conversation.exit_id:string`** · zone format
+`exits[]` +`id` · content: `barn.json` exit id; `regions.arb` +3 keys (en + de).

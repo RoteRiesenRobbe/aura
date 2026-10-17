@@ -552,6 +552,21 @@ func TestGameStateConversation_TravelDirectionRoundTrips(t *testing.T) {
 		"a navigation row takes nobody anywhere")
 }
 
+// plan-passages.md D6: a door's conversation names its exit, and nobody
+// else's does (the field costs nothing off a door).
+func TestGameStateConversation_ExitIDRoundTrips(t *testing.T) {
+	for _, exitID := range []string{"@barn-inside", ""} {
+		b := flatbuffers.NewBuilder(128)
+		offset := ConversationMarshalFlatbuf(&model.Conversation{EntityID: 7, EntryNode: "root", ExitID: exitID}, b)
+		AuraApi.GameStateStart(b)
+		AuraApi.GameStateAddConversation(b, offset)
+		b.Finish(AuraApi.GameStateEnd(b))
+		got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil)
+		require.NotNil(t, got)
+		assert.Equal(t, exitID, string(got.ExitId()))
+	}
+}
+
 // An absent conversation IS the close signal (D16), so no-panel must marshal to
 // nothing rather than to an empty table.
 func TestGameStateConversation_AbsentReadsNil(t *testing.T) {

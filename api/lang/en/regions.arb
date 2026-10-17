@@ -1,5 +1,17 @@
 {
   "@@locale": "en",
+  "anchor.barn-inside.text": "A low door into the barn's cellar.",
+  "@anchor.barn-inside.text": {
+    "description": "What every generic door leading into the barn cellar (anchor \"barn-inside\") says when the player presses E at it: one line in the door's panel, under the place name. A plain description of the way in."
+  },
+  "exit.barn-cellar-stairs.go": "Climb the stairs.",
+  "@exit.barn-cellar-stairs.go": {
+    "description": "The button on the barn cellar stairs (exit \"barn-cellar-stairs\") that takes the player up out of the barn cellar. An imperative, like \"Climb down.\""
+  },
+  "exit.barn-cellar-stairs.text": "Wooden steps lead up and out of the cellar.",
+  "@exit.barn-cellar-stairs.text": {
+    "description": "What the stairs out of the barn cellar (exit \"barn-cellar-stairs\") say when the player presses E at them: one line in the door's panel."
+  },
   "region.ashen-fields.subtitle": "Cinder and Bone",
   "@region.ashen-fields.subtitle": {
     "description": "Region banner subtitle under \"The Ashen Fields\"."

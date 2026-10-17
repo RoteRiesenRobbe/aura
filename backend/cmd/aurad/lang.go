@@ -137,6 +137,29 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 	for _, stem := range stems {
 		add("regions", fmt.Sprintf("zone %q name", stem), lang.Entry{Key: lang.ZoneName(stem), Text: zoneNames[stem]})
 	}
+	// The words a door shows (plan-passages.md D6), all optional: an entry for
+	// each one the English authors, for a placed exit or anchor. One for
+	// anything else is an orphan (D7), the test's to refuse; a duplicate exit
+	// id is the zone loader's (checkSetWide).
+	english := c.langBundle.Overlay(lang.Source)
+	optional := func(where, key string) {
+		if text := english[key]; text != "" {
+			add("regions", where, lang.Entry{Key: key, Text: text})
+		}
+	}
+	for _, z := range c.zones {
+		for _, a := range z.Anchors {
+			optional(fmt.Sprintf("anchor %q text", a.Name), lang.AnchorText(a.Name))
+		}
+		for _, e := range z.Exits {
+			if e.ID == "" {
+				continue
+			}
+			optional(fmt.Sprintf("exit %q title", e.ID), lang.ExitTitle(e.ID))
+			optional(fmt.Sprintf("exit %q text", e.ID), lang.ExitText(e.ID))
+			optional(fmt.Sprintf("exit %q row", e.ID), lang.ExitGo(e.ID))
+		}
+	}
 	return out, findings
 }
 

@@ -207,3 +207,131 @@ func TestExits_ADoorMustBeAPassage(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `door "OldDoor" must have entityType "Passage"`)
 }
+
+// ⭐ P3 (D7): an exit's id keys its words in a file a person edits, so it is a
+// readable slug, and unique across the placed set like an anchor name.
+func TestExits_IDIsASlug(t *testing.T) {
+	z, err := loadExits(t, `{"id": "barn-door", "x": 1, "y": 2, "anchor": "a"}`)
+	require.NoError(t, err)
+	assert.Equal(t, "barn-door", z.Exits[0].ID)
+
+	for _, id := range []string{"Barn Door", "barn.door", " "} {
+		_, err := loadExits(t, `{"id": "`+id+`", "x": 1, "y": 2, "anchor": "a"}`)
+		require.Error(t, err, id)
+		assert.Contains(t, err.Error(), "exit 0: id")
+	}
+}
+
+func TestPlace_RefusesAnExitIDTwice(t *testing.T) {
+	a := zoneAt("a", 10, 10, 0, 0)
+	a.Exits = []Exit{{ID: "the-door", Anchor: "x"}}
+	b := zoneAt("b", 10, 10, 0, 100)
+	b.Exits = []Exit{{ID: "the-door", Anchor: "y"}}
+	err := Place([]*Zone{a, b})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `both author exit "the-door"`)
+
+	b.Exits[0].ID = "another-door"
+	assert.NoError(t, Place([]*Zone{a, b}))
+}
+
+// wordsDoor is a door that says something, so a test can tell its own words
+// from the words an exit gives it.
+func wordsDoor(name string) *mobs.MobDefinition {
+	d := passage(name)
+	d.Interaction.Nodes[0].Lines = []string{"A dark opening."}
+	d.Interaction.Nodes[0].LineIDs = []string{"conv." + name + ".a-dark-opening"}
+	d.Interaction.Nodes[0].Options[0].ID = "conv." + name + ".climb-down"
+	return d
+}
+
+func wordsExit(id, anchor string, def *mobs.MobDefinition) *Zone {
+	z := zoneAt("world", 60, 40, 0, 0)
+	z.Exits = []Exit{{ID: id, Anchor: anchor, Def: def}}
+	return z
+}
+
+// root is the one node a door definition built by door() authors.
+func root(e *Exit) *mobs.InteractionNode { return &e.Def.Interaction.Nodes[0] }
+
+// ⭐ D6: the words a door shows, three tiers, the first key with English winning
+// per column. Text and row resolve here, at boot; the header is the client's.
+func TestApplyExitWords_Tiers(t *testing.T) {
+	en := map[string]string{
+		"anchor.barn-inside.text": "A low door into the barn.",
+		"exit.cellar-stairs.text": "Steps lead up.",
+		"exit.cellar-stairs.go":   "Climb the stairs.",
+		"exit.only-a-row.go":      "Go in.",
+	}
+
+	t.Run("nothing authored: the definition's words", func(t *testing.T) {
+		mouth := wordsDoor(GenericDoor)
+		z := wordsExit("", "nowhere-known", mouth)
+		ApplyExitWords([]*Zone{z}, en)
+		assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[0]).Lines)
+		assert.Equal(t, "conv.CaveMouth.climb-down", root(&z.Exits[0]).Options[0].ID)
+	})
+
+	t.Run("tier 2: the destination's text on a stock door", func(t *testing.T) {
+		for _, name := range StockDoors {
+			z := wordsExit("", "barn-inside", wordsDoor(name))
+			ApplyExitWords([]*Zone{z}, en)
+			assert.Equal(t, []string{"A low door into the barn."}, root(&z.Exits[0]).Lines, name)
+			assert.Equal(t, []string{"anchor.barn-inside.text"}, root(&z.Exits[0]).LineIDs, name)
+			assert.Equal(t, "conv."+name+".climb-down", root(&z.Exits[0]).Options[0].ID, "no row at tier 2")
+		}
+	})
+
+	t.Run("tier 0: a custom door keeps its words over the destination's", func(t *testing.T) {
+		z := wordsExit("", "barn-inside", wordsDoor("BeastDoor"))
+		ApplyExitWords([]*Zone{z}, en)
+		assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[0]).Lines)
+	})
+
+	t.Run("tier 1: the exit's own words beat everything", func(t *testing.T) {
+		for _, name := range []string{GenericDoor, "BeastDoor"} {
+			z := wordsExit("cellar-stairs", "barn-inside", wordsDoor(name))
+			ApplyExitWords([]*Zone{z}, en)
+			n := root(&z.Exits[0])
+			assert.Equal(t, []string{"Steps lead up."}, n.Lines, name)
+			assert.Equal(t, []string{"exit.cellar-stairs.text"}, n.LineIDs, name)
+			assert.Equal(t, "Climb the stairs.", n.Options[0].Text, name)
+			assert.Equal(t, "exit.cellar-stairs.go", n.Options[0].ID, name)
+		}
+	})
+
+	t.Run("per column: an exit with only a row still reads its destination", func(t *testing.T) {
+		z := wordsExit("only-a-row", "barn-inside", wordsDoor(GenericDoor))
+		ApplyExitWords([]*Zone{z}, en)
+		n := root(&z.Exits[0])
+		assert.Equal(t, []string{"A low door into the barn."}, n.Lines)
+		assert.Equal(t, "exit.only-a-row.go", n.Options[0].ID)
+	})
+}
+
+// ⚑ The words are PER EXIT: one definition serves every door in the world, so
+// giving one exit its words must never reach the definition or another door.
+func TestApplyExitWords_LeavesTheDefinitionAlone(t *testing.T) {
+	mouth := wordsDoor(GenericDoor)
+	z := zoneAt("world", 60, 40, 0, 0)
+	z.Exits = []Exit{{ID: "cellar-stairs", Anchor: "a", Def: mouth}, {Anchor: "b", Def: mouth}}
+	ApplyExitWords([]*Zone{z}, map[string]string{"exit.cellar-stairs.text": "Steps.", "exit.cellar-stairs.go": "Up."})
+
+	assert.Equal(t, []string{"A dark opening."}, mouth.Interaction.Nodes[0].Lines)
+	assert.Equal(t, "conv.CaveMouth.climb-down", mouth.Interaction.Nodes[0].Options[0].ID)
+	assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[1]).Lines)
+	assert.Equal(t, GenericDoor, z.Exits[0].Def.Name, "still the same door, only its words differ")
+	assert.Equal(t, mouth.ID, z.Exits[0].Def.ID)
+}
+
+// The client names the panel from the exit (D6's header column), so every
+// door carries which exit it is: the id, or the anchor for an id-less exit.
+func TestApplyExitWords_StampsTheExitID(t *testing.T) {
+	z := zoneAt("world", 60, 40, 0, 0)
+	z.Exits = []Exit{{ID: "cellar-stairs", Anchor: "a", Def: passage(GenericDoor)},
+		{Anchor: "barn-inside", Def: passage(GenericDoor)}}
+	ApplyExitWords([]*Zone{z}, nil)
+	assert.Equal(t, "cellar-stairs", z.Exits[0].Def.Interaction.ExitID)
+	assert.Equal(t, "@barn-inside", z.Exits[1].Def.Interaction.ExitID)
+	assert.Equal(t, "@barn-inside", z.ExitSpawns()[1].Def.Interaction.ExitID, "the spawn talks with it")
+}

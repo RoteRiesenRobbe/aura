@@ -696,12 +696,13 @@ var AuraConvert = (function () {
                     anchor: s.anchor || undefined,
                 };
             }),
-            // Talk exits (plan-passages.md P1/P2), key order as zone.go's Exit.
-            // Every optional key is absent at its default: no turn, the cave
-            // mouth look (EXIT_LOOK_DEFAULT), the generic door.
+            // Talk exits (plan-passages.md P1-P3), key order as zone.go's Exit.
+            // Every optional key is absent at its default: no id (P3), no
+            // turn, the cave mouth look (EXIT_LOOK_DEFAULT), the generic door.
             exits: z.exits && z.exits.length > 0
                 ? z.exits.map(function (e) {
                     return {
+                        id: e.id || undefined,
                         x: round(e.x, 2),
                         y: round(e.y, 2),
                         rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
@@ -1022,6 +1023,9 @@ var AuraConvert = (function () {
                     properties: {anchor: e.anchor},
                     enums: {},
                 };
+                if (e.id) {
+                    o.properties.id = e.id;
+                }
                 if (e.look && e.look !== EXIT_LOOK_DEFAULT) {
                     o.properties.look = e.look;
                     o.enums.look = EXIT_LOOK_ENUM;
@@ -1641,6 +1645,7 @@ var AuraConvert = (function () {
                 }),
                 exits: layer('exits').map(function (o) {
                     return {
+                        id: readText(o, 'id'),
                         x: u(o.x, hw), y: u(o.y, hh),
                         rotation: deg2rad(o.rotation || 0),
                         anchor: readText(o, 'anchor'),
@@ -2275,6 +2280,7 @@ var AuraConvert = (function () {
              * the layer holds one class today: P4 adds AuraExitArea beside it,
              * and an object of neither class would then vanish on save (L2b). */
             var doorsKnown = content.DOOR_NAMES.length > 0;
+            var seenExit = {};
             layer('exits').forEach(function (o, i) {
                 if (o.cls !== EXIT_CLASS) {
                     bad(o, i, 'is on the exits layer but its Class is '
@@ -2288,6 +2294,15 @@ var AuraConvert = (function () {
                 if (readText(o, 'anchor') === undefined) {
                     bad(o, i, 'no anchor — where does this exit lead? Type an anchor name into "anchor"');
                 }
+                // P3 (D7): the id keys the exit's words in regions.arb.
+                var id = readText(o, 'id');
+                if (id !== undefined && !/^[a-z0-9-]+$/.test(id)) {
+                    bad(o, i, 'id "' + id + '" must be a slug of a-z, 0-9 and "-" (e.g. barn-door):'
+                        + ' it keys the words, exit.<id>.text');
+                } else if (id !== undefined && seenExit[id]) {
+                    bad(o, i, 'duplicate exit id "' + id + '"');
+                }
+                if (id !== undefined) { seenExit[id] = true; }
                 var d = readExitDoor(o);
                 if (d !== undefined && doorsKnown && !hasValue(content.DOOR_NAMES, d)) {
                     bad(o, i, 'unknown door "' + d + '" — a door is a mob with exactly one'

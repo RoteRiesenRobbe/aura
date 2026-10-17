@@ -2492,7 +2492,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // it would let both writers drop every custom door (plan-passages.md P1).
         // `rotation` and `look` (P2) non-default for the same reason: no turn
         // and the cave mouth both write no key.
-        exits: [{x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', door: 'CaveExit'}],
+        exits: [{id: 'west-stairs', x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', door: 'CaveExit'}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3303,6 +3303,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
                 members?: {name: string; value?: unknown; propertyType?: string}[]}[];
         const cls = types.filter(t => t.name === C.EXIT_CLASS)[0];
         expect(cls.members).toEqual([
+            {name: 'id', type: 'string', value: ''},
             {name: 'anchor', type: 'string', value: ''},
             {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
             {name: 'door', type: 'string', propertyType: C.EXIT_DOOR_ENUM, value: C.EXIT_DOOR_UNSET},
@@ -3341,6 +3342,26 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         expect(o.enums.look).toBe(C.EXIT_LOOK_ENUM);
         expect(exitObjects(C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]})))[0].properties)
             .not.toHaveProperty('look');
+    });
+
+    // P3 (D7): the id keys the exit's words, so it is a slug, unique in the
+    // file (the server checks the whole placed set), and absent when unset.
+    it('round-trips an id first, and writes none when unset', () => {
+        const exits = [{id: 'barn-door', x: 1, y: 2, anchor: 'a'}, {x: 3, y: 4, anchor: 'b'}];
+        const out = roundTrip(zone({exits}));
+        expect(out.exits).toEqual(exits);
+        expect(Object.keys(out.exits[0])[0]).toBe('id');
+        const m = C.zoneToModel(zone({exits}));
+        expect(exitObjects(m)[0].properties.id).toBe('barn-door');
+        expect(exitObjects(m)[1].properties).not.toHaveProperty('id');
+    });
+
+    it('refuses an id that is not a slug, and the same id twice', () => {
+        const m = C.zoneToModel(zone({exits: [{id: 'barn-door', x: 0, y: 0, anchor: 'a'}]}));
+        exitObjects(m)[0].properties.id = 'Barn Door';
+        expect(C.validateModel(m).join(' ')).toContain('id "Barn Door" must be a slug');
+        const twice = C.zoneToModel(zone({exits: [{id: 'd', x: 0, y: 0, anchor: 'a'}, {id: 'd', x: 1, y: 0, anchor: 'b'}]}));
+        expect(C.validateModel(twice).join(' ')).toContain('duplicate exit id "d"');
     });
 
     it('refuses a look the client cannot draw', () => {

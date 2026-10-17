@@ -1,4 +1,6 @@
 import {contentText} from '../../../../../client-data/LangBundle';
+import {exitHeader} from '../../../../exits/logic/ExitHeader';
+import * as GroundTextureManager from '../../../../ground-textures/logic/GroundTextureManager';
 import {formatList, formatText, t, tKey} from '../../../../localization/logic/Locale';
 import {mobName} from '../../../../localization/logic/WireText';
 import {mobDefinition} from '../../../../../client-data/Mobs';
@@ -521,11 +523,14 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
 
     // C3: the header names the conversant from the localized mob catalog by
     // its species id (never the entity type, L18); the server's English name
-    // is the fallback.
+    // is the fallback. A door names its exit or where it leads instead
+    // (plan-passages.md D6).
     const actorMobId = actorMobIds.get(Number(c.entityId()));
+    const exitId = c.exitId() ?? '';
     return {
         entityId: Number(c.entityId()),
-        actorName: (actorMobId !== undefined && mobDefinition(actorMobId) && mobName(actorMobId)) || (c.actorName() ?? ''),
+        actorName: (exitId && exitHeader(exitId, GroundTextureManager.getZoneSet()))
+            || (actorMobId !== undefined && mobDefinition(actorMobId) && mobName(actorMobId)) || (c.actorName() ?? ''),
         entryNode: c.entryNode() ?? '',
         nodes,
     };

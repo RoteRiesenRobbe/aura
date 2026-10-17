@@ -3,8 +3,7 @@ import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
 import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
-import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
-import {contentText, REGIONS_ENGLISH, zoneNameKey} from '../../../client-data/LangBundle';
+import {PlaceName, placeInZone} from '../../regions/logic/RegionNames';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -921,19 +920,12 @@ export class Game implements IGame {
      * zone is only loaded under full cover, after this runs.
      */
     private arrivalPlace(entered: ZoneRect, xPx: number, yPx: number): PlaceName | null {
-        const zoneData = GroundTextureManager.getZoneData(entered.name);
-        const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
-        const place = placeAt(regions, {x: xPx, y: yPx});
-        if (place === null) {
-            // The zone file's name is a dev label (plan-localization.md D27): only the
-            // debug zone set, which owes no English, falls back to it.
-            const english = REGIONS_ENGLISH[zoneNameKey(entered.name)] || zoneData?.name;
-            return english ? {title: contentText(zoneNameKey(entered.name), english)} : null;
-        }
+        const place = placeInZone(entered.name, GroundTextureManager.getZoneData(entered.name), {x: xPx, y: yPx});
         // The card names the place, so the region banner must not name it again
         // a second after the reveal. Only when a card is actually shown: a cheat
         // WARP covers nothing, and there the banner is the only announcement.
-        if (isCrossing()) {
+        // A zone's name (no id) is never a banner's.
+        if (place?.id && isCrossing()) {
             RegionBanner.noteShown(place);
         }
         return place;

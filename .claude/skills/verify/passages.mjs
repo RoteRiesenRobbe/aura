@@ -15,12 +15,18 @@
 // `exitLooks` layer: the barn door draws the default cave mouth, the barn's
 // way up draws `stairs-up`, and a `hidden` exit draws nothing.
 //
+// P3: the WORDS (D6). The panel's header is the exit's own title, else the
+// place its anchor stands in (the region with an id, else the zone's name);
+// its line and row are the exit's own (exit.<id>.*), else the destination's
+// line (anchor.<name>.text) on a stock door. Every expectation is DERIVED from
+// the zone files and api/lang/en/regions.arb, so new words move the legs.
+//
 // ⚑ GOD on throughout: nothing here is about combat, and a wolf on the way
 // to the barn door would null the scene graph mid-leg.
 //
 // Usage: node passages.mjs [url] [outdir]
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
@@ -38,12 +44,35 @@ const root = new URL('../../../', import.meta.url);
 const zones = Object.fromEntries(['world', 'barn'].map(n =>
   [n, readZone(new URL(`api/zones/${n}.json`, root).pathname.replace(/^\/([A-Za-z]:)/, '$1'))]));
 const world = (z, p) => ({ x: p.x + (zones[z].origin?.x || 0), y: p.y + (zones[z].origin?.y || 0) });
-const anchorAt = (name) => {
+const anchorZone = (name) => {
   for (const z of Object.keys(zones)) {
     const a = (zones[z].anchors || []).find(x => x.name === name);
-    if (a) { return world(z, a); }
+    if (a) { return { stem: z, a }; }
   }
   throw new Error(`no anchor ${name}`);
+};
+const anchorAt = (name) => { const { stem, a } = anchorZone(name); return world(stem, a); };
+
+// P3: the words the panel must show, by D6's tiers.
+const en = JSON.parse(readFileSync(new URL('api/lang/en/regions.arb', root), 'utf8'));
+const inside = (p, poly) => {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    if ((poly[i].y > p.y) !== (poly[j].y > p.y)
+        && p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x) { hit = !hit; }
+  }
+  return hit;
+};
+const STOCK_DOORS = ['CaveMouth', 'CaveExit'];
+const wordsOf = (exit) => {
+  const { stem, a } = anchorZone(exit.anchor);
+  const place = (zones[stem].regions || []).filter(r => r.id && inside(a, r.points)).pop();
+  const own = (k) => (exit.id ? en[`exit.${exit.id}.${k}`] : undefined);
+  return {
+    header: own('title') || (place ? en[`region.${place.id}.title`] : en[`zone.${stem}.name`]),
+    line: own('text') || (STOCK_DOORS.includes(exit.door || 'CaveMouth') ? en[`anchor.${exit.anchor}.text`] : undefined),
+    row: own('go'),
+  };
 };
 const barnDoor = zones.world.exits.find(e => e.anchor === 'barn-inside');
 const barnUp = zones.barn.exits[0];
@@ -53,9 +82,9 @@ if (!barnDoor || !barnUp || barnDoor.door || barnUp.door !== 'CaveExit') {
 }
 const CASES = [
   { leg: 'generic door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor),
-    look: barnDoor.look || 'cave-mouth' },
+    look: barnDoor.look || 'cave-mouth', words: wordsOf(barnDoor) },
   { leg: 'CaveExit door (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor),
-    look: barnUp.look || 'cave-mouth' },
+    look: barnUp.look || 'cave-mouth', words: wordsOf(barnUp) },
 ];
 
 const results = [];
@@ -86,6 +115,7 @@ const panel = () => page.evaluate(() => {
   if (!el || el.classList.contains('hidden')) return null;
   const li = [...el.querySelectorAll('.conversationRows li')].filter(x => !x.classList.contains('conversationLeaveRow'));
   return { actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    lines: el.querySelector('.conversationLines')?.textContent?.trim() ?? '',
     rows: li.map(x => ({ text: x.textContent.trim(), locked: x.classList.contains('locked') })) };
 });
 // ⚑ A ~1.4 s HOLD, never keyboard.press (c1-open-portal.mjs): the interact
@@ -177,6 +207,28 @@ for (const c of CASES) {
     continue;
   }
   actors.push(p.actor);
+  // P3: the words, each column on its own so a miss names which tier broke.
+  const w = c.words;
+  if (p.actor === w.header) {
+    pass(`${c.leg}: header`, `"${p.actor}"`);
+  } else {
+    fail(`${c.leg}: header`, `expected "${w.header}", got "${p.actor}"`);
+  }
+  if (w.line === undefined) {
+    pass(`${c.leg}: line`, `no exit or destination line authored, the door's own: "${p.lines}"`);
+  } else if (p.lines.includes(w.line)) {
+    pass(`${c.leg}: line`, `"${w.line}"`);
+  } else {
+    fail(`${c.leg}: line`, `expected "${w.line}", got "${p.lines}"`);
+  }
+  if (w.row !== undefined) {
+    if (p.rows.some(r => r.text.includes(w.row))) {
+      pass(`${c.leg}: row`, `"${w.row}"`);
+    } else {
+      fail(`${c.leg}: row`, `expected "${w.row}", got ${JSON.stringify(p.rows.map(r => r.text))}`);
+    }
+  }
+  await page.screenshot({ path: join(outdir, `${c.leg.split(' ')[0]}-panel.png`) });
   if (!(await clickFirstRow())) { fail(c.leg, 'could not click the row'); continue; }
   await page.waitForTimeout(3500);
   const at = await pos();
@@ -188,11 +240,11 @@ for (const c of CASES) {
   }
 }
 
-if (actors.length === 2 && actors[0] !== actors[1]) {
-  pass('door field', `the two doors talk as different definitions ("${actors[0]}" / "${actors[1]}")`);
-} else {
-  fail('door field', `expected two different actors, got ${JSON.stringify(actors)}`);
-}
+// P1's "the door field is honoured" reads the actor no more: since P3 the
+// header names the exit or the place (D6), so two doors may share a header.
+// The row is the definition's own when no exit word replaces it, so the
+// barn's way up, a CaveExit, still says what a CaveExit says unless its exit
+// authors a row.
 
 // P2: a hidden exit draws no look, and its door is still there to talk to.
 if (hidden) {

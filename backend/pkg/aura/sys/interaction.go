@@ -748,6 +748,7 @@ func (s *InteractionSystem) refreshConversations() {
 		}
 		c.EntityID = id
 		c.ActorName = actorName(a)
+		c.ExitID = a.Interaction().ExitID
 		p.SetConversation(c)
 		a.SetConversing(true)
 	}

@@ -861,6 +861,11 @@ table Conversation {
   // EVERY reachable node, not a walk — which is why an authored cycle needs no
   // check: there is no traversal to run away.
   nodes:[ConversationNode];
+  // plan-passages.md D6, appended: the exit this conversant is the door of,
+  // empty for everyone else. The exit's id, or "@" + its anchor for an exit
+  // with none. The client names the panel from it (the exit's own title, else
+  // the place at its destination), the place lookup it already owns.
+  exit_id:string;
 }
 
 // --- the quest ledger (plan-quests.md chunk C3, §6) ---

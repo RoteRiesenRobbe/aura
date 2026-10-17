@@ -617,9 +617,11 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     types.push(enumType(C.EXIT_DOOR_ENUM, [C.EXIT_DOOR_UNSET].concat(mobs.filter(m => m.door).map(m => m.name))));
     // ⚑ `look` (P2) defaults to the cave mouth, the converter's
     // EXIT_LOOK_DEFAULT, which reads back as absent; its enum is pushed AFTER
-    // the class so no existing type id moves.
+    // the class so no existing type id moves. `id` (P3) is free text like
+    // anchor, and its '' is "no id", which is legal.
     types.push(classType(C.EXIT_CLASS, '#ff009688',
-        [member('anchor', 'string', ''),
+        [member('id', 'string', ''),
+            member('anchor', 'string', ''),
             member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
             member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
     types.push(enumType(C.EXIT_LOOK_ENUM, C.EXIT_LOOKS));

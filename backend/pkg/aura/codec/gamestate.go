@@ -469,12 +469,19 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 
 	actorName := builder.CreateString(c.ActorName)
 	entryNode := builder.CreateString(c.EntryNode)
+	var exitID flatbuffers.UOffsetT
+	if c.ExitID != "" {
+		exitID = builder.CreateString(c.ExitID)
+	}
 
 	AuraApi.ConversationStart(builder)
 	AuraApi.ConversationAddEntityId(builder, c.EntityID)
 	AuraApi.ConversationAddActorName(builder, actorName)
 	AuraApi.ConversationAddEntryNode(builder, entryNode)
 	AuraApi.ConversationAddNodes(builder, nodes)
+	if exitID != 0 {
+		AuraApi.ConversationAddExitId(builder, exitID)
+	}
 	return AuraApi.ConversationEnd(builder)
 }
 

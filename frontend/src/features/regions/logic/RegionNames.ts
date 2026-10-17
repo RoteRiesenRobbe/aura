@@ -12,9 +12,11 @@
  * Fields" leaves you in Ashen Fields, and the LAST containing region with an
  * id wins, as everywhere else (D4: the region above wins).
  */
-import {pointInPolygon, Region, RegionPoint} from './Regions';
+import {pointInPolygon, Region, RegionDefinition, RegionPoint, toRegions} from './Regions';
 import regionListJson from '../../../../../api/regions/regions.json';
-import {contentText, onLangBundle, REGIONS_ENGLISH, regionSubtitleKey, regionTitleKey} from '../../../client-data/LangBundle';
+import {
+    contentText, onLangBundle, REGIONS_ENGLISH, regionSubtitleKey, regionTitleKey, zoneNameKey,
+} from '../../../client-data/LangBundle';
 
 /** Stay this long before a place is announced, so skimming a border (or a
  *  warp passing through one) says nothing. [PLACEHOLDER] */
@@ -98,6 +100,29 @@ export function placeAt(
         }
     }
     return null;
+}
+
+/** The parts of a bundled zone file a place lookup reads. */
+export interface PlaceZone {
+    name?: string;
+    origin?: {x: number, y: number};
+    regions?: RegionDefinition[];
+}
+
+/**
+ * The place a world point (pixels) names in a bundled zone: the place there,
+ * else the zone's name (PO 2026-10-04). The crossing card's lookup, and the
+ * door header's (plan-passages.md D6).
+ */
+export function placeInZone(stem: string, zone: PlaceZone | undefined, point: RegionPoint): PlaceName | null {
+    const place = placeAt(toRegions(zone?.regions, zone?.origin), point);
+    if (place !== null) {
+        return place;
+    }
+    // The zone file's name is a dev label (plan-localization.md D27): only the
+    // debug zone set, which owes no English, falls back to it.
+    const english = REGIONS_ENGLISH[zoneNameKey(stem)] || zone?.name;
+    return english ? {title: contentText(zoneNameKey(stem), english)} : null;
 }
 
 /** Two polygons carrying one id are ONE place (D3): crossing from one polygon

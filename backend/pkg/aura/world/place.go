@@ -231,6 +231,9 @@ func checkSetWide(zones []*Zone) error {
 	// L5b — anchor names are what a travel destination resolves by, so a
 	// duplicate silently delivers to whichever zone was enumerated first.
 	seenAnchor := map[string]string{}
+	// plan-passages.md D7 — an exit id keys its words in the arb, so two exits
+	// sharing one would share their words, silently.
+	seenExit := map[string]string{}
 	// L4 — a starting spawn outside the primary zone would put fresh
 	// characters underground: defaultSpawnPosition picks a random flagged fire
 	// across everything that is loaded, with no idea which zone it is in.
@@ -261,6 +264,18 @@ func checkSetWide(zones []*Zone) error {
 					"bare name across every loaded zone (plan-underworld.md L5b)", other, z.ID, name)
 			}
 			seenAnchor[name] = z.ID
+		}
+		for e := range z.Exits {
+			id := z.Exits[e].ID
+			if id == "" {
+				continue
+			}
+			if other, dup := seenExit[id]; dup {
+				return fmt.Errorf("zones %q and %q both author exit %q; an exit id keys its words "+
+					"(exit.<id>.text), so it must be unique across every loaded zone (plan-passages.md D7)",
+					other, z.ID, id)
+			}
+			seenExit[id] = z.ID
 		}
 	}
 	// Moved here from Zone.validate: with several zones the question is whether

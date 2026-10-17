@@ -447,6 +447,24 @@ presses E.
    the cave mouth's words. A door that needs a quest gate or its own lines is a
    new mob in `api/mobs/` with one anchor travel row, then it shows in this
    list after `node tools/tiled/generate-palette.mjs`.
+6. **Words** (plan-passages.md P3). With nothing typed, the door's panel is
+   named after the place it leads to (the region at the anchor, else the
+   zone's name, e.g. "Barn") and says the door's own lines. For better words:
+   - **every door to one place:** add `anchor.<anchor name>.text` to
+     `api/lang/en/regions.arb` (e.g. `anchor.barn-inside.text`: "A low door
+     into the barn's cellar."). It replaces the line on the two stock doors
+     (`(generic door)`, `CaveExit`); a door of its own keeps its own lines.
+   - **this one exit:** give it an **`id`** (a slug like `barn-door`, unique
+     across all zones) and add any of `exit.<id>.title` (the panel's name),
+     `exit.<id>.text` (the line) and `exit.<id>.go` (the button) to the same
+     file. These beat everything else, a custom door's lines included.
+
+   Each English key needs a translator note (`@key` with a `description`)
+   and its German in `api/lang/de/regions.arb`, then
+   `UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/` (see
+   `manual-localization.md`). A key for an id or anchor nobody placed fails
+   that test as an orphan. ⚑ Words are read at server boot: restart to see
+   them.
 
 ⛔ **Keep exits out of a campfire's circle.** The fire's flight map takes every
 E press near it, so the server refuses to boot when an exit stands inside a

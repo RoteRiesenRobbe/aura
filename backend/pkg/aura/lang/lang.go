@@ -402,6 +402,13 @@ func RegionTitle(region string) string     { return "region." + region + ".title
 func RegionSubtitle(region string) string  { return "region." + region + ".subtitle" }
 func ZoneName(zone string) string          { return "zone." + zone + ".name" }
 
+// The words a door shows (plan-passages.md D6): an exit's own, keyed by its
+// id, and a destination's, keyed by its anchor name. All optional.
+func ExitTitle(exit string) string    { return "exit." + exit + ".title" }
+func ExitText(exit string) string     { return "exit." + exit + ".text" }
+func ExitGo(exit string) string       { return "exit." + exit + ".go" }
+func AnchorText(anchor string) string { return "anchor." + anchor + ".text" }
+
 // Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
 // unique within that NPC (D27).
 func Conversation(npc, slug string) string { return "conv." + npc + "." + slug }

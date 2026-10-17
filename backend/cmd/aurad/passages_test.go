@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -138,6 +139,30 @@ func TestPassages_NoDoorStandsInsideACampfiresDwellCircle(t *testing.T) {
 		for _, s := range z.Spawns {
 			assert.NotContains(t, []string{"CaveMouth", "CaveExit"}, s.Mob,
 				"zone %q still places a door in spawns; doors live in exits (plan-passages.md D11)", z.ID)
+		}
+	}
+}
+
+// plan-passages.md D6, over the real content: every door carries its exit for
+// the header, and every destination's words reach at least one door. Words
+// authored for a place only custom doors lead to would show nowhere (a custom
+// door keeps its own, tier 0), which is the mistake this names.
+func TestPassages_EveryDoorCarriesItsWords(t *testing.T) {
+	loaded := loadLangContent(t)
+	shown := map[string]bool{}
+	for _, z := range loaded.zones {
+		for _, e := range z.Exits {
+			assert.Equal(t, e.Key(), e.Def.Interaction.ExitID, "exit to %q", e.Anchor)
+			for _, n := range e.Def.Interaction.Nodes {
+				for _, id := range n.LineIDs {
+					shown[id] = true
+				}
+			}
+		}
+	}
+	for _, e := range loaded.langEntries["regions"] {
+		if strings.HasPrefix(e.Key, "anchor.") {
+			assert.True(t, shown[e.Key], "%s is authored but no door shows it", e.Key)
 		}
 	}
 }

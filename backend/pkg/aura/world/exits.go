@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
 // GenericDoor is the conversation definition an exit uses when it names no
@@ -60,6 +61,10 @@ func (z *Zone) validateExits() error {
 		if strings.TrimSpace(e.Anchor) == "" {
 			return fmt.Errorf("%s: anchor must not be empty (where does it lead?)", ref)
 		}
+		if e.ID != "" && !areaIDPattern.MatchString(e.ID) {
+			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"barn-door\"): it keys "+
+				"the exit's words (exit.<id>.text)", ref, e.ID)
+		}
 		if e.Door != "" && strings.TrimSpace(e.Door) == "" {
 			return fmt.Errorf("%s: door must not be blank (omit it for the generic door)", ref)
 		}
@@ -99,6 +104,95 @@ func (z *Zone) resolveExits(mr mobs.Registry) error {
 		e.Def = def
 	}
 	return nil
+}
+
+// StockDoors are the shipped generic doors (D6 tier 3): their words are the
+// last fallback, so a destination's words (tier 2) replace them. Any other
+// door definition was authored for its doors (tier 0), so its words stand
+// and only the exit's own (tier 1) beat them.
+var StockDoors = []string{GenericDoor, "CaveExit"}
+
+// Key is what the client looks the exit up by to name the panel (D6): its id,
+// or "@" + its anchor for an exit without one.
+func (e *Exit) Key() string {
+	if e.ID != "" {
+		return e.ID
+	}
+	return "@" + e.Anchor
+}
+
+// ApplyExitWords gives every exit's door its words (D6), from the English
+// arb: per column, the exit's own (exit.<id>.text / .go), else the
+// destination's text (anchor.<name>.text) on a stock door, else the
+// definition's. Each exit gets its OWN copy of its door's definition, which
+// also carries the exit's Key for the header; the registry's definition is
+// never touched, because one definition serves every door in the world.
+//
+// ⚑ The keys travel, not the text: the line ids and the row id are the keys,
+// so the client shows each in the player's language (plan-localization.md
+// D27) and the English rides as the fallback.
+//
+// Runs once every zone and the English are loaded (loadContent).
+func ApplyExitWords(zones []*Zone, english map[string]string) {
+	for _, z := range zones {
+		for i := range z.Exits {
+			z.Exits[i].applyWords(english)
+		}
+	}
+}
+
+func (e *Exit) applyWords(en map[string]string) {
+	text, row := e.wordKeys(en)
+	in := *e.Def.Interaction
+	in.ExitID = e.Key()
+	in.Nodes = slices.Clone(in.Nodes)
+	for ni := range in.Nodes {
+		node := &in.Nodes[ni]
+		oi := anchorOption(node)
+		if oi < 0 {
+			continue
+		}
+		// The words belong to the node the travel row stands in: on a stock
+		// door that is its only node, on a custom one the node that moves you.
+		if text != "" {
+			node.Lines, node.LineIDs = []string{en[text]}, []string{text}
+		}
+		if row != "" {
+			node.Options = slices.Clone(node.Options)
+			node.Options[oi].Text, node.Options[oi].ID = en[row], row
+		}
+	}
+	def := *e.Def
+	def.Interaction = &in
+	e.Def = &def
+}
+
+// wordKeys picks the key with English for each column, "" = the definition's.
+func (e *Exit) wordKeys(en map[string]string) (text, row string) {
+	if e.ID != "" {
+		if k := lang.ExitText(e.ID); en[k] != "" {
+			text = k
+		}
+		if k := lang.ExitGo(e.ID); en[k] != "" {
+			row = k
+		}
+	}
+	if k := lang.AnchorText(e.Anchor); text == "" && en[k] != "" && slices.Contains(StockDoors, e.Def.Name) {
+		text = k
+	}
+	return text, row
+}
+
+// anchorOption is the index of the node's anchor-mode travel row, or -1.
+func anchorOption(node *mobs.InteractionNode) int {
+	for oi := range node.Options {
+		for _, g := range node.Options[oi].Grants {
+			if g.Kind == mobs.GrantTravelTo && g.Travel == mobs.TravelAnchor {
+				return oi
+			}
+		}
+	}
+	return -1
 }
 
 // ExitSpawns is every exit as the spawn the MobSystem places (D3): the door's

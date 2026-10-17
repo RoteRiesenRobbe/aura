@@ -286,7 +286,12 @@ type Spawn struct {
 // ⚑ `spawns[].anchor` stays: a real NPC that also takes you somewhere is still
 // a spawn. Exits are for doors.
 type Exit struct {
-	X float32 `json:"x"`
+	// ID names the exit for its words (plan-passages.md D7): exit.<id>.title,
+	// .text and .go in api/lang/en/regions.arb. Optional, a slug, unique
+	// across the placed set (checkSetWide); needed only by an exit with words
+	// of its own. Never generated: a person reads it in an arb key.
+	ID string `json:"id,omitempty"`
+	X  float32 `json:"x"`
 	Y float32 `json:"y"`
 	// Rotation turns the look's art, radians (stairs point a way). Client
 	// only: the server parses it and never reads it (P2, D5).

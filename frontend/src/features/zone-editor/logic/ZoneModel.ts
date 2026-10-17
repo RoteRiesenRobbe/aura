@@ -160,6 +160,8 @@ export interface ZoneAnchor extends InArea {
 // door undefined = the generic door (CaveMouth). rotation (radians) and look
 // are the client's picture (P2); undefined = no turn / the default look.
 export interface ZoneExit extends InArea {
+    // Names the exit for its words (P3, D7); undefined = none.
+    id?: string;
     x: number;
     y: number;
     rotation?: number;
@@ -486,6 +488,7 @@ export class ZoneModel {
             area: r.area,
         }));
         model.exits = (data.exits || []).map(e => ({
+            id: e.id,
             x: e.x,
             y: e.y,
             rotation: e.rotation,
@@ -733,6 +736,7 @@ export class ZoneModel {
             // its default (no turn, the default look, the generic door).
             exits: exits.length > 0
                 ? exits.map(e => ({
+                    id: e.id || undefined,
                     x: round(e.x, 2),
                     y: round(e.y, 2),
                     rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,

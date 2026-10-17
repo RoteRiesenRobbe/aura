@@ -57,6 +57,9 @@ type Conversation struct {
 	// so a conditional greeting still works.
 	EntryNode string
 	Nodes     []ConversationNode
+	// ExitID is the exit a door conversant stands for (plan-passages.md D6),
+	// empty for every other actor: the client names the panel from it.
+	ExitID string
 }
 
 // ConversationNode is one screen of the panel: what the actor says, plus the
