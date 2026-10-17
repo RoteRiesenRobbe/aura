@@ -108,7 +108,7 @@
   <properties>
    <property name="auraType" value="Gate"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/gate.svg" width="200" height="160"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/gate.svg" width="400" height="160"/>
  </tile>
  <tile id="18" type="AuraProp">
   <properties>
