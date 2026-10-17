@@ -5,6 +5,9 @@
 > the design reference for the token: layers (§3), decisions D1-D18, the
 > compositor (§7) and the asset contract. Its §9 and §10 are replaced by
 > `plan-appearance.md` §3 and §7; §5.7 (corpses) is answered there by D14.
+> Refined there 2026-10-17 (§3.7): D7's per-NPC frames are its D23 (a
+> per-species ring override), and §12 items 3, 5, 7 and 8 are ruled (D29, D27,
+> D26, D28); items 1, 2 and 6 keep the owners listed in its §10.
 
 > **Status: DESIGN SKETCH 2026-08-10 · REVISED 2026-08-20 (PO mockup session)
 > · REVISED 2026-08-22 (artist feedback round 1, D16-D18), nothing scheduled,

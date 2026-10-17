@@ -6,7 +6,9 @@
 > executes FIRST** (at least through its C1/C2 geometry and stance chunks);
 > this plan's design session runs against the ratified token, not against the
 > current six loose overlays. See §4. (Since 2026-10-17 those medallion chunks
-> are `plan-appearance.md` C0-C2.)
+> are `plan-appearance.md` C0-C2.) ⭐ **Scheduled 2026-10-17 (PO): this plan's
+> design session runs right after `plan-appearance.md` C6** (that plan is
+> approved and next, order in its §7).
 >
 > ⚑ The backlog number **§39 stays the citation anchor**: many docs and two
 > other backlog sections cite "§39" by number, and the backlog entry remains

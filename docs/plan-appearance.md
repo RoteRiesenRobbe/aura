@@ -1,7 +1,9 @@
 # Appearance: the player chooses their token, and every actor wears a medallion
 
-> **Status: DESIGNED 2026-10-17 (planning session, five PO prompt rounds, D1-D22),
-> NOT approved, nothing built.** One plan for two things the PO ruled must be built
+> **Status: APPROVED 2026-10-17 (planning session, five PO prompt rounds, D1-D22;
+> refined the same day, D23-D30, §3.7), nothing built. Next: C0a.** Order (D24):
+> C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+> `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
 > ring, a starter set plus unlocks, owned per character, bloodline or account).
@@ -171,7 +173,7 @@ plan proposes on top (marked *proposed*).
   (a skull overlay, the portrait greyed, or both: art's call). This answers
   M-§5.7 for players. Mobs leave no corpses, so the ruling is complete.
 
-### 3.5 Proposed by this plan
+### 3.5 Proposed by this plan (approved with the plan, 2026-10-17)
 
 - **D15 (proposed). One unlock rule: an item declares its conditions, in the
   existing condition vocabulary, and its scope. When a character meets the
@@ -238,6 +240,45 @@ plan proposes on top (marked *proposed*).
 - **D22. Player origins (backlog §56) are deferred.** Not in this plan; the
   creation screen is laid out so an origin column can be added later without a
   redesign.
+
+### 3.7 Refinement (PO, 2026-10-17, three prompt rounds)
+
+- **D23. Specific NPCs may wear their own ring** (M-D7, which the first chunk
+  list had dropped). One client-side key per species, `medallion.ring`
+  [PLACEHOLDER name] beside M-D13's `additions`/`decoration` keys in
+  `Graphics.ts`, names a ring family that replaces the faction family. A unique
+  NPC ring is a family of one member, so it goes through the same family
+  registry and the same completeness pin. Visual-only: disc, rim and portrait
+  follow the normal rules. Named NPCs are already one species file each
+  (`eliza`, `lionett`, `governor`, ...), so no per-instance key is needed.
+  Built in C1. *Schema: none.*
+- **D24. C0 splits, and work starts now.** C0a (the named sub-container
+  refactor + the M-D15 measurement table) needs no art. C1 onward run on
+  placeholder rings; the pilot's real art swaps in when it lands, and C0b (the
+  pilot in the full stack, the circle numbers recorded in the asset spec) slots
+  in then. Each chunk's PO look judges the mechanism, not the art.
+- **D25. Locked items show their conditions AND this character's progress**
+  (answers Q6; extends D8). Numeric kinds show a count: `minLevel` "level 6/10",
+  `skill_level` "Thorns 6/10", `bloodline_ascensions` "1/3"; `quest_at_stage`
+  words the condition only. Progress is this character's own, also on an
+  account item (no account-wide lookup). The client computes it from state it
+  already holds for the owner where it can (level, spellbook levels); C5
+  surveys the rest (the ascension count, the quest ledger) and adds a value to
+  the lock-reason data only where the client lacks one.
+- **D26. Medallions are world-only.** The minimap keeps its flat dots (M-§12.7).
+- **D27. No extra boss mark.** Normal bare, Elite mid rim, Boss full rim
+  (M-D3, M-§12.5), until play says bosses do not read.
+- **D28. Stance mirrors the live aggro relationship** (M-§12.8): prey reads
+  neutral until it retaliates, hostile while it fights, neutral again when it
+  calms.
+- **D29. Stance colours: hostile red, neutral yellow, friendly blue**
+  [PLACEHOLDER shades] (M-§12.3; yellow avoids green-means-easy on the
+  nameplate). The colour-blindness check stays C2's exit.
+- **D30. The starter set is 4 portraits and 2 rings** [PLACEHOLDER], all
+  placeholder art until the artist's portraits land. The two starter rings name
+  two families (D2).
+- **Cut: "avatar state reactions"** (damaged / happy / dead, `roadmap.md`
+  step 8b). The hit flash already ships, dead is D14; nothing else is planned.
 
 ---
 
@@ -374,24 +415,33 @@ keeps the default forever (the setters early-return on unchanged values).
 Medallion C0-C2 keep their content from M-§10; C3 onward replace M-C3 and M-C5
 and absorb `plan-avatar-system.md` §7. One session each.
 
-- **C0, medallion contract, plumbing, sizing table** (M-C0 as written): the
-  artist's pilot frame set, the named sub-container refactor (M-§5.2), the D15
-  measurement table, one prototype species in the full stack. ⚑ **The refactor is
-  the prerequisite for touching the player token at all.** *Blocked on the
-  artist's pilot.* *Schema: none.*
+**Order (D24): C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6; C0b whenever the
+pilot lands.**
+
+- **C0a, plumbing and the sizing table** (M-C0 minus the art): the named
+  sub-container refactor (M-§5.2) and the M-D15 measurement table (visual roll
+  vs `body.radius` per species) for the PO's sizing ruling. ⚑ **The refactor is
+  the prerequisite for touching the player token at all.** *No art needed.*
+  *Schema: none.*
+- **C0b, the pilot** (whenever it lands): the artist's pilot frame set in the
+  full stack on one species, circle numbers measured and recorded in
+  `art/medallion-asset-spec.md` §3 (M-D17), placeholder rings swapped for real
+  ones. *Schema: none.*
 - **C1, the frame stack for mobs and NPCs** (M-C1): spec + resolver written with
   the player branch in view (D20), frame bake, catalog faction + family map with
-  its completeness pin, tier rim, the D14 predicate, the ruled sizing. Real-phone
-  exit. *Schema: `/mobs` +1 field.*
-- **C2, allegiance slice + live disc** (M-C2): the stance field. Independent of
-  C3-C6, may run in parallel. *Schema: `Mob` +1.*
+  its completeness pin, tier rim (no extra boss mark, D27), the M-D14 predicate,
+  the per-species NPC ring override (D23), the ruled sizing. Runs on placeholder
+  rings (D24). Real-phone exit. *Schema: `/mobs` +1 field.*
+- **C2, allegiance slice + live disc** (M-C2): the stance field, live aggro
+  relationship (D28), red / yellow / blue (D29) with a colour-blindness check.
+  Independent of C3-C6. *Schema: `Mob` +1.*
 - **C3, the player wears a chosen medallion.** `Character` onto the resolver
   (friendly disc, no rim); `api/appearance/` + loader + `/appearance`;
   `Character.portrait`/`ring` on the wire; the migration (`characters.ring`
   plus the unlock table, so C5 adds no second migration); the creation picker
-  with the **starter set only**; select cards show the chosen portrait; a cheat to
+  with the **starter set only** (4 portraits, 2 rings, D30); select cards show the chosen portrait; a cheat to
   set any item. Runs on placeholder portraits and the pilot family ring. *Needs
-  C0 + C1's resolver. Schema: the migration, `Character` +2, `/appearance`,
+  C0a + C1's resolver. Schema: the migration, `Character` +2, `/appearance`,
   accounts create.*
 - **C4, the in-game picker.** The "Appearance" HUD button, hotkey
   [PLACEHOLDER, checked against B/J/M/E], phone-sheet entry, `PanelExclusivity`
@@ -400,7 +450,8 @@ and absorb `plan-avatar-system.md` §7. One session each.
   *Schema: `ClientMessageBody` +1.*
 - **C5, ownership and unlocks.** The `skill_level` condition; the evaluator and
   its four callers; scope writes (⚑ the account-scope write path is new, §9);
-  `appearance_owned` on the wire; locked entries greyed with their hint; toast +
+  `appearance_owned` on the wire; locked entries greyed with their hint and this
+  character's progress (D25); toast +
   glow + highlight (D13); the creation payload for successors with the D12
   preselect; count-based ascension items (D21a) through the evaluator, plus
   their grant inside `AscendCharacter` (D21).
@@ -468,18 +519,18 @@ not landed.
 ## 10. Open PO calls
 
 Answered 2026-10-17: Q1 ascension sources → **D21** · Q2 origins → **D22**
-(deferred) · Q3 storage → **one table** (D18).
+(deferred) · Q3 storage → **one table** (D18) · Q5 starter set → **D30** ·
+Q6 hints → **D25** (conditions + this character's progress) · M-§12 item 3
+stance colours → **D29** · item 4 corpses → **D14** · item 5 boss mark →
+**D27** · item 7 minimap → **D26** · item 8 prey stance → **D28**.
 
-4. **Q4. The death marker's look** (skull overlay, greyed portrait, broken ring):
-   art's call at C6, recorded so it is not forgotten.
-5. **Q5. Starter set size**: how many portraits and rings are free.
-   [PLACEHOLDER]
-6. **Q6. Hints for account items:** if another character on the account is
-   closer to earning an item, does the hint say so? Proposal: no, the hint words
-   the conditions only.
-7. Carried from the medallion plan, unchanged: **M-§12** items 1-3 and 5-8
-   (D15 sizing, family membership, stance colours, the boss mark, animation,
-   minimap, prey stance). Item 4 (corpses) is answered by D14.
+Still open, each with a ruled owner and moment:
+
+1. **Q4. The death marker's look** (skull overlay, greyed portrait, broken ring):
+   art's call at C6.
+2. **M-§12.1, M-D15 sizing**: ruled by the PO on C0a's measurement table.
+3. **M-§12.2, family membership and count**: the art budget call at C0b.
+4. **M-§12.6, animation**: static ships; out of scope until asked for.
 
 ---
 

@@ -517,8 +517,9 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         — **PLANNED 2026-07-21 → `plan-ui-polish.md` chunk 1** (skill-catalog
         HTTP endpoint + stats-only tooltips; also retires the Skills.ts
         hand-sync above via the catalog)
-  - [ ] Avatar state reactions (damaged / happy / dead) + on-token effect display
-        (current damage VFX, DoTs, and other states on the token)
+  - [x] ~~Avatar state reactions (damaged / happy / dead) + on-token effect display~~
+        **CUT 2026-10-17 (PO).** The hit flash ships, a dead player's corpse is
+        `plan-appearance.md` D14; on-token effect state is `plan-entity-presentation.md`'s.
   - [ ] **Aura VFX/animation/polish pass** (named 2026-07-10 — previously no
         step owned it): full visual treatment for auras incl. the **tick-timing
         indicator** (GDD §4 — readable for own AND mob auras; a *minimal*
@@ -1072,7 +1073,7 @@ system ships blind.
    8a does not close it (that independence is exactly why the split exists).
    The styling pass
    (`plan-ui-polish.md`, chunk 1 done, rest deferred) and avatar selection
-   (`plan-appearance.md`, designed 2026-10-17, not approved: the player's chosen
+   (`plan-appearance.md`, approved 2026-10-17 and next, starting at C0a: the player's chosen
    portrait and ring, built together with the entity medallions; it superseded
    `archive/plan-avatar-system.md`).
    **Audio — location-music half only (added 2026-07-09; combat SFX split to

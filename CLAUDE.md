@@ -19,9 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). Unbuilt: C7 notes out of the bundle (any time), C8 catalogs on demand (trigger: a third locale), C9 spreadsheet round-trip.
+- **⭐ APPEARANCE + MEDALLIONS: APPROVED 2026-10-17, NEXT = C0a** (`docs/plan-appearance.md` §7, D1-D30): players pick a portrait and a ring (starter 4 + 2, unlocks owned per character, bloodline or account), every actor wears a medallion, named NPCs may wear their own ring (D23). Order C0a (sub-container refactor + sizing table, no art) → C1 → C2 → C3 → C4 → C5 → C6 on placeholder art; C0b when the artist's pilot lands. Then `plan-entity-presentation.md`'s design session.
 
-- **⭐ APPEARANCE + MEDALLIONS: DESIGNED 2026-10-17, NOT approved** (`docs/plan-appearance.md`, D1-D22, chunks C0-C6): players pick a portrait and a ring (starter + unlocks owned per character, bloodline or account); the whole medallion plan comes along (its chunks are C0-C2). Approval owed; C0 waits on the artist's pilot. Supersedes `archive/plan-avatar-system.md`.
+- **⭐ LOCALIZATION C0a-C6: MERGED to main 2026-10-14** (`docs/plan-localization.md` §10): German complete (`aurad -lang-status` 0/0), detection ON (PO: stays on before the review), no allowlist (D13). Owed ON MAIN: the PO's German read + playthrough (C4's exit), the D30 length limits ([PLACEHOLDER]s; every text fits today). Unbuilt: C7 notes out of the bundle (any time), C8 catalogs on demand (trigger: a third locale), C9 spreadsheet round-trip.
 
 - **⭐ AUDIO: C0 (design) DONE 2026-10-15, C1 (foundation) is next** (`docs/plan-audio.md` §5a rulings R1-R10, §6 chunks C1-C6): v1 = lanes A-F (table + §19 loading fix, music stack menu < region < event, one-shots, region music + footsteps, ascension music, credits); no ambience, no stems. Muted stays the default (R1). Sounds come from the internal composer and artist (R9): build against placeholders until files land. Takes over `archive/plan-region-audio.md`.
 
