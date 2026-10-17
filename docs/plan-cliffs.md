@@ -1,6 +1,6 @@
 # Plan: Cliffs that join and end — per-end shapes, end caps, welds
 
-**Status: C1 shipped; C2-C4 code shipped 2026-10-16 (owed: the PO look, the fade migration, one Tiled save of world.json).**
+**Status: C1-C4 MERGED to main 2026-10-17; world.json's cliffs all `fade` (owed: real cap art, Q1's `fadeWallFraction`, the walk-in look, §10 "Merge").**
 Open PO calls in §7. ⏸ The raised-area model (Option B) is PARKED, not dropped (§8);
 C4 (mountains and pits) is its enclosed first slice.
 
@@ -464,3 +464,28 @@ completeness pin red-first) · typecheck clean · Tiled extension reinstalled ·
 client: 0 console errors, 0 WebGL losses (it does not reach the debug world's rims).
 ⛔ **Owed:** the PO look (§6: the mountain and the pit walked round, on the world view
 and the full-screen map).
+
+### Merge — 2026-10-17, `cliffs` → main
+
+- **PO look:** `fade` and `point` read alike because the PLACEHOLDER cap art is itself a
+  slope to a tip; fade will only differ once real cap art lands. The PO saved world.json
+  in Tiled (the T-weld applied) and asked for every cliff on the map as `fade`: the seven
+  `point` ones moved; the T stem at (-181.3, -35.9) keeps its weld-set `flat` start.
+- **Weld fix:** a T's projected end read back up to ~0.007 u off the bar after the save's
+  0.01 u rounding, so every save moved it again and the shipped-world weld leg never went
+  green. `WELD_ON_LINE = 0.01` counts it as welded (test: "is stable through the save's
+  rounding", red first). `verify.sh` now welds its flattened fixture, since flattening
+  puts cliffs from different groups in one array.
+- **Examples in world.json (PO: "leave them in for now"):** the empty middle of the
+  Fallow Reach holds point/fade/flat, fade+point, Cliff Smooth, width 3 (y 122 and 134),
+  two T's (stem on the low and the high side, y 152), and a mountain (`out`) and a pit
+  (`in`) at y 156. Remove them before release.
+- **Found, not fixed:** a cliff in an area never welds to a zone-level one (by design,
+  one array), and the save says nothing: zone path #6 meets deep-woods #0 at
+  (-183.2, -23.06), 0.01 u apart, unwelded. Fix in Tiled (one layer); a save-time WARNING
+  was offered, not built.
+
+**Schema:** DB none · wire none · conf none · zone format none (content only).
+**Verified:** vitest 1768/1768 · Go bar the known prop pin · `-validate` 0 findings ·
+`verify.sh` green (second run; the first is the known palette EOL artifact) · the dev
+client: every example drawn, 0 console errors.
