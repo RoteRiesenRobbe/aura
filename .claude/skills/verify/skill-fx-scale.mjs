@@ -164,7 +164,7 @@ async function preparePage(context, tag, { mobile = false } = {}) {
   });
   // Off the slot bar, or its tooltip sits in every screenshot.
   await page.mouse.move(mobile ? 200 : 800, 200);
-  await runCommand(page, 'GOD');
+  await runCommand(page, 'GOD on');
   return page;
 }
 
@@ -355,7 +355,7 @@ if (await warpTo(desktopPage, BUSY_CAMP, 'the eastern bandit camp')) {
     // synthetic on open ground, where GOD is free survival.
     await runCommand(desktopPage, 'GOD off');
     const out = await measure(desktopPage, { shot: 'leg1-real-1x.png' });
-    await runCommand(desktopPage, 'GOD');
+    await runCommand(desktopPage, 'GOD on');
     const row = record(1, 'real 1x, busy camp, full', out);
     // ⚑ Death is read off #endScreen, never off the character's position: the
     // client does not re-point `window.game.character` at the respawned

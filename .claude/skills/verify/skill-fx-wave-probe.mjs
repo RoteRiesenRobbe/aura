@@ -60,7 +60,7 @@ try {
   // Open ground (the scale harness's venue, no spawn within ~8 u): the
   // negative claim below is only worth anything with no real fight in view.
   // A first draft measured at the spawn fire and read 144 wolf strikes.
-  await runCommand(page, 'GOD');
+  await runCommand(page, 'GOD on');
   let landed = false;
   for (let attempt = 0; attempt < 2 && !landed; attempt++) {
     // ⚑ A WARP issued while the console is busy is simply lost (the scale

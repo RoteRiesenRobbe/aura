@@ -156,7 +156,7 @@ try {
 
   // --- 2. dwelling discovers the fire --------------------------------------
   await cmd('PING'); // the first command after joining is dropped (harness note)
-  await cmd('GOD');  // the eastern fire has company; dying mid-dwell proves nothing
+  await cmd('GOD on');  // the eastern fire has company; dying mid-dwell proves nothing
   await cmd(`WARP ${w(BOUND_FIRE.x, BOUND_FIRE.y)}`);
   await page.waitForTimeout(20_000); // camera + position settle across the warp (§20)
 

@@ -107,7 +107,7 @@ try {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';
   });
-  await cmd('GOD');
+  await cmd('GOD on');
   await sleep(1500);
 
   // Five distinct places off the bundled list: one with a subtitle, one

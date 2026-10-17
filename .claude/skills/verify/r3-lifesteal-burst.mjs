@@ -84,7 +84,7 @@ const cmd = async (text) => {
 // which is the documented way into the scene graph, and the run then reads as a
 // crash in the feature under test). It does NOT block the DAMAGE cheat, which is
 // how leg 2 makes room for the leech to heal.
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('SKILL Bloodthirst');
 
 await page.waitForFunction(

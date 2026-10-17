@@ -87,7 +87,7 @@ const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 const results = [];
 const check = (name, state, detail) => results.push({ check: name, state, detail });
 
-await cmd('GOD'); // a level-1 character standing still is inside aggro radii
+await cmd('GOD on'); // a level-1 character standing still is inside aggro radii
 await cmd(`WARP ${OPEN}`);
 await page.waitForTimeout(1000);
 

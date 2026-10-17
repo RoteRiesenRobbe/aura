@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"testing"
 	"testing/fstest"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -380,4 +381,147 @@ func TestQuestCommand_BadInput(t *testing.T) {
 	assert.Error(t, commands["QUEST"](nil, p, strPtr("ACCEPT")), "missing quest id")
 	assert.Error(t, commands["QUEST"](nil, p, strPtr("ACCEPT no-such-quest")), "ledger errors surface to the sender")
 	assert.Error(t, commands["QUEST"](nil, p, strPtr("ADVANCE choice choose")), "ADVANCE needs from AND to")
+}
+
+// --- GOD (a toggle since 2026-10-17) ---
+
+type fakeGodPlayer struct {
+	model.PlayerEntity
+	god bool
+}
+
+func (f *fakeGodPlayer) SetGodmode(on bool) { f.god = on }
+func (f *fakeGodPlayer) IsGod() bool        { return f.god }
+
+func TestGodCommand_BareToggles(t *testing.T) {
+	p := &fakeGodPlayer{}
+
+	require.NoError(t, commands["GOD"](nil, p, nil))
+	assert.True(t, p.god, "bare GOD turns it on")
+	require.NoError(t, commands["GOD"](nil, p, nil))
+	assert.False(t, p.god, "a second bare GOD turns it off")
+	require.NoError(t, commands["GOD"](nil, p, strPtr("")))
+	assert.True(t, p.god, "an empty argument is bare")
+}
+
+func TestGodCommand_OnAndOffAreIdempotent(t *testing.T) {
+	p := &fakeGodPlayer{}
+
+	for range 2 {
+		require.NoError(t, commands["GOD"](nil, p, strPtr("on")))
+		assert.True(t, p.god)
+	}
+	for range 2 {
+		require.NoError(t, commands["GOD"](nil, p, strPtr("OFF")))
+		assert.False(t, p.god, "case does not matter")
+	}
+}
+
+func TestGodCommand_RejectsOtherArguments(t *testing.T) {
+	p := &fakeGodPlayer{}
+
+	assert.Error(t, commands["GOD"](nil, p, strPtr("maybe")))
+	assert.False(t, p.god, "a rejected argument changes nothing")
+}
+
+// --- WARP and HOME (teleports) ---
+
+type fakeWarpPlayer struct {
+	model.PlayerEntity
+	pos      phy.Vec2f
+	grounded int
+	client   *fakeWarpClient
+}
+
+type fakeWarpClient struct {
+	model.Client
+	id uuid.UUID
+}
+
+func (c *fakeWarpClient) UUID() uuid.UUID { return c.id }
+
+func (f *fakeWarpPlayer) Ground()                 { f.grounded++ }
+func (f *fakeWarpPlayer) SetPosition(p phy.Vec2f) { f.pos = p }
+func (f *fakeWarpPlayer) Client() model.Client    { return f.client }
+
+func newFakeWarpPlayer() *fakeWarpPlayer {
+	return &fakeWarpPlayer{client: &fakeWarpClient{id: uuid.New()}}
+}
+
+type fakeCampfires struct {
+	byID  map[string]phy.Vec2f
+	bound map[uuid.UUID]string
+}
+
+func (f *fakeCampfires) CampfirePosition(id string) (phy.Vec2f, bool) {
+	pos, ok := f.byID[id]
+	return pos, ok
+}
+
+func (f *fakeCampfires) AnchorOf(client uuid.UUID) (phy.Vec2f, bool) {
+	return f.CampfirePosition(f.bound[client])
+}
+
+func TestWarpCommand_CoordinatesArePixels(t *testing.T) {
+	p := newFakeWarpPlayer()
+	warp := warpCommand(&fakeCampfires{})
+
+	require.NoError(t, warp(nil, p, strPtr("150 -60")))
+
+	assert.Equal(t, phy.Vec2f{X: 1.25, Y: -0.5}, p.pos,
+		"px / 120, without flooring to whole units")
+	assert.Equal(t, 1, p.grounded, "a warp cancels a running flight")
+}
+
+func TestWarpCommand_AcceptsFractionalPixels(t *testing.T) {
+	p := newFakeWarpPlayer()
+
+	require.NoError(t, warpCommand(&fakeCampfires{})(nil, p, strPtr("60.5 0")))
+
+	assert.InDelta(t, 60.5/120, p.pos.X, 1e-6)
+}
+
+func TestWarpCommand_ToANamedCampfire(t *testing.T) {
+	p := newFakeWarpPlayer()
+	fires := &fakeCampfires{byID: map[string]phy.Vec2f{"spawnpoint-3": {X: 7, Y: -2}}}
+
+	require.NoError(t, warpCommand(fires)(nil, p, strPtr("spawnpoint-3")))
+
+	assert.Equal(t, phy.Vec2f{X: 7, Y: -2}, p.pos)
+	assert.Equal(t, 1, p.grounded)
+}
+
+func TestWarpCommand_RejectsBadArguments(t *testing.T) {
+	p := newFakeWarpPlayer()
+	p.pos = phy.Vec2f{X: 9, Y: 9}
+	warp := warpCommand(&fakeCampfires{})
+
+	assert.Error(t, warp(nil, p, nil))
+	assert.Error(t, warp(nil, p, strPtr("")))
+	assert.Error(t, warp(nil, p, strPtr("no-such-fire")), "an unknown campfire id")
+	assert.Error(t, warp(nil, p, strPtr("1 2 3")))
+	assert.Error(t, warp(nil, p, strPtr("x 2")))
+	assert.Equal(t, phy.Vec2f{X: 9, Y: 9}, p.pos, "a rejected warp moves nothing")
+	assert.Zero(t, p.grounded)
+}
+
+func TestHomeCommand_GoesToTheBoundCampfire(t *testing.T) {
+	p := newFakeWarpPlayer()
+	fires := &fakeCampfires{
+		byID:  map[string]phy.Vec2f{"spawnpoint-1": {X: 3, Y: 4}},
+		bound: map[uuid.UUID]string{p.client.id: "spawnpoint-1"},
+	}
+
+	require.NoError(t, homeCommand(fires)(nil, p, nil))
+
+	assert.Equal(t, phy.Vec2f{X: 3, Y: 4}, p.pos)
+	assert.Equal(t, 1, p.grounded)
+}
+
+func TestHomeCommand_UnboundFails(t *testing.T) {
+	p := newFakeWarpPlayer()
+	p.pos = phy.Vec2f{X: 9, Y: 9}
+
+	assert.Error(t, homeCommand(&fakeCampfires{})(nil, p, nil))
+	assert.Equal(t, phy.Vec2f{X: 9, Y: 9}, p.pos)
 }

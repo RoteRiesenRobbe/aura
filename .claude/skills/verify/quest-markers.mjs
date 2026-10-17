@@ -94,7 +94,7 @@ const cmd = async (text) => {
   }, text);
   await page.waitForTimeout(900);
 };
-await cmd('GOD');
+await cmd('GOD on');
 
 const warpTo = async (p, dx = 0, dy = 0) => {
   await cmd(`WARP ${Math.round(p.x + dx) * 120} ${Math.round(p.y + dy) * 120}`);

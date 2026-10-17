@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     MapState, campfireMarkers, questHoverPosition, fixedIconScale, groundRing, isInsideDrawnMap, layerOffset, mapScale, rimPoint,
-    rescaleCoordinate, resizeTerrain, pickNearestMarker, questGiverMarkers, rosterMarkers, toZoneLocal, worldToMap,
+    rescaleCoordinate, resizeTerrain, pickNearestMarker, questGiverMarkers, rosterMarkers, toZoneLocal, worldToMap, mapToWorld,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -743,5 +743,32 @@ describe('questHoverPosition', () => {
     it('clamps a tap box inside the viewport sideways', () => {
         expect(questHoverPosition({x: 10, y: 200}, BOX, 10, VIEW, 'above').x).toBe(0);
         expect(questHoverPosition({x: 790, y: 200}, BOX, 10, VIEW, 'above').x).toBe(700);
+    });
+});
+
+describe('mapToWorld', () => {
+    it('undoes worldToMap and the layer offset, origin included', () => {
+        const scale = 0.05;
+        const origin = {x: 0, y: 36000};
+        const focus = {x: 1200, y: 36600};
+        const viewport = {width: 200, height: 200};
+        const offset = layerOffset(MapState.DOCKED, viewport, scale, focus, origin);
+        const world = {x: 2400, y: 35400};
+        const canvas = {
+            x: offset.x + worldToMap(world.x, scale, origin.x),
+            y: offset.y + worldToMap(world.y, scale, origin.y),
+        };
+
+        const back = mapToWorld(canvas, offset, scale, origin);
+
+        expect(back.x).toBeCloseTo(world.x, 6);
+        expect(back.y).toBeCloseTo(world.y, 6);
+    });
+
+    it('reads the canvas centre of the full-screen map as the zone centre', () => {
+        const viewport = {width: 1600, height: 800};
+        const offset = layerOffset(MapState.FULLSCREEN, viewport, 0.09, null);
+
+        expect(mapToWorld({x: 800, y: 400}, offset, 0.09)).toEqual({x: 0, y: 0});
     });
 });

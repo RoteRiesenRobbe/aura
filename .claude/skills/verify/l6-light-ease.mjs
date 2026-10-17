@@ -87,7 +87,7 @@ function venue() {
       }, text);
       await sleep(700);
     };
-    await cmd('GOD');
+    await cmd('GOD on');
     await cmd('XP 99999999');
     await cmd('SKILL Lantern');
     await page.evaluate(() => {

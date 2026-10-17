@@ -126,7 +126,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING');  // the first command after joining is dropped
-await cmd('GOD');   // the walk parks in aggro range of level-18 predators
+await cmd('GOD on');   // the walk parks in aggro range of level-18 predators
 
 await page.evaluate(() => {
   let r = window.game.character.plate.parent;

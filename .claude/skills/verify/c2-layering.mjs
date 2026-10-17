@@ -132,7 +132,7 @@ const cmd = async (text) => {
 await cmd('PING'); // the first command after joining is dropped (harness note)
 // GOD, because this run parks beside an NPC for a while and a dead player nulls
 // the way into the scene graph.
-await cmd('GOD');
+await cmd('GOD on');
 
 // --- leg A: journal ↔ help --------------------------------------------------
 

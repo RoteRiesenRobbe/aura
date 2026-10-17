@@ -98,7 +98,7 @@ const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
 await cmd('PING');
-await cmd('GOD');              // standing still in wildlife range would end the run
+await cmd('GOD on');              // standing still in wildlife range would end the run
 await cmd('SKILL Swift');
 await cmd('WARP ' + OPEN);
 await page.waitForTimeout(22_000);   // the camera interpolates slowly (backlog §20)

@@ -97,7 +97,7 @@ try {
   await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
   await page.waitForTimeout(1200);
   await cmd('PING'); // the first command after joining is dropped
-  await cmd('GOD');  // leg 5 stands beside NPCs inside aggro radii
+  await cmd('GOD on');  // leg 5 stands beside NPCs inside aggro radii
 
   await page.waitForTimeout(8_000); // dwell-bind needs ~1.7 s; give it margin
   const HOME = await pos();

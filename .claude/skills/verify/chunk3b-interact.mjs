@@ -176,7 +176,7 @@ const press = async (key) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');  // survivability only — nothing asserted here depends on it
+await cmd('GOD on');  // survivability only — nothing asserted here depends on it
 await primeRoot();
 
 const results = [];

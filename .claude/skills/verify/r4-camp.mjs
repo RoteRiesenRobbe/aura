@@ -220,7 +220,7 @@ try {
   await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
   await page.waitForTimeout(1200);
   await cmd('PING'); // the first command after joining is dropped
-  await cmd('GOD');  // survival on open ground, AND it switches passive regen off
+  await cmd('GOD on');  // survival on open ground, AND it switches passive regen off
   await page.evaluate(() => {
     let r = window.game.character.plate.parent;
     while (r.parent) r = r.parent;

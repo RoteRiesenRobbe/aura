@@ -60,7 +60,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');  // a parked level-1 player sits inside plenty of aggro radii
+await cmd('GOD on');  // a parked level-1 player sits inside plenty of aggro radii
 
 await page.evaluate(() => {
   let r = window.game.character.plate.parent;

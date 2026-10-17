@@ -110,7 +110,7 @@ if (deck) {
     }, text);
     await page.waitForTimeout(700);
   };
-  await cmd('GOD');
+  await cmd('GOD on');
   const at = { x: deck.x * 120, y: deck.y * 120 };
   await cmd(`WARP ${Math.round(at.x)} ${Math.round(at.y + 240)}`);
   const where = () => page.evaluate(({ x, y }) => {

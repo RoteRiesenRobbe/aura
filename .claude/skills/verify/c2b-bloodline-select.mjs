@@ -287,7 +287,7 @@ check('...and the server put it there rather than in the lowest free slot',
 // ===========================================================================
 
 await enterWorldFrom(1);
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 100000000');
 await cmd(WARP_TO);
 await page.waitForTimeout(6000);

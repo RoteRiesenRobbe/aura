@@ -155,7 +155,7 @@ const sampleBars = (page) => page.evaluate(() => {
 const caster = await newPlayer('caster');
 const ally = await newPlayer('ally');
 
-for (const p of [caster, ally]) await cmd(p, 'GOD');
+for (const p of [caster, ally]) await cmd(p, 'GOD on');
 await cmd(caster, 'XP 99999999');
 await cmd(caster, 'WARP ' + wire(CASTER));
 await cmd(ally, 'WARP ' + wire(ALLY));

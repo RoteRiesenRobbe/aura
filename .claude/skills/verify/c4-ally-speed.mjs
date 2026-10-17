@@ -85,7 +85,7 @@ async function runCommand(command) {
   await page.waitForTimeout(400);
 }
 
-await runCommand('GOD');
+await runCommand('GOD on');
 await runCommand('SKILL FlyYouFools');
 await runCommand('SKILL Onward');
 await runCommand('SKILL Swift');

@@ -233,7 +233,7 @@ function venue() {
       }, text);
       await sleep(700);
     };
-    await cmd('GOD');
+    await cmd('GOD on');
 
     /** Mean luminance of a centre patch of the canvas — what the player sees. */
     const brightness = async (tag) => {

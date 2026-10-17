@@ -10,6 +10,7 @@ import './features/audio/logic/Music';
 import './features/backend/logic/Backend';
 import './features/internal-tools/develop/logic/DebugCircle';
 import './features/internal-tools/develop/logic/_Develop';
+import './features/internal-tools/jumper/logic/Jumper';
 import './features/game-objects/logic/Character';
 import './features/game-objects/logic/Mobs';
 import './features/game-objects/logic/Props';

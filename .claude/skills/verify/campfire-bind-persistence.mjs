@@ -95,7 +95,7 @@ try {
   await enterWorld();
 
   await cmd('PING'); // the first command after joining is dropped (harness note)
-  await cmd('GOD');  // the eastern fire has company; dying mid-dwell proves nothing
+  await cmd('GOD on');  // the eastern fire has company; dying mid-dwell proves nothing
   await cmd(`WARP ${WARP_TO_BOUND}`);
   await page.waitForTimeout(20_000); // camera + position settle across the warp (§20)
 

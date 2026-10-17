@@ -84,7 +84,7 @@ const check = (name, pass, detail) => { results.push({ name, pass, detail }); };
 let inconclusive = null;
 
 await cmd('PING');
-await cmd('GOD');                    // standing in the open would end the run
+await cmd('GOD on');                    // standing in the open would end the run
 await cmd(`WARP ${START.x * 120} ${START.y * 120}`);
 await page.waitForTimeout(24_000);   // the camera interpolates slowly (backlog §20)
 

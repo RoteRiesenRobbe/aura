@@ -261,7 +261,7 @@ const prose = (questId, stageId) => {
 const titleOf = (questId) => (Array.isArray(catalog) ? catalog.find((x) => x.id === questId)?.title : null) ?? `??${questId}`;
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 120000'); // → L25: everything near the gate is gray (see header)
 await ensureJournalOpen();
 

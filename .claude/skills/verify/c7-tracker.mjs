@@ -159,7 +159,7 @@ const waitForTracker = async (predicate, timeout = 20_000) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');  // this run stands still for a while; a dead player nulls the scene graph
+await cmd('GOD on');  // this run stands still for a while; a dead player nulls the scene graph
 
 const catalog = await page.evaluate(async () => {
   try {

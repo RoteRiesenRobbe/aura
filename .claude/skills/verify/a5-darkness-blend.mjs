@@ -270,7 +270,7 @@ function rampWidth(cols, centre, halfWindow) {
       }, text);
       await sleep(700);
     };
-    await cmd('GOD');
+    await cmd('GOD on');
     // ⚑ #developPanel covers the right-hand side of the screen and would sit
     // ON TOP of the very columns this probe reads.
     await page.evaluate(() => {

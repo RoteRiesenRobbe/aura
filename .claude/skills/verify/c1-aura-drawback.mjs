@@ -80,7 +80,7 @@ const focus = async () => {
   return m ? { cur: Number(m[1]), max: Number(m[2]), text } : { cur: NaN, max: NaN, text };
 };
 
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('SKILL OverchargeAura');
 await cmd('XP 99999999');
 await cmd('WARP ' + OPEN);

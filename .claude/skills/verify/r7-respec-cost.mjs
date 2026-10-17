@@ -136,7 +136,7 @@ if (!sawBlue) {
 }
 
 // --- leg B: the reset-all button (item 8) ----------------------------------
-await runCommand('GOD');
+await runCommand('GOD on');
 await runCommand('XP 99999999');
 await page.waitForTimeout(1500);
 

@@ -85,7 +85,7 @@ async function run(flavour) {
   // GOD: this run stands still beside NPCs for a while, and a dead player nulls
   // character.plate — the documented way into the scene graph — which reads as
   // a crash in the feature under test.
-  await cmd('GOD');
+  await cmd('GOD on');
   await page.evaluate(() => {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';

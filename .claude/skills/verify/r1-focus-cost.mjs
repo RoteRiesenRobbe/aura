@@ -63,7 +63,7 @@ async function runCommand(command) {
   await page.waitForTimeout(400);
 }
 
-await runCommand('GOD');
+await runCommand('GOD on');
 await runCommand('SKILL Immolate');
 await runCommand('SKILL Discipline');
 // The spellbook row for a just-cheated skill renders seconds late (GameState on

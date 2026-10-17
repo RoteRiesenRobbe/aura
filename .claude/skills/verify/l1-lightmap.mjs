@@ -121,7 +121,7 @@ function venue() {
       }, text);
       await sleep(700);
     };
-    await cmd('GOD');
+    await cmd('GOD on');
     await page.evaluate(() => {
       const p = document.getElementById('developPanel');
       if (p) { p.style.display = 'none'; }

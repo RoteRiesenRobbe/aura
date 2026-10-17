@@ -119,7 +119,7 @@ const cmd = async (text) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
-await cmd('GOD');  // this script parks inside a bandit camp's aggro radii
+await cmd('GOD on');  // this script parks inside a bandit camp's aggro radii
 
 await page.evaluate(() => {
   let r = window.game.character.plate.parent;

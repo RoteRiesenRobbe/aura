@@ -71,7 +71,7 @@ await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_
 await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
 const cmd = cmdOn(page);
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('XP 9000');
 await page.waitForTimeout(1500);
 

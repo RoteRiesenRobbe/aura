@@ -17,6 +17,7 @@ import {
     isInsideDrawnMap,
     layerOffset,
     mapScale,
+    mapToWorld,
     rescaleCoordinate,
     resizeTerrain,
     rimPoint,
@@ -33,6 +34,7 @@ import {WHEEL_IDLE, WheelState, accumulateWheel, canStepRadar, snapRadarDiameter
 import {DevicePrefs} from '../../common/logic/DevicePrefs';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import * as Regions from '../../regions/logic/Regions';
+import * as Jumper from '../../internal-tools/jumper/logic/Jumper';
 
 const sizeFactorRelatedToMapSize = 2;
 
@@ -645,7 +647,14 @@ export class MiniMap {
         // The docked map is itself the biggest, most obvious target for
         // "show me the map" — and on a phone it is the only one that costs no
         // permanent screen space.
-        HUD.getMinimapContainer()?.addEventListener('pointerdown', () => this.open());
+        HUD.getMinimapContainer()?.addEventListener('pointerdown', (event: PointerEvent) => {
+            // The JUMPER cheat takes the press while it is on; M still opens.
+            if (Jumper.isEnabled()) {
+                this.jumpToPress(event);
+                return;
+            }
+            this.open();
+        });
         document.getElementById('mapButton')
             ?.addEventListener('pointerdown', () => this.toggle());
         HUD.getWorldMapPanel()?.querySelector('.worldMapClose')
@@ -809,6 +818,11 @@ export class MiniMap {
      */
     private pressOnMap(event: PointerEvent) {
         if (!this.flightMode) {
+            // The JUMPER cheat: the read-only map is a fly-anywhere surface
+            // after all while it is on. The map stays open (PO 2026-10-17).
+            if (Jumper.isEnabled()) {
+                this.jumpToPress(event);
+            }
             return;
         }
         const marker = this.markerUnderPress(event);
@@ -826,6 +840,20 @@ export class MiniMap {
             return;
         }
         this.armFlight(marker.id);
+    }
+
+    /** Warps to the world point under a press on the map, in either state. */
+    private jumpToPress(event: PointerEvent) {
+        const box = this.application.canvas.getBoundingClientRect();
+        if (event.button !== 0 || !(this.scale > 0) || box.width <= 0 || box.height <= 0) {
+            return;
+        }
+        const origin = {x: this.zoneOriginX, y: this.zoneOriginY};
+        const offset = layerOffset(
+            this.state, {width: this.width, height: this.height}, this.scale, this.lastFocus, origin);
+        const world = mapToWorld(
+            {x: event.clientX - box.left, y: event.clientY - box.top}, offset, this.scale, origin);
+        Jumper.jumpTo(world.x, world.y);
     }
 
     /** The campfire marker under a press, in LAYER coordinates (canvas centre). */

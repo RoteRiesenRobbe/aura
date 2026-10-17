@@ -132,7 +132,7 @@ const waitFor = async (pred, ms, step = 150) => {
 };
 
 await cmd('PING');
-await cmd('GOD');
+await cmd('GOD on');
 await cmd('WARP ' + (IDLE.x * 120) + ' ' + (IDLE.y * 120), 3000);
 
 // --- leg 2: empty tray, no own pips ----------------------------------------------
@@ -419,7 +419,7 @@ await phone.evaluate((t) => {
     input.value = c;
     document.getElementById('console').dispatchEvent(new Event('submit', { cancelable: true }));
   }
-}, ['GOD', 'SKILL Tough']);
+}, ['GOD on', 'SKILL Tough']);
 await phone.waitForTimeout(1500);
 // The spellbook lives in the ☰ sheet on the phone: equip through the same
 // pointerdown handlers the taps reach, dispatched on the (hidden) rows.

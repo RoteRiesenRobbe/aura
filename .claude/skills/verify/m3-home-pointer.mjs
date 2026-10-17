@@ -129,7 +129,7 @@ try {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';
   });
-  await cmd('GOD');
+  await cmd('GOD on');
 
   // The spawn fire binds on dwell; wait for its marker to carry the home flag.
   let s = null;

@@ -198,7 +198,7 @@ const openAt = async (warp) => {
 // ===========================================================================
 // Leg 1 — the monument stands, and it is the monument that answers.
 // ===========================================================================
-await cmd('GOD');
+await cmd('GOD on');
 const atMemorial = await openAt(WARP_MEMORIAL);
 
 check('the memorial offers an interaction', (await badgeCount()) >= 0 && atMemorial !== null,
@@ -323,7 +323,7 @@ if (onSelect) {
     const p = document.getElementById('developPanel');
     if (p) p.style.display = 'none';
   });
-  await cmd('GOD');
+  await cmd('GOD on');
 }
 
 // ⚑ THE SNAPSHOT REFRESHES ON A TIMER (60 s), so the name is not on the stone

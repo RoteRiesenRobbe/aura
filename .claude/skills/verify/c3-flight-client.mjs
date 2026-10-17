@@ -285,7 +285,7 @@ try {
   phase = 'discover';
   for (const p of [a.page, b.page]) {
     await cmd(p, 'PING');   // the first command after joining is dropped
-    await cmd(p, 'GOD');    // the eastern fire has company; dying proves nothing
+    await cmd(p, 'GOD on');    // the eastern fire has company; dying proves nothing
   }
   // ⚑ THE PROMPT AT A FIRE WITH NO CONVERSANT, scored FIRST and from the
   // spawn, because it is the case the rest of this script structurally cannot

@@ -238,7 +238,7 @@ const waitForJournal = async (predicate, timeout = 15_000) => {
 await cmd('PING'); // the first command after joining is dropped (harness note)
 // GOD, because this script stands still next to an NPC for a while and a dead
 // player nulls the way into the scene graph.
-await cmd('GOD');
+await cmd('GOD on');
 await primeRoot();
 
 // --- half A: the catalog and the panel itself -------------------------------
