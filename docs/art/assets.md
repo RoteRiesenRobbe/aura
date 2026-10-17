@@ -292,7 +292,7 @@ of which **11 are P0**:
 | ⚙️ | **Map markers** | — | P3 |  |  | Minimap/world map dots. Own player #00008B, others white, tree green circle, stone grey hex, campfire orange ring #E37313. Known bug: your own 3.5 px dot vanishes under the 9 px campfire marker at your bound fire. |
 | ✅ | **NpcPlaceholder** | `npcPlaceholder.svg` | P3 |  |  | The loud "unconfigured NPC" marker. Keep it ugly on purpose. Not used by any shipped mob. |
 | ❌ | **Ability icons** | — | P0 |  |  | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
-| ✅ | **Logo** | `logo.svg` | P3 |  |  | The Aura wordmark. Still carries the inherited branding lineage. |
+| ✅ | **Logo** | `logo.svg` | P3 |  |  | The favicon source: an aura icon (core + two rings, brand orange), replacing the inherited Berryhunter berry. |
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 

@@ -131,8 +131,8 @@ loader path, not a parser: encode the file as a data URI, set it as an
 
 ### Today
 
-Everything the engine draws is **SVG** — 95 files. The five raster files in the
-repo (`hunter.png`, two social icons, `loadingScreen.jpg`, `background.jpg`) are
+Everything the engine draws is **SVG** — 95 files. The three raster files in the
+repo (two social icons, `background.jpg`) are
 start-screen chrome loaded via HTML `<img>` and CSS `background-image`. **None of
 them goes through Pixi.**
 

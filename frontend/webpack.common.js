@@ -18,7 +18,7 @@ module.exports = {
 				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content',
 				// Address-bar tint on mobile. Used to come from the favicons android
 				// platform; that platform is off (see below), so it is authored here.
-				'theme-color': '#E66CEF'
+				'theme-color': '#E37313'
 			}
 		}),
 		new FaviconWebpackPlugin({
@@ -28,10 +28,10 @@ module.exports = {
 			inject: true,
 			favicons: {
 				appName: 'Aura',
-				appDescription: 'A 2D multiplayer stone age survival game',
+				appDescription: 'A top-down multiplayer browser MMO',
 				developerName: 'Team Dodo',
 				developerURL: 'https://berryhunter.io',
-				theme_color: '#E66CEF',
+				theme_color: '#E37313',
 				version: 'Open Beta',
 				icons: {
 					// Aura is played in the browser; it is deliberately NOT installable.
