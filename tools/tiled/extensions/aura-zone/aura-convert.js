@@ -58,7 +58,7 @@ var AuraConvert = (function () {
      * (api/areas/areas.json). The group's NAME is a free label, so a typo in
      * it can no longer make a second area. AREA_UNSET is the member's default
      * and the save refuses it: the MOB_UNSET reading of a sentinel. */
-    var OBJECT_KINDS = ['decals', 'props', 'spawns', 'exits', 'bindPoints', 'darkAreas', 'regions',
+    var OBJECT_KINDS = ['decals', 'props', 'spawns', 'exits', 'exitAreas', 'bindPoints', 'darkAreas', 'regions',
         'paths', 'structures', 'atmospheres', 'clearings', 'anchors'];
     var AREA_ID = /^[a-z0-9-]+$/;
     var AREA_CLASS = 'AuraArea';
@@ -87,6 +87,10 @@ var AuraConvert = (function () {
      * old shape forever. Hardcoded rather than "every door": a real NPC that
      * also takes you somewhere is still a spawn (D1). */
     var EXIT_CLASS = 'AuraExit';
+    /* A touch exit (P4, D2): a polygon or rectangle of class AuraExitArea on
+     * the same exits layer, told apart by class (the paths/structures
+     * scheme). Walk in and you are moved; no door, no words. */
+    var EXIT_AREA_CLASS = 'AuraExitArea';
     var EXIT_DOOR_ENUM = 'AuraExitDoor';
     var EXIT_DOOR_UNSET = '(generic door)';
     var MIGRATED_DOORS = ['CaveMouth', 'CaveExit'];
@@ -712,6 +716,20 @@ var AuraConvert = (function () {
                     };
                 })
                 : undefined,
+            // Touch exits (P4), key order as zone.go's ExitArea; id and look
+            // absent at their defaults.
+            exitAreas: z.exitAreas && z.exitAreas.length > 0
+                ? z.exitAreas.map(function (a) {
+                    return {
+                        id: a.id || undefined,
+                        points: a.points.map(function (v) {
+                            return {x: round(v.x, 2), y: round(v.y, 2)};
+                        }),
+                        anchor: a.anchor,
+                        look: a.look && a.look !== EXIT_LOOK_DEFAULT ? a.look : undefined,
+                    };
+                })
+                : undefined,
             bindPoints: z.bindPoints && z.bindPoints.length > 0
                 ? z.bindPoints.map(function (c) {
                     return {
@@ -1037,6 +1055,32 @@ var AuraConvert = (function () {
                 return o;
             });
 
+            // Touch exits (P4) share the exits layer as polygons, after the
+            // talk exits; the class splits them back out on save. Named by
+            // the anchor, like a talk exit.
+            var exitAreas = (src.exitAreas || []).map(function (a) {
+                var pts = a.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                var o = {
+                    shape: 'polygon', layer: prefix + 'exits', name: a.anchor, cls: EXIT_AREA_CLASS,
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+                    polygon: pts.map(function (v) {
+                        return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                    }),
+                    properties: {anchor: a.anchor},
+                    enums: {},
+                };
+                if (a.id) {
+                    o.properties.id = a.id;
+                }
+                if (a.look && a.look !== EXIT_LOOK_DEFAULT) {
+                    o.properties.look = a.look;
+                    o.enums.look = EXIT_LOOK_ENUM;
+                }
+                return o;
+            });
+
             var bindPoints = (src.bindPoints || []).map(function (c) {
                 var o = {
                     shape: 'point', layer: prefix + 'bindPoints', name: c.id, cls: 'AuraBindPoint',
@@ -1294,7 +1338,7 @@ var AuraConvert = (function () {
                 // sub-layer over a lower one, exactly as Tiled stacks them.
                 {name: PROPS_GROUP, layers: propLayers},
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
-                {name: 'exits', drawOrder: 'index', objects: exits},
+                {name: 'exits', drawOrder: 'index', objects: exits.concat(exitAreas)},
                 {name: 'bindPoints', drawOrder: 'index', objects: bindPoints},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
                 // Atmosphere array order is draw order AND resolution order,
@@ -1643,7 +1687,7 @@ var AuraConvert = (function () {
                     }
                     return s;
                 }),
-                exits: layer('exits').map(function (o) {
+                exits: onLayer('exits', EXIT_CLASS).map(function (o) {
                     return {
                         id: readText(o, 'id'),
                         x: u(o.x, hw), y: u(o.y, hh),
@@ -1651,6 +1695,16 @@ var AuraConvert = (function () {
                         anchor: readText(o, 'anchor'),
                         look: readExitLook(o),
                         door: readExitDoor(o),
+                    };
+                }),
+                exitAreas: onLayer('exits', EXIT_AREA_CLASS).map(function (o) {
+                    return {
+                        id: readText(o, 'id'),
+                        points: closedAreaPoints(o).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                        anchor: readText(o, 'anchor'),
+                        look: readExitLook(o),
                     };
                 }),
                 bindPoints: layer('bindPoints').map(function (o) {
@@ -2282,19 +2336,26 @@ var AuraConvert = (function () {
             var doorsKnown = content.DOOR_NAMES.length > 0;
             var seenExit = {};
             layer('exits').forEach(function (o, i) {
-                if (o.cls !== EXIT_CLASS) {
+                if (o.cls !== EXIT_CLASS && o.cls !== EXIT_AREA_CLASS) {
                     bad(o, i, 'is on the exits layer but its Class is '
                         + (o.cls ? '"' + o.cls + '"' : 'not set') + ' — set it to ' + EXIT_CLASS
+                        + ' (a point you talk to) or ' + EXIT_AREA_CLASS + ' (an area you walk into)'
                         + ' in the Properties panel, or the exit is DROPPED on save');
                     return;
                 }
-                if (o.shape !== 'point') {
-                    bad(o, i, 'an exit is a POINT — draw it with Insert Point');
+                if (o.cls === EXIT_CLASS && o.shape !== 'point') {
+                    bad(o, i, 'an exit is a POINT — draw it with Insert Point, or set its Class to '
+                        + EXIT_AREA_CLASS + ' for an area you walk into');
+                }
+                if (o.cls === EXIT_AREA_CLASS) {
+                    checkClosedArea(o, i, 'an ' + EXIT_AREA_CLASS, ' — or set its Class to ' + EXIT_CLASS
+                        + ' for a point you talk to');
                 }
                 if (readText(o, 'anchor') === undefined) {
                     bad(o, i, 'no anchor — where does this exit lead? Type an anchor name into "anchor"');
                 }
-                // P3 (D7): the id keys the exit's words in regions.arb.
+                // P3 (D7): the id keys the exit's words in regions.arb; one
+                // namespace for both classes.
                 var id = readText(o, 'id');
                 if (id !== undefined && !/^[a-z0-9-]+$/.test(id)) {
                     bad(o, i, 'id "' + id + '" must be a slug of a-z, 0-9 and "-" (e.g. barn-door):'
@@ -2303,14 +2364,17 @@ var AuraConvert = (function () {
                     bad(o, i, 'duplicate exit id "' + id + '"');
                 }
                 if (id !== undefined) { seenExit[id] = true; }
+                var look = readExitLook(o);
+                if (look !== undefined && !hasValue(EXIT_LOOKS, look)) {
+                    bad(o, i, 'unknown look "' + look + '" — the looks are ' + EXIT_LOOKS.join(', '));
+                }
+                if (o.cls === EXIT_AREA_CLASS) {
+                    return;
+                }
                 var d = readExitDoor(o);
                 if (d !== undefined && doorsKnown && !hasValue(content.DOOR_NAMES, d)) {
                     bad(o, i, 'unknown door "' + d + '" — a door is a mob with exactly one'
                         + ' anchor-mode travel_to row: ' + content.DOOR_NAMES.join(', '));
-                }
-                var look = readExitLook(o);
-                if (look !== undefined && !hasValue(EXIT_LOOKS, look)) {
-                    bad(o, i, 'unknown look "' + look + '" — the looks are ' + EXIT_LOOKS.join(', '));
                 }
                 var x = o.x / PX - hw, y = o.y / PX - hh;
                 if (x < -hw || x > hw || y < -hh || y > hh) {
@@ -2908,6 +2972,7 @@ var AuraConvert = (function () {
         REGION_ID_ENUM: REGION_ID_ENUM,
         REGION_ID_UNSET: REGION_ID_UNSET,
         EXIT_CLASS: EXIT_CLASS,
+        EXIT_AREA_CLASS: EXIT_AREA_CLASS,
         EXIT_DOOR_ENUM: EXIT_DOOR_ENUM,
         EXIT_DOOR_UNSET: EXIT_DOOR_UNSET,
         EXIT_LOOK_ENUM: EXIT_LOOK_ENUM,

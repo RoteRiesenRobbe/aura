@@ -48,6 +48,9 @@ func TestZone_AreasFlattenLikeTheClient(t *testing.T) {
 	for _, o := range z.Exits {
 		got["exits"] = append(got["exits"], placed{X: o.X, Area: o.Area})
 	}
+	for _, o := range z.ExitAreas {
+		got["exitAreas"] = append(got["exitAreas"], placed{X: first(o.Points), Area: o.Area})
+	}
 	for _, o := range z.BindPoints {
 		got["bindPoints"] = append(got["bindPoints"], placed{X: o.X, Area: o.Area})
 	}
@@ -96,7 +99,7 @@ func keysOf(m map[string][]placed) []string {
 
 func TestZone_ObjectKindsAreTheObjectArrays(t *testing.T) {
 	assert.ElementsMatch(t, []string{
-		"decals", "props", "spawns", "exits", "bindPoints", "darkAreas", "regions",
+		"decals", "props", "spawns", "exits", "exitAreas", "bindPoints", "darkAreas", "regions",
 		"paths", "structures", "atmospheres", "clearings", "anchors",
 	}, objectKindNames())
 }

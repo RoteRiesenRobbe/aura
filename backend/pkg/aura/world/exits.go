@@ -80,6 +80,73 @@ func (z *Zone) validateExits() error {
 	return nil
 }
 
+// validateExitAreas is validateExits for touch exits (P4): the same anchor,
+// id and look rules, and an area that encloses something.
+func (z *Zone) validateExitAreas() error {
+	for i := range z.ExitAreas {
+		ref := objectRef("exitArea", z.ExitAreas, i)
+		a := &z.ExitAreas[i]
+		if strings.TrimSpace(a.Anchor) == "" {
+			return fmt.Errorf("%s: anchor must not be empty (where does it lead?)", ref)
+		}
+		if a.ID != "" && !areaIDPattern.MatchString(a.ID) {
+			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"glow-pit\")", ref, a.ID)
+		}
+		if a.Look != "" && !slices.Contains(ExitLooks, a.Look) {
+			return fmt.Errorf("%s: look %q must be one of %s (omit it for the cave mouth)",
+				ref, a.Look, strings.Join(ExitLooks, ", "))
+		}
+		if len(a.Points) < 3 {
+			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d", ref, len(a.Points))
+		}
+	}
+	return nil
+}
+
+// Centroid is the mean of the area's points: where its look is drawn (P5)
+// and the "from" a crossing's direction is judged by (D8).
+func (a *ExitArea) Centroid() Point {
+	var c Point
+	for _, p := range a.Points {
+		c.X += p.X
+		c.Y += p.Y
+	}
+	n := float32(len(a.Points))
+	return Point{X: c.X / n, Y: c.Y / n}
+}
+
+// CrossValidateExitAreas refuses a touch exit that leads to an anchor no zone
+// authors (a hazard that draws and moves nobody), and any anchor standing
+// inside any touch exit (L3): a traveller landing there would arrive on a
+// crossing, and two areas whose anchors sit in each other bounce a player
+// forever. D8's disarm-on-arrival is the fix; this is the belt. After Place,
+// so every position is a world coordinate.
+func CrossValidateExitAreas(zones []*Zone) error {
+	anchors := map[string]Point{}
+	for _, z := range zones {
+		for _, a := range z.Anchors {
+			anchors[a.Name] = Point{X: a.X, Y: a.Y}
+		}
+	}
+	for _, z := range zones {
+		for i := range z.ExitAreas {
+			area := &z.ExitAreas[i]
+			ref := objectRef("exitArea", z.ExitAreas, i)
+			if _, ok := anchors[area.Anchor]; !ok {
+				return fmt.Errorf("zone %q: %s leads to anchor %q, which no loaded zone authors", z.ID, ref, area.Anchor)
+			}
+			for name, p := range anchors {
+				if PointInPolygon(p.X, p.Y, area.Points) {
+					return fmt.Errorf("zone %q: anchor %q stands inside %s (to %q): whoever travels there "+
+						"would land on a crossing (plan-passages.md L3); move the anchor or the area",
+						z.ID, name, ref, area.Anchor)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // resolveExits binds each exit's door to its definition and refuses one that
 // is not a door: exactly one anchor-mode travel_to row, or the exit's single
 // anchor has no row to deliver through (none) or two rows to share (several).

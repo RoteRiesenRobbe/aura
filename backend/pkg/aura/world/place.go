@@ -128,6 +128,14 @@ func placeOne(z *Zone) error {
 		z.Exits[i].X += ox
 		z.Exits[i].Y += oy
 	}
+	// Touch exits are point-tested against players in WORLD coordinates
+	// (sys.PassageSystem), like regions below.
+	for i := range z.ExitAreas {
+		for j := range z.ExitAreas[i].Points {
+			z.ExitAreas[i].Points[j].X += ox
+			z.ExitAreas[i].Points[j].Y += oy
+		}
+	}
 	for i := range z.BindPoints {
 		z.BindPoints[i].X += ox
 		z.BindPoints[i].Y += oy
@@ -265,8 +273,14 @@ func checkSetWide(zones []*Zone) error {
 			}
 			seenAnchor[name] = z.ID
 		}
+		ids := make([]string, 0, len(z.Exits)+len(z.ExitAreas))
 		for e := range z.Exits {
-			id := z.Exits[e].ID
+			ids = append(ids, z.Exits[e].ID)
+		}
+		for e := range z.ExitAreas {
+			ids = append(ids, z.ExitAreas[e].ID)
+		}
+		for _, id := range ids {
 			if id == "" {
 				continue
 			}

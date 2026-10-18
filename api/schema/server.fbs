@@ -1279,6 +1279,17 @@ table GameState {
   // state); on a tick without `owner_state` the client keeps what it has.
   // Appended at the table end so existing field IDs stay stable.
   quest_markers:[QuestMarker];
+
+  // A touch exit is about to move the own player (plan-passages.md D9): the
+  // TravelDirection of the crossing (1 descend, 2 ascend, 3 lateral, the
+  // ConversationOption.travel values) while the dwell runs, 0 otherwise. A
+  // talk exit starts the curtain on the PRESS because its row carries
+  // its travel byte; a touch has no press, so this starts it, and its return to 0
+  // without a zone change cancels it. It holds on the travel tick itself, so
+  // the arrival lands under cover. A plain per-tick value, NOT change-only:
+  // 0 is the default and costs nothing. Appended at the table end so existing
+  // field IDs stay stable.
+  crossing:ubyte = 0;
 }
 
 table Welcome {

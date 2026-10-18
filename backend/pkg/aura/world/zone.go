@@ -313,6 +313,22 @@ type Exit struct {
 	Def *mobs.MobDefinition `json:"-"`
 }
 
+// ExitArea is a touch exit (plan-passages.md P4, D1): a closed area that moves
+// whoever walks into it to Anchor, after a short dwell (sys.PassageSystem). It
+// shares an exit's anchor, look and id rules and nothing else: no door, no
+// words (a touch has no panel), no rotation.
+type ExitArea struct {
+	// ID is optional and shares the exits' namespace (D7, checkSetWide).
+	ID     string  `json:"id,omitempty"`
+	Points []Point `json:"points"`
+	// Anchor is where the area leads, by zone-anchor name. Required.
+	Anchor string `json:"anchor"`
+	// Look is the art drawn at the centroid (P5); absent = the cave mouth.
+	// The glow is drawn whatever the look (R6, Q4).
+	Look string `json:"look,omitempty"`
+	InArea
+}
+
 // EffectiveWanderRadius resolves the spawn's tri-state wander radius against
 // the mob type's default. Only meaningful once Def is resolved; waypoints
 // take precedence over any wander radius.
@@ -770,6 +786,9 @@ type Objects struct {
 	// Exits are the talk exits, doors to a zone anchor (plan-passages.md P1).
 	// Each becomes a door mob at load (ExitSpawns); the file holds no spawn.
 	Exits []Exit `json:"exits"`
+	// ExitAreas are the touch exits (plan-passages.md P4, D1/D8): walk in,
+	// stay a moment, and you are moved to the anchor. No mob, no conversation.
+	ExitAreas []ExitArea `json:"exitAreas"`
 	// BindPoints are where a character binds and respawns. The key was
 	// `campfires` until N2, named for the art; the fires a player sees are mobs.
 	BindPoints []Campfire `json:"bindPoints"`
@@ -1154,6 +1173,7 @@ func (z *Zone) flatten() {
 		z.Decals = appendArea(z.Decals, a.Decals, a.ID)
 		z.Spawns = appendArea(z.Spawns, a.Spawns, a.ID)
 		z.Exits = appendArea(z.Exits, a.Exits, a.ID)
+		z.ExitAreas = appendArea(z.ExitAreas, a.ExitAreas, a.ID)
 		z.BindPoints = appendArea(z.BindPoints, a.BindPoints, a.ID)
 		z.DarkAreas = appendArea(z.DarkAreas, a.DarkAreas, a.ID)
 		z.Regions = appendArea(z.Regions, a.Regions, a.ID)
@@ -1255,6 +1275,9 @@ func (z *Zone) validate() error {
 		}
 	}
 	if err := z.validateExits(); err != nil {
+		return err
+	}
+	if err := z.validateExitAreas(); err != nil {
 		return err
 	}
 	for i := range z.DarkAreas {

@@ -625,6 +625,12 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
             member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
             member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
     types.push(enumType(C.EXIT_LOOK_ENUM, C.EXIT_LOOKS));
+    // The touch exit (P4), LAST for the same reason: its members are the
+    // talk exit's minus the door (an area has no conversation).
+    types.push(classType(C.EXIT_AREA_CLASS, '#ff4db6ac',
+        [member('id', 'string', ''),
+            member('anchor', 'string', ''),
+            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM)]));
     return types;
 }
 

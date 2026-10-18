@@ -166,3 +166,13 @@ func propEntities(zones []*world.Zone) []*prop.Prop {
 	}
 	return out
 }
+
+// allExitAreas is every placed zone's touch exits (plan-passages.md P4), in
+// world coordinates, for the PassageSystem.
+func allExitAreas(zones []*world.Zone) []world.ExitArea {
+	var out []world.ExitArea
+	for _, z := range zones {
+		out = append(out, z.ExitAreas...)
+	}
+	return out
+}

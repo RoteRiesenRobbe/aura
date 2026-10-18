@@ -271,13 +271,18 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// ⚑ Converted here rather than stored as phy.Vec2f: cfg holds authored
 	// content and stays out of the physics package. This is the one boundary
 	// that already speaks both.
-	if src := gc.ZoneAnchors; len(src) > 0 {
-		zoneAnchors := make(map[string]phy.Vec2f, len(src))
-		for name, pt := range src {
-			zoneAnchors[name] = phy.Vec2f{X: pt.X, Y: pt.Y}
-		}
+	zoneAnchors := make(map[string]phy.Vec2f, len(gc.ZoneAnchors))
+	for name, pt := range gc.ZoneAnchors {
+		zoneAnchors[name] = phy.Vec2f{X: pt.X, Y: pt.Y}
+	}
+	if len(zoneAnchors) > 0 {
 		interactionSys.SetZoneAnchors(zoneAnchors)
 	}
+	// Touch exits (plan-passages.md P4): the same anchors and rectangles the
+	// talk exits travel by, so both kinds of exit move a player one way.
+	// ⚑ Registered unconditionally, the AreaEffectSystem's reason: its Update
+	// returns on a length check.
+	g.AddSystem(sys.NewPassageSystem(gc.ExitAreas, zoneAnchors, gc.Walls))
 	// The rectangles those anchors sit in, so a travel row can say which WAY it
 	// goes (U4b). ⚑ The same slice the border walls were built from a few lines
 	// up — one geometry, two readers, so a zone cannot be walled in one place
@@ -602,6 +607,8 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 			// can talk TO them, which is every player (chunk 3b-i).
 			s.AddPlayer(p)
 		case *sys.QuestSystem:
+			s.AddPlayer(p)
+		case *sys.PassageSystem:
 			s.AddPlayer(p)
 		// Area effects act on players and mobs alike (plan-area-effects.md
 		// D11), so both registration paths carry this case.

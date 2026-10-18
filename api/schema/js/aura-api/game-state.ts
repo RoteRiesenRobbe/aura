@@ -287,8 +287,13 @@ questMarkersLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+crossing():number {
+  const offset = this.bb!.__offset(this.bb_pos, 68);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(32);
+  builder.startObject(33);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -578,6 +583,10 @@ static createQuestMarkersVector(builder:flatbuffers.Builder, data:flatbuffers.Of
 
 static startQuestMarkersVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
+}
+
+static addCrossing(builder:flatbuffers.Builder, crossing:number) {
+  builder.addFieldInt8(32, crossing, 0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

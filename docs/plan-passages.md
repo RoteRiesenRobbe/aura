@@ -1,8 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
-**Status: P1-P3 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 uncommitted;
-PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written; Q5 + Q7 taken as proposed). Open PO
-calls in §7; P4 next.
+**Status: P1-P4 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 `9011e6d4`,
+P4 uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
+2026-10-18; next P3b (words by look, D12), then P5, then P6 (the stones).
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -310,10 +310,37 @@ by D11a. `.debug/` zones included.
 | **P2** | `Passage` + looks | EntityType 120, client class with no bar, no frame, no art (R3); `look` + `rotation` and the client look table; 4 placeholder SVGs (cave-mouth reused); `CaveMouth`/`CaveExit` → `Passage`; migrated looks per D11a. Fix the stale `CaveMouth = 98` fbs comment (it claims walk-on travel exists). | M |
 | **P3** | Words | Exit `id` (D7); the three tiers (D6); `Conversation.exit_id`; client header resolution via `arrivalPlace`; `anchor.barn-inside.text` + the barn door's words as the first content, en + de; lang orphan/dup checks; `extract-english`/`sheet.mjs` learn the `exit.`/`anchor.` keys if they need to. | M |
 | **P4** | Touch exits, server | `exitAreas[]` + four writers + `AuraExitArea`; `PassageSystem` (D8: arming, dwell, cancel, flyers skipped); anchor-inside-area refusal; `crossing:ubyte` (D9). | M |
-| **P5** | Touch exits, client | The glow (D10), the look at the centroid, `crossing` → curtain begin/cancel; map-fog static light if Q6 says yes; one example touch exit in the Fallow Reach test strip; PO look. | M |
+| **P3b** | Words by look (PO 2026-10-18, D12) | The exit's LOOK decides its default words: `exit-look.<look>.text/.go` in `regions.arb` (en + de) replace the door definition's lines as tier 3. `hidden` stops being a look and becomes its own `hidden: true` toggle on `exits` and `exitAreas` (no art, no glow, no name; the words still come from the look). New look `cave-exit` (placeholder art) for the ways up out of a cave. `door` → `conversation` (zone key, Tiled member, the open-refusal for the old key), set only for a conversation written for one exit, which keeps its own lines. Content: the CaveExit placements lose their `door` and take `cave-exit` (the barn's stays `stairs-up`), the two `hidden` exits become `hidden: true`; the `CaveExit` mob is retired. | M |
+| **P5** | Touch exits, client | The gold glow (D10; none on `hidden`, Q4), the look at the centroid, the floating destination name near a touch area (Q3), `crossing` → curtain begin/cancel; ~~map-fog static light~~ (Q6: no); one example touch exit in the Fallow Reach test strip. ⭐ Added (PO 2026-10-18): a row that MOVES you (`travel` ≠ 0) shows no reply, it was unreadable under the curtain; the four travel replies (CaveMouth, CaveExit, portal-home, portal-summon) and their en/de keys are deleted. PO look. | M |
+
+| **P6** | The stones (Q9) | The memorial stone and the ascension stone keep their own art but lose the health bar and the plate, the doors' way. | S |
 
 Each is independently shippable. P1 → P2 → P3 fixes the PO's barn complaint fully. P4/P5 are
 the experiment.
+
+### D12 — the look decides the default words (PO 2026-10-18, replaces D6's tier 3)
+
+The PO, after P3: "the cave should be specific, not a generic default". One kind of exit, one
+kind of words: a door says door things, a cave mouth cave things. So the tiers become, per column:
+
+1. the exit's own (`exit.<id>.title/.text/.go`), always first;
+2. the destination's line (`anchor.<name>.text`), unless the exit names a `conversation`;
+3. **the look's words** (`exit-look.<look>.text/.go`), unless the exit names a `conversation`,
+   whose own lines then stand.
+
+The header is unchanged (exit title, else the place at the anchor). Every ordinary exit talks
+through the one shared conversation (`CaveMouth`, `world.GenericDoor`), whose own lines are
+then never shown. `conversation` (the old `door`, renamed because "door" read as the look) is
+for a conversation written for ONE exit, e.g. a barred door behind a quest.
+
+- **`hidden` is a toggle, not a look** (PO): the look still picks the words, `hidden` only
+  hides the picture (and on a touch area the glow and the floating name, Q4).
+- **`cave-exit`** is the sixth look (PO: "more consistent than shaft-up"): the way up out of a
+  cave, placeholder art. The upward cave exits migrated to `stairs-up` by Q7's rule move to it.
+- Starting words [PLACEHOLDER, PO OK 2026-10-18]: cave-mouth "A dark opening in the rock. Cold
+  air rises out of it." / "Climb down." · cave-exit "A narrow shaft, and daylight at the top of
+  it." / "Climb up." · stairs-down "Steps lead down into the dark." / "Go down." · stairs-up
+  "Steps lead up." / "Go up." · door "A door." / "Go through."
 
 ---
 
@@ -342,25 +369,35 @@ the experiment.
 
 ## 7. Open PO calls
 
-- **Q1 — the dwell.** 0.3 s with walk-out-cancels (proposed), or instant on touch?
+- **Q1 — the dwell.** 0.3 s with walk-out-cancels (proposed), or instant on touch? ✅ **RULED
+  (PO 2026-10-18): as proposed** (0.3 s [PLACEHOLDER], built in P4).
 - **Q2 — touch exits in combat.** Allowed, same as talking to a door today (proposed), or
-  refused while in combat? Either way mobs don't follow (they never have).
-- **Q3 — a name in the world for touch areas?** Proposed: none; the arrival card names the
-  place. Alternative: the destination's name floats over the glow when you come near.
-- **Q4 — `hidden` on a touch area** hides the art but keeps the glow (proposed; the glow *is*
-  the exit). Or should there be a separate glow switch?
+  refused while in combat? Either way mobs don't follow (they never have). ✅ **RULED (PO
+  2026-10-18): allowed, as proposed.**
+- **Q3 — a name in the world for touch areas?** ✅ **RULED (PO 2026-10-18): the destination's
+  name floats over the area when you come near** (the alternative, not the proposal). P5.
+  Details (PO 2026-10-18): the name follows the door header's rule (the exit's own
+  `exit.<id>.title`, else the place at its anchor); it shows within ~4 u [PLACEHOLDER]; a
+  `hidden` area shows no name either; talk exits get NO floating name (their panel names
+  them). The glow is **gold**, one colour for every area [PLACEHOLDER shade and radius].
+- **Q4 — `hidden` on a touch area** ✅ **RULED (PO 2026-10-18): `hidden` hides the glow AND the
+  art** (not the proposal): a hidden touch area is invisible. This narrows R6 ("touch exits
+  glow") to every look but `hidden`. P5.
 - **Q5 — where custom English is typed.** Proposed: in `regions.arb` (the regions precedent:
   Tiled shows only the id). Alternative: `title`/`text` properties in Tiled, extracted on save,
-  which is nicer for the level designer but makes the Tiled save write lang files.
-- **Q6 — do exit glows reveal the map in darkness** (D10)? Proposed yes.
+  which is nicer for the level designer but makes the Tiled save write lang files. ✅ **RULED
+  (PO 2026-10-18): `regions.arb`, as proposed.**
+- **Q6 — do exit glows reveal the map in darkness** (D10)? ✅ **RULED (PO 2026-10-18): no.**
+  The glow is client-only; the server's static-light list does not change.
 - **Q7 — migrated looks** (D11a): `cave-mouth` down, `stairs-up` up, `hidden` where a cave
-  mouth prop already stands. OK?
+  mouth prop already stands. OK? ✅ **RULED (PO 2026-10-18): OK**, and the barn door is
+  `look: door`.
 - **Q8 — the `anchor` field in Tiled:** a free string (today's `spawns[].anchor`, typos
   refused at boot) or a dropdown of every placed anchor (needs a palette regen whenever an
-  anchor is added)? Proposed: string in P1, dropdown later if typos bite.
+  anchor is added)? ✅ **RULED (PO 2026-10-18): keep the free string.**
 - **Q9 — outside scope, flagged:** the memorial stone and the ascension stone are `Signpost`
-  mobs too, so they also carry a health bar. Fix them the same way (a cheap follow-up), or
-  leave them?
+  mobs too, so they also carry a health bar. ✅ **RULED (PO 2026-10-18): fix them too**, the
+  doors' way (no bar, no plate; the stones keep their own art). A small chunk after P5.
 
 ---
 
@@ -461,8 +498,8 @@ migrated by D11a (Q7 as proposed): `hidden` at the two doors a CaveMouth prop al
 (`koboldcave-inside`, `tunnel-west`), `stairs-up` on the 10 CaveExits, the default elsewhere;
 `migrate-exits.mjs` now applies the same rule. The stale `CaveMouth = 98` fbs comment is fixed.
 
-**For the PO:** the barn door (`barn-inside`) draws a CAVE MOUTH beside the barn, per D11a. It
-probably wants `look: door`; one property in Tiled.
+**For the PO:** the barn door (`barn-inside`) draws a CAVE MOUTH beside the barn, per D11a. ✅
+PO 2026-10-18: it is `look: door` (set in world.json with P4's commit).
 
 **Checks.** Go: `world` look/rotation + Passage-refusal tests; `cmd/aurad`, `mobs`, `sys`,
 `codec` green; `aurad -validate` 0 findings (disk, `-debug-zones`). Vitest: the look table vs
@@ -475,7 +512,7 @@ cave-mouth and stairs-up looks drawn, a hidden exit drawing nothing, and the P1 
 **Schema:** DB none · conf none · **wire +1 EntityType (`Passage = 122`)** · zone format `exits[]`
 +`rotation` +`look` · content: `CaveMouth`/`CaveExit` `entityType`.
 
-### P3 — words ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+### P3 — words ✅ BUILT 2026-10-18 (`9011e6d4` on `passages`)
 
 **What landed.** `exits[].id` (D7): optional slug, FIRST key, refused unless `^[a-z0-9-]+$`, unique
 across the placed set (`checkSetWide`, beside the anchor rule); Tiled `id` member on `AuraExit`
@@ -525,3 +562,49 @@ zone files and `regions.arb`.
 
 **Schema:** DB none · conf none · **wire +1 appended `Conversation.exit_id:string`** · zone format
 `exits[]` +`id` · content: `barn.json` exit id; `regions.arb` +3 keys (en + de).
+
+### P4 — touch exits, server ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+
+**What landed.** Zone format `exitAreas[]` = `{id?, points, anchor, look?}` (`world.ExitArea`, after
+`exits` in `Objects`): flattened from areas, offset by `Place`, validated (anchor, id slug, look in
+`ExitLooks`, ≥ 3 points); ids share ONE namespace with `exits` (`checkSetWide`). **L3 is a boot
+refusal:** `world.CrossValidateExitAreas` (in `loadZones`) refuses an area leading to an unauthored
+anchor and ANY anchor standing inside ANY area. **`sys.PassageSystem`** (priority 20, every player,
+registered unconditionally, returns on an empty list): per player `{prev, seen, armed, dwellIn,
+dwellTicks}`; AABB precheck then `PointInPolygon`. Fires on ENTERING only: an arrival inside (a
+first sighting, a landing from flight, or any move over `passageArrivalJump` = 3 u in one tick:
+login, respawn, warp, travel) is disarmed until the player has stood outside once; a dwell of
+`passageDwellTicks` = 9 (0.3 s) [PLACEHOLDERS, Q1 as proposed]; stepping out cancels; flyers are
+skipped. The move is `portalTravel.Travel` in anchor mode, `from` = the centroid for `Direction`
+(resolved once at boot); `portalTravel.rider` narrowed to a 3-method `traveller` so both exits share
+the recipe. Not gated (Q2 as proposed). **Wire:** `GameState.crossing:ubyte` appended (D9): the
+direction while a dwell runs, held on the travel tick, 0 otherwise; plain per-tick, written every
+tick (`player.Crossing/SetCrossing`). The client does not read it yet (P5). Four writers: `zone.go` ·
+`aura-convert.js` (class `AuraExitArea` on the `exits` layer, polygon or rectangle, after the talk
+exits; the layer check names both classes) · `ZoneModel` (carried) · `aura-world-format.js` (generic,
+verified through real Tiled). Palette: `AuraExitArea` = `id`, `anchor`, `look`, pushed LAST.
+
+**Decisions made in the chunk (flag for the PO):**
+- ⭐ **"Arrived" is measured, not signalled:** a jump over 3 u in one tick is an arrival, so every
+  teleport (warp, respawn, campfire flight, either kind of exit) disarms without each one having to
+  tell the PassageSystem. A dash or knockback that carries a player INTO an area also disarms it,
+  which fails safe (no move, step out and back in).
+- **No example content in P4.** An area draws nothing until P5, so a shipped one would be an invisible
+  teleporter. The in-game check uses a PROBE (`passages.mjs --install` / `--uninstall`).
+- `exitAreas` have no words (no panel) and no rotation; `look` defaults to the cave mouth like a
+  talk exit's.
+
+**Checks.** Go: `world` load/flatten/refusals/Place offset/shared id namespace/`CrossValidateExitAreas`
+(missing anchor, anchor inside); `sys` `PassageSystem`: walk in → dwell → travel (crossing set
+through the travel tick, 0 after), leave mid-dwell cancels and a re-entry restarts the dwell, login
+and warp inside are disarmed until out, flyer skipped (and its landing disarmed), removal; `core` the
+crossing byte rides every tick end to end. Full `go test ./...` green bar the two known reds.
+`aurad -validate` 0 findings (with and without the probe). Vitest 1803/0 incl. the completeness pin
+(`exitAreas` authored), both classes round-tripping on one layer, a rectangle read as 4 points,
+shape refusals per class, the shared id namespace, the palette class; `tsc` clean. `verify.sh` all
+green incl. a new leg (both classes on one layer through real Tiled). In game `passages.mjs` 15/15
+with the probe: arriving inside moves nobody, stepping out and in moves the player to the anchor
+(0.23 u), no bounce; then uninstalled.
+
+**Schema:** DB none · conf none · **wire +1 appended `GameState.crossing:ubyte`** · zone format
++1 array (`exitAreas`) · content none.

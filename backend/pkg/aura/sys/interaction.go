@@ -328,6 +328,15 @@ type travelSeam interface {
 	Direction(mode mobs.TravelMode, anchor string) model.TravelDirection
 }
 
+// traveller is the part of a player a travel moves: the flight re-entry, the
+// jump, and the panel that closes with it. Narrow so a touch exit's rider
+// (PassageSystem) travels by the very same recipe as a talking door's.
+type traveller interface {
+	Ground()
+	SetPosition(pos phy.Vec2f)
+	SetConversingWith(id uint64)
+}
+
 // portalTravel is the shipped seam: one conversation's destination and its
 // player-side move.
 //
@@ -364,7 +373,7 @@ type portalTravel struct {
 	// pointer to a removed player still reads a position; it just is not a place
 	// anybody is standing any more.
 	ownerLive bool
-	rider     interactor
+	rider     traveller
 	// from is where the DOOR stands, and zones is every zone's rectangle: the
 	// two halves of the direction answer (U4b). The door rather than the rider
 	// deliberately — the player is within interaction range of it by

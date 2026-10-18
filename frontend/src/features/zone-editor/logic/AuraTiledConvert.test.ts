@@ -2493,6 +2493,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // `rotation` and `look` (P2) non-default for the same reason: no turn
         // and the cave mouth both write no key.
         exits: [{id: 'west-stairs', x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', door: 'CaveExit'}],
+        exitAreas: [{id: 'glow-pit', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}], anchor: 'under-west', look: 'hidden'}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3368,5 +3369,61 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
         exitObjects(m)[0].properties.look = 'trapdoor';
         expect(C.validateModel(m).join(' ')).toContain('unknown look "trapdoor"');
+    });
+
+    // ⭐ P4 (D2): touch exits share the layer, told apart by CLASS, each kind
+    // back to its own array in its own order.
+    describe('touch exits (P4)', () => {
+        const square = [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}];
+
+        it('round-trips both classes on one layer, defaults absent', () => {
+            const exits = [{x: 1, y: 2, anchor: 'a'}];
+            const exitAreas = [
+                {id: 'glow-pit', points: square, anchor: 'b', look: 'stairs-down'},
+                {points: square, anchor: 'c'},
+            ];
+            const out = roundTrip(zone({exits, exitAreas}));
+            expect(out.exits).toEqual(exits);
+            expect(out.exitAreas).toEqual(exitAreas);
+            const objects = exitObjects(C.zoneToModel(zone({exits, exitAreas})));
+            expect(objects.map((o: {cls: string}) => o.cls)).toEqual([C.EXIT_CLASS, C.EXIT_AREA_CLASS, C.EXIT_AREA_CLASS]);
+            expect(objects[2].properties).not.toHaveProperty('look');
+        });
+
+        it('writes no exitAreas key for a zone without them', () => {
+            expect(roundTrip(zone())).not.toHaveProperty('exitAreas');
+        });
+
+        it('reads a rectangle as its four corners', () => {
+            const m = C.zoneToModel(zone({exitAreas: [{points: square, anchor: 'b'}]}));
+            const o = exitObjects(m)[0];
+            Object.assign(o, {shape: 'rect', width: 240, height: 120, polygon: undefined});
+            expect(C.modelToZone(m).exitAreas[0].points).toHaveLength(4);
+        });
+
+        it('refuses the wrong shape for each class', () => {
+            const point = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
+            exitObjects(point)[0].cls = C.EXIT_AREA_CLASS;
+            expect(C.validateModel(point).join(' ')).toContain('must be a POLYGON or a RECTANGLE');
+            const area = C.zoneToModel(zone({exitAreas: [{points: square, anchor: 'b'}]}));
+            exitObjects(area)[0].cls = C.EXIT_CLASS;
+            expect(C.validateModel(area).join(' ')).toContain('an exit is a POINT');
+        });
+
+        it('shares one id namespace with the talk exits', () => {
+            const m = C.zoneToModel(zone({exits: [{id: 'way', x: 0, y: 0, anchor: 'a'}],
+                exitAreas: [{id: 'way', points: square, anchor: 'b'}]}));
+            expect(C.validateModel(m).join(' ')).toContain('duplicate exit id "way"');
+        });
+
+        it('the palette declares AuraExitArea: the talk exit minus the door', () => {
+            const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
+                .propertyTypes as {name: string; members?: unknown[]}[];
+            expect(types.filter(t => t.name === C.EXIT_AREA_CLASS)[0].members).toEqual([
+                {name: 'id', type: 'string', value: ''},
+                {name: 'anchor', type: 'string', value: ''},
+                {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
+            ]);
+        });
     });
 });

@@ -227,6 +227,15 @@ func AreaEffects(areas []world.PlacedAreaEffect) Configuration {
 	}
 }
 
+// ExitAreas installs the touch exits the PassageSystem moves players through
+// (plan-passages.md P4), in world coordinates.
+func ExitAreas(areas []world.ExitArea) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.ExitAreas = areas
+		return nil
+	}
+}
+
 // Regions installs the places a reach objective tests arrival against
 // (plan-region-identity.md R2). PLACED content: collect after world.Place.
 func Regions(regions map[string][]world.PlacedRegion) Configuration {

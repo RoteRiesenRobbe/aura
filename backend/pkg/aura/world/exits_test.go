@@ -335,3 +335,86 @@ func TestApplyExitWords_StampsTheExitID(t *testing.T) {
 	assert.Equal(t, "@barn-inside", z.Exits[1].Def.Interaction.ExitID)
 	assert.Equal(t, "@barn-inside", z.ExitSpawns()[1].Def.Interaction.ExitID, "the spawn talks with it")
 }
+
+// --- P4: touch exits (D1, D8) ---------------------------------------------
+
+func loadExitAreas(t *testing.T, areas string) (*Zone, error) {
+	t.Helper()
+	return LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40}, "exitAreas": [`+areas+`]}`),
+		"", doorRegistry(), newFakePropRegistry())
+}
+
+const glowSquare = `"points": [{"x": 0, "y": 0}, {"x": 2, "y": 0}, {"x": 2, "y": 2}, {"x": 0, "y": 2}]`
+
+func TestExitAreas_LoadAndFlatten(t *testing.T) {
+	z, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
+		"exitAreas": [{"id": "glow-pit", `+glowSquare+`, "anchor": "a", "look": "hidden"}],
+		"areas": [{"id": "farmlands", "exitAreas": [{`+glowSquare+`, "anchor": "b"}]}]}`),
+		"", doorRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.ExitAreas, 2)
+	assert.Equal(t, "glow-pit", z.ExitAreas[0].ID)
+	assert.Equal(t, ExitLookHidden, z.ExitAreas[0].Look)
+	assert.Len(t, z.ExitAreas[0].Points, 4)
+	assert.Equal(t, "farmlands", z.ExitAreas[1].Area)
+	assert.Equal(t, Point{X: 1, Y: 1}, z.ExitAreas[0].Centroid())
+}
+
+func TestExitAreas_RefuseWhatCannotTakeAnyoneAnywhere(t *testing.T) {
+	cases := map[string]struct{ area, want string }{
+		"no anchor":     {`{` + glowSquare + `}`, "exitArea 0: anchor must not be empty"},
+		"two points":    {`{"points": [{"x": 0, "y": 0}, {"x": 1, "y": 0}], "anchor": "a"}`, "exitArea 0: needs at least 3 points"},
+		"an unknown look": {`{` + glowSquare + `, "anchor": "a", "look": "portal"}`, `exitArea 0: look "portal" must be one of`},
+		"a bad id":      {`{"id": "Glow Pit", ` + glowSquare + `, "anchor": "a"}`, `exitArea 0: id "Glow Pit" must be a slug`},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := loadExitAreas(t, c.area)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), c.want)
+		})
+	}
+}
+
+func TestPlace_OffsetsExitAreas(t *testing.T) {
+	z := zoneAt("under", 60, 40, 0, -500)
+	z.ExitAreas = []ExitArea{{Anchor: "up", Points: []Point{{X: 0, Y: 0}, {X: 2, Y: 0}, {X: 0, Y: 2}}}}
+	require.NoError(t, Place([]*Zone{zoneAt("world", 144, 72, 0, 0), z}))
+	assert.Equal(t, []Point{{X: 0, Y: -500}, {X: 2, Y: -500}, {X: 0, Y: -498}}, z.ExitAreas[0].Points)
+}
+
+// One id namespace for both kinds of exit (D7).
+func TestPlace_RefusesAnIDSharedByAnExitAndAnArea(t *testing.T) {
+	a := zoneAt("a", 10, 10, 0, 0)
+	a.Exits = []Exit{{ID: "the-way", Anchor: "x"}}
+	a.ExitAreas = []ExitArea{{ID: "the-way", Anchor: "y"}}
+	err := Place([]*Zone{a})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `exit "the-way"`)
+}
+
+// ⛑ L3, the belt to D8's disarm: an anchor inside a touch area would land
+// travellers on a crossing, and two such areas bounce a player forever.
+func TestCrossValidateExitAreas(t *testing.T) {
+	square := func(cx, cy float32) []Point {
+		return []Point{{X: cx - 1, Y: cy - 1}, {X: cx + 1, Y: cy - 1}, {X: cx + 1, Y: cy + 1}, {X: cx - 1, Y: cy + 1}}
+	}
+	surface := zoneAt("world", 144, 72, 0, 0)
+	surface.Anchors = []Anchor{{Name: "home", X: 10, Y: 10}}
+	under := zoneAt("under", 60, 40, 0, 300)
+	under.Anchors = []Anchor{{Name: "below", X: 0, Y: 300}}
+	surface.ExitAreas = []ExitArea{{Anchor: "below", Points: square(0, 0)}}
+	under.ExitAreas = []ExitArea{{Anchor: "home", Points: square(5, 300)}}
+	zones := []*Zone{surface, under}
+	require.NoError(t, CrossValidateExitAreas(zones))
+
+	under.ExitAreas[0].Anchor = "nowhere"
+	err := CrossValidateExitAreas(zones)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `"nowhere"`)
+
+	under.ExitAreas[0] = ExitArea{Anchor: "home", Points: square(0, 300)}
+	err = CrossValidateExitAreas(zones)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `anchor "below" stands inside`)
+}

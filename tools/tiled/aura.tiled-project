@@ -1076,6 +1076,35 @@
                 "door"
             ],
             "valuesAsFlags": false
+        },
+        {
+            "id": 33,
+            "name": "AuraExitArea",
+            "type": "class",
+            "color": "#ff4db6ac",
+            "drawFill": true,
+            "useAs": [
+                "property",
+                "object"
+            ],
+            "members": [
+                {
+                    "name": "id",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "anchor",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "look",
+                    "type": "string",
+                    "propertyType": "AuraExitLook",
+                    "value": "cave-mouth"
+                }
+            ]
         }
     ]
 }

@@ -466,6 +466,17 @@ presses E.
    that test as an orphan. ⚑ Words are read at server boot: restart to see
    them.
 
+**Touch exits** (plan-passages.md P4): an area the player walks into instead
+of a point they talk to. On the same `exits` layer, draw a **polygon** or a
+**rectangle** and set its Class to `AuraExitArea`; fill in `anchor` (and
+optionally `id` and `look`, as for a talk exit). Walking in and staying a
+moment (about 0.3 s) moves the player; stepping back out first cancels it. A
+player who *arrives* inside one (a login, a respawn, a landing) is not moved
+until they have walked out once. ⛔ The server refuses to boot when any anchor
+stands inside a touch exit: whoever travels there would land on a crossing.
+⚑ Not drawn in game yet (P5 adds the glow and the look): for now it is an
+invisible trigger, so do not place one in shipped content.
+
 ⛔ **Keep exits out of a campfire's circle.** The fire's flight map takes every
 E press near it, so the server refuses to boot when an exit stands inside a
 bind circle plus its own reach, and names both.

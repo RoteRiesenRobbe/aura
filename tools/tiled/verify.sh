@@ -111,7 +111,7 @@ node -e '
 const fs = require("fs");
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 const parts = [z, ...(z.areas || [])];
-const KINDS = ["decals", "spawns", "exits", "bindPoints", "darkAreas", "regions",
+const KINDS = ["decals", "spawns", "exits", "exitAreas", "bindPoints", "darkAreas", "regions",
     "paths", "structures", "atmospheres", "clearings", "anchors"];
 const flat = {};
 // Every key in zone.go order: a kind the zone level no longer holds (all of
@@ -1189,6 +1189,31 @@ if grep -q '"rotation": 1.571' tools/tiled/.verify/exit-turn.json \
     ok "byte-identical — rotation and look survive"
 else
     bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-turn.json tools/tiled/.verify/exit-turn-out.json 2>&1 | head -1)"
+fi
+
+# P4: TOUCH exits share the exits layer with the talk exits, told apart by
+# class (D2). No shipped zone has one yet, so this leg writes both classes on
+# one layer and needs both back in their own arrays.
+echo
+echo "touch exits share the exits layer and come back to their own array"
+node -e '
+const fs = require("fs");
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/barn.json", "utf8"));
+z.exitAreas = [
+  {id: "glow-pit", points: [{x: -2, y: -2}, {x: 0, y: -2}, {x: -1, y: 0}], anchor: "barn-surface", look: "stairs-down"},
+  {points: [{x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 1, y: 2}], anchor: "barn-surface"},
+];
+fs.writeFileSync("tools/tiled/.verify/exit-areas.json", C.serializeZone(z, true));
+'
+if grep -q '"exitAreas"' tools/tiled/.verify/exit-areas.json \
+   && "$TILED" --export-map aura-zone tools/tiled/.verify/exit-areas.json \
+        "$(native "$ROOT/tools/tiled/.verify/exit-areas-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json; then
+    ok "byte-identical — both classes, id and look survive"
+else
+    bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json 2>&1 | head -1)"
 fi
 
 # ⛔ D11/L2: a zone still placing a door in `spawns` is VALID to the server, so

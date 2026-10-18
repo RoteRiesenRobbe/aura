@@ -170,6 +170,16 @@ export interface ZoneExit extends InArea {
     door?: string;
 }
 
+// A touch exit (plan-passages.md P4): an area that moves whoever walks into
+// it to a zone anchor, authored in Tiled on the `exits` layer as an
+// AuraExitArea. Carried, never edited, like a talk exit.
+export interface ZoneExitArea extends InArea {
+    id?: string;
+    points: {x: number, y: number}[];
+    anchor: string;
+    look?: string;
+}
+
 // A polygon naming a client-side presentation profile — ground colour today,
 // footsteps/music/atmosphere later (plan-region-primitive.md).
 //
@@ -309,6 +319,7 @@ export interface ZoneData {
     spawns: ZoneSpawn[];
     // Omitted when empty, so a zone without exits round-trips diff-clean.
     exits?: ZoneExit[];
+    exitAreas?: ZoneExitArea[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     bindPoints?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
@@ -428,6 +439,7 @@ export class ZoneModel {
     paths: ZonePath[] = [];
     // Carried, never edited: exits are a Tiled job (plan-passages.md P1).
     exits: ZoneExit[] = [];
+    exitAreas: ZoneExitArea[] = [];
     structures: ZonePolygon[] = [];
     atmospheres: ZoneAtmosphere[] = [];
     clearings: ZoneClearing[] = [];
@@ -496,6 +508,13 @@ export class ZoneModel {
             look: e.look,
             door: e.door,
             area: e.area,
+        }));
+        model.exitAreas = (data.exitAreas || []).map(a => ({
+            id: a.id,
+            points: (a.points || []).map(pt => ({...pt})),
+            anchor: a.anchor,
+            look: a.look,
+            area: a.area,
         }));
         model.paths = (data.paths || []).map(p => ({
             profile: p.profile,
@@ -665,6 +684,7 @@ export class ZoneModel {
         const props = mine(this.props);
         const spawns = mine(this.spawns);
         const exits = mine(this.exits);
+        const exitAreas = mine(this.exitAreas);
         const bindPoints = mine(this.bindPoints);
         const darkAreas = mine(this.darkAreas);
         const regions = mine(this.regions);
@@ -743,6 +763,16 @@ export class ZoneModel {
                     anchor: e.anchor,
                     look: e.look && e.look !== DEFAULT_EXIT_LOOK ? e.look : undefined,
                     door: e.door || undefined,
+                }))
+                : undefined,
+            // Touch exits (P4), serializeZone's shape: id and look absent at
+            // their defaults.
+            exitAreas: exitAreas.length > 0
+                ? exitAreas.map(a => ({
+                    id: a.id || undefined,
+                    points: a.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
+                    anchor: a.anchor,
+                    look: a.look && a.look !== DEFAULT_EXIT_LOOK ? a.look : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones

@@ -365,7 +365,8 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 			slog.Float64("height", float64(zone.Bounds.Height)),
 			slog.Int("props", len(zone.Props)),
 			slog.Int("spawns", len(zone.Spawns)),
-			slog.Int("exits", len(zone.Exits)))
+			slog.Int("exits", len(zone.Exits)),
+			slog.Int("exitAreas", len(zone.ExitAreas)))
 		// A live zone referencing legacy-tagged content means the tag went
 		// stale — untag the content or retire the reference (step-7 A.5).
 		if len(zone.LegacyRefs) > 0 {
@@ -393,6 +394,11 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 	// Does any talk exit stand inside a campfire's dwell circle, where the
 	// flight offer swallows its E press (plan-passages.md D3, underworld L8)?
 	if err := world.CrossValidateExitClearance(zones, campfireDwellRadius(mr)); err != nil {
+		return nil, err
+	}
+	// Does every touch exit lead somewhere, and does no anchor land a traveller
+	// on one (plan-passages.md P4, L3)?
+	if err := world.CrossValidateExitAreas(zones); err != nil {
 		return nil, err
 	}
 	// Does every area effect a shape names exist (plan-area-effects.md E1)?

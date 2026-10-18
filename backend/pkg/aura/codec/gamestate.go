@@ -727,6 +727,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// missing on an ordinary tick the way the tree above can. 0 is the field
 	// default, so a closed panel still costs nothing.
 	AuraApi.GameStateAddConversationEntityId(builder, gs.Player.ConversingWith())
+	// A touch exit's dwell (plan-passages.md D9): live state like the id
+	// above, written every tick; 0, the default, costs nothing.
+	AuraApi.GameStateAddCrossing(builder, byte(gs.Player.Crossing()))
 	// The quest ledger (chunk C3, gated by chunk 3): live STATE like the
 	// spellbook above, sent only when SkipOwnerState let it build. Nothing
 	// written while the player has no quests, or while unchanged.

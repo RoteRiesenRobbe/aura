@@ -4269,7 +4269,8 @@
         {
           "x": -197.51,
           "y": 14.59,
-          "anchor": "barn-inside"
+          "anchor": "barn-inside",
+          "look": "door"
         }
       ],
       "bindPoints": [
