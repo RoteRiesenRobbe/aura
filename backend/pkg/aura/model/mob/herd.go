@@ -1,6 +1,8 @@
 package mob
 
 import (
+	"math"
+
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -25,6 +27,24 @@ const herderMemoryTicks = 10 * constant.TicksPerSecond
 // (R3). [PLACEHOLDER] 2 s.
 const penDwellTicks = 2 * constant.TicksPerSecond
 
+// herdFleeLingerTicks is how long a herd animal keeps running once nobody is
+// inside its run radius any more (PO 2026-10-18). Without it a player standing
+// still between a sheep and its way home made it jitter at the radius's edge,
+// one tick fleeing, the next grazing back in. [PLACEHOLDER] 1 s.
+const herdFleeLingerTicks = constant.TicksPerSecond
+
+// The veer (PO 2026-10-18): a running herd animal does not go dead straight
+// away. Its course drifts by an angle that eases toward a fresh random target
+// every herdVeerEveryTicks, at most herdVeerMax either side, so the player has
+// to keep correcting. Eased rather than re-rolled per tick, which would only
+// read as jitter and average out to straight. [PLACEHOLDER] ±35° (PO: a
+// little more than the first 25°), 0.75 s, 0.1.
+const (
+	herdVeerMax        = float32(35 * math.Pi / 180)
+	herdVeerEveryTicks = constant.TicksPerSecond * 3 / 4
+	herdVeerEase       = float32(0.1)
+)
+
 // herder is one player a herd animal ran from, and on which of its own ticks.
 type herder struct {
 	player   model.PlayerEntity
@@ -40,21 +60,53 @@ func (m *Mob) HerdPen() string {
 	return m.definition.Herd.Pen
 }
 
-// herdPush is where a herd animal runs from this tick (D2, R12): the point
-// whose away-direction is the sum of every herding player's push, each the
-// unit vector from the player to the animal weighted by 1/distance — so one
-// player drives it straight away, two flanking players steer it between them,
-// and the nearer of two pushes harder. Every player counted is noted as a
-// herder (D3). ok is false with nobody to run from.
+// herdRun is where a herd animal runs from this tick, as a point for
+// moveAwayFrom; ok is false when it does not run. Inside the run radius it is
+// the players' push (herdPush); for herdFleeLingerTicks after the last push it
+// keeps that last direction; either way the veer bends it.
+func (m *Mob) herdRun() (from phy.Vec2f, ok bool) {
+	if push, pushed := m.herdPush(); pushed {
+		m.herdFleeTicks = herdFleeLingerTicks
+		if push.AbsSq() > 1e-12 {
+			m.herdFleeDir = push.Normalize()
+		} else {
+			// Exact cancellation, or a player on top of it: keep the heading,
+			// as moveAwayFrom does with a threat at its own position.
+			m.herdFleeDir = m.heading
+		}
+	} else if m.herdFleeTicks > 0 {
+		m.herdFleeTicks--
+	} else {
+		return phy.Vec2f{}, false
+	}
+	return m.Position().Sub(m.veer(m.herdFleeDir)), true
+}
+
+// veer turns dir by the current veer angle and advances it one tick: every
+// herdVeerEveryTicks a fresh target in ±herdVeerMax, eased toward each tick.
+func (m *Mob) veer(dir phy.Vec2f) phy.Vec2f {
+	if m.herdVeerTicks <= 0 {
+		m.herdVeerTicks = herdVeerEveryTicks
+		m.herdVeerTarget = (m.rand.Float32()*2 - 1) * herdVeerMax
+	}
+	m.herdVeerTicks--
+	m.herdVeer += (m.herdVeerTarget - m.herdVeer) * herdVeerEase
+	return phy.NewRotMat2f(m.herdVeer).Mult(dir)
+}
+
+// herdPush is the sum of every herding player's push this tick (D2, R12),
+// each the unit vector from the player to the animal weighted by 1/distance —
+// so one player drives it straight away, two flanking players steer it
+// between them, and the nearer of two pushes harder. Every player counted is
+// noted as a herder (D3). ok is false with nobody to run from.
 //
 // Only players on the ground herd (R9): a companion on the player layer is a
 // mob, not a PlayerEntity, and a flyer or a stealthed player is not there. A
 // dead player has left the space, and its departure fan-out (ForgetEntity)
 // drops it from the herders too.
-func (m *Mob) herdPush() (from phy.Vec2f, ok bool) {
+func (m *Mob) herdPush() (push phy.Vec2f, ok bool) {
 	pos := m.Position()
 	runRadius := m.definition.Body.AggroRadius
-	var push phy.Vec2f
 	for c := range m.aggroAura.Collisions() {
 		p, isPlayer := c.Shape().UserData.(model.PlayerEntity)
 		if !isPlayer || p.Flying() || model.IsStealthed(p) {
@@ -78,9 +130,7 @@ func (m *Mob) herdPush() (from phy.Vec2f, ok bool) {
 			push = push.Add(delta.Div(d2))
 		}
 	}
-	// A zero sum (exact cancellation, or a player on top of it) hands
-	// moveAwayFrom a threat at its own position, which keeps its heading.
-	return pos.Sub(push), ok
+	return push, ok
 }
 
 // tickHerd advances the herd clock and drops the herders it has forgotten

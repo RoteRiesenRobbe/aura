@@ -423,3 +423,19 @@ No open PO calls.
   0/6, six real pennings walk 1/6 … 5/6 into the three stray lines, Woolliam holds at 1.8 u and
   runs at 1.0 u, 0 page errors.
 - **Schema:** DB/conf NONE · wire +1 `QuestObjectiveKind` value · content +`herd` objective.
+
+### Polish — BUILT 2026-10-18, PO feel owed
+
+- **Linger (PO):** a herd animal keeps running in its last direction for `herdFleeLingerTicks`
+  (1 s [PLACEHOLDER]) after nobody is inside its run radius, which ends the edge jitter when a
+  still player blocks its way home. A talk or sleep cancels the linger.
+- **Veer (PO):** the run direction is rotated by an angle that eases (0.1/tick) toward a fresh
+  random target in ±35° (raised from 25° by the PO) every 0.75 s [PLACEHOLDER], from the mob's own seeded RNG; applies to
+  the linger too. All in `model/mob/herd.go` (`herdRun`, `veer`).
+- **Verified:** `model/mob` herd tests (3 new, 2 re-pointed to "within the veer"); full suite
+  green bar the two known reds; `herd-h1` 4/4 (a sheep now ends 3.26 u off, past the 2.5 u
+  radius); `herd-h2` 4/4 on the second run. ⚑ The first run failed leg 3 by Woolliam moving
+  0.67 u at 1.8 u = exactly 1 s of linger at his speed: his wander brushed his 1.5 u radius and
+  he bolted. That is the linger working; a stubborn stray grazing beside a still player now
+  hops away once instead of twitching.
+- **Schema:** NONE (DB/wire/conf/content).

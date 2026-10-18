@@ -552,10 +552,17 @@ type Mob struct {
 
 	// Herding (plan-herding.md D3/D4, herd.go): the players this herd animal
 	// ran from by id, its own tick clock for their expiry, and how long it has
-	// stood in its pen. All zero on every mob without a herd block.
-	herders  map[uint64]herder
-	herdTick uint64
-	penTicks int
+	// stood in its pen; the run's lingering direction and ticks left, and its
+	// veer (angle, target, ticks to the next target). All zero on every mob
+	// without a herd block.
+	herders        map[uint64]herder
+	herdTick       uint64
+	penTicks       int
+	herdFleeDir    phy.Vec2f
+	herdFleeTicks  int
+	herdVeer       float32
+	herdVeerTarget float32
+	herdVeerTicks  int
 
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
@@ -1185,9 +1192,12 @@ func (m *Mob) Update(dt float32) bool {
 		m.tickHerd()
 		// A talk holds a herd animal where it stands, as it holds a patrolling
 		// NPC (plan-herding.md D13): otherwise the panel would close the moment
-		// it opened, the animal running out of talk range.
-		if !m.conversing {
-			herdFrom, herded = m.herdPush()
+		// it opened, the animal running out of talk range. A talk also ends a
+		// lingering run, which must not resume when the panel closes.
+		if m.conversing {
+			m.herdFleeTicks = 0
+		} else {
+			herdFrom, herded = m.herdRun()
 		}
 	}
 

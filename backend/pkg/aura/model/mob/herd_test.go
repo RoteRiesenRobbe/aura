@@ -6,6 +6,7 @@ package mob
 // and leaves the world without a death's rewards.
 
 import (
+	"math"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -73,15 +74,83 @@ func TestHerd_OnlyAHerdAnimalSeesPlayers(t *testing.T) {
 	assert.Zero(t, plain.aggroAura.Shape().Mask&int(model.LayerPlayerCollision), "control")
 }
 
-func TestHerd_RunsStraightAwayFromANearPlayer(t *testing.T) {
+// assertStepWithinVeer checks one full-speed step from `from` to `to` points
+// along `away`, give or take the veer (herdVeerMax).
+func assertStepWithinVeer(t *testing.T, m *Mob, from, to, away phy.Vec2f) {
+	t.Helper()
+	step := to.Sub(from)
+	assert.InDelta(t, float64(m.velocity), float64(step.Abs()), 1e-5, "one full-speed step")
+	cos := float64(step.Dot(away) / (step.Abs() * away.Abs()))
+	assert.LessOrEqual(t, math.Acos(math.Min(1, cos)), float64(herdVeerMax)+1e-3, "away, within the veer")
+}
+
+func TestHerd_RunsAwayFromANearPlayer(t *testing.T) {
 	sheep := newSheep(phy.VEC2F_ZERO)
 	p := playerAt(-1, 0)
 	sensesAll(sheep, p)
 
 	require.True(t, sheep.Update(0))
 
-	assert.InDelta(t, float64(sheep.velocity), float64(sheep.Position().X), 1e-5, "one full-speed step away")
-	assert.InDelta(t, 0, sheep.Position().Y, 1e-5)
+	assertStepWithinVeer(t, sheep, phy.VEC2F_ZERO, sheep.Position(), phy.Vec2f{X: 1})
+}
+
+// The veer makes a run less predictable (PO 2026-10-18): with a player
+// pressing from straight behind, the sheep drifts off the straight line both
+// ways over a long run, but never by more than herdVeerMax.
+func TestHerd_TheRunVeersBothWaysWithinItsBound(t *testing.T) {
+	sheep := newSheep(phy.VEC2F_ZERO)
+	var left, right bool
+	for i := 0; i < 20*herdVeerEveryTicks; i++ {
+		before := sheep.Position()
+		sensesAll(sheep, playerAt(before.X-1, before.Y))
+		require.True(t, sheep.Update(0))
+		assertStepWithinVeer(t, sheep, before, sheep.Position(), phy.Vec2f{X: 1})
+		dy := sheep.Position().Y - before.Y
+		left = left || dy > 1e-4
+		right = right || dy < -1e-4
+	}
+	assert.True(t, left && right, "it wanders to both sides of straight away")
+}
+
+// The flee carries on past the run radius (PO 2026-10-18): a player standing
+// still between a sheep and its way home no longer makes it jitter in and out
+// of the radius every tick.
+func TestHerd_KeepsRunningForAWhileAfterLeavingTheRadius(t *testing.T) {
+	sheep := newSheep(phy.VEC2F_ZERO)
+	sensesAll(sheep, playerAt(-1, 0))
+	require.True(t, sheep.Update(0))
+	sensesAll(sheep) // out of the radius
+
+	for i := 0; i < herdFleeLingerTicks; i++ {
+		before := sheep.Position()
+		require.True(t, sheep.Update(0))
+		assertStepWithinVeer(t, sheep, before, sheep.Position(), phy.Vec2f{X: 1})
+	}
+
+	sheep.SetPosition(phy.VEC2F_ZERO)
+	require.True(t, sheep.Update(0))
+	assert.Equal(t, phy.VEC2F_ZERO, sheep.Position(), "then it stops and grazes")
+}
+
+func TestHerd_ATalkOrSleepEndsTheLingeringRun(t *testing.T) {
+	for name, interrupt := range map[string]func(*Mob){
+		"talk":  func(m *Mob) { m.SetConversing(true); m.SetConversing(false) },
+		"sleep": func(m *Mob) { m.SetDormant(true); m.SetDormant(false) },
+	} {
+		sheep := newSheep(phy.VEC2F_ZERO)
+		sensesAll(sheep, playerAt(-1, 0))
+		require.True(t, sheep.Update(0))
+		sensesAll(sheep)
+		if name == "talk" {
+			sheep.SetConversing(true)
+			require.True(t, sheep.Update(0))
+		}
+		interrupt(sheep)
+
+		at := sheep.Position()
+		require.True(t, sheep.Update(0))
+		assert.LessOrEqual(t, sheep.Position().X, at.X, "%s: the run does not resume, it heads home", name)
+	}
 }
 
 func TestHerd_RunningIsNotAFight(t *testing.T) {
@@ -114,8 +183,7 @@ func TestHerd_TwoFlankingPlayersSteerItBetweenThem(t *testing.T) {
 
 	require.True(t, sheep.Update(0))
 
-	assert.Greater(t, sheep.Position().X, float32(0), "pushed on, between the two")
-	assert.InDelta(t, 0, sheep.Position().Y, 1e-5, "neither one alone decides (R12)")
+	assertStepWithinVeer(t, sheep, phy.VEC2F_ZERO, sheep.Position(), phy.Vec2f{X: 1})
 }
 
 func TestHerd_TheCloserPlayerPushesHarder(t *testing.T) {

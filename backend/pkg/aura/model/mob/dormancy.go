@@ -35,6 +35,7 @@ func (m *Mob) SetDormant(v bool) {
 	m.dormant = v
 	if v {
 		m.herders = nil
+		m.herdFleeTicks = 0
 	}
 }
 
