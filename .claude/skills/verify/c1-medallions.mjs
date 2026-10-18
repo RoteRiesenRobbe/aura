@@ -16,6 +16,12 @@
 //     their own tint (Medallions.ringTint), and there is no rim layer.
 // Report-style plus asserts; INCONCLUSIVE when a venue shows no subject.
 //
+// C1b (plan-appearance.md D31-D34) adds per subject: exactly one disc sprite
+// in the token's `disc` slot, below the portrait, tinted DISC_SHADE and drawn
+// at the pack portrait's 0.86 of the ring; and, when this build carries the
+// pack, a pack portrait (a canvas-backed texture, PackIconFiles) with every
+// subject's portrait a different texture (the wolf line no longer shares one).
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -43,7 +49,16 @@ const VENUES = [
   { name: 'hermit', at: [-121, -29], subjects: [['Hermit', 'grey', 'normal']] },
   { name: 'knot', at: [40, -147], subjects: [['Grandfather Knot', 'forest', 'normal']] },
   { name: 'dragon', at: [211, 163], subjects: [['Dragon', 'grey', 'boss']] },
+  // C1b (D31-D34): the wolf line's own portraits, a pack-tinted harvestable,
+  // and placeholder species with their own (speciesPortraits) busts.
+  { name: 'wolfLine', at: [-83, 172], subjects: [['Elite Wolf', 'forest', 'elite'], ['Alpha Wolf', 'forest', 'normal']] },
+  { name: 'direWolf', at: [-160.4, 22.2], subjects: [['Dire Wolf', 'forest', 'normal']] },
+  { name: 'turnip', at: [-192.4, 15.5], subjects: [['Turnip', 'grey', 'normal']] },
+  { name: 'cultist', at: [165, -18.6], subjects: [['Cultist', 'grey', 'normal']] },
+  { name: 'skeleton', at: [80.7, -27.7], subjects: [['Skeleton', 'grey', 'normal']] },
 ];
+// Medallions.ts DISC_SHADE [PLACEHOLDER]; restated so a retune is loud.
+const DISC_SHADE = 0x6b6b6b;
 // Medallions.ts RING_TINTS [PLACEHOLDER shades]; restated so a retune is loud.
 const TINTS = { normal: 0x707070, elite: 0xffffff, boss: 0xffd040 };
 
@@ -107,10 +122,16 @@ const readTokens = () => page.evaluate(() => {
       const ringSprites = frame.children.filter((k) => k.texture && !k.context);
       const src = (s) => String(s.texture?.source?.label ?? s.texture?.label ?? s.texture?.source?.resource?.src ?? '');
       const plate = plates.find((p) => Math.hypot(p.x - c.position.x, p.y - c.position.y) < 1);
+      const discSlot = token.children.find((k) => k.label === 'disc');
+      const portrait = token.children.find((k) => k.label === 'actualShape')?.children?.[0];
+      const resource = portrait?.texture?.source?.resource;
       out.push({
         plate: plate?.text ?? '',
         x: c.position.x / 120, y: c.position.y / 120,
         rings: ringSprites.map((s) => ({ src: src(s).split('/').pop().split('?')[0].slice(0, 40), uid: s.texture.source.uid, tint: s.tint, w: s.width })),
+        discOrder: token.children.map((k) => k.label).join(','),
+        discs: (discSlot?.children ?? []).map((d) => ({ tint: d.tint, w: d.width })),
+        portrait: { uid: portrait?.texture?.source?.uid, pack: resource?.tagName === 'CANVAS' },
       });
       return;
     }
@@ -121,7 +142,10 @@ const readTokens = () => page.evaluate(() => {
   return { me: [me.getX() / 120, me.getY() / 120], tokens: out };
 });
 
+const packIcons = await page.evaluate(async () =>
+  Object.keys((await (await fetch('/icons/icons.json', { cache: 'no-store' })).json()).icons ?? {}).length);
 let pass = 0, fail = 0, inconclusive = 0;
+const portraits = []; // [portrait texture uid, label], for the distinct-portrait leg
 const report = [];
 const seen = []; // [family, texture uid, label] per subject, for the identity legs
 for (const v of VENUES) {
@@ -139,8 +163,18 @@ for (const v of VENUES) {
     else {
       seen.push([ringFile, t.rings[0].uid, `${v.name}/${t.plate}`]);
       if (t.rings[0].tint !== TINTS[tier]) problems.push(`tint 0x${t.rings[0].tint.toString(16)}, want 0x${TINTS[tier].toString(16)} (${tier})`);
+      if (t.discOrder !== 'disc,actualShape,frame') problems.push(`token order ${t.discOrder}`);
+      if (t.discs.length !== 1) problems.push(`${t.discs.length} disc sprites`);
+      else {
+        if (t.discs[0].tint !== DISC_SHADE) problems.push(`disc tint 0x${t.discs[0].tint.toString(16)}`);
+        if (Math.abs(t.discs[0].w - t.rings[0].w * 0.86) > 1) problems.push(`disc ${t.discs[0].w.toFixed(1)}px, want 0.86 x ${t.rings[0].w.toFixed(1)}`);
+      }
+      if (packIcons > 0) {
+        if (!t.portrait.pack) problems.push('portrait is not the pack bust');
+        portraits.push([t.portrait.uid, `${v.name}/${t.plate}`]);
+      }
     }
-    const line = `${v.name}: "${t.plate}" family=${ringFile} tex#${t.rings[0]?.uid} tint=0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px`;
+    const line = `${v.name}: "${t.plate}" family=${ringFile} tex#${t.rings[0]?.uid} tint=0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px disc=${t.discs[0]?.w?.toFixed(0)}px portrait#${t.portrait.uid}${t.portrait.pack ? ' pack' : ''}`;
     if (problems.length) { fail++; report.push(`FAIL ${line} -> ${problems.join('; ')}`); }
     else { pass++; report.push(`PASS ${line}`); }
   }
@@ -159,6 +193,13 @@ for (let i = 0; i < seen.length; i++) {
   }
 }
 report.push(`family identity: ${seen.length} subjects checked pairwise`);
+// D33/D34: every subject draws its own bust (the wolf line used to share one).
+for (let i = 0; i < portraits.length; i++) {
+  for (let j = i + 1; j < portraits.length; j++) {
+    if (portraits[i][0] === portraits[j][0]) { fail++; report.push(`FAIL shared portrait: ${portraits[i][1]} and ${portraits[j][1]} (tex#${portraits[i][0]})`); }
+  }
+}
+report.push(packIcons > 0 ? `portraits: ${portraits.length} pack busts checked pairwise (${packIcons} pack icons in this build)` : 'portraits: this build has no pack icons, pack legs skipped');
 if (errors.length) { fail++; report.push(`FAIL page errors: ${errors.slice(0, 5).join(' | ')}`); }
 console.log(report.join('\n'));
 console.log(`\n${label}: ${pass} PASS / ${fail} FAIL / ${inconclusive} INCONCLUSIVE`);

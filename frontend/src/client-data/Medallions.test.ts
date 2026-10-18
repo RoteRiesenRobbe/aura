@@ -105,7 +105,8 @@ describe('medallion coverage', () => {
         .filter(f => f.friendlyToPlayers)
         .map(f => f.name as string));
 
-    const configs: Record<string, {medallion?: MedallionSpec, maxSize: number}> = {...GraphicsConfig.mobs, ...GraphicsConfig.npcs};
+    const configs: Record<string, {medallion?: MedallionSpec, packIcon?: string, maxSize: number}> = {...GraphicsConfig.mobs, ...GraphicsConfig.npcs};
+    const manifest: Record<string, string> = JSON.parse(readFileSync('src/client-data/icons/pack-manifest.json', 'utf-8')).icons;
 
     const species = readdirSync('../api/mobs')
         .filter(f => f.endsWith('.json'))
@@ -129,6 +130,33 @@ describe('medallion coverage', () => {
             } else {
                 expect(configs[key].medallion, `${def.name}: "${key}" needs a medallion spec`).toBeDefined();
             }
+        }
+    });
+
+    // D31 (PO 2026-10-18): every live and local build draws a set PONETI
+    // portrait for every species that wears a medallion; the species' own
+    // (speciesPortraits, D33) wins over its class's packIcon.
+    it('gives every medallion species a pack portrait the manifest lists', () => {
+        for (const def of species) {
+            const entityType: string = def.entityType ?? def.name;
+            const key = KEY_ALIASES[entityType] ?? entityType[0].toLowerCase() + entityType.slice(1);
+            if (!configs[key]?.medallion) {
+                continue;
+            }
+            const xpFactor = def.factors?.xpFactor ?? 1;
+            if (!(xpFactor > 0 && !friendly.has(def.faction)) && def.interaction === undefined) {
+                continue;
+            }
+            const name = GraphicsConfig.speciesPortraits[def.name]?.packIcon ?? configs[key].packIcon;
+            expect(name, `${def.name}: no pack portrait (Graphics.ts "${key}".packIcon or speciesPortraits)`).toBeDefined();
+            expect(manifest[name], `${def.name}: "${name}" is not in pack-manifest.json`).toBeDefined();
+        }
+    });
+
+    it('keys speciesPortraits on real species', () => {
+        const names = new Set(species.map(def => def.name as string));
+        for (const name of Object.keys(GraphicsConfig.speciesPortraits)) {
+            expect(names.has(name), `speciesPortraits.${name}: no api/mobs species of that name`).toBe(true);
         }
     });
 });

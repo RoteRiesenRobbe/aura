@@ -13,6 +13,10 @@ carry their own licences.
   on the seat holder's machine only.
 - **What the repo holds:** only `frontend/src/client-data/icons/pack-manifest.json`,
   a list of the icons Aura uses by file name.
+- **Portraits (plan-appearance.md D31, PO 2026-10-18):** every mob and NPC
+  that wears a medallion draws a pack portrait on builds that carry the
+  atlases; the committed art under `frontend/src/features/game-objects/assets/`
+  is only the fallback a clone without the pack draws.
 - **What ships:** the licence allows the icons embedded in the game build, and
   that is the only place they appear: `tools/pack-icons.mjs` packs the listed
   icons into 2048² texture atlases in `frontend/icons-prebuilt/` (the seat

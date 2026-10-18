@@ -58,6 +58,12 @@ const RING_TINTS: { readonly [rank: number]: number } = {
     [TierRank.Boss]: 0xffd040,
 };
 
+// The disc behind every medallion portrait (plan-appearance.md C1b), one
+// shade for everyone until C2 tints it by stance (D29) [PLACEHOLDER]. The pack
+// busts are transparent (D31), so the disc is what fills the ring's window
+// around them.
+export const DISC_SHADE = 0x6b6b6b;
+
 /** The ring's tint for a wire tier rank; an unknown rank reads as normal. */
 export function ringTint(rank: number): number {
     return RING_TINTS[rank] ?? RING_TINTS[TierRank.Normal];

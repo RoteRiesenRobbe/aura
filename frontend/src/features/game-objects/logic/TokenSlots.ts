@@ -19,10 +19,11 @@ export const FRAME_LABEL = 'frame';
  *
  *   belowArt   aura ring stack, then the campfire's dwell ring
  *   token      the slot the medallion plan calls `art`; the only node a lunge
- *              moves. Inside it: actualShape (the portrait; the damage flash
- *              scales and floods this alone, M-§5.1), then `frame` (the
- *              medallion ring, tinted by tier, or a fixture's or summon's
- *              border). The stance disc (C2) goes BELOW actualShape.
+ *              moves. Inside it: `disc` (the plain disc behind a medallion
+ *              portrait, plan-appearance.md C1b; C2 tints it by stance), then
+ *              actualShape (the portrait; the damage flash scales and floods
+ *              this alone, M-§5.1), then `frame` (the medallion ring, tinted
+ *              by tier, or a fixture's or summon's border).
  *   aboveArt   overhead health bar and interact badge (Mob; a Character's bar
  *              rides its plate), ascension channel effect (Character)
  *
@@ -32,6 +33,7 @@ export const FRAME_LABEL = 'frame';
 export interface TokenSlots {
     belowArt: Container;
     token: Container;
+    disc: Container;
     actualShape: Container;
     frame: Container;
     aboveArt: Container;
@@ -40,11 +42,12 @@ export interface TokenSlots {
 export function createTokenSlots(group: Container, portrait: Container): TokenSlots {
     const belowArt = createNamedContainer('belowArt');
     const token = createNamedContainer(TOKEN_LABEL);
+    const disc = createNamedContainer('disc');
     const actualShape = createNamedContainer('actualShape');
     const frame = createNamedContainer(FRAME_LABEL);
     const aboveArt = createNamedContainer('aboveArt');
     actualShape.addChild(portrait);
-    token.addChild(actualShape, frame);
+    token.addChild(disc, actualShape, frame);
     group.addChild(belowArt, token, aboveArt);
-    return {belowArt, token, actualShape, frame, aboveArt};
+    return {belowArt, token, disc, actualShape, frame, aboveArt};
 }

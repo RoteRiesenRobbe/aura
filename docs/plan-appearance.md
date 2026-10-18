@@ -2,8 +2,8 @@
 
 > **Status: APPROVED 2026-10-17 (planning session, five PO prompt rounds, D1-D22;
 > refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
-PO look passed, the real-phone check waived to the next deploy). Next: C2.** Order (D24):
-> C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+> PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
+> PO look passed). Next: C2.** Order (D24): C0a → C1 → C1b → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -278,6 +278,37 @@ plan proposes on top (marked *proposed*).
 - **D30. The starter set is 4 portraits and 2 rings** [PLACEHOLDER], all
   placeholder art until the artist's portraits land. The two starter rings name
   two families (D2).
+- **D31. Mob and NPC portraits come from the PONETI pack** (PO 2026-10-18,
+  amends D3 and M-D18 for mobs and NPCs; player portraits stay C3's call).
+  Every species that wears a medallion carries a `packIcon` naming a
+  `Characters_nobg` bust (transparent background), so every live and local
+  build draws a set PONETI portrait. The committed `file` is only the fallback
+  for clones without the pack (the repo is public, `THIRD_PARTY.md`): any art
+  that works, no quality bar. Found in the C2 survey: every committed portrait
+  bakes an opaque backdrop (15 artist PNGs 100 % opaque inside the ring, 23
+  SVGs with a background `<circle>`), so a disc behind them could never show.
+  Where the pack has no true match (stag, sheep, mushrooms, ...), the closest
+  stand-in, PO-approved from contact sheets.
+- **D33. Portraits are per species, and kin share a bust** (PO 2026-10-18):
+  the 21 species drawing the `NpcPlaceholder` marker get their own PONETI
+  portrait too, through a client-side override keyed by the species id
+  (resolved in `setMobId` like the ring; no wire change). Species that read as
+  kin in game share one bust and differ by colour or a feature ("a wolf and a
+  grey wolf might be the same portrait but with a different colour"). Recolour
+  [proposed]: a multiply `portraitTint` first (free), a hue shift baked once
+  per species into a shared texture where a tint cannot reach the colour; never
+  a live per-sprite filter (fill rate, L5).
+- **D34. A higher rank in a kin line looks more menacing** (PO 2026-10-18):
+  each species keeps its own portrait (wolf, elite-wolf, dire-wolf and
+  alpha-wolf are four species); within a line the stronger one gets a
+  separate, more menacing bust where the pack has one (wolf calm grey →
+  elite golden → dire snarling → alpha the black shadow wolf), and a recolour
+  (D33) only where it has none. Tints were previewed: red reads "burning",
+  black drowns the detail, so they stay the fallback. Harvestables may use
+  any pack icon, not only character busts (they are objects: fly agaric,
+  mana mushroom, onion for the turnip, sea kale).
+- **D32. A calmed mob reads neutral** (PO 2026-10-18): yellow for the calm's
+  duration, its normal stance when it wears off.
 - **Cut: "avatar state reactions"** (damaged / happy / dead, `roadmap.md`
   step 8b). The hit flash already ships, dead is D14; nothing else is planned.
 
@@ -416,7 +447,7 @@ keeps the default forever (the setters early-return on unchanged values).
 Medallion C0-C2 keep their content from M-§10; C3 onward replace M-C3 and M-C5
 and absorb `plan-avatar-system.md` §7. One session each.
 
-**Order (D24): C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6; C0b whenever the
+**Order (D24): C0a → C1 → C1b → C2 → C3 → C4 → C5 (+C5b) → C6; C0b whenever the
 pilot lands.**
 
 - **C0a, plumbing and the sizing table** (M-C0 minus the art): the named
@@ -433,9 +464,24 @@ pilot lands.**
   its completeness pin, tier rim (no extra boss mark, D27), the M-D14 predicate,
   the per-species NPC ring override (D23), the ruled sizing. Runs on placeholder
   rings (D24). Real-phone exit. *Schema: `/mobs` +1 field.*
-- **C2, allegiance slice + live disc** (M-C2): the stance field, live aggro
-  relationship (D28), red / yellow / blue (D29) with a colour-blindness check.
-  Independent of C3-C6. *Schema: `Mob` +1.*
+- **C1b, PONETI portraits + a plain disc** (D31; inserted 2026-10-18, runs
+  before C2): every medallion species gets a `_nobg` `packIcon` (the 19
+  existing ones move to their `_nobg` twins; the rest picked from contact
+  sheets, PO-approved); manifest lines + repack; a vitest pin that every
+  medallion species carries a manifest-listed `packIcon`; one shared greyscale
+  disc sprite in the `token` slot below `actualShape`, sized to the ring's
+  window, one fixed neutral shade (it fills the `_nobg` busts' see-through
+  shoulders, the reason September chose `WithBackground`); the 23 SVG
+  fallbacks lose their background circle, the 15 artist PNGs stay as they are;
+  `THIRD_PARTY.md` notes the portraits; the atlas weight measured.
+  *Schema: none.*
+- **C2, stance drives the disc** (M-C2): `Mob.Stance()` (friendly: aligned
+  faction or `FriendlyToPlayers`; hostile: the aggro set holds the player side,
+  or the aggro target is player-side; neutral otherwise; calmed reads neutral,
+  D32), the `stance:ubyte` appended to `table Mob` (0 = hostile), the tier
+  path's codec and `WireSetters` route, the C1b disc tinted red / yellow /
+  blue (D29) with a colour-blindness check. Independent of C3-C6.
+  *Schema: `Mob` +1.*
 - **C3, the player wears a chosen medallion.** `Character` onto the resolver
   (friendly disc, no rim); `api/appearance/` + loader + `/appearance`;
   `Character.portrait`/`ring` on the wire; the migration (`characters.ring`
@@ -708,3 +754,51 @@ control 0). ⚑ The first harness run hit a stale `backend/aurad`:
 `dev-restart.sh server` did not rebuild after the Go change; `make -C backend
 build` first.
 
+
+### C1b - DONE 2026-10-18 (uncommitted; PO look passed 2026-10-18: "looks good and works")
+
+PONETI portraits and a plain disc (D31-D34, inserted before C2 in the C2
+planning round, PO 2026-10-18).
+
+- **Portraits:** every medallion species names a `Characters_nobg` bust (or,
+  for the harvestables, any pack icon: D34) as its `packIcon`; the 18 existing
+  `portrait-*` entries the medallion species used moved to their `_nobg` twins
+  (two twins are numbered differently: `orc-green` = `Orc_5`, `orc-warlord` =
+  `Orc_2`), 46 entries are new. The five non-medallion `portrait-*` users
+  (companions, ArmySoldier, Bramble) keep their `WithBackground` art.
+- **Per-species busts (D33):** `GraphicsConfig.speciesPortraits`, keyed by the
+  catalog `name`, gives the 20 NpcPlaceholder species their own bust;
+  `Mob.resolvePortrait` swaps it in once the catalog names the species (beside
+  `resolveRing`), and puts the class portrait back for a species without one.
+  ProjectileBomb keeps the marker (not a combat target or conversant).
+- **Kin (D34):** the wolf, bear, boar, spider, fire elemental and cultist lines
+  get separate busts, more menacing per rank; only the turnip (an onion,
+  `packTint` 0xe0c0ff) and the blighted treant (the treant's bust, 0xa0c088)
+  are recoloured. `packIconTexture(name, tint)` bakes the multiply into the
+  portrait's canvas once per name + tint; never a per-sprite filter.
+- **Disc:** a `disc` slot in `token` below `actualShape` (`TokenSlots.ts`); one
+  shared white canvas circle, one sprite per medallion mob, at
+  `PackIconFiles.PORTRAIT_FILL` (0.86) of the ring, tinted `Medallions.DISC_SHADE`
+  0x6b6b6b [PLACEHOLDER] until C2 tints it by stance.
+- **Fallback art:** the 21 template SVGs lost their gradient rim and background
+  circle (the thin outline stays, under the ring); mushrooms, deadwood and
+  seaweed were already transparent; the 15 artist PNGs and the purple
+  placeholder marker are unchanged (a clone draws their own backdrop over the
+  disc).
+- **Pins:** `Medallions.test.ts` +2 (every medallion species names a portrait
+  the manifest lists; `speciesPortraits` keys name real species; falsified by
+  dropping Ghoul's entry), `PackIcons.test.ts` counts `speciesPortraits`,
+  `TokenSlots.test.ts` the new slot order (red first).
+- **Atlas weight:** 152 icons in 4 atlases, ~15 MB → ~19 MB (phone load still
+  unmeasured, the open roadmap item).
+
+**Schema:** DB none · wire none · catalog none · conf none · content none
+(client art config and the pack manifest only).
+
+**Verified:** typecheck clean · vitest 1792/0 · prod build + repack ·
+`c1-medallions.mjs` extended with the C1b legs (disc slot, tint, size, pack
+portrait, every subject a distinct portrait) and five venues (Elite + Alpha
+Wolf, Dire Wolf, Turnip, Cultist, Skeleton): 12 PASS / 0 FAIL / 0
+INCONCLUSIVE (second run; the first hit the known join race) + screenshots ·
+`r4-badge.mjs vanilla` 7/7. ⚑ The tinted onion reads only as a small round
+bauble at the turnip's 36 px.

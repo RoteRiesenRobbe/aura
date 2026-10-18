@@ -62,6 +62,10 @@ export const GraphicsConfig = {
                 // replaces `file` when the pack is loaded on this machine
                 // (README "Icons (PONETI pack)"); `file` stays the fallback.
                 packIcon?: string,
+                // Optional colour the pack portrait is multiplied by, baked
+                // once into its texture (plan-appearance.md D33): kin that
+                // share a bust and differ by colour. Never applies to `file`.
+                packTint?: color,
                 // Optional frame drawn over the portrait of a species that wears
                 // no medallion (a fixture or a summon), docs/art/pipeline.md §4.
                 borderFile?: string,
@@ -112,6 +116,10 @@ export const GraphicsConfig = {
 
         turnip: {
             file: require('../features/game-objects/assets/mobs/turnip.svg'),
+            packIcon: 'portrait-onion',
+            // A purple-white turnip from the pack's onion (the pack has no
+            // turnip, D34) [PLACEHOLDER shade].
+            packTint: <color> 0xe0c0ff,
             medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
@@ -119,6 +127,7 @@ export const GraphicsConfig = {
         // The Turnip's forest-floor twins: same body, same size band.
         blueMushroom: {
             file: require('../features/game-objects/assets/mobs/blueMushroom.svg'),
+            packIcon: 'portrait-mana-mushroom',
             medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
@@ -127,6 +136,7 @@ export const GraphicsConfig = {
         // heap, a little larger than the mushrooms.
         deadwood: {
             file: require('../features/game-objects/assets/mobs/deadwood.svg'),
+            packIcon: 'portrait-tree-man',
             medallion: <MedallionSpec> {},
             maxSize: <number> 32,
         },
@@ -143,6 +153,7 @@ export const GraphicsConfig = {
 
         redMushroom: {
             file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
+            packIcon: 'portrait-fly-agaric',
             medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
@@ -151,6 +162,7 @@ export const GraphicsConfig = {
         // than a Turnip.
         seaweed: {
             file: require('../features/game-objects/assets/mobs/seaweed.svg'),
+            packIcon: 'portrait-sea-kale',
             medallion: <MedallionSpec> {},
             maxSize: <number> 34,
         },
@@ -158,18 +170,21 @@ export const GraphicsConfig = {
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.png'),
+            packIcon: 'portrait-grey-wolf',
             medallion: <MedallionSpec> {},
             maxSize: <number> 46,
         },
 
         bear: {
             file: require('../features/game-objects/assets/mobs/bear.png'),
+            packIcon: 'portrait-brown-bear',
             medallion: <MedallionSpec> {},
             maxSize: <number> 82,
         },
 
         boar: {
             file: require('../features/game-objects/assets/mobs/wildboar.png'),
+            packIcon: 'portrait-boar',
             medallion: <MedallionSpec> {},
             maxSize: <number> 56,
         },
@@ -179,6 +194,7 @@ export const GraphicsConfig = {
         // the Boar's 0.4) and its tier rim carries the elite read.
         alphaBoar: {
             file: require('../features/game-objects/assets/mobs/wildboar_alpha.png'),
+            packIcon: 'portrait-snarling-boar',
             medallion: <MedallionSpec> {},
             maxSize: <number> 62,
         },
@@ -188,6 +204,7 @@ export const GraphicsConfig = {
         // collider's size, so frame and portrait share the wire radius.
         stag: {
             file: require('../features/game-objects/assets/mobs/stag.png'),
+            packIcon: 'portrait-doe',
             medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
@@ -196,12 +213,14 @@ export const GraphicsConfig = {
         // his pen, and the three named strays. A touch smaller than the stag.
         sheep: {
             file: require('../features/game-objects/assets/mobs/sheep.svg'),
+            packIcon: 'portrait-sheep',
             medallion: <MedallionSpec> {},
             maxSize: <number> 44,
         },
 
         eliteWolf: {
             file: require('../features/game-objects/assets/mobs/eliteWolf.png'),
+            packIcon: 'portrait-golden-wolf',
             medallion: <MedallionSpec> {},
             maxSize: <number> 64,
         },
@@ -217,12 +236,14 @@ export const GraphicsConfig = {
         // C3 kobold hideout + Dark Tunnel (content pass C3).
         kobold: {
             file: require('../features/game-objects/assets/mobs/kobold.png'),
+            packIcon: 'portrait-goblin',
             medallion: <MedallionSpec> {},
             maxSize: <number> 36,
         },
 
         koboldRanged: {
             file: require('../features/game-objects/assets/mobs/koboldRanged.png'),
+            packIcon: 'portrait-helmet-goblin',
             medallion: <MedallionSpec> {},
             maxSize: <number> 36,
         },
@@ -236,6 +257,7 @@ export const GraphicsConfig = {
 
         venomSpider: {
             file: require('../features/game-objects/assets/mobs/venomSpider.svg'),
+            packIcon: 'portrait-green-spider',
             medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
@@ -264,6 +286,7 @@ export const GraphicsConfig = {
         // C4 Z2 village + bandit gate (content pass C4).
         bandit: {
             file: require('../features/game-objects/assets/mobs/bandit.png'),
+            packIcon: 'portrait-robber',
             medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
@@ -306,6 +329,7 @@ export const GraphicsConfig = {
 
         orc: {
             file: require('../features/game-objects/assets/mobs/orc.png'),
+            packIcon: 'portrait-orc-brute',
             medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
@@ -377,12 +401,14 @@ export const GraphicsConfig = {
         // their base kin and the elites/apex of their line.
         direWolf: {
             file: require('../features/game-objects/assets/mobs/direWolf.png'),
+            packIcon: 'portrait-snarling-wolf',
             medallion: <MedallionSpec> {},
             maxSize: <number> 56,
         },
 
         direBear: {
             file: require('../features/game-objects/assets/mobs/direBear.png'),
+            packIcon: 'portrait-roaring-bear',
             medallion: <MedallionSpec> {},
             maxSize: <number> 90,
         },
@@ -396,12 +422,14 @@ export const GraphicsConfig = {
 
         alphaWolf: {
             file: require('../features/game-objects/assets/mobs/alphaWolf.png'),
+            packIcon: 'portrait-shadow-wolf',
             medallion: <MedallionSpec> {},
             maxSize: <number> 68,
         },
 
         marauder: {
             file: require('../features/game-objects/assets/mobs/marauder.png'),
+            packIcon: 'portrait-eyepatch-robber',
             medallion: <MedallionSpec> {},
             maxSize: <number> 52,
         },
@@ -432,6 +460,7 @@ export const GraphicsConfig = {
         // reads at a glance (body radius 0.55 vs 0.4).
         greaterFireElemental: {
             file: require('../features/game-objects/assets/mobs/greaterFireElemental.svg'),
+            packIcon: 'portrait-magma-golem',
             medallion: <MedallionSpec> {},
             maxSize: <number> 84,
         },
@@ -462,6 +491,7 @@ export const GraphicsConfig = {
         },
         hermit: {
             file: require('../features/game-objects/assets/resources/hermit.png'),
+            packIcon: 'portrait-prophet',
             medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
@@ -475,6 +505,7 @@ export const GraphicsConfig = {
         // `size` from the entity scales it (Preloading.ts:55 is SVG-only).
         farmer: {
             file: require('../features/game-objects/assets/resources/farmer.png'),
+            packIcon: 'portrait-bandana-farmer',
             medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
@@ -492,11 +523,13 @@ export const GraphicsConfig = {
         },
         townCrier: {
             file: require('../features/game-objects/assets/resources/townCrier.png'),
+            packIcon: 'portrait-messenger',
             medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
+            packIcon: 'portrait-black-hound',
             medallion: <MedallionSpec> {},
             maxSize: <number> 45,
         },
@@ -508,6 +541,7 @@ export const GraphicsConfig = {
         },
         cityGuard: {
             file: require('../features/game-objects/assets/resources/cityGuard.png'),
+            packIcon: 'portrait-guard',
             medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
@@ -529,9 +563,40 @@ export const GraphicsConfig = {
         // tree in the forest frame (PO 2026-10-03), his own ring (D23).
         grandfatherKnot: {
             file: require('../features/game-objects/assets/resources/grandfatherKnot.png'),
+            packIcon: 'portrait-old-tree-man',
             medallion: <MedallionSpec> {ring: 'forest'},
             maxSize: <number> 120,
         },
+    },
+
+    // Per-SPECIES portraits for species that share one sprite class, keyed by
+    // the catalog name (api/mobs `name`), so each one draws its own pack bust
+    // (plan-appearance.md D33). Today: the species drawing the NpcPlaceholder
+    // marker, which otherwise all wear the same purple face. Resolved in
+    // Mob.resolvePortrait once the /mobs catalog names the species; without
+    // the pack the class's `file` stays. A `packTint` recolours a bust that a
+    // kin species shares (D33, D34) [PLACEHOLDER shades].
+    speciesPortraits: <{ [species: string]: { packIcon: string, packTint?: color } }> {
+        BlightedTreant: {packIcon: 'portrait-tree-man', packTint: <color> 0xa0c088},
+        CultAcolyte: {packIcon: 'portrait-hades-servant'},
+        CultHighPriest: {packIcon: 'portrait-old-cultist'},
+        Cultist: {packIcon: 'portrait-purple-hood'},
+        DeathKnight: {packIcon: 'portrait-death-knight'},
+        Dragon: {packIcon: 'portrait-war-dragon'},
+        DragonkinWarrior: {packIcon: 'portrait-dragon-warrior'},
+        Drakeling: {packIcon: 'portrait-purple-drake'},
+        Ghoul: {packIcon: 'portrait-zombie'},
+        GiantRat: {packIcon: 'portrait-rat'},
+        GiantScorpion: {packIcon: 'portrait-scorpion'},
+        Mercenary: {packIcon: 'portrait-warrior'},
+        MercenaryCaptain: {packIcon: 'portrait-bold-warrior'},
+        MercenaryCrossbowman: {packIcon: 'portrait-spearman'},
+        SandBasilisk: {packIcon: 'portrait-lizard'},
+        SandClamper: {packIcon: 'portrait-crab'},
+        Skeleton: {packIcon: 'portrait-skeleton'},
+        SkeletonArcher: {packIcon: 'portrait-helmet-skeleton'},
+        Treant: {packIcon: 'portrait-tree-man'},
+        Wisp: {packIcon: 'portrait-ghost'},
     },
 
     // Player corpse (chunk 4): gravestone placeholder at the deathspot.

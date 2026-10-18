@@ -4,7 +4,8 @@ import {createTokenSlots, FRAME_LABEL} from './TokenSlots';
 import * as Preloading from '../../core/logic/Preloading';
 import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
-import {MedallionSpec, RING_FAMILY_FILES, RingFamily, RingResolver, ringTint} from '../../../client-data/Medallions';
+import {DISC_SHADE, MedallionSpec, RING_FAMILY_FILES, RingFamily, RingResolver, ringTint} from '../../../client-data/Medallions';
+import {PORTRAIT_FILL, packIconTexture} from '../../../client-data/icons/PackIconFiles';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from '../../core/logic/Events';
@@ -55,7 +56,8 @@ function medallion(mob: keyof typeof GraphicsConfig.mobs): MedallionSpec | undef
 // Preloading.PortraitSource). One helper, so the registrations below did not
 // change when the pack arrived.
 function file(mob: keyof typeof GraphicsConfig.mobs): Preloading.PortraitSource {
-    return {file: GraphicsConfig.mobs[mob].file, packIcon: GraphicsConfig.mobs[mob].packIcon};
+    const cfg = GraphicsConfig.mobs[mob];
+    return {file: cfg.file, packIcon: cfg.packIcon, packTint: cfg.packTint};
 }
 
 /**
@@ -108,6 +110,28 @@ const ringTextures = Object.fromEntries(
         [family, registerBorder(RING_FAMILY_FILES[family], RING_PRELOAD_SIZE)]),
 ) as Record<RingFamily, ISvgContainer>;
 
+// The disc behind every medallion portrait (C1b): one white circle, drawn
+// once on a 2D canvas (no renderer needed) and shared by every mob; each
+// sprite tints it (Medallions.DISC_SHADE, C2's stance colours). Built on
+// first use, so a test importing this module never touches a canvas.
+const DISC_TEXTURE_SIZE = 128;
+let sharedDiscTexture: PIXI.Texture = null;
+
+function discTexture(): PIXI.Texture {
+    if (sharedDiscTexture === null) {
+        const canvas = document.createElement('canvas');
+        canvas.width = DISC_TEXTURE_SIZE;
+        canvas.height = DISC_TEXTURE_SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(DISC_TEXTURE_SIZE / 2, DISC_TEXTURE_SIZE / 2, DISC_TEXTURE_SIZE / 2, 0, Math.PI * 2);
+        ctx.fill();
+        sharedDiscTexture = PIXI.Texture.from(canvas);
+    }
+    return sharedDiscTexture;
+}
+
 // Nameplate offset below the overhead HP bar, in px. [PLACEHOLDER]
 const NAMEPLATE_GAP = 16;
 
@@ -136,11 +160,20 @@ export abstract class Mob extends GameObject
     protected belowArt: PIXI.Container;
     private aboveArt: PIXI.Container;
     private frame: PIXI.Container;
+    private discSlot: PIXI.Container;
     // The medallion ring (plan-appearance.md C1): null for a species without a
     // medallion. Drawn once the catalog names the species' faction; see
     // resolveRing. Both are set after initShape, so initializers are safe.
     private ringResolver: RingResolver = null;
     private ring: PIXI.Sprite = null;
+    // The plain disc behind a medallion portrait (C1b), null without a
+    // medallion. Set in the constructor body, so the initializer is safe.
+    private disc: PIXI.Sprite = null;
+    // The portrait sprite and the class texture it started with, so a
+    // species portrait (resolvePortrait) can be put on and taken off. Set in
+    // initShape, so declared WITHOUT an initializer, like actualShape.
+    private portrait: PIXI.Sprite;
+    private classPortrait: PIXI.Texture;
     // The wire tier rank, which tints the ring (Medallions.ringTint). Kept
     // apart from the ring because setTier runs before setMobId every tick, so
     // the first tier arrives before the ring exists. 0 = normal.
@@ -197,6 +230,13 @@ export abstract class Mob extends GameObject
     ) {
         super(id, gameLayer, x, y, size, 0, svg);
         this.ringResolver = medallion ? new RingResolver(medallion) : null;
+        if (medallion) {
+            // Sized to the pack portrait's own disc, so it fills the ring's
+            // window and its edge hides under the ring.
+            this.disc = createInjectedSVG(discTexture(), 0, 0, this.size * PORTRAIT_FILL, 0);
+            this.disc.tint = DISC_SHADE;
+            this.discSlot.addChild(this.disc);
+        }
         // Bottom of belowArt: the ring renders behind the mob art and under
         // the campfire's dwell ring. Every mob gets one, as it already did on
         // its first snapshot (setAuraCategories); it stays empty until an
@@ -267,10 +307,12 @@ export abstract class Mob extends GameObject
      * on the first tick after it lands.
      */
     private resolveRing(mobId: number) {
-        const family = this.ringResolver?.resolve(mobId, mobDefinition(mobId));
+        const definition = mobDefinition(mobId);
+        const family = this.ringResolver?.resolve(mobId, definition);
         if (family === undefined) {
             return;
         }
+        this.resolvePortrait(definition.name);
         this.ring?.destroy();
         this.ring = null;
         // Truthiness, as in withBorder: the texture may still be loading, and
@@ -283,6 +325,24 @@ export abstract class Mob extends GameObject
         this.ring = createInjectedSVG(texture, 0, 0, this.size, 0);
         this.ring.tint = ringTint(this.tierRank);
         this.frame.addChild(this.ring);
+    }
+
+    /**
+     * Puts on the species' own pack portrait when its sprite class is shared
+     * (Graphics.ts `speciesPortraits`, plan-appearance.md D33), or the class
+     * portrait back when it has none. Without the pack on this machine
+     * packIconTexture answers null and the class portrait stays.
+     */
+    private resolvePortrait(species: string) {
+        const entry = GraphicsConfig.speciesPortraits[species];
+        const texture = (entry && packIconTexture(entry.packIcon, entry.packTint)) || this.classPortrait;
+        if (this.portrait.texture === texture) {
+            return;
+        }
+        const {width, height} = this.portrait;
+        this.portrait.texture = texture;
+        this.portrait.width = width;
+        this.portrait.height = height;
     }
 
     /**
@@ -553,9 +613,12 @@ export abstract class Mob extends GameObject
         // then the frame slot with the ring (resolveRing, or withBorder), so
         // the rings, the bar and the badge in belowArt / aboveArt stay on the
         // logical position while a lunge moves it.
-        const slots = createTokenSlots(group, super.initShape(svg, 0, 0, size, rotation, anchor));
+        this.portrait = super.initShape(svg, 0, 0, size, rotation, anchor) as PIXI.Sprite;
+        this.classPortrait = svg;
+        const slots = createTokenSlots(group, this.portrait);
         this.belowArt = slots.belowArt;
         this.token = slots.token;
+        this.discSlot = slots.disc;
         this.actualShape = slots.actualShape;
         this.frame = slots.frame;
         this.aboveArt = slots.aboveArt;
