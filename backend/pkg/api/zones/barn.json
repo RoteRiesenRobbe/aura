@@ -210,8 +210,7 @@
       "x": 0.11,
       "y": 4.66,
       "anchor": "barn-surface",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "stairs-up"
     }
   ],
   "regions": [

@@ -11,6 +11,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 // plan-localization.md C1, C5a: every translatable content string as a keyed
@@ -145,6 +146,17 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 	optional := func(where, key string) {
 		if text := english[key]; text != "" {
 			add("regions", where, lang.Entry{Key: key, Text: text})
+		}
+	}
+	// Every look's default words are REQUIRED (D12): an ordinary exit has no
+	// other words, so a look without English is a door with nothing to say.
+	for _, look := range world.ExitLooks {
+		for _, key := range []string{lang.ExitLookText(look), lang.ExitLookGo(look)} {
+			if english[key] == "" {
+				findings = append(findings, fmt.Sprintf("lang regions: exit look %q has no English (%s in api/lang/en/regions.arb)", look, key))
+				continue
+			}
+			add("regions", "exit look words "+key, lang.Entry{Key: key, Text: english[key]})
 		}
 	}
 	for _, z := range c.zones {

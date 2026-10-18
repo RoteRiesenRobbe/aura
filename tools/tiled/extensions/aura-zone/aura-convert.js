@@ -77,9 +77,11 @@ var AuraConvert = (function () {
     /* ---- exits (plan-passages.md P1) ---------------------------------------
      * A talk exit is a POINT of class AuraExit on the `exits` layer: where it
      * leads (`anchor`, free text, refused at boot when no zone authors it) and
-     * optionally which conversation it talks as (`door`, from the AuraExitDoor
-     * dropdown). EXIT_DOOR_UNSET is that member's default and means the
-     * generic door, so it maps back to ABSENT (the EFFECT_UNSET reading).
+     * optionally a conversation written for it alone (`conversation`, from the
+     * AuraExitConversation dropdown; `door` until P3b). EXIT_CONVERSATION_UNSET
+     * is that member's default and means "worded by its look" (D12), so it maps
+     * back to ABSENT (the EFFECT_UNSET reading). `hidden` (P3b) draws nothing;
+     * the look still picks the words.
      *
      * ⛔ MIGRATED_DOORS are the definitions D11 moved out of `spawns`. A zone
      * that still places one there refuses to OPEN (checkDoorSpawns) and a spawn
@@ -91,8 +93,8 @@ var AuraConvert = (function () {
      * the same exits layer, told apart by class (the paths/structures
      * scheme). Walk in and you are moved; no door, no words. */
     var EXIT_AREA_CLASS = 'AuraExitArea';
-    var EXIT_DOOR_ENUM = 'AuraExitDoor';
-    var EXIT_DOOR_UNSET = '(generic door)';
+    var EXIT_CONVERSATION_ENUM = 'AuraExitConversation';
+    var EXIT_CONVERSATION_UNSET = '(by look)';
     var MIGRATED_DOORS = ['CaveMouth', 'CaveExit'];
     /* The art the client draws at an exit (P2, R4/D5), zone.go's ExitLooks in
      * its order (a vitest scrapes the two together). The DEFAULT leads and is
@@ -100,7 +102,7 @@ var AuraConvert = (function () {
      * that drops the member and one that keeps it write the same file. The
      * look's turn is the point object's own rotation. */
     var EXIT_LOOK_ENUM = 'AuraExitLook';
-    var EXIT_LOOKS = ['cave-mouth', 'hidden', 'stairs-down', 'stairs-up', 'door'];
+    var EXIT_LOOKS = ['cave-mouth', 'cave-exit', 'stairs-down', 'stairs-up', 'door'];
     var EXIT_LOOK_DEFAULT = EXIT_LOOKS[0];
 
     // ZoneModel's rounding helper, verbatim.
@@ -190,7 +192,7 @@ var AuraConvert = (function () {
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
-        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [], DOOR_NAMES: [],
+        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [], CONVERSATION_NAMES: [],
     };
     function useContent(c) {
         content = {
@@ -236,10 +238,10 @@ var AuraConvert = (function () {
             // api/regions/regions.json, the ids a region may name (R1, D2),
             // WITHOUT the sentinel. Absent skips the not-listed check, as above.
             REGION_IDS: (c && c.REGION_IDS) || [],
-            // The mobs an exit may talk as (plan-passages.md D3): exactly one
-            // anchor-mode travel_to row, WITHOUT the sentinel. Absent skips the
-            // unknown-door check, as above.
-            DOOR_NAMES: (c && c.DOOR_NAMES) || [],
+            // The conversations an exit may name (plan-passages.md D3, D12):
+            // exactly one anchor-mode travel_to row, WITHOUT the sentinel and
+            // the shared one. Absent skips the unknown-conversation check.
+            CONVERSATION_NAMES: (c && c.CONVERSATION_NAMES) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -591,6 +593,19 @@ var AuraConvert = (function () {
     /* ⛔ The same refusal for the doors plan-passages.md D11 moved into `exits`.
      * The old shape is still a VALID zone, so nothing else would stop a stale
      * file opening and the next save writing the door back into `spawns`. */
+    /* ⛔ P3b renamed an exit's `door` to `conversation` and made `hidden` a
+     * toggle. Read leniently, an old file would lose both on its next save, so
+     * it refuses to open and names the migration. */
+    function checkExitShape(group) {
+        (group.exits || []).concat(group.exitAreas || []).forEach(function (e) {
+            if (e && (e.door !== undefined || e.look === 'hidden')) {
+                throw new Error('this zone file still writes an exit\'s ' + (e.door !== undefined ? '"door"' : 'look "hidden"')
+                    + ', the shape before plan-passages.md P3b. Migrate it with'
+                    + ' node scripts/migrate-exits.mjs <file>');
+            }
+        });
+    }
+
     function checkDoorSpawns(spawns) {
         (spawns || []).forEach(function (s) {
             if (s && hasValue(MIGRATED_DOORS, s.mob)) {
@@ -712,7 +727,8 @@ var AuraConvert = (function () {
                         rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
                         anchor: e.anchor,
                         look: e.look && e.look !== EXIT_LOOK_DEFAULT ? e.look : undefined,
-                        door: e.door || undefined,
+                        hidden: e.hidden ? true : undefined,
+                        conversation: e.conversation || undefined,
                     };
                 })
                 : undefined,
@@ -727,6 +743,7 @@ var AuraConvert = (function () {
                         }),
                         anchor: a.anchor,
                         look: a.look && a.look !== EXIT_LOOK_DEFAULT ? a.look : undefined,
+                        hidden: a.hidden ? true : undefined,
                     };
                 })
                 : undefined,
@@ -881,11 +898,12 @@ var AuraConvert = (function () {
         checkPropsShape(z.props);
         checkRegionTitles(z.regions);
         checkDoorSpawns(z.spawns);
+        checkExitShape(z);
         var areas = z.areas || [];
         // The same open refusals inside every area: read leniently, either
         // would open with that array empty and the next save would delete it.
         areas.forEach(function (a) {
-            checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); checkDoorSpawns(a.spawns);
+            checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); checkDoorSpawns(a.spawns); checkExitShape(a);
         });
         /* ⭐ THE ZONE LEVEL, THEN ONE GROUP PER AREA in file order
          * (plan-prop-draw-order.md D14). Tiled's list is bottom-to-top, so an
@@ -1048,9 +1066,12 @@ var AuraConvert = (function () {
                     o.properties.look = e.look;
                     o.enums.look = EXIT_LOOK_ENUM;
                 }
-                if (e.door) {
-                    o.properties.door = e.door;
-                    o.enums.door = EXIT_DOOR_ENUM;
+                if (e.hidden) {
+                    o.properties.hidden = true;
+                }
+                if (e.conversation) {
+                    o.properties.conversation = e.conversation;
+                    o.enums.conversation = EXIT_CONVERSATION_ENUM;
                 }
                 return o;
             });
@@ -1077,6 +1098,9 @@ var AuraConvert = (function () {
                 if (a.look && a.look !== EXIT_LOOK_DEFAULT) {
                     o.properties.look = a.look;
                     o.enums.look = EXIT_LOOK_ENUM;
+                }
+                if (a.hidden) {
+                    o.properties.hidden = true;
                 }
                 return o;
             });
@@ -1694,7 +1718,8 @@ var AuraConvert = (function () {
                         rotation: deg2rad(o.rotation || 0),
                         anchor: readText(o, 'anchor'),
                         look: readExitLook(o),
-                        door: readExitDoor(o),
+                        hidden: get(o, 'hidden') ? true : undefined,
+                        conversation: readExitConversation(o),
                     };
                 }),
                 exitAreas: onLayer('exits', EXIT_AREA_CLASS).map(function (o) {
@@ -1705,6 +1730,7 @@ var AuraConvert = (function () {
                         }),
                         anchor: readText(o, 'anchor'),
                         look: readExitLook(o),
+                        hidden: get(o, 'hidden') ? true : undefined,
                     };
                 }),
                 bindPoints: layer('bindPoints').map(function (o) {
@@ -1899,11 +1925,11 @@ var AuraConvert = (function () {
         return v === '' ? undefined : v;
     }
 
-    /* An exit's door, or undefined for the generic one: the sentinel, a blank
-     * and an absent member alike. */
-    function readExitDoor(o) {
-        var v = readText(o, 'door');
-        return v === EXIT_DOOR_UNSET ? undefined : v;
+    /* An exit's conversation, or undefined for "worded by its look": the
+     * sentinel, a blank and an absent member alike. */
+    function readExitConversation(o) {
+        var v = readText(o, 'conversation');
+        return v === EXIT_CONVERSATION_UNSET ? undefined : v;
     }
 
     /* An exit's look, or undefined for the default (the cave mouth): the
@@ -2333,7 +2359,7 @@ var AuraConvert = (function () {
              * validateExits and resolveExits. ⚑ The class is checked although
              * the layer holds one class today: P4 adds AuraExitArea beside it,
              * and an object of neither class would then vanish on save (L2b). */
-            var doorsKnown = content.DOOR_NAMES.length > 0;
+            var conversationsKnown = content.CONVERSATION_NAMES.length > 0;
             var seenExit = {};
             layer('exits').forEach(function (o, i) {
                 if (o.cls !== EXIT_CLASS && o.cls !== EXIT_AREA_CLASS) {
@@ -2371,10 +2397,11 @@ var AuraConvert = (function () {
                 if (o.cls === EXIT_AREA_CLASS) {
                     return;
                 }
-                var d = readExitDoor(o);
-                if (d !== undefined && doorsKnown && !hasValue(content.DOOR_NAMES, d)) {
-                    bad(o, i, 'unknown door "' + d + '" — a door is a mob with exactly one'
-                        + ' anchor-mode travel_to row: ' + content.DOOR_NAMES.join(', '));
+                var d = readExitConversation(o);
+                if (d !== undefined && (!conversationsKnown || !hasValue(content.CONVERSATION_NAMES, d))) {
+                    bad(o, i, 'unknown conversation "' + d + '" — one written for an exit is a mob with exactly'
+                        + ' one anchor-mode travel_to row' + (conversationsKnown ? ': ' + content.CONVERSATION_NAMES.join(', ')
+                        : ', and none exists yet: leave it at ' + EXIT_CONVERSATION_UNSET + ' for the look\'s words'));
                 }
                 var x = o.x / PX - hw, y = o.y / PX - hh;
                 if (x < -hw || x > hw || y < -hh || y > hh) {
@@ -2973,8 +3000,8 @@ var AuraConvert = (function () {
         REGION_ID_UNSET: REGION_ID_UNSET,
         EXIT_CLASS: EXIT_CLASS,
         EXIT_AREA_CLASS: EXIT_AREA_CLASS,
-        EXIT_DOOR_ENUM: EXIT_DOOR_ENUM,
-        EXIT_DOOR_UNSET: EXIT_DOOR_UNSET,
+        EXIT_CONVERSATION_ENUM: EXIT_CONVERSATION_ENUM,
+        EXIT_CONVERSATION_UNSET: EXIT_CONVERSATION_UNSET,
         EXIT_LOOK_ENUM: EXIT_LOOK_ENUM,
         EXIT_LOOKS: EXIT_LOOKS,
         EXIT_LOOK_DEFAULT: EXIT_LOOK_DEFAULT,

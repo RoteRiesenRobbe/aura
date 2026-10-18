@@ -264,11 +264,13 @@ export interface ZoneJSON {
     // markers read them (plan-quest-giver-markers.md C3): name + zone-local spot.
     spawns?: {mob?: string, x: number, y: number}[];
     // Talk exits (plan-passages.md P1/P2): each is a door mob on the server,
-    // so the quest-giver markers read them as spawns of their door, and
-    // ExitLooks draws their `look` (P2). door absent = the generic door.
+    // so the quest-giver markers read them as spawns of their conversation,
+    // and ExitLooks draws their `look` (P2) unless `hidden` (P3b).
+    // conversation absent = the shared one, worded by the look.
     // The id (P3) names the exit for its words; the door header reads it and
     // the anchors below (ExitHeader.ts).
-    exits?: {id?: string, x: number, y: number, rotation?: number, anchor: string, look?: string, door?: string}[];
+    exits?: {id?: string, x: number, y: number, rotation?: number, anchor: string, look?: string, hidden?: boolean,
+        conversation?: string}[];
     // Where travel lands, by name (plan-underworld.md U3). Read by the door
     // header for the place a door leads to (plan-passages.md D6).
     anchors?: {name: string, x: number, y: number}[];

@@ -157,8 +157,8 @@ export interface ZoneAnchor extends InArea {
 
 // A talk exit (plan-passages.md P1): a door to a zone anchor, authored in
 // Tiled on the `exits` layer. The server turns each into a door mob at load.
-// door undefined = the generic door (CaveMouth). rotation (radians) and look
-// are the client's picture (P2); undefined = no turn / the default look.
+// conversation undefined = the shared one, worded by the look (D12). rotation
+// (radians), look and hidden are the client's picture (P2, P3b).
 export interface ZoneExit extends InArea {
     // Names the exit for its words (P3, D7); undefined = none.
     id?: string;
@@ -167,7 +167,8 @@ export interface ZoneExit extends InArea {
     rotation?: number;
     anchor: string;
     look?: string;
-    door?: string;
+    hidden?: boolean;
+    conversation?: string;
 }
 
 // A touch exit (plan-passages.md P4): an area that moves whoever walks into
@@ -178,6 +179,7 @@ export interface ZoneExitArea extends InArea {
     points: {x: number, y: number}[];
     anchor: string;
     look?: string;
+    hidden?: boolean;
 }
 
 // A polygon naming a client-side presentation profile — ground colour today,
@@ -506,7 +508,8 @@ export class ZoneModel {
             rotation: e.rotation,
             anchor: e.anchor,
             look: e.look,
-            door: e.door,
+            hidden: e.hidden,
+            conversation: e.conversation,
             area: e.area,
         }));
         model.exitAreas = (data.exitAreas || []).map(a => ({
@@ -514,6 +517,7 @@ export class ZoneModel {
             points: (a.points || []).map(pt => ({...pt})),
             anchor: a.anchor,
             look: a.look,
+            hidden: a.hidden,
             area: a.area,
         }));
         model.paths = (data.paths || []).map(p => ({
@@ -762,7 +766,8 @@ export class ZoneModel {
                     rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
                     anchor: e.anchor,
                     look: e.look && e.look !== DEFAULT_EXIT_LOOK ? e.look : undefined,
-                    door: e.door || undefined,
+                    hidden: e.hidden ? true : undefined,
+                    conversation: e.conversation || undefined,
                 }))
                 : undefined,
             // Touch exits (P4), serializeZone's shape: id and look absent at
@@ -773,6 +778,7 @@ export class ZoneModel {
                     points: a.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
                     anchor: a.anchor,
                     look: a.look && a.look !== DEFAULT_EXIT_LOOK ? a.look : undefined,
+                    hidden: a.hidden ? true : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones

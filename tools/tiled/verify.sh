@@ -1152,9 +1152,10 @@ fi
 
 # ---- 2e. talk exits survive a real Tiled save (plan-passages.md P1) ---------
 # Every zone file that places a door, byte for byte: world.json keeps its exits
-# inside areas, the cave zones keep theirs at the zone level with `door` set,
-# and that member is a TYPED enum, which only Tiled's own reader and writer
-# can lose. ⚑ Names only, never the GUI ([[project-tiled-roundtrip-blind-spot]]).
+# inside areas (two `hidden`, a bool member), the cave zones keep theirs at the
+# zone level with a typed `look` enum, which only Tiled's own reader and writer
+# can lose. ⚑ No shipped exit names a `conversation` since P3b, so that member
+# is pinned by vitest only. ⚑ Names only, never the GUI ([[project-tiled-roundtrip-blind-spot]]).
 echo
 echo "zone files with exits round-trip"
 for zf in api/zones/*.json; do
@@ -1166,8 +1167,8 @@ for zf in api/zones/*.json; do
         bad "$zf NOT byte-identical — diff: $(cmp "$zf" "$out" 2>&1 | head -1)"
     fi
 done
-if ! grep -q '"door"' api/zones/*.json; then
-    bad "no zone authors a door — the typed member above went untested"
+if ! grep -q '"hidden": true' api/zones/*.json; then
+    bad "no zone authors a hidden exit — the bool member above went untested"
 fi
 
 # P2: a TURNED exit with a typed look. No shipped exit is turned, so the loop

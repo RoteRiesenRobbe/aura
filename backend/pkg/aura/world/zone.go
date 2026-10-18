@@ -263,7 +263,7 @@ type Spawn struct {
 	//
 	// ⚑ An OVERRIDE with a definition-level default, the idiom the three knobs
 	// above already use (wanderRadius, idleSpeedFactor, level): absent inherits.
-	// A generic door - the shipped CaveMouth/CaveExit - authors no default at
+	// The shared exit conversation (CaveMouth, world.SharedConversation) authors no default at
 	// all and takes its destination entirely from here. ⚑ Since
 	// plan-passages.md P1 a door is authored as an Exit, whose synthesized spawn
 	// carries the exit's anchor in this field; a spawn naming one is for a real
@@ -299,14 +299,18 @@ type Exit struct {
 	// Anchor is where the exit leads, by zone-anchor name. Required: a door
 	// with nowhere to go takes the keypress and moves nobody.
 	Anchor string `json:"anchor"`
-	// Look names the art the client draws at the exit (R4, D5), one of
-	// ExitLooks; absent = ExitLookCaveMouth. Client only, like Rotation: the
-	// server refuses a name outside the set, because the client would draw
-	// nothing for it and a door would vanish without a word.
+	// Look names the art the client draws at the exit AND its default words
+	// (R4, D5, D12), one of ExitLooks; absent = ExitLookCaveMouth. The server
+	// refuses a name outside the set: the client would draw nothing for it.
 	Look string `json:"look,omitempty"`
-	// Door names the conversation definition (a mob with exactly one
-	// anchor-mode travel_to row and entityType Passage). Absent = GenericDoor.
-	Door string `json:"door,omitempty"`
+	// Hidden draws no picture at all (P3b, PO 2026-10-18): the player finds
+	// it by its E prompt. The look still picks the words.
+	Hidden bool `json:"hidden,omitempty"`
+	// Conversation names a conversation definition written for this exit
+	// alone (a mob with exactly one anchor-mode travel_to row and entityType
+	// Passage), whose own lines then stand (D12). Absent = SharedConversation,
+	// worded by the look. The key was `door` until P3b.
+	Conversation string `json:"conversation,omitempty"`
 	InArea
 
 	// Def is Door resolved; not part of the JSON.
@@ -324,8 +328,9 @@ type ExitArea struct {
 	// Anchor is where the area leads, by zone-anchor name. Required.
 	Anchor string `json:"anchor"`
 	// Look is the art drawn at the centroid (P5); absent = the cave mouth.
-	// The glow is drawn whatever the look (R6, Q4).
 	Look string `json:"look,omitempty"`
+	// Hidden draws nothing: no art, no glow, no floating name (Q4).
+	Hidden bool `json:"hidden,omitempty"`
 	InArea
 }
 

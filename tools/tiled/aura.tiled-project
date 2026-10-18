@@ -124,7 +124,6 @@
                 "BurstTotem",
                 "Camp",
                 "Campfire",
-                "CaveExit",
                 "CaveMouth",
                 "CityGuard",
                 "Companion",
@@ -1018,13 +1017,11 @@
         },
         {
             "id": 30,
-            "name": "AuraExitDoor",
+            "name": "AuraExitConversation",
             "type": "enum",
             "storageType": "string",
             "values": [
-                "(generic door)",
-                "CaveExit",
-                "CaveMouth"
+                "(by look)"
             ],
             "valuesAsFlags": false
         },
@@ -1056,10 +1053,15 @@
                     "value": "cave-mouth"
                 },
                 {
-                    "name": "door",
+                    "name": "hidden",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "conversation",
                     "type": "string",
-                    "propertyType": "AuraExitDoor",
-                    "value": "(generic door)"
+                    "propertyType": "AuraExitConversation",
+                    "value": "(by look)"
                 }
             ]
         },
@@ -1070,7 +1072,7 @@
             "storageType": "string",
             "values": [
                 "cave-mouth",
-                "hidden",
+                "cave-exit",
                 "stairs-down",
                 "stairs-up",
                 "door"
@@ -1103,6 +1105,11 @@
                     "type": "string",
                     "propertyType": "AuraExitLook",
                     "value": "cave-mouth"
+                },
+                {
+                    "name": "hidden",
+                    "type": "bool",
+                    "value": false
                 }
             ]
         }

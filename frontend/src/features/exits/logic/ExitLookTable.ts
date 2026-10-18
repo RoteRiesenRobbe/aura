@@ -16,9 +16,6 @@
 /** The look an exit draws when it names none [PLACEHOLDER default, D1]. */
 export const DEFAULT_EXIT_LOOK = 'cave-mouth';
 
-/** Draws nothing at all: the exit is found by its E prompt alone (R4). */
-export const HIDDEN_EXIT_LOOK = 'hidden';
-
 /**
  * Every drawn look's art box in world units, centred on the exit and pointing
  * UP (-y) at rotation 0. [PLACEHOLDER] sizes; the cave mouth's is its prop's
@@ -26,6 +23,7 @@ export const HIDDEN_EXIT_LOOK = 'hidden';
  */
 export const EXIT_LOOK_SIZES: Record<string, {width: number, height: number}> = {
     'cave-mouth': {width: 3, height: 2.4},
+    'cave-exit': {width: 2.4, height: 2.4},
     'stairs-down': {width: 2, height: 2},
     'stairs-up': {width: 2, height: 2},
     'door': {width: 1.6, height: 0.8},
@@ -37,6 +35,8 @@ export interface ExitJSON {
     y: number;
     rotation?: number;
     look?: string;
+    // Draws nothing at all (P3b): found by its E prompt alone.
+    hidden?: boolean;
 }
 
 /** One look to draw, in world PIXELS. */
@@ -52,7 +52,7 @@ export interface ExitLookPlacement {
 /**
  * The looks to draw for a zone's exits, origin applied (the server leaves the
  * file zone-local for client-visual data, as for paths and regions).
- * `hidden` and an unknown look draw nothing; the server refuses the second at
+ * A `hidden` exit and an unknown look draw nothing; the server refuses the second at
  * boot, so it can only reach here from a stale bundle.
  */
 export function exitLookPlacements(
@@ -63,6 +63,9 @@ export function exitLookPlacements(
     const ox = origin?.x ?? 0, oy = origin?.y ?? 0;
     const out: ExitLookPlacement[] = [];
     for (const e of exits || []) {
+        if (e.hidden) {
+            continue;
+        }
         const look = e.look || DEFAULT_EXIT_LOOK;
         const size = EXIT_LOOK_SIZES[look];
         if (!size) {

@@ -55,9 +55,9 @@ export class MapQuestMarkers {
     setZone(zoneName: string) {
         const zone = getZoneData(zoneName);
         // An exit is its door mob standing at that spot (plan-passages.md D3),
-        // so a door that gives a quest marks the map like any giver.
-        // 'CaveMouth' is world.GenericDoor.
-        const doors = (zone?.exits || []).map(e => ({mob: e.door || 'CaveMouth', x: e.x, y: e.y}));
+        // so an exit whose conversation gives a quest marks the map like any giver.
+        // 'CaveMouth' is world.SharedConversation.
+        const doors = (zone?.exits || []).map(e => ({mob: e.conversation || 'CaveMouth', x: e.x, y: e.y}));
         this.spawns = [...(zone?.spawns || []) as ZoneSpawnPoint[], ...doors];
     }
 

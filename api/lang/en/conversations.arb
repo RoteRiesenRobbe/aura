@@ -80,22 +80,6 @@
   "@conv.Benjamin.you-can-only-have-one": {
     "description": "Benjamin speaks this in the conversation, node \"pull\", line 2."
   },
-  "conv.CaveExit.a-narrow-shaft-and-daylight": "A narrow shaft, and daylight at the top of it.",
-  "@conv.CaveExit.a-narrow-shaft-and-daylight": {
-    "description": "Cave Exit speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.CaveExit.climb-up": "Climb up.",
-  "@conv.CaveExit.climb-up": {
-    "description": "A row the player picks when talking to Cave Exit (node \"root\"), written as the player's own words."
-  },
-  "conv.CaveExit.the-climb-looks-manageable": "The climb looks manageable.",
-  "@conv.CaveExit.the-climb-looks-manageable": {
-    "description": "Cave Exit speaks this in the conversation, node \"root\", line 2."
-  },
-  "conv.CaveExit.you-climb-back-into": "You climb back into the light.",
-  "@conv.CaveExit.you-climb-back-into": {
-    "description": "Cave Exit answers this when the player picks \"Climb up.\" (node \"root\")."
-  },
   "conv.CaveMouth.a-dark-opening": "A dark opening in the rock.",
   "@conv.CaveMouth.a-dark-opening": {
     "description": "Cave Mouth speaks this in the conversation, node \"root\", line 1."

@@ -153,6 +153,15 @@ func TestPassages_EveryDoorCarriesItsWords(t *testing.T) {
 	for _, z := range loaded.zones {
 		for _, e := range z.Exits {
 			assert.Equal(t, e.Key(), e.Def.Interaction.ExitID, "exit to %q", e.Anchor)
+			// D12: an exit with no conversation of its own is worded by itself,
+			// its destination or its look, never by the shared conversation.
+			if e.Conversation == "" {
+				for _, n := range e.Def.Interaction.Nodes {
+					for _, id := range n.LineIDs {
+						assert.Regexp(t, `^(exit|anchor|exit-look)\.`, id, "exit to %q", e.Anchor)
+					}
+				}
+			}
 			for _, n := range e.Def.Interaction.Nodes {
 				for _, id := range n.LineIDs {
 					shown[id] = true

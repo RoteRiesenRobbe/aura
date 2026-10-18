@@ -117,15 +117,13 @@
       "x": -21.2,
       "y": -3.6,
       "anchor": "surface-west2",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "cave-exit"
     },
     {
       "x": 14.8,
       "y": -3.6,
       "anchor": "surface-east2",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "cave-exit"
     }
   ],
   "regions": [

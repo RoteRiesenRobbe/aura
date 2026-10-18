@@ -4,6 +4,46 @@
   "@anchor.barn-inside.text": {
     "description": "What every generic door leading into the barn cellar (anchor \"barn-inside\") says when the player presses E at it: one line in the door's panel, under the place name. A plain description of the way in."
   },
+  "exit-look.cave-exit.go": "Climb up.",
+  "@exit-look.cave-exit.go": {
+    "description": "The button on every exit drawn as a cave exit (a way up out of a cave) that moves the player through it, by default. An imperative, like \"Climb down.\""
+  },
+  "exit-look.cave-exit.text": "A narrow shaft, and daylight at the top of it.",
+  "@exit-look.cave-exit.text": {
+    "description": "What every exit drawn as a cave exit (a way up out of a cave) says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
+  },
+  "exit-look.cave-mouth.go": "Climb down.",
+  "@exit-look.cave-mouth.go": {
+    "description": "The button on every exit drawn as a cave mouth (a way down into a cave) that moves the player through it, by default. An imperative, like \"Climb down.\""
+  },
+  "exit-look.cave-mouth.text": "A dark opening in the rock. Cold air rises out of it.",
+  "@exit-look.cave-mouth.text": {
+    "description": "What every exit drawn as a cave mouth (a way down into a cave) says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
+  },
+  "exit-look.door.go": "Go through.",
+  "@exit-look.door.go": {
+    "description": "The button on every exit drawn as a door that moves the player through it, by default. An imperative, like \"Climb down.\""
+  },
+  "exit-look.door.text": "A door.",
+  "@exit-look.door.text": {
+    "description": "What every exit drawn as a door says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
+  },
+  "exit-look.stairs-down.go": "Go down.",
+  "@exit-look.stairs-down.go": {
+    "description": "The button on every exit drawn as stairs leading down that moves the player through it, by default. An imperative, like \"Climb down.\""
+  },
+  "exit-look.stairs-down.text": "Steps lead down into the dark.",
+  "@exit-look.stairs-down.text": {
+    "description": "What every exit drawn as stairs leading down says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
+  },
+  "exit-look.stairs-up.go": "Go up.",
+  "@exit-look.stairs-up.go": {
+    "description": "The button on every exit drawn as stairs leading up that moves the player through it, by default. An imperative, like \"Climb down.\""
+  },
+  "exit-look.stairs-up.text": "Steps lead up.",
+  "@exit-look.stairs-up.text": {
+    "description": "What every exit drawn as stairs leading up says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
+  },
   "exit.barn-cellar-stairs.go": "Climb the stairs.",
   "@exit.barn-cellar-stairs.go": {
     "description": "The button on the barn cellar stairs (exit \"barn-cellar-stairs\") that takes the player up out of the barn cellar. An imperative, like \"Climb down.\""

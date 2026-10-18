@@ -13,28 +13,45 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
-// GenericDoor is the conversation definition an exit uses when it names no
-// `door` (D3): the shipped CaveMouth, whose lines become every door's words
-// until an exit or its destination authors better ones (P3).
-const GenericDoor = "CaveMouth"
+// SharedConversation is the conversation every ordinary exit talks through
+// (D3, D12): the shipped CaveMouth definition, whose own lines are never shown,
+// because the exit's look, its destination or the exit itself always words it.
+// An exit names a `conversation` only for one written for it alone.
+const SharedConversation = "CaveMouth"
 
-// PassageEntityType is the entityType a door definition must author (D4): a
-// Passage draws nothing of its own, so the exit's look is the only picture.
+// PassageEntityType is the entityType an exit's conversation must author (D4):
+// a Passage draws nothing of its own, so the exit's look is the only picture.
 const PassageEntityType = "Passage"
 
-// The closed set an exit's `look` names (R4, D5). The client's look table
+// The closed set an exit's `look` names (R4, D5, D12): the picture AND the
+// default words (exit-look.<look>.text/.go). The client's look table
 // (ExitLookTable.ts) draws each; Tiled offers them as AuraExitLook.
-// [PLACEHOLDER] art for all but the cave mouth.
+// [PLACEHOLDER] art for all but the cave mouth. ⚑ `hidden` is not a look
+// since P3b: it is the exit's own toggle, and the look still picks the words.
 const (
 	ExitLookCaveMouth  = "cave-mouth"
-	ExitLookHidden     = "hidden"
+	ExitLookCaveExit   = "cave-exit"
 	ExitLookStairsDown = "stairs-down"
 	ExitLookStairsUp   = "stairs-up"
 	ExitLookDoor       = "door"
 )
 
 // ExitLooks is that set, the default first.
-var ExitLooks = []string{ExitLookCaveMouth, ExitLookHidden, ExitLookStairsDown, ExitLookStairsUp, ExitLookDoor}
+var ExitLooks = []string{ExitLookCaveMouth, ExitLookCaveExit, ExitLookStairsDown, ExitLookStairsUp, ExitLookDoor}
+
+// checkLook refuses a look outside the set, naming the P3b toggle for the
+// retired `hidden` look so an old file says how to fix itself.
+func checkLook(ref, look string) error {
+	if look == "" || slices.Contains(ExitLooks, look) {
+		return nil
+	}
+	if look == "hidden" {
+		return fmt.Errorf("%s: look \"hidden\" is a toggle now: write \"hidden\": true and keep a look for "+
+			"its words (node scripts/migrate-exits.mjs <file>)", ref)
+	}
+	return fmt.Errorf("%s: look %q must be one of %s (omit it for the cave mouth)",
+		ref, look, strings.Join(ExitLooks, ", "))
+}
 
 // EffectiveLook is the look the client draws: absent is the cave mouth
 // [PLACEHOLDER default, D1].
@@ -45,12 +62,12 @@ func (e *Exit) EffectiveLook() string {
 	return e.Look
 }
 
-// DoorName is the definition this exit talks as.
-func (e *Exit) DoorName() string {
-	if e.Door == "" {
-		return GenericDoor
+// ConversationName is the definition this exit talks as.
+func (e *Exit) ConversationName() string {
+	if e.Conversation == "" {
+		return SharedConversation
 	}
-	return e.Door
+	return e.Conversation
 }
 
 // validateExits is the file-only half: what needs no registry.
@@ -65,12 +82,11 @@ func (z *Zone) validateExits() error {
 			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"barn-door\"): it keys "+
 				"the exit's words (exit.<id>.text)", ref, e.ID)
 		}
-		if e.Door != "" && strings.TrimSpace(e.Door) == "" {
-			return fmt.Errorf("%s: door must not be blank (omit it for the generic door)", ref)
+		if e.Conversation != "" && strings.TrimSpace(e.Conversation) == "" {
+			return fmt.Errorf("%s: conversation must not be blank (omit it for the look's words)", ref)
 		}
-		if e.Look != "" && !slices.Contains(ExitLooks, e.Look) {
-			return fmt.Errorf("%s: look %q must be one of %s (omit it for the cave mouth)",
-				ref, e.Look, strings.Join(ExitLooks, ", "))
+		if err := checkLook(ref, e.Look); err != nil {
+			return err
 		}
 		if e.X < -z.Bounds.Width/2 || e.X > z.Bounds.Width/2 ||
 			e.Y < -z.Bounds.Height/2 || e.Y > z.Bounds.Height/2 {
@@ -92,9 +108,8 @@ func (z *Zone) validateExitAreas() error {
 		if a.ID != "" && !areaIDPattern.MatchString(a.ID) {
 			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"glow-pit\")", ref, a.ID)
 		}
-		if a.Look != "" && !slices.Contains(ExitLooks, a.Look) {
-			return fmt.Errorf("%s: look %q must be one of %s (omit it for the cave mouth)",
-				ref, a.Look, strings.Join(ExitLooks, ", "))
+		if err := checkLook(ref, a.Look); err != nil {
+			return err
 		}
 		if len(a.Points) < 3 {
 			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d", ref, len(a.Points))
@@ -147,24 +162,25 @@ func CrossValidateExitAreas(zones []*Zone) error {
 	return nil
 }
 
-// resolveExits binds each exit's door to its definition and refuses one that
-// is not a door: exactly one anchor-mode travel_to row, or the exit's single
-// anchor has no row to deliver through (none) or two rows to share (several).
+// resolveExits binds each exit's conversation to its definition and refuses
+// one that cannot move anyone: exactly one anchor-mode travel_to row, or the
+// exit's single anchor has no row to deliver through (none) or two rows to
+// share (several).
 func (z *Zone) resolveExits(mr mobs.Registry) error {
 	for i := range z.Exits {
 		e := &z.Exits[i]
-		def, err := mr.GetByName(e.DoorName())
+		def, err := mr.GetByName(e.ConversationName())
 		if err != nil {
-			return fmt.Errorf("%s: unknown door %q", objectRef("exit", z.Exits, i), e.DoorName())
+			return fmt.Errorf("%s: unknown conversation %q", objectRef("exit", z.Exits, i), e.ConversationName())
 		}
 		rows := 0
 		anchorGrants(def, func(string, *mobs.InteractionGrant) { rows++ })
 		if rows != 1 {
-			return fmt.Errorf("%s: door %q must have exactly one anchor-mode travel_to row, has %d",
+			return fmt.Errorf("%s: conversation %q must have exactly one anchor-mode travel_to row, has %d",
 				objectRef("exit", z.Exits, i), def.Name, rows)
 		}
 		if def.EntityType != PassageEntityType {
-			return fmt.Errorf("%s: door %q must have entityType %q, has %q: the exit's look is the picture, "+
+			return fmt.Errorf("%s: conversation %q must have entityType %q, has %q: the exit's look is the picture, "+
 				"and any other entityType draws its own sprite, health bar and plate on top of it (D4)",
 				objectRef("exit", z.Exits, i), def.Name, PassageEntityType, def.EntityType)
 		}
@@ -172,12 +188,6 @@ func (z *Zone) resolveExits(mr mobs.Registry) error {
 	}
 	return nil
 }
-
-// StockDoors are the shipped generic doors (D6 tier 3): their words are the
-// last fallback, so a destination's words (tier 2) replace them. Any other
-// door definition was authored for its doors (tier 0), so its words stand
-// and only the exit's own (tier 1) beat them.
-var StockDoors = []string{GenericDoor, "CaveExit"}
 
 // Key is what the client looks the exit up by to name the panel (D6): its id,
 // or "@" + its anchor for an exit without one.
@@ -188,10 +198,11 @@ func (e *Exit) Key() string {
 	return "@" + e.Anchor
 }
 
-// ApplyExitWords gives every exit's door its words (D6), from the English
-// arb: per column, the exit's own (exit.<id>.text / .go), else the
-// destination's text (anchor.<name>.text) on a stock door, else the
-// definition's. Each exit gets its OWN copy of its door's definition, which
+// ApplyExitWords gives every exit its words (D6, D12), from the English arb:
+// per column, the exit's own (exit.<id>.text / .go); else, on an exit with no
+// conversation of its own, the destination's line (anchor.<name>.text) and
+// the look's words (exit-look.<look>.text / .go); else the conversation's
+// own. Each exit gets its OWN copy of its conversation's definition, which
 // also carries the exit's Key for the header; the registry's definition is
 // never touched, because one definition serves every door in the world.
 //
@@ -219,8 +230,9 @@ func (e *Exit) applyWords(en map[string]string) {
 		if oi < 0 {
 			continue
 		}
-		// The words belong to the node the travel row stands in: on a stock
-		// door that is its only node, on a custom one the node that moves you.
+		// The words belong to the node the travel row stands in: on the shared
+		// conversation that is its only node, on one of its own the node that
+		// moves you.
 		if text != "" {
 			node.Lines, node.LineIDs = []string{en[text]}, []string{text}
 		}
@@ -244,8 +256,18 @@ func (e *Exit) wordKeys(en map[string]string) (text, row string) {
 			row = k
 		}
 	}
-	if k := lang.AnchorText(e.Anchor); text == "" && en[k] != "" && slices.Contains(StockDoors, e.Def.Name) {
+	if e.Conversation != "" {
+		// Written for this exit alone: its own lines stand.
+		return text, row
+	}
+	if k := lang.AnchorText(e.Anchor); text == "" && en[k] != "" {
 		text = k
+	}
+	if k := lang.ExitLookText(e.EffectiveLook()); text == "" && en[k] != "" {
+		text = k
+	}
+	if k := lang.ExitLookGo(e.EffectiveLook()); row == "" && en[k] != "" {
+		row = k
 	}
 	return text, row
 }

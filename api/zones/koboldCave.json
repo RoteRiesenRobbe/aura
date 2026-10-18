@@ -395,8 +395,7 @@
       "x": -9.43,
       "y": 12.37,
       "anchor": "koboldcave-surface",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "cave-exit"
     }
   ],
   "regions": [

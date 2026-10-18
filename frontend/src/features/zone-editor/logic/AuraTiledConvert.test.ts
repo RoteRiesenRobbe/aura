@@ -2488,12 +2488,13 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // writers quietly dropped every cave mouth’s destination.
             anchor: 'underworld-entry',
         }],
-        // ⚑ `door` authored: absent is the generic door, so a fixture without
-        // it would let both writers drop every custom door (plan-passages.md P1).
+        // ⚑ `conversation` and `hidden` authored: absent is the shared
+        // conversation / drawn, so a fixture without them would let both
+        // writers drop every one (plan-passages.md P1, P3b).
         // `rotation` and `look` (P2) non-default for the same reason: no turn
         // and the cave mouth both write no key.
-        exits: [{id: 'west-stairs', x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', door: 'CaveExit'}],
-        exitAreas: [{id: 'glow-pit', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}], anchor: 'under-west', look: 'hidden'}],
+        exits: [{id: 'west-stairs', x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', hidden: true, conversation: 'BarredDoor'}],
+        exitAreas: [{id: 'glow-pit', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}], anchor: 'under-west', look: 'door', hidden: true}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3206,8 +3207,8 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         layerNamed(m, 'exits').objects as any[];
 
-    it('round-trips an exit with and without a door, at the zone level and in an area', () => {
-        const exits = [{x: 1, y: 2, anchor: 'below'}, {x: -3, y: 4, anchor: 'above', door: 'CaveExit'}];
+    it('round-trips an exit with and without a conversation, at the zone level and in an area', () => {
+        const exits = [{x: 1, y: 2, anchor: 'below'}, {x: -3, y: 4, anchor: 'above', conversation: 'BarredDoor'}];
         const out = roundTrip(zone({
             exits,
             areas: [{id: 'farmlands', exits: [{x: 5, y: -1, anchor: 'barn-inside'}]}],
@@ -3220,25 +3221,38 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         expect(roundTrip(zone())).not.toHaveProperty('exits');
     });
 
-    it('opens an exit as an AuraExit point named by its anchor, door typed only when authored', () => {
-        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}, {x: 0, y: 0, anchor: 'b', door: 'CaveExit'}]}));
+    it('opens an exit as an AuraExit point named by its anchor, conversation typed only when authored', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}, {x: 0, y: 0, anchor: 'b', conversation: 'BarredDoor'}]}));
         const [plain, custom] = exitObjects(m);
         expect(plain).toMatchObject({shape: 'point', cls: C.EXIT_CLASS, name: 'a', properties: {anchor: 'a'}});
-        expect(plain.properties).not.toHaveProperty('door');
-        expect(custom.properties.door).toBe('CaveExit');
-        expect(custom.enums).toEqual({door: C.EXIT_DOOR_ENUM});
+        expect(plain.properties).not.toHaveProperty('conversation');
+        expect(plain.properties).not.toHaveProperty('hidden');
+        expect(custom.properties.conversation).toBe('BarredDoor');
+        expect(custom.enums).toEqual({conversation: C.EXIT_CONVERSATION_ENUM});
     });
 
     // The C6 rule: a Tiled that drops the member at its default and one that
     // keeps it must reach the same file.
-    it('reads the door sentinel, a typed index and an absent member alike', () => {
+    it('reads the conversation sentinel and an absent member alike', () => {
         const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
         const o = exitObjects(m)[0];
-        o.properties.door = C.EXIT_DOOR_UNSET;
-        expect(C.modelToZone(m).exits[0].door).toBeUndefined();
-        const values = content.ENUM_VALUES[C.EXIT_DOOR_ENUM] as string[];
-        o.properties.door = {typeName: C.EXIT_DOOR_ENUM, value: values.indexOf('CaveExit')};
-        expect(C.modelToZone(m).exits[0].door).toBe('CaveExit');
+        o.properties.conversation = C.EXIT_CONVERSATION_UNSET;
+        expect(C.modelToZone(m).exits[0].conversation).toBeUndefined();
+        o.properties.hidden = false;
+        expect(C.modelToZone(m).exits[0].hidden).toBeUndefined();
+        o.properties.hidden = true;
+        expect(C.modelToZone(m).exits[0].hidden).toBe(true);
+    });
+
+    // ⛔ P3b renamed door and retired the hidden look: an old file would lose
+    // both on its next save, so it refuses to open.
+    it('refuses to open an exit still in the pre-P3b shape, pointing at the script', () => {
+        expect(() => C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a', door: 'CaveExit'}]})))
+            .toThrow(/"door"[^]*migrate-exits\.mjs/);
+        expect(() => C.zoneToModel(zone({areas: [{id: 'farmlands', exits: [{x: 0, y: 0, anchor: 'a', look: 'hidden'}]}]})))
+            .toThrow(/look "hidden"/);
+        expect(() => C.zoneToModel(zone({exitAreas: [{points: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: 1}], anchor: 'a', look: 'hidden'}]})))
+            .toThrow(/migrate-exits/);
     });
 
     // ⛔ D11/L2: the old shape is still VALID, so only the converter can stop
@@ -3259,9 +3273,14 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         }
         const exitZone = (over: Record<string, unknown> = {}) => zone({exits: [{x: 0, y: 0, anchor: 'a', ...over}]});
 
-        it('accepts a plain exit and one with a listed door', () => {
+        it('accepts a plain exit and one with a listed conversation', () => {
             expect(C.validateModel(modelOf(exitZone()))).toEqual([]);
-            expect(C.validateModel(modelOf(exitZone({door: 'CaveExit'})))).toEqual([]);
+            C.useContent({...content, CONVERSATION_NAMES: ['BarredDoor']});
+            try {
+                expect(C.validateModel(modelOf(exitZone({conversation: 'BarredDoor'})))).toEqual([]);
+            } finally {
+                C.useContent(content);
+            }
         });
 
         it('refuses an exit with no anchor', () => {
@@ -3270,8 +3289,9 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
             expect(C.validateModel(m).join(' ')).toContain('no anchor');
         });
 
-        it('refuses a door that is not a door', () => {
-            expect(C.validateModel(modelOf(exitZone({door: 'Wolf'}))).join(' ')).toContain('unknown door "Wolf"');
+        it('refuses a conversation that is not one an exit can talk as', () => {
+            expect(C.validateModel(modelOf(exitZone({conversation: 'Wolf'}))).join(' '))
+                .toContain('unknown conversation "Wolf"');
         });
 
         it('refuses an object of another class, which would vanish on save', () => {
@@ -3298,7 +3318,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
 
     // ⚑ The class and its enum are what Tiled shows; verify.sh cannot see
     // either, so the palette is pinned to the converter here.
-    it('the palette declares AuraExit with the converter\'s defaults, and every door', () => {
+    it('the palette declares AuraExit with the converter\'s defaults, and every conversation', () => {
         const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
             .propertyTypes as {name: string; values?: string[];
                 members?: {name: string; value?: unknown; propertyType?: string}[]}[];
@@ -3307,11 +3327,12 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
             {name: 'id', type: 'string', value: ''},
             {name: 'anchor', type: 'string', value: ''},
             {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
-            {name: 'door', type: 'string', propertyType: C.EXIT_DOOR_ENUM, value: C.EXIT_DOOR_UNSET},
+            {name: 'hidden', type: 'bool', value: false},
+            {name: 'conversation', type: 'string', propertyType: C.EXIT_CONVERSATION_ENUM, value: C.EXIT_CONVERSATION_UNSET},
         ]);
-        const doors = types.filter(t => t.name === C.EXIT_DOOR_ENUM)[0].values;
-        expect(doors).toEqual([C.EXIT_DOOR_UNSET, ...content.DOOR_NAMES]);
-        expect(content.DOOR_NAMES).toEqual(expect.arrayContaining(['CaveMouth', 'CaveExit']));
+        const conversations = types.filter(t => t.name === C.EXIT_CONVERSATION_ENUM)[0].values;
+        expect(conversations).toEqual([C.EXIT_CONVERSATION_UNSET, ...content.CONVERSATION_NAMES]);
+        expect(content.CONVERSATION_NAMES, 'the shared conversation is never offered').not.toContain('CaveMouth');
         expect(types.filter(t => t.name === C.EXIT_LOOK_ENUM)[0].values).toEqual(C.EXIT_LOOKS);
     });
 
@@ -3331,7 +3352,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
     it('round-trips a turn and a look, and writes neither at its default', () => {
         const exits = [
             {x: 1, y: 2, rotation: 1.571, anchor: 'a', look: 'stairs-down'},
-            {x: 3, y: 4, anchor: 'b', look: 'hidden', door: 'CaveExit'},
+            {x: 3, y: 4, anchor: 'b', look: 'cave-exit', hidden: true, conversation: 'BarredDoor'},
         ];
         expect(roundTrip(zone({exits})).exits).toEqual(exits);
         expect(roundTrip(zone({exits: [{x: 1, y: 2, rotation: 0, anchor: 'a', look: 'cave-mouth'}]})).exits)
@@ -3423,6 +3444,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
                 {name: 'id', type: 'string', value: ''},
                 {name: 'anchor', type: 'string', value: ''},
                 {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
+                {name: 'hidden', type: 'bool', value: false},
             ]);
         });
     });

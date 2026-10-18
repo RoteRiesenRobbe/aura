@@ -91,7 +91,6 @@
       "BurstTotem",
       "Camp",
       "Campfire",
-      "CaveExit",
       "CaveMouth",
       "CityGuard",
       "Companion",
@@ -463,14 +462,12 @@
       "homestead",
       "farmreinhard"
     ],
-    "AuraExitDoor": [
-      "(generic door)",
-      "CaveExit",
-      "CaveMouth"
+    "AuraExitConversation": [
+      "(by look)"
     ],
     "AuraExitLook": [
       "cave-mouth",
-      "hidden",
+      "cave-exit",
       "stairs-down",
       "stairs-up",
       "door"
@@ -681,7 +678,6 @@
     "BurstTotem": "fixture",
     "Camp": "fixture",
     "Campfire": "fixture",
-    "CaveExit": "talker",
     "CaveMouth": "talker",
     "CityGuard": "talker",
     "Companion": "combat",
@@ -796,7 +792,6 @@
     "BurstTotem": 0,
     "Camp": 0,
     "Campfire": 0,
-    "CaveExit": 0,
     "CaveMouth": 0,
     "CityGuard": 0,
     "Companion": 1.2,
@@ -1136,8 +1131,5 @@
     "homestead",
     "farmreinhard"
   ],
-  "DOOR_NAMES": [
-    "CaveExit",
-    "CaveMouth"
-  ]
+  "CONVERSATION_NAMES": []
 }

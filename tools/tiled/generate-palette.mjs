@@ -611,10 +611,11 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     // paints ground is the common case, not a mistake.
     types.push(enumType(C.REGION_ID_ENUM, [C.REGION_ID_UNSET].concat(regionIds)));
     // ⭐ The talk exit (plan-passages.md P1), LAST for AuraAreaId's reason.
-    // The doors an exit may talk as: the sentinel leads and means the GENERIC
-    // door, so it maps back to absent (the EFFECT_UNSET reading). 'anchor' is
+    // The conversations an exit may name (D12): the sentinel leads and means
+    // "worded by its look", so it maps back to absent (the EFFECT_UNSET
+    // reading); the shared conversation is not offered. 'anchor' is
     // free text whose default '' is "not authored", which the save refuses.
-    types.push(enumType(C.EXIT_DOOR_ENUM, [C.EXIT_DOOR_UNSET].concat(mobs.filter(m => m.door).map(m => m.name))));
+    types.push(enumType(C.EXIT_CONVERSATION_ENUM, [C.EXIT_CONVERSATION_UNSET].concat(conversationNames)));
     // ⚑ `look` (P2) defaults to the cave mouth, the converter's
     // EXIT_LOOK_DEFAULT, which reads back as absent; its enum is pushed AFTER
     // the class so no existing type id moves. `id` (P3) is free text like
@@ -623,14 +624,16 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
         [member('id', 'string', ''),
             member('anchor', 'string', ''),
             member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
-            member('door', 'string', C.EXIT_DOOR_UNSET, C.EXIT_DOOR_ENUM)]));
+            member('hidden', 'bool', false),
+            member('conversation', 'string', C.EXIT_CONVERSATION_UNSET, C.EXIT_CONVERSATION_ENUM)]));
     types.push(enumType(C.EXIT_LOOK_ENUM, C.EXIT_LOOKS));
     // The touch exit (P4), LAST for the same reason: its members are the
     // talk exit's minus the door (an area has no conversation).
     types.push(classType(C.EXIT_AREA_CLASS, '#ff4db6ac',
         [member('id', 'string', ''),
             member('anchor', 'string', ''),
-            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM)]));
+            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
+            member('hidden', 'bool', false)]));
     return types;
 }
 
@@ -696,9 +699,9 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas
         // ⚑ The place ids WITHOUT the sentinel (plan-region-identity.md D2):
         // the converter refuses a region id outside this list.
         REGION_IDS: regionIds,
-        // ⚑ The doors WITHOUT the sentinel (plan-passages.md D3): the
-        // converter refuses an exit's door outside this list.
-        DOOR_NAMES: mobs.filter(m => m.door).map(m => m.name),
+        // ⚑ The conversations WITHOUT the sentinel (plan-passages.md D3, D12):
+        // the converter refuses an exit's conversation outside this list.
+        CONVERSATION_NAMES: conversationNames,
     }, null, 2) + '\n';
 }
 
@@ -727,6 +730,10 @@ function patchProject(file, types) {
 const terrain = readTerrainTypes();
 const props = readProps();
 const mobs = readMobs();
+// The conversations an exit may name (plan-passages.md D12): every door-shaped
+// mob but the shared one (world.SharedConversation), which every exit without
+// a conversation of its own already talks through.
+const conversationNames = mobs.filter(m => m.door && m.name !== 'CaveMouth').map(m => m.name);
 const profiles = readProfileTable('terrain-profiles.json');
 const airProfiles = readProfileTable('api/atmospheres/profiles.json');
 const capProfiles = (() => {
@@ -779,4 +786,4 @@ console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}
 console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);
 console.log(`areas              ${areas.length} ids → AuraAreaId + AuraArea (a group layer's class)`);
 console.log(`places             ${regionIds.length} ids → AuraRegionId + AuraRegion`);
-console.log(`doors              ${mobs.filter(m => m.door).length} → AuraExitDoor + AuraExit`);
+console.log(`conversations      ${conversationNames.length} → AuraExitConversation + AuraExit`);

@@ -122,15 +122,13 @@
       "x": -18,
       "y": -3,
       "anchor": "surface-west",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "cave-exit"
     },
     {
       "x": 18,
       "y": -3,
       "anchor": "surface-east",
-      "look": "stairs-up",
-      "door": "CaveExit"
+      "look": "cave-exit"
     }
   ],
   "bindPoints": [

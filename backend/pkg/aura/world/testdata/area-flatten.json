@@ -39,8 +39,8 @@
           "canopy": [{"type": "OakTree", "x": 11, "y": 0, "rotation": 0}]
         },
         "spawns": [{"mob": "Wolf", "x": 11, "y": 0, "angle": 0}],
-        "exits": [{"x": 11, "y": 0, "anchor": "farm-a", "door": "CaveExit"}, {"x": 12, "y": 0, "anchor": "zone-a"}],
-        "exitAreas": [{"points": [{"x": 11, "y": 3}, {"x": 12, "y": 3}, {"x": 12, "y": 4}], "anchor": "farm-a", "look": "hidden"}],
+        "exits": [{"x": 11, "y": 0, "anchor": "farm-a", "conversation": "BarredDoor"}, {"x": 12, "y": 0, "anchor": "zone-a"}],
+        "exitAreas": [{"points": [{"x": 11, "y": 3}, {"x": 12, "y": 3}, {"x": 12, "y": 4}], "anchor": "farm-a", "hidden": true}],
         "bindPoints": [{"id": "spawnpoint-2", "x": 11, "y": 0}],
         "darkAreas": [{"x": 11, "y": 0, "radius": 1}],
         "regions": [

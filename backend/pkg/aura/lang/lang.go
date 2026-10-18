@@ -409,6 +409,10 @@ func ExitText(exit string) string     { return "exit." + exit + ".text" }
 func ExitGo(exit string) string       { return "exit." + exit + ".go" }
 func AnchorText(anchor string) string { return "anchor." + anchor + ".text" }
 
+// The words every exit of one look says by default (D12).
+func ExitLookText(look string) string { return "exit-look." + look + ".text" }
+func ExitLookGo(look string) string   { return "exit-look." + look + ".go" }
+
 // Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
 // unique within that NPC (D27).
 func Conversation(npc, slug string) string { return "conv." + npc + "." + slug }

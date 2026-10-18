@@ -1,6 +1,6 @@
 /**
- * Draws the exits' looks (plan-passages.md P2, D5): one sprite per exit whose
- * look is not `hidden`, from the bundled zone, into the `terrain.exits` layer.
+ * Draws the exits' looks (plan-passages.md P2, D5): one sprite per exit that
+ * is not `hidden`, from the bundled zone, into the `terrain.exits` layer.
  * The geometry is ExitLookTable's; this file only owns the textures and the
  * sprites.
  *
@@ -20,12 +20,14 @@ const textures: Record<string, ISvgContainer> = {
     // ⭐ Reused: the CaveMouth PROP's art (prop 98), so a cave-mouth exit and
     // a hand-placed cave mouth are the same picture.
     'cave-mouth': {svg: null},
+    'cave-exit': {svg: null},
     'stairs-down': {svg: null},
     'stairs-up': {svg: null},
     'door': {svg: null},
 };
 const files: Record<string, string> = {
     'cave-mouth': require('../../game-objects/assets/resources/caveMouth.svg'),
+    'cave-exit': require('../assets/cave-exit.svg'),
     'stairs-down': require('../assets/stairs-down.svg'),
     'stairs-up': require('../assets/stairs-up.svg'),
     'door': require('../assets/door.svg'),

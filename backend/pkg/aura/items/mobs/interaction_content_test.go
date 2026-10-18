@@ -81,7 +81,6 @@ var expectedConversants = []string{
 	// is a property of the definition - the same reason the portals are listed -
 	// and world.CrossValidateTravelAnchors warns at boot until a zone places them.
 	"CaveMouth",
-	"CaveExit",
 
 	// The north pasture (content-zone-design-guide.md §2.4, the "teaches neutral"
 	// POI). The Shepherd offers and turns in `the-strays`; the three sheep are

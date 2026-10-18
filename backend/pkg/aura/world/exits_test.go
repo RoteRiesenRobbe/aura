@@ -16,7 +16,7 @@ import (
 // definitions a test hands it.
 func doorRegistry(extra ...*mobs.MobDefinition) *fakeMobRegistry {
 	r := newFakeMobRegistry()
-	for _, d := range append([]*mobs.MobDefinition{passage(GenericDoor), passage("CaveExit")}, extra...) {
+	for _, d := range append([]*mobs.MobDefinition{passage(SharedConversation), passage("BarredDoor")}, extra...) {
 		r.byName[d.Name] = d
 	}
 	return r
@@ -37,12 +37,12 @@ func loadExits(t *testing.T, exits string) (*Zone, error) {
 }
 
 func TestExits_LoadAndResolveTheirDoor(t *testing.T) {
-	z, err := loadExits(t, `{"x": 1, "y": 2, "anchor": "below"}, {"x": 3, "y": 4, "anchor": "above", "door": "CaveExit"}`)
+	z, err := loadExits(t, `{"x": 1, "y": 2, "anchor": "below"}, {"x": 3, "y": 4, "anchor": "above", "conversation": "BarredDoor"}`)
 	require.NoError(t, err)
 	require.Len(t, z.Exits, 2)
 	// ⭐ No door is the generic one, so an exit authors only where it leads.
-	assert.Equal(t, GenericDoor, z.Exits[0].Def.Name)
-	assert.Equal(t, "CaveExit", z.Exits[1].Def.Name)
+	assert.Equal(t, SharedConversation, z.Exits[0].Def.Name)
+	assert.Equal(t, "BarredDoor", z.Exits[1].Def.Name)
 	assert.Empty(t, z.Spawns, "an exit is not a spawn in the file")
 }
 
@@ -61,9 +61,12 @@ func TestExits_RefuseWhatCannotTakeAnyoneAnywhere(t *testing.T) {
 	cases := map[string]struct{ exit, want string }{
 		"no anchor":      {`{"x": 1, "y": 2}`, "exit 0: anchor must not be empty"},
 		"a blank anchor": {`{"x": 1, "y": 2, "anchor": "  "}`, "exit 0: anchor must not be empty"},
-		"a blank door":   {`{"x": 1, "y": 2, "anchor": "a", "door": " "}`, "exit 0: door must not be blank"},
-		"an unknown door": {`{"x": 1, "y": 2, "anchor": "a", "door": "TrapDoor"}`,
-			`exit 0: unknown door "TrapDoor"`},
+		"a blank conversation": {`{"x": 1, "y": 2, "anchor": "a", "conversation": " "}`, "exit 0: conversation must not be blank"},
+		"an unknown conversation": {`{"x": 1, "y": 2, "anchor": "a", "conversation": "TrapDoor"}`,
+			`exit 0: unknown conversation "TrapDoor"`},
+		"the old door key": {`{"x": 1, "y": 2, "anchor": "a", "door": "CaveMouth"}`, `unknown field "door"`},
+		"the retired hidden look": {`{"x": 1, "y": 2, "anchor": "a", "look": "hidden"}`,
+			`exit 0: look "hidden" is a toggle now`},
 		"outside the bounds": {`{"x": 31, "y": 2, "anchor": "a"}`, "exit 0: (31, 2) is outside the bounds"},
 	}
 	for name, c := range cases {
@@ -88,7 +91,7 @@ func TestExits_ADoorMustTravelByAnchorExactlyOnce(t *testing.T) {
 	for _, def := range []*mobs.MobDefinition{talker, twice, {Name: "Mute"}} {
 		t.Run(def.Name, func(t *testing.T) {
 			_, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
-				"exits": [{"x": 1, "y": 2, "anchor": "a", "door": "`+def.Name+`"}]}`),
+				"exits": [{"x": 1, "y": 2, "anchor": "a", "conversation": "`+def.Name+`"}]}`),
 				"", doorRegistry(def), newFakePropRegistry())
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "exactly one anchor-mode travel_to row")
@@ -100,14 +103,14 @@ func TestExits_ADoorMustTravelByAnchorExactlyOnce(t *testing.T) {
 // door behaves exactly as the spawn it replaces.
 func TestExits_SynthesizeTheDoorSpawn(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
-		"areas": [{"id": "farmlands", "exits": [{"x": 1, "y": 2, "anchor": "below", "door": "CaveExit"}]}]}`),
+		"areas": [{"id": "farmlands", "exits": [{"x": 1, "y": 2, "anchor": "below", "conversation": "BarredDoor"}]}]}`),
 		"", doorRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 
 	spawns := z.ExitSpawns()
 	require.Len(t, spawns, 1)
 	s := spawns[0]
-	assert.Equal(t, "CaveExit", s.Mob)
+	assert.Equal(t, "BarredDoor", s.Mob)
 	assert.Same(t, z.Exits[0].Def, s.Def)
 	assert.Equal(t, float32(1), s.X)
 	assert.Equal(t, float32(2), s.Y)
@@ -128,13 +131,13 @@ func TestPlace_OffsetsExits(t *testing.T) {
 // The travel pass walks exits as well as spawns: a door authored as an exit
 // that leads nowhere must refuse the boot exactly as the spawn did.
 func TestCrossValidateTravelAnchors_WalksExits(t *testing.T) {
-	mouth := door(GenericDoor, "")
+	mouth := door(SharedConversation, "")
 	surface := zoneAt("world", 144, 72, 0, 0)
 	surface.Exits = []Exit{{X: 3, Y: 4, Anchor: "under-west", Def: mouth}}
 
 	_, err := CrossValidateTravelAnchors(fakeRegistry{defs: []*mobs.MobDefinition{mouth}}, []*Zone{surface})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), GenericDoor)
+	assert.Contains(t, err.Error(), SharedConversation)
 	assert.Contains(t, err.Error(), "under-west")
 
 	under := zoneAt("under", 60, 40, 0, 300)
@@ -148,7 +151,7 @@ func TestCrossValidateTravelAnchors_WalksExits(t *testing.T) {
 // ⛑ Underworld L8 (portal-spells D8), now a boot refusal (D3): a talk exit
 // inside a campfire's dwell circle loses every E press to the flight map.
 func TestCrossValidateExitClearance_RefusesAnExitInsideADwellCircle(t *testing.T) {
-	mouth := door(GenericDoor, "")
+	mouth := door(SharedConversation, "")
 	mouth.Interaction.Range = 2
 	z := zoneAt("world", 144, 72, 0, 0)
 	z.BindPoints = []Campfire{{ID: "spawnpoint-1", X: 0, Y: 0}}
@@ -168,7 +171,7 @@ func TestCrossValidateExitClearance_RefusesAnExitInsideADwellCircle(t *testing.T
 // are world coordinates once placed, and a fire beside a zone edge can reach
 // nothing in another zone anyway, so one flat pass is faithful.
 func TestCrossValidateExitClearance_ComparesAcrossTheSet(t *testing.T) {
-	mouth := door(GenericDoor, "")
+	mouth := door(SharedConversation, "")
 	a := zoneAt("a", 10, 10, 0, 0)
 	a.BindPoints = []Campfire{{ID: "f", X: 0, Y: 0}}
 	b := zoneAt("b", 10, 10, 0, 0)
@@ -202,10 +205,10 @@ func TestExits_ADoorMustBeAPassage(t *testing.T) {
 	signpost := door("OldDoor", "")
 	signpost.EntityType = "Signpost"
 	_, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
-		"exits": [{"x": 1, "y": 2, "anchor": "a", "door": "OldDoor"}]}`),
+		"exits": [{"x": 1, "y": 2, "anchor": "a", "conversation": "OldDoor"}]}`),
 		"", doorRegistry(signpost), newFakePropRegistry())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `door "OldDoor" must have entityType "Passage"`)
+	assert.Contains(t, err.Error(), `conversation "OldDoor" must have entityType "Passage"`)
 }
 
 // ⭐ P3 (D7): an exit's id keys its words in a file a person edits, so it is a
@@ -248,48 +251,71 @@ func wordsDoor(name string) *mobs.MobDefinition {
 func wordsExit(id, anchor string, def *mobs.MobDefinition) *Zone {
 	z := zoneAt("world", 60, 40, 0, 0)
 	z.Exits = []Exit{{ID: id, Anchor: anchor, Def: def}}
+	if def.Name != SharedConversation {
+		z.Exits[0].Conversation = def.Name
+	}
 	return z
 }
 
 // root is the one node a door definition built by door() authors.
 func root(e *Exit) *mobs.InteractionNode { return &e.Def.Interaction.Nodes[0] }
 
-// ⭐ D6: the words a door shows, three tiers, the first key with English winning
-// per column. Text and row resolve here, at boot; the header is the client's.
+// ⭐ D6 + D12: the words an exit shows, the first key with English winning per
+// column. Text and row resolve here, at boot; the header is the client's.
 func TestApplyExitWords_Tiers(t *testing.T) {
 	en := map[string]string{
-		"anchor.barn-inside.text": "A low door into the barn.",
-		"exit.cellar-stairs.text": "Steps lead up.",
-		"exit.cellar-stairs.go":   "Climb the stairs.",
-		"exit.only-a-row.go":      "Go in.",
+		"anchor.barn-inside.text":   "A low door into the barn.",
+		"exit.cellar-stairs.text":   "Steps lead up.",
+		"exit.cellar-stairs.go":     "Climb the stairs.",
+		"exit.only-a-row.go":        "Go in.",
+		"exit-look.door.text":       "A door.",
+		"exit-look.door.go":         "Go through.",
+		"exit-look.cave-mouth.text": "A dark opening.",
+		"exit-look.cave-mouth.go":   "Climb down.",
 	}
+	lineIDs := func(z *Zone) []string { return root(&z.Exits[0]).LineIDs }
+	rowID := func(z *Zone) string { return root(&z.Exits[0]).Options[0].ID }
 
-	t.Run("nothing authored: the definition's words", func(t *testing.T) {
-		mouth := wordsDoor(GenericDoor)
-		z := wordsExit("", "nowhere-known", mouth)
+	t.Run("nothing authored: the look's words", func(t *testing.T) {
+		z := wordsExit("", "nowhere-known", wordsDoor(SharedConversation))
+		z.Exits[0].Look = ExitLookDoor
 		ApplyExitWords([]*Zone{z}, en)
-		assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[0]).Lines)
-		assert.Equal(t, "conv.CaveMouth.climb-down", root(&z.Exits[0]).Options[0].ID)
+		assert.Equal(t, []string{"A door."}, root(&z.Exits[0]).Lines)
+		assert.Equal(t, []string{"exit-look.door.text"}, lineIDs(z))
+		assert.Equal(t, "Go through.", root(&z.Exits[0]).Options[0].Text)
+		assert.Equal(t, "exit-look.door.go", rowID(z))
 	})
 
-	t.Run("tier 2: the destination's text on a stock door", func(t *testing.T) {
-		for _, name := range StockDoors {
-			z := wordsExit("", "barn-inside", wordsDoor(name))
-			ApplyExitWords([]*Zone{z}, en)
-			assert.Equal(t, []string{"A low door into the barn."}, root(&z.Exits[0]).Lines, name)
-			assert.Equal(t, []string{"anchor.barn-inside.text"}, root(&z.Exits[0]).LineIDs, name)
-			assert.Equal(t, "conv."+name+".climb-down", root(&z.Exits[0]).Options[0].ID, "no row at tier 2")
-		}
+	t.Run("an absent look is the cave mouth's words", func(t *testing.T) {
+		z := wordsExit("", "nowhere-known", wordsDoor(SharedConversation))
+		ApplyExitWords([]*Zone{z}, en)
+		assert.Equal(t, []string{"exit-look.cave-mouth.text"}, lineIDs(z))
 	})
 
-	t.Run("tier 0: a custom door keeps its words over the destination's", func(t *testing.T) {
+	t.Run("hidden changes nothing about the words", func(t *testing.T) {
+		z := wordsExit("", "nowhere-known", wordsDoor(SharedConversation))
+		z.Exits[0].Look, z.Exits[0].Hidden = ExitLookDoor, true
+		ApplyExitWords([]*Zone{z}, en)
+		assert.Equal(t, []string{"exit-look.door.text"}, lineIDs(z))
+	})
+
+	t.Run("the destination's line beats the look's, the look still words the row", func(t *testing.T) {
+		z := wordsExit("", "barn-inside", wordsDoor(SharedConversation))
+		ApplyExitWords([]*Zone{z}, en)
+		assert.Equal(t, []string{"A low door into the barn."}, root(&z.Exits[0]).Lines)
+		assert.Equal(t, "exit-look.cave-mouth.go", rowID(z))
+	})
+
+	t.Run("a conversation of the exit's own keeps its words over the destination and the look", func(t *testing.T) {
 		z := wordsExit("", "barn-inside", wordsDoor("BeastDoor"))
 		ApplyExitWords([]*Zone{z}, en)
 		assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[0]).Lines)
+		assert.Equal(t, []string{"conv.BeastDoor.a-dark-opening"}, lineIDs(z))
+		assert.Equal(t, "conv.BeastDoor.climb-down", rowID(z))
 	})
 
-	t.Run("tier 1: the exit's own words beat everything", func(t *testing.T) {
-		for _, name := range []string{GenericDoor, "BeastDoor"} {
+	t.Run("the exit's own words beat everything", func(t *testing.T) {
+		for _, name := range []string{SharedConversation, "BeastDoor"} {
 			z := wordsExit("cellar-stairs", "barn-inside", wordsDoor(name))
 			ApplyExitWords([]*Zone{z}, en)
 			n := root(&z.Exits[0])
@@ -301,18 +327,17 @@ func TestApplyExitWords_Tiers(t *testing.T) {
 	})
 
 	t.Run("per column: an exit with only a row still reads its destination", func(t *testing.T) {
-		z := wordsExit("only-a-row", "barn-inside", wordsDoor(GenericDoor))
+		z := wordsExit("only-a-row", "barn-inside", wordsDoor(SharedConversation))
 		ApplyExitWords([]*Zone{z}, en)
-		n := root(&z.Exits[0])
-		assert.Equal(t, []string{"A low door into the barn."}, n.Lines)
-		assert.Equal(t, "exit.only-a-row.go", n.Options[0].ID)
+		assert.Equal(t, []string{"anchor.barn-inside.text"}, lineIDs(z))
+		assert.Equal(t, "exit.only-a-row.go", rowID(z))
 	})
 }
 
 // ⚑ The words are PER EXIT: one definition serves every door in the world, so
 // giving one exit its words must never reach the definition or another door.
 func TestApplyExitWords_LeavesTheDefinitionAlone(t *testing.T) {
-	mouth := wordsDoor(GenericDoor)
+	mouth := wordsDoor(SharedConversation)
 	z := zoneAt("world", 60, 40, 0, 0)
 	z.Exits = []Exit{{ID: "cellar-stairs", Anchor: "a", Def: mouth}, {Anchor: "b", Def: mouth}}
 	ApplyExitWords([]*Zone{z}, map[string]string{"exit.cellar-stairs.text": "Steps.", "exit.cellar-stairs.go": "Up."})
@@ -320,7 +345,7 @@ func TestApplyExitWords_LeavesTheDefinitionAlone(t *testing.T) {
 	assert.Equal(t, []string{"A dark opening."}, mouth.Interaction.Nodes[0].Lines)
 	assert.Equal(t, "conv.CaveMouth.climb-down", mouth.Interaction.Nodes[0].Options[0].ID)
 	assert.Equal(t, []string{"A dark opening."}, root(&z.Exits[1]).Lines)
-	assert.Equal(t, GenericDoor, z.Exits[0].Def.Name, "still the same door, only its words differ")
+	assert.Equal(t, SharedConversation, z.Exits[0].Def.Name, "still the same door, only its words differ")
 	assert.Equal(t, mouth.ID, z.Exits[0].Def.ID)
 }
 
@@ -328,8 +353,8 @@ func TestApplyExitWords_LeavesTheDefinitionAlone(t *testing.T) {
 // door carries which exit it is: the id, or the anchor for an id-less exit.
 func TestApplyExitWords_StampsTheExitID(t *testing.T) {
 	z := zoneAt("world", 60, 40, 0, 0)
-	z.Exits = []Exit{{ID: "cellar-stairs", Anchor: "a", Def: passage(GenericDoor)},
-		{Anchor: "barn-inside", Def: passage(GenericDoor)}}
+	z.Exits = []Exit{{ID: "cellar-stairs", Anchor: "a", Def: passage(SharedConversation)},
+		{Anchor: "barn-inside", Def: passage(SharedConversation)}}
 	ApplyExitWords([]*Zone{z}, nil)
 	assert.Equal(t, "cellar-stairs", z.Exits[0].Def.Interaction.ExitID)
 	assert.Equal(t, "@barn-inside", z.Exits[1].Def.Interaction.ExitID)
@@ -348,13 +373,14 @@ const glowSquare = `"points": [{"x": 0, "y": 0}, {"x": 2, "y": 0}, {"x": 2, "y":
 
 func TestExitAreas_LoadAndFlatten(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
-		"exitAreas": [{"id": "glow-pit", `+glowSquare+`, "anchor": "a", "look": "hidden"}],
+		"exitAreas": [{"id": "glow-pit", `+glowSquare+`, "anchor": "a", "look": "door", "hidden": true}],
 		"areas": [{"id": "farmlands", "exitAreas": [{`+glowSquare+`, "anchor": "b"}]}]}`),
 		"", doorRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.ExitAreas, 2)
 	assert.Equal(t, "glow-pit", z.ExitAreas[0].ID)
-	assert.Equal(t, ExitLookHidden, z.ExitAreas[0].Look)
+	assert.Equal(t, ExitLookDoor, z.ExitAreas[0].Look)
+	assert.True(t, z.ExitAreas[0].Hidden)
 	assert.Len(t, z.ExitAreas[0].Points, 4)
 	assert.Equal(t, "farmlands", z.ExitAreas[1].Area)
 	assert.Equal(t, Point{X: 1, Y: 1}, z.ExitAreas[0].Centroid())

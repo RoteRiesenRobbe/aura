@@ -4,22 +4,23 @@
 // the legs rather than rotting them.
 //
 // P1: a door authored in `exits` (not `spawns`) still talks and still moves
-// you. The world's door to `barn-inside` (no `door`, so the GENERIC CaveMouth)
-// and the barn's way back up (`door: "CaveExit"`) must open DIFFERENT panels
-// and each row must land beside its anchor.
+// you: each row lands beside its anchor.
 //
 // P2: the door mob is a Passage, so it draws NOTHING of its own (R3): no
 // visible Graphics under its shape (the health bar and the tier frame are
 // Graphics) and no text on its plate. Read from 4 u away, outside the 2 u
 // reach, so the E badge is not up. The picture is the exit's look in the
-// `exitLooks` layer: the barn door draws the default cave mouth, the barn's
-// way up draws `stairs-up`, and a `hidden` exit draws nothing.
+// `exitLooks` layer, the one its zone file names, and a `hidden` exit
+// (P3b's toggle) draws nothing.
 //
 // P3: the WORDS (D6). The panel's header is the exit's own title, else the
 // place its anchor stands in (the region with an id, else the zone's name);
-// its line and row are the exit's own (exit.<id>.*), else the destination's
-// line (anchor.<name>.text) on a stock door. Every expectation is DERIVED from
-// the zone files and api/lang/en/regions.arb, so new words move the legs.
+// its line and row are the exit's own (exit.<id>.*), else (no conversation of
+// its own) the destination's line (anchor.<name>.text), else its LOOK's words
+// (exit-look.<look>.*, P3b/D12). Three venues: the barn door (destination
+// line), the barn stairs (their own words), and a world exit with neither (the
+// look's words). Every expectation is DERIVED from the zone files and
+// api/lang/en/regions.arb, so new words move the legs.
 //
 // P4: a TOUCH exit (D8), on a probe no shipped zone carries (P5 adds the
 // first real one). `--install` writes the probe area into api/zones/barn.json,
@@ -35,7 +36,7 @@
 //
 // Usage: node passages.mjs [url] [outdir]
 import { createRequire } from 'node:module';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
@@ -69,8 +70,9 @@ mkdirSync(outdir, { recursive: true });
 
 // --- venues, derived from the zone files --------------------------------------
 const root = new URL('../../../', import.meta.url);
-const zones = Object.fromEntries(['world', 'barn'].map(n =>
-  [n, readZone(new URL(`api/zones/${n}.json`, root).pathname.replace(/^\/([A-Za-z]:)/, '$1'))]));
+const zoneDir = new URL('api/zones/', root).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const zones = Object.fromEntries(readdirSync(zoneDir).filter(f => f.endsWith('.json')).map(f =>
+  [f.replace(/\.json$/, ''), readZone(zoneDir + f)]));
 const world = (z, p) => ({ x: p.x + (zones[z].origin?.x || 0), y: p.y + (zones[z].origin?.y || 0) });
 const anchorZone = (name) => {
   for (const z of Object.keys(zones)) {
@@ -91,28 +93,31 @@ const inside = (p, poly) => {
   }
   return hit;
 };
-const STOCK_DOORS = ['CaveMouth', 'CaveExit'];
 const wordsOf = (exit) => {
   const { stem, a } = anchorZone(exit.anchor);
   const place = (zones[stem].regions || []).filter(r => r.id && inside(a, r.points)).pop();
   const own = (k) => (exit.id ? en[`exit.${exit.id}.${k}`] : undefined);
+  const look = (k) => (exit.conversation ? undefined : en[`exit-look.${exit.look || 'cave-mouth'}.${k}`]);
   return {
     header: own('title') || (place ? en[`region.${place.id}.title`] : en[`zone.${stem}.name`]),
-    line: own('text') || (STOCK_DOORS.includes(exit.door || 'CaveMouth') ? en[`anchor.${exit.anchor}.text`] : undefined),
-    row: own('go'),
+    line: own('text') || (exit.conversation ? undefined : en[`anchor.${exit.anchor}.text`]) || look('text'),
+    row: own('go') || look('go'),
   };
 };
 const barnDoor = zones.world.exits.find(e => e.anchor === 'barn-inside');
 const barnUp = zones.barn.exits[0];
-const hidden = zones.world.exits.find(e => e.look === 'hidden');
-if (!barnDoor || !barnUp || barnDoor.door || barnUp.door !== 'CaveExit') {
-  throw new Error('venue drifted: expected a generic door to barn-inside and a CaveExit in barn.json');
+const plainExit = zones.world.exits.find(e => !e.id && !e.hidden && !e.conversation && !en[`anchor.${e.anchor}.text`]);
+const hidden = zones.world.exits.find(e => e.hidden);
+if (!barnDoor || !barnUp || !barnUp.id || !plainExit) {
+  throw new Error('venue drifted: expected the barn door, the barn stairs with an id, and a world exit with no words');
 }
 const CASES = [
-  { leg: 'generic door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor),
+  { leg: 'barn door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor),
     look: barnDoor.look || 'cave-mouth', words: wordsOf(barnDoor) },
-  { leg: 'CaveExit door (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor),
+  { leg: 'barn stairs (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor),
     look: barnUp.look || 'cave-mouth', words: wordsOf(barnUp) },
+  { leg: `look words (world → ${plainExit.anchor})`, at: world('world', plainExit), dest: anchorAt(plainExit.anchor),
+    look: plainExit.look || 'cave-mouth', words: wordsOf(plainExit) },
 ];
 
 const results = [];
@@ -243,7 +248,7 @@ for (const c of CASES) {
     fail(`${c.leg}: header`, `expected "${w.header}", got "${p.actor}"`);
   }
   if (w.line === undefined) {
-    pass(`${c.leg}: line`, `no exit or destination line authored, the door's own: "${p.lines}"`);
+    pass(`${c.leg}: line`, `a conversation of its own: "${p.lines}"`);
   } else if (p.lines.includes(w.line)) {
     pass(`${c.leg}: line`, `"${w.line}"`);
   } else {
@@ -268,11 +273,9 @@ for (const c of CASES) {
   }
 }
 
-// P1's "the door field is honoured" reads the actor no more: since P3 the
-// header names the exit or the place (D6), so two doors may share a header.
-// The row is the definition's own when no exit word replaces it, so the
-// barn's way up, a CaveExit, still says what a CaveExit says unless its exit
-// authors a row.
+// P1's "the door field is honoured" is gone: since P3 the header names the
+// exit or the place (D6), and since P3b every ordinary exit talks through one
+// shared conversation, worded by its look (D12).
 
 // P2: a hidden exit draws no look, and its door is still there to talk to.
 if (hidden) {

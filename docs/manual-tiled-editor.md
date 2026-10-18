@@ -436,28 +436,34 @@ presses E.
 3. Type the destination into **`anchor`**: the **Name** of an `anchors`
    point, in this zone or any other. A typo saves, then refuses the server's
    boot naming the exit.
-4. Pick its **`look`**: `cave-mouth` (the default), `stairs-down`,
-   `stairs-up`, `door`, or `hidden` (no picture; players find it by its E
-   prompt). Rotate the point to turn the art: stairs and doors point UP at 0°.
-   The door itself draws nothing, no health bar and no name: the look is the
-   whole picture. ⚑ The look comes from the frontend's bundled copy of the
-   zone, so it shows after a frontend rebuild.
-5. Leave **`door`** at `(generic door)`, or pick the conversation it talks
-   as. `CaveExit` reads "a narrow shaft with daylight"; the generic one is
-   the cave mouth's words. A door that needs a quest gate or its own lines is a
-   new mob in `api/mobs/` with one anchor travel row, then it shows in this
-   list after `node tools/tiled/generate-palette.mjs`.
-6. **Words** (plan-passages.md P3). With nothing typed, the door's panel is
-   named after the place it leads to (the region at the anchor, else the
-   zone's name, e.g. "Barn") and says the door's own lines. For better words:
-   - **every door to one place:** add `anchor.<anchor name>.text` to
+4. Pick its **`look`**: `cave-mouth` (the default), `cave-exit` (a way up out
+   of a cave), `stairs-down`, `stairs-up` or `door`. The look is BOTH the
+   picture and the default words (plan-passages.md D12): a door says "A door." /
+   "Go through.", a cave mouth "A dark opening in the rock..." / "Climb down."
+   Rotate the point to turn the art: stairs and doors point UP at 0°. The exit's
+   mob draws nothing, no health bar and no name: the look is the whole picture.
+   ⚑ The look comes from the frontend's bundled copy of the zone, so it shows
+   after a frontend rebuild.
+5. Tick **`hidden`** to draw no picture at all (players find it by its E
+   prompt, e.g. where a cave-mouth prop already draws the hole). The look still
+   picks the words.
+6. Leave **`conversation`** at `(by look)`. Only an exit with a conversation
+   written for it alone (a quest gate, its own lines) names one: a new mob in
+   `api/mobs/` with one anchor travel row and `entityType: Passage`, which
+   shows in this list after `node tools/tiled/generate-palette.mjs`. Its own
+   lines then stand over the look's and the destination's.
+7. **Words** (plan-passages.md P3, D12). The panel is named after the place the
+   exit leads to (the region at the anchor, else the zone's name, e.g. "Barn").
+   Its line and button come from the look unless you write better ones:
+   - **every exit to one place:** add `anchor.<anchor name>.text` to
      `api/lang/en/regions.arb` (e.g. `anchor.barn-inside.text`: "A low door
-     into the barn's cellar."). It replaces the line on the two stock doors
-     (`(generic door)`, `CaveExit`); a door of its own keeps its own lines.
+     into the barn's cellar."). It replaces the look's line.
    - **this one exit:** give it an **`id`** (a slug like `barn-door`, unique
      across all zones) and add any of `exit.<id>.title` (the panel's name),
      `exit.<id>.text` (the line) and `exit.<id>.go` (the button) to the same
-     file. These beat everything else, a custom door's lines included.
+     file. These beat everything else.
+   - **every exit of one look:** the look's own words are
+     `exit-look.<look>.text` / `.go` in the same file.
 
    Each English key needs a translator note (`@key` with a `description`)
    and its German in `api/lang/de/regions.arb`, then
@@ -469,7 +475,7 @@ presses E.
 **Touch exits** (plan-passages.md P4): an area the player walks into instead
 of a point they talk to. On the same `exits` layer, draw a **polygon** or a
 **rectangle** and set its Class to `AuraExitArea`; fill in `anchor` (and
-optionally `id` and `look`, as for a talk exit). Walking in and staying a
+optionally `id`, `look` and `hidden`, as for a talk exit). Walking in and staying a
 moment (about 0.3 s) moves the player; stepping back out first cancels it. A
 player who *arrives* inside one (a login, a respawn, a landing) is not moved
 until they have walked out once. ⛔ The server refuses to boot when any anchor
@@ -482,7 +488,8 @@ E press near it, so the server refuses to boot when an exit stands inside a
 bind circle plus its own reach, and names both.
 
 ⚑ A door placed on the `spawns` layer is refused on save, and a zone file that
-still has one there refuses to open: run
+still has one there, or an exit still written with `door` or `look: hidden`
+(the shape before P3b), refuses to open: run
 `node scripts/migrate-exits.mjs <file>` once.
 
 ### Bind points, dark areas, anchors

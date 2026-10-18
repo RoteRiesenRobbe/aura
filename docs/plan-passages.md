@@ -1,8 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
 **Status: P1-P4 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 `9011e6d4`,
-P4 uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
-2026-10-18; next P3b (words by look, D12), then P5, then P6 (the stones).
+P4 `815e8581`, P3b uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
+2026-10-18; next P5, then P6 (the stones).
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -563,7 +563,7 @@ zone files and `regions.arb`.
 **Schema:** DB none · conf none · **wire +1 appended `Conversation.exit_id:string`** · zone format
 `exits[]` +`id` · content: `barn.json` exit id; `regions.arb` +3 keys (en + de).
 
-### P4 — touch exits, server ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+### P4 — touch exits, server ✅ BUILT 2026-10-18 (`815e8581` on `passages`)
 
 **What landed.** Zone format `exitAreas[]` = `{id?, points, anchor, look?}` (`world.ExitArea`, after
 `exits` in `Objects`): flattened from areas, offset by `Place`, validated (anchor, id slug, look in
@@ -608,3 +608,37 @@ with the probe: arriving inside moves nobody, stepping out and in moves the play
 
 **Schema:** DB none · conf none · **wire +1 appended `GameState.crossing:ubyte`** · zone format
 +1 array (`exitAreas`) · content none.
+
+### P3b — words by look ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+
+**What landed (D12).** The look picks the default words: `exit-look.<look>.text/.go` in
+`regions.arb` for all five looks, en + de, REQUIRED (`langEntries` makes a missing one a boot
+finding). `world.ApplyExitWords` per column: the exit's own → (no `conversation`) the destination's
+line → the look's words; an exit naming a `conversation` keeps that conversation's lines (only its
+own `exit.<id>.*` beat them). `StockDoors` is gone; `GenericDoor` → `SharedConversation`
+(`CaveMouth`, whose own lines are now never shown). Looks: `hidden` retired as a look, NEW
+`cave-exit` (placeholder SVG, 2.4 u) → `cave-mouth, cave-exit, stairs-down, stairs-up, door`.
+`hidden: true` is a toggle on `exits` and `exitAreas` (no art; the look still words it); an old
+`look: "hidden"` is refused at boot with the fix named. Zone key `door` → `conversation`
+(`unknown field "door"` at boot; the converter REFUSES TO OPEN a file with `door` or `look:
+hidden` and names `migrate-exits.mjs`, which now migrates both shapes, idempotent). Tiled:
+`AuraExit` = `id, anchor, look, hidden (bool), conversation` (`AuraExitConversation` enum, sentinel
+`(by look)`, the shared one never offered, so today it holds only the sentinel); `AuraExitArea` +
+`hidden`. Content: the 9 upward cave exits `door: CaveExit` → `look: cave-exit` (the barn's stays
+`stairs-up`, it is real stairs with its own words), the two hidden exits → `hidden: true`; the
+`CaveExit` mob is RETIRED (file + 5 en/de keys; census pins 57→56, 95→94, the interaction list).
+
+**Checks.** Go: tiers (look words, absent look, hidden keeps words, destination over look, own
+conversation over both, own words over all, per column), `conversation` rename + the `door` /
+hidden-look refusals, content pin (every ordinary exit's line is an `exit.`/`anchor.`/`exit-look.`
+key); full suite green bar the two known reds; `-validate` 0 findings (disk, embedded,
+`-debug-zones`). Vitest 1804/0 (open refusal, hidden/conversation round trip, palette members, the
+look table pinned to the palette); `tsc` clean; `tools/lang` 21/0. `verify.sh` all green (the
+exits leg now pins `"hidden": true` through real Tiled; no shipped exit names a conversation, so
+that member is vitest-only). In game `passages.mjs` 19/19: the barn door (door look, destination
+line, the door look's "Go through."), the barn stairs (own words), the exit to `under-west` (the
+cave mouth look's line and "Climb down."), the hidden exit drawing nothing.
+
+**Schema:** DB none · conf none · wire none · **zone format: `door` → `conversation`, +`hidden`
+(exits, exitAreas), look set −hidden +cave-exit** · content: `CaveExit` retired, +10
+`exit-look.*` keys en + de.
