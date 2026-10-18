@@ -755,7 +755,7 @@ control 0). ⚑ The first harness run hit a stale `backend/aurad`:
 build` first.
 
 
-### C1b - DONE 2026-10-18 (uncommitted; PO look passed 2026-10-18: "looks good and works")
+### C1b - DONE 2026-10-18 `1a89b788` (PO look passed 2026-10-18: "looks good and works")
 
 PONETI portraits and a plain disc (D31-D34, inserted before C2 in the C2
 planning round, PO 2026-10-18).
