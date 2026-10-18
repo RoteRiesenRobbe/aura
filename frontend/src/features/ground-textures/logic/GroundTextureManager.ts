@@ -271,6 +271,9 @@ export interface ZoneJSON {
     // the anchors below (ExitHeader.ts).
     exits?: {id?: string, x: number, y: number, rotation?: number, anchor: string, look?: string, hidden?: boolean,
         conversation?: string}[];
+    // Touch exits (plan-passages.md P4/P5), drawn by ExitAreas: the glow, the
+    // look at the centroid, and the floating name.
+    exitAreas?: {id?: string, points: {x: number, y: number}[], anchor: string, look?: string, hidden?: boolean}[];
     // Where travel lands, by name (plan-underworld.md U3). Read by the door
     // header for the place a door leads to (plan-passages.md D6).
     anchors?: {name: string, x: number, y: number}[];

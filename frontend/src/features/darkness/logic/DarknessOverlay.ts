@@ -1,5 +1,6 @@
 import {AlphaFilter, Container, Sprite, Texture} from 'pixi.js';
 import {meter2px} from '../../../client-data/BasicConfig';
+import {EXIT_GLOW_COLOR, EXIT_GLOW_RADIUS, exitAreaPlacements} from '../../exits/logic/ExitAreaTable';
 import {PrerenderEvent} from '../../core/logic/Events';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {flattenProps} from '../../zones/logic/PropLayers';
@@ -377,6 +378,12 @@ export function loadZone(zoneName: string) {
             if (light !== undefined) {
                 punchStaticLight(prop.x + ox, prop.y + oy, light.radius, light.color, light.flicker);
             }
+        });
+        // The touch exits' gold glow (plan-passages.md D10): a steady light at
+        // each area's centroid, none for a hidden one (Q4). Client-only: the
+        // map reveal does not read it (Q6, PO 2026-10-18).
+        exitAreaPlacements(zone?.exitAreas, {x: ox, y: oy}, u => u).forEach((area) => {
+            punchStaticLight(area.centroid.x, area.centroid.y, EXIT_GLOW_RADIUS, EXIT_GLOW_COLOR, false);
         });
     }
 }

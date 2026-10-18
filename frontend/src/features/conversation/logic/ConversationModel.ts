@@ -234,7 +234,10 @@ export class ConversationModel {
         if (row.locked) {
             return row;
         }
-        this.spokenReply = row.reply;
+        // ⚑ A row that MOVES the player says nothing (plan-passages.md P5, PO
+        // 2026-10-18): the curtain starts on the same press, so a reply could
+        // never be read under it.
+        this.spokenReply = row.travel ? '' : row.reply;
         this.replyLeadsNode = false;
         if (row.next && this.nodeById(row.next)) {
             this.backStack.push(this.nodeId);

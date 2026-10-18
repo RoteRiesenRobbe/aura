@@ -480,8 +480,12 @@ moment (about 0.3 s) moves the player; stepping back out first cancels it. A
 player who *arrives* inside one (a login, a respawn, a landing) is not moved
 until they have walked out once. ⛔ The server refuses to boot when any anchor
 stands inside a touch exit: whoever travels there would land on a crossing.
-⚑ Not drawn in game yet (P5 adds the glow and the look): for now it is an
-invisible trigger, so do not place one in shipped content.
+In game it glows gold, shows its look at its centre, and names where it leads
+(the same rule as a talk exit's panel title) while the player is within about
+4 u of it; a `hidden` one shows none of that and is an invisible trigger. The
+screen transition starts while the player stands in it and cancels if they
+step out. ⚑ The world's only one is a TEST example in the Fallow Reach
+(`fallow-test-glow`, down to `under-west`): remove it before release.
 
 ⛔ **Keep exits out of a campfire's circle.** The fire's flight map takes every
 E press near it, so the server refuses to boot when an exit stands inside a

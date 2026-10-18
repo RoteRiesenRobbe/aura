@@ -38,6 +38,7 @@ import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
 import * as ExitLooks from '../../exits/logic/ExitLooks';
+import * as ExitAreas from '../../exits/logic/ExitAreas';
 import * as Polygons from '../../polygons/logic/Polygons';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
@@ -285,6 +286,9 @@ export class Game implements IGame {
                 // zone, ON the blobs and under every entity. Its door mob is a
                 // Passage, which draws nothing, so this is the only picture.
                 exits: createNamedContainer('exitLooks'),
+                // The touch exits (plan-passages.md P5): a gold glow over each
+                // area and its look at the centroid, under the talk exits'.
+                exitAreas: createNamedContainer('exitAreas'),
                 // No `resourceSpots`: the tree/rock ground decals were retired
                 // with their bespoke classes (plan-prop-draw-order.md P2, D8).
                 // Ground scuffing is authored as a terrain decal where wanted.
@@ -392,6 +396,7 @@ export class Game implements IGame {
             this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
+            this.layers.terrain.exitAreas,
             this.layers.terrain.exits,
             this.layers.props.underfoot,
         );
@@ -519,6 +524,7 @@ export class Game implements IGame {
         Chat.setup(this, Backend);
         AlertBanner.setup();
         RegionBanner.setup(this);
+        ExitAreas.setup(this);
 
         /*
          * https://trello.com/c/aq5lqJB7/289-schutz-gegen-versehentliches-verlassen-des-spiels
@@ -787,6 +793,8 @@ export class Game implements IGame {
         Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         ExitLooks.loadExitLooks(this.layers.terrain.exits, zoneData?.exits, origin);
+        ExitAreas.loadExitAreas(this.layers.terrain.exitAreas, this.layers.characterAdditions.namePlates,
+            zoneData?.exitAreas, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so
         // the server leaves it zone-local and the origin goes in HERE.

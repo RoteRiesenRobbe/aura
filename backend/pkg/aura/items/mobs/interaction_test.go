@@ -1162,6 +1162,14 @@ func TestMapMobDefinition_ParsesATravelToGrant(t *testing.T) {
 	assert.Equal(t, "You step through.", g.Line)
 }
 
+// plan-passages.md P5: a travel row speaks nothing (the curtain covers it), so
+// its grant may author no line; every other grant still must.
+func TestMapMobDefinition_ATravelToGrantNeedsNoLine(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{"id": "root", "options": [{"text": "Step through.", "grants": [
+	    {"kind": "travel_to", "mode": "home_campfire"}]}]}]}`)
+	require.NoError(t, err)
+}
+
 func TestParseGrantKind_KnowsTravelTo(t *testing.T) {
 	kind, ok := ParseGrantKind("travel_to")
 	require.True(t, ok)

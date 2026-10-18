@@ -34,7 +34,6 @@
             "id": "climb-down",
             "grants": [
               {
-                "id": "you-climb-down-into",
                 "kind": "travel_to",
                 "mode": "anchor"
               }

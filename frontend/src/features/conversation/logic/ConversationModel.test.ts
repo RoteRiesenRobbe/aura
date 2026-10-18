@@ -68,6 +68,20 @@ describe('ConversationModel', () => {
         expect(view?.canGoBack).toBe(false);
     });
 
+    // plan-passages.md P5 (PO 2026-10-18): a row that moves the player starts
+    // the curtain on the same press, so its reply could never be read.
+    it('speaks no reply for a row that travels', () => {
+        const m = new ConversationModel();
+        m.update(tree({nodes: [{id: 'root', lines: ['A dark opening.'], rows: [
+            row({optionIndex: 0, grantIndex: 0, text: 'Climb down.', reply: 'You climb down.', travel: TravelDirection.Descend}),
+            row({optionIndex: 1, grantIndex: 0, text: 'Listen.', reply: 'Wind.'}),
+        ]}]}));
+        m.take(m.view()!.rows[0]);
+        expect(m.view()?.lines).toEqual(['A dark opening.']);
+        m.take(m.view()!.rows[1]);
+        expect(m.view()?.lines).toEqual(['Wind.']);
+    });
+
     it('draws nothing before a tree arrives', () => {
         expect(new ConversationModel().view()).toBeNull();
     });

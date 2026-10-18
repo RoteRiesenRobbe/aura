@@ -26,6 +26,8 @@ export const exitTitleKey = (id: string) => `exit.${id}.title`;
 export interface HeaderZone extends PlaceZone {
     anchors?: {name: string, x: number, y: number}[];
     exits?: {id?: string, anchor: string}[];
+    // Touch exits (P5) are named by the same rule, for their floating name.
+    exitAreas?: {id?: string, anchor: string}[];
 }
 
 /** The exit's own title in the player's language, '' when none is authored. */
@@ -53,7 +55,7 @@ export function exitHeader(
             return own;
         }
         for (const zone of Object.values(zones)) {
-            anchor = (zone.exits || []).find(e => e.id === exitId)?.anchor;
+            anchor = [...(zone.exits || []), ...(zone.exitAreas || [])].find(e => e.id === exitId)?.anchor;
             if (anchor !== undefined) {
                 break;
             }

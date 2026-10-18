@@ -111,6 +111,9 @@ export class GameStateMessage {
     // ONLY close signal, since the tree below is change-only and can no
     // longer double as one.
     conversationEntityId: number;
+    // A touch exit's dwell (plan-passages.md D9): the TravelDirection while it
+    // runs, held on the travel tick, 0 otherwise. Own player only.
+    crossing: number;
     // the open conversation's personalised tree, or undefined when nothing new
     // rode this tick (chunk 3b-ii, revised by chunk 3 D3). ⚑ undefined no
     // longer means "closed" — that is conversationEntityId's job now. It means
@@ -248,6 +251,7 @@ export class GameStateMessage {
         // change-only question (unmarshalConversation returns undefined on an
         // ordinary unchanged tick, not just on close).
         this.conversationEntityId = Number(gameState.conversationEntityId());
+        this.crossing = gameState.crossing();
         this.conversation = unmarshalConversation(gameState.conversation(null));
     }
 }

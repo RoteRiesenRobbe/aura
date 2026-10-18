@@ -1,8 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
 **Status: P1-P4 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 `9011e6d4`,
-P4 `815e8581`, P3b uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
-2026-10-18; next P5, then P6 (the stones).
+P4 `815e8581`, P3b `9d681b16`, P5 uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
+2026-10-18; next P6 (the stones).
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -609,7 +609,7 @@ with the probe: arriving inside moves nobody, stepping out and in moves the play
 **Schema:** DB none · conf none · **wire +1 appended `GameState.crossing:ubyte`** · zone format
 +1 array (`exitAreas`) · content none.
 
-### P3b — words by look ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+### P3b — words by look ✅ BUILT 2026-10-18 (`9d681b16` on `passages`)
 
 **What landed (D12).** The look picks the default words: `exit-look.<look>.text/.go` in
 `regions.arb` for all five looks, en + de, REQUIRED (`langEntries` makes a missing one a boot
@@ -642,3 +642,41 @@ cave mouth look's line and "Climb down."), the hidden exit drawing nothing.
 **Schema:** DB none · conf none · wire none · **zone format: `door` → `conversation`, +`hidden`
 (exits, exitAreas), look set −hidden +cave-exit** · content: `CaveExit` retired, +10
 `exit-look.*` keys en + de.
+
+### P5 — touch exits, client ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+
+**What landed.** `exits/logic/ExitAreaTable.ts` (pure: gold `EXIT_GLOW_COLOR` 0xffc83d, glow light
+radius 3 u, name range 4 u, all [PLACEHOLDER]; placements with origin applied, a `hidden` area
+yields nothing; `distanceToPolygon`). `ExitAreas.ts` draws each area into a new `terrain.exitAreas`
+layer (under the talk exits' looks): a gold fill + rim, the look sprite at the centroid
+(`ExitLooks.lookTexture`), and a gold name in `characterAdditions.namePlates` shown while the player
+is within range of the EDGE (Q3; the door header's rule via `exitHeader`, now also reading
+`exitAreas` ids; none for a hidden area, none for talk exits). `DarknessOverlay.resetZone` punches a
+steady gold static light at each non-hidden centroid (client-only: Q6 no map reveal).
+**Curtain:** `TouchCrossing.ts` (pure) turns `GameState.crossing` into `beginCrossing` on 0 → n and
+`cancelCrossing` on n → 0 WITHOUT a jump (stepped out mid-dwell); a jump over 3 u while set (the
+travel) means the drop is the arrival, never a cancel (cancel would snap the curtain off), so a
+zone change reveals through `noteZoneChange` and a same-zone hop crossfades by itself. Wired in
+`Backend` beside the conversation handling (`SnapshotFactory` carries `crossing`).
+**Replies (PO 2026-10-18):** `ConversationModel.take` speaks no reply for a row with `travel`; the
+loader no longer requires a line on a `travel_to` grant; the four travel replies are deleted
+(`conv.CaveMouth.you-climb-down-into`, `stock.you-step-through` used by both portals), en + de.
+**Content:** the world's first touch exit, `fallow-test-glow` (a 4 × 4 u square in the Fallow
+Reach test strip at x −173..−169, y 140..144, `look: stairs-down`, down to `under-west`). ⚑ A TEST
+EXAMPLE: remove before release, with the cliff examples there. P4's harness probe is retired: the
+legs use this one.
+
+**For the PO:** gold on the Fallow Reach's sand reads faint in daylight (the fill alpha 0.28 and
+rim are [PLACEHOLDER]); the light shows in the dark. The look, the glow and the name are all yours
+to judge in game.
+
+**Checks.** Vitest 1814/0 (the area table, `TouchCrossing` begin / cancel / travel / fresh start,
+the header for an area id, a travel row speaks no reply); `tsc` clean. Go: a `travel_to` grant
+needs no line; full suite green bar the two known reds; `-validate` 0 findings. `verify.sh` all
+green (world.json with its exit area through real Tiled). `tools/lang` 21/0. In game
+`passages.mjs` 26/26: near the area its glow, its `stairs-down` look and "Tunnel" floating over it;
+9 u off no name; arriving inside moves nobody; a step out and in runs the curtain and lands the
+player 0.91 u from `under-west`, no bounce; plus every P1-P3b leg.
+
+**Schema:** DB none · conf none · wire none · zone: +1 `exitAreas` entry (world.json) · content:
+travel replies deleted (en + de), `travel_to` lines optional.

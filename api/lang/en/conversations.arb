@@ -92,10 +92,6 @@
   "@conv.CaveMouth.cold-air-rises-out": {
     "description": "Cave Mouth speaks this in the conversation, node \"root\", line 2."
   },
-  "conv.CaveMouth.you-climb-down-into": "You climb down into the dark.",
-  "@conv.CaveMouth.you-climb-down-into": {
-    "description": "Cave Mouth answers this when the player picks \"Climb down.\" (node \"root\")."
-  },
   "conv.CityGuard.about-the-bears": "About the bears...",
   "@conv.CityGuard.about-the-bears": {
     "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
@@ -1438,9 +1434,5 @@
   "stock.which-root": "Which root was it again?",
   "@stock.which-root": {
     "description": "Shared phrase \"which_root\": every dialogue line that names it says this, so one edit changes all of them (D28)."
-  },
-  "stock.you-step-through": "You step through.",
-  "@stock.you-step-through": {
-    "description": "Shared phrase \"you-step-through\": every dialogue line that names it says this, so one edit changes all of them (D28)."
   }
 }

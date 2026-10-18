@@ -825,7 +825,10 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: kind %q must be one of %s",
 						m.Name, jn.ID, j, k, jg.Kind, names(grantKinds))
 				}
-				if strings.TrimSpace(jg.Line) == "" && !(k > 0 && lead.IsQuestKind()) {
+				// ⚑ A travel_to grant needs no line either (plan-passages.md P5, PO
+				// 2026-10-18): the curtain starts on the press, so a reply could never
+				// be read, and the client speaks none for a row that moves you.
+				if strings.TrimSpace(jg.Line) == "" && kind != GrantTravelTo && !(k > 0 && lead.IsQuestKind()) {
 					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: line must not be empty",
 						m.Name, jn.ID, j, k)
 				}

@@ -34,7 +34,6 @@
             "stock": "step-through",
             "grants": [
               {
-                "stock": "you-step-through",
                 "kind": "travel_to",
                 "mode": "caster"
               }

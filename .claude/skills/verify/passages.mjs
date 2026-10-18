@@ -22,22 +22,20 @@
 // look's words). Every expectation is DERIVED from the zone files and
 // api/lang/en/regions.arb, so new words move the legs.
 //
-// P4: a TOUCH exit (D8), on a probe no shipped zone carries (P5 adds the
-// first real one). `--install` writes the probe area into api/zones/barn.json,
-// then restart the server (-content ../api), run, and `--uninstall` (a
-// git checkout of that file). Without the probe the P4 legs SKIP. ⚑ Revert
-// BEFORE any cp-defs or build, or the probe is baked into the binary. The legs
-// move the player with WARP: a step under PassageSystem's arrival jump (3 u)
+// P4 + P5: a TOUCH exit, the first one the world places (the Fallow Reach
+// test strip's, plan-passages.md P5). P5: it draws a gold glow and its look,
+// and names where it leads only while the player is near (Q3). P4: the legs
+// move the player with WARP, a step under PassageSystem's arrival jump (3 u)
 // reads as a walk, a longer one as an arrival. Arriving inside = disarmed;
-// stepping out and back in = the crossing, landing beside the anchor.
+// stepping out and back in = the crossing: the curtain runs (D9) and the
+// player lands beside the anchor, and does not bounce back.
 //
 // ⚑ GOD on throughout: nothing here is about combat, and a wolf on the way
 // to the barn door would null the scene graph mid-leg.
 //
 // Usage: node passages.mjs [url] [outdir]
 import { createRequire } from 'node:module';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
@@ -45,24 +43,6 @@ const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
 import { readZone } from './lib/zone.mjs';
-
-// --- the P4 probe -------------------------------------------------------------
-const PROBE = { id: 'harness-probe', anchor: 'barn-surface',
-  points: [{ x: 2.6, y: 2.6 }, { x: 3.8, y: 2.6 }, { x: 3.8, y: 3.8 }, { x: 2.6, y: 3.8 }] };
-const barnFile = new URL('../../../api/zones/barn.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-if (process.argv[2] === '--install') {
-  const raw = readFileSync(barnFile, 'utf8');
-  if (raw.includes(PROBE.id)) { console.log('probe already installed'); process.exit(0); }
-  const nl = raw.includes('\r\n') ? '\r\n' : '\n';
-  writeFileSync(barnFile, raw.replace(`${nl}  "regions": [`, `${nl}  "exitAreas": [${JSON.stringify(PROBE)}],${nl}  "regions": [`));
-  console.log('probe installed in api/zones/barn.json: restart the server with -content ../api, run, then --uninstall');
-  process.exit(0);
-}
-if (process.argv[2] === '--uninstall') {
-  execFileSync('git', ['checkout', '--', barnFile]);
-  console.log('probe removed');
-  process.exit(0);
-}
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/passages-shots';
@@ -291,16 +271,55 @@ if (hidden) {
   fail('hidden look', 'no world exit is hidden; the venue drifted');
 }
 
-// P4: the touch exit probe.
-const probe = (zones.barn.exitAreas || []).find(a => a.id === PROBE.id);
-if (!probe) {
-  console.log('  - P4 touch legs SKIPPED: no probe (node passages.mjs --install, restart, rerun)');
+// P4 + P5: the world's first touch exit.
+const touch = zones.world.exitAreas?.find(a => !a.hidden);
+if (!touch) {
+  fail('touch', 'no world touch exit; the venue drifted');
 } else {
-  const ys = probe.points.map(p => p.y);
-  const xs = probe.points.map(p => p.x);
-  const mid = world('barn', { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 });
-  const left = world('barn', { x: Math.min(...xs), y: mid.y - zones.barn.origin.y });
-  // From the world into the middle of the area: a jump, so an ARRIVAL.
+  const xs = touch.points.map(p => p.x);
+  const ys = touch.points.map(p => p.y);
+  const mid = world('world', { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 });
+  const left = world('world', { x: Math.min(...xs), y: mid.y });
+  const key = touch.id || `@${touch.anchor}`;
+  const sample = () => page.evaluate((key) => {
+    let r = window.game.character.plate.parent;
+    while (r.parent) r = r.parent;
+    const all = [];
+    const walk = (c) => { all.push(c); (c.children || []).forEach(walk); };
+    walk(r);
+    const name = all.find(c => c.label === `exitName:${key}`);
+    return {
+      glow: all.some(c => c.label === `exitGlow:${key}`),
+      look: all.filter(c => c.label && c.label.startsWith('exitLook:') && c.parent?.label === 'exitAreas').map(c => c.label),
+      name: name ? { visible: name.visible, text: name.text } : null,
+    };
+  }, key);
+
+  // P5: near, the glow, the look and the destination's name (the header rule).
+  await warp({ x: left.x - 2, y: left.y });
+  let s5 = await sample();
+  const wantLook = `exitLook:${touch.look || 'cave-mouth'}`;
+  if (s5.glow && s5.look.includes(wantLook)) {
+    pass('touch: glow + look', `gold glow and ${wantLook}`);
+  } else {
+    fail('touch: glow + look', `glow ${s5.glow}, looks ${JSON.stringify(s5.look)}`);
+  }
+  const wantName = wordsOf(touch).header;
+  if (s5.name?.visible && s5.name.text === wantName) {
+    pass('touch: name near', `"${s5.name.text}" floats over it`);
+  } else {
+    fail('touch: name near', `expected "${wantName}" visible, got ${JSON.stringify(s5.name)}`);
+  }
+  await page.screenshot({ path: join(outdir, 'touch-near.png') });
+  await warp({ x: left.x - 9, y: left.y });
+  s5 = await sample();
+  if (s5.name && !s5.name.visible) {
+    pass('touch: name far', 'hidden 9 u off');
+  } else {
+    fail('touch: name far', JSON.stringify(s5.name));
+  }
+
+  // P4: from far into the middle is an ARRIVAL: nobody moves.
   await warp(mid);
   let at = await pos();
   if (Math.hypot(at.x - mid.x, at.y - mid.y) < 1) {
@@ -308,17 +327,27 @@ if (!probe) {
   } else {
     fail('touch: arriving inside', `moved to (${at.x.toFixed(1)}, ${at.y.toFixed(1)}) though it arrived inside`);
   }
-  // A step out and a step back in: both under the arrival jump, so walks.
+  // A step out and a step back in: both walks, so the crossing.
   await warp({ x: left.x - 1, y: left.y });
+  await page.evaluate(() => { window.__curtainSeen = false; });
   await cmd(`WARP ${Math.round((left.x + 0.4) * 120)} ${Math.round(left.y * 120)}`);
+  const curtain = await page.waitForFunction(() => {
+    const el = document.getElementById('zoneCurtain');
+    return el !== null && el.className.includes('running');
+  }, null, { timeout: 3000, polling: 30 }).then(() => true, () => false);
+  if (curtain) {
+    pass('touch: curtain', 'the dwell started the curtain (D9)');
+  } else {
+    fail('touch: curtain', 'no curtain ran');
+  }
   await page.waitForTimeout(3500);
   at = await pos();
-  const dest = anchorAt(probe.anchor);
+  const dest = anchorAt(touch.anchor);
   const d = Math.hypot(at.x - dest.x, at.y - dest.y);
   if (d <= 2) {
-    pass('touch: walking in', `moved to ${probe.anchor}, ${d.toFixed(2)} u from it`);
+    pass('touch: walking in', `moved to ${touch.anchor}, ${d.toFixed(2)} u from it`);
   } else {
-    fail('touch: walking in', `at (${at.x.toFixed(1)}, ${at.y.toFixed(1)}), ${d.toFixed(1)} u from ${probe.anchor}`);
+    fail('touch: walking in', `at (${at.x.toFixed(1)}, ${at.y.toFixed(1)}), ${d.toFixed(1)} u from ${touch.anchor}`);
   }
   await page.waitForTimeout(2000);
   const still = await pos();

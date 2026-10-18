@@ -23,7 +23,6 @@
   "conv.CaveMouth.a-dark-opening": "Eine dunkle Öffnung im Fels.",
   "conv.CaveMouth.climb-down": "Hinabklettern.",
   "conv.CaveMouth.cold-air-rises-out": "Kalte Luft steigt daraus auf.",
-  "conv.CaveMouth.you-climb-down-into": "Du kletterst hinab ins Dunkel.",
   "conv.CityGuard.about-the-bears": "Wegen der Bären …",
   "conv.CityGuard.i-killed-the-5-bears": "Ich habe die 5 Bären getötet.",
   "conv.CityGuard.kill-5-bears-near": "Töte 5 Bären nahe der Stadtmauer und komm dann zu mir zurück.",
@@ -358,6 +357,5 @@
   "stock.show-rewards": "Zeig mir die Belohnungen.",
   "stock.step-through": "Hindurchtreten.",
   "stock.teach-skill": "Ich bringe dir {skill} bei.",
-  "stock.which-root": "Welche Wurzel war es noch mal?",
-  "stock.you-step-through": "Du trittst hindurch."
+  "stock.which-root": "Welche Wurzel war es noch mal?"
 }

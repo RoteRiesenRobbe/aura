@@ -37,6 +37,11 @@ for (const look of Object.keys(textures)) {
     Preloading.registerGameObjectSVG(textures[look], files[look], BAKE_SIZE);
 }
 
+/** A look's baked texture, or null before it has loaded (or for no look). */
+export function lookTexture(look: string): PIXI.Texture | null {
+    return textures[look]?.svg ?? null;
+}
+
 /**
  * Replaces the layer's contents with this zone's exit looks. Idempotent, so a
  * zone swap (Game.renderZone) simply calls it again.

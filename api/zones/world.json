@@ -11659,6 +11659,31 @@
           "level": 15
         }
       ],
+      "exitAreas": [
+        {
+          "id": "fallow-test-glow",
+          "points": [
+            {
+              "x": -173,
+              "y": 140
+            },
+            {
+              "x": -169,
+              "y": 140
+            },
+            {
+              "x": -169,
+              "y": 144
+            },
+            {
+              "x": -173,
+              "y": 144
+            }
+          ],
+          "anchor": "under-west",
+          "look": "stairs-down"
+        }
+      ],
       "bindPoints": [
         {
           "id": "spawnpoint-33",

@@ -22,7 +22,6 @@
   "conv.CaveMouth.a-dark-opening": "A dark opening in the rock.",
   "conv.CaveMouth.climb-down": "Climb down.",
   "conv.CaveMouth.cold-air-rises-out": "Cold air rises out of it.",
-  "conv.CaveMouth.you-climb-down-into": "You climb down into the dark.",
   "conv.CityGuard.about-the-bears": "About the bears...",
   "conv.CityGuard.i-killed-the-5-bears": "I killed the 5 bears.",
   "conv.CityGuard.kill-5-bears-near": "Kill 5 bears near the city walls, then come back to me.",
@@ -357,6 +356,5 @@
   "stock.show-rewards": "Show me the rewards.",
   "stock.step-through": "Step through.",
   "stock.teach-skill": "I'll teach you {skill}.",
-  "stock.which-root": "Which root was it again?",
-  "stock.you-step-through": "You step through."
+  "stock.which-root": "Which root was it again?"
 }

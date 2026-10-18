@@ -25,6 +25,7 @@ const zones: Record<string, HeaderZone> = {
     [zoneStem]: {
         anchors: [{name: 'outside', x: 0, y: 0}],
         exits: [{id: 'way-down', anchor: 'inside'}, {anchor: 'inside'}],
+        exitAreas: [{id: 'glow-down', anchor: 'inside'}],
     },
 };
 const noTitle = () => '';
@@ -42,6 +43,11 @@ describe('ExitHeader (plan-passages.md D6, the header column)', () => {
     it('reads an exit with an id through its own anchor', () => {
         expect(exitHeader('way-down', zones, noTitle)).toBe(placeTitle);
         expect(exitHeader('way-up', zones, noTitle)).toBe(REGIONS_ENGLISH[zoneKey]);
+    });
+
+    // P5: a touch exit's floating name follows the same rule.
+    it('reads a touch exit with an id through its anchor too', () => {
+        expect(exitHeader('glow-down', zones, noTitle)).toBe(placeTitle);
     });
 
     it('lets the exit\'s own title win (tier 1)', () => {
