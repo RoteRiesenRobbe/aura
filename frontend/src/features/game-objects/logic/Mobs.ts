@@ -181,7 +181,7 @@ export abstract class Mob extends GameObject
         anchor?: IVector
     ) {
         super(id, gameLayer, x, y, size, 0, svg, anchor);
-        if (!this.isBare()) {
+        if (this.hasHealthBar()) {
             this.initHealthBar();
         }
         this.isMovable = true;
@@ -200,6 +200,15 @@ export abstract class Mob extends GameObject
      */
     protected isBare(): boolean {
         return false;
+    }
+
+    /**
+     * Whether the mob carries an overhead health bar: every mob but a bare one
+     * and a talking object nobody can hurt (the Signpost, plan-passages.md Q9).
+     * A method for isBare's reason.
+     */
+    protected hasHealthBar(): boolean {
+        return !this.isBare();
     }
 
     /**
@@ -295,10 +304,15 @@ export abstract class Mob extends GameObject
             : formatMobName(definition.displayName);
     }
 
-    // Y offset of the plate text: under the overhead bar, read off the bar's
-    // own anchor so the two cannot drift apart.
+    // Y offset of the plate text: under the overhead bar, off the one anchor
+    // the bar is built at, so the two cannot drift apart, and a mob with no
+    // bar (a Signpost) still plates where the bar would sit.
     private nameplateY(): number {
-        return this.overheadBar.anchorY + NAMEPLATE_GAP;
+        return this.barAnchorY() + NAMEPLATE_GAP;
+    }
+
+    private barAnchorY(): number {
+        return Math.max(30, this.size * 1.08);
     }
 
     /**
@@ -618,7 +632,7 @@ export abstract class Mob extends GameObject
         // their box, which hid that — the bar landed in their empty margin.
         // Medallion PNGs fill the box edge to edge, so the bar has to clear
         // 1.0 outright. The 0.08 overshoot is the gap the old art used to have.
-        this.overheadBar = new OverheadHealthBar(this.size, Math.max(30, this.size * 1.08));
+        this.overheadBar = new OverheadHealthBar(this.size, this.barAnchorY());
         this.shape.addChild(this.overheadBar.container);
     }
 }
@@ -1701,6 +1715,13 @@ export class Signpost extends Mob {
 
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.npcs, x, y, size, Signpost.svg);
+    }
+
+    // A stone, a sign or a root that talks (plan-passages.md Q9, PO
+    // 2026-10-18): nothing can hurt it, so a health bar only lies. Its art
+    // and its name stay: a quest may send you to one by name.
+    protected override hasHealthBar(): boolean {
+        return false;
     }
 }
 

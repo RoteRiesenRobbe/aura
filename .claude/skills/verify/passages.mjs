@@ -22,6 +22,9 @@
 // look's words). Every expectation is DERIVED from the zone files and
 // api/lang/en/regions.arb, so new words move the legs.
 //
+// P6 (Q9): the memorial and ascension stones (every Signpost) draw no health
+// bar but keep their art and their name.
+//
 // P4 + P5: a TOUCH exit, the first one the world places (the Fallow Reach
 // test strip's, plan-passages.md P5). P5: it draws a gold glow and its look,
 // and names where it leads only while the player is near (Q3). P4: the legs
@@ -269,6 +272,24 @@ if (hidden) {
   }
 } else {
   fail('hidden look', 'no world exit is hidden; the venue drifted');
+}
+
+// P6 (Q9): the stones, and every other Signpost, keep their art and their
+// name but carry no health bar: nothing can hurt them.
+for (const mob of ['MemorialStone', 'AscensionStone']) {
+  const spawn = zones.world.spawns.find(sp => sp.mob === mob);
+  const leg = `${mob}: no bar`;
+  if (!spawn) { fail(leg, 'not placed in world.json; the venue drifted'); continue; }
+  const at = world('world', spawn);
+  await warp({ x: at.x + 4, y: at.y });
+  const s6 = await doorSample(at);
+  if (!s6.found) {
+    fail(leg, 'no entity on the npcs layer at its spawn');
+  } else if (s6.graphics === 0 && s6.plateText && s6.plateText.length > 0) {
+    pass(leg, `no health bar, its name stays: ${JSON.stringify(s6.plateText)}`);
+  } else {
+    fail(leg, `${s6.graphics} visible Graphics, plate text ${JSON.stringify(s6.plateText)}`);
+  }
 }
 
 // P4 + P5: the world's first touch exit.

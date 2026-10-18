@@ -139,6 +139,8 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     const SHARED_LAYERS: Record<string, string[]> = {
         paths: ['structures', 'paths'],
         atmospheres: ['atmospheres', 'clearings'],
+        // Talk exits and touch exits (plan-passages.md P4, D2).
+        exits: ['exits', 'exitAreas'],
     };
 
     // ⚑ Summed over the zone level and every area (plan-prop-draw-order.md

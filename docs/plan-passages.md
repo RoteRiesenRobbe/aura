@@ -1,8 +1,8 @@
 # Plan: Passages — exits as their own primitive, with words, looks and touch areas
 
 **Status: P1-P4 BUILT 2026-10-18 (branch `passages`; P1 `31b87226`, P2 `0bc12406`, P3 `9011e6d4`,
-P4 `815e8581`, P3b `9d681b16`, P5 uncommitted; PO look owed).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
-2026-10-18; next P6 (the stones).
+P4 `815e8581`, P3b `9d681b16`, P5 `22524cf4`, P6 uncommitted; every chunk built, PO look owed, NOT merged to main).** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
+2026-10-18; next: the PO's look, then the merge with main (herding: EntityType 121, server.fbs, world.json, palette).
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch
 exits), the `Passage` entity, exit looks, the words a door shows, and the touch crossing.
@@ -313,7 +313,7 @@ by D11a. `.debug/` zones included.
 | **P3b** | Words by look (PO 2026-10-18, D12) | The exit's LOOK decides its default words: `exit-look.<look>.text/.go` in `regions.arb` (en + de) replace the door definition's lines as tier 3. `hidden` stops being a look and becomes its own `hidden: true` toggle on `exits` and `exitAreas` (no art, no glow, no name; the words still come from the look). New look `cave-exit` (placeholder art) for the ways up out of a cave. `door` → `conversation` (zone key, Tiled member, the open-refusal for the old key), set only for a conversation written for one exit, which keeps its own lines. Content: the CaveExit placements lose their `door` and take `cave-exit` (the barn's stays `stairs-up`), the two `hidden` exits become `hidden: true`; the `CaveExit` mob is retired. | M |
 | **P5** | Touch exits, client | The gold glow (D10; none on `hidden`, Q4), the look at the centroid, the floating destination name near a touch area (Q3), `crossing` → curtain begin/cancel; ~~map-fog static light~~ (Q6: no); one example touch exit in the Fallow Reach test strip. ⭐ Added (PO 2026-10-18): a row that MOVES you (`travel` ≠ 0) shows no reply, it was unreadable under the curtain; the four travel replies (CaveMouth, CaveExit, portal-home, portal-summon) and their en/de keys are deleted. PO look. | M |
 
-| **P6** | The stones (Q9) | The memorial stone and the ascension stone keep their own art but lose the health bar and the plate, the doors' way. | S |
+| **P6** | The stones (Q9) | Every `Signpost` (the memorial and ascension stones, the forest sign, the three sleeping roots) loses its health bar; its art and its name stay. | S |
 
 Each is independently shippable. P1 → P2 → P3 fixes the PO's barn complaint fully. P4/P5 are
 the experiment.
@@ -396,8 +396,8 @@ for a conversation written for ONE exit, e.g. a barred door behind a quest.
   refused at boot) or a dropdown of every placed anchor (needs a palette regen whenever an
   anchor is added)? ✅ **RULED (PO 2026-10-18): keep the free string.**
 - **Q9 — outside scope, flagged:** the memorial stone and the ascension stone are `Signpost`
-  mobs too, so they also carry a health bar. ✅ **RULED (PO 2026-10-18): fix them too**, the
-  doors' way (no bar, no plate; the stones keep their own art). A small chunk after P5.
+  mobs too, so they also carry a health bar. ✅ **RULED (PO 2026-10-18): fix them too.** Built
+  in P6 as: no health bar, art and name kept (see P6).
 
 ---
 
@@ -643,7 +643,7 @@ cave mouth look's line and "Climb down."), the hidden exit drawing nothing.
 (exits, exitAreas), look set −hidden +cave-exit** · content: `CaveExit` retired, +10
 `exit-look.*` keys en + de.
 
-### P5 — touch exits, client ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+### P5 — touch exits, client ✅ BUILT 2026-10-18 (`22524cf4` on `passages`)
 
 **What landed.** `exits/logic/ExitAreaTable.ts` (pure: gold `EXIT_GLOW_COLOR` 0xffc83d, glow light
 radius 3 u, name range 4 u, all [PLACEHOLDER]; placements with origin applied, a `hidden` area
@@ -680,3 +680,21 @@ player 0.91 u from `under-west`, no bounce; plus every P1-P3b leg.
 
 **Schema:** DB none · conf none · wire none · zone: +1 `exitAreas` entry (world.json) · content:
 travel replies deleted (en + de), `travel_to` lines optional.
+
+### P6 — the stones (Q9) ✅ BUILT 2026-10-18 (uncommitted on `passages`)
+
+**What landed.** Client only: `Mob.hasHealthBar()` (default: not bare), and `Signpost` overrides it
+to false. ⭐ **Every Signpost, not just the two stones:** the class is per entityType, and all seven
+Signposts (MemorialStone, AscensionStone, FrontAscensionStone, ForestSign, Glade/Stone/StreamRoot)
+are talking objects nothing can hurt (townsfolk, xpFactor 0), so the bar lied on each. ⚑ **The
+NAME stays** (not "the doors' way" in full): the roots and the sign are quest targets the journal
+sends players to by name, and the stones are found by theirs. The plate now sits where a bar would
+(`Mob.barAnchorY`, the one anchor the bar is built at). Also: `AuraTiledConvert.test.ts`'s layer
+count learned that `exits` holds `exitAreas` too; it went red with P5's example area and P5's
+vitest count predates that content (fixed here).
+
+**Checks.** `tsc` clean; vitest 1814/0. In game `passages.mjs` 28/28: the MemorialStone and the
+AscensionStone draw no visible Graphics and keep their plate text ("Memorial Stone", "Ascension
+Stone"), plus every P1-P5 leg.
+
+**Schema:** none (client only).
