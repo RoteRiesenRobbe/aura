@@ -226,7 +226,9 @@ authoring that.
   `combatTarget || conversant`, plus summons.** Mobs, NPCs, players,
   summons/totems yes; campfires, hazards (poison pools, brambles, rockfalls),
   obstacles keep bare art. Server-derived, already in the catalog, zero cost.
-- **D15. Sizing is OPEN, with a new hard constraint recorded (PO 2026-08-20):
+- **D15. RULED 2026-10-17 (PO): the ring is drawn at the collider and the
+  per-instance roll is gone for medallion species** (built in
+  `plan-appearance.md` C1). The original entry: **Sizing is OPEN, with a new hard constraint recorded (PO 2026-08-20):
   the medallion must not only explain the entity but REPRESENT it: the ring
   should correspond to the physical entity, i.e. its blocking footprint and
   its eligible hit radius.** Neither "grow the medallion" nor "shrink the art"
@@ -238,6 +240,9 @@ authoring that.
 The artist read the delivery contract (`art/medallion-asset-spec.md`) and
 pushed back on four points; all four are accepted and folded in.
 
+- ⚑ **D12 and D16 SUPERSEDED 2026-10-17 (PO, `plan-appearance.md` C1): there
+  is no rim layer; the tier recolours the ring (grey / silver / gold), so ring
+  art is drawn greyscale.**
 - **D16. The tier rim renders at the very BOTTOM of the stack** (artist
   call): the ornaments emerge from *behind* the medallion instead of
   sitting on the ring. Render consequence (§7.2): the rim leaves the frame
@@ -482,7 +487,9 @@ predicate get bare art, exactly as today.
   Tint change on a stance flip is free. Sits in `belowArt`, above the rim.
 - **Portrait**: stays a live, separate display object in `art`, because the
   damage flash must squash it inside the stable frame (§5.1). Frame bake
-  sits in `aboveArt`; rim and disc in `belowArt`.
+  sits in `aboveArt`; rim and disc in `belowArt`. ⚑ **Superseded by C0a/C1:**
+  rim and disc live in the `token` slot below `actualShape` (the rim in its own
+  `rim` slot, `TokenSlots.ts`), so a lunge moves them with the portrait.
 
 Result: ~3 quads per normal entity, ~4 for elite/boss (the rim sprite), one
 bake per species tuple (amortized), zero per-frame cost (stance tint and
@@ -607,9 +614,8 @@ pilot** (D17) · delivery **in-repo by the artist, no source files** (D18).
 
 Still open:
 
-1. **D15 / §5.3 sizing**: after C0's measurement table, does the ring pin to
-   the collider, and what happens to the per-instance size roll? The one
-   question that can reorder the chunks.
+1. ~~**D15 / §5.3 sizing**~~: **RULED 2026-10-17**: ring = collider, the roll
+   is gone for medallion species (`plan-appearance.md` C1).
 2. **D10 family membership**: which factions share which art family, and the
    family count. Art-budget call, decidable at the C0 art test.
 3. **Stance colour mapping**: mockup says green/blue/red for

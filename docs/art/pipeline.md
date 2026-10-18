@@ -278,7 +278,18 @@ Two consequences already paid for:
 reason to match its old size. Judge by eye; the numbers just tell you *why*
 something moved.
 
-### Wiring a medallion entity (3 lines)
+### Wiring a medallion entity (since 2026-10-17: one key)
+
+> **Since `plan-appearance.md` C1 a creature or NPC wears its ring by FACTION
+> FAMILY, not by a per-species `borderFile`.** Give its `Graphics.ts` entry
+> `medallion: {}` and nothing else: the ring comes from the faction's family in
+> `client-data/Medallions.ts` (`FACTION_FAMILIES` → `RING_FAMILY_FILES`, grey
+> for anything unmapped), and it draws at the collider's size (no
+> `minSize`/`maxSize` roll, PO ruling D15). A named NPC may wear a ring of its
+> own with `medallion: {ring: '<family>'}` (D23). A NEW ring is a new entry in
+> `RING_FAMILY_FILES`. The 4-layer target above is superseded by the six-layer
+> stack in `docs/art/medallion-asset-spec.md`. What follows is how the
+> FIXTURES and SUMMONS that still carry a `borderFile` are wired.
 
 `Mobs.ts` has `registerBorder` / `withBorder`. Per entity:
 

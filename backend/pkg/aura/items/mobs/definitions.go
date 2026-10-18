@@ -307,6 +307,11 @@ type MobDefinition struct {
 	Faction           factions.Faction
 	AggroMask         uint64
 	FriendlyToPlayers bool
+	// FactionName is the faction as AUTHORED, "" when the species declares
+	// none (Faction is then the built-in hostile default). Read only by the
+	// /mobs catalog, which keys the medallion's ring family on it
+	// (plan-appearance.md C1).
+	FactionName string
 }
 
 // NameMessage is the mob's English display name as authored (D24, D27): plain
@@ -611,6 +616,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		Faction:           faction,
 		AggroMask:         aggroMask,
 		FriendlyToPlayers: friendlyToPlayers,
+		FactionName:       m.Faction,
 		Tier:              tier,
 		Role:              role,
 		CurveLevel:        curveLevel,

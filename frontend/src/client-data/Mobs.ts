@@ -49,6 +49,10 @@ export interface MobDefinition {
     // 0 for none. The Mob wire table carries no active skill id, so a mob's
     // `ambient` VFX layers resolve through this (plan-skill-vfx.md §12d.2).
     auraSkillId: number;
+    // Server-derived: the species' authored faction name, '' for none. The
+    // medallion's ring family is keyed on it (client-data/Medallions.ts,
+    // plan-appearance.md C1).
+    faction: string;
 }
 
 const catalog = new Map<number, MobDefinition>();

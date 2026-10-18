@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-18, the appearance C1 wrap: the COLOURED LIGHT entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: COLOURED LIGHT, the lightmap L1-L7, COMPLETE + archived** ✅ 2026-10-16, merged to main (L1-L3 `83d02042` + `a5066f7b` · L4 `3bab952c` · L5 `27dbf718` · L6 `46b4362e` · L7 `8a391139`; ledger: `docs/archive/plan-lightmap.md` §9 + §10.5): ⭐ the darkness layer is a lightmap (lights SCREEN in, multiplied over the world; white = pixel-exact parity with the old erase holes), lights carry a colour (`light_aura` `color`, prop `lightColor`), full darkness is locked black. Round 2: a campfire draws ONE light (the doubled glow paled its colour), sight draws white, one tunable light shape (`game.darkness.lightShape({heart, core, curve})`), lights ease and fade, fire flickers (`game.darkness.flicker({size, alpha})`). PO look + tuning + flicker list OK 2026-10-16. **Schema: DB/conf NONE · wire +4 appended fields.** Verified: `l1-lightmap` single/heart/curve/flicker + `l6-light-ease` all green · vitest 1707/0 · Go bar the known prop pin.
+
 *(2026-10-17, the appearance C0a wrap: the FARMLAND QUEST SHEET entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: THE FARMLAND QUEST SHEET as content** ✅ 2026-10-13 `82044c23` (record: `docs/content-zone-1-farmland.md` §2.0 + §2.6a; wiring: `docs/content-npcs.md`): the PO's Google Sheet of quest dialogue built into Zone 1 (Flora, Reinhard, Hans, Lionett, the Governor of Dionsburg). Reused quests keep ids AND stage ids so saved ledgers stay valid. ⚑ `:2000` serves `frontend/dist`, which bundles `world.json`: rebuild it after a spawn rename or the map markers miss. **Schema: DB/wire NONE.**

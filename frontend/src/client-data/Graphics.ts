@@ -1,6 +1,7 @@
 import {meter2px} from './BasicConfig';
 import {color, integer} from '../features/common/logic/Types';
 import {LAND_COLOR} from './Theme';
+import type {MedallionSpec} from './Medallions';
 
 /**
  * Physical collider radius the backend uses for the player body, in meters.
@@ -61,10 +62,18 @@ export const GraphicsConfig = {
                 // replaces `file` when the pack is loaded on this machine
                 // (README "Icons (PONETI pack)"); `file` stays the fallback.
                 packIcon?: string,
-                // Optional medallion frame drawn over the portrait — see the
-                // `farmer` entry below and docs/art/pipeline.md §4.
+                // Optional frame drawn over the portrait of a species that wears
+                // no medallion (a fixture or a summon), docs/art/pipeline.md §4.
                 borderFile?: string,
-                minSize: number,
+                // Present = the species wears a medallion: its ring comes from
+                // its faction's family (client-data/Medallions.ts), and it draws
+                // at its collider's size, the wire radius, with no roll (D15,
+                // PO 2026-10-17). Such a species authors no minSize.
+                medallion?: MedallionSpec,
+                // The per-instance size roll of a species WITHOUT a medallion.
+                minSize?: number,
+                // For an SVG portrait, the size it is rasterised at; a PNG
+                // ignores it (Preloading.registerGameObjectSVG).
                 maxSize: number,
                 anchor?: {x: number, y: number}
             }
@@ -103,14 +112,14 @@ export const GraphicsConfig = {
 
         turnip: {
             file: require('../features/game-objects/assets/mobs/turnip.svg'),
-            minSize: <number> 20,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
 
         // The Turnip's forest-floor twins: same body, same size band.
         blueMushroom: {
             file: require('../features/game-objects/assets/mobs/blueMushroom.svg'),
-            minSize: <number> 20,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
 
@@ -118,7 +127,7 @@ export const GraphicsConfig = {
         // heap, a little larger than the mushrooms.
         deadwood: {
             file: require('../features/game-objects/assets/mobs/deadwood.svg'),
-            minSize: <number> 26,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 32,
         },
 
@@ -134,7 +143,7 @@ export const GraphicsConfig = {
 
         redMushroom: {
             file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
-            minSize: <number> 20,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 26,
         },
 
@@ -142,57 +151,50 @@ export const GraphicsConfig = {
         // than a Turnip.
         seaweed: {
             file: require('../features/game-objects/assets/mobs/seaweed.svg'),
-            minSize: <number> 26,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 34,
         },
 
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 38,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 46,
         },
 
         bear: {
             file: require('../features/game-objects/assets/mobs/bear.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 70,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 82,
         },
 
         boar: {
             file: require('../features/game-objects/assets/mobs/wildboar.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 46,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 56,
         },
 
-        // Zone 1's one elite. Sized from docs/art/assets.csv's 104-124, which
-        // is that tracker's DPR-2 column and therefore halves to these: bigger
-        // than the Boar it leads (46-56), just under the EliteWolf (56-64).
-        // The tier has to be legible at a glance from across the field.
+        // Zone 1's one elite. It used to roll a size bigger than the Boar it
+        // leads; since D15 (PO 2026-10-17) it draws at its collider (0.5 m vs
+        // the Boar's 0.4) and its tier rim carries the elite read.
         alphaBoar: {
             file: require('../features/game-objects/assets/mobs/wildboar_alpha.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 52,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 62,
         },
 
-        // First medallion-layered COMBAT mob. Unlike the NPCs it rolls its size
-        // per instance (randomInt(minSize, maxSize)), and the border rides that
-        // same roll, so frame and portrait stay registered at any size.
+        // First medallion-layered COMBAT mob. It used to roll its size per
+        // instance; since D15 (PO 2026-10-17) every medallion draws at its
+        // collider's size, so frame and portrait share the wire radius.
         stag: {
             file: require('../features/game-objects/assets/mobs/stag.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 42,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
 
         eliteWolf: {
             file: require('../features/game-objects/assets/mobs/eliteWolf.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 56,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 64,
         },
 
@@ -207,29 +209,26 @@ export const GraphicsConfig = {
         // C3 kobold hideout + Dark Tunnel (content pass C3).
         kobold: {
             file: require('../features/game-objects/assets/mobs/kobold.png'),
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 30,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 36,
         },
 
         koboldRanged: {
             file: require('../features/game-objects/assets/mobs/koboldRanged.png'),
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
-            minSize: <number> 30,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 36,
         },
 
         spider: {
             file: require('../features/game-objects/assets/mobs/spider.svg'),
             packIcon: 'portrait-spider',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 38,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 46,
         },
 
         venomSpider: {
             file: require('../features/game-objects/assets/mobs/venomSpider.svg'),
-            minSize: <number> 42,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
 
@@ -257,40 +256,35 @@ export const GraphicsConfig = {
         // C4 Z2 village + bandit gate (content pass C4).
         bandit: {
             file: require('../features/game-objects/assets/mobs/bandit.png'),
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 36,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
 
         banditRanged: {
             file: require('../features/game-objects/assets/mobs/banditRanged.svg'),
             packIcon: 'portrait-crossbowman',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 36,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
 
         banditHealer: {
             file: require('../features/game-objects/assets/mobs/banditHealer.svg'),
             packIcon: 'portrait-plague-doctor',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 36,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
 
         eliteBandit: {
             file: require('../features/game-objects/assets/mobs/eliteBandit.svg'),
             packIcon: 'portrait-assassin',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 50,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 58,
         },
 
         rallyDrummer: {
             file: require('../features/game-objects/assets/mobs/rallyDrummer.svg'),
             packIcon: 'portrait-feathered-chief',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 44,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
 
@@ -304,8 +298,7 @@ export const GraphicsConfig = {
 
         orc: {
             file: require('../features/game-objects/assets/mobs/orc.png'),
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
-            minSize: <number> 52,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
 
@@ -318,8 +311,7 @@ export const GraphicsConfig = {
         orcWarlord: {
             file: require('../features/game-objects/assets/mobs/orcWarlord.svg'),
             packIcon: 'portrait-orc-warlord',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
-            minSize: <number> 78,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 84,
         },
 
@@ -332,8 +324,7 @@ export const GraphicsConfig = {
         orcGrunt: {
             file: require('../features/game-objects/assets/mobs/orcGrunt.svg'),
             packIcon: 'portrait-orc-green',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
-            minSize: <number> 42,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 48,
         },
 
@@ -362,16 +353,14 @@ export const GraphicsConfig = {
         troll: {
             file: require('../features/game-objects/assets/mobs/troll.svg'),
             packIcon: 'portrait-troll',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 64,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 72,
         },
 
         banditPyromancer: {
             file: require('../features/game-objects/assets/mobs/banditPyromancer.svg'),
             packIcon: 'portrait-cultist',
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
-            minSize: <number> 46,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 52,
         },
 
@@ -380,45 +369,39 @@ export const GraphicsConfig = {
         // their base kin and the elites/apex of their line.
         direWolf: {
             file: require('../features/game-objects/assets/mobs/direWolf.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 48,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 56,
         },
 
         direBear: {
             file: require('../features/game-objects/assets/mobs/direBear.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 78,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 90,
         },
 
         giantSpider: {
             file: require('../features/game-objects/assets/mobs/giantSpider.svg'),
             packIcon: 'portrait-blue-spider',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 58,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 68,
         },
 
         alphaWolf: {
             file: require('../features/game-objects/assets/mobs/alphaWolf.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 58,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 68,
         },
 
         marauder: {
             file: require('../features/game-objects/assets/mobs/marauder.png'),
-            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
-            minSize: <number> 44,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 52,
         },
 
         fireElemental: {
             file: require('../features/game-objects/assets/mobs/fireElemental.svg'),
             packIcon: 'portrait-fire-elemental',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 52,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 62,
         },
 
@@ -427,15 +410,13 @@ export const GraphicsConfig = {
         firelord: {
             file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
             packIcon: 'portrait-firelord',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 54,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 64,
         },
         fireStirer: {
             file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
             packIcon: 'portrait-fire-stirer',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 50,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
 
@@ -443,7 +424,7 @@ export const GraphicsConfig = {
         // reads at a glance (body radius 0.55 vs 0.4).
         greaterFireElemental: {
             file: require('../features/game-objects/assets/mobs/greaterFireElemental.svg'),
-            minSize: <number> 72,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 84,
         },
 
@@ -464,6 +445,7 @@ export const GraphicsConfig = {
         // unconfigured NPC cannot pass for content.
         placeholder: {
             file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         signpost: {
@@ -472,12 +454,12 @@ export const GraphicsConfig = {
         },
         hermit: {
             file: require('../features/game-objects/assets/resources/hermit.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         // ⭐ First medallion-layered NPC (art overhaul spike, 2026-08-15).
-        // `file` is the PORTRAIT (background baked in for now); `borderFile` is
-        // the frame drawn over it. Both are 256×256 PNGs — a shared square canvas
+        // `file` is the PORTRAIT (background baked in for now); its medallion
+        // ring is drawn over it. Both are 256×256 PNGs — a shared square canvas
         // is what makes them line up — see docs/art/pipeline.md §4.
         // PNG, not SVG: the art is painted, so an SVG export only ever wrapped
         // embedded rasters (98% of the old files). 256 px covers a 4K display at
@@ -485,60 +467,61 @@ export const GraphicsConfig = {
         // `size` from the entity scales it (Preloading.ts:55 is SVG-only).
         farmer: {
             file: require('../features/game-objects/assets/resources/farmer.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         wanderer: {
             file: require('../features/game-objects/assets/resources/wanderer.svg'),
             packIcon: 'portrait-hooded-woman',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         traveller: {
             file: require('../features/game-objects/assets/resources/traveller.svg'),
             packIcon: 'portrait-turban-elder',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         townCrier: {
             file: require('../features/game-objects/assets/resources/townCrier.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 45,
         },
         miner: {
             file: require('../features/game-objects/assets/resources/miner.svg'),
             packIcon: 'portrait-dwarf',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         cityGuard: {
             file: require('../features/game-objects/assets/resources/cityGuard.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         villageHealer: {
             file: require('../features/game-objects/assets/resources/villageHealer.svg'),
             packIcon: 'portrait-alchemist',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         frontCaptain: {
             file: require('../features/game-objects/assets/resources/frontCaptain.svg'),
             packIcon: 'portrait-gold-helm',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
+            medallion: <MedallionSpec> {},
             maxSize: <number> 60,
         },
         // The wise old tree (docs/plan-grandfather-knot.md). Twice a normal NPC:
         // the drawn size follows his body radius (0.7, every other NPC 0.35),
         // so maxSize doubles only to match. The bark ring, not the grey one: a
-        // tree in the forest frame (PO 2026-10-03).
+        // tree in the forest frame (PO 2026-10-03), his own ring (D23).
         grandfatherKnot: {
             file: require('../features/game-objects/assets/resources/grandfatherKnot.png'),
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            medallion: <MedallionSpec> {ring: 'forest'},
             maxSize: <number> 120,
         },
     },

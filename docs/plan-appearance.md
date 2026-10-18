@@ -1,7 +1,8 @@
 # Appearance: the player chooses their token, and every actor wears a medallion
 
 > **Status: APPROVED 2026-10-17 (planning session, five PO prompt rounds, D1-D22;
-> refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17 (§12). Next: C1.** Order (D24):
+> refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
+PO look passed, the real-phone check waived to the next deploy). Next: C2.** Order (D24):
 > C0a → C1 → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
@@ -494,7 +495,8 @@ not landed.
   the other client sees it; change in-game, the other client sees the change;
   meet a condition (cheat), the toast fires and the entry glows; die, the corpse
   shows the portrait.
-- **A real-phone fill-rate check** stays C1's exit (M-§5.4).
+- **A real-phone fill-rate check** stays C1's exit (M-§5.4); waived by the PO
+  2026-10-18 to the next deploy's phone pass.
 
 ---
 
@@ -528,7 +530,9 @@ Still open, each with a ruled owner and moment:
 
 1. **Q4. The death marker's look** (skull overlay, greyed portrait, broken ring):
    art's call at C6.
-2. **M-§12.1, M-D15 sizing**: ruled by the PO on C0a's measurement table.
+2. ~~**M-§12.1, M-D15 sizing**~~: **RULED 2026-10-17** (PO): the ring is drawn at the
+   collider (2 × `body.radius`, the wire radius) and the per-instance size roll is gone
+   for every medallion species. Recorded in C1's ledger (§12).
 3. **M-§12.2, family membership and count**: the art budget call at C0b.
 4. **M-§12.6, animation**: static ships; out of scope until asked for.
 
@@ -599,3 +603,102 @@ shapes, the other 2 differing only in zero-size empty Graphics whose reported
 origin follows the camera by 1 px; fixed-size bounds identical; screenshots
 match by eye; 0 page errors both runs · `r4-badge.mjs vanilla` 7/7 after the
 venue fix.
+
+### C1 - DONE 2026-10-17 (PO look passed 2026-10-18; phone check at the next deploy)
+
+The frame stack for mobs and NPCs (M-C1). Rulings taken in the session (PO,
+2026-10-17, prompt rounds):
+
+- **D15 ruled: ring = collider, no roll.** Every medallion species draws at its
+  wire radius (the collider); `randomInt(minSize, maxSize)` is gone for them and
+  so is their `minSize`. `maxSize` stays as the SVG raster size. Species without
+  a medallion (fixtures, hazards, summons, objects) keep their roll.
+- **A grey fallback ring for everything without a family** ("a default greyish
+  boring fallback for everything"): no faction, an unmapped faction. The grey
+  ring is the existing `npcBorder.png` (its art file names it `Border_Default /
+  Gray`); no new asset.
+- **The gate is spec presence** (M-D14 as built): a species wears a medallion
+  when its `Graphics.ts` entry carries `medallion`. A vitest pin holds every
+  combat target and conversant in `api/mobs` to it.
+- **Conversant OBJECTS stay bare** ("things in the world to interact with that
+  have models instead"): `signpost` (signs, stones, roots, cave mouths),
+  `remains`, `fireTotem` (the portals) are named exemptions in the pin.
+- **The frame bake is DEFERRED to C0b** (a plan deviation): with one ring layer
+  and no addition/decoration art, a RenderTexture would composite nothing. The
+  ring draws as one shared texture per family.
+
+What was built:
+
+- **`/mobs` + `faction`** (`catalog.go`, `MobDefinition.FactionName`): the
+  authored name, `""` for none. `TestMobCatalogJSON_FactionIsTheAuthoredName`
+  (red first) and the field-set pin updated with the second deliberate
+  exception.
+- **`client-data/Medallions.ts`**: `RING_FAMILY_FILES` (grey = npcBorder,
+  forest, leather = leatherBorder_01, leatherClaws = leatherBorder_02, all
+  [PLACEHOLDER] until C0b), `FACTION_FAMILIES` (wildlife ×2, spider, elemental,
+  troll → forest; bandit, kobold → leather; orc → leatherClaws; everything else
+  grey), `MedallionSpec {ring?}` (D23, and C3's player ring, D20),
+  `ringFamily()`, `RingResolver` (M-§5.5: retries every tick until the catalog
+  knows the species AND the family texture has loaded, then resolves once per
+  species id; `forget()` re-arms it).
+- **`Graphics.ts`**: 34 mob and 12 NPC entries carry `medallion`; their
+  `borderFile` and `minSize` are gone. Grandfather Knot carries `{ring:
+  'forest'}`, the first D23 override (his forest frame, PO 2026-10-03).
+- **`Mobs.ts`**: the `Mob` constructor takes the spec (in place of the unused
+  `anchor`); `resolveRing` draws the ring into the `frame` slot from
+  `setMobId`, before its early return. 37 per-class `withBorder` overrides and
+  border registrations deleted; fixtures and summons keep `withBorder`.
+  `TIER_FRAME_STYLES` and the tier frame are GONE. **The tier recolours the
+  ring itself** (PO 2026-10-17, after seeing a stroked rim outside and then
+  inside the ring: "if the rims are hand drawn, a yellow extra line won't
+  fit"): `Medallions.ringTint` tints the ring sprite normal dark grey `0x707070`,
+  elite silver `0xffffff` (untinted: a tint cannot brighten past the art),
+  boss gold `0xffd040` (retuned by the PO the same day) [PLACEHOLDER shades; silver
+  over gold/red to keep red free for the C2 hostile disc]. **This retires
+  M-D12's "normal stays bare" and M-D16's rim layer** (no `rim` slot, no rim
+  sprite). The family stays keyed on faction (PO, same round). A tint only
+  multiplies, so **ring art must be GREYSCALE** (`medallion-asset-spec.md`
+  owes the change): the three coloured placeholder borders are wrapped in
+  generated SVGs that desaturate the PNG once at load
+  (`assets/border/greyscale/*.svg`, [PLACEHOLDER] until C0b); `npcBorder.png`
+  is grey already.
+- Visible changes: every medallion mob draws at its collider (most smaller,
+  DireBear by up to a third, Deadwood larger); Marauder and KoboldRanged move
+  from leatherBorder_02 to leatherBorder_01 (bandit/kobold → leather);
+  VenomSpider, GreaterFireElemental, DogNpc, the harvest mobs and every
+  NpcPlaceholder species gain a ring; every ring is greyscale now and its
+  colour is the tier (the old forest/leather browns are gone until greyscale
+  art lands). ArmySoldier (xpFactor 0, friendly: not a combat
+  target, D14) keeps its own grey `borderFile` AND its size roll beside humans
+  that now draw at the collider. SVG portraits (the harvest mobs, Deadwood, the
+  placeholders) fill ~82 % of their box, so the ring overlaps their edge until
+  C0b fits portraits into the ring's window. `docs/art/pipeline.md` §4 now
+  points at the `medallion` key (M-D9's owed edit).
+
+**Schema:** DB none · wire none · `/mobs` +1 field (`faction`) · conf none ·
+content none.
+
+**Verified:** Go build + vet; `go test -count=1 ./...` green except the known
+`world.TestPropContent_C1bMigrationPreservesLookAndCollision` (Tree/Boulder,
+CLAUDE.md known-inconclusive) · typecheck clean · vitest 1784/0 (+11
+`Medallions.test.ts`: the resolver table, the race, the tier tints, the
+faction-map pin, the coverage pin) · new harness
+`c1-medallions.mjs` 6/6 twice (Wolf forest 72 px, Bandit leather 72, Alpha
+Boar forest 120 silver, Hermit grey 84, Grandfather Knot forest 168, Dragon
+grey 192 gold: every diameter = 2 × `body.radius` × 120; families checked by
+texture identity, since webpack inlines the SVG rings) + screenshots; one
+earlier run lost its WebGL context (§29, environment) ·
+`r4-badge.mjs vanilla` 7/7.
+
+**PO look passed 2026-10-18** on the retuned tints ("works like this"). ⚑
+**Waived to the next deploy** (PO 2026-10-18): the real-phone fill-rate check
+(C1's exit, M-§5.4). The cost went DOWN, not up: a token draws portrait + ring
+where it drew portrait + border + tier circle. Known gaps until C0b: silver
+reads only as a lighter grey beside normal, because the placeholder rings are
+mid-grey (lighter greyscale art lifts it), and normal-tinted leather turns
+near-black on dark ground. ⚑ **`npc-portraits.mjs` is stale at HEAD**, not
+from C1: its four NPC positions predate the world rebuild (all plates ABSENT,
+control 0). ⚑ The first harness run hit a stale `backend/aurad`:
+`dev-restart.sh server` did not rebuild after the Go change; `make -C backend
+build` first.
+

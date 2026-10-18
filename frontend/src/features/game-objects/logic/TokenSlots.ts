@@ -20,9 +20,9 @@ export const FRAME_LABEL = 'frame';
  *   belowArt   aura ring stack, then the campfire's dwell ring
  *   token      the slot the medallion plan calls `art`; the only node a lunge
  *              moves. Inside it: actualShape (the portrait; the damage flash
- *              scales and floods this alone, M-§5.1), then `frame` (tier frame,
- *              then species border). The medallion's tier rim (M-D16) and
- *              stance disc go here BELOW actualShape when they are built.
+ *              scales and floods this alone, M-§5.1), then `frame` (the
+ *              medallion ring, tinted by tier, or a fixture's or summon's
+ *              border). The stance disc (C2) goes BELOW actualShape.
  *   aboveArt   overhead health bar and interact badge (Mob; a Character's bar
  *              rides its plate), ascension channel effect (Character)
  *
