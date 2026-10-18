@@ -604,7 +604,7 @@ origin follows the camera by 1 px; fixed-size bounds identical; screenshots
 match by eye; 0 page errors both runs · `r4-badge.mjs vanilla` 7/7 after the
 venue fix.
 
-### C1 - DONE 2026-10-17 (PO look passed 2026-10-18; phone check at the next deploy)
+### C1 - DONE 2026-10-17 `6ef833f4` (PO look passed 2026-10-18; phone check at the next deploy)
 
 The frame stack for mobs and NPCs (M-C1). Rulings taken in the session (PO,
 2026-10-17, prompt rounds):
