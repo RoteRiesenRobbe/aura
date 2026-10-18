@@ -29,46 +29,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **⭐ AUDIO: C0 (design) DONE 2026-10-15, C1 (foundation) is next** (`docs/plan-audio.md` §5a rulings R1-R10, §6 chunks C1-C6): v1 = lanes A-F (table + §19 loading fix, music stack menu < region < event, one-shots, region music + footsteps, ascension music, credits); no ambience, no stems. Muted stays the default (R1). Sounds come from the internal composer and artist (R9): build against placeholders until files land. Takes over `archive/plan-region-audio.md`.
 
-- **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 - **⭐ BUFF TRAY: real-phone check, now possible (live since the 2026-10-14 deploy of `82044c23`)** (`docs/plan-buff-tray.md` §11 C3): hold feel, no callout menu, the tooltip's length in landscape. Then archive the plan (world-effect tenants belong to that plan's C2).
-
-- **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells a light covers (yours ≥ 2.5 u, or static); the server decides. PO look passed 2026-10-11; owed: the wire cost.
-
-- **⏸ WORLD EFFECTS: narrowed, NOT approved** (`docs/plan-world-effects.md`, D1-D30, 7 chunks proposed): ⛔ approval waits for the first content (Q11); the buff tray it waited for (D30) is built; only its C2 adds tenants. ⚑ `damageDealt`'s read site unsurveyed (Q13); line refs pinned to `56ebb5a7`.
-
-- **⭐ ICON PACK: distribution is open** (`THIRD_PARTY.md`): atlases only for the seat holder + server (clones draw glyphs), a private sidecar repo, or an encrypted archive (a licence call). ⚑ 14 MB of atlases per load, unmeasured on the phone; a coworker's new skill shows a glyph until the seat holder repacks.
 
 - **⭐ SKILL VFX: live for the PHONE CHECK** (`docs/plan-skill-vfx.md` §9): cap 96 vs 192, fill rate, the packer trigger (§12f.2). ⚑ Unruled: the gallery's 200 ms strike. ⚑ Unmeasured: the pyromancer's `damage_aura` ~doubled its output.
 
-- **⭐ THE UNDERWORLD owes U0 + an in-game pass** (`docs/plan-underworld.md` §7): engine done, U5 DROPPED 2026-09-10. ⛔ U1→U4b never walked in-game; §7.3: L8 campfire check, walls-as-`paths`. ⚑ U6 zone placement designed, not built (§7.2). U0 = `plan-world-scale.md` S1.
-
-- **⏸ LINE OF SIGHT (light)** (`docs/plan-line-of-sight.md`, B1→B3): unscheduled, NOT ruled. ⛔ Not next (PO 2026-09-21): aura-LoS (`c42e1100`) got "we don't need it yet"; whether that covers light is OPEN. Lights shine through cave walls; §7: 4 PO calls. ⚑ `cleanup.md` #1: retire `darkAreas`?
-
-- **⭐ ZONE POLYGONS: JUDGEMENT left** (`docs/plan-zone-polygons.md` §12): coupled [PLACEHOLDER]s cell 0.5 u · boundary 1 u (⛔ L11, unchecked vs flight/knockback) · body cap 256; stroke ≥ cell × √2. ⚑ `Wall`'s `"texture": "null"` is a STRING (works by accident). ⚑ D6 coarsening unseen in-game. Owed: `c3-zone-editor-level`.
-
-- **⭐ WORLD LOOK.** `docs/plan-world-paths.md` §12 owes **C4**: the 372 `Sand` blobs as paths (PO 2026-09-07). ⏸ `docs/plan-region-primitive.md`: look sitting. ⭐ `docs/plan-ground-noise.md`: W1b + W1c shipped `a4ad7f0c`, look + phone owed (§8); W2 not built.
-
-- **⭐ SERVER PERF + WORLD SCALE** (`docs/plan-server-performance.md`, `docs/plan-world-scale.md`): perf 0+3 shipped; 1/2/4/5, S1 unstarted. ⚑ PhysicsSystem was 74 % at 10× (M1-F3), chunk 4 may outrank chunk 1. ⛔ M1-F2's residues recorded, NOT fixed.
-
-- **⏸ Parked:** `plan-prototype-projectile.md` owes its SECOND in-game pass (§10), deciding P2/P3 or delete · `plan-play-bot.md` not built · `plan-npc-hails.md` + `plan-mob-voicelines.md` DEFERRED. ⚑ Unowned: zone-editor C3's dead Go plumbing, broken `wiki-generator/`.
-
-- **⭐ FIRST RELEASE MAP, CAMPS ARE CONTENT** (2026-08-22; `docs/plan-release-map.md`, owes a planning session, §7 PO calls): membership = a completed quest, exclusivity = `quest_at_stage`; schema NONE. ⏸ `plan-camps.md` DEFERRED. ⛔ `plan-test-world.md` DROPPED.
-
-- **Watch items.** CC (`docs/archive/plan-cc-and-retaliation.md`): mobs slow AND stun players, stuns diminish for all · CC immunity silent in-game · stun wire-identical to slow on the PIPS (§39; the tray's `kinds` tells them apart) · player stun chains UNSEEN past step two. Mob/XP tuning, unowned: **re-price HP/damage every placement** (incl. the pyromancer) · the levels 21-30 gap · ⚑ the single-target cap eased elites and bosses, UNMEASURED (sims are 1 player vs N).
-
-- **⭐ backlog §52, leave the world without a reload** (PO 2026-08-11): `docs/plan-leaving-the-world.md`, nothing built (shape (B) reset-not-teardown ≈ one chunk). Blocks §48.
-
-- ⚑ **Step 8a closed WITHOUT backups** (PO 2026-08-04): the live DB is losable. Still owed: firewall, DB to localhost, credentials, non-root deploy (`plan-playtest-deploy.md` §Ops).
-
 ### Open items
 
+- **Parked threads, watch items and open PO calls** live in `docs/roadmap.md` "Parked threads and watch items"; harness venues and known-inconclusive harnesses in the `verify` skill (moved out of this file 2026-10-18 to keep it small). Check there before starting anything not listed here.
 - **Feedback + UI:** feedback lands ONLY in `docs/feedback.md` (four exit doors). `docs/plan-ui-pass.md`: direction C (its §4 CORRECTION block IS the spec), C1-C8 PO-approved, **next C9 (mobile)**; PO play owed. ⏸ `plan-onboarding-cleanup.md` until a coworker joins.
-- **Smaller threads:** the Omni trio's PO check (`9ee8cdb4`, `omni-smoke` 17/17) · §47 stale "Connection lost" banner · §51 transient second queue entry · a character-name filter (spam passes the charset guard) · mobile perf ceiling · avatar/faction defaults (`plan-appearance.md`) · the password-reset plan's five questions · ascension §8 (stone lore + art, [PLACEHOLDER] gates, D29's ceremony seen only by its player).
-- **Known-inconclusive at HEAD**, unowned: `chunk3-charm` 6-8/9 · `c1-world-map` legs 6-7 · `c2-campfire-markers` · `filler-batch` leg 1 · `chunk3b-ii-conversation` 28/34 · `accounts.TestRepeatedFailuresAreThrottled` under load · `AuraTiledConvert.test.ts` byte-stability ×2 · `world.TestPropContent_C1bMigrationPreservesLookAndCollision` (Tree/Boulder, the PO's prop edits) · `content-editor-skills-tab.mjs` stale since natural-weapons C1, unrun · `mobile-layout.mjs` leg 7 · `c2-player-cc` stun-end leg 1 in 2 · `npc-portraits.mjs` (venues predate the world rebuild, every plate ABSENT). ⚑ The `items/mobs` census tests + `cmd/simharness` placement pins hardcode the roster: ANY new mob/NPC reddens them.
-- **Harness venues:** DEBUG-zones only (starved or obstructed venues on the rebuilt main world, never a failed assertion): `skill-fx`, `chunk2-calm`, `chunk3-charm`, `swift-cooldown`'s pace legs, `chunkC4-quests`, `c1-kill-quests`, `c2-kill-quests`, `c1-front-stone`, `c2a-ascension-site`, `buff-tray`, `c2-player-cc`, `c1-stat-buffs`, `c2-thorns`, `c3-charge`, `c4-c7-effects` (two clients; `GOD off`; a bare `GOD` toggles, so scripts send `GOD on`). Other venues UNCHECKED. ⚑ Measure a flake's rate first.
-- **Backlog watch** (`docs/backlog.md`): §25 D+E · §27.2.4-7 (re-survey §27.2.6) · §29 lost-WebGL trigger unknown · §37 skill-level/augment rework · §39 entity presentation (`docs/plan-entity-presentation.md`) · §34 hard collision · §58 ANSWERED by Tiled (open until the PO moves a real texture there).
-- ⭐ **M1-F5, dormancy vs. a CREDIBLE sim** (`plan-world-scale.md` §11): **(A)** an unobserved mob-vs-mob fight never ends (a slept mob is out of `phy.Space`, unhittable), a design ruling. **(B)** a mob can freeze walking home off its route (`model/mob/patrol.go:108-113`), outside L7; fix: refuse sleep while `returnPosSet`.
-- **Open PO calls:** ⭐ §B11 Q7: Go validation on save for EVERY editor tab, retiring `validate.mjs`'s port (`docs/archive/plan-content-editor.md`) · ⭐ should `EntitiesMarshalFlatbuf`'s `default:` stop panicking? (`recover()` hid the corpse bug eight weeks) · the portal pair's COST · does a QUEST turn-in row show the ability it pays? · should FireShield's flat reflect scale?
 - **Standing locks:** NO CI BY CHOICE (PO 2026-08-12; revisit at step 9); the local verify tail is the gate. Balance FINALs (growth 1.12 × maxLevel 30, regen + taper, campfire, free base aura, downtime 10 s + chain 20) live in `cmd/simharness/guardrail_test.go`; drop + milestone tables TUNING-OPEN. Day/night OFF (re-enabling means collapsing ~25 filter passes).
 - **Content rules** (full: the `add-content` skill): new mobs author tier + baseline (raw `maxHealth` hard-fails) and `factors.xpFactor` (absent → 1, `0` = no XP AND no nameplate); tier ≥ elite authors `factors.ccImmune`. Quest and stage ids are slugs (a-z, 0-9, `-`; the loader refuses others). A skill file is never deleted, an `id` never changes, `maxLevel` never drops (retire by removing unlock sources, `manual-content-authoring.md` §2); a `_comment` is never a ledger. ⭐ English lives in `api/lang/en/*.arb`, never inline in a content file (`plan-localization.md` D27): write it in the content editor, or draft it inline and run `node tools/lang/extract-english.mjs`; its German lands in `api/lang/de/` in the same change (D23), then `UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/` refreshes the records; a mob a kill/harvest quest counts carries its plural in its name (D24); style: `docs/manual-localization-de.md`.
 - **Gotchas:** a shape removed from `phy.Space` leaves every collision set at once (§54); never "optimize" that away. ⚑ A content edit does NOT invalidate the Go test cache (`-count=1`); without `-content ../api` the EMBEDDED copy is read (rebuild after ANY `api/` edit). ⚑ A ZONE edit is HALF-LIVE (restart after a Tiled save); the directory IS the zone list. ⚑ Skill FX draw BELOW darkness: look in daylight (the debug world's caves are dark).
@@ -525,6 +493,9 @@ Across both:
   multiple chunks in one session.
 - **Propose options for design decisions** — don't commit to a direction unilaterally.
 - **Never commit (or branch/push) autonomously** — only when explicitly asked.
+- **Several sessions may share this working tree.** When committing, stage only the files this
+  session changed, by path (never `git add -A` / `git add .`), and check `git status` and the
+  staged diff for changes you did not make; leave those for their own session.
 - Treat the inherited physics, collision, and the WebSocket/FlatBuffers protocol as
   stable foundations. Extend, don't rewrite.
 - When in doubt about game design intent, ask — don't infer from the codebase.
