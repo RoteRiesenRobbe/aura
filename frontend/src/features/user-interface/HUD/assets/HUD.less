@@ -947,6 +947,17 @@
 		color: @gold-levelup;
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
+		// The title takes a row of its own, the badge and reset share the
+		// one under it: squeezed onto one row, German broke "ZAUBERBUCH"
+		// over two or three lines depending on the badge's digit count, and
+		// the whole book jumped by a line (PO 2026-10-18).
+		flex-wrap: wrap;
+		row-gap: 0.3rem;
+
+		> .spellbookTitleText {
+			flex-basis: 100%;
+			white-space: nowrap;
+		}
 
 		// The points badge shows in BOTH places since the C3 PO look: on the
 		// open buttons (.spellbookOpenButton below) because the book can be

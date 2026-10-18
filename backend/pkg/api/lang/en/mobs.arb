@@ -481,10 +481,13 @@
     "description": "Name of the Shaman (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
-  "mob.Sheep.name": "Sheep",
+  "mob.Sheep.name": "{count, plural, one {Sheep} other {Sheep}}",
   "@mob.Sheep.name": {
     "description": "Name of the Sheep (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
-    "x-maxLength": 26
+    "x-maxLength": 26,
+    "placeholders": {
+      "count": {"type": "int", "description": "How many: 1 on a nameplate or in a banner, the required count on a tracker line", "example": "6"}
+    }
   },
   "mob.ShieldbearerCompanion.name": "Shieldbearer Companion",
   "@mob.ShieldbearerCompanion.name": {

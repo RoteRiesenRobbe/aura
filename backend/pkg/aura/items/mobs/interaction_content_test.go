@@ -84,9 +84,10 @@ var expectedConversants = []string{
 	"CaveExit",
 
 	// The north pasture (content-zone-design-guide.md §2.4, the "teaches neutral"
-	// POI). The Shepherd offers and turns in `the-strays`; the three sheep are
-	// three of its four talk_to targets and are the first conversants that exist
-	// ONLY to be talked to — one node, no options, no teaching, no quest.
+	// POI). The Shepherd offers and turns in `back-to-the-pen` (plan-herding.md
+	// H2; it replaced `the-strays`, R7). The three named sheep are herd animals
+	// its second stage asks for, and they still talk: one node, no options, and
+	// talking is optional (R16).
 	//
 	// ⚑ THREE DEFINITIONS RATHER THAN ONE WITH count 3, and the reason is
 	// structural: talk_to is keyed by the DEFINITION id, never the spawn, so

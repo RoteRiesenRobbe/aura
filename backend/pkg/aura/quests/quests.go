@@ -33,6 +33,11 @@ const (
 	// never a MobID, and stands alone in its stage (D6): arrival advances the
 	// stage at once, so nothing about it is persisted.
 	ObjectiveReach
+	// ObjectiveHerd counts a herd animal penned while the stage is current
+	// (plan-herding.md D6): a third name over the kill/harvest counters,
+	// credited by mob.UpdatePen. Its species must carry a herd pen. Appended:
+	// the value is the wire's QuestObjectiveKind.
+	ObjectiveHerd
 )
 
 // String is the authored spelling, for messages.
@@ -299,7 +304,7 @@ func validateChance(o Objective, s *Stage) error {
 	switch {
 	case o.Chance < 0 || o.Chance > 1:
 		return fmt.Errorf("chance %v is not in (0, 1]", o.Chance)
-	case o.Kind == ObjectiveTalkTo || o.Kind == ObjectiveReach:
+	case o.Kind == ObjectiveTalkTo || o.Kind == ObjectiveReach || o.Kind == ObjectiveHerd:
 		return fmt.Errorf("a chance rides a kill/harvest objective, not %s", o.Kind)
 	case len(s.Objectives) != 1:
 		return fmt.Errorf("a chance objective must be its stage's only objective")
@@ -324,9 +329,9 @@ func firstCountable(s *Stage) *Objective {
 }
 
 // counts reports a kind that reads the kill counters (D2: kill and harvest
-// share them).
+// share them, and so does herd, plan-herding.md D5).
 func (k ObjectiveKind) counts() bool {
-	return k == ObjectiveKill || k == ObjectiveHarvest
+	return k == ObjectiveKill || k == ObjectiveHarvest || k == ObjectiveHerd
 }
 
 // validateAcyclicObjectiveChains rejects a cycle in the objective-stage next
@@ -354,7 +359,7 @@ type speciesResolver interface {
 
 type jsonObjective struct {
 	Kind    string `json:"kind"`
-	Species string `json:"species"` // kill / harvest
+	Species string `json:"species"` // kill / harvest / herd
 	NPC     string `json:"npc"`     // talk_to
 	Count   uint64 `json:"count"`   // absent → 1
 	Tracker string `json:"tracker"` // any kind; required on talk_to and reach without a stage tracker (Q2)
@@ -389,6 +394,7 @@ var objectiveKinds = map[string]ObjectiveKind{
 	"harvest": ObjectiveHarvest,
 	"talk_to": ObjectiveTalkTo,
 	"reach":   ObjectiveReach,
+	"herd":    ObjectiveHerd,
 }
 
 // RegistryFromFS loads every quest definition, resolving authored species and
@@ -491,6 +497,12 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if def.Legacy {
 		return Objective{}, fmt.Errorf("objective %q names %q, which is legacy: true — the live world never spawns "+
 			"it, so the objective could never be completed", jo.Kind, name)
+	}
+
+	// A herd objective moves only when its animal is penned, so a species
+	// with no pen is an objective nobody can finish (plan-herding.md D6).
+	if kind == ObjectiveHerd && (def.Herd == nil || def.Herd.Pen == "") {
+		return Objective{}, fmt.Errorf("herd names %q, which has no herd pen — author \"herd\": {\"pen\": …} on it", name)
 	}
 
 	count := jo.Count

@@ -675,6 +675,12 @@ What was built:
   C0b fits portraits into the ring's window. `docs/art/pipeline.md` §4 now
   points at the `medallion` key (M-D9's owed edit).
 
+⚑ **Merged with herding H1/H2 (2026-10-18):** the new `Sheep` species came in
+with its own forest `borderFile` and size roll; the coverage pin failed it
+because the named sheep (Baabara, Woolliam, Lambert) are conversants, so Sheep
+now wears a medallion like every other species (townsfolk: the grey ring, at
+its collider).
+
 **Schema:** DB none · wire none · `/mobs` +1 field (`faction`) · conf none ·
 content none.
 

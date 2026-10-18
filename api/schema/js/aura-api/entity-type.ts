@@ -107,5 +107,6 @@ export enum EntityType {
   RemainsProp = 117,
   Firelord = 118,
   FireStirer = 119,
-  BerryBush = 120
+  BerryBush = 120,
+  Sheep = 121
 }

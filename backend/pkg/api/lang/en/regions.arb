@@ -104,6 +104,15 @@
     "description": "Region banner title of the place \"grimwatch\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
+  "region.hans-pen.subtitle": "Farmlands",
+  "@region.hans-pen.subtitle": {
+    "description": "Region banner subtitle under \"Sheep Pen\"."
+  },
+  "region.hans-pen.title": "Sheep Pen",
+  "@region.hans-pen.title": {
+    "description": "Region banner title of the place \"hans-pen\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
   "region.hollow-marsh.subtitle": "Empty Hearths",
   "@region.hollow-marsh.subtitle": {
     "description": "Region banner subtitle under \"Hollow Marsh\"."

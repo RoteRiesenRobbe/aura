@@ -28,7 +28,15 @@ func (m *Mob) Dormant() bool { return m.dormant }
 // SetDormant records the sleep state. The caller (sys.MobSystem) owns the
 // matching space surgery — this only flips the flag, so the two can never be
 // set from different places.
-func (m *Mob) SetDormant(v bool) { m.dormant = v }
+//
+// Sleep also forgets a herd animal's herders (plan-herding.md D3): their
+// expiry runs on the mob's own clock, which stops while it sleeps.
+func (m *Mob) SetDormant(v bool) {
+	m.dormant = v
+	if v {
+		m.herders = nil
+	}
+}
 
 // PlayerControlled reports whether a player is behind this mob's actions — a
 // summon, totem or companion (owner) or a charmed world mob (charmer).
@@ -77,6 +85,10 @@ func (m *Mob) Pristine() bool {
 	// Encounter-script seams: a scripted phase is running, whatever the mob's
 	// health says.
 	if m.invulnerable || m.fleeOverride {
+		return false
+	}
+	// A herd animal counting down in its pen must finish (plan-herding.md D4).
+	if m.penTicks > 0 {
 		return false
 	}
 	// Combat, in all three of the ways the mob tracks it: a held enemy or a

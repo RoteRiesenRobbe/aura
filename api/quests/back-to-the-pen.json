@@ -1,0 +1,42 @@
+{
+  "_comment": "plan-herding.md H2 (R15): Hans's herding quest, which replaces `the-strays` in play (R7 keeps that file, unoffered). Two herding stages. FLOCK: drive six of the generic Sheep (78, `herd.pen hans-pen`) into the pen beside his house; a sheep counts after 2 s inside and credits every player it ran from in the last 10 s (D4/D5), so two players herding together both get it. STRAYS: Baabara, Woolliam and Lambert, each its own definition and therefore its own counter, waiting in three dangerous corners of Zone 1 with three temperaments (D12); one objective each, count 1, with an objective tracker so the journal ticks them one by one, the way the-strays ticked its talks. Talking to a stray is optional (R16). Counts start at stage entry, so a stray penned during the flock stage does not count. A new id rather than `the-strays` reused: a saved ledger sitting in that quest's talk stage would silently change meaning. Reward 180 XP on Hans's turn-in row = the L9 half-level rule at L2 [PLACEHOLDER: two stages make it longer; the price is a PO call at the text approval]. Text drafted by Claude, PO approval owed.",
+  "id": "back-to-the-pen",
+  "level": 2,
+  "stages": [
+    {
+      "id": "flock",
+      "objectives": [
+        {
+          "kind": "herd",
+          "species": "Sheep",
+          "count": 6
+        }
+      ],
+      "next": "strays"
+    },
+    {
+      "id": "strays",
+      "objectives": [
+        {
+          "kind": "herd",
+          "species": "Baabara"
+        },
+        {
+          "kind": "herd",
+          "species": "Woolliam"
+        },
+        {
+          "kind": "herd",
+          "species": "Lambert"
+        }
+      ],
+      "next": "report"
+    },
+    {
+      "id": "report"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

@@ -166,8 +166,9 @@ function formatTracker(template: string, o: ObjectiveData): string | null {
  */
 export function objectiveLine(questId: string, o: ObjectiveData): string {
     let line: string | null = null;
+    let template: string | undefined;
     if (o.trackerKey) {
-        const template = questDefinition(questId)?.trackers?.[o.trackerKey];
+        template = questDefinition(questId)?.trackers?.[o.trackerKey];
         line = template ? formatTracker(template, o) : null;
     }
     if (line === null) {
@@ -181,11 +182,19 @@ export function objectiveLine(questId: string, o: ObjectiveData): string {
             case AuraApi.QuestObjectiveKind.Harvest:
                 line = t('journal.objective.harvest', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
                 break;
+            case AuraApi.QuestObjectiveKind.Herd:
+                line = t('journal.objective.herd', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
+                break;
             default:
                 line = t('journal.objective.kill', {n: o.n, m: o.m, mob: mobName(o.target, o.m)});
         }
     }
-    if (!o.stage && o.kind === AuraApi.QuestObjectiveKind.TalkTo && o.done) {
+    // A talk_to line has no count to fill, and neither has a herd line that
+    // names one animal by its own tracker ("Bring Baabara home", plan-herding.md
+    // R15): both tick when done.
+    const countless = o.kind === AuraApi.QuestObjectiveKind.TalkTo
+        || (o.kind === AuraApi.QuestObjectiveKind.Herd && !!template && !template.includes('{n'));
+    if (!o.stage && countless && o.done) {
         line = t('journal.objective.done', {line});
     }
     return line;

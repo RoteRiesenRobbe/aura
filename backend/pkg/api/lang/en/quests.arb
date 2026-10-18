@@ -75,6 +75,51 @@
     "description": "Quest title of \"alpha-wolves-at-the-village\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.back-to-the-pen.done.journal": "Hans has his whole herd back, the three wanderers too.",
+  "@quest.back-to-the-pen.done.journal": {
+    "description": "Journal (diary) entry of quest \"back-to-the-pen\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.back-to-the-pen.flock.journal": "Hans wants his sheep back in the pen beside his house. They will not follow me, but they run from anyone who comes close, so I have to walk them in from behind.",
+  "@quest.back-to-the-pen.flock.journal": {
+    "description": "Journal (diary) entry of quest \"back-to-the-pen\", stage \"flock\": written in the player's voice, first person."
+  },
+  "quest.back-to-the-pen.flock.tracker": "{n, number}/{m, number} sheep brought back",
+  "@quest.back-to-the-pen.flock.tracker": {
+    "description": "Tracker line of quest \"back-to-the-pen\", stage \"flock\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.back-to-the-pen.report.journal": "Every last sheep is back in the pen. Hans will want to hear it.",
+  "@quest.back-to-the-pen.report.journal": {
+    "description": "Journal (diary) entry of quest \"back-to-the-pen\", stage \"report\": written in the player's voice, first person."
+  },
+  "quest.back-to-the-pen.report.tracker": "Tell Hans",
+  "@quest.back-to-the-pen.report.tracker": {
+    "description": "Tracker line of quest \"back-to-the-pen\", stage \"report\": the one objective line shown under the quest title."
+  },
+  "quest.back-to-the-pen.strays.herd.Baabara.tracker": "Bring Baabara home",
+  "@quest.back-to-the-pen.strays.herd.Baabara.tracker": {
+    "description": "Tracker line of one herd objective (Baabara) in quest \"back-to-the-pen\", stage \"strays\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.back-to-the-pen.strays.herd.Lambert.tracker": "Bring Lambert home",
+  "@quest.back-to-the-pen.strays.herd.Lambert.tracker": {
+    "description": "Tracker line of one herd objective (Lambert) in quest \"back-to-the-pen\", stage \"strays\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.back-to-the-pen.strays.herd.Woolliam.tracker": "Bring Woolliam home",
+  "@quest.back-to-the-pen.strays.herd.Woolliam.tracker": {
+    "description": "Tracker line of one herd objective (Woolliam) in quest \"back-to-the-pen\", stage \"strays\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.back-to-the-pen.strays.journal": "The flock is home, but three of Hans's favourites are still out: Baabara by the wolves to the east, Woolliam on the beach among the crabs, Lambert by the falling rocks to the west.",
+  "@quest.back-to-the-pen.strays.journal": {
+    "description": "Journal (diary) entry of quest \"back-to-the-pen\", stage \"strays\": written in the player's voice, first person."
+  },
+  "quest.back-to-the-pen.title": "Back to the Pen",
+  "@quest.back-to-the-pen.title": {
+    "description": "Quest title of \"back-to-the-pen\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.bandits-at-the-shrine.cull.journal": "Kill 6 bandits at the camp east of the shrine.",
   "@quest.bandits-at-the-shrine.cull.journal": {
     "description": "Journal (diary) entry of quest \"bandits-at-the-shrine\", stage \"cull\": written in the player's voice, first person."

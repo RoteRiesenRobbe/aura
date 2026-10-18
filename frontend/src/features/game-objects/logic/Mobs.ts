@@ -905,6 +905,21 @@ export class Stag extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Stag, file('stag'), maxSize('stag'));
 
+// The placeholder sheep (plan-herding.md D11): a woolly face on the same
+// wildlife layer as the stag. Named sheep (Baabara and her kin) are
+// conversants, so the species wears a medallion; townsfolk draw the grey ring.
+export class Sheep extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            size, Sheep.svg, medallion('sheep'));
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Sheep, file('sheep'), maxSize('sheep'));
+
 export class EliteWolf extends Mob {
     static svg: PIXI.Texture;
 

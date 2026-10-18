@@ -181,6 +181,16 @@ C7/C8 plan its delivery).
 | **Trigger** | ⭐ **The translation-platform setup (`plan-localization.md` §9: one file = one component) or C8, whichever comes first.** C8 rewrites the same imports in `Locale.ts`, so the split rides it. |
 | **Closes when** | The catalog is split (delete this row), or the PO rules one file fine. |
 
+### 7. `the-strays` ("A Herd Astray") — loaded, offered by nobody
+
+| | |
+|---|---|
+| **Today** | `api/quests/the-strays.json` still loads, but no conversant offers it since `plan-herding.md` H2: Hans offers `back-to-the-pen` instead (R7: replace it, do not delete it yet). Boot warns "offered by no conversant", and `quests/content_test.go`'s `parkedQuests` exempts it from the startable and reachable pins. A character mid-quest keeps it in the journal and can only abandon it. |
+| **Successor** | `back-to-the-pen`: the flock, then the three named strays as herd animals. |
+| **Cost** | Delete the file, its `quest.the-strays.*` keys in `api/lang/{en,de}/quests.arb` + the translated-from record, the `parkedQuests` entry, and its census + reachability lines; saved ledgers holding it need a look first (the restore of an unknown quest). |
+| **Trigger** | ⭐ **The PO deletes or restores it.** |
+| **Closes when** | The file is gone (delete this row), or a conversant offers it again. |
+
 ---
 
 

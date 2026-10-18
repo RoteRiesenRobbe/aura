@@ -251,6 +251,19 @@ faction and skills without a schema append (see §5).
 
 ---
 
+### Herd animals (`plan-herding.md`)
+
+`"herd": { "pen": "<region id>" }` makes a mob run from every player within its
+`body.aggroRadius` (the run radius, centre to centre; no second knob) and, when it
+stands 2 s inside the pen region, credits every player it ran from in the last
+10 s on its species counter, then leaves and respawns at its spawn after
+`respawnTicks`. `"herd": {}` only runs. It needs `factors.speed > 0`, and a
+`collisionMask` that includes MobStatic (64), or fences do not hold it. The pen is a
+region listed in `api/regions/regions.json` (boot refuses an unlisted one) and
+drawn on the zone's regions layer. A herd animal that talks holds still while its
+conversation is open. Personality is numbers: `speed` and `aggroRadius` (see the
+three strays).
+
 ### Factions (mob-vs-mob hostility, chunk 6.6)
 
 Mob allegiances live in **`api/factions/*.json`**, one file per faction:
@@ -1556,8 +1569,11 @@ mid-way for anyone standing on it.
 
 A stage is one of exactly two shapes, and the loader enforces it:
 
-- **objective stage** — `objectives[]` (`kill` / `harvest` / `talk_to`) plus a
-  single `next`. It advances by itself the moment the character's **lifetime**
+- **objective stage** — `objectives[]` (`kill` / `harvest` / `talk_to` / `reach` /
+  `herd`) plus a single `next`. `herd` counts a herd animal penned while the
+  stage is current (`plan-herding.md`): its species must carry `"herd": {"pen": …}`
+  (below, §1), and it shares the kill/harvest counters, keyed by DEFINITION, so
+  three named animals with `count` 1 each tick separately (`back-to-the-pen`). It advances by itself the moment the character's **lifetime**
   counters satisfy it.
 - **dialogue stage** — neither. It waits for an authored row somewhere in the
   world.

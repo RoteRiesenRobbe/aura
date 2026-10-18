@@ -192,6 +192,14 @@ export const GraphicsConfig = {
             maxSize: <number> 50,
         },
 
+        // Placeholder art (plan-herding.md D11): the herd Hans wants back in
+        // his pen, and the three named strays. A touch smaller than the stag.
+        sheep: {
+            file: require('../features/game-objects/assets/mobs/sheep.svg'),
+            medallion: <MedallionSpec> {},
+            maxSize: <number> 44,
+        },
+
         eliteWolf: {
             file: require('../features/game-objects/assets/mobs/eliteWolf.png'),
             medallion: <MedallionSpec> {},

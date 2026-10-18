@@ -805,12 +805,20 @@ func (l *Ledger) objectiveLines(p *Progress, s *Stage) []string {
 			} else {
 				lines = append(lines, "Go to "+o.TargetName)
 			}
-		case ObjectiveHarvest, ObjectiveKill:
+		case ObjectiveHarvest, ObjectiveKill, ObjectiveHerd:
 			n := min(l.countSince(p, o.Target), o.Count)
 			switch {
 			case o.Tracker != "":
 				line := strings.ReplaceAll(o.Tracker, "{n}", strconv.FormatUint(n, 10))
-				lines = append(lines, strings.ReplaceAll(line, "{m}", strconv.FormatUint(o.Count, 10)))
+				line = strings.ReplaceAll(line, "{m}", strconv.FormatUint(o.Count, 10))
+				// A herd line names one animal ("Bring Baabara home") and
+				// carries no count, so it ticks like a talk_to (R15).
+				if o.Kind == ObjectiveHerd && n >= o.Count && !strings.Contains(o.Tracker, "{n}") {
+					line += " ✓"
+				}
+				lines = append(lines, line)
+			case o.Kind == ObjectiveHerd:
+				lines = append(lines, fmt.Sprintf("%d/%d %s brought back", n, o.Count, o.TargetName))
 			case o.Kind == ObjectiveHarvest:
 				lines = append(lines, fmt.Sprintf("%d/%d %s harvested", n, o.Count, o.TargetName))
 			default:

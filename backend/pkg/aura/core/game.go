@@ -198,6 +198,9 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// Drawn AFTER the mob system's seed, so a seeded run from before the tour
 	// existed still replays the same mobs.
 	g.tourRnd = rand.New(rand.NewSource(rnd.Int63()))
+	// The herd pen check reads the same place polygons as the reach objective
+	// (plan-herding.md D4).
+	m.SetPens(gc.Regions)
 	g.AddSystem(m)
 
 	// Conversations (plan-entity-model.md chunk 3a): actors carrying an

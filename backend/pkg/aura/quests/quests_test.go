@@ -16,6 +16,9 @@ type fakeMobs struct {
 	mobs.Registry
 	byName map[string]mobs.MobID
 	legacy map[string]bool
+	// herd marks a herd animal by its pen ("" = it runs and counts nowhere,
+	// plan-herding.md R14).
+	herd map[string]string
 }
 
 func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
@@ -23,15 +26,21 @@ func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
 	if !ok {
 		return nil, assert.AnError
 	}
-	return &mobs.MobDefinition{ID: id, Name: name, Legacy: f.legacy[name]}, nil
+	def := &mobs.MobDefinition{ID: id, Name: name, Legacy: f.legacy[name]}
+	if pen, ok := f.herd[name]; ok {
+		def.Herd = &mobs.Herd{Pen: pen}
+	}
+	return def, nil
 }
 
 func testMobs() *fakeMobs {
 	return &fakeMobs{
-		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Relic": 61, "TownCrier": 62},
+		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Relic": 61, "TownCrier": 62,
+			"Sheep": 78, "Baabara": 74, "Woolliam": 76, "Deer": 90},
 		// A legacy: true def is retired content the live world never spawns
 		// (L12) — nothing in api/ authors the tag since zone-editor C3.
 		legacy: map[string]bool{"Relic": true},
+		herd:   map[string]string{"Sheep": "hans-pen", "Baabara": "hans-pen", "Woolliam": "hans-pen", "Deer": ""},
 	}
 }
 

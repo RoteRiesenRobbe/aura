@@ -178,6 +178,13 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		fail("quest regions", err)
 	}
 
+	// A herd pen is a place too: listed, and drawn or warned (plan-herding.md D1).
+	if !okMobs || !okZones {
+		skip("herd pens", missing(input{okMobs, "mobs"}, input{okZones, "zones"})...)
+	} else if err = bindHerdPens(out.mobs, out.regions, out.zones); err != nil {
+		fail("herd pens", err)
+	}
+
 	// Localization (plan-localization.md C1, C5a): every ARB, English included,
 	// refused when not UTF-8 or malformed (L17), and the content text as keyed
 	// entries, refused where it would not survive as ICU (L14) or where two
@@ -338,6 +345,24 @@ func validateConf() (*cfg.Config, error) {
 	}
 	slog.Info("reading config", slog.String("path", configFile))
 	return config, nil
+}
+
+// bindHerdPens hands mobs.BindHerdPens the listed place ids and the ids the
+// placed zones draw (plan-herding.md D1).
+func bindHerdPens(mr mobs.Registry, list []world.RegionName, zones []*world.Zone) error {
+	listed := make(map[string]bool, len(list))
+	for _, r := range list {
+		listed[r.ID] = true
+	}
+	drawn := map[string]bool{}
+	for id := range world.CollectRegions(zones) {
+		drawn[id] = true
+	}
+	warnings, err := mobs.BindHerdPens(mr.Mobs(), listed, drawn)
+	for _, w := range warnings {
+		slog.Warn("unreachable herd pen", slog.String("detail", w))
+	}
+	return err
 }
 
 // bindQuestRegions hands quests.BindRegions the place titles and the ids the

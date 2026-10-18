@@ -19,6 +19,8 @@ package quests
 // early warning: production runs disk mode, but every other path runs embedded.
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,8 +86,13 @@ var expectedQuests = map[string]string{
 	"bears-at-the-walls":          "Bears at the Walls",
 	"thin-the-orc-line":           "Thin the Orc Line",
 
-	// The north pasture's talk_to quest (content-zone-design-guide.md §2.4).
+	// The north pasture's talk_to quest (content-zone-design-guide.md §2.4),
+	// PARKED since plan-herding.md H2 (see parkedQuests).
 	"the-strays": "A Herd Astray",
+
+	// Hans's herding quest (plan-herding.md H2): the flock, then the three
+	// named strays as herd animals. It replaced the-strays in play.
+	"back-to-the-pen": "Back to the Pen",
 
 	// The Mill on the river (content-zone-design-guide.md §2.4), and the only
 	// kill quest in the game whose count is 1: Zone 1's one elite is a NAMED
@@ -128,6 +135,15 @@ var expectedQuests = map[string]string{
 	"eliza-sends-me": "Off to the Mill",
 }
 
+// parkedQuests are quests still LOADED but offered by nobody, on purpose: a
+// saved ledger may still hold one, and the PO has not decided its fate. Each
+// names its ruling and its retirement trigger (docs/cleanup.md). Exempt from
+// the "startable in play" and "every stage reachable" pins, never from the
+// census.
+var parkedQuests = map[string]string{
+	"the-strays": "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
+}
+
 func TestContent_QuestCensus(t *testing.T) {
 	_, qr := contentRegistries(t)
 
@@ -149,7 +165,17 @@ func TestContent_CrossValidatesWithNothingUnreachable(t *testing.T) {
 
 	warnings, err := CrossValidate(mr, qr)
 	require.NoError(t, err)
-	assert.Empty(t, warnings, "every authored quest must be startable in play, not only by the QUEST cheat")
+	var unparked []string
+	for _, w := range warnings {
+		parked := false
+		for id := range parkedQuests {
+			parked = parked || strings.Contains(w, fmt.Sprintf("quest %q is offered by no conversant", id))
+		}
+		if !parked {
+			unparked = append(unparked, w)
+		}
+	}
+	assert.Empty(t, unparked, "every authored quest must be startable in play, not only by the QUEST cheat")
 }
 
 // D2's three verbs, all authored. The first pass exists to prove the machine
@@ -304,6 +330,9 @@ func TestContent_EveryStageIsReachable(t *testing.T) {
 	}
 
 	for _, q := range qr.All() {
+		if _, parked := parkedQuests[q.ID]; parked {
+			continue
+		}
 		for i, s := range q.Stages {
 			if i == 0 {
 				continue // the entry stage; an offer row lands here
@@ -371,9 +400,9 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"bears-at-the-walls":          2300, // L16 bears
 		"thin-the-orc-line":           4800, // L20 elite orcs
 
-		// The north pasture (content-zone-design-guide.md §2.4): the same L2
-		// price the boars pay, for a quest that spends no combat at all.
-		"the-strays": 180, // L2, ½ × 300 × 1.2
+		// The north pasture (plan-herding.md D7): the L2 price the boars pay,
+		// for a quest that spends no combat at all. [PLACEHOLDER] two stages.
+		"back-to-the-pen": 180, // L2, ½ × 300 × 1.2
 
 		// The mill (content-zone-design-guide.md §2.4). ⚑ The rule prices the
 		// TARGET'S LEVEL, not its tier, so the zone's one elite pays exactly what

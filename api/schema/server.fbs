@@ -284,7 +284,10 @@ enum EntityType : ushort {
   FireStirer = 119,
   // Bush (91) with Berryhunter's berries baked into the art: a second drawing
   // on the same non-blocking body, set dressing only (nothing to harvest).
-  BerryBush = 120
+  BerryBush = 120,
+  // A placeholder sheep (plan-herding.md D11): the herd Hans wants back in his
+  // pen, and the three named strays. Replaced at the Zone 1 art pass.
+  Sheep = 121
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -888,7 +891,8 @@ table QuestProgress {
   objective_list:[QuestObjective];
 }
 
-enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3 }
+// Herd (plan-herding.md D6): a herd animal penned. Appended; mirrors quests.ObjectiveKind.
+enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3, Herd = 4 }
 
 // One current-stage objective line as data. stage = the stage's own tracker,
 // the single line that replaces every objective line (kind/target then name

@@ -123,6 +123,7 @@
   "journal.label": "Tagebuch",
   "journal.objective.done": "{line} ✓",
   "journal.objective.harvest": "{n, number}/{m, number} {mob} geerntet",
+  "journal.objective.herd": "{n, number}/{m, number} {mob} zurückgebracht",
   "journal.objective.kill": "{n, number}/{m, number} {mob} getötet",
   "journal.objective.reach": "Geh nach {place}",
   "journal.objective.talk-to": "Sprich mit {name}",

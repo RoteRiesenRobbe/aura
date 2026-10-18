@@ -85,7 +85,39 @@ type MobSystem struct {
 	// at the start of this one (PO 2026-10-11).
 	lingering []model.MobEntity
 
+	// pens maps each place id to its polygons in world coordinates
+	// (world.CollectRegions), for the herd pen check (plan-herding.md D4). Nil
+	// in the sim harness and most tests: no herd animal is ever penned there.
+	pens map[string][]world.PlacedRegion
+
 	initialized bool
+}
+
+// SetPens wires the place polygons the herd pen check reads, once at boot
+// (plan-herding.md D4).
+func (n *MobSystem) SetPens(regions map[string][]world.PlacedRegion) { n.pens = regions }
+
+// herdAnimal is a herd animal as the pen check sees it (plan-herding.md D4): a
+// capability, like dormantMob, so a mob that is none never answers a pen.
+type herdAnimal interface {
+	HerdPen() string
+	UpdatePen(inside bool) bool
+}
+
+// penned runs one tick of a herd animal's pen timer and reports whether it was
+// just penned. Its centre in any polygon of its pen counts as inside, the reach
+// objective's test.
+func (n *MobSystem) penned(m model.MobEntity) bool {
+	h, ok := m.(herdAnimal)
+	if !ok {
+		return false
+	}
+	pen := h.HerdPen()
+	if pen == "" {
+		return false
+	}
+	pos := m.Position()
+	return h.UpdatePen(world.InRegion(n.pens[pen], pos.X, pos.Y))
 }
 
 // DeathTriggers is the SkillSystem as the death sweep sees it
@@ -228,7 +260,9 @@ func (n *MobSystem) Update(dt float32) {
 		if n.dormantThisTick(mob) {
 			continue
 		}
-		if !mob.Update(dt) {
+		// A penned herd animal leaves through the same sweep as a death
+		// (plan-herding.md D4): its spawn point schedules the respawn.
+		if !mob.Update(dt) || n.penned(mob) {
 			dead = append(dead, mob)
 		}
 	}
