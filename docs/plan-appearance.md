@@ -3,7 +3,8 @@
 > **Status: APPROVED 2026-10-17 (planning session, five PO prompt rounds, D1-D22;
 > refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
 > PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
-> PO look passed). Next: C2.** Order (D24): C0a → C1 → C1b → C2 → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+> PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
+component for every token). Next: C3.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -541,7 +542,7 @@ whenever the pilot lands.**
   into C5 if C5 runs small. *Schema: ascension content format +1 entry kind; no
   new migration.*
 - **C6, player corpses and summons.** The corpse carries the portrait with the
-  death marker (D14); summons onto the medallion (M-C4). If Q4's marker is a
+  death marker (D14). (Summons onto the medallion moved to C2b.) If Q4's marker is a
   broken ring, the corpse carries the player's ring too (one more `Resource`
   field) or wears a fixed death ring; decided with Q4. *Schema: `Resource` +1
   (or +2).*
@@ -876,3 +877,61 @@ clean main too) · typecheck · vitest 1794/0 · prod build ·
 stance, plus a live leg: boars under the starting aura turn hostile while
 idle boars stay neutral) · `r4-badge vanilla` 7/7 · `hygiene-wire-prune` 0
 console errors · harness rows cleaned (server stopped first).
+
+### C2b - DONE 2026-10-19 [uncommitted] (PO look passed 2026-10-19: "all looks good and works as intended")
+
+One composition path for every token (D37, D38): an actor is a medallion or a
+plain world object, and the old bordered kind is gone.
+
+- **`Medallion`** (`game-objects/logic/Medallion.ts`, beside `TokenSlots.ts`):
+  the disc, the portrait swap (`speciesPortraits`), the ring and the tier and
+  stance tints, MOVED out of `Mob` unchanged (the ring textures and the shared
+  disc texture moved with them). `setRing` answers false while the ring
+  texture is still loading. `Mob` keeps only the `RingResolver` (the
+  catalog-race retry, M-§5.5) and forwards `setTier`/`setStance`, which may
+  still arrive before `setMobId`.
+- **Six actors became medallion species** (`medallion: {}`, collider size, no
+  roll, `minSize` gone): Companion (`portrait-black-hound`, DogNpc's bust, a
+  D33 kin share), SoldierCompanion (`Human_44_nobg`), ShieldbearerCompanion
+  (`Human_23_nobg`), MedicCompanion (`Human_16_nobg`, new key
+  `portrait-white-monk`, PO pick from a contact sheet), ArmySoldier
+  (`Footman_nb`), Bramble (`Monster_Flower_nb`). `portrait-hound` deleted;
+  repacked, 152 icons in 4 atlases. ⚑ Their `maxSize` stays: it is the SVG
+  raster size of the committed fallback, the same reason D15 kept it.
+- **The player wears it too:** `Character` builds a `Medallion` with a
+  friendly disc set locally (D4) and `PLAYER_RING` = the grey fallback family
+  (PO pick, until C3's choice), normal tier; it retries the ring every
+  prerender until the texture has loaded (the old `Character.border` never
+  retried). The blue disc sits behind the opaque `player.png` until C3.
+- **Summon rings follow the faction rule** (PO pick): companions have no
+  catalog faction, so they and Bramble (`flora`) and ArmySoldier
+  (`human_army`) wear grey. Summons read friendly from `Mob.Stance()`.
+- **D38:** Campfire and Camp are plain objects.
+- **Deleted:** `withBorder`, `registerBorder`, `borderFile` (the type field +
+  8 entries), `Character.border`, `playerBorder_01.png`.
+- **Pins** (`Medallions.test.ts`, the first two red first): no `borderFile`
+  in mobs, npcs or character; every `Graphics` key is a medallion or on the
+  named `PLAIN_OBJECTS` list; no medallion species has a `minSize`; the
+  portrait pin's skip narrowed to non-combat placeholder species, so summons
+  need a manifest bust. `Medallion.test.ts` (6 tests) covers the component.
+- **Proof that the 37 existing medallion species did not change:** a
+  scene-graph leaf dump (kind, visibility, alpha, blend, tint, texture key,
+  size per leaf) at 13 venues, before and after. ⚑ A repack changes every
+  portrait's canvas hash without a visible change: scaled `drawImage` bleeds
+  neighbouring atlas pixels. So the "before" is HEAD's code built against the
+  NEW atlas. Result: 29 groups identical; only the four intended differ
+  (Companion: blue disc + grey ring, 60 px instead of the rolled 80;
+  ArmySoldier: 72 px instead of 74/80, disc + ring; Campfire: frame empty;
+  player: blue disc + grey ring instead of `playerBorder`).
+
+**Schema:** NONE (client art config + pack manifest).
+
+**Verified:** typecheck · vitest 1803/0 · prod build · `go build` (no Go
+change) · `c1-medallions.mjs` extended (player, summoned companion, bare
+campfire, ArmySoldier) 17 PASS / 0 FAIL / 0 INCONCLUSIVE · `r4-badge vanilla`
+7/7 · `hygiene-wire-prune` 0 console errors · content-editor smoke 0 findings
+· `generate-palette.mjs` output unchanged · harness rows cleaned (server
+stopped first). Two older harness failures, unrelated (no token code
+involved): `skill-fx-preview.mjs` fails 2 legs (its `KINDS` list lacks
+`rush`, added in `d9a0b2ac`); `c3-zone-editor-level.mjs` 6/7, leg 3
+INCONCLUSIVE twice (the click selects spawn #479, not #0).

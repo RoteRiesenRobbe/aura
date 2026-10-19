@@ -8,7 +8,7 @@ import {createNamedContainer} from '../../pixi-js/logic/CustomData';
  */
 export const TOKEN_LABEL = 'token';
 
-/** The label of the token's frame slot, which `Mobs.ts`'s `withBorder` finds. */
+/** The label of the token's frame slot, which holds the medallion's ring. */
 export const FRAME_LABEL = 'frame';
 
 /**
@@ -23,7 +23,8 @@ export const FRAME_LABEL = 'frame';
  *              portrait, plan-appearance.md C1b; C2 tints it by stance), then
  *              actualShape (the portrait; the damage flash scales and floods
  *              this alone, M-§5.1), then `frame` (the medallion ring, tinted
- *              by tier, or a fixture's or summon's border).
+ *              by tier). `Medallion` fills disc and frame (C2b, D37); a plain
+ *              world object leaves both empty.
  *   aboveArt   overhead health bar and interact badge (Mob; a Character's bar
  *              rides its plate), ascension channel effect (Character)
  *

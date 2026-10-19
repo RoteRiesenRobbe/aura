@@ -14,7 +14,7 @@ describe('createTokenSlots', () => {
         expect(slots.token.children).toEqual([slots.disc, slots.actualShape, slots.frame]);
         expect(slots.actualShape.children).toEqual([portrait]);
         expect(slots.token.label).toBe(TOKEN_LABEL);
-        // withBorder finds the frame by label, from the group.
+        // The harnesses find the frame by label, from the group.
         expect(group.getChildByLabel(FRAME_LABEL, true)).toBe(slots.frame);
     });
 });

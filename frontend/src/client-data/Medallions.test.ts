@@ -100,10 +100,45 @@ describe('the faction map', () => {
     });
 });
 
+// D37 (PO 2026-10-19): one composition path for every token. An actor is a
+// medallion or a plain world object (sprite only, no frame, D38); there is no
+// third, bordered kind, so no `borderFile` may come back.
+describe('one kind of token', () => {
+    // Graphics keys drawn as plain world objects: fixtures, hazards, totems
+    // and the conversant objects (signs, remains, portals).
+    const PLAIN_OBJECTS = ['totem', 'campfire', 'camp', 'remains', 'poisonPool', 'spiderWeb', 'rockfall',
+        'spikeBarricade', 'warbannerTotem', 'fireTotem', 'signpost'];
+    const configs: Record<string, object> = {...GraphicsConfig.mobs, ...GraphicsConfig.npcs};
+
+    it('refuses a borderFile anywhere', () => {
+        for (const [key, cfg] of Object.entries({...configs, character: GraphicsConfig.character})) {
+            expect('borderFile' in cfg, `Graphics.ts "${key}" carries a borderFile`).toBe(false);
+        }
+    });
+
+    it('makes every actor a medallion or a plain object', () => {
+        for (const [key, cfg] of Object.entries(configs)) {
+            if (PLAIN_OBJECTS.includes(key)) {
+                expect('medallion' in cfg, `"${key}" is a plain object, it stays bare`).toBe(false);
+            } else {
+                expect('medallion' in cfg, `"${key}" needs a medallion spec (or a PLAIN_OBJECTS row)`).toBe(true);
+            }
+        }
+    });
+
+    it('lets no medallion species roll its size (D15)', () => {
+        for (const [key, cfg] of Object.entries(configs)) {
+            if ('medallion' in cfg) {
+                expect('minSize' in cfg, `"${key}" wears a medallion and so draws at its collider`).toBe(false);
+            }
+        }
+    });
+});
+
 // M-D14 as ruled for C1 (PO 2026-10-17): a species wears a medallion when its
 // Graphics entry carries a `medallion` spec, and every combat target and
 // conversant must carry one, EXCEPT the objects you talk to, which keep their
-// own art. Summons get theirs in C6.
+// own art. Player summons and the army wear one too (C2b, D37).
 describe('medallion coverage', () => {
     // Graphics keys of conversant OBJECTS: signs, stones, roots, cave mouths,
     // remains, portals (PO 2026-10-17: "things in the world to interact with
@@ -157,8 +192,11 @@ describe('medallion coverage', () => {
             if (!configs[key]?.medallion) {
                 continue;
             }
+            // A placeholder-class species outside play (ProjectileBomb) keeps
+            // the marker; every other medallion species, summons included,
+            // draws a bust.
             const xpFactor = def.factors?.xpFactor ?? 1;
-            if (!(xpFactor > 0 && !friendly.has(def.faction)) && def.interaction === undefined) {
+            if (key === 'placeholder' && !(xpFactor > 0 && !friendly.has(def.faction)) && def.interaction === undefined) {
                 continue;
             }
             const name = GraphicsConfig.speciesPortraits[def.name]?.packIcon ?? configs[key].packIcon;

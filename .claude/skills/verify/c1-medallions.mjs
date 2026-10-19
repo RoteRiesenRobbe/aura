@@ -28,6 +28,12 @@
 // arms the starting aura on top of the Alpha Boar (prey): a boar it hits fights
 // back and must read hostile. INCONCLUSIVE when the aura cannot be armed.
 //
+// C2b (plan-appearance.md D37, D38): one medallion for every token. At the
+// spawn the player summons a Companion: the companion and the player each
+// wear exactly one ring (the grey family, normal tint) over a friendly blue
+// disc, and the starting Campfire is a plain object (no ring, no disc). At the
+// front the plate-less ArmySoldiers wear the same.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -39,6 +45,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -62,6 +69,8 @@ const VENUES = [
   { name: 'turnip', at: [-192.4, 15.5], subjects: [['Turnip', 'grey', 'normal', 'neutral']] },
   { name: 'cultist', at: [165, -18.6], subjects: [['Cultist', 'grey', 'normal', 'hostile']] },
   { name: 'skeleton', at: [80.7, -27.7], subjects: [['Skeleton', 'grey', 'normal', 'hostile']] },
+  // C2b: the army wears no plate (xpFactor 0, no talk); checked by layer below.
+  { name: 'army', at: [-66, 154], subjects: [] },
 ];
 // Medallions.ts STANCE_TINTS [PLACEHOLDER shades]; restated so a retune is loud.
 const STANCE_TINTS = { hostile: 0xc0392b, neutral: 0xd4a017, friendly: 0x2e6fd8 };
@@ -109,6 +118,7 @@ await page.evaluate(() => {
   document.getElementById('developPanel').style.display = 'none';
 });
 await cmd('GOD on');
+await cmd('SKILL SummonCompanion');
 
 // Every token group (a container with a `token` child holding `frame`) plus
 // the plate text standing on it.
@@ -118,7 +128,7 @@ const readTokens = () => page.evaluate(() => {
     x: p.position.x, y: p.position.y,
     text: p.children.find((c) => typeof c.text === 'string')?.text ?? '',
   }));
-  const walk = (c) => {
+  const walk = (c, layer) => {
     if (!c) return;
     const token = c.children?.find((k) => k.label === 'token');
     const frameSlot = token?.children?.find((k) => k.label === 'frame');
@@ -133,6 +143,7 @@ const readTokens = () => page.evaluate(() => {
       const portrait = token.children.find((k) => k.label === 'actualShape')?.children?.[0];
       const resource = portrait?.texture?.source?.resource;
       out.push({
+        layer,
         plate: plate?.text ?? '',
         x: c.position.x / 120, y: c.position.y / 120,
         rings: ringSprites.map((s) => ({ src: src(s).split('/').pop().split('?')[0].slice(0, 40), uid: s.texture.source.uid, tint: s.tint, w: s.width })),
@@ -142,9 +153,9 @@ const readTokens = () => page.evaluate(() => {
       });
       return;
     }
-    (c.children || []).forEach(walk);
+    (c.children || []).forEach((k) => walk(k, k.label && !k.children?.some((g) => g.label === 'token') ? k.label : layer));
   };
-  walk(window.__auraRoot);
+  walk(window.__auraRoot, 'root');
   const me = window.game.character;
   return { me: [me.getX() / 120, me.getY() / 120], tokens: out };
 });
@@ -155,6 +166,49 @@ let pass = 0, fail = 0, inconclusive = 0;
 const portraits = []; // [portrait texture uid, label], for the distinct-portrait leg
 const report = [];
 const seen = []; // [family, texture uid, label] per subject, for the identity legs
+// C2b: one medallion check, shared by the spawn and army legs.
+const medallionProblems = (t, stance) => {
+  const problems = [];
+  if (t.rings.length !== 1) problems.push(`${t.rings.length} ring sprites`);
+  else if (t.rings[0].tint !== TINTS.normal) problems.push(`ring tint 0x${t.rings[0].tint.toString(16)}, want normal`);
+  if (t.discs.length !== 1) problems.push(`${t.discs.length} disc sprites`);
+  else if (t.discs[0].tint !== STANCE_TINTS[stance]) problems.push(`disc reads ${stanceOf(t.discs[0].tint)}, want ${stance}`);
+  return problems;
+};
+const check = (name, t, stance, family) => {
+  if (!t) { inconclusive++; report.push(`INCONCLUSIVE ${name}: not in view`); return; }
+  const problems = medallionProblems(t, stance);
+  if (!problems.length && family) seen.push([family, t.rings[0].uid, name]);
+  const line = `${name}: ring tex#${t.rings[0]?.uid} 0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px disc ${stanceOf(t.discs[0]?.tint)}`;
+  if (problems.length) { fail++; report.push(`FAIL ${line} -> ${problems.join('; ')}`); } else { pass++; report.push(`PASS ${line}`); }
+};
+{
+  // Summon the companion (the chunk2-follower flow): equip from the book, hold Q.
+  const row = await page.evaluate(() =>
+    [...document.querySelectorAll('#spellbookList li')].findIndex((li) => /Companion/i.test(li.textContent)));
+  if (row >= 0) {
+    await showSkillRowAt(page, row);
+    const box = await (await page.$$('#spellbookList li'))[row].boundingBox();
+    await page.mouse.click(box.x + 25, box.y + box.height / 2);
+    await page.waitForTimeout(700);
+    const sb = await (await page.$('#cooldownSlotList li:first-child')).boundingBox();
+    await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+    await page.waitForTimeout(700);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.down('q');
+    await page.waitForTimeout(1400);
+    await page.keyboard.up('q');
+    await page.waitForTimeout(4000);
+  }
+  const snap = await readTokens();
+  await page.screenshot({ path: join(shotDir, `c1-${label}-spawn.png`) });
+  check('player', snap.tokens.find((t) => t.layer === 'characters'), 'friendly', 'grey');
+  check('companion', snap.tokens.find((t) => t.layer === 'companion'), 'friendly', 'grey');
+  const fire = snap.tokens.find((t) => t.layer === 'campfireMob');
+  if (!fire) { inconclusive++; report.push('INCONCLUSIVE campfire: not in view'); }
+  else if (fire.rings.length || fire.discs.length) { fail++; report.push(`FAIL campfire: ${fire.rings.length} rings, ${fire.discs.length} discs, want a plain object`); }
+  else { pass++; report.push('PASS campfire: a plain object (no ring, no disc)'); }
+}
 for (const v of VENUES) {
   await cmd(`WARP ${v.at[0] * 120} ${v.at[1] * 120}`);
   // Let the camera settle (WARP gotcha) and the catalog-driven ring land.
@@ -184,6 +238,11 @@ for (const v of VENUES) {
     const line = `${v.name}: "${t.plate}" family=${ringFile} tex#${t.rings[0]?.uid} tint=0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px disc=${t.discs[0]?.w?.toFixed(0)}px ${stanceOf(t.discs[0]?.tint)} portrait#${t.portrait.uid}${t.portrait.pack ? ' pack' : ''}`;
     if (problems.length) { fail++; report.push(`FAIL ${line} -> ${problems.join('; ')}`); }
     else { pass++; report.push(`PASS ${line}`); }
+  }
+  if (v.name === 'army') {
+    const soldiers = snap.tokens.filter((t) => t.layer === 'wildlife' && !t.plate);
+    if (!soldiers.length) { inconclusive++; report.push('INCONCLUSIVE army: no ArmySoldier in view'); }
+    soldiers.forEach((t, i) => check(`army/soldier${i + 1}`, t, 'friendly', 'grey'));
   }
   // Every OTHER token in view: bare (no ring) is fine for fixtures, but more
   // than one ring sprite never is.

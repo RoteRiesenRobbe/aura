@@ -34,6 +34,10 @@ export type RingFamily = keyof typeof RING_FAMILY_FILES;
 
 export const FALLBACK_FAMILY: RingFamily = 'grey';
 
+// The ring every player character wears until C3 lets them choose one (D20):
+// the plain grey ring (PO 2026-10-19).
+export const PLAYER_RING: RingFamily = FALLBACK_FAMILY;
+
 // Faction name (api/factions) -> ring family. A faction left out draws the
 // grey fallback, which is why cult, dragonkin, fey, mercenary, undead and
 // townsfolk are absent. A key that names no faction is a typo: the pin in

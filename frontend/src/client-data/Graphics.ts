@@ -37,10 +37,6 @@ export const GraphicsConfig = {
         // pack-manifest name that replaces `file` when the pack is loaded on
         // this machine. `file` stays the fallback everywhere else.
         packIcon: <string | undefined> undefined,
-        // Medallion frame over the avatar portrait — same two-layer shape as the
-        // farmer/hermit/stag, but drawn in Character.initShape because the
-        // avatar has its own group (aura rings + actualShape) to sit inside.
-        borderFile: require('../features/game-objects/assets/border/playerBorder_01.png'),
         /**
          * Physical collider radius used by backend for player body; see the
          * pinned constant above.
@@ -66,9 +62,6 @@ export const GraphicsConfig = {
                 // once into its texture (plan-appearance.md D33): kin that
                 // share a bust and differ by colour. Never applies to `file`.
                 packTint?: color,
-                // Optional frame drawn over the portrait of a species that wears
-                // no medallion (a fixture or a summon), docs/art/pipeline.md §4.
-                borderFile?: string,
                 // Present = the species wears a medallion: its ring comes from
                 // its faction's family (client-data/Medallions.ts), and it draws
                 // at its collider's size, the wire radius, with no roll (D15,
@@ -90,15 +83,13 @@ export const GraphicsConfig = {
 
         companion: {
             file: require('../features/game-objects/assets/mobs/companion.svg'),
-            packIcon: 'portrait-hound',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 40,
+            packIcon: 'portrait-black-hound',
+            medallion: <MedallionSpec> {},
             maxSize: <number> 40,
         },
 
         campfire: {
             file: require('../features/game-objects/assets/mobs/campfire.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 60,
             maxSize: <number> 60,
         },
@@ -109,7 +100,6 @@ export const GraphicsConfig = {
         // thing they put down is temporary and personal rather than a landmark.
         camp: {
             file: require('../features/game-objects/assets/mobs/campfire.png'),
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 30,
             maxSize: <number> 30,
         },
@@ -228,8 +218,7 @@ export const GraphicsConfig = {
         bramble: {
             file: require('../features/game-objects/assets/mobs/bramble.svg'),
             packIcon: 'portrait-carnivorous-plant',
-            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
-            minSize: <number> 58,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 66,
         },
 
@@ -322,8 +311,7 @@ export const GraphicsConfig = {
         armySoldier: {
             file: require('../features/game-objects/assets/mobs/armySoldier.svg'),
             packIcon: 'portrait-footman',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
-            minSize: <number> 36,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
 
@@ -363,22 +351,21 @@ export const GraphicsConfig = {
         soldierCompanion: {
             file: require('../features/game-objects/assets/mobs/soldierCompanion.svg'),
             packIcon: 'portrait-plate-knight',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
-            minSize: <number> 34,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 38,
         },
 
         shieldbearerCompanion: {
             file: require('../features/game-objects/assets/mobs/shieldbearerCompanion.svg'),
             packIcon: 'portrait-armored-knight',
-            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
-            minSize: <number> 38,
+            medallion: <MedallionSpec> {},
             maxSize: <number> 42,
         },
 
         medicCompanion: {
             file: require('../features/game-objects/assets/mobs/medicCompanion.svg'),
-            minSize: <number> 32,
+            packIcon: 'portrait-white-monk',
+            medallion: <MedallionSpec> {},
             maxSize: <number> 36,
         },
 

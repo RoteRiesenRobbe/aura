@@ -288,23 +288,17 @@ something moved.
 > `minSize`/`maxSize` roll, PO ruling D15). A named NPC may wear a ring of its
 > own with `medallion: {ring: '<family>'}` (D23). A NEW ring is a new entry in
 > `RING_FAMILY_FILES`. The 4-layer target above is superseded by the six-layer
-> stack in `docs/art/medallion-asset-spec.md`. What follows is how the
-> FIXTURES and SUMMONS that still carry a `borderFile` are wired.
+> stack in `docs/art/medallion-asset-spec.md`.
 
-`Mobs.ts` has `registerBorder` / `withBorder`. Per entity:
-
-```ts
-const stagBorder = registerBorder(GraphicsConfig.mobs.stag.borderFile, maxSize('stag'));
-// inside the class:
-override initShape(svg, x, y, size, rotation, anchor?) {
-    return withBorder(super.initShape(svg, x, y, size, rotation, anchor), stagBorder, size);
-}
-```
-
-Plus `file` + `borderFile` in `Graphics.ts`. The border goes on the **outer
-group, never `actualShape`** — the damage flash is bound to `actualShape`, so a
-frame inside it flashes red with the portrait. `Character` does the same thing
-by hand because its avatar already sits in a group with the aura rings.
+**Since `plan-appearance.md` C2b there is ONE way to compose a token** (D37):
+the `Medallion` component (`game-objects/logic/Medallion.ts`) fills the token
+slots with the disc, the portrait and the ring, for every mob, NPC, summon and
+the player alike. Anything else is a plain world object (sprite only, no frame:
+totems, campfires, signposts, hazards). There is no bordered third kind:
+`borderFile`, `registerBorder` and `withBorder` are gone, and
+`Medallions.test.ts` fails a `borderFile` that comes back. The ring sits in the
+token's `frame` slot, **never in `actualShape`**: the damage flash is bound to
+`actualShape`, so a frame inside it would flash red with the portrait.
 
 ⚑ **Never rotate art to fix an orientation bug.** `Character` applied its facing
 **twice** (once as the constructor's `rotation`, once via `setRotation`), summing
