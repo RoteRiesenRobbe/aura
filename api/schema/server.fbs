@@ -398,6 +398,10 @@ table Resource {
   underfoot:bool = false;
 }
 
+// A mob's stance toward the player side (plan-appearance.md C2); mirrors
+// model.Stance, pinned by codec's TestMobMarshalFlatbuf_Stance.
+enum Stance : ubyte { Hostile = 0, Neutral = 1, Friendly = 2 }
+
 table Mob {
   id:ulong;
   entity_type:EntityType;
@@ -546,6 +550,12 @@ table Mob {
   // Mirrors Character.light_flicker. Appended at the table end; omitted for
   // every steady light.
   light_flicker:bool = false;
+
+  // the mob's current stance toward the player side (plan-appearance.md C2,
+  // model.Stance): the client tints the medallion disc red / yellow / blue.
+  // Presentation only. Hostile is the default, so it costs no bytes for a
+  // mob that hunts players. Appended at the table end.
+  stance:Stance = Hostile;
 }
 
 table Character {

@@ -607,6 +607,8 @@ function unmarshalEntity(entity, eType) {
         // aura ring colour bitmask + mob tier rank (triage items 7 / 15)
         auraCategory: undefined,
         tier: undefined,
+        // stance toward the player side, tints the medallion disc (appearance C2)
+        stance: undefined,
         // mob definition id — the key into the /mobs catalog (nameplates)
         mobId: undefined,
         // PROP definition NAME — a prop's identity, and the key into the
@@ -670,6 +672,9 @@ function unmarshalEntity(entity, eType) {
         // authored tier rank (0 normal / 1 elite / 2 boss) — drives the portrait
         // frame ring (triage item 15).
         result.tier = entity.tier();
+        // stance toward the player side (0 hostile / 1 neutral / 2 friendly):
+        // tints the medallion disc (plan-appearance.md C2).
+        result.stance = entity.stance();
         // species id: the client looks its display name + combat level up in
         // the /mobs catalog to render the level-tinted nameplate (feedback
         // pass C item 2). Long-present on the wire, first read here.

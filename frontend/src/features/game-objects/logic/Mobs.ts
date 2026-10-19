@@ -4,7 +4,7 @@ import {createTokenSlots, FRAME_LABEL} from './TokenSlots';
 import * as Preloading from '../../core/logic/Preloading';
 import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
-import {DISC_SHADE, MedallionSpec, RING_FAMILY_FILES, RingFamily, RingResolver, ringTint} from '../../../client-data/Medallions';
+import {MedallionSpec, RING_FAMILY_FILES, RingFamily, RingResolver, ringTint, stanceTint} from '../../../client-data/Medallions';
 import {PORTRAIT_FILL, packIconTexture} from '../../../client-data/icons/PackIconFiles';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
@@ -112,7 +112,7 @@ const ringTextures = Object.fromEntries(
 
 // The disc behind every medallion portrait (C1b): one white circle, drawn
 // once on a 2D canvas (no renderer needed) and shared by every mob; each
-// sprite tints it (Medallions.DISC_SHADE, C2's stance colours). Built on
+// sprite tints it by stance (Medallions.stanceTint, C2). Built on
 // first use, so a test importing this module never touches a canvas.
 const DISC_TEXTURE_SIZE = 128;
 let sharedDiscTexture: PIXI.Texture = null;
@@ -178,6 +178,11 @@ export abstract class Mob extends GameObject
     // apart from the ring because setTier runs before setMobId every tick, so
     // the first tier arrives before the ring exists. 0 = normal.
     private tierRank = 0;
+    // The wire stance toward the player side, which tints the disc
+    // (Medallions.stanceTint, plan-appearance.md C2). 0 = hostile, the wire
+    // default. Read by the constructor body's disc build, which runs after the
+    // field initializers, so the initializer here is safe.
+    private stance = 0;
     // Created in the constructor body (after field initializers), so the
     // initializer here is safe.
     private auraRings: AuraRingStack = null;
@@ -234,7 +239,7 @@ export abstract class Mob extends GameObject
             // Sized to the pack portrait's own disc, so it fills the ring's
             // window and its edge hides under the ring.
             this.disc = createInjectedSVG(discTexture(), 0, 0, this.size * PORTRAIT_FILL, 0);
-            this.disc.tint = DISC_SHADE;
+            this.disc.tint = stanceTint(this.stance);
             this.discSlot.addChild(this.disc);
         }
         // Bottom of belowArt: the ring renders behind the mob art and under
@@ -648,6 +653,22 @@ export abstract class Mob extends GameObject
         this.tierRank = rank;
         if (this.ring) {
             this.ring.tint = ringTint(rank);
+        }
+    }
+
+    /**
+     * setStance tints the medallion disc by the wire Mob.stance
+     * (plan-appearance.md C2): red hostile, yellow neutral, blue friendly. It
+     * changes at runtime (a prey fighting back, a calm, a charm). A species
+     * without a medallion has no disc and shows no stance.
+     */
+    setStance(stance: number) {
+        if (this.stance === stance) {
+            return;
+        }
+        this.stance = stance;
+        if (this.disc) {
+            this.disc.tint = stanceTint(stance);
         }
     }
 

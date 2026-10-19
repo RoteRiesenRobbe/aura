@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-19, the appearance C2 wrap: the APPEARANCE C0a entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: APPEARANCE C0a, named token slots + the D15 sizing table** ✅ 2026-10-17 `b9cf2d5e` (ledger: `docs/plan-appearance.md` §12 C0a): every token `shape` (Mob, Character) is `belowArt` (aura ring, dwell ring) · `token` (`actualShape`, then a `frame` slot: tier frame, border) · `aboveArt` (bar, badge, ascension FX), built by `createTokenSlots` (`TokenSlots.ts`); no child-index arithmetic left, nothing on screen changed. The rim and disc go in `token` below `actualShape` when built. The sizing table is `plan-entity-medallions.md` Appendix A: rolled mobs draw 1.00-1.50× their collider, NPCs and the player 1.00; (D15 ruled at C1: ring = collider.) ⚑ `r4-badge.mjs` had a stale Hermit venue (fixed). **Schema: NONE.** Verified: typecheck · vitest 1773/0 · before/after leaf dump 27/29 identical (2 = empty zero-size Graphics) + shots · `r4-badge` 7/7.
+
 *(2026-10-18, the appearance C1b wrap: the CLIFFS C1-C4 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: CLIFFS C1-C4, ends, fade caps, welds, mountain/pit rims** ✅ 2026-10-17, merged to main (C1 `43b20027` · C2 `c7ff20f1` · C3 `e64f2919` · C4 `3d39da8d` · merge fixes + world.json after; ledger: `docs/plan-cliffs.md` §10): a path end each (`endsStart`/`endsEnd`: round, flat, point, `fade`), `fade` draws the profile's CAP art and opens the wall [PLACEHOLDER `fadeWallFraction` 0.5, Q1]; the Tiled save WELDS touching cliffs (end-to-start → one path, a T → flat stem drawn under the bar; one layer group only, silent across groups); `outlineFacing` out/in draws a polygon's outline as a cliff rim. world.json's cliffs are all `fade`. ⚑ fade ≈ point until real cap art (the placeholder IS a slope). ⚑ Test examples sit in the Fallow Reach (y 122-156): remove before release. **Schema: DB/wire/conf NONE · zone format +`endsStart`/`endsEnd`/`fade`/`outlineFacing`.**

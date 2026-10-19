@@ -22,6 +22,12 @@
 // pack, a pack portrait (a canvas-backed texture, PackIconFiles) with every
 // subject's portrait a different texture (the wolf line no longer shares one).
 //
+// C2 (plan-appearance.md D28, D29, D32) tints the disc by the wire stance:
+// each subject names the stance it reads idle (hostile red, neutral yellow,
+// friendly blue; the harvestable Turnip is flora, neutral), and one live leg
+// arms the starting aura on top of the Alpha Boar (prey): a boar it hits fights
+// back and must read hostile. INCONCLUSIVE when the aura cannot be armed.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -43,22 +49,23 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // Venue = a warp point near the subject's spawn; subject = the plate name and
 // the ring file expected on it. Positions from api/zones/world.json.
 const VENUES = [
-  { name: 'wolf', at: [-190, -21], subjects: [['Wolf', 'forest', 'normal']] },
-  { name: 'bandit', at: [-141, -23], subjects: [['Bandit', 'leather', 'normal']] },
-  { name: 'alphaBoar', at: [-214, 35], subjects: [['Alpha Boar', 'forest', 'elite']] },
-  { name: 'hermit', at: [-121, -29], subjects: [['Hermit', 'grey', 'normal']] },
-  { name: 'knot', at: [40, -147], subjects: [['Grandfather Knot', 'forest', 'normal']] },
-  { name: 'dragon', at: [211, 163], subjects: [['Dragon', 'grey', 'boss']] },
+  { name: 'wolf', at: [-190, -21], subjects: [['Wolf', 'forest', 'normal', 'hostile']] },
+  { name: 'bandit', at: [-141, -23], subjects: [['Bandit', 'leather', 'normal', 'hostile']] },
+  { name: 'alphaBoar', at: [-214, 35], subjects: [['Alpha Boar', 'forest', 'elite', 'neutral']] },
+  { name: 'hermit', at: [-121, -29], subjects: [['Hermit', 'grey', 'normal', 'friendly']] },
+  { name: 'knot', at: [40, -147], subjects: [['Grandfather Knot', 'forest', 'normal', 'friendly']] },
+  { name: 'dragon', at: [211, 163], subjects: [['Dragon', 'grey', 'boss', 'hostile']] },
   // C1b (D31-D34): the wolf line's own portraits, a pack-tinted harvestable,
   // and placeholder species with their own (speciesPortraits) busts.
-  { name: 'wolfLine', at: [-83, 172], subjects: [['Elite Wolf', 'forest', 'elite'], ['Alpha Wolf', 'forest', 'normal']] },
-  { name: 'direWolf', at: [-160.4, 22.2], subjects: [['Dire Wolf', 'forest', 'normal']] },
-  { name: 'turnip', at: [-192.4, 15.5], subjects: [['Turnip', 'grey', 'normal']] },
-  { name: 'cultist', at: [165, -18.6], subjects: [['Cultist', 'grey', 'normal']] },
-  { name: 'skeleton', at: [80.7, -27.7], subjects: [['Skeleton', 'grey', 'normal']] },
+  { name: 'wolfLine', at: [-83, 172], subjects: [['Elite Wolf', 'forest', 'elite', 'hostile'], ['Alpha Wolf', 'forest', 'normal', 'hostile']] },
+  { name: 'direWolf', at: [-160.4, 22.2], subjects: [['Dire Wolf', 'forest', 'normal', 'hostile']] },
+  { name: 'turnip', at: [-192.4, 15.5], subjects: [['Turnip', 'grey', 'normal', 'neutral']] },
+  { name: 'cultist', at: [165, -18.6], subjects: [['Cultist', 'grey', 'normal', 'hostile']] },
+  { name: 'skeleton', at: [80.7, -27.7], subjects: [['Skeleton', 'grey', 'normal', 'hostile']] },
 ];
-// Medallions.ts DISC_SHADE [PLACEHOLDER]; restated so a retune is loud.
-const DISC_SHADE = 0x6b6b6b;
+// Medallions.ts STANCE_TINTS [PLACEHOLDER shades]; restated so a retune is loud.
+const STANCE_TINTS = { hostile: 0xc0392b, neutral: 0xd4a017, friendly: 0x2e6fd8 };
+const stanceOf = (tint) => Object.keys(STANCE_TINTS).find((k) => STANCE_TINTS[k] === tint) ?? `0x${tint?.toString(16)}`;
 // Medallions.ts RING_TINTS [PLACEHOLDER shades]; restated so a retune is loud.
 const TINTS = { normal: 0x707070, elite: 0xffffff, boss: 0xffd040 };
 
@@ -155,7 +162,7 @@ for (const v of VENUES) {
   const snap = await readTokens();
   for (const t of snap.tokens) t.rings.forEach((r) => { r.src = sourceOf(r.src); });
   await page.screenshot({ path: join(shotDir, `c1-${label}-${v.name}.png`) });
-  for (const [plateName, ringFile, tier] of v.subjects) {
+  for (const [plateName, ringFile, tier, stance] of v.subjects) {
     const t = snap.tokens.find((k) => k.plate.startsWith(plateName + ' ') || k.plate === plateName);
     if (!t) { inconclusive++; report.push(`INCONCLUSIVE ${v.name}: no "${plateName}" in view`); continue; }
     const problems = [];
@@ -166,7 +173,7 @@ for (const v of VENUES) {
       if (t.discOrder !== 'disc,actualShape,frame') problems.push(`token order ${t.discOrder}`);
       if (t.discs.length !== 1) problems.push(`${t.discs.length} disc sprites`);
       else {
-        if (t.discs[0].tint !== DISC_SHADE) problems.push(`disc tint 0x${t.discs[0].tint.toString(16)}`);
+        if (t.discs[0].tint !== STANCE_TINTS[stance]) problems.push(`disc reads ${stanceOf(t.discs[0].tint)}, want ${stance}`);
         if (Math.abs(t.discs[0].w - t.rings[0].w * 0.86) > 1) problems.push(`disc ${t.discs[0].w.toFixed(1)}px, want 0.86 x ${t.rings[0].w.toFixed(1)}`);
       }
       if (packIcons > 0) {
@@ -174,7 +181,7 @@ for (const v of VENUES) {
         portraits.push([t.portrait.uid, `${v.name}/${t.plate}`]);
       }
     }
-    const line = `${v.name}: "${t.plate}" family=${ringFile} tex#${t.rings[0]?.uid} tint=0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px disc=${t.discs[0]?.w?.toFixed(0)}px portrait#${t.portrait.uid}${t.portrait.pack ? ' pack' : ''}`;
+    const line = `${v.name}: "${t.plate}" family=${ringFile} tex#${t.rings[0]?.uid} tint=0x${t.rings[0]?.tint?.toString(16)} ${t.rings[0]?.w?.toFixed(0)}px disc=${t.discs[0]?.w?.toFixed(0)}px ${stanceOf(t.discs[0]?.tint)} portrait#${t.portrait.uid}${t.portrait.pack ? ' pack' : ''}`;
     if (problems.length) { fail++; report.push(`FAIL ${line} -> ${problems.join('; ')}`); }
     else { pass++; report.push(`PASS ${line}`); }
   }
@@ -184,6 +191,41 @@ for (const v of VENUES) {
     if (t.rings.length > 1) { fail++; report.push(`FAIL ${v.name}: "${t.plate}" carries ${t.rings.length} ring sprites`); }
   }
   report.push(`  (${v.name} census: ${snap.tokens.map((t) => `${t.plate || '?'}[${t.rings.length ? `tex#${t.rings[0].uid} 0x${t.rings[0].tint.toString(16)}` : 'bare'} ${t.rings[0]?.w?.toFixed(0) ?? '-'}px]`).join(' ')})`);
+}
+// C2 live leg (D28): prey reads neutral until it fights back. Arm the starting
+// aura, stand on the Alpha Boar, and its disc must turn hostile.
+{
+  const boarVenue = VENUES.find((v) => v.name === 'alphaBoar');
+  await cmd(`WARP ${boarVenue.at[0] * 120} ${boarVenue.at[1] * 120}`);
+  await page.waitForTimeout(8000);
+  const slot = await page.$('#auraSlotList li');
+  const sbox = slot && await slot.boundingBox();
+  let armed = false;
+  for (let i = 0; sbox && i < 5 && !armed; i++) {
+    await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+    await page.waitForTimeout(1200);
+    armed = await page.evaluate(() => !!document.querySelector('#auraSlotList .auraSlot.activeSlot'));
+  }
+  const find = async () => (await readTokens()).tokens.find((k) => k.plate.startsWith('Alpha Boar'));
+  let boar = await find();
+  if (!armed || !boar) {
+    inconclusive++;
+    report.push(`INCONCLUSIVE live stance: ${armed ? 'no Alpha Boar in view' : 'the starting aura never armed'}`);
+  } else {
+    // The aura hits whichever prey is nearest, so any boar in view may be
+    // the one that fights back; the idle ones must stay neutral meanwhile.
+    const boars = () => readTokens().then((r) => r.tokens.filter((k) => /^(Alpha )?Boar\b/.test(k.plate)));
+    let seenBoars = [];
+    for (let i = 0; i < 15 && !seenBoars.some((k) => k.discs[0]?.tint === STANCE_TINTS.hostile); i++) {
+      if (i % 3 === 0) await cmd(`WARP ${Math.round(boar.x * 120)} ${Math.round(boar.y * 120)}`);
+      await page.waitForTimeout(1500);
+      seenBoars = await boars();
+    }
+    await page.screenshot({ path: join(shotDir, `c1-${label}-alphaBoar-hit.png`) });
+    const dump = seenBoars.map((k) => `${k.plate}=${stanceOf(k.discs[0]?.tint)}`).join(' ');
+    if (seenBoars.some((k) => k.discs[0]?.tint === STANCE_TINTS.hostile)) { pass++; report.push(`PASS live stance: a boar under the aura reads hostile (${dump})`); }
+    else { fail++; report.push(`FAIL live stance: no boar under the aura reads hostile (${dump})`); }
+  }
 }
 // Family identity: same family -> same texture, different family -> different.
 for (let i = 0; i < seen.length; i++) {

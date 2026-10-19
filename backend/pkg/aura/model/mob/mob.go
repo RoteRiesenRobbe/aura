@@ -1975,6 +1975,31 @@ func (m *Mob) FriendlyToPlayers() bool {
 	return m.definition.FriendlyToPlayers
 }
 
+// Stance is the mob's current stance toward the player side (plan-appearance.md
+// C2), read every tick for the wire's medallion disc. First match wins:
+// calmed reads neutral (D32); aligned or friendly-to-players reads friendly;
+// hostile when it hunts players on sight, or when it is fighting the player
+// side right now, by aggro target or by a threat row (D28, PO 2026-10-18: so
+// a fleeing prey and a beaten pacifist read hostile too); neutral otherwise.
+func (m *Mob) Stance() model.Stance {
+	switch {
+	case m.buffs.Calmed():
+		return model.StanceNeutral
+	case m.faction == model.FactionAligned || m.definition.FriendlyToPlayers:
+		return model.StanceFriendly
+	case m.aggroMask&model.FactionAligned.Bit() != 0:
+		return model.StanceHostile
+	case m.aggroTarget != nil && m.aggroTarget.Faction() == model.FactionAligned:
+		return model.StanceHostile
+	}
+	for _, e := range m.threat {
+		if e.entity.Faction() == model.FactionAligned {
+			return model.StanceHostile
+		}
+	}
+	return model.StanceNeutral
+}
+
 // highestThreatTarget returns the living top-threat entity, pruning dead
 // entries on the way (a TTL-expired summon zeroes its health, so stale refs
 // read as dead). Ties break toward the lower entity ID for determinism.

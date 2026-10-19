@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {readdirSync, readFileSync} from 'node:fs';
-import {FACTION_FAMILIES, FALLBACK_FAMILY, MedallionSpec, RING_FAMILY_FILES, RingResolver, ringFamily, ringTint} from './Medallions';
+import {FACTION_FAMILIES, FALLBACK_FAMILY, MedallionSpec, RING_FAMILY_FILES, RingResolver, ringFamily, ringTint, stanceTint} from './Medallions';
+import {Stance} from '../../../api/schema/js/aura-api/stance';
 import {TierRank} from './Mobs';
 import {GraphicsConfig} from './Graphics';
 
@@ -34,6 +35,19 @@ describe('ringTint', () => {
 
     it('treats an unknown rank as normal', () => {
         expect(ringTint(99)).toBe(ringTint(TierRank.Normal));
+    });
+});
+
+// The disc shows the mob's stance toward the player side (C2, D29): red,
+// yellow, blue.
+describe('stanceTint', () => {
+    it('gives each stance its own colour', () => {
+        const tints = [Stance.Hostile, Stance.Neutral, Stance.Friendly].map(stanceTint);
+        expect(new Set(tints).size).toBe(3);
+    });
+
+    it('treats an unknown stance as neutral', () => {
+        expect(stanceTint(99)).toBe(stanceTint(Stance.Neutral));
     });
 });
 

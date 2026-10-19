@@ -6,6 +6,7 @@ import * as flatbuffers from 'flatbuffers';
 
 import { AABB } from '../aura-api/aabb.js';
 import { EntityType } from '../aura-api/entity-type.js';
+import { Stance } from '../aura-api/stance.js';
 import { StatusEffect } from '../aura-api/status-effect.js';
 import { Vec2f } from '../aura-api/vec2f.js';
 
@@ -158,8 +159,13 @@ lightFlicker():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+stance():Stance {
+  const offset = this.bb!.__offset(this.bb_pos, 62);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : Stance.Hostile;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(29);
+  builder.startObject(30);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -268,6 +274,10 @@ static addLightColor(builder:flatbuffers.Builder, lightColor:number) {
 
 static addLightFlicker(builder:flatbuffers.Builder, lightFlicker:boolean) {
   builder.addFieldInt8(28, +lightFlicker, +false);
+}
+
+static addStance(builder:flatbuffers.Builder, stance:Stance) {
+  builder.addFieldInt8(29, stance, Stance.Hostile);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -1,0 +1,6 @@
+{
+  "_comment": "Harvestable plants (turnip, beet, mushrooms, deadwood, seaweed, bramble): they cannot fight, so hostileTo [] (they acquire nobody) and their medallion disc reads neutral (plan-appearance.md C2), not the hostile red the faction-less default gave them. No faction lists flora in its hostileTo, so no mob hunts them; players and their summons still harvest them as before. [PLACEHOLDER]",
+  "name": "flora",
+  "displayName": "Plants",
+  "hostileTo": []
+}

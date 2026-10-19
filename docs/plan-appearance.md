@@ -309,6 +309,28 @@ plan proposes on top (marked *proposed*).
   mana mushroom, onion for the turnip, sea kale).
 - **D32. A calmed mob reads neutral** (PO 2026-10-18): yellow for the calm's
   duration, its normal stance when it wears off.
+- **D35. "Fighting the player side" means target OR threat** (PO 2026-10-18,
+  C2): a mob that does not hunt players on sight reads hostile while its aggro
+  target is player-side or any player-side entity is on its threat table, so a
+  prey fleeing its attacker and a pacifist being beaten read hostile too. It
+  reads neutral again when its aggro resets (leash home, calm).
+- **D36. Harvestables get a passive `flora` faction** (PO 2026-10-18, C2):
+  they named no faction and so fell back to the hostile default, which would
+  have painted them red. `api/factions/flora.json` (hostileTo [], nobody
+  hunts it) on turnip, beet, both mushrooms, deadwood, seaweed and bramble;
+  Rockfall (a rock, no medallion) stays faction-less. Chosen over a code rule
+  ("no skills reads neutral").
+- **D37. One medallion system for every token** (PO 2026-10-19, at the C2
+  look: "one unique system for how the tokens / medallions are composed, used
+  for everything. Art can differ but the process and logic needs to be the
+  same for all"). An actor is either a medallion or a plain world object
+  (sprite only, no frame); there is no third, bordered kind. The audit found
+  three composition paths: the medallion path inside `Mob`, the old
+  `withBorder`/`borderFile` path (Companion, SoldierCompanion,
+  ShieldbearerCompanion, ArmySoldier, Bramble, Campfire, Camp) and the
+  player's own `Character.border`. C2b folds them into one component.
+- **D38. Campfire and Camp are plain objects** (PO 2026-10-19): sprite only,
+  like the totems and signposts (C1's "objects keep their own models").
 - **Cut: "avatar state reactions"** (damaged / happy / dead, `roadmap.md`
   step 8b). The hit flash already ships, dead is D14; nothing else is planned.
 
@@ -447,8 +469,8 @@ keeps the default forever (the setters early-return on unchanged values).
 Medallion C0-C2 keep their content from M-§10; C3 onward replace M-C3 and M-C5
 and absorb `plan-avatar-system.md` §7. One session each.
 
-**Order (D24): C0a → C1 → C1b → C2 → C3 → C4 → C5 (+C5b) → C6; C0b whenever the
-pilot lands.**
+**Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6; C0b
+whenever the pilot lands.**
 
 - **C0a, plumbing and the sizing table** (M-C0 minus the art): the named
   sub-container refactor (M-§5.2) and the M-D15 measurement table (visual roll
@@ -482,6 +504,16 @@ pilot lands.**
   path's codec and `WireSetters` route, the C1b disc tinted red / yellow /
   blue (D29) with a colour-blindness check. Independent of C3-C6.
   *Schema: `Mob` +1.*
+- **C2b, one medallion component** (D37, D38; inserted 2026-10-19): the
+  disc, portrait, ring and their tier and stance tints move out of `Mob` into
+  one component that `Mob` and `Character` both build into the token slots;
+  the four companions, ArmySoldier and Bramble wear it (transparent `_nobg`
+  busts, the collider size, no roll; the medic's bust picked from a contact
+  sheet), and so does the player (friendly disc set locally per D4, a default
+  ring family until C3's choice); Campfire and Camp become plain objects;
+  `withBorder`, `registerBorder`, `borderFile` and `Character.border` are
+  deleted, and a vitest pin refuses any `borderFile` coming back. Pulls C6's
+  "summons onto the medallion" forward. *Schema: none (pack manifest only).*
 - **C3, the player wears a chosen medallion.** `Character` onto the resolver
   (friendly disc, no rim); `api/appearance/` + loader + `/appearance`;
   `Character.portrait`/`ring` on the wire; the migration (`characters.ring`
@@ -802,3 +834,45 @@ Wolf, Dire Wolf, Turnip, Cultist, Skeleton): 12 PASS / 0 FAIL / 0
 INCONCLUSIVE (second run; the first hit the known join race) + screenshots ·
 `r4-badge.mjs vanilla` 7/7. ⚑ The tinted onion reads only as a small round
 bauble at the turnip's 36 px.
+
+### C2 - DONE 2026-10-19 `[uncommitted]` (PO look 2026-10-19: approved for commit; it surfaced D37)
+
+The disc shows the mob's stance toward the player side (D28, D29, D32, D35,
+D36).
+
+- **`Mob.Stance()`** (`model/mob/mob.go`), first match wins: calmed reads
+  neutral (D32); aligned faction or `FriendlyToPlayers` reads friendly;
+  hostile when the aggro set holds the player side, or the aggro target or
+  any threat row is player-side (D35); neutral otherwise. `model.Stance`
+  (`model/faction.go`) holds the three values.
+- **Wire:** `enum Stance : ubyte { Hostile, Neutral, Friendly }` and
+  `stance:Stance = Hostile` appended to `table Mob`; `codec/mob.go` writes
+  it beside the tier. `MobEntity` gains `Stance()`.
+- **Client:** `GameStateMessage` reads it, `EntityManager` routes it to
+  `setStance` (`WireSetters.MobPlate`), `Mobs.ts` tints the disc;
+  `Medallions.stanceTint` replaces `DISC_SHADE`: hostile `0xc0392b`, neutral
+  `0xd4a017`, friendly `0x2e6fd8` [PLACEHOLDER], unknown reads neutral.
+- **Content (D36):** `api/factions/flora.json` + `"faction": "flora"` on
+  seven harvestables. Their ring family stays the grey fallback (flora is
+  not in `FACTION_FAMILIES`), so nothing else on screen changes.
+- **Colour blindness** (Machado 2009 simulation, CIE76 ΔE between pairs):
+  every pair stays apart under protan, deutan and tritan views; the weakest is
+  red/yellow under deutan at ΔE 32 (ΔL 22, the two still differ in
+  brightness). No shade change needed.
+- **Pins:** `model/mob/stance_test.go` (7 tests: idle by aggro set, prey hit
+  by a player then reset, prey targeting a summon, prey fighting a wolf stays
+  neutral, calmed, charmed + friendly species, enlisted under a hostile
+  summoner), `codec` `TestMobMarshalFlatbuf_Stance` (round trip + the model
+  and wire enums pinned against each other), `Medallions.test.ts` +2
+  (`stanceTint`). All red first.
+
+**Schema:** DB none · wire `Mob` +1 (`stance`, +1 enum) · catalog none ·
+conf none · content +1 faction (`flora`), 7 mob files name it.
+
+**Verified:** `go build` · Go suite green bar the two known pre-existing
+failures (`world` prop pin, `cmd/simharness` placements battery, both red on
+clean main too) · typecheck · vitest 1794/0 · prod build ·
+`c1-medallions.mjs` 13 PASS / 0 FAIL / 0 INCONCLUSIVE (every subject's idle
+stance, plus a live leg: boars under the starting aura turn hostile while
+idle boars stay neutral) · `r4-badge vanilla` 7/7 · `hygiene-wire-prune` 0
+console errors · harness rows cleaned (server stopped first).

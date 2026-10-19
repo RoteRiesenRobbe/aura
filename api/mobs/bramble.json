@@ -4,6 +4,7 @@
   "name": "Bramble",
   "type": "MOB",
   "role": "structure",
+  "faction": "flora",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {

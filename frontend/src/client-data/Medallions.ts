@@ -11,6 +11,8 @@
  */
 
 import {TierRank} from './Mobs';
+// The enum file directly, not the AuraApi barrel (the Skills.ts precedent).
+import {Stance} from '../../../api/schema/js/aura-api/stance';
 
 // One ring per family, drawn over the portrait at the entity's size. All four
 // share the 256 x 256 canvas the borders were drawn on. A ring is GREYSCALE
@@ -58,15 +60,24 @@ const RING_TINTS: { readonly [rank: number]: number } = {
     [TierRank.Boss]: 0xffd040,
 };
 
-// The disc behind every medallion portrait (plan-appearance.md C1b), one
-// shade for everyone until C2 tints it by stance (D29) [PLACEHOLDER]. The pack
-// busts are transparent (D31), so the disc is what fills the ring's window
-// around them.
-export const DISC_SHADE = 0x6b6b6b;
+// The disc behind every medallion portrait (plan-appearance.md C1b) shows the
+// mob's stance toward the player side (C2, D29): hostile red, neutral yellow,
+// friendly blue [PLACEHOLDER shades]. The pack busts are transparent (D31), so
+// the disc is what fills the ring's window around them.
+const STANCE_TINTS: { readonly [stance: number]: number } = {
+    [Stance.Hostile]: 0xc0392b,
+    [Stance.Neutral]: 0xd4a017,
+    [Stance.Friendly]: 0x2e6fd8,
+};
 
 /** The ring's tint for a wire tier rank; an unknown rank reads as normal. */
 export function ringTint(rank: number): number {
     return RING_TINTS[rank] ?? RING_TINTS[TierRank.Normal];
+}
+
+/** The disc's tint for a wire stance; an unknown stance reads as neutral. */
+export function stanceTint(stance: number): number {
+    return STANCE_TINTS[stance] ?? STANCE_TINTS[Stance.Neutral];
 }
 
 /**
