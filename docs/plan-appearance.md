@@ -835,7 +835,7 @@ INCONCLUSIVE (second run; the first hit the known join race) + screenshots ·
 `r4-badge.mjs vanilla` 7/7. ⚑ The tinted onion reads only as a small round
 bauble at the turnip's 36 px.
 
-### C2 - DONE 2026-10-19 `[uncommitted]` (PO look 2026-10-19: approved for commit; it surfaced D37)
+### C2 - DONE 2026-10-19 `2099803e` (PO look 2026-10-19: approved for commit; it surfaced D37)
 
 The disc shows the mob's stance toward the player side (D28, D29, D32, D35,
 D36).
