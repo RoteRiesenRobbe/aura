@@ -878,7 +878,7 @@ stance, plus a live leg: boars under the starting aura turn hostile while
 idle boars stay neutral) · `r4-badge vanilla` 7/7 · `hygiene-wire-prune` 0
 console errors · harness rows cleaned (server stopped first).
 
-### C2b - DONE 2026-10-19 [uncommitted] (PO look passed 2026-10-19: "all looks good and works as intended")
+### C2b - DONE 2026-10-19 `6eef8da6` (PO look passed 2026-10-19: "all looks good and works as intended")
 
 One composition path for every token (D37, D38): an actor is a medallion or a
 plain world object, and the old bordered kind is gone.
