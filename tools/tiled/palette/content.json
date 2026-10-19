@@ -465,12 +465,13 @@
     "AuraExitConversation": [
       "(by look)"
     ],
-    "AuraExitLook": [
-      "cave-mouth",
-      "cave-exit",
-      "stairs-down",
-      "stairs-up",
-      "door"
+    "AuraExitSigil": [
+      "runes",
+      "none"
+    ],
+    "AuraExitParticles": [
+      "rising",
+      "none"
     ]
   },
   "TERRAIN_TYPES": [
@@ -651,6 +652,28 @@
     "WreckDebris": {
       "w": 2.4,
       "h": 1.6
+    }
+  },
+  "EXIT_LOOK_SIZE": {
+    "cave-mouth": {
+      "w": 3,
+      "h": 2.4
+    },
+    "cave-exit": {
+      "w": 2.4,
+      "h": 2.4
+    },
+    "stairs-down": {
+      "w": 1,
+      "h": 1
+    },
+    "stairs-up": {
+      "w": 1,
+      "h": 1
+    },
+    "door": {
+      "w": 1.6,
+      "h": 0.8
     }
   },
   "CROSSES_PATHS": [

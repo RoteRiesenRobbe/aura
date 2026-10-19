@@ -44,14 +44,6 @@
   "@exit-look.stairs-up.text": {
     "description": "What every exit drawn as stairs leading up says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
   },
-  "exit.barn-cellar-stairs.go": "Climb the stairs.",
-  "@exit.barn-cellar-stairs.go": {
-    "description": "The button on the barn cellar stairs (exit \"barn-cellar-stairs\") that takes the player up out of the barn cellar. An imperative, like \"Climb down.\""
-  },
-  "exit.barn-cellar-stairs.text": "Wooden steps lead up and out of the cellar.",
-  "@exit.barn-cellar-stairs.text": {
-    "description": "What the stairs out of the barn cellar (exit \"barn-cellar-stairs\") say when the player presses E at them: one line in the door's panel."
-  },
   "region.ashen-fields.subtitle": "Cinder and Bone",
   "@region.ashen-fields.subtitle": {
     "description": "Region banner subtitle under \"The Ashen Fields\"."

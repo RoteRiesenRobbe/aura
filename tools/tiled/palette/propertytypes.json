@@ -1039,12 +1039,6 @@
           "value": ""
         },
         {
-          "name": "look",
-          "type": "string",
-          "propertyType": "AuraExitLook",
-          "value": "cave-mouth"
-        },
-        {
           "name": "hidden",
           "type": "bool",
           "value": false
@@ -1059,20 +1053,6 @@
     },
     {
       "id": 32,
-      "name": "AuraExitLook",
-      "type": "enum",
-      "storageType": "string",
-      "values": [
-        "cave-mouth",
-        "cave-exit",
-        "stairs-down",
-        "stairs-up",
-        "door"
-      ],
-      "valuesAsFlags": false
-    },
-    {
-      "id": 33,
       "name": "AuraExitArea",
       "type": "class",
       "color": "#ff4db6ac",
@@ -1093,17 +1073,45 @@
           "value": ""
         },
         {
-          "name": "look",
-          "type": "string",
-          "propertyType": "AuraExitLook",
-          "value": "cave-mouth"
-        },
-        {
           "name": "hidden",
           "type": "bool",
           "value": false
+        },
+        {
+          "name": "sigil",
+          "type": "string",
+          "propertyType": "AuraExitSigil",
+          "value": "runes"
+        },
+        {
+          "name": "particles",
+          "type": "string",
+          "propertyType": "AuraExitParticles",
+          "value": "rising"
         }
       ]
+    },
+    {
+      "id": 33,
+      "name": "AuraExitSigil",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "runes",
+        "none"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 34,
+      "name": "AuraExitParticles",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "rising",
+        "none"
+      ],
+      "valuesAsFlags": false
     }
   ]
 }

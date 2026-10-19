@@ -39,6 +39,30 @@ const (
 // ExitLooks is that set, the default first.
 var ExitLooks = []string{ExitLookCaveMouth, ExitLookCaveExit, ExitLookStairsDown, ExitLookStairsUp, ExitLookDoor}
 
+// A touch exit's sigil and particles (PO 2026-10-19): the closed sets the
+// client draws over its glow, each picked in Tiled, the default first and
+// absent = the default. Client-visual: the server only validates them.
+const (
+	ExitSigilRunes      = "runes"
+	ExitSigilNone       = "none"
+	ExitParticlesRising = "rising"
+	ExitParticlesNone   = "none"
+)
+
+// ExitSigils and ExitParticles are those sets, the default first.
+var (
+	ExitSigils    = []string{ExitSigilRunes, ExitSigilNone}
+	ExitParticles = []string{ExitParticlesRising, ExitParticlesNone}
+)
+
+// checkOneOf refuses a value outside its set; absent is the default.
+func checkOneOf(ref, key, v string, set []string) error {
+	if v == "" || slices.Contains(set, v) {
+		return nil
+	}
+	return fmt.Errorf("%s: %s %q must be one of %s (omit it for %s)", ref, key, v, strings.Join(set, ", "), set[0])
+}
+
 // checkLook refuses a look outside the set, naming the P3b toggle for the
 // retired `hidden` look so an old file says how to fix itself.
 func checkLook(ref, look string) error {
@@ -96,8 +120,8 @@ func (z *Zone) validateExits() error {
 	return nil
 }
 
-// validateExitAreas is validateExits for touch exits (P4): the same anchor,
-// id and look rules, and an area that encloses something.
+// validateExitAreas is validateExits for touch exits (P4): the same anchor
+// and id rules, and an area that encloses something.
 func (z *Zone) validateExitAreas() error {
 	for i := range z.ExitAreas {
 		ref := objectRef("exitArea", z.ExitAreas, i)
@@ -108,18 +132,20 @@ func (z *Zone) validateExitAreas() error {
 		if a.ID != "" && !areaIDPattern.MatchString(a.ID) {
 			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"glow-pit\")", ref, a.ID)
 		}
-		if err := checkLook(ref, a.Look); err != nil {
-			return err
-		}
 		if len(a.Points) < 3 {
 			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d", ref, len(a.Points))
+		}
+		if err := checkOneOf(ref, "sigil", a.Sigil, ExitSigils); err != nil {
+			return err
+		}
+		if err := checkOneOf(ref, "particles", a.Particles, ExitParticles); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-// Centroid is the mean of the area's points: where its look is drawn (P5)
-// and the "from" a crossing's direction is judged by (D8).
+// Centroid is the mean of the area's points: the "from" a crossing's direction is judged by (D8).
 func (a *ExitArea) Centroid() Point {
 	var c Point
 	for _, p := range a.Points {

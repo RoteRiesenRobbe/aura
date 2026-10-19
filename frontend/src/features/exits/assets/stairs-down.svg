@@ -1,9 +1,9 @@
 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
      viewBox="0 0 200 200" preserveAspectRatio="none">
   <!-- Placeholder STAIRS DOWN (plan-passages.md P2, R4): a stone well seen from
-       above, the steps darkening toward the TOP edge, which is the way down
-       (the exit's rotation turns it). Each step is a band; the last one is
-       flat black, the floor you cannot see. -->
+       above, the steps darkening toward the TOP edge (the exit's rotation turns
+       it). Each step is a band; the last one is flat black, the floor you
+       cannot see. The arrow points DOWN (PO 2026-10-19). -->
   <rect x="8" y="8" width="184" height="184" rx="10" fill="#5b544b" stroke="#2c2823" stroke-width="8"/>
   <rect x="28" y="160" width="144" height="22" fill="#9a9184"/>
   <rect x="28" y="130" width="144" height="26" fill="#7f776b"/>
@@ -11,5 +11,5 @@
   <rect x="28" y="70" width="144" height="26" fill="#45403a"/>
   <rect x="28" y="40" width="144" height="26" fill="#2a2724"/>
   <rect x="28" y="18" width="144" height="20" fill="#0d0c0b"/>
-  <path d="M100 52 L84 76 H94 V100 H106 V76 H116 Z" fill="#e8dcc4" opacity="0.55"/>
+  <path d="M100 100 L84 76 H94 V52 H106 V76 H116 Z" fill="#e8dcc4" opacity="0.55"/>
 </svg>

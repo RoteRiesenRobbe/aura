@@ -319,18 +319,21 @@ type Exit struct {
 
 // ExitArea is a touch exit (plan-passages.md P4, D1): a closed area that moves
 // whoever walks into it to Anchor, after a short dwell (sys.PassageSystem). It
-// shares an exit's anchor, look and id rules and nothing else: no door, no
-// words (a touch has no panel), no rotation.
+// shares an exit's anchor and id rules and nothing else: no door, no words (a
+// touch has no panel), no rotation, and no look (PO 2026-10-19: the glow alone
+// marks it, so `look` is an unknown key here and refuses the boot).
 type ExitArea struct {
 	// ID is optional and shares the exits' namespace (D7, checkSetWide).
 	ID     string  `json:"id,omitempty"`
 	Points []Point `json:"points"`
 	// Anchor is where the area leads, by zone-anchor name. Required.
 	Anchor string `json:"anchor"`
-	// Look is the art drawn at the centroid (P5); absent = the cave mouth.
-	Look string `json:"look,omitempty"`
-	// Hidden draws nothing: no art, no glow, no floating name (Q4).
+	// Hidden draws nothing: no glow, no floating name (Q4).
 	Hidden bool `json:"hidden,omitempty"`
+	// Sigil and Particles pick what the client draws over the glow (PO
+	// 2026-10-19), ExitSigils / ExitParticles; absent = the first of each.
+	Sigil     string `json:"sigil,omitempty"`
+	Particles string `json:"particles,omitempty"`
 	InArea
 }
 

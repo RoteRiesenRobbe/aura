@@ -8,6 +8,7 @@
  * Output (all checked in, all overwritten wholesale — never hand-edit):
  *   tools/tiled/palette/decals.tsx         image-collection tileset, 1 tile per ground-texture type
  *   tools/tiled/palette/props.tsx          image-collection tileset, 1 tile per prop type
+ *   tools/tiled/palette/exits.tsx          image-collection tileset, 1 tile per exit look
  *   tools/tiled/palette/propertytypes.json the same custom types, for hand-import when
  *                                          working WITHOUT the project
  *   tools/tiled/palette/content.json        the converter's content vocabulary
@@ -120,6 +121,28 @@ function readProps() {
         return {type: def.name, entityType: def.entityType, crossesPaths: def.crossesPaths === true,
             abs, wUnits, hUnits, ...imageSize(abs)};
     }).sort((a, b) => a.type.localeCompare(b.type));
+}
+
+// The exit looks (plan-passages.md P2; a tile object since PO 2026-10-19, so an
+// exit shows its art and turns in Tiled). The vocabulary is the converter's
+// EXIT_LOOKS (pinned to zone.go), the box comes from the client's own size
+// table, and the art from the client's own require map in ExitLooks.ts, read
+// the way readTerrainTypes reads Graphics.ts: so Tiled and the game draw the
+// same picture at the same size by construction.
+function readExitLooks() {
+    const sizes = JSON.parse(readFileSync(path.join(ROOT, 'frontend/src/client-data/exit-look-sizes.json'), 'utf8'));
+    const logic = path.join(ROOT, 'frontend/src/features/exits/logic');
+    const src = readFileSync(path.join(logic, 'ExitLooks.ts'), 'utf8');
+    const files = {};
+    const re = /'([a-z-]+)':\s*require\('([^']+)'\)/g;
+    let m;
+    while ((m = re.exec(src))) { files[m[1]] = path.resolve(logic, m[2]); }
+    return C.EXIT_LOOKS.map(look => {
+        const size = sizes[look];
+        if (!size) { fail(`exit look "${look}" has no size in exit-look-sizes.json`); }
+        if (!files[look]) { fail(`exit look "${look}" has no art in ExitLooks.ts`); }
+        return {type: look, abs: files[look], wUnits: size.width, hUnits: size.height, ...imageSize(files[look])};
+    });
 }
 
 // kindOf, mirrored from ZoneModel.ts — the derived spawn category the in-game
@@ -616,24 +639,27 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     // reading); the shared conversation is not offered. 'anchor' is
     // free text whose default '' is "not authored", which the save refuses.
     types.push(enumType(C.EXIT_CONVERSATION_ENUM, [C.EXIT_CONVERSATION_UNSET].concat(conversationNames)));
-    // ⚑ `look` (P2) defaults to the cave mouth, the converter's
-    // EXIT_LOOK_DEFAULT, which reads back as absent; its enum is pushed AFTER
-    // the class so no existing type id moves. `id` (P3) is free text like
+    // ⚑ No `look` member since PO 2026-10-19: an exit is a TILE object and
+    // its tile (from exits.tsx) is its look. `id` (P3) is free text like
     // anchor, and its '' is "no id", which is legal.
     types.push(classType(C.EXIT_CLASS, '#ff009688',
         [member('id', 'string', ''),
             member('anchor', 'string', ''),
-            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
             member('hidden', 'bool', false),
             member('conversation', 'string', C.EXIT_CONVERSATION_UNSET, C.EXIT_CONVERSATION_ENUM)]));
-    types.push(enumType(C.EXIT_LOOK_ENUM, C.EXIT_LOOKS));
     // The touch exit (P4), LAST for the same reason: its members are the
-    // talk exit's minus the door (an area has no conversation).
+    // talk exit's minus the door (an area has no conversation) and the look
+    // (PO 2026-10-19: the glow alone marks it).
     types.push(classType(C.EXIT_AREA_CLASS, '#ff4db6ac',
         [member('id', 'string', ''),
             member('anchor', 'string', ''),
-            member('look', 'string', C.EXIT_LOOK_DEFAULT, C.EXIT_LOOK_ENUM),
-            member('hidden', 'bool', false)]));
+            member('hidden', 'bool', false),
+            // What it draws over the glow (PO 2026-10-19); the first value is
+            // the default and reads back as absent. Enums AFTER the class.
+            member('sigil', 'string', C.EXIT_SIGILS[0], C.EXIT_SIGIL_ENUM),
+            member('particles', 'string', C.EXIT_PARTICLES[0], C.EXIT_PARTICLES_ENUM)]));
+    types.push(enumType(C.EXIT_SIGIL_ENUM, C.EXIT_SIGILS));
+    types.push(enumType(C.EXIT_PARTICLES_ENUM, C.EXIT_PARTICLES));
     return types;
 }
 
@@ -647,6 +673,8 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
 function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
+    const exitSizes = {};
+    exitLooks.forEach(l => { exitSizes[l.type] = {w: l.wUnits, h: l.hUnits}; });
     const kinds = {};
     mobs.forEach(m => { kinds[m.name] = m.kind; });
     const speeds = {};
@@ -662,6 +690,9 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas
         ENUM_VALUES: enums,
         TERRAIN_TYPES: terrain.map(t => t.type),
         PROP_SIZE: sizes,
+        // Every exit look's box, units (plan-passages.md, PO 2026-10-19): the
+        // size an AuraExit tile object is drawn at, and must stay at.
+        EXIT_LOOK_SIZE: exitSizes,
         // The bridges: types whose every placement must sit in the
         // props/underfoot layer (plan-prop-draw-order.md D4). The converter
         // refuses the save otherwise, as zone.go refuses the boot.
@@ -729,6 +760,7 @@ function patchProject(file, types) {
 
 const terrain = readTerrainTypes();
 const props = readProps();
+const exitLooks = readExitLooks();
 const mobs = readMobs();
 // The conversations an exit may name (plan-passages.md D12): every door-shaped
 // mob but the shared one (world.SharedConversation), which every exit without
@@ -761,6 +793,9 @@ const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects
 mkdirSync(PALETTE, {recursive: true});
 writeIfChanged(path.join(PALETTE, 'decals.tsx'), tileset('aura-decals', 'AuraDecal', terrain));
 writeIfChanged(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
+writeIfChanged(path.join(PALETTE, 'exits.tsx'), tileset('aura-exits', C.EXIT_CLASS, exitLooks));
+writeTemplates(path.join(TEMPLATES, 'exits'), '../exits.tsx', C.EXIT_CLASS, exitLooks,
+    l => ({w: l.wUnits, h: l.hUnits}));
 writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
     p => ({w: p.wUnits, h: p.hUnits}));
 writeTemplates(path.join(TEMPLATES, 'decals'), '../decals.tsx', 'AuraDecal', terrain,

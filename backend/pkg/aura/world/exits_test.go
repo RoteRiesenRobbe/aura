@@ -59,8 +59,8 @@ func TestExits_AreaExitsFlattenWithTheirArea(t *testing.T) {
 
 func TestExits_RefuseWhatCannotTakeAnyoneAnywhere(t *testing.T) {
 	cases := map[string]struct{ exit, want string }{
-		"no anchor":      {`{"x": 1, "y": 2}`, "exit 0: anchor must not be empty"},
-		"a blank anchor": {`{"x": 1, "y": 2, "anchor": "  "}`, "exit 0: anchor must not be empty"},
+		"no anchor":            {`{"x": 1, "y": 2}`, "exit 0: anchor must not be empty"},
+		"a blank anchor":       {`{"x": 1, "y": 2, "anchor": "  "}`, "exit 0: anchor must not be empty"},
 		"a blank conversation": {`{"x": 1, "y": 2, "anchor": "a", "conversation": " "}`, "exit 0: conversation must not be blank"},
 		"an unknown conversation": {`{"x": 1, "y": 2, "anchor": "a", "conversation": "TrapDoor"}`,
 			`exit 0: unknown conversation "TrapDoor"`},
@@ -373,14 +373,15 @@ const glowSquare = `"points": [{"x": 0, "y": 0}, {"x": 2, "y": 0}, {"x": 2, "y":
 
 func TestExitAreas_LoadAndFlatten(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(`{"name": "X", "bounds": {"width": 60, "height": 40},
-		"exitAreas": [{"id": "glow-pit", `+glowSquare+`, "anchor": "a", "look": "door", "hidden": true}],
+		"exitAreas": [{"id": "glow-pit", `+glowSquare+`, "anchor": "a", "hidden": true, "sigil": "none", "particles": "none"}],
 		"areas": [{"id": "farmlands", "exitAreas": [{`+glowSquare+`, "anchor": "b"}]}]}`),
 		"", doorRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.ExitAreas, 2)
 	assert.Equal(t, "glow-pit", z.ExitAreas[0].ID)
-	assert.Equal(t, ExitLookDoor, z.ExitAreas[0].Look)
 	assert.True(t, z.ExitAreas[0].Hidden)
+	assert.Equal(t, ExitSigilNone, z.ExitAreas[0].Sigil)
+	assert.Equal(t, ExitParticlesNone, z.ExitAreas[0].Particles)
 	assert.Len(t, z.ExitAreas[0].Points, 4)
 	assert.Equal(t, "farmlands", z.ExitAreas[1].Area)
 	assert.Equal(t, Point{X: 1, Y: 1}, z.ExitAreas[0].Centroid())
@@ -388,10 +389,14 @@ func TestExitAreas_LoadAndFlatten(t *testing.T) {
 
 func TestExitAreas_RefuseWhatCannotTakeAnyoneAnywhere(t *testing.T) {
 	cases := map[string]struct{ area, want string }{
-		"no anchor":     {`{` + glowSquare + `}`, "exitArea 0: anchor must not be empty"},
-		"two points":    {`{"points": [{"x": 0, "y": 0}, {"x": 1, "y": 0}], "anchor": "a"}`, "exitArea 0: needs at least 3 points"},
-		"an unknown look": {`{` + glowSquare + `, "anchor": "a", "look": "portal"}`, `exitArea 0: look "portal" must be one of`},
-		"a bad id":      {`{"id": "Glow Pit", ` + glowSquare + `, "anchor": "a"}`, `exitArea 0: id "Glow Pit" must be a slug`},
+		"no anchor":  {`{` + glowSquare + `}`, "exitArea 0: anchor must not be empty"},
+		"two points": {`{"points": [{"x": 0, "y": 0}, {"x": 1, "y": 0}], "anchor": "a"}`, "exitArea 0: needs at least 3 points"},
+		// PO 2026-10-19: a touch exit is its glow alone, so it has no look.
+		"a look":   {`{` + glowSquare + `, "anchor": "a", "look": "stairs-down"}`, `unknown field "look"`},
+		"a bad id": {`{"id": "Glow Pit", ` + glowSquare + `, "anchor": "a"}`, `exitArea 0: id "Glow Pit" must be a slug`},
+		// PO 2026-10-19: the sigil and the particles are closed sets the client draws.
+		"an unknown sigil":  {`{` + glowSquare + `, "anchor": "a", "sigil": "pentagram"}`, `exitArea 0: sigil "pentagram" must be one of runes, none`},
+		"unknown particles": {`{` + glowSquare + `, "anchor": "a", "particles": "snow"}`, `exitArea 0: particles "snow" must be one of rising, none`},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

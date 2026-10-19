@@ -6,13 +6,16 @@ const nodeRequire = createRequire(__filename);
 const content = nodeRequire('../../../../../tools/tiled/palette/content.json');
 
 describe('ExitLookTable (plan-passages.md P2)', () => {
-    // The table is the client's copy of the look names; the palette's enum is
-    // generated from the converter's, which a converter test pins to zone.go.
-    it('draws every look Tiled offers', () => {
-        const looks: string[] = content.ENUM_VALUES.AuraExitLook;
+    // The table is the client's copy of the look names; the palette's sizes
+    // are generated from the converter's names (pinned to zone.go) and this
+    // table's own JSON, so Tiled offers exactly what the client draws.
+    it('draws every look Tiled offers, at the size Tiled boxes it', () => {
+        const looks = Object.keys(content.EXIT_LOOK_SIZE);
         expect(looks[0]).toBe(DEFAULT_EXIT_LOOK);
-        expect(Object.keys(EXIT_LOOK_SIZES).sort())
-            .toEqual([...looks].sort());
+        expect(Object.keys(EXIT_LOOK_SIZES).sort()).toEqual([...looks].sort());
+        for (const look of looks) {
+            expect(content.EXIT_LOOK_SIZE[look]).toEqual({w: EXIT_LOOK_SIZES[look].width, h: EXIT_LOOK_SIZES[look].height});
+        }
     });
 
     it('places a look on its exit, origin applied, default for an absent look', () => {

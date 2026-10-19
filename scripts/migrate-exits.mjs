@@ -77,11 +77,13 @@ function migrate(file, group, areaId, caveProps) {
         if (r.changed) { changed++; }
         return r.exit;
     });
+    // A touch exit has no look at all since 2026-10-19 (the glow alone); the
+    // retired `hidden` look still becomes the toggle.
     const exitAreas = group.exitAreas && group.exitAreas.map(a => {
-        if (a.look !== 'hidden') { return a; }
+        if (a.look === undefined) { return a; }
         changed++;
         const {look, ...rest} = a;
-        return {...rest, hidden: true};
+        return look === 'hidden' ? {...rest, hidden: true} : rest;
     });
     const spawns = group.spawns || [];
     const doors = spawns.filter(s => DOORS.includes(s.mob));

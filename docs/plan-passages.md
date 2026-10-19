@@ -113,7 +113,8 @@ a full conversation and a travel row) is still a spawn. Exits are for doors.
 
 - **`AuraExit`** (a point, Insert Point): form fields `id`, `anchor`, `look` (enum), `door`
   (enum of conversation definitions with an anchor travel row), `rotation` is the object's own.
-- **`AuraExitArea`** (a polygon or rectangle): `id`, `anchor`, `look`.
+- **`AuraExitArea`** (a polygon or rectangle): `id`, `anchor`, `hidden`. ~~`look`~~ (PO
+  2026-10-19: a touch exit is its glow alone, see the P5 ledger).
 
 The converter tells them apart by class, refuses a point with `AuraExitArea` or a polygon with
 `AuraExit`, and refuses any other class on the layer. That is the paths layer's L2b check, a
@@ -159,8 +160,8 @@ value replaces a misused one (Signpost) and is the last one exits need: the five
 
 ### D5 — looks are drawn by the client from the bundled zone, not streamed
 
-The client already bundles every zone. It draws each exit's art from `exits[].look` /
-`exitAreas[].look` at load, the way it draws decals and static lights, from a small client
+The client already bundles every zone. It draws each exit's art from `exits[].look`
+(~~`exitAreas[].look`~~, PO 2026-10-19: a touch exit draws its glow only) at load, the way it draws decals and static lights, from a small client
 table (`look → texture, size u, anchor`) [PLACEHOLDER sizes]. So:
 
 - a new look is one SVG plus one table row: no wire, no server, no EntityType;
@@ -294,7 +295,8 @@ by D11a. `.debug/` zones included.
 1. Select the area's **`exits`** layer.
 2. **Talk exit:** Insert Point, Class `AuraExit`, pick `anchor`, `look`, optionally `door`
    and `id`.
-3. **Touch exit:** draw a polygon/rectangle, Class `AuraExitArea`, pick `anchor` and `look`.
+3. **Touch exit:** draw a polygon/rectangle, Class `AuraExitArea`, pick `anchor` (no look: the
+   glow alone marks it, PO 2026-10-19).
 4. **Words:** nothing, and it reads the destination. For custom words, give it an `id` and add
    `exit.<id>.title/text/go` to `api/lang/en/regions.arb` + `de/` (Q5).
 
@@ -680,6 +682,56 @@ player 0.91 u from `under-west`, no bounce; plus every P1-P3b leg.
 
 **Schema:** DB none · conf none · wire none · zone: +1 `exitAreas` entry (world.json) · content:
 travel replies deleted (en + de), `travel_to` lines optional.
+
+⭐ **PO ruling 2026-10-19 (in-game look): a touch exit is its GLOW ALONE, no look.** The sprite at
+the centroid is gone, and so is `exitAreas[].look` everywhere: `world.ExitArea` drops the field,
+so zone.go's DisallowUnknownFields refuses it at boot; the client table and `ExitAreas.ts` draw
+no sprite; `AuraExitArea` loses its `look` member (palette regenerated); the converter refuses
+to open a file whose touch exit still has a look and points at `migrate-exits.mjs`, which now
+drops it (the retired `hidden` look still becomes the toggle). An area's look was never read by
+the server past validation (a touch has no words), so nothing else moves. world.json's
+`fallow-test-glow` loses its `stairs-down`. `passages.mjs`'s touch leg now asserts a glow and no
+look. **Schema:** DB/conf/wire none · zone format −`exitAreas[].look`.
+
+⭐ **PO look, second round (2026-10-19).**
+
+- **Stairs halved** (2 → 1 u square) and the stairs-down arrow points DOWN. The sizes moved into
+  `frontend/src/client-data/exit-look-sizes.json` (the profile tables' reason: the palette
+  generator reads the same file).
+- **The E prompt draws above every prop:** `InteractBadge` hangs on the mob's PLATE (the
+  name/quest-glyph overlay), not its shape, which sat under `props.standing`. Names were already
+  on the plate; ⚑ the PO also saw a name covered, venue unknown, not reproduced.
+- **`AuraExit` is a rotatable TILE object** (Tiled cannot turn a point): a new `exits.tsx`
+  tileset (one tile per look, class AuraExit, art read from `ExitLooks.ts`'s require map) and a
+  template per look at its size in `palette/templates/exits/`. The tile IS the look (the `look`
+  member and the `AuraExitLook` enum are gone); the box is anchored like a prop's (bottom-left,
+  turned about it) and the save refuses a resized one; `aura-world-format.js` loads the third
+  tileset and reads a tile's class and `tileType`. The zone format does NOT change.
+- **The glow:** no rim, the fill blurred over 0.45 u (a live BlurFilter), and thin streaks of
+  light rising out of it (`ExitAreaTable` `sparkleCount`/`randomPointIn`), all [PLACEHOLDER].
+  Retuned the same day (PO: "weak; lines too thick and long, more, slow then accelerate"): fill
+  alpha 0.32 → 0.7; 1 px hairlines 8-20 px long (stretching to 1.5× as they speed up), no sheath;
+  3 per u², 8-90; each rises 1.2-2.4 u over its 0.8-1.6 s life from rest (rise ∝ t²). Then
+  (PO: "linger much longer at their start, double the count"): 6 per u², 16-180; life 1.4-2.4 s;
+  rise ∝ t⁴ (`SPARKLE_EASE`). Then (PO: "start as dots, longer as they accelerate"): a 1.5 px dot
+  at rest, its length growing with its speed (∝ t³) to 1.5 × 8-20 px at the end; width 1.5 px.
+  Then (PO: "triple the amount, dots a bit longer while rising"): 18 per u², 48-540; length ∝ t⁶, then t⁵ ("a liiitle" less dotty).
+- **Breathing + a rune circle** (PO pick from a menu): the glow and the runes swell and dim
+  together (2.8 s, 60-100 %); a drawn circle (no art) fitted inside the area (`inscribedRadius`
+  × 0.9, none under 0.35 u): 12 seeded runes (`runeStrokes`/`seedOf`, stable per area) between two
+  rings turning one way, a hexagram the other. The streaks moved to a new `exitSparkles` layer
+  OVER `props.standing` (under flyers and darkness), so they rise past a tree or a roof.
+- **`sigil` and `particles` per touch exit** (PO: Tiled selectors, each with "none"): zone keys
+  on `exitAreas`, `ExitSigils` = runes | none and `ExitParticles` = rising | none in exits.go
+  (absent = the first, the server validates and never reads them); `AuraExitArea` members typed
+  by `AuraExitSigil` / `AuraExitParticles` (default reads back absent); all three writers carry
+  them (completeness pin), the converter and client sets are pinned to exits.go's, and
+  `verify.sh`'s touch leg round-trips `none` for both through real Tiled.
+  **Schema:** zone format +`exitAreas[].sigil` +`.particles`.
+Checks: vitest 1820/0 · tsc clean · `verify.sh` all green (exits through real Tiled as tiles) ·
+`passages.mjs` 23/28: the 5 reds are the barn-door leg, whose venue the PO's own world.json edit
+moved next to Reinhard (the door at (−191.5, 4.5) and Reinhard 1 u off answer first).
+**Schema:** none (zone format unchanged).
 
 ### P6 — the stones (Q9) ✅ BUILT 2026-10-18 (uncommitted on `passages`)
 

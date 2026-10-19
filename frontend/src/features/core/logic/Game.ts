@@ -341,6 +341,8 @@ export class Game implements IGame {
             // at most the local player: a flyer is removed from everyone
             // else's snapshot (D13), so no remote character can ever reach it.
             flyers: createNamedContainer('flyers'),
+            // The touch exits' rising streaks, over every prop (PO 2026-10-19).
+            exitSparkles: createNamedContainer('exitSparkles'),
             // The HAZE half of the atmospheres — fog, smoke, dust — in its OWN
             // filtered container, added BEFORE the darkness so it draws UNDER
             // it (PO 2026-09-14).
@@ -433,6 +435,10 @@ export class Game implements IGame {
         // Props, one container: rocks no longer draw below every other prop,
         // the id order decides (plan-prop-draw-order.md D7).
         this.cameraGroup.addChild(this.layers.props.standing);
+
+        // The touch exits' streaks rise over the trees (PO 2026-10-19), under
+        // a flyer and the darkness, which still swallows them in a cave.
+        this.cameraGroup.addChild(this.layers.exitSparkles);
 
         // …and a flyer above even those. Walking behind a tree is correct;
         // flying behind one breaks the only thing selling the flight, since
@@ -793,8 +799,8 @@ export class Game implements IGame {
         Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         ExitLooks.loadExitLooks(this.layers.terrain.exits, zoneData?.exits, origin);
-        ExitAreas.loadExitAreas(this.layers.terrain.exitAreas, this.layers.characterAdditions.namePlates,
-            zoneData?.exitAreas, origin);
+        ExitAreas.loadExitAreas(this.layers.terrain.exitAreas, this.layers.exitSparkles,
+            this.layers.characterAdditions.namePlates, zoneData?.exitAreas, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so
         // the server leaves it zone-local and the origin goes in HERE.

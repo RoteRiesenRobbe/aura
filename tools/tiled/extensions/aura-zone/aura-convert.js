@@ -75,7 +75,9 @@ var AuraConvert = (function () {
     var REGION_ID_UNSET = '(no place)';
 
     /* ---- exits (plan-passages.md P1) ---------------------------------------
-     * A talk exit is a POINT of class AuraExit on the `exits` layer: where it
+     * A talk exit is a TILE object of class AuraExit on the `exits` layer (a
+     * point until PO 2026-10-19: Tiled cannot turn a point), its tile from
+     * exits.tsx being its look, drawn at the look's own box: where it
      * leads (`anchor`, free text, refused at boot when no zone authors it) and
      * optionally a conversation written for it alone (`conversation`, from the
      * AuraExitConversation dropdown; `door` until P3b). EXIT_CONVERSATION_UNSET
@@ -93,15 +95,21 @@ var AuraConvert = (function () {
      * the same exits layer, told apart by class (the paths/structures
      * scheme). Walk in and you are moved; no door, no words. */
     var EXIT_AREA_CLASS = 'AuraExitArea';
+    /* What a touch exit draws over its glow (PO 2026-10-19), zone.go's
+     * ExitSigils / ExitParticles in their order (a vitest scrapes them
+     * together). The first of each is the member's default and reads back as
+     * ABSENT; 'none' draws nothing. */
+    var EXIT_SIGIL_ENUM = 'AuraExitSigil';
+    var EXIT_SIGILS = ['runes', 'none'];
+    var EXIT_PARTICLES_ENUM = 'AuraExitParticles';
+    var EXIT_PARTICLES = ['rising', 'none'];
     var EXIT_CONVERSATION_ENUM = 'AuraExitConversation';
     var EXIT_CONVERSATION_UNSET = '(by look)';
     var MIGRATED_DOORS = ['CaveMouth', 'CaveExit'];
     /* The art the client draws at an exit (P2, R4/D5), zone.go's ExitLooks in
-     * its order (a vitest scrapes the two together). The DEFAULT leads and is
-     * the AuraExitLook member's default: it reads back as ABSENT, so a Tiled
-     * that drops the member and one that keeps it write the same file. The
-     * look's turn is the point object's own rotation. */
-    var EXIT_LOOK_ENUM = 'AuraExitLook';
+     * its order (a vitest scrapes the two together). The DEFAULT leads and
+     * reads back as ABSENT. The look is the exit's TILE and its turn the tile
+     * object's own rotation (PO 2026-10-19). */
     var EXIT_LOOKS = ['cave-mouth', 'cave-exit', 'stairs-down', 'stairs-up', 'door'];
     var EXIT_LOOK_DEFAULT = EXIT_LOOKS[0];
 
@@ -190,7 +198,7 @@ var AuraConvert = (function () {
      * as combat, and the vocabulary CHECKS skip themselves (see validateModel) —
      * so the converter stays testable on its own. */
     var content = {
-        TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
+        TERRAIN_TYPES: [], PROP_SIZE: {}, EXIT_LOOK_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
         CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [], CONVERSATION_NAMES: [],
     };
@@ -198,6 +206,9 @@ var AuraConvert = (function () {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
+            // Each exit look's box, units (PO 2026-10-19). Absent = no
+            // vocabulary: a 1-unit box, and the size check skips itself.
+            EXIT_LOOK_SIZE: (c && c.EXIT_LOOK_SIZE) || {},
             // The prop types whose api/props/<type>.json authors crossesPaths
             // (bridges): every placement must sit in props/underfoot (D4).
             // Absent = none known, and the check skips itself like the rest.
@@ -268,6 +279,9 @@ var AuraConvert = (function () {
     }
     function propSize(type) {
         return content.PROP_SIZE[type] || {w: 1, h: 1};
+    }
+    function exitLookSize(look) {
+        return content.EXIT_LOOK_SIZE[look] || {w: 1, h: 1};
     }
 
     /* ---- per-placement prop scale (plan-prop-scale.md C1) -------------------
@@ -595,13 +609,20 @@ var AuraConvert = (function () {
      * file opening and the next save writing the door back into `spawns`. */
     /* ⛔ P3b renamed an exit's `door` to `conversation` and made `hidden` a
      * toggle. Read leniently, an old file would lose both on its next save, so
-     * it refuses to open and names the migration. */
+     * it refuses to open and names the migration. A touch exit lost its look
+     * outright (PO 2026-10-19: the glow alone), which zone.go refuses too. */
     function checkExitShape(group) {
         (group.exits || []).concat(group.exitAreas || []).forEach(function (e) {
             if (e && (e.door !== undefined || e.look === 'hidden')) {
                 throw new Error('this zone file still writes an exit\'s ' + (e.door !== undefined ? '"door"' : 'look "hidden"')
                     + ', the shape before plan-passages.md P3b. Migrate it with'
                     + ' node scripts/migrate-exits.mjs <file>');
+            }
+        });
+        (group.exitAreas || []).forEach(function (a) {
+            if (a && a.look !== undefined) {
+                throw new Error('this zone file still gives a touch exit a look ("' + a.look + '"); a touch exit'
+                    + ' is its glow alone since 2026-10-19. Migrate it with node scripts/migrate-exits.mjs <file>');
             }
         });
     }
@@ -732,8 +753,8 @@ var AuraConvert = (function () {
                     };
                 })
                 : undefined,
-            // Touch exits (P4), key order as zone.go's ExitArea; id and look
-            // absent at their defaults.
+            // Touch exits (P4), key order as zone.go's ExitArea; id absent at
+            // its default. No look: the glow alone (PO 2026-10-19).
             exitAreas: z.exitAreas && z.exitAreas.length > 0
                 ? z.exitAreas.map(function (a) {
                     return {
@@ -742,8 +763,9 @@ var AuraConvert = (function () {
                             return {x: round(v.x, 2), y: round(v.y, 2)};
                         }),
                         anchor: a.anchor,
-                        look: a.look && a.look !== EXIT_LOOK_DEFAULT ? a.look : undefined,
                         hidden: a.hidden ? true : undefined,
+                        sigil: a.sigil && a.sigil !== EXIT_SIGILS[0] ? a.sigil : undefined,
+                        particles: a.particles && a.particles !== EXIT_PARTICLES[0] ? a.particles : undefined,
                     };
                 })
                 : undefined,
@@ -1049,22 +1071,25 @@ var AuraConvert = (function () {
             // ⚑ The NAME is the anchor, so the Objects panel reads where each
             // exit leads; the typed property is what modelToZone reads back
             // (never the name: the class-member sentinel rule). `door` only
-            // when authored, so the panel shows the member at its default; the
-            // same for `look` (P2). The turn is the object's own rotation.
+            // when authored, so the panel shows the member at its default.
+            // ⭐ A TILE object (PO 2026-10-19): its tile is the look, its box
+            // the look's size, centred on the exit like a prop, and Tiled
+            // turns it with the ordinary rotate handles.
             var exits = (src.exits || []).map(function (e) {
+                var look = e.look || EXIT_LOOK_DEFAULT;
+                var sz = exitLookSize(look);
+                var w = sz.w * PX, h = sz.h * PX;
+                var a = anchorOf(px(e.x, hw), px(e.y, hh), w, h, rad2deg(e.rotation || 0));
                 var o = {
-                    shape: 'point', layer: prefix + 'exits', name: e.anchor, cls: EXIT_CLASS,
-                    x: px(e.x, hw), y: px(e.y, hh),
-                    width: 0, height: 0, rotation: rad2deg(e.rotation || 0), flipH: false, flipV: false,
+                    shape: 'tile', layer: prefix + 'exits', name: e.anchor, cls: EXIT_CLASS,
+                    tileset: 'exits', tileType: look,
+                    x: a.x, y: a.y, width: w, height: h,
+                    rotation: rad2deg(e.rotation || 0), flipH: false, flipV: false,
                     properties: {anchor: e.anchor},
                     enums: {},
                 };
                 if (e.id) {
                     o.properties.id = e.id;
-                }
-                if (e.look && e.look !== EXIT_LOOK_DEFAULT) {
-                    o.properties.look = e.look;
-                    o.enums.look = EXIT_LOOK_ENUM;
                 }
                 if (e.hidden) {
                     o.properties.hidden = true;
@@ -1095,12 +1120,18 @@ var AuraConvert = (function () {
                 if (a.id) {
                     o.properties.id = a.id;
                 }
-                if (a.look && a.look !== EXIT_LOOK_DEFAULT) {
-                    o.properties.look = a.look;
-                    o.enums.look = EXIT_LOOK_ENUM;
-                }
                 if (a.hidden) {
                     o.properties.hidden = true;
+                }
+                // Typed only when authored, so the panel shows the member at
+                // its default (the C6 rule).
+                if (a.sigil && a.sigil !== EXIT_SIGILS[0]) {
+                    o.properties.sigil = a.sigil;
+                    o.enums.sigil = EXIT_SIGIL_ENUM;
+                }
+                if (a.particles && a.particles !== EXIT_PARTICLES[0]) {
+                    o.properties.particles = a.particles;
+                    o.enums.particles = EXIT_PARTICLES_ENUM;
                 }
                 return o;
             });
@@ -1712,9 +1743,10 @@ var AuraConvert = (function () {
                     return s;
                 }),
                 exits: onLayer('exits', EXIT_CLASS).map(function (o) {
+                    var c = centre(o);
                     return {
                         id: readText(o, 'id'),
-                        x: u(o.x, hw), y: u(o.y, hh),
+                        x: u(c.x, hw), y: u(c.y, hh),
                         rotation: deg2rad(o.rotation || 0),
                         anchor: readText(o, 'anchor'),
                         look: readExitLook(o),
@@ -1729,8 +1761,9 @@ var AuraConvert = (function () {
                             return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                         }),
                         anchor: readText(o, 'anchor'),
-                        look: readExitLook(o),
                         hidden: get(o, 'hidden') ? true : undefined,
+                        sigil: readUnlessDefault(o, 'sigil', EXIT_SIGILS[0]),
+                        particles: readUnlessDefault(o, 'particles', EXIT_PARTICLES[0]),
                     };
                 }),
                 bindPoints: layer('bindPoints').map(function (o) {
@@ -1925,6 +1958,13 @@ var AuraConvert = (function () {
         return v === '' ? undefined : v;
     }
 
+    /* A typed member's value, or undefined at its default: the default, a
+     * blank and an absent member alike. */
+    function readUnlessDefault(o, key, def) {
+        var v = readText(o, key);
+        return v === def ? undefined : v;
+    }
+
     /* An exit's conversation, or undefined for "worded by its look": the
      * sentinel, a blank and an absent member alike. */
     function readExitConversation(o) {
@@ -1932,11 +1972,11 @@ var AuraConvert = (function () {
         return v === EXIT_CONVERSATION_UNSET ? undefined : v;
     }
 
-    /* An exit's look, or undefined for the default (the cave mouth): the
-     * default, a blank and an absent member alike. */
+    /* An exit's look, or undefined for the default (the cave mouth): its
+     * TILE's aura type (PO 2026-10-19), the default reading back as absent. */
     function readExitLook(o) {
-        var v = readText(o, 'look');
-        return v === EXIT_LOOK_DEFAULT ? undefined : v;
+        var v = o.tileType;
+        return !v || v === EXIT_LOOK_DEFAULT ? undefined : v;
     }
 
     function readRegionProfile(o) {
@@ -2314,8 +2354,8 @@ var AuraConvert = (function () {
                     bad(o, i, unknownName('spawns', p.mob, 'mob'));
                 } else if (hasValue(MIGRATED_DOORS, p.mob)) {
                     bad(o, i, p.mob + ' is a door, and doors live on the "exits" layer since'
-                        + ' plan-passages.md P1: Insert Point there, Class ' + EXIT_CLASS
-                        + ', and give it this spawn\'s anchor. Then delete this spawn');
+                        + ' plan-passages.md P1: drag one from Templates › exits onto that layer'
+                        + ' and give it this spawn\'s anchor. Then delete this spawn');
                 }
 
                 var waypoints = p.waypointCount;
@@ -2369,9 +2409,9 @@ var AuraConvert = (function () {
                         + ' in the Properties panel, or the exit is DROPPED on save');
                     return;
                 }
-                if (o.cls === EXIT_CLASS && o.shape !== 'point') {
-                    bad(o, i, 'an exit is a POINT — draw it with Insert Point, or set its Class to '
-                        + EXIT_AREA_CLASS + ' for an area you walk into');
+                if (o.cls === EXIT_CLASS && o.shape !== 'tile') {
+                    bad(o, i, 'an exit is a PICTURE of its look — drag one from Templates › exits (or the'
+                        + ' aura-exits tileset), or set its Class to ' + EXIT_AREA_CLASS + ' for an area you walk into');
                 }
                 if (o.cls === EXIT_AREA_CLASS) {
                     checkClosedArea(o, i, 'an ' + EXIT_AREA_CLASS, ' — or set its Class to ' + EXIT_CLASS
@@ -2390,12 +2430,30 @@ var AuraConvert = (function () {
                     bad(o, i, 'duplicate exit id "' + id + '"');
                 }
                 if (id !== undefined) { seenExit[id] = true; }
+                if (o.cls === EXIT_AREA_CLASS) {
+                    var sigil = readText(o, 'sigil');
+                    if (sigil !== undefined && !hasValue(EXIT_SIGILS, sigil)) {
+                        bad(o, i, 'unknown sigil "' + sigil + '" — the sigils are ' + EXIT_SIGILS.join(', '));
+                    }
+                    var particles = readText(o, 'particles');
+                    if (particles !== undefined && !hasValue(EXIT_PARTICLES, particles)) {
+                        bad(o, i, 'unknown particles "' + particles + '" — they are ' + EXIT_PARTICLES.join(', '));
+                    }
+                    return;
+                }
                 var look = readExitLook(o);
                 if (look !== undefined && !hasValue(EXIT_LOOKS, look)) {
-                    bad(o, i, 'unknown look "' + look + '" — the looks are ' + EXIT_LOOKS.join(', '));
-                }
-                if (o.cls === EXIT_AREA_CLASS) {
-                    return;
+                    bad(o, i, 'its tile "' + look + '" is not an exit look — the looks are ' + EXIT_LOOKS.join(', ')
+                        + ': drag one from Templates › exits');
+                } else if (o.shape === 'tile' && content.EXIT_LOOK_SIZE[look || EXIT_LOOK_DEFAULT]) {
+                    // The game draws every look at its own box, so a resized
+                    // one would show in Tiled at a size nobody sees in game.
+                    var want = exitLookSize(look || EXIT_LOOK_DEFAULT);
+                    if (Math.abs(o.width - want.w * PX) > 0.5 || Math.abs(o.height - want.h * PX) > 0.5) {
+                        bad(o, i, 'is resized to ' + round(o.width / PX, 2) + ' x ' + round(o.height / PX, 2)
+                            + ' u, but every exit look draws at its own size (' + want.w + ' x ' + want.h
+                            + ' u) — turn it freely, but drag a fresh one from Templates › exits to undo the resize');
+                    }
                 }
                 var d = readExitConversation(o);
                 if (d !== undefined && (!conversationsKnown || !hasValue(content.CONVERSATION_NAMES, d))) {
@@ -2403,7 +2461,8 @@ var AuraConvert = (function () {
                         + ' one anchor-mode travel_to row' + (conversationsKnown ? ': ' + content.CONVERSATION_NAMES.join(', ')
                         : ', and none exists yet: leave it at ' + EXIT_CONVERSATION_UNSET + ' for the look\'s words'));
                 }
-                var x = o.x / PX - hw, y = o.y / PX - hh;
+                var ec = centreOf(o.x, o.y, o.width || 0, o.height || 0, o.rotation || 0);
+                var x = ec.x / PX - hw, y = ec.y / PX - hh;
                 if (x < -hw || x > hw || y < -hh || y > hh) {
                     bad(o, i, 'at (' + round(x, 2) + ', ' + round(y, 2) + ') is outside the bounds');
                 }
@@ -3002,7 +3061,10 @@ var AuraConvert = (function () {
         EXIT_AREA_CLASS: EXIT_AREA_CLASS,
         EXIT_CONVERSATION_ENUM: EXIT_CONVERSATION_ENUM,
         EXIT_CONVERSATION_UNSET: EXIT_CONVERSATION_UNSET,
-        EXIT_LOOK_ENUM: EXIT_LOOK_ENUM,
+        EXIT_SIGIL_ENUM: EXIT_SIGIL_ENUM,
+        EXIT_SIGILS: EXIT_SIGILS,
+        EXIT_PARTICLES_ENUM: EXIT_PARTICLES_ENUM,
+        EXIT_PARTICLES: EXIT_PARTICLES,
         EXIT_LOOKS: EXIT_LOOKS,
         EXIT_LOOK_DEFAULT: EXIT_LOOK_DEFAULT,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go

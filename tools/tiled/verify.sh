@@ -1203,7 +1203,7 @@ const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/barn.json", "utf8"));
 z.exitAreas = [
-  {id: "glow-pit", points: [{x: -2, y: -2}, {x: 0, y: -2}, {x: -1, y: 0}], anchor: "barn-surface", look: "stairs-down"},
+  {id: "glow-pit", points: [{x: -2, y: -2}, {x: 0, y: -2}, {x: -1, y: 0}], anchor: "barn-surface", hidden: true, sigil: "none", particles: "none"},
   {points: [{x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 1, y: 2}], anchor: "barn-surface"},
 ];
 fs.writeFileSync("tools/tiled/.verify/exit-areas.json", C.serializeZone(z, true));
@@ -1212,7 +1212,7 @@ if grep -q '"exitAreas"' tools/tiled/.verify/exit-areas.json \
    && "$TILED" --export-map aura-zone tools/tiled/.verify/exit-areas.json \
         "$(native "$ROOT/tools/tiled/.verify/exit-areas-out.json")" >/dev/null 2>&1 \
    && cmp -s tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json; then
-    ok "byte-identical — both classes, id and look survive"
+    ok "byte-identical — both classes, id, hidden, sigil and particles survive"
 else
     bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json 2>&1 | head -1)"
 fi
@@ -1248,7 +1248,7 @@ echo "generated palette matches the content it is generated from"
 # empty `before` is exactly the "stale, regenerate" answer this leg should give.
 palette_state() {
     cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
-        tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx \
+        tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx tools/tiled/palette/exits.tsx \
         tools/tiled/palette/templates/*/*.tx \
         tools/tiled/aura.tiled-project 2>/dev/null || true
 }

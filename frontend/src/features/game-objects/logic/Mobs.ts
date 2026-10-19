@@ -433,10 +433,11 @@ export abstract class Mob extends GameObject
             return; // the common case: no badge, and none wanted
         }
         if (this.interactBadge === null) {
-            // Drawn into the shape group so it fades and darkens with the mob,
-            // but anchored off the art alone — the group also carries the aura
-            // rings, the dwell ring and the health bar (R4).
-            this.interactBadge = new InteractBadge(this.shape, this.actualShape);
+            // Drawn onto the plate, beside the quest glyph, so no tree or roof
+            // covers it (PO 2026-10-19); the plate fades with the mob and hides
+            // in unlit darkness. Anchored off the art alone — the shape group
+            // also carries the aura rings, the dwell ring and the health bar (R4).
+            this.interactBadge = new InteractBadge(this.plate, this.actualShape);
         }
         this.interactBadge.setVisible(interactable);
     }

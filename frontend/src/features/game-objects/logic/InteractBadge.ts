@@ -9,17 +9,17 @@ import * as PIXI from 'pixi.js';
  * would refuse. The server validates an incoming Interact against the exact
  * value it used to light this up.
  *
- * It hangs off the mob's own shape, the aura ring stack's pattern, rather than
- * the unfiltered nameplate overlay: a prompt should dim and vanish with the NPC
- * it labels when the light does, whereas a nameplate deliberately stays legible
- * above the darkness layer and pays for that with an explicit isHidden test.
+ * It hangs on the mob's PLATE, the unfiltered overlay its name and quest glyph
+ * share (PO 2026-10-19: under the mob's shape a tree or a roof covered it). The
+ * plate mirrors the mob's alpha and hides while the mob stands in unlit
+ * darkness, so the prompt still fades and vanishes with the NPC it labels.
  *
  * ⚑ The vertical anchor reads the sprite's rendered bounds, never the wire
  * radius: mob sprite classes size from GraphicsConfig and ignore Mob.radius,
  * while the merged NPCs size from the wire — a permanently-unwritten radius is
  * exactly how chunk 3a's invisible Farmer happened (L19).
  *
- * ⚑ ATTACHED to the mob's shape group, MEASURED against its art alone (R4).
+ * ⚑ ATTACHED to the mob's plate, MEASURED against its art alone (R4).
  * The two are different containers on purpose: the group also carries the aura
  * ring stack, the dwell ring and the health bar, so
  * measuring it anchors the cap to whichever decoration happens to be widest.
@@ -51,8 +51,8 @@ export class InteractBadge {
     private offsetX = 0;
 
     /**
-     * @param parent the container the cap is drawn into — the mob's whole
-     *               shape group, so the prompt fades and darkens with it
+     * @param parent the container the cap is drawn into — the mob's plate,
+     *               above every prop, fading and hiding with the mob
      * @param sprite the mob's art alone, the thing the cap is anchored above
      */
     constructor(private readonly parent: PIXI.Container,

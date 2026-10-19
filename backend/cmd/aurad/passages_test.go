@@ -49,6 +49,12 @@ func placedDoors(t *testing.T, zones []*world.Zone) map[string]*world.Spawn {
 				}
 			}
 		}
+		// A touch exit is a way through too (P4): stood at its centroid, so
+		// a talk exit one way and a touch exit back still round-trip.
+		for _, a := range z.ExitAreas {
+			c := a.Centroid()
+			doors[a.Anchor] = &world.Spawn{Mob: "touch exit", X: c.X, Y: c.Y, Anchor: a.Anchor}
+		}
 	}
 	return doors
 }

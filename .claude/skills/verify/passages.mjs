@@ -26,8 +26,8 @@
 // bar but keep their art and their name.
 //
 // P4 + P5: a TOUCH exit, the first one the world places (the Fallow Reach
-// test strip's, plan-passages.md P5). P5: it draws a gold glow and its look,
-// and names where it leads only while the player is near (Q3). P4: the legs
+// test strip's, plan-passages.md P5). P5: it draws a gold glow and no look
+// (PO 2026-10-19), and names where it leads only while the player is near (Q3). P4: the legs
 // move the player with WARP, a step under PassageSystem's arrival jump (3 u)
 // reads as a walk, a longer one as an arrival. Arriving inside = disarmed;
 // stepping out and back in = the crossing: the curtain runs (D9) and the
@@ -87,21 +87,25 @@ const wordsOf = (exit) => {
     row: own('go') || look('go'),
   };
 };
-const barnDoor = zones.world.exits.find(e => e.anchor === 'barn-inside');
-const barnUp = zones.barn.exits[0];
+const barnDoor = zones.world.exits.find(e => e.anchor === 'barn-inside' && !e.hidden);
+// The tier-1 venue: any visible talk exit with words of its own (the barn's
+// stairs until the PO made the barn's way out a touch exit, 2026-10-19).
+const ownWords = Object.keys(zones).flatMap(z => (zones[z].exits || [])
+  .filter(e => e.id && !e.hidden && en[`exit.${e.id}.text`]).map(e => ({ z, e })))[0];
 const plainExit = zones.world.exits.find(e => !e.id && !e.hidden && !e.conversation && !en[`anchor.${e.anchor}.text`]);
 const hidden = zones.world.exits.find(e => e.hidden);
-if (!barnDoor || !barnUp || !barnUp.id || !plainExit) {
-  throw new Error('venue drifted: expected the barn door, the barn stairs with an id, and a world exit with no words');
+if (!barnDoor || !plainExit) {
+  throw new Error('venue drifted: expected a visible barn door and a world exit with no words');
 }
 const CASES = [
   { leg: 'barn door (world → barn)', at: world('world', barnDoor), dest: anchorAt(barnDoor.anchor),
     look: barnDoor.look || 'cave-mouth', words: wordsOf(barnDoor) },
-  { leg: 'barn stairs (barn → world)', at: world('barn', barnUp), dest: anchorAt(barnUp.anchor),
-    look: barnUp.look || 'cave-mouth', words: wordsOf(barnUp) },
+  ...(ownWords ? [{ leg: `own words (${ownWords.z} → ${ownWords.e.anchor})`, at: world(ownWords.z, ownWords.e),
+    dest: anchorAt(ownWords.e.anchor), look: ownWords.e.look || 'cave-mouth', words: wordsOf(ownWords.e) }] : []),
   { leg: `look words (world → ${plainExit.anchor})`, at: world('world', plainExit), dest: anchorAt(plainExit.anchor),
     look: plainExit.look || 'cave-mouth', words: wordsOf(plainExit) },
 ];
+if (!ownWords) { console.log('  ? own words - INCONCLUSIVE: no visible talk exit has words of its own'); }
 
 const results = [];
 const pass = (leg, note) => { results.push(['PASS', leg]); console.log(`  ✔ ${leg} - ${note}`); };
@@ -316,14 +320,14 @@ if (!touch) {
     };
   }, key);
 
-  // P5: near, the glow, the look and the destination's name (the header rule).
+  // P5: near, the glow alone (no look, PO 2026-10-19) and the destination's
+  // name (the header rule).
   await warp({ x: left.x - 2, y: left.y });
   let s5 = await sample();
-  const wantLook = `exitLook:${touch.look || 'cave-mouth'}`;
-  if (s5.glow && s5.look.includes(wantLook)) {
-    pass('touch: glow + look', `gold glow and ${wantLook}`);
+  if (s5.glow && s5.look.length === 0) {
+    pass('touch: glow, no look', 'gold glow, nothing drawn at its centre');
   } else {
-    fail('touch: glow + look', `glow ${s5.glow}, looks ${JSON.stringify(s5.look)}`);
+    fail('touch: glow, no look', `glow ${s5.glow}, looks ${JSON.stringify(s5.look)}`);
   }
   const wantName = wordsOf(touch).header;
   if (s5.name?.visible && s5.name.text === wantName) {

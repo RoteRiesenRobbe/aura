@@ -12,22 +12,20 @@
  *
  * Pure and DOM-free, so vitest can import it.
  */
+import exitLookSizes from '../../../client-data/exit-look-sizes.json';
 
 /** The look an exit draws when it names none [PLACEHOLDER default, D1]. */
 export const DEFAULT_EXIT_LOOK = 'cave-mouth';
 
 /**
  * Every drawn look's art box in world units, centred on the exit and pointing
- * UP (-y) at rotation 0. [PLACEHOLDER] sizes; the cave mouth's is its prop's
- * body (api/props/cave-mouth.json), whose art it reuses.
+ * UP (-y) at rotation 0. [PLACEHOLDER] sizes (the stairs halved, PO
+ * 2026-10-19); the cave mouth's is its prop's body (api/props/cave-mouth.json),
+ * whose art it reuses. ⚑ JSON for the profile tables' reason: the Tiled palette
+ * generator reads the same file, so an exit's box in Tiled is the size the game
+ * draws it at.
  */
-export const EXIT_LOOK_SIZES: Record<string, {width: number, height: number}> = {
-    'cave-mouth': {width: 3, height: 2.4},
-    'cave-exit': {width: 2.4, height: 2.4},
-    'stairs-down': {width: 2, height: 2},
-    'stairs-up': {width: 2, height: 2},
-    'door': {width: 1.6, height: 0.8},
-};
+export const EXIT_LOOK_SIZES: Record<string, {width: number, height: number}> = exitLookSizes;
 
 /** An exit as the bundled zone file authors it (only what a look needs). */
 export interface ExitJSON {

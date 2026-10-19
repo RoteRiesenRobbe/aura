@@ -28,6 +28,10 @@ export interface IGameLayers {
     // `underfoot` (under every entity) and `standing` (over the characters),
     // each sorted by entity id (plan-prop-draw-order.md D6/D7).
     props: {underfoot: Container, standing: Container},
+    // The touch exits' rising streaks (plan-passages.md, PO 2026-10-19): over
+    // every prop, under flyers and darkness. Their glow and runes stay on the
+    // ground (terrain.exitAreas).
+    exitSparkles: Container,
     // A character in flight (C3): above props and boss mobs, below darkness.
     // Holds at most the local player, and only while airborne.
     flyers: Container,

@@ -2496,7 +2496,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // `rotation` and `look` (P2) non-default for the same reason: no turn
         // and the cave mouth both write no key.
         exits: [{id: 'west-stairs', x: 6, y: 5, rotation: 0.5, anchor: 'under-west', look: 'stairs-up', hidden: true, conversation: 'BarredDoor'}],
-        exitAreas: [{id: 'glow-pit', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}], anchor: 'under-west', look: 'door', hidden: true}],
+        exitAreas: [{id: 'glow-pit', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}, {x: 1, y: 3}], anchor: 'under-west', hidden: true, sigil: 'none', particles: 'none'}],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
@@ -3223,10 +3223,14 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         expect(roundTrip(zone())).not.toHaveProperty('exits');
     });
 
-    it('opens an exit as an AuraExit point named by its anchor, conversation typed only when authored', () => {
+    // PO 2026-10-19: a TILE object (Tiled cannot turn a point), its tile the
+    // look, its box the look's own size.
+    it('opens an exit as an AuraExit tile named by its anchor, conversation typed only when authored', () => {
         const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}, {x: 0, y: 0, anchor: 'b', conversation: 'BarredDoor'}]}));
         const [plain, custom] = exitObjects(m);
-        expect(plain).toMatchObject({shape: 'point', cls: C.EXIT_CLASS, name: 'a', properties: {anchor: 'a'}});
+        const size = content.EXIT_LOOK_SIZE[C.EXIT_LOOK_DEFAULT];
+        expect(plain).toMatchObject({shape: 'tile', tileset: 'exits', tileType: C.EXIT_LOOK_DEFAULT, cls: C.EXIT_CLASS,
+            name: 'a', width: size.w * C.PX, height: size.h * C.PX, properties: {anchor: 'a'}});
         expect(plain.properties).not.toHaveProperty('conversation');
         expect(plain.properties).not.toHaveProperty('hidden');
         expect(custom.properties.conversation).toBe('BarredDoor');
@@ -3318,8 +3322,8 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         });
     });
 
-    // ⚑ The class and its enum are what Tiled shows; verify.sh cannot see
-    // either, so the palette is pinned to the converter here.
+    // ⚑ The class and the exits tileset are what Tiled shows; verify.sh
+    // cannot see either, so the palette is pinned to the converter here.
     it('the palette declares AuraExit with the converter\'s defaults, and every conversation', () => {
         const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
             .propertyTypes as {name: string; values?: string[];
@@ -3328,14 +3332,28 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         expect(cls.members).toEqual([
             {name: 'id', type: 'string', value: ''},
             {name: 'anchor', type: 'string', value: ''},
-            {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
             {name: 'hidden', type: 'bool', value: false},
             {name: 'conversation', type: 'string', propertyType: C.EXIT_CONVERSATION_ENUM, value: C.EXIT_CONVERSATION_UNSET},
         ]);
         const conversations = types.filter(t => t.name === C.EXIT_CONVERSATION_ENUM)[0].values;
         expect(conversations).toEqual([C.EXIT_CONVERSATION_UNSET, ...content.CONVERSATION_NAMES]);
         expect(content.CONVERSATION_NAMES, 'the shared conversation is never offered').not.toContain('CaveMouth');
-        expect(types.filter(t => t.name === C.EXIT_LOOK_ENUM)[0].values).toEqual(C.EXIT_LOOKS);
+        expect(types.filter(t => t.name === 'AuraExitLook'), 'the look is the tile now').toEqual([]);
+    });
+
+    // PO 2026-10-19: one tile per look, every one an AuraExit, and a template
+    // per look at the box the game draws it at.
+    it('the exits tileset holds one AuraExit tile per look, each template at its look\'s size', () => {
+        const dir = nodeRequire.resolve('../../../../../tools/tiled/palette/content.json').replace(/content\.json$/, '');
+        const tsx = readFileSync(dir + 'exits.tsx', 'utf8');
+        expect([...tsx.matchAll(/name="auraType" value="([^"]+)"/g)].map(m => m[1])).toEqual(C.EXIT_LOOKS);
+        expect([...tsx.matchAll(/<tile id="\d+" type="([^"]+)"/g)].map(m => m[1]))
+            .toEqual(C.EXIT_LOOKS.map(() => C.EXIT_CLASS));
+        (C.EXIT_LOOKS as string[]).forEach((look, i) => {
+            const tx = readFileSync(dir + 'templates/exits/' + look + '.tx', 'utf8');
+            const size = content.EXIT_LOOK_SIZE[look];
+            expect(tx).toContain(`class="${C.EXIT_CLASS}" gid="${i + 1}" width="${size.w * C.PX}" height="${size.h * C.PX}"`);
+        });
     });
 
     // ⭐ P2: the look names are THREE lists (zone.go's ExitLooks, this
@@ -3362,10 +3380,23 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, rotation: Math.PI / 2, anchor: 'a', look: 'door'}]}));
         const o = exitObjects(m)[0];
         expect(o.rotation).toBeCloseTo(90);
-        expect(o.properties.look).toBe('door');
-        expect(o.enums.look).toBe(C.EXIT_LOOK_ENUM);
-        expect(exitObjects(C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]})))[0].properties)
-            .not.toHaveProperty('look');
+        expect(o.tileType).toBe('door');
+        expect(o.properties).not.toHaveProperty('look');
+    });
+
+    // The box is anchored like a prop's (bottom-left, turned about it), so a
+    // turned exit's TILE sits where the game draws it: its centre is the exit.
+    it('anchors a turned exit\'s tile so its centre is the exit', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 1, y: 2, rotation: 1, anchor: 'a', look: 'door'}]}));
+        const o = exitObjects(m)[0];
+        expect(o.x, 'the tile anchors at its corner, not the exit').not.toBeCloseTo(o.x + o.width / 2);
+        expect(C.modelToZone(m).exits[0]).toMatchObject({x: 1, y: 2, rotation: 1, look: 'door'});
+    });
+
+    it('refuses a resized exit: every look draws at its own size', () => {
+        const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a', look: 'door'}]}));
+        exitObjects(m)[0].width *= 2;
+        expect(C.validateModel(m).join(' ')).toContain('every exit look draws at its own size');
     });
 
     // P3 (D7): the id keys the exit's words, so it is a slug, unique in the
@@ -3388,10 +3419,11 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         expect(C.validateModel(twice).join(' ')).toContain('duplicate exit id "d"');
     });
 
-    it('refuses a look the client cannot draw', () => {
+    // A prop's tile given the AuraExit class by hand.
+    it('refuses a tile that is not an exit look', () => {
         const m = C.zoneToModel(zone({exits: [{x: 0, y: 0, anchor: 'a'}]}));
-        exitObjects(m)[0].properties.look = 'trapdoor';
-        expect(C.validateModel(m).join(' ')).toContain('unknown look "trapdoor"');
+        exitObjects(m)[0].tileType = 'Tree';
+        expect(C.validateModel(m).join(' ')).toContain('its tile "Tree" is not an exit look');
     });
 
     // ⭐ P4 (D2): touch exits share the layer, told apart by CLASS, each kind
@@ -3402,7 +3434,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
         it('round-trips both classes on one layer, defaults absent', () => {
             const exits = [{x: 1, y: 2, anchor: 'a'}];
             const exitAreas = [
-                {id: 'glow-pit', points: square, anchor: 'b', look: 'stairs-down'},
+                {id: 'glow-pit', points: square, anchor: 'b'},
                 {points: square, anchor: 'c'},
             ];
             const out = roundTrip(zone({exits, exitAreas}));
@@ -3411,6 +3443,13 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
             const objects = exitObjects(C.zoneToModel(zone({exits, exitAreas})));
             expect(objects.map((o: {cls: string}) => o.cls)).toEqual([C.EXIT_CLASS, C.EXIT_AREA_CLASS, C.EXIT_AREA_CLASS]);
             expect(objects[2].properties).not.toHaveProperty('look');
+        });
+
+        // PO 2026-10-19: a touch exit is its glow alone. Read leniently, an old
+        // file would drop its look on the next save while zone.go refuses it.
+        it('refuses to open a touch exit that still has a look, pointing at the script', () => {
+            expect(() => C.zoneToModel(zone({exitAreas: [{points: square, anchor: 'b', look: 'stairs-down'}]})))
+                .toThrow(/touch exit a look[^]*migrate-exits\.mjs/);
         });
 
         it('writes no exitAreas key for a zone without them', () => {
@@ -3430,7 +3469,7 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
             expect(C.validateModel(point).join(' ')).toContain('must be a POLYGON or a RECTANGLE');
             const area = C.zoneToModel(zone({exitAreas: [{points: square, anchor: 'b'}]}));
             exitObjects(area)[0].cls = C.EXIT_CLASS;
-            expect(C.validateModel(area).join(' ')).toContain('an exit is a POINT');
+            expect(C.validateModel(area).join(' ')).toContain('an exit is a PICTURE of its look');
         });
 
         it('shares one id namespace with the talk exits', () => {
@@ -3439,15 +3478,41 @@ describe('AuraConvert — exits (plan-passages.md P1)', () => {
             expect(C.validateModel(m).join(' ')).toContain('duplicate exit id "way"');
         });
 
-        it('the palette declares AuraExitArea: the talk exit minus the door', () => {
+        it('the palette declares AuraExitArea: the talk exit minus the door and the look', () => {
             const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
                 .propertyTypes as {name: string; members?: unknown[]}[];
             expect(types.filter(t => t.name === C.EXIT_AREA_CLASS)[0].members).toEqual([
                 {name: 'id', type: 'string', value: ''},
                 {name: 'anchor', type: 'string', value: ''},
-                {name: 'look', type: 'string', propertyType: C.EXIT_LOOK_ENUM, value: C.EXIT_LOOK_DEFAULT},
                 {name: 'hidden', type: 'bool', value: false},
+                {name: 'sigil', type: 'string', propertyType: C.EXIT_SIGIL_ENUM, value: C.EXIT_SIGILS[0]},
+                {name: 'particles', type: 'string', propertyType: C.EXIT_PARTICLES_ENUM, value: C.EXIT_PARTICLES[0]},
             ]);
+        });
+
+        // PO 2026-10-19: the converter's sets are zone.go's, default first.
+        it('the sigils and particles are exits.go\'s, default first', () => {
+            const go = readFileSync(nodeRequire.resolve('../../../../../backend/pkg/aura/world/exits.go'), 'utf8');
+            const consts = Object.fromEntries([...go.matchAll(/(ExitSigil\w+|ExitParticles\w+)\s*=\s*"([^"]+)"/g)]
+                .map(m => [m[1], m[2]]));
+            const list = (name: string) => {
+                const m = new RegExp(name + '\\s*=\\s*\\[\\]string\\{([^}]*)\\}').exec(go);
+                return m![1].split(',').map(s => consts[s.trim()]);
+            };
+            expect(list('ExitSigils')).toEqual(C.EXIT_SIGILS);
+            expect(list('ExitParticles')).toEqual(C.EXIT_PARTICLES);
+        });
+
+        it('round-trips a sigil and particles, writes neither at its default, refuses an unknown one', () => {
+            const square2 = [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}];
+            const exitAreas = [{points: square2, anchor: 'b', sigil: 'none', particles: 'none'}];
+            expect(roundTrip(zone({exitAreas})).exitAreas).toEqual(exitAreas);
+            expect(roundTrip(zone({exitAreas: [{points: square2, anchor: 'b', sigil: 'runes', particles: 'rising'}]}))
+                .exitAreas).toEqual([{points: square2, anchor: 'b'}]);
+            const m = C.zoneToModel(zone({exitAreas}));
+            expect(exitObjects(m)[0].enums).toEqual({sigil: C.EXIT_SIGIL_ENUM, particles: C.EXIT_PARTICLES_ENUM});
+            exitObjects(m)[0].properties.sigil = 'pentagram';
+            expect(C.validateModel(m).join(' ')).toContain('unknown sigil "pentagram"');
         });
     });
 });

@@ -10,6 +10,7 @@
 import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PROP_LAYERS, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
 import {AreaJSON, flattenAreas, ObjectKind} from '../../zones/logic/ZoneAreas';
 import {DEFAULT_EXIT_LOOK} from '../../exits/logic/ExitLookTable';
+import {EXIT_PARTICLES, EXIT_SIGILS} from '../../exits/logic/ExitAreaTable';
 
 // IN MEMORY ONLY, on every object: the zone file's area it came from
 // (plan-prop-draw-order.md P4), so a save puts it back in that group. The file
@@ -173,13 +174,16 @@ export interface ZoneExit extends InArea {
 
 // A touch exit (plan-passages.md P4): an area that moves whoever walks into
 // it to a zone anchor, authored in Tiled on the `exits` layer as an
-// AuraExitArea. Carried, never edited, like a talk exit.
+// AuraExitArea. Carried, never edited, like a talk exit. No look (PO
+// 2026-10-19): the glow alone marks it.
 export interface ZoneExitArea extends InArea {
     id?: string;
     points: {x: number, y: number}[];
     anchor: string;
-    look?: string;
     hidden?: boolean;
+    // What it draws over the glow (PO 2026-10-19); absent = the default.
+    sigil?: string;
+    particles?: string;
 }
 
 // A polygon naming a client-side presentation profile — ground colour today,
@@ -516,8 +520,9 @@ export class ZoneModel {
             id: a.id,
             points: (a.points || []).map(pt => ({...pt})),
             anchor: a.anchor,
-            look: a.look,
             hidden: a.hidden,
+            sigil: a.sigil,
+            particles: a.particles,
             area: a.area,
         }));
         model.paths = (data.paths || []).map(p => ({
@@ -770,15 +775,16 @@ export class ZoneModel {
                     conversation: e.conversation || undefined,
                 }))
                 : undefined,
-            // Touch exits (P4), serializeZone's shape: id and look absent at
-            // their defaults.
+            // Touch exits (P4), serializeZone's shape: id absent at its
+            // default.
             exitAreas: exitAreas.length > 0
                 ? exitAreas.map(a => ({
                     id: a.id || undefined,
                     points: a.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
                     anchor: a.anchor,
-                    look: a.look && a.look !== DEFAULT_EXIT_LOOK ? a.look : undefined,
                     hidden: a.hidden ? true : undefined,
+                    sigil: a.sigil && a.sigil !== EXIT_SIGILS[0] ? a.sigil : undefined,
+                    particles: a.particles && a.particles !== EXIT_PARTICLES[0] ? a.particles : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones
