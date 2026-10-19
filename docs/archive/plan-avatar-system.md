@@ -1,5 +1,9 @@
 # Avatar System — Selection, Unlock Gating & Mid-Game Re-Selection
 
+> **⛔ SUPERSEDED 2026-10-17 by `../plan-appearance.md`, never executed.** Written
+> before accounts, bloodlines and the medallion design existed. What carried over
+> and what did not is listed in that plan's §11.
+
 > **Status: DESIGN SKETCH 2026-07-14, not scheduled for execution yet.**
 > Ties together two roadmap items that were written independently into one
 > coherent system: the **join-screen portrait picker** (`roadmap.md:493`,

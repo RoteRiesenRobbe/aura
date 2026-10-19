@@ -1,7 +1,10 @@
-import {GameObject, readTokenOffset, TOKEN_LABEL, writeTokenOffset} from './_GameObject';
+import {GameObject, readTokenOffset, writeTokenOffset} from './_GameObject';
+import {createTokenSlots} from './TokenSlots';
+import {Medallion} from './Medallion';
+import {PLAYER_RING} from '../../../client-data/Medallions';
+import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {isDefined} from '../../common/logic/Utils';
-import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import * as Preloading from '../../core/logic/Preloading';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {meter2px} from "../../../client-data/BasicConfig";
@@ -36,9 +39,6 @@ GameSetupEvent.subscribe((game: IGame) => {
 export class Character extends GameObject
     implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay {
     static avatar: ISvgContainer = {svg: undefined};
-    // Medallion frame, in its own holder because registerGameObjectSVG writes
-    // exactly one `.svg` per target and `avatar` already holds the portrait.
-    static border: ISvgContainer = {svg: undefined};
     /**
      * Portrait rule (triage item 16): avatars never rotate, so the held facing
      * is zero.
@@ -63,7 +63,15 @@ export class Character extends GameObject
     // The portrait and the medallion frame as ONE node, the only thing a
     // lunge moves (plan-natural-weapons.md §3.2, D9). Assigned in initShape,
     // so declared WITHOUT an initializer (an `= null` would overwrite it).
+    // aboveArt likewise (createTokenSlots, plan-appearance.md C0a).
     private token: Container;
+    private aboveArt: Container;
+    // The medallion (plan-appearance.md C2b, D37), the one every token wears,
+    // and whether its ring has been drawn yet (it waits for the ring texture,
+    // see updatePlate). Both set in initShape, so declared WITHOUT an
+    // initializer, like token.
+    private medallion: Medallion;
+    private ringDrawn: boolean;
     private auraRings: AuraRingStack;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
@@ -109,31 +117,35 @@ export class Character extends GameObject
     // that before any Character exists.
     private updatePlate() {
         this.plate.position.copyFrom(this.shape.position);
+        // The ring texture may not have loaded when this character was
+        // built: try again each frame until it has, rather than stay bare.
+        if (!this.ringDrawn) {
+            this.ringDrawn = this.medallion.setRing(PLAYER_RING);
+        }
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
         const group = new Container();
         group.position.set(x, y);
 
+        // The named slots (createTokenSlots, plan-appearance.md C0a): the token
+        // (plan-natural-weapons.md §3.2, D9) holds the medallion, above the
+        // aura rings in belowArt, which stay on the logical position.
+        const portrait = super.initShape(svg, 0, 0, size, rotation) as Sprite;
+        const slots = createTokenSlots(group, portrait);
+        this.token = slots.token;
+        this.actualShape = slots.actualShape;
+        this.aboveArt = slots.aboveArt;
+
         this.auraRings = new AuraRingStack();
-        group.addChild(this.auraRings.container);
+        slots.belowArt.addChild(this.auraRings.container);
 
-        // The token (plan-natural-weapons.md §3.2, D9): portrait and frame,
-        // above the aura rings, which stay on the logical position.
-        this.token = createNamedContainer(TOKEN_LABEL);
-        group.addChild(this.token);
-
-        this.actualShape = createNamedContainer('actualShape');
-        this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
-        this.token.addChild(this.actualShape);
-
-        // In the token, deliberately NOT in `actualShape`: the damage flash is
-        // bound to actualShape (see createStatusEffects), so a frame inside it
-        // would flash red with the portrait. Added last so it draws on top.
-        // Truthiness, not isDefined — the preload may not have resolved yet.
-        if (Character.border.svg) {
-            this.token.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
-        }
+        // The player side is friendly to itself, so the disc is set here and
+        // not sent (D4); the tier stays normal. The ring is the default family
+        // until C3 lets the player choose one (D20).
+        this.medallion = new Medallion(slots, portrait, size);
+        this.medallion.setStance(Stance.Friendly);
+        this.ringDrawn = this.medallion.setRing(PLAYER_RING);
 
         return group;
     }
@@ -321,7 +333,7 @@ export class Character extends GameObject
 
     private ensureAscensionFx(): AscensionChannelFx {
         if (this.ascensionFx === null) {
-            this.ascensionFx = new AscensionChannelFx(this.shape);
+            this.ascensionFx = new AscensionChannelFx(this.aboveArt);
         }
         return this.ascensionFx;
     }
@@ -375,6 +387,4 @@ export class Character extends GameObject
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Character.avatar,
     {file: GraphicsConfig.character.file, packIcon: GraphicsConfig.character.packIcon}, GraphicsConfig.character.size);
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Character.border, GraphicsConfig.character.borderFile, GraphicsConfig.character.size);
 

@@ -88,13 +88,6 @@ export function hpToDisplay(hp: number): number {
 }
 
 /**
- * The label of the TOKEN container (plan-natural-weapons.md §3.2, PO ruling
- * D9): the portrait and its frames, as one node under `shape`, so a lunge
- * moves the whole medallion and nothing hung beside it.
- */
-export const TOKEN_LABEL = 'token';
-
-/**
  * `setBodyOffset` for an entity with a token container. Guarded: a destroyed
  * container has no position to write (Pixi nulls it on destroy).
  */

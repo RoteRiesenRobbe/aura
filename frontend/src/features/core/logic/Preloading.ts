@@ -14,6 +14,8 @@ import {applyI18n} from '../../localization/logic/DomI18n';
 export interface PortraitSource {
     file: string | { default: string; };
     packIcon?: string;
+    // Multiplies the pack portrait only (Graphics.ts `packTint`).
+    packTint?: number;
 }
 
 
@@ -107,7 +109,7 @@ export function registerGameObjectSVG(
     // than throwing, so the file path stays the one that can fail here.
     return registerPreload(
         Promise.all([fileTexture, packIconsReady]).then(([texture]: [Texture, void]) => {
-            gameObjectClass.svg = (portrait.packIcon && packIconTexture(portrait.packIcon)) || texture;
+            gameObjectClass.svg = (portrait.packIcon && packIconTexture(portrait.packIcon, portrait.packTint)) || texture;
         }),
     );
 }

@@ -5,7 +5,10 @@
 > session.** Ordering PO-ruled 2026-08-24: **`plan-entity-medallions.md`
 > executes FIRST** (at least through its C1/C2 geometry and stance chunks);
 > this plan's design session runs against the ratified token, not against the
-> current six loose overlays. See §4.
+> current six loose overlays. See §4. (Since 2026-10-17 those medallion chunks
+> are `plan-appearance.md` C0-C2.) ⭐ **Scheduled 2026-10-17 (PO): this plan's
+> design session runs right after `plan-appearance.md` C6** (that plan is
+> approved and next, order in its §7).
 >
 > ⚑ The backlog number **§39 stays the citation anchor**: many docs and two
 > other backlog sections cite "§39" by number, and the backlog entry remains
@@ -113,7 +116,7 @@ trigger stays a PO call; nothing is scheduled by this doc.
   font) is `plan-ui-pass.md`'s lane; its §1 excludes this plan's scope
   symmetrically ("a world-rendering conversation, not a HUD one").
 - **Frame customization** (player rings, per-NPC frames) is
-  `plan-avatar-system.md`'s lane via medallions D6/D7.
+  `plan-appearance.md`'s lane (it superseded `plan-avatar-system.md`).
 
 ## 6. The queue: everything waiting on this plan
 

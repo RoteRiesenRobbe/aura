@@ -1,5 +1,14 @@
 # Medallion asset spec - what the artist delivers
 
+> ⭐ **CHANGED 2026-10-17 (PO, `../plan-appearance.md` C1): there are no rim
+> files any more, and rings are drawn in GREYSCALE.** The tier now recolours
+> the ring itself in code (normal grey, elite silver, boss gold), because a
+> separate hand-drawn rim and a recoloured ring do not mix. So: skip §4.3
+> (`rim_<family>_*.png`) entirely, and draw every `ring_<family>.png` in
+> greys only, light enough that a tint can turn it silver or gold (a tint
+> multiplies: dark greys stay dark whatever the tier). The shape of each
+> family's ring is still its identity. The rest of this spec stands.
+
 > **Status: CONTRACT DRAFT 2026-08-20 · REVISED 2026-08-22 (artist feedback
 > round 1).** Companion to `pipeline.md` (how art gets on screen) and the
 > design doc `../plan-entity-medallions.md` (why the layers exist and what

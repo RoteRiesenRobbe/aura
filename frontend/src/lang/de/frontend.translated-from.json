@@ -122,6 +122,7 @@
   "journal.label": "Journal",
   "journal.objective.done": "{line} ✓",
   "journal.objective.harvest": "{n, number}/{m, number} {mob} harvested",
+  "journal.objective.herd": "{n, number}/{m, number} {mob} brought back",
   "journal.objective.kill": "{n, number}/{m, number} {mob} slain",
   "journal.objective.reach": "Go to {place}",
   "journal.objective.talk-to": "Talk to {name}",

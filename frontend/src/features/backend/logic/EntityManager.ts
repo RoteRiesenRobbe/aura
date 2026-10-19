@@ -169,6 +169,10 @@ export class EntityManager {
             if (isDefined(entity.tier) && isFunction(go.setTier)) {
                 go.setTier(entity.tier);
             }
+            // Medallion disc by stance toward the player side (appearance C2).
+            if (isDefined(entity.stance) && isFunction(go.setStance)) {
+                go.setStance(entity.stance);
+            }
             // Species id → the level-tinted nameplate, resolved against the
             // /mobs catalog (feedback pass C item 2). Sent every tick like the
             // rest; the mob rebuilds the plate only when the id actually

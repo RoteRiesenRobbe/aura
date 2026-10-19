@@ -204,13 +204,29 @@
       "level": 1
     }
   ],
-  "exits": [
+  "exitAreas": [
     {
-      "id": "barn-cellar-stairs",
-      "x": 0.11,
-      "y": 4.66,
+      "points": [
+        {
+          "x": -0.58,
+          "y": 4.34
+        },
+        {
+          "x": 0.85,
+          "y": 4.34
+        },
+        {
+          "x": 0.85,
+          "y": 4.89
+        },
+        {
+          "x": -0.58,
+          "y": 4.89
+        }
+      ],
       "anchor": "barn-surface",
-      "look": "stairs-up"
+      "sigil": "none",
+      "particles": "none"
     }
   ],
   "regions": [
@@ -327,8 +343,8 @@
   "anchors": [
     {
       "name": "barn-inside",
-      "x": 0.11,
-      "y": 4.4
+      "x": 0.14,
+      "y": 4.05
     }
   ]
 }

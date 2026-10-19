@@ -19,6 +19,17 @@ const (
 // Bit is the faction's position in an aggro bitmask (mirrors factions.Bit).
 func (f Faction) Bit() uint64 { return 1 << f }
 
+// Stance is a mob's current stance toward the player side, for presentation
+// only: the client paints it on the medallion disc (plan-appearance.md C2).
+// The values are the wire Mob.stance enum's (server.fbs), 0 = hostile.
+type Stance uint8
+
+const (
+	StanceHostile Stance = iota
+	StanceNeutral
+	StanceFriendly
+)
+
 // HostilityGate is implemented by combatants whose harm rights are gated
 // (mobs; chunk 6.6 in-game fix). Hostility is two-layered: the STATIC layer
 // is the declared per-faction aggro set, the DYNAMIC layer is active combat

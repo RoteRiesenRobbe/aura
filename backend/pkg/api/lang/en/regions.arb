@@ -44,14 +44,6 @@
   "@exit-look.stairs-up.text": {
     "description": "What every exit drawn as stairs leading up says by default when the player presses E at it: the line in its panel, under the place name. Replaced where the destination or the exit writes its own."
   },
-  "exit.barn-cellar-stairs.go": "Climb the stairs.",
-  "@exit.barn-cellar-stairs.go": {
-    "description": "The button on the barn cellar stairs (exit \"barn-cellar-stairs\") that takes the player up out of the barn cellar. An imperative, like \"Climb down.\""
-  },
-  "exit.barn-cellar-stairs.text": "Wooden steps lead up and out of the cellar.",
-  "@exit.barn-cellar-stairs.text": {
-    "description": "What the stairs out of the barn cellar (exit \"barn-cellar-stairs\") say when the player presses E at them: one line in the door's panel."
-  },
   "region.ashen-fields.subtitle": "Cinder and Bone",
   "@region.ashen-fields.subtitle": {
     "description": "Region banner subtitle under \"The Ashen Fields\"."
@@ -154,6 +146,15 @@
   "region.grimwatch.title": "Fort Grimwatch",
   "@region.grimwatch.title": {
     "description": "Region banner title of the place \"grimwatch\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.hans-pen.subtitle": "Farmlands",
+  "@region.hans-pen.subtitle": {
+    "description": "Region banner subtitle under \"Sheep Pen\"."
+  },
+  "region.hans-pen.title": "Sheep Pen",
+  "@region.hans-pen.title": {
+    "description": "Region banner title of the place \"hans-pen\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
   "region.hollow-marsh.subtitle": "Empty Hearths",

@@ -136,6 +136,27 @@ func TestMobMarshalFlatbuf_Tier(t *testing.T) {
 	}
 }
 
+// Mob.stance (plan-appearance.md C2): the mob's stance toward the player side
+// rides the wire for the medallion disc. The model and wire enums are two
+// copies of one table, so their values are pinned against each other here.
+func TestMobMarshalFlatbuf_Stance(t *testing.T) {
+	assert.Equal(t, byte(model.StanceHostile), byte(AuraApi.StanceHostile))
+	assert.Equal(t, byte(model.StanceNeutral), byte(AuraApi.StanceNeutral))
+	assert.Equal(t, byte(model.StanceFriendly), byte(AuraApi.StanceFriendly))
+
+	hostile := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil) // bare def: hunts players
+	assert.Equal(t, AuraApi.StanceHostile, marshalledMob(t, hostile).Stance())
+
+	passive := testMobDef(mobs.RoleCreature)
+	passive.Faction = 3
+	passive.AggroMask = 0
+	assert.Equal(t, AuraApi.StanceNeutral, marshalledMob(t, mob.NewMob(passive, 0, nil)).Stance())
+
+	friendly := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil)
+	friendly.Align()
+	assert.Equal(t, AuraApi.StanceFriendly, marshalledMob(t, friendly).Stance())
+}
+
 // Mob.radius (plan-entity-model.md chunk 3a): the body radius in px. The field
 // was in the schema from the start but never written — every mob sprite class
 // sizes itself from GraphicsConfig, so a permanent 0 was invisible. The merged

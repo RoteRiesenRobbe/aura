@@ -6,6 +6,9 @@ description: Session-end bookkeeping when a plan chunk / session is finished —
 Ritual for recording a finished chunk/session so the status surfaces stay
 consistent. **Never commit, branch, or push as part of this** — that is a
 separate, explicitly-requested step (project rule). Wrap-up = docs only.
+When that commit is requested, stage by path only the files this session
+changed (never `git add -A`): another session may have uncommitted work in
+the same tree.
 
 ## Pick the tier FIRST — most sessions are not FULL
 
@@ -72,7 +75,9 @@ collapsing it is part of *your* wrap, not a future someone's.
 ## The harness gate — run it BEFORE writing the banner
 
 A chunk that changes behaviour a browser harness asserts **owns that harness**.
-Run every script whose row in the `verify` skill's **Coverage map** matches this
+Run every script whose row in the `verify` skill's **Coverage map** (index in
+its SKILL.md, full rows in `.claude/skills/verify/coverage.md`; add new rows
+there) matches this
 chunk — that skill owns the operational detail (restart the server first, one
 script at a time, the `git stash` + rebuild settlement for a red run). Act on
 the result *in this chunk*:

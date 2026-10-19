@@ -108,5 +108,6 @@ export enum EntityType {
   Firelord = 118,
   FireStirer = 119,
   BerryBush = 120,
+  Sheep = 121,
   Passage = 122
 }

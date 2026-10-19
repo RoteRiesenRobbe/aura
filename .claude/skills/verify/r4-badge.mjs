@@ -49,14 +49,15 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-// ⚑ Stand next to the HERMIT (-54.9, 25.6), the actor the throwaway aura is
+// ⚑ Stand next to the HERMIT (-121.57, -29.72 since the world rebuild; it
+// stood at -54.9, 25.6 when this was written), the actor the throwaway aura is
 // authored on. Run 1 of this script warped to (-57, 26) intending the Farmer
 // and the server offered the Hermit instead — 0.6 units away vs the Farmer's
 // 2.6, i.e. the only one inside the 2.0 talk range. The geometry came back
 // clean and meant NOTHING, because the badged actor had no aura. Assert the
 // precondition, never assume the intended actor was the one reached.
-const NEAR_HERMIT = w(-55, 25);  // 0.6 units off the Hermit — badge lights without walking
-const FAR_AWAY = w(-23, 14);     // the most open tile in the zone, ~37 units off
+const NEAR_HERMIT = w(-121, -29);  // 0.9 units off the Hermit, no other conversant within 8 — badge lights without walking
+const FAR_AWAY = w(-23, 14);     // the most open tile in the zone, ~99 units off
 
 // The badge's own layout constants (InteractBadge.ts), needed to reconstruct
 // what the pre-R4 anchor would have been from the same frame.
@@ -122,7 +123,27 @@ const badgeGeometry = () => page.evaluate((gap) => {
   if (text === null) return null;
 
   const badge = text.parent;
-  const shape = badge.parent;
+  // The badge hangs on the mob's PLATE since plan-passages.md (PO 2026-10-19:
+  // above every prop); the plate stands where the shape does, so the shape is
+  // the mobs-layer group at the plate's position. (In the shape group's
+  // aboveArt slot before that, plan-appearance.md C0a.)
+  const shapeAt = (p) => {
+    let best = null, bestD = Infinity;
+    const scan = (c) => {
+      for (const k of (c?.children || [])) {
+        if (k.parent?.label === 'npcs' || k.parent?.label === 'wildlife') {
+          const d = Math.hypot(k.x - p.x, k.y - p.y);
+          if (d < bestD) { best = k; bestD = d; }
+        } else {
+          scan(k);
+        }
+      }
+    };
+    scan(window.__auraRoot);
+    return best;
+  };
+  const shape = badge.parent.label === 'mobPlate' ? shapeAt(badge.parent.position)
+    : badge.parent.label === 'aboveArt' ? badge.parent.parent : badge.parent;
   const shapeBounds = shape.getLocalBounds();
   const capHeight = badge.getLocalBounds().height;
 
@@ -132,7 +153,7 @@ const badgeGeometry = () => page.evaluate((gap) => {
   // the badge's own height and turn a no-op into a fake delta.
   let groupTop = 0;
   for (const c of shape.children) {
-    if (c === badge) continue;
+    if (c === badge || c === badge.parent) continue;
     groupTop = Math.min(groupTop, (c.y || 0) + c.getLocalBounds().y);
   }
   return {

@@ -5609,7 +5609,7 @@ and §55 documents why re-factioning players breaks every mob aggro mask). Call 
    campfire that starts discovered *and* bound, reusing `home_campfire_id`
    (nullable; NULL → zone default spawn today). Gives a sane day-one map state and
    composes with fast travel.
-3. **Recorded here**, referenced from `plan-avatar-system.md` (which owns the
+3. **Recorded here**, referenced from `plan-appearance.md` (which owns the
    creation screen the choice lives on).
 
 ### Answered by current state — how the starting kit works today
@@ -5630,7 +5630,7 @@ and §55 documents why re-factioning players breaks every mob aggro mask). Call 
 
 - **A ninth content directory, `api/origins/`** — each origin bundles: extra
   creation unlocks/pre-equips, the home-campfire id (ruling 2), and later the
-  avatar defaults `plan-avatar-system.md` parks. Wire it into
+  avatar defaults `plan-appearance.md` parks. Wire it into
   `cmd/aurad/loaders.go` `contentSources` (standing rule: every `api/` subdir
   stays covered or content edits silently no-op).
 - **Optional `origin` field on milestone rows** (ruling 1). Both filter sites
@@ -5678,7 +5678,7 @@ and §55 documents why re-factioning players breaks every mob aggro mask). Call 
 ### When to build
 
 Not before ascension C1 — C1 builds the creation-seeding seam this rides on, and
-the creation *screen* belongs to `plan-avatar-system.md` (§8 there now points
+the creation *screen* belongs to `plan-appearance.md` (§8 there now points
 here). With both in place, an origin is authored content plus one migration.
 
 ### PO addendum 2026-08-08 — the creation choice is also an ONBOARDING fix, and may want a thin slice
@@ -5699,7 +5699,7 @@ there until abilities roll in.
   free-aura landmine above applies to whatever is pickable.
 - ⚑ Sequencing tension, deliberately left unresolved here: "When to build"
   above says not before ascension C1, and the creation screen belongs to
-  `plan-avatar-system.md` — but the PO's "we need a character creation anyways"
+  `plan-appearance.md` — but the PO's "we need a character creation anyways"
   signals earlier priority. Whether the thin slice jumps the queue is a roadmap
   call, not made in this note. The **quick-first-quest variant needs no
   creation screen at all** (the quest layer shipped 2026-07-30), which makes it

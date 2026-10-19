@@ -33,7 +33,7 @@ world-rendering conversation, not a HUD one) and any balance number.
 5. Minimap restyle.
 6. Panel chrome.
 7. Aura-VFX / tick-indicator polish pass.
-8. Avatar picker + icon-unlock track - waits on `plan-avatar-system.md`;
+8. Avatar picker + icon-unlock track - waits on `plan-appearance.md` (superseded `plan-avatar-system.md` 2026-10-17);
    naturally follows the accounts half.
 9. Flavor-description authoring pass (~47 one-liners, drafted for PO review).
 
@@ -380,7 +380,7 @@ Rough dependency order; the chunking session owns the real one:
 - **World presentation**: `plan-entity-medallions.md` (first, PO 2026-08-24)
   → `plan-entity-presentation.md` (state layer + wire widening). Parallel by
   R1; the design languages should converge via the §3 anchor.
-- **Avatar picker**: `plan-avatar-system.md`, sequenced after medallions
+- **Avatar picker**: `plan-appearance.md` (superseded `plan-avatar-system.md` 2026-10-17), built together with medallions
   D6/D7 (frame customization is claimed there); its persistence prerequisite
   has been satisfied since 8a.
 - **Strings**: `plan-localization.md` C0-C4. Coordination point: C0's string

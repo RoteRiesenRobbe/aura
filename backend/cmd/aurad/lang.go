@@ -82,7 +82,11 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 						findings = append(findings, fmt.Sprintf("lang quests: quest %q stage %q: a %s objective (%s) needs its own "+
 							"tracker, e.g. %q (plan-localization.md Q2)", q.ID, s.ID, o.Kind, o.TargetName, "Talk to "+o.TargetName))
 					}
-					if (o.Kind == quests.ObjectiveKill || o.Kind == quests.ObjectiveHarvest) && c.mobs != nil {
+					// A herd line counts its animal too (plan-herding.md D6), unless it
+					// names one by its own tracker ("Bring Baabara home").
+					counted := o.Kind == quests.ObjectiveKill || o.Kind == quests.ObjectiveHarvest ||
+						(o.Kind == quests.ObjectiveHerd && o.Tracker == "")
+					if counted && c.mobs != nil {
 						if def, err := c.mobs.Get(o.Target); err == nil && !lang.HasPlural(def.NameMessage()) {
 							findings = append(findings, fmt.Sprintf("lang quests: quest %q stage %q: %s objective counts %s, "+
 								"whose name has no plural; write it as {count, plural, one {…} other {…}} in %s (plan-localization.md D24)",

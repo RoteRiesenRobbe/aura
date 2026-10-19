@@ -126,6 +126,9 @@ type MobEntity interface {
 	// TierRank is the authored mob tier as its wire byte (wire tier — the client
 	// draws the portrait frame ring from it; triage item 15).
 	TierRank() mobs.TierRank
+	// Stance is the mob's current stance toward the player side (wire
+	// stance: the client tints the medallion disc from it; plan-appearance.md C2).
+	Stance() Stance
 	// LightRadius is the light emitted by the active aura's light_aura effect,
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).

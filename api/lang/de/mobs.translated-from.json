@@ -87,7 +87,7 @@
   "mob.SandClamper.name": "Sand Clamper",
   "mob.Seaweed.name": "{count, plural, one {Seaweed} other {Seaweed}}",
   "mob.Shaman.name": "Shaman",
-  "mob.Sheep.name": "Sheep",
+  "mob.Sheep.name": "{count, plural, one {Sheep} other {Sheep}}",
   "mob.ShieldbearerCompanion.name": "Shieldbearer Companion",
   "mob.Skeleton.name": "Skeleton",
   "mob.SkeletonArcher.name": "Skeleton Archer",

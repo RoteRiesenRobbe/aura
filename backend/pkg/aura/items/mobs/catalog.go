@@ -23,8 +23,9 @@ import (
 // and hand players an out-of-game answer key (zero-hint policy — the
 // spellbook's unlock sources are meant to be discovered). What is served is
 // what the client has to RENDER and cannot get any other way: the nameplate's
-// four facts, and since C2b the one aura id behind a mob's ambient VFX (see
-// AuraSkillID, which states why an id is not a hint).
+// four facts, since C2b the one aura id behind a mob's ambient VFX (see
+// AuraSkillID, which states why an id is not a hint), and since
+// plan-appearance.md C1 the faction the medallion ring is keyed on.
 type CatalogEntry struct {
 	ID   MobID  `json:"id"`
 	Name string `json:"name"`
@@ -77,6 +78,15 @@ type CatalogEntry struct {
 	// and now its dressing), and an id names no drop, no unlock and no number.
 	// The loadout proper - levels, damage, the other skills - still stays off.
 	AuraSkillID skills.SkillID `json:"auraSkillId"`
+	// Faction is the species' authored faction name, "" for none
+	// (plan-appearance.md C1, plan-entity-medallions.md §6.1). The client keys
+	// the medallion's ring art family on it; the faction -> family map is art
+	// direction and lives client-side.
+	//
+	// The second field here that is not a nameplate fact. It breaches nothing
+	// the zero-hint policy guards: skill tooltips already print faction names
+	// to players, and a faction names no drop, unlock or number.
+	Faction string `json:"faction"`
 }
 
 // activeAuraSkillID is the species' running aura, or 0. First match wins; that
@@ -115,6 +125,7 @@ func CatalogJSONIn(r Registry, tr lang.Tr) ([]byte, error) {
 			CombatTarget: d.IsCombatTarget(),
 			Conversant:   d.Interaction != nil,
 			AuraSkillID:  activeAuraSkillID(d),
+			Faction:      d.FactionName,
 		})
 	}
 	return json.Marshal(entries)

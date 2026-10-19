@@ -1179,7 +1179,8 @@ node -e '
 const fs = require("fs");
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/barn.json", "utf8"));
+// The tunnel: the barn way out became a touch exit (2026-10-19).
+const z = JSON.parse(fs.readFileSync("api/zones/tunnel.json", "utf8"));
 Object.assign(z.exits[0], {rotation: 1.571, look: "door"});
 fs.writeFileSync("tools/tiled/.verify/exit-turn.json", C.serializeZone(z, true));
 '

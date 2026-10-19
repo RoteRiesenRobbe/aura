@@ -2243,7 +2243,7 @@ save; open "Show all kinds". Nothing under `api/` changes, `git status`
 proves it. Docs: this plan (§9 C3 bullet, a C3c ledger), the editor README
 (the preview and its dev-server requirement), `manual-content-authoring.md`
 "Visuals" (one sentence: the editor shows each kind live), the verify
-skill's Coverage map (the new script), CLAUDE.md Status at wrap.
+skill's `coverage.md` (the new script's row, plus an index line in SKILL.md), CLAUDE.md Status at wrap.
 
 ## 12g. C3a amendment: attacks stem from the attacker, the hit mark is automatic (PO look 2026-09-21)
 

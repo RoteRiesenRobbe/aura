@@ -256,11 +256,20 @@ export class ConversationModel {
         return row;
     }
 
-    /** Pop the back-stack. No-op at the root, where Back is not drawn. */
+    /**
+     * Pop the back-stack to the last node where the player had a real choice
+     * (two or more takeable rows), or to the entry node at its bottom. A chain of
+     * single-row nodes is one beat, not one Back press per row. Rows are counted
+     * on the tree as it is NOW, and a node that has vanished is skipped. No-op at
+     * the root, where Back is not drawn.
+     */
     back(): void {
         this.spokenReply = '';
         this.replyLeadsNode = false;
-        const previous = this.backStack.pop();
+        let previous = this.backStack.pop();
+        while (previous !== undefined && this.backStack.length > 0 && !this.isChoice(previous)) {
+            previous = this.backStack.pop();
+        }
         if (previous !== undefined) {
             this.nodeId = previous;
         }
@@ -289,6 +298,12 @@ export class ConversationModel {
             return node.lines;
         }
         return this.replyLeadsNode ? [this.spokenReply, ...node.lines] : [this.spokenReply];
+    }
+
+    /** Whether a node offers more than one takeable row (locked rows are inert). */
+    private isChoice(id: string): boolean {
+        const node = this.nodeById(id);
+        return node !== null && node.rows.filter((r) => !r.locked).length > 1;
     }
 
     private nodeById(id: string): ConversationNode | null {

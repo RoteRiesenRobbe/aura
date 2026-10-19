@@ -517,8 +517,9 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         — **PLANNED 2026-07-21 → `plan-ui-polish.md` chunk 1** (skill-catalog
         HTTP endpoint + stats-only tooltips; also retires the Skills.ts
         hand-sync above via the catalog)
-  - [ ] Avatar state reactions (damaged / happy / dead) + on-token effect display
-        (current damage VFX, DoTs, and other states on the token)
+  - [x] ~~Avatar state reactions (damaged / happy / dead) + on-token effect display~~
+        **CUT 2026-10-17 (PO).** The hit flash ships, a dead player's corpse is
+        `plan-appearance.md` D14; on-token effect state is `plan-entity-presentation.md`'s.
   - [ ] **Aura VFX/animation/polish pass** (named 2026-07-10 — previously no
         step owned it): full visual treatment for auras incl. the **tick-timing
         indicator** (GDD §4 — readable for own AND mob auras; a *minimal*
@@ -530,6 +531,8 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
         spellbook unlocks). **Designed together with the avatar picker below as
         one system — see `plan-avatar-system.md` (design sketch 2026-07-14).**
+        **Superseded 2026-10-17 by `plan-appearance.md`** (unlocks via conditions,
+        owned per character, bloodline or account).**
   - [ ] Unlock & level-up popups (collected 2026-07-11) — **PO ruling
         2026-07-21: implement via the existing in-game announcement system
         (AlertBanner lane), not a new overlay mechanism** — designed in-game
@@ -560,7 +563,8 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   item starts clean. Portrait art [PLACEHOLDER]. **Design sketch fusing this
   with the icon-unlock track above (unlock gating, per-account ownership,
   mid-game re-selection, wire + build order): `plan-avatar-system.md`
-  (2026-07-14).**
+  (2026-07-14).** **Superseded 2026-10-17 by `plan-appearance.md`**, which
+  builds it together with the entity medallions.
 
 ## 9. Remaining unlock sources
 
@@ -1069,9 +1073,9 @@ system ships blind.
    8a does not close it (that independence is exactly why the split exists).
    The styling pass
    (`plan-ui-polish.md`, chunk 1 done, rest deferred) and avatar selection
-   (`plan-avatar-system.md`, design sketch, unscheduled). Largely independent of
-   8a — only avatar *persistence* (`plan-avatar-system.md` §7 chunk 4) needs 8a's
-   storage; that plan's chunks 1–3 ship without accounts.
+   (`plan-appearance.md`, approved 2026-10-17 and next, starting at C0a: the player's chosen
+   portrait and ring, built together with the entity medallions; it superseded
+   `archive/plan-avatar-system.md`).
    **Audio — location-music half only (added 2026-07-09; combat SFX split to
    step 6 on 2026-07-14; needs a go/no-go review when reached; may still be cut):**
    location-based background music (forest vs. cave *within* a zone), music
@@ -1290,6 +1294,46 @@ system ships blind.
    until then the live database holds real accounts and **nothing off-box holds a
    copy**. Whichever comes first — this step or the ascension loop — is where the
    backup question gets re-asked.
+
+### Parked threads and watch items
+
+Moved out of `CLAUDE.md ## Status` on 2026-10-18 to keep the always-loaded file small; the entries are verbatim as of that date. `CLAUDE.md` keeps only the live "Next" work and the standing rules. When an item here becomes current, move it back into `CLAUDE.md` Status "Next".
+
+- **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
+
+- **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells a light covers (yours ≥ 2.5 u, or static); the server decides. PO look passed 2026-10-11; owed: the wire cost.
+
+- **⏸ WORLD EFFECTS: narrowed, NOT approved** (`docs/plan-world-effects.md`, D1-D30, 7 chunks proposed): ⛔ approval waits for the first content (Q11); the buff tray it waited for (D30) is built; only its C2 adds tenants. ⚑ `damageDealt`'s read site unsurveyed (Q13); line refs pinned to `56ebb5a7`.
+
+- **⭐ ICON PACK: distribution is open** (`THIRD_PARTY.md`): atlases only for the seat holder + server (clones draw glyphs), a private sidecar repo, or an encrypted archive (a licence call). ⚑ 14 MB of atlases per load, unmeasured on the phone; a coworker's new skill shows a glyph until the seat holder repacks.
+
+- **⭐ THE UNDERWORLD owes U0 + an in-game pass** (`docs/plan-underworld.md` §7): engine done, U5 DROPPED 2026-09-10. ⛔ U1→U4b never walked in-game; §7.3: L8 campfire check, walls-as-`paths`. ⚑ U6 zone placement designed, not built (§7.2). U0 = `plan-world-scale.md` S1.
+
+- **⏸ LINE OF SIGHT (light)** (`docs/plan-line-of-sight.md`, B1→B3): unscheduled, NOT ruled. ⛔ Not next (PO 2026-09-21): aura-LoS (`c42e1100`) got "we don't need it yet"; whether that covers light is OPEN. Lights shine through cave walls; §7: 4 PO calls. ⚑ `cleanup.md` #1: retire `darkAreas`?
+
+- **⭐ ZONE POLYGONS: JUDGEMENT left** (`docs/plan-zone-polygons.md` §12): coupled [PLACEHOLDER]s cell 0.5 u · boundary 1 u (⛔ L11, unchecked vs flight/knockback) · body cap 256; stroke ≥ cell × √2. ⚑ `Wall`'s `"texture": "null"` is a STRING (works by accident). ⚑ D6 coarsening unseen in-game. Owed: `c3-zone-editor-level`.
+
+- **⭐ WORLD LOOK.** `docs/plan-world-paths.md` §12 owes **C4**: the 372 `Sand` blobs as paths (PO 2026-09-07). ⏸ `docs/plan-region-primitive.md`: look sitting. ⭐ `docs/plan-ground-noise.md`: W1b + W1c shipped `a4ad7f0c`, look + phone owed (§8); W2 not built.
+
+- **⭐ SERVER PERF + WORLD SCALE** (`docs/plan-server-performance.md`, `docs/plan-world-scale.md`): perf 0+3 shipped; 1/2/4/5, S1 unstarted. ⚑ PhysicsSystem was 74 % at 10× (M1-F3), chunk 4 may outrank chunk 1. ⛔ M1-F2's residues recorded, NOT fixed.
+
+- **⏸ Parked:** `plan-prototype-projectile.md` owes its SECOND in-game pass (§10), deciding P2/P3 or delete · `plan-play-bot.md` not built · `plan-npc-hails.md` + `plan-mob-voicelines.md` DEFERRED. ⚑ Unowned: zone-editor C3's dead Go plumbing, broken `wiki-generator/`.
+
+- **⭐ FIRST RELEASE MAP, CAMPS ARE CONTENT** (2026-08-22; `docs/plan-release-map.md`, owes a planning session, §7 PO calls): membership = a completed quest, exclusivity = `quest_at_stage`; schema NONE. ⏸ `plan-camps.md` DEFERRED. ⛔ `plan-test-world.md` DROPPED.
+
+- **Watch items.** CC (`docs/archive/plan-cc-and-retaliation.md`): mobs slow AND stun players, stuns diminish for all · CC immunity silent in-game · stun wire-identical to slow on the PIPS (§39; the tray's `kinds` tells them apart) · player stun chains UNSEEN past step two. Mob/XP tuning, unowned: **re-price HP/damage every placement** (incl. the pyromancer) · the levels 21-30 gap · ⚑ the single-target cap eased elites and bosses, UNMEASURED (sims are 1 player vs N).
+
+- **⭐ backlog §52, leave the world without a reload** (PO 2026-08-11): `docs/plan-leaving-the-world.md`, nothing built (shape (B) reset-not-teardown ≈ one chunk). Blocks §48.
+
+- ⚑ **Step 8a closed WITHOUT backups** (PO 2026-08-04): the live DB is losable. Still owed: firewall, DB to localhost, credentials, non-root deploy (`plan-playtest-deploy.md` §Ops).
+
+- **Smaller threads:** the Omni trio's PO check (`9ee8cdb4`, `omni-smoke` 17/17) · §47 stale "Connection lost" banner · §51 transient second queue entry · a character-name filter (spam passes the charset guard) · mobile perf ceiling · avatar/faction defaults (`plan-appearance.md`) · the password-reset plan's five questions · ascension §8 (stone lore + art, [PLACEHOLDER] gates, D29's ceremony seen only by its player).
+
+- **Backlog watch** (`docs/backlog.md`): §25 D+E · §27.2.4-7 (re-survey §27.2.6) · §29 lost-WebGL trigger unknown · §37 skill-level/augment rework · §39 entity presentation (`docs/plan-entity-presentation.md`) · §34 hard collision · §58 ANSWERED by Tiled (open until the PO moves a real texture there).
+
+- ⭐ **M1-F5, dormancy vs. a CREDIBLE sim** (`plan-world-scale.md` §11): **(A)** an unobserved mob-vs-mob fight never ends (a slept mob is out of `phy.Space`, unhittable), a design ruling. **(B)** a mob can freeze walking home off its route (`model/mob/patrol.go:108-113`), outside L7; fix: refuse sleep while `returnPosSet`.
+
+- **Open PO calls:** ⭐ §B11 Q7: Go validation on save for EVERY editor tab, retiring `validate.mjs`'s port (`docs/archive/plan-content-editor.md`) · ⭐ should `EntitiesMarshalFlatbuf`'s `default:` stop panicking? (`recover()` hid the corpse bug eight weeks) · the portal pair's COST · does a QUEST turn-in row show the ability it pays? · should FireShield's flat reflect scale?
 
 > **Superseded framing:** earlier drafts called item 12 "the only remaining
 > prototype gate" and everything else "turns the prototype into v1." That

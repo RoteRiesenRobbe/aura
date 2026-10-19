@@ -285,6 +285,9 @@ enum EntityType : ushort {
   // Bush (91) with Berryhunter's berries baked into the art: a second drawing
   // on the same non-blocking body, set dressing only (nothing to harvest).
   BerryBush = 120,
+  // A placeholder sheep (plan-herding.md D11): the herd Hans wants back in his
+  // pen, and the three named strays. Replaced at the Zone 1 art pass.
+  Sheep = 121,
   // A talk exit's door mob (plan-passages.md D4): the thing you press E at,
   // drawing NOTHING of its own (no art, no health bar, no frame, no plate).
   // The picture is the exit's `look`, drawn by the client from the bundled
@@ -400,6 +403,10 @@ table Resource {
   // encodes exactly the bytes it did before this field existed.
   underfoot:bool = false;
 }
+
+// A mob's stance toward the player side (plan-appearance.md C2); mirrors
+// model.Stance, pinned by codec's TestMobMarshalFlatbuf_Stance.
+enum Stance : ubyte { Hostile = 0, Neutral = 1, Friendly = 2 }
 
 table Mob {
   id:ulong;
@@ -549,6 +556,12 @@ table Mob {
   // Mirrors Character.light_flicker. Appended at the table end; omitted for
   // every steady light.
   light_flicker:bool = false;
+
+  // the mob's current stance toward the player side (plan-appearance.md C2,
+  // model.Stance): the client tints the medallion disc red / yellow / blue.
+  // Presentation only. Hostile is the default, so it costs no bytes for a
+  // mob that hunts players. Appended at the table end.
+  stance:Stance = Hostile;
 }
 
 table Character {
@@ -899,7 +912,8 @@ table QuestProgress {
   objective_list:[QuestObjective];
 }
 
-enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3 }
+// Herd (plan-herding.md D6): a herd animal penned. Appended; mirrors quests.ObjectiveKind.
+enum QuestObjectiveKind:ubyte { Kill = 0, Harvest = 1, TalkTo = 2, Reach = 3, Herd = 4 }
 
 // One current-stage objective line as data. stage = the stage's own tracker,
 // the single line that replaces every objective line (kind/target then name

@@ -40,6 +40,7 @@ export interface LevelDisplay {
 export interface MobPlate {         // Mob
     setMobId(mobId: number): void;
     setTier(rank: number): void;
+    setStance(stance: number): void;
 }
 
 export interface DwellRing {        // Campfire

@@ -550,6 +550,20 @@ type Mob struct {
 	invulnerable bool
 	fleeOverride bool
 
+	// Herding (plan-herding.md D3/D4, herd.go): the players this herd animal
+	// ran from by id, its own tick clock for their expiry, and how long it has
+	// stood in its pen; the run's lingering direction and ticks left, and its
+	// veer (angle, target, ticks to the next target). All zero on every mob
+	// without a herd block.
+	herders        map[uint64]herder
+	herdTick       uint64
+	penTicks       int
+	herdFleeDir    phy.Vec2f
+	herdFleeTicks  int
+	herdVeer       float32
+	herdVeerTarget float32
+	herdVeerTicks  int
+
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
@@ -919,7 +933,9 @@ func (m *Mob) refreshSensorMask() {
 	// would be silently mute, with every evaluator test still green. Same
 	// shape as the support widening above: the cost is confined to the mobs
 	// that need it.
-	if m.definition.Interaction != nil {
+	// A herd animal runs from players whatever it aggros (plan-herding.md D2),
+	// the same widening for the same reason.
+	if m.definition.Interaction != nil || m.definition.Herd != nil {
 		mask |= int(model.LayerPlayerCollision)
 	}
 	m.aggroAura.Shape().Mask = mask
@@ -1170,6 +1186,20 @@ func (m *Mob) Update(dt float32) bool {
 		fleeFrom = m.highestThreatTarget()
 	}
 	fearFrom, feared := m.fearFrom()
+	var herdFrom phy.Vec2f
+	herded := false
+	if m.definition.Herd != nil {
+		m.tickHerd()
+		// A talk holds a herd animal where it stands, as it holds a patrolling
+		// NPC (plan-herding.md D13): otherwise the panel would close the moment
+		// it opened, the animal running out of talk range. A talk also ends a
+		// lingering run, which must not resume when the panel closes.
+		if m.conversing {
+			m.herdFleeTicks = 0
+		} else {
+			herdFrom, herded = m.herdRun()
+		}
+	}
 
 	switch {
 	// A feared mob runs from the fearer ahead of everything else
@@ -1203,6 +1233,12 @@ func (m *Mob) Update(dt float32) bool {
 		} else {
 			m.resetChaseWatchdog()
 		}
+	// A herd animal runs from the players close by (plan-herding.md D2). Below
+	// every combat case on purpose: it is movement, not a fight, so a stag
+	// that is being hit still flees its attacker the combat way.
+	case herded:
+		m.resetChaseWatchdog()
+		m.moveAwayFrom(herdFrom)
 	default:
 		m.resetChaseWatchdog()
 		m.updateIdleMovement()
@@ -1870,6 +1906,8 @@ func (m *Mob) ForgetEntity(id uint64) {
 	if m.supportTarget != nil && m.supportTarget.Basic().ID() == id {
 		m.supportTarget = nil
 	}
+	// A departed player herds nothing any more (plan-herding.md D3).
+	delete(m.herders, id)
 }
 
 // InCombat reports whether this mob is currently engaged (model.Combatant;
@@ -1935,6 +1973,31 @@ func (m *Mob) MayHarm(f model.Faction, id uint64) bool {
 // authored on the species, and no summoned species is friendly.
 func (m *Mob) FriendlyToPlayers() bool {
 	return m.definition.FriendlyToPlayers
+}
+
+// Stance is the mob's current stance toward the player side (plan-appearance.md
+// C2), read every tick for the wire's medallion disc. First match wins:
+// calmed reads neutral (D32); aligned or friendly-to-players reads friendly;
+// hostile when it hunts players on sight, or when it is fighting the player
+// side right now, by aggro target or by a threat row (D28, PO 2026-10-18: so
+// a fleeing prey and a beaten pacifist read hostile too); neutral otherwise.
+func (m *Mob) Stance() model.Stance {
+	switch {
+	case m.buffs.Calmed():
+		return model.StanceNeutral
+	case m.faction == model.FactionAligned || m.definition.FriendlyToPlayers:
+		return model.StanceFriendly
+	case m.aggroMask&model.FactionAligned.Bit() != 0:
+		return model.StanceHostile
+	case m.aggroTarget != nil && m.aggroTarget.Faction() == model.FactionAligned:
+		return model.StanceHostile
+	}
+	for _, e := range m.threat {
+		if e.entity.Faction() == model.FactionAligned {
+			return model.StanceHostile
+		}
+	}
+	return model.StanceNeutral
 }
 
 // highestThreatTarget returns the living top-threat entity, pruning dead

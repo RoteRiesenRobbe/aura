@@ -63,4 +63,5 @@ func TestQuestObjectiveKind_MirrorsTheWire(t *testing.T) {
 	assert.Equal(t, AuraApi.QuestObjectiveKindHarvest, AuraApi.QuestObjectiveKind(quests.ObjectiveHarvest))
 	assert.Equal(t, AuraApi.QuestObjectiveKindTalkTo, AuraApi.QuestObjectiveKind(quests.ObjectiveTalkTo))
 	assert.Equal(t, AuraApi.QuestObjectiveKindReach, AuraApi.QuestObjectiveKind(quests.ObjectiveReach))
+	assert.Equal(t, AuraApi.QuestObjectiveKindHerd, AuraApi.QuestObjectiveKind(quests.ObjectiveHerd))
 }

@@ -64,20 +64,24 @@ export const packIconsReady: Promise<void> = load().catch((error: unknown) => {
  * and leaves the same transparent margin the old SVG template had (pipeline.md
  * §4: 82 % of the canvas), so an entity keeps its on-screen size.
  */
-const PORTRAIT_FILL = 0.86;
+export const PORTRAIT_FILL = 0.86;
 
 /**
  * A packed icon as a ROUND portrait texture (the medallion frame is round and
  * the pack's icons are square, PO 2026-09-23), or null when the pack has no
  * such icon. The square art is scaled down to PORTRAIT_FILL of the canvas and
  * clipped to that disc, once per name on a 2D canvas, shared by every sprite
- * that draws it. Call after `packIconsReady`.
+ * that draws it. A `tint` multiplies the art by that colour inside the same
+ * bake (plan-appearance.md D33: kin sharing a bust), so a tinted portrait is
+ * one more shared texture, never a per-sprite filter. Call after
+ * `packIconsReady`.
  */
-export function packIconTexture(name: string | null | undefined): PIXI.Texture | null {
+export function packIconTexture(name: string | null | undefined, tint?: number): PIXI.Texture | null {
     if (!name) {
         return null;
     }
-    const cached = portraitTextures.get(name);
+    const key = tint === undefined ? name : `${name}#${tint.toString(16)}`;
+    const cached = portraitTextures.get(key);
     if (cached) {
         return cached;
     }
@@ -99,8 +103,17 @@ export function packIconTexture(name: string | null | undefined): PIXI.Texture |
     ctx.arc(region.w / 2, region.h / 2, drawn / 2, 0, Math.PI * 2);
     ctx.clip();
     ctx.drawImage(image, region.x, region.y, region.w, region.h, offset, offset, drawn, drawn);
+    if (tint !== undefined) {
+        // Multiply the colour over the art, then cut it back to the art's own
+        // alpha: a plain fill would also paint the transparent background.
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = `#${tint.toString(16).padStart(6, '0')}`;
+        ctx.fillRect(0, 0, region.w, region.h);
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(image, region.x, region.y, region.w, region.h, offset, offset, drawn, drawn);
+    }
     const texture = PIXI.Texture.from(canvas);
-    portraitTextures.set(name, texture);
+    portraitTextures.set(key, texture);
     return texture;
 }
 

@@ -347,4 +347,98 @@ describe('ConversationModel', () => {
         expect(m.view()?.rows).toEqual([]);
         expect(m.view()?.canGoBack).toBe(true);
     });
+
+    // Back returns to the last node where the player actually CHOSE: a chain of
+    // single-row "go on" nodes is one beat, not one step per row. Only takeable
+    // rows count as a choice (a locked row is inert); the entry node always stops.
+    describe('Back skips single-path nodes', () => {
+        /** root (2 rows) → fork (2 rows, one locked) → hall (1 row) → end. */
+        function chain(forkOpen = 1): ConversationTree {
+            const forkRows = [
+                row({optionIndex: 0, text: 'Go on.', next: 'hall'}),
+                row({optionIndex: 1, text: 'Other way.', next: 'end', locked: forkOpen < 2}),
+            ];
+            return tree({
+                nodes: [
+                    {id: 'root', lines: ['Hello.'], rows: [
+                        row({optionIndex: 0, text: 'Tell me.', next: 'fork'}),
+                        row({optionIndex: 1, text: 'Never mind.', next: 'end'}),
+                    ]},
+                    {id: 'fork', lines: ['Well...'], rows: forkRows},
+                    {id: 'hall', lines: ['And then?'], rows: [row({text: 'And then?', next: 'end'})]},
+                    {id: 'end', lines: ['That is all.'], rows: []},
+                ],
+            });
+        }
+
+        function walkToEnd(m: ConversationModel): void {
+            m.take(m.view()!.rows[0]); // root → fork
+            m.take(m.view()!.rows[0]); // fork → hall
+            m.take(m.view()!.rows[0]); // hall → end
+            expect(m.currentNodeId()).toBe('end');
+        }
+
+        it('returns to the entry node past single-path nodes', () => {
+            const m = new ConversationModel();
+            m.update(chain());
+            walkToEnd(m);
+
+            m.back();
+
+            expect(m.currentNodeId()).toBe('root');
+            expect(m.view()?.canGoBack).toBe(false);
+            expect(m.view()?.showLeave).toBe(true);
+        });
+
+        it('stops at the last node with two takeable rows', () => {
+            const m = new ConversationModel();
+            m.update(chain(2));
+            walkToEnd(m);
+
+            m.back();
+            expect(m.currentNodeId()).toBe('fork');
+
+            m.back();
+            expect(m.currentNodeId()).toBe('root');
+        });
+
+        it('stops at a single-row entry node', () => {
+            const m = new ConversationModel();
+            const t = chain(2);
+            t.nodes[0].rows = [t.nodes[0].rows[0]];
+            m.update(t);
+            m.take(m.view()!.rows[0]); // root → fork
+
+            m.back();
+
+            expect(m.currentNodeId()).toBe('root');
+        });
+
+        // The tree is rebuilt every tick, so Back counts the rows a node has NOW.
+        it('skips a node whose second choice has since dropped out', () => {
+            const m = new ConversationModel();
+            m.update(chain(2));
+            walkToEnd(m);
+
+            const narrowed = chain(2);
+            narrowed.nodes[1].rows = [narrowed.nodes[1].rows[0]];
+            m.update(narrowed);
+            m.back();
+
+            expect(m.currentNodeId()).toBe('root');
+        });
+
+        it('skips a stacked node that has vanished', () => {
+            const m = new ConversationModel();
+            m.update(chain(2));
+            walkToEnd(m);
+
+            const gone = chain(2);
+            gone.nodes = gone.nodes.filter((n) => n.id !== 'fork');
+            m.update(gone);
+            m.back();
+
+            expect(m.currentNodeId()).toBe('root');
+        });
+    });
 });

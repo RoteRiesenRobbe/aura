@@ -69,6 +69,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	// definition.
 	AuraApi.MobAddAuraCategory(builder, byte(m.AuraCategories()))
 	AuraApi.MobAddTier(builder, byte(m.TierRank()))
+	// Stance toward the player side: the medallion disc's colour (C2).
+	AuraApi.MobAddStance(builder, AuraApi.Stance(m.Stance()))
 	// Buff/debuff kinds currently applied TO the mob — drives the pips.
 	AuraApi.MobAddAppliedEffects(builder, uint16(m.AppliedEffects()))
 

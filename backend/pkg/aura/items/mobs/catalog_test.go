@@ -158,8 +158,10 @@ func TestMobCatalogJSON_ConversantMeansAuthoredInteraction(t *testing.T) {
 //
 // `auraSkillId` is the ONE deliberate exception, added by C2b because a mob's
 // ambient VFX has no other way to learn which aura is running; CatalogEntry's
-// doc argues why an aura id is not an answer key. It is in the list so that
-// exception stays a decision somebody made, not a field that drifted in.
+// doc argues why an aura id is not an answer key. `faction` is the second
+// (plan-appearance.md C1): the medallion's ring family is keyed on it. Both
+// are in the list so each exception stays a decision somebody made, not a
+// field that drifted in.
 func TestMobCatalogJSON_ExposesNothingBeyondNameplateFields(t *testing.T) {
 	data, err := CatalogJSON(catalogTestRegistry(t))
 	require.NoError(t, err)
@@ -169,9 +171,39 @@ func TestMobCatalogJSON_ExposesNothingBeyondNameplateFields(t *testing.T) {
 		for k := range entry {
 			keys = append(keys, k)
 		}
-		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget", "conversant", "auraSkillId"}, keys,
+		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget", "conversant", "auraSkillId", "faction"}, keys,
 			"catalog must not leak drops/resistances/HP/skill loadouts")
 	}
+}
+
+// --- faction (plan-appearance.md C1, plan-entity-medallions.md §6.1) ---
+
+// The medallion ring is keyed on the species' faction, which the client had
+// nowhere else. The AUTHORED name travels, and a species that authors none
+// sends "" (it gets the built-in hostile faction server-side, but that is an
+// aggro default, not an art family, and the client draws its fallback ring).
+func TestMobCatalogJSON_FactionIsTheAuthoredName(t *testing.T) {
+	r, err := RegistryFromFS(testSkillRegistry(t), mustFactions(t), testCurve(), fstest.MapFS{
+		"wolf.json": {Data: []byte(`{
+		  "id": 12, "name": "Wolf", "type": "MOB", "curveLevel": 2,
+		  "faction": "wildlife_predator",
+		  "factors": {"baseMaxHealth": 20},
+		  "body": {"radius": 0.3, "aggroRadius": 3}
+		}`)},
+		"turnip.json": {Data: []byte(`{
+		  "id": 13, "name": "Turnip", "type": "MOB", "curveLevel": 1,
+		  "factors": {"baseMaxHealth": 20},
+		  "body": {"radius": 0.3, "aggroRadius": 0.1}
+		}`)},
+	})
+	require.NoError(t, err)
+
+	data, err := CatalogJSON(r)
+	require.NoError(t, err)
+	entries := decodeMobCatalog(t, data)
+
+	assert.Equal(t, "wildlife_predator", entries[0]["faction"])
+	assert.Equal(t, "", entries[1]["faction"], "no authored faction sends the empty name, never \"hostile\"")
 }
 
 // --- auraSkillId (plan-skill-vfx.md C2b, §12d.2) ---
