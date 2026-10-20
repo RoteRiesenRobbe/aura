@@ -943,7 +943,7 @@ involved): `skill-fx-preview.mjs` fails 2 legs (its `KINDS` list lacks
 `rush`, added in `d9a0b2ac`); `c3-zone-editor-level.mjs` 6/7, leg 3
 INCONCLUSIVE twice (the click selects spawn #479, not #0).
 
-### C3 - DONE 2026-10-20 `[uncommitted]` (PO in-game checks passed 2026-10-20)
+### C3 - DONE 2026-10-20 `e0bd30d0` (PO in-game checks passed 2026-10-20)
 
 The player wears a chosen medallion (D19, D20, D30, D39). Rulings taken in the
 session (PO, 2026-10-19/20, prompt rounds): player portraits are PONETI busts
