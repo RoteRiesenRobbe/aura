@@ -229,6 +229,25 @@ func TestNetSystem_Conversation_CloseSignalSurvivesTreeGating(t *testing.T) {
 	assert.Equal(t, uint64(0), closed.ConversationEntityId(), "closing must read as id 0 immediately")
 }
 
+// plan-passages.md D9: a touch exit's dwell rides every tick while it runs,
+// and reads 0 the tick it stops (the client's curtain cancel).
+func TestNetSystem_CrossingRidesEveryTick(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+
+	assert.Zero(t, decodeGameState(t, send(n, p)).Crossing(), "nobody is crossing by default")
+	p.SetCrossing(model.TravelDescend)
+	n.game.Tick = 2
+	assert.EqualValues(t, model.TravelDescend, decodeGameState(t, send(n, p)).Crossing())
+	n.game.Tick = 3
+	assert.EqualValues(t, model.TravelDescend, decodeGameState(t, send(n, p)).Crossing(),
+		"not change-only: an unchanged dwell still rides")
+	p.SetCrossing(model.TravelNone)
+	n.game.Tick = 4
+	assert.Zero(t, decodeGameState(t, send(n, p)).Crossing())
+}
+
 // ⭐ The regression leg for the review's finding 1: the client's "did this tick
 // carry the owner block" signal must be the EXPLICIT owner_state flag, never
 // inferred from a field's emptiness. A fresh character's spellbook is

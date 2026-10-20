@@ -89,6 +89,10 @@ type GameConfig struct {
 	// tests. Collected after world.Place, like AreaEffects.
 	Regions map[string][]world.PlacedRegion
 
+	// ExitAreas are every placed zone's touch exits in WORLD coordinates
+	// (plan-passages.md P4), what the PassageSystem point-tests players against.
+	ExitAreas []world.ExitArea
+
 	// MapFogDark is where the map reveal needs light (plan-map-fog-darkness.md
 	// C1), baked once from the PLACED zones. Nil means nothing is dark.
 	MapFogDark *mapfog.DarkMask

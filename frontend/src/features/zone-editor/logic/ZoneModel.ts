@@ -9,6 +9,8 @@
  */
 import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PROP_LAYERS, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
 import {AreaJSON, flattenAreas, ObjectKind} from '../../zones/logic/ZoneAreas';
+import {DEFAULT_EXIT_LOOK} from '../../exits/logic/ExitLookTable';
+import {EXIT_PARTICLES, EXIT_SIGILS} from '../../exits/logic/ExitAreaTable';
 
 // IN MEMORY ONLY, on every object: the zone file's area it came from
 // (plan-prop-draw-order.md P4), so a save puts it back in that group. The file
@@ -154,6 +156,36 @@ export interface ZoneAnchor extends InArea {
     y: number;
 }
 
+// A talk exit (plan-passages.md P1): a door to a zone anchor, authored in
+// Tiled on the `exits` layer. The server turns each into a door mob at load.
+// conversation undefined = the shared one, worded by the look (D12). rotation
+// (radians), look and hidden are the client's picture (P2, P3b).
+export interface ZoneExit extends InArea {
+    // Names the exit for its words (P3, D7); undefined = none.
+    id?: string;
+    x: number;
+    y: number;
+    rotation?: number;
+    anchor: string;
+    look?: string;
+    hidden?: boolean;
+    conversation?: string;
+}
+
+// A touch exit (plan-passages.md P4): an area that moves whoever walks into
+// it to a zone anchor, authored in Tiled on the `exits` layer as an
+// AuraExitArea. Carried, never edited, like a talk exit. No look (PO
+// 2026-10-19): the glow alone marks it.
+export interface ZoneExitArea extends InArea {
+    id?: string;
+    points: {x: number, y: number}[];
+    anchor: string;
+    hidden?: boolean;
+    // What it draws over the glow (PO 2026-10-19); absent = the default.
+    sigil?: string;
+    particles?: string;
+}
+
 // A polygon naming a client-side presentation profile — ground colour today,
 // footsteps/music/atmosphere later (plan-region-primitive.md).
 //
@@ -291,6 +323,9 @@ export interface ZoneData {
     // getZoneAsJSON regroups.
     props: PropLayersJSON<ZoneProp>;
     spawns: ZoneSpawn[];
+    // Omitted when empty, so a zone without exits round-trips diff-clean.
+    exits?: ZoneExit[];
+    exitAreas?: ZoneExitArea[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     bindPoints?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
@@ -408,6 +443,9 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
+    // Carried, never edited: exits are a Tiled job (plan-passages.md P1).
+    exits: ZoneExit[] = [];
+    exitAreas: ZoneExitArea[] = [];
     structures: ZonePolygon[] = [];
     atmospheres: ZoneAtmosphere[] = [];
     clearings: ZoneClearing[] = [];
@@ -466,6 +504,26 @@ export class ZoneModel {
             profile: r.profile,
             points: (r.points || []).map(p => ({...p})),
             area: r.area,
+        }));
+        model.exits = (data.exits || []).map(e => ({
+            id: e.id,
+            x: e.x,
+            y: e.y,
+            rotation: e.rotation,
+            anchor: e.anchor,
+            look: e.look,
+            hidden: e.hidden,
+            conversation: e.conversation,
+            area: e.area,
+        }));
+        model.exitAreas = (data.exitAreas || []).map(a => ({
+            id: a.id,
+            points: (a.points || []).map(pt => ({...pt})),
+            anchor: a.anchor,
+            hidden: a.hidden,
+            sigil: a.sigil,
+            particles: a.particles,
+            area: a.area,
         }));
         model.paths = (data.paths || []).map(p => ({
             profile: p.profile,
@@ -634,6 +692,8 @@ export class ZoneModel {
         const decals = mine(this.decals);
         const props = mine(this.props);
         const spawns = mine(this.spawns);
+        const exits = mine(this.exits);
+        const exitAreas = mine(this.exitAreas);
         const bindPoints = mine(this.bindPoints);
         const darkAreas = mine(this.darkAreas);
         const regions = mine(this.regions);
@@ -699,6 +759,34 @@ export class ZoneModel {
                 // would then take the keypress and move nobody.
                 anchor: s.anchor || undefined,
             })),
+            // ⚑ The L1 comment again: this editor cannot author an exit, so a
+            // missing line here deletes every door Tiled placed (plan-passages.md
+            // P1). serializeZone's shape exactly: every optional key absent at
+            // its default (no turn, the default look, the generic door).
+            exits: exits.length > 0
+                ? exits.map(e => ({
+                    id: e.id || undefined,
+                    x: round(e.x, 2),
+                    y: round(e.y, 2),
+                    rotation: e.rotation ? round(e.rotation, 3) || undefined : undefined,
+                    anchor: e.anchor,
+                    look: e.look && e.look !== DEFAULT_EXIT_LOOK ? e.look : undefined,
+                    hidden: e.hidden ? true : undefined,
+                    conversation: e.conversation || undefined,
+                }))
+                : undefined,
+            // Touch exits (P4), serializeZone's shape: id absent at its
+            // default.
+            exitAreas: exitAreas.length > 0
+                ? exitAreas.map(a => ({
+                    id: a.id || undefined,
+                    points: a.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
+                    anchor: a.anchor,
+                    hidden: a.hidden ? true : undefined,
+                    sigil: a.sigil && a.sigil !== EXIT_SIGILS[0] ? a.sigil : undefined,
+                    particles: a.particles && a.particles !== EXIT_PARTICLES[0] ? a.particles : undefined,
+                }))
+                : undefined,
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
             bindPoints: bindPoints.length > 0

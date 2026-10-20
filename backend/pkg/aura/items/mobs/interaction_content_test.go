@@ -65,6 +65,10 @@ var expectedConversants = []string{
 	// conversant whose rows can be locked by something outside the content: its
 	// travel row needs the OWNER's campfire anchor to resolve.
 	"PortalHome",
+	// The campfire menu (PO 2026-10-20): the first STRUCTURE conversant. It is
+	// placed from zone.campfires, not spawns, and its three rows hand the press
+	// to the connection state (bind, restock, open the departure board).
+	"Campfire",
 	// The second one, and the pair's other direction (plan-portal-spells.md C2):
 	// PullThrough places this at the caster's bound fire and its row delivers to
 	// the caster's LIVE position. Its travel row is locked by something outside
@@ -81,7 +85,6 @@ var expectedConversants = []string{
 	// is a property of the definition - the same reason the portals are listed -
 	// and world.CrossValidateTravelAnchors warns at boot until a zone places them.
 	"CaveMouth",
-	"CaveExit",
 
 	// The north pasture (content-zone-design-guide.md §2.4, the "teaches neutral"
 	// POI). The Shepherd offers and turns in `back-to-the-pen` (plan-herding.md
@@ -216,6 +219,12 @@ func TestContent_EveryGrantIsResolvedForItsKind(t *testing.T) {
 						assert.Nil(t, g.Skill, "%s: travel teaches nothing", name)
 						assert.Empty(t, g.Quest, "%s: travel drives no quest", name)
 						assert.Zero(t, g.XP, "%s: travel pays nothing", name)
+					case GrantBindRestock, GrantRestock, GrantFly:
+						// The campfire rows: the connection state does the work,
+						// so like travel they carry no payload at all.
+						assert.Nil(t, g.Skill, "%s: a campfire row teaches nothing", name)
+						assert.Empty(t, g.Quest, "%s: a campfire row drives no quest", name)
+						assert.Zero(t, g.XP, "%s: a campfire row pays nothing", name)
 					default:
 						t.Errorf("%s: grant kind %q has no content invariant — add one here", name, g.Kind)
 					}
@@ -312,6 +321,9 @@ func TestContent_NoConversantAuthorsTheRetiredTrigger(t *testing.T) {
 // the 1.0 aggro radius it happened to be placed with.
 func TestContent_EveryConversantAuthorsTalkRange(t *testing.T) {
 	for name, def := range conversants(t) {
+		if name == "Campfire" {
+			continue // its range IS the bind circle, pinned in cmd/aurad/campfire_test.go
+		}
 		assert.Greater(t, def.Interaction.Range, float32(1.0),
 			"%s: an unauthored range falls back to aggroRadius, which is too tight to stand in", name)
 	}
@@ -324,7 +336,11 @@ func TestContent_ConversantsAreUnattackableAndSensed(t *testing.T) {
 	const layerAction = 2
 
 	for name, def := range conversants(t) {
-		assert.True(t, def.FriendlyToPlayers, "%s: player damage must skip it", name)
+		// The campfire authors no faction (aurad sets it aligned at spawn) and
+		// its Viewport-only body is unreachable, which the layer check holds.
+		if name != "Campfire" {
+			assert.True(t, def.FriendlyToPlayers, "%s: player damage must skip it", name)
+		}
 		assert.Zero(t, def.Body.CollisionLayer&layerAction,
 			"%s: a body on the Action layer is aura-targetable by everything", name)
 		assert.Zero(t, def.Factors.XPFactor, "%s: an NPC is not prey", name)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -26,8 +27,11 @@ func placedDoors(t *testing.T, zones []*world.Zone) map[string]*world.Spawn {
 	t.Helper()
 	doors := map[string]*world.Spawn{}
 	for _, z := range zones {
-		for i := range z.Spawns {
-			s := &z.Spawns[i]
+		// Doors authored as exits (plan-passages.md P1) and any still placed
+		// as spawns, alike.
+		placed := append(append([]world.Spawn(nil), z.Spawns...), z.ExitSpawns()...)
+		for i := range placed {
+			s := &placed[i]
 			if s.Def == nil || s.Def.Interaction == nil {
 				continue
 			}
@@ -40,6 +44,12 @@ func placedDoors(t *testing.T, zones []*world.Zone) map[string]*world.Spawn {
 					}
 				}
 			}
+		}
+		// A touch exit is a way through too (P4): stood at its centroid, so
+		// a talk exit one way and a touch exit back still round-trip.
+		for _, a := range z.ExitAreas {
+			c := a.Centroid()
+			doors[a.Anchor] = &world.Spawn{Mob: "touch exit", X: c.X, Y: c.Y, Anchor: a.Anchor}
 		}
 	}
 	return doors
@@ -107,6 +117,62 @@ func TestPassages_EachOneReturnsYouWhereYouWentIn(t *testing.T) {
 		assert.Same(t, door, returned,
 			"%s → %q drops you %.1f units from the door to %q, which sends you somewhere else: "+
 				"the passage does not round-trip", door.Mob, dest, walk, back.Anchor)
+	}
+}
+
+// A door standing inside a fire's bind circle would compete with the fire for
+// the E press. Since the campfire menu the nearer conversant wins, so the press
+// is no longer lost outright, but the boot still keeps the two apart
+// (world.CrossValidateExitClearance) and this pins that the shipped world passes.
+func TestPassages_NoDoorStandsInsideACampfiresDwellCircle(t *testing.T) {
+	mobsRegistry, _ := repoZoneRegistries(t)
+	zones := shippedZones(t)
+
+	// ⭐ DERIVED, NOT GUESSED: the bound is the fire's bind circle plus the
+	// door's own sensor, so a retune of either moves the check with it.
+	// ⚑ Since plan-passages.md P1 the boot itself refuses this for every talk
+	// exit (loadZones); this pins that the shipped world passes it.
+	dwell := campfireDwellRadius(mobsRegistry)
+	require.Greater(t, dwell, float32(0), "the Campfire mob must publish a bind radius")
+	require.NoError(t, world.CrossValidateExitClearance(zones, dwell))
+	for _, z := range zones {
+		for _, s := range z.Spawns {
+			assert.NotContains(t, []string{"CaveMouth", "CaveExit"}, s.Mob,
+				"zone %q still places a door in spawns; doors live in exits (plan-passages.md D11)", z.ID)
+		}
+	}
+}
+
+// plan-passages.md D6, over the real content: every door carries its exit for
+// the header, and every destination's words reach at least one door. Words
+// authored for a place only custom doors lead to would show nowhere (a custom
+// door keeps its own, tier 0), which is the mistake this names.
+func TestPassages_EveryDoorCarriesItsWords(t *testing.T) {
+	loaded := loadLangContent(t)
+	shown := map[string]bool{}
+	for _, z := range loaded.zones {
+		for _, e := range z.Exits {
+			assert.Equal(t, e.Key(), e.Def.Interaction.ExitID, "exit to %q", e.Anchor)
+			// D12: an exit with no conversation of its own is worded by itself,
+			// its destination or its look, never by the shared conversation.
+			if e.Conversation == "" {
+				for _, n := range e.Def.Interaction.Nodes {
+					for _, id := range n.LineIDs {
+						assert.Regexp(t, `^(exit|anchor|exit-look)\.`, id, "exit to %q", e.Anchor)
+					}
+				}
+			}
+			for _, n := range e.Def.Interaction.Nodes {
+				for _, id := range n.LineIDs {
+					shown[id] = true
+				}
+			}
+		}
+	}
+	for _, e := range loaded.langEntries["regions"] {
+		if strings.HasPrefix(e.Key, "anchor.") {
+			assert.True(t, shown[e.Key], "%s is authored but no door shows it", e.Key)
+		}
 	}
 }
 

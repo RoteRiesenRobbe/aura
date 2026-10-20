@@ -1939,6 +1939,19 @@ func TestSession_OpeningStreamsTheWholeTree(t *testing.T) {
 	assert.ElementsMatch(t, []string{"root", "news"}, nodeIDs(c))
 }
 
+// plan-passages.md D6: a door's panel names its exit, so the client can title
+// it from the exit or the place it leads to. Nobody else's carries one.
+func TestSession_ADoorsPanelNamesItsExit(t *testing.T) {
+	in := &mobs.Interaction{ExitID: "@barn-inside", Nodes: []mobs.InteractionNode{{ID: "root", Lines: []string{"A low door."}}}}
+	s, space, m, p := namedInteractFixture(t, "CaveMouth", in)
+	step := stepper(s, space, p)
+	step()
+	pressInteract(p, m.Basic().ID())
+	step()
+	require.NotNil(t, p.conversation)
+	assert.Equal(t, "@barn-inside", p.conversation.ExitID)
+}
+
 // The tree is rebuilt every tick, so a row taught this tick is gone from the
 // next snapshot with no invalidation logic to get wrong.
 func TestSession_TaughtRowVanishesFromTheNextSnapshot(t *testing.T) {

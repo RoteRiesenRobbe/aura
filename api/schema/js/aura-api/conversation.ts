@@ -54,8 +54,15 @@ nodesLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+exitId():string|null
+exitId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+exitId(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startConversation(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 }
 
 static addEntityId(builder:flatbuffers.Builder, entityId:bigint) {
@@ -86,17 +93,22 @@ static startNodesVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 }
 
+static addExitId(builder:flatbuffers.Builder, exitIdOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, exitIdOffset, 0);
+}
+
 static endConversation(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversation(builder:flatbuffers.Builder, entityId:bigint, actorNameOffset:flatbuffers.Offset, entryNodeOffset:flatbuffers.Offset, nodesOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createConversation(builder:flatbuffers.Builder, entityId:bigint, actorNameOffset:flatbuffers.Offset, entryNodeOffset:flatbuffers.Offset, nodesOffset:flatbuffers.Offset, exitIdOffset:flatbuffers.Offset):flatbuffers.Offset {
   Conversation.startConversation(builder);
   Conversation.addEntityId(builder, entityId);
   Conversation.addActorName(builder, actorNameOffset);
   Conversation.addEntryNode(builder, entryNodeOffset);
   Conversation.addNodes(builder, nodesOffset);
+  Conversation.addExitId(builder, exitIdOffset);
   return Conversation.endConversation(builder);
 }
 }

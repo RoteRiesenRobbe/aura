@@ -218,6 +218,7 @@ func main() {
 		// The places a reach objective sends a player to (plan-region-identity.md
 		// R2). After Place for the area effects' reason: world coordinates.
 		core.Regions(world.CollectRegions(zones)),
+		core.ExitAreas(allExitAreas(zones)),
 		// Where the map reveal needs light (plan-map-fog-darkness.md C1). After
 		// Place for the same reason: world coordinates.
 		core.MapFogDark(mapFogDarkMask(zones, loaded.darkness, skillsRegistry, loaded.props)),

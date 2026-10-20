@@ -245,6 +245,10 @@ type player struct {
 	interactableEntityID uint64
 	interactableDistSq   float32
 
+	// crossing is the touch exit about to move this player (plan-passages.md
+	// D9), rewritten by the PassageSystem every tick.
+	crossing model.TravelDirection
+
 	// conversingWith is the actor this player currently has a panel open with
 	// (chunk 3b-ii); 0 = none. ⚑ Unlike the stamp above it is NOT a per-tick
 	// number and deliberately does not join ResetTickNumbers — a conversation
@@ -645,6 +649,9 @@ func (p *player) ActivationRejected() (skills.SkillID, model.ActivationRejection
 // (chunk 3b-i); 0 = none. Serialized as interactable_entity_id, and compared
 // against an incoming Interact to decide whether to honour it.
 func (p *player) Interactable() uint64 { return p.interactableEntityID }
+
+func (p *player) Crossing() model.TravelDirection     { return p.crossing }
+func (p *player) SetCrossing(d model.TravelDirection) { p.crossing = d }
 
 // NoteInteractable offers a conversant at squared distance distSq; the nearest
 // offer of the tick wins (L17). The InteractionSystem calls it once per actor

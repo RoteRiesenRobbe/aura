@@ -108,22 +108,6 @@
   "@conv.Campfire.you-restock-at-the-fire": {
     "description": "Campfire answers this when the player picks \"Restock\" (node \"root\")."
   },
-  "conv.CaveExit.a-narrow-shaft-and-daylight": "A narrow shaft, and daylight at the top of it.",
-  "@conv.CaveExit.a-narrow-shaft-and-daylight": {
-    "description": "Cave Exit speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.CaveExit.climb-up": "Climb up.",
-  "@conv.CaveExit.climb-up": {
-    "description": "A row the player picks when talking to Cave Exit (node \"root\"), written as the player's own words."
-  },
-  "conv.CaveExit.the-climb-looks-manageable": "The climb looks manageable.",
-  "@conv.CaveExit.the-climb-looks-manageable": {
-    "description": "Cave Exit speaks this in the conversation, node \"root\", line 2."
-  },
-  "conv.CaveExit.you-climb-back-into": "You climb back into the light.",
-  "@conv.CaveExit.you-climb-back-into": {
-    "description": "Cave Exit answers this when the player picks \"Climb up.\" (node \"root\")."
-  },
   "conv.CaveMouth.a-dark-opening": "A dark opening in the rock.",
   "@conv.CaveMouth.a-dark-opening": {
     "description": "Cave Mouth speaks this in the conversation, node \"root\", line 1."
@@ -135,10 +119,6 @@
   "conv.CaveMouth.cold-air-rises-out": "Cold air rises out of it.",
   "@conv.CaveMouth.cold-air-rises-out": {
     "description": "Cave Mouth speaks this in the conversation, node \"root\", line 2."
-  },
-  "conv.CaveMouth.you-climb-down-into": "You climb down into the dark.",
-  "@conv.CaveMouth.you-climb-down-into": {
-    "description": "Cave Mouth answers this when the player picks \"Climb down.\" (node \"root\")."
   },
   "conv.CityGuard.about-the-bears": "About the bears...",
   "@conv.CityGuard.about-the-bears": {
@@ -1498,9 +1478,5 @@
   "stock.which-root": "Which root was it again?",
   "@stock.which-root": {
     "description": "Shared phrase \"which_root\": every dialogue line that names it says this, so one edit changes all of them (D28)."
-  },
-  "stock.you-step-through": "You step through.",
-  "@stock.you-step-through": {
-    "description": "Shared phrase \"you-step-through\": every dialogue line that names it says this, so one edit changes all of them (D28)."
   }
 }

@@ -157,13 +157,34 @@ export abstract class Mob extends GameObject
         // aura is drawn.
         this.auraRings = new AuraRingStack();
         this.belowArt.addChild(this.auraRings.container);
-        this.initHealthBar();
+        if (this.hasHealthBar()) {
+            this.initHealthBar();
+        }
         this.isMovable = true;
 
         this.plate = createNamedContainer('mobPlate');
         this.plate.position.copyFrom(this.shape.position);
         Game.layers.characterAdditions.namePlates.addChild(this.plate);
         this.plateSubToken = PrerenderEvent.subscribe(this.updatePlate, this);
+    }
+
+    /**
+     * A bare mob draws nothing of its own: no health bar, no nameplate (the
+     * Passage, plan-passages.md D4/R3). The interact badge and a quest glyph
+     * still show. A method, not a field: the constructor reads it before any
+     * subclass field initializer has run.
+     */
+    protected isBare(): boolean {
+        return false;
+    }
+
+    /**
+     * Whether the mob carries an overhead health bar: every mob but a bare one
+     * and a talking object nobody can hurt (the Signpost, plan-passages.md Q9).
+     * A method for isBare's reason.
+     */
+    protected hasHealthBar(): boolean {
+        return !this.isBare();
     }
 
     /**
@@ -190,7 +211,7 @@ export abstract class Mob extends GameObject
         // things you fight. Conversants (intake round 9 item 1) DO plate:
         // name-only, so the journal's "Return to the Lamplighter" has an
         // in-world anchor.
-        if (!definition || !(definition.combatTarget || definition.conversant)) {
+        if (!definition || !(definition.combatTarget || definition.conversant) || this.isBare()) {
             this.nameElement?.destroy();
             this.nameElement = null;
             return;
@@ -281,10 +302,15 @@ export abstract class Mob extends GameObject
             : formatMobName(definition.displayName);
     }
 
-    // Y offset of the plate text: under the overhead bar, read off the bar's
-    // own anchor so the two cannot drift apart.
+    // Y offset of the plate text: under the overhead bar, off the one anchor
+    // the bar is built at, so the two cannot drift apart, and a mob with no
+    // bar (a Signpost) still plates where the bar would sit.
     private nameplateY(): number {
-        return this.overheadBar.anchorY + NAMEPLATE_GAP;
+        return this.barAnchorY() + NAMEPLATE_GAP;
+    }
+
+    private barAnchorY(): number {
+        return Math.max(30, this.size * 1.08);
     }
 
     /**
@@ -399,10 +425,11 @@ export abstract class Mob extends GameObject
             return; // the common case: no badge, and none wanted
         }
         if (this.interactBadge === null) {
-            // Drawn into the shape group (its aboveArt slot) so it fades and
-            // darkens with the mob, but anchored off the art alone — the group
+            // Drawn onto the plate, beside the quest glyph, so no tree or roof
+            // covers it (PO 2026-10-19); the plate fades with the mob and hides
+            // in unlit darkness. Anchored off the art alone — the shape group
             // also carries the aura rings, the dwell ring and the health bar (R4).
-            this.interactBadge = new InteractBadge(this.aboveArt, this.actualShape);
+            this.interactBadge = new InteractBadge(this.plate, this.actualShape);
         }
         this.interactBadge.setVisible(interactable);
     }
@@ -547,11 +574,11 @@ export abstract class Mob extends GameObject
     }
 
     setHealth(health: number, maxHealth: number) {
-        this.overheadBar.setHealth(health, maxHealth);
+        this.overheadBar?.setHealth(health, maxHealth);
     }
 
     setShield(shieldHp: number, maxHealth: number) {
-        this.overheadBar.setShield(shieldHp, maxHealth);
+        this.overheadBar?.setShield(shieldHp, maxHealth);
     }
 
     protected override createStatusEffects() {
@@ -570,7 +597,7 @@ export abstract class Mob extends GameObject
         // their box, which hid that — the bar landed in their empty margin.
         // Medallion PNGs fill the box edge to edge, so the bar has to clear
         // 1.0 outright. The 0.08 overshoot is the gap the old art used to have.
-        this.overheadBar = new OverheadHealthBar(this.size, Math.max(30, this.size * 1.08));
+        this.overheadBar = new OverheadHealthBar(this.size, this.barAnchorY());
         this.aboveArt.addChild(this.overheadBar.container);
     }
 }
@@ -1362,10 +1389,37 @@ export class Signpost extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.npcs, x, y, size, Signpost.svg);
     }
+
+    // A stone, a sign or a root that talks (plan-passages.md Q9, PO
+    // 2026-10-18): nothing can hurt it, so a health bar only lies. Its art
+    // and its name stay: a quest may send you to one by name.
+    protected override hasHealthBar(): boolean {
+        return false;
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Signpost, npcFile('signpost'), npcCfg('signpost').maxSize);
+
+/**
+ * A talk exit's door (plan-passages.md D4): the thing you press E at, drawing
+ * NOTHING (R3): no art, no health bar, no frame, no plate. The picture is the
+ * exit's look, drawn from the bundled zone into `terrain.exits`
+ * (ExitLooks.ts), so a `hidden` exit is found by its E badge alone.
+ *
+ * ⚑ The empty texture still gets the wire size, so the art box is ±size and
+ * the E badge (anchored off the art's bounds) floats at the door's reach
+ * rather than on its centre.
+ */
+export class Passage extends Mob {
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.npcs, x, y, size, PIXI.Texture.EMPTY);
+    }
+
+    protected override isBare(): boolean {
+        return true;
+    }
+}
 
 export class Hermit extends Mob {
     static svg: PIXI.Texture;

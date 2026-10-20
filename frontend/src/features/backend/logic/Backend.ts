@@ -44,6 +44,10 @@ import * as QuestTracker from "../../journal/logic/QuestTracker";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import * as Flight from "../../flight/logic/Flight";
 import {castProgress} from "../../game-objects/logic/AscensionChannelMath";
+import {meter2px} from "../../../client-data/BasicConfig";
+import {beginCrossing, cancelCrossing} from '../../zones/logic/ZoneCurtain';
+import {TouchCrossing} from '../../exits/logic/TouchCrossing';
+import {TravelDirection} from '../../conversation/logic/ConversationModel';
 import {
     BackendConnectionFailureEvent,
     BackendSetupEvent,
@@ -70,6 +74,9 @@ export class Backend implements IBackend {
     // The conversant the server says is in range (chunk 3b-i); 0 = none. What
     // the interact key names when it opens a conversation.
     private interactableEntityId = 0;
+    // The touch exits' curtain driver (plan-passages.md D9); the jump that
+    // means "travelled" is the server's arrival rule (sys.passageArrivalJump).
+    private touchCrossing = new TouchCrossing(meter2px(3));
 
     // The entity currently WEARING the badge; 0 = none. Tracked so the previous
     // one can be cleared when the server names a different actor or nobody —
@@ -594,6 +601,17 @@ export class Backend implements IBackend {
             Conversation.update(null);
         } else if (Utils.isDefined(snapshot.conversation)) {
             Conversation.update(snapshot.conversation);
+        }
+
+        // A touch exit's curtain (plan-passages.md D9): no press to start it
+        // on, so the dwell's byte does, and its drop without a move cancels.
+        const character = this.game.player?.character;
+        const crossing = this.touchCrossing.step(snapshot.crossing ?? 0,
+            character ? {x: character.getX(), y: character.getY()} : null);
+        if (crossing === 'cancel') {
+            cancelCrossing();
+        } else if (crossing !== null) {
+            beginCrossing(crossing.begin as TravelDirection);
         }
 
         // The quest ledger (plan-quests.md chunk C3): change-only now (chunk

@@ -123,9 +123,27 @@ const badgeGeometry = () => page.evaluate((gap) => {
   if (text === null) return null;
 
   const badge = text.parent;
-  // The badge hangs in the shape group's aboveArt slot since plan-appearance.md
-  // C0a; the group is one level up.
-  const shape = badge.parent.label === 'aboveArt' ? badge.parent.parent : badge.parent;
+  // The badge hangs on the mob's PLATE since plan-passages.md (PO 2026-10-19:
+  // above every prop); the plate stands where the shape does, so the shape is
+  // the mobs-layer group at the plate's position. (In the shape group's
+  // aboveArt slot before that, plan-appearance.md C0a.)
+  const shapeAt = (p) => {
+    let best = null, bestD = Infinity;
+    const scan = (c) => {
+      for (const k of (c?.children || [])) {
+        if (k.parent?.label === 'npcs' || k.parent?.label === 'wildlife') {
+          const d = Math.hypot(k.x - p.x, k.y - p.y);
+          if (d < bestD) { best = k; bestD = d; }
+        } else {
+          scan(k);
+        }
+      }
+    };
+    scan(window.__auraRoot);
+    return best;
+  };
+  const shape = badge.parent.label === 'mobPlate' ? shapeAt(badge.parent.position)
+    : badge.parent.label === 'aboveArt' ? badge.parent.parent : badge.parent;
   const shapeBounds = shape.getLocalBounds();
   const capHeight = badge.getLocalBounds().height;
 

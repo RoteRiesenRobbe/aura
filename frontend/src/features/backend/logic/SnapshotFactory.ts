@@ -50,6 +50,8 @@ export class Snapshot {
     // Who the panel belongs to; 0 = closed. The ONLY close signal (chunk 3,
     // D3) — always carried, never undefined.
     conversationEntityId: number;
+    // A touch exit's dwell (plan-passages.md D9); 0 = none.
+    crossing: number;
     // The tree itself: undefined = no fresh content this tick (chunk 3, D3),
     // NOT "closed" any more — see conversationEntityId for that.
     conversation: ConversationTree | undefined;
@@ -134,6 +136,7 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // — a delta snapshot that dropped it would leave the panel open after
         // the server closed it.
         snapshot.conversationEntityId = gameState.conversationEntityId;
+        snapshot.crossing = gameState.crossing;
         // Change-only (chunk 3, D3): undefined means no fresh content this
         // tick, NOT closed any more — closing is conversationEntityId's job.
         snapshot.conversation = gameState.conversation;

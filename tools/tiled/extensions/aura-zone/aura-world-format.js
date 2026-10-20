@@ -96,7 +96,7 @@
         var tsx = tiled.tilesetFormat('tsx');
         if (!tsx) { throw new Error('Tiled has no tsx tileset format'); }
         var sets = {};
-        ['decals', 'props'].forEach(function (name) {
+        ['decals', 'props', 'exits'].forEach(function (name) {
             var p = dir + name + '.tsx';
             if (!File.exists(p)) {
                 throw new Error('palette missing: ' + p
@@ -149,6 +149,7 @@
         map.setTileSize(C.PX, C.PX);
         map.addTileset(palette.decals.tileset);
         map.addTileset(palette.props.tileset);
+        map.addTileset(palette.exits.tileset);
         // Bounds may be fractional and the tile grid may not be; carry the
         // authored values verbatim so the writer never has to guess them back.
         map.setProperty('zoneName', model.zoneName);
@@ -332,6 +333,7 @@
                 // layer gives an unnamed object, and the tile is what says
                 // what it is.
                 name: (o.tile && o.tile.property('auraType')) || o.name,
+                // (an exit reads its look from tileType below, never its name)
                 x: o.x,
                 y: o.y,
                 width: o.width,
@@ -351,7 +353,13 @@
                 // the pin exercises the pure converter, never Tiled's own
                 // read/write path, so only a verify.sh leg catches it — and
                 // it caught this one.
-                cls: o.className,
+                // ⚑ A tile dragged straight off a tileset has NO class of its
+                // own, only its tile's (exits.tsx types every tile AuraExit),
+                // and the exits layer tells its two kinds apart by class.
+                cls: o.className || (o.tile && o.tile.className) || '',
+                // A tile object's tile, by the aura type it stands for: an
+                // exit's LOOK (its name stays the anchor, for the panel).
+                tileType: (o.tile && o.tile.property('auraType')) || undefined,
                 properties: o.properties(),
             };
             // Both vertex shapes carry their nodes: a route (polyline) and

@@ -336,6 +336,15 @@ type travelSeam interface {
 	Campfire(kind mobs.GrantKind) bool
 }
 
+// traveller is the part of a player a travel moves: the flight re-entry, the
+// jump, and the panel that closes with it. Narrow so a touch exit's rider
+// (PassageSystem) travels by the very same recipe as a talking door's.
+type traveller interface {
+	Ground()
+	SetPosition(pos phy.Vec2f)
+	SetConversingWith(id uint64)
+}
+
 // portalTravel is the shipped seam: one conversation's destination and its
 // player-side move.
 //
@@ -372,7 +381,10 @@ type portalTravel struct {
 	// pointer to a removed player still reads a position; it just is not a place
 	// anybody is standing any more.
 	ownerLive bool
-	rider     interactor
+	rider     traveller
+	// riderID is the rider's account, the key a campfire row binds and
+	// restocks under. Zero for a touch exit, which offers no campfire rows.
+	riderID uuid.UUID
 	// from is where the DOOR stands, and zones is every zone's rectangle: the
 	// two halves of the direction answer (U4b). The door rather than the rider
 	// deliberately — the player is within interaction range of it by
@@ -499,7 +511,7 @@ func (t portalTravel) Campfire(kind mobs.GrantKind) bool {
 	if t.anchors == nil || t.rider == nil {
 		return false
 	}
-	if !t.anchors.CampfireRow(t.rider.Client().UUID(), t.from, kind) {
+	if !t.anchors.CampfireRow(t.riderID, t.from, kind) {
 		return false
 	}
 	t.rider.SetConversingWith(0)
@@ -514,7 +526,7 @@ func (s *InteractionSystem) travelFor(a Conversant, p interactor) travelSeam {
 	// is not a door, and for a door whose definition authors the default instead.
 	override := a.TravelAnchor()
 	return portalTravel{anchors: s.anchors, zoneAnchors: s.zoneAnchors, anchorOverride: override,
-		owner: owner, ownerLive: s.isLivePlayer(owner), rider: p,
+		owner: owner, ownerLive: s.isLivePlayer(owner), rider: p, riderID: p.Client().UUID(),
 		from: a.Position(), zones: s.zonePlacements}
 }
 
@@ -770,6 +782,7 @@ func (s *InteractionSystem) refreshConversations() {
 		}
 		c.EntityID = id
 		c.ActorName = actorName(a)
+		c.ExitID = a.Interaction().ExitID
 		p.SetConversation(c)
 		a.SetConversing(true)
 	}

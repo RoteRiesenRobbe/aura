@@ -3,8 +3,7 @@ import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
 import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
-import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
-import {contentText, REGIONS_ENGLISH, zoneNameKey} from '../../../client-data/LangBundle';
+import {PlaceName, placeInZone} from '../../regions/logic/RegionNames';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -38,6 +37,8 @@ import {packIconsReady} from '../../../client-data/icons/PackIconFiles';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
+import * as ExitLooks from '../../exits/logic/ExitLooks';
+import * as ExitAreas from '../../exits/logic/ExitAreas';
 import * as Polygons from '../../polygons/logic/Polygons';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
@@ -280,6 +281,14 @@ export class Game implements IGame {
                 polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
+                // The exits' looks (plan-passages.md P2, D5): ground-level
+                // art (a cave mouth, stairs, a door) drawn from the bundled
+                // zone, ON the blobs and under every entity. Its door mob is a
+                // Passage, which draws nothing, so this is the only picture.
+                exits: createNamedContainer('exitLooks'),
+                // The touch exits (plan-passages.md P5): a gold glow over each
+                // area and its look at the centroid, under the talk exits'.
+                exitAreas: createNamedContainer('exitAreas'),
                 // No `resourceSpots`: the tree/rock ground decals were retired
                 // with their bespoke classes (plan-prop-draw-order.md P2, D8).
                 // Ground scuffing is authored as a terrain decal where wanted.
@@ -332,6 +341,8 @@ export class Game implements IGame {
             // at most the local player: a flyer is removed from everyone
             // else's snapshot (D13), so no remote character can ever reach it.
             flyers: createNamedContainer('flyers'),
+            // The touch exits' rising streaks, over every prop (PO 2026-10-19).
+            exitSparkles: createNamedContainer('exitSparkles'),
             // The HAZE half of the atmospheres — fog, smoke, dust — in its OWN
             // filtered container, added BEFORE the darkness so it draws UNDER
             // it (PO 2026-09-14).
@@ -387,6 +398,8 @@ export class Game implements IGame {
             this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
+            this.layers.terrain.exitAreas,
+            this.layers.terrain.exits,
             this.layers.props.underfoot,
         );
 
@@ -422,6 +435,10 @@ export class Game implements IGame {
         // Props, one container: rocks no longer draw below every other prop,
         // the id order decides (plan-prop-draw-order.md D7).
         this.cameraGroup.addChild(this.layers.props.standing);
+
+        // The touch exits' streaks rise over the trees (PO 2026-10-19), under
+        // a flyer and the darkness, which still swallows them in a cave.
+        this.cameraGroup.addChild(this.layers.exitSparkles);
 
         // …and a flyer above even those. Walking behind a tree is correct;
         // flying behind one breaks the only thing selling the flight, since
@@ -513,6 +530,7 @@ export class Game implements IGame {
         Chat.setup(this, Backend);
         AlertBanner.setup();
         RegionBanner.setup(this);
+        ExitAreas.setup(this);
 
         /*
          * https://trello.com/c/aq5lqJB7/289-schutz-gegen-versehentliches-verlassen-des-spiels
@@ -780,6 +798,9 @@ export class Game implements IGame {
         });
         Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
+        ExitLooks.loadExitLooks(this.layers.terrain.exits, zoneData?.exits, origin);
+        ExitAreas.loadExitAreas(this.layers.terrain.exitAreas, this.layers.exitSparkles,
+            this.layers.characterAdditions.namePlates, zoneData?.exitAreas, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so
         // the server leaves it zone-local and the origin goes in HERE.
@@ -913,19 +934,12 @@ export class Game implements IGame {
      * zone is only loaded under full cover, after this runs.
      */
     private arrivalPlace(entered: ZoneRect, xPx: number, yPx: number): PlaceName | null {
-        const zoneData = GroundTextureManager.getZoneData(entered.name);
-        const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
-        const place = placeAt(regions, {x: xPx, y: yPx});
-        if (place === null) {
-            // The zone file's name is a dev label (plan-localization.md D27): only the
-            // debug zone set, which owes no English, falls back to it.
-            const english = REGIONS_ENGLISH[zoneNameKey(entered.name)] || zoneData?.name;
-            return english ? {title: contentText(zoneNameKey(entered.name), english)} : null;
-        }
+        const place = placeInZone(entered.name, GroundTextureManager.getZoneData(entered.name), {x: xPx, y: yPx});
         // The card names the place, so the region banner must not name it again
         // a second after the reveal. Only when a card is actually shown: a cheat
         // WARP covers nothing, and there the banner is the only announcement.
-        if (isCrossing()) {
+        // A zone's name (no id) is never a banner's.
+        if (place?.id && isCrossing()) {
             RegionBanner.noteShown(place);
         }
         return place;

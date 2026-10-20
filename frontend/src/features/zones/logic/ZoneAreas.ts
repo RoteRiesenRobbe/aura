@@ -16,7 +16,7 @@ import {PROP_LAYERS, PropLayersJSON} from './PropLayers';
 
 /** Every object array a zone holds, and so everything an area may hold. */
 export const OBJECT_KINDS = [
-    'decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'regions',
+    'decals', 'props', 'spawns', 'exits', 'exitAreas', 'bindPoints', 'darkAreas', 'regions',
     'paths', 'structures', 'atmospheres', 'clearings', 'anchors',
 ] as const;
 export type ObjectKind = typeof OBJECT_KINDS[number];

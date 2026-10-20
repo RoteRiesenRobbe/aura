@@ -263,13 +263,78 @@ type Spawn struct {
 	//
 	// ⚑ An OVERRIDE with a definition-level default, the idiom the three knobs
 	// above already use (wanderRadius, idleSpeedFactor, level): absent inherits.
-	// A generic door - the shipped CaveMouth/CaveExit - authors no default at
-	// all and takes its destination entirely from here.
+	// The shared exit conversation (CaveMouth, world.SharedConversation) authors no default at
+	// all and takes its destination entirely from here. ⚑ Since
+	// plan-passages.md P1 a door is authored as an Exit, whose synthesized spawn
+	// carries the exit's anchor in this field; a spawn naming one is for a real
+	// NPC that also takes you somewhere.
 	Anchor string `json:"anchor"`
 	InArea
 
 	// Def is the mob definition resolved from Mob; not part of the JSON.
 	Def *mobs.MobDefinition `json:"-"`
+}
+
+// Exit is a talk exit (plan-passages.md P1; its loader halves live in
+// exits.go): a point you press E at to be moved to a zone anchor.
+//
+// ⭐ IT IS STILL A MOB UNDER THE HOOD (D3). Interactables must be mobs
+// (underworld L6), so the loader resolves Door and ExitSpawns synthesizes the
+// spawn the MobSystem places. The author never sees a spawn and the file never
+// holds one.
+//
+// ⚑ `spawns[].anchor` stays: a real NPC that also takes you somewhere is still
+// a spawn. Exits are for doors.
+type Exit struct {
+	// ID names the exit for its words (plan-passages.md D7): exit.<id>.title,
+	// .text and .go in api/lang/en/regions.arb. Optional, a slug, unique
+	// across the placed set (checkSetWide); needed only by an exit with words
+	// of its own. Never generated: a person reads it in an arb key.
+	ID string `json:"id,omitempty"`
+	X  float32 `json:"x"`
+	Y float32 `json:"y"`
+	// Rotation turns the look's art, radians (stairs point a way). Client
+	// only: the server parses it and never reads it (P2, D5).
+	Rotation float32 `json:"rotation,omitempty"`
+	// Anchor is where the exit leads, by zone-anchor name. Required: a door
+	// with nowhere to go takes the keypress and moves nobody.
+	Anchor string `json:"anchor"`
+	// Look names the art the client draws at the exit AND its default words
+	// (R4, D5, D12), one of ExitLooks; absent = ExitLookCaveMouth. The server
+	// refuses a name outside the set: the client would draw nothing for it.
+	Look string `json:"look,omitempty"`
+	// Hidden draws no picture at all (P3b, PO 2026-10-18): the player finds
+	// it by its E prompt. The look still picks the words.
+	Hidden bool `json:"hidden,omitempty"`
+	// Conversation names a conversation definition written for this exit
+	// alone (a mob with exactly one anchor-mode travel_to row and entityType
+	// Passage), whose own lines then stand (D12). Absent = SharedConversation,
+	// worded by the look. The key was `door` until P3b.
+	Conversation string `json:"conversation,omitempty"`
+	InArea
+
+	// Def is Door resolved; not part of the JSON.
+	Def *mobs.MobDefinition `json:"-"`
+}
+
+// ExitArea is a touch exit (plan-passages.md P4, D1): a closed area that moves
+// whoever walks into it to Anchor, after a short dwell (sys.PassageSystem). It
+// shares an exit's anchor and id rules and nothing else: no door, no words (a
+// touch has no panel), no rotation, and no look (PO 2026-10-19: the glow alone
+// marks it, so `look` is an unknown key here and refuses the boot).
+type ExitArea struct {
+	// ID is optional and shares the exits' namespace (D7, checkSetWide).
+	ID     string  `json:"id,omitempty"`
+	Points []Point `json:"points"`
+	// Anchor is where the area leads, by zone-anchor name. Required.
+	Anchor string `json:"anchor"`
+	// Hidden draws nothing: no glow, no floating name (Q4).
+	Hidden bool `json:"hidden,omitempty"`
+	// Sigil and Particles pick what the client draws over the glow (PO
+	// 2026-10-19), ExitSigils / ExitParticles; absent = the first of each.
+	Sigil     string `json:"sigil,omitempty"`
+	Particles string `json:"particles,omitempty"`
+	InArea
 }
 
 // EffectiveWanderRadius resolves the spawn's tri-state wander radius against
@@ -726,6 +791,12 @@ type Objects struct {
 	// placement and every reader iterates Props.
 	PropLayers PropLayers `json:"props"`
 	Spawns     []Spawn    `json:"spawns"`
+	// Exits are the talk exits, doors to a zone anchor (plan-passages.md P1).
+	// Each becomes a door mob at load (ExitSpawns); the file holds no spawn.
+	Exits []Exit `json:"exits"`
+	// ExitAreas are the touch exits (plan-passages.md P4, D1/D8): walk in,
+	// stay a moment, and you are moved to the anchor. No mob, no conversation.
+	ExitAreas []ExitArea `json:"exitAreas"`
 	// BindPoints are where a character binds and respawns. The key was
 	// `campfires` until N2, named for the art; the fires a player sees are mobs.
 	BindPoints []Campfire `json:"bindPoints"`
@@ -1109,6 +1180,8 @@ func (z *Zone) flatten() {
 	for _, a := range z.Areas {
 		z.Decals = appendArea(z.Decals, a.Decals, a.ID)
 		z.Spawns = appendArea(z.Spawns, a.Spawns, a.ID)
+		z.Exits = appendArea(z.Exits, a.Exits, a.ID)
+		z.ExitAreas = appendArea(z.ExitAreas, a.ExitAreas, a.ID)
 		z.BindPoints = appendArea(z.BindPoints, a.BindPoints, a.ID)
 		z.DarkAreas = appendArea(z.DarkAreas, a.DarkAreas, a.ID)
 		z.Regions = appendArea(z.Regions, a.Regions, a.ID)
@@ -1208,6 +1281,12 @@ func (z *Zone) validate() error {
 		if s.PatrolMode != "" && len(s.Waypoints) == 0 {
 			return fmt.Errorf("%s: patrolMode without waypoints", ref)
 		}
+	}
+	if err := z.validateExits(); err != nil {
+		return err
+	}
+	if err := z.validateExitAreas(); err != nil {
+		return err
 	}
 	for i := range z.DarkAreas {
 		ref := objectRef("darkArea", z.DarkAreas, i)
@@ -1414,6 +1493,9 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 				objectRef("spawn", z.Spawns, i), s.Mob)
 		}
 		s.Def = def
+	}
+	if err := z.resolveExits(mr); err != nil {
+		return err
 	}
 	for i := range z.Props {
 		p := &z.Props[i]

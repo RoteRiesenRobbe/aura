@@ -263,6 +263,20 @@ export interface ZoneJSON {
     // Placed mobs, areas folded in (flattenAreas). Only the quest-giver map
     // markers read them (plan-quest-giver-markers.md C3): name + zone-local spot.
     spawns?: {mob?: string, x: number, y: number}[];
+    // Talk exits (plan-passages.md P1/P2): each is a door mob on the server,
+    // so the quest-giver markers read them as spawns of their conversation,
+    // and ExitLooks draws their `look` (P2) unless `hidden` (P3b).
+    // conversation absent = the shared one, worded by the look.
+    // The id (P3) names the exit for its words; the door header reads it and
+    // the anchors below (ExitHeader.ts).
+    exits?: {id?: string, x: number, y: number, rotation?: number, anchor: string, look?: string, hidden?: boolean,
+        conversation?: string}[];
+    // Touch exits (plan-passages.md P4/P5), drawn by ExitAreas: the glow, the
+    // look at the centroid, and the floating name.
+    exitAreas?: {id?: string, points: {x: number, y: number}[], anchor: string, look?: string, hidden?: boolean}[];
+    // Where travel lands, by name (plan-underworld.md U3). Read by the door
+    // header for the place a door leads to (plan-passages.md D6).
+    anchors?: {name: string, x: number, y: number}[];
     // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
     // entities, and does not read this array to draw them. It is read for what
     // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into
@@ -349,6 +363,12 @@ export function selectZoneSet(primaryZoneName: string): Promise<void> | undefine
  */
 export function getZoneData(zoneName: string): ZoneJSON | undefined {
     return zonesByStem[zoneName];
+}
+
+/** Every zone of the running set, by file stem: the door header looks a
+ *  destination up across all of them (plan-passages.md D6). */
+export function getZoneSet(): Readonly<Record<string, ZoneJSON>> {
+    return zonesByStem;
 }
 
 /**

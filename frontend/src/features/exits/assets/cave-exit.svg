@@ -1,0 +1,11 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 200 200" preserveAspectRatio="none">
+  <!-- Placeholder CAVE EXIT (plan-passages.md P3b, D12): a narrow shaft in the
+       rock seen from below, daylight falling in at the TOP edge, a rope down
+       its middle (the exit's rotation turns it). -->
+  <ellipse cx="100" cy="100" rx="92" ry="92" fill="#2b2622" stroke="#15120f" stroke-width="8"/>
+  <ellipse cx="100" cy="92" rx="62" ry="66" fill="#3d3630"/>
+  <ellipse cx="100" cy="70" rx="38" ry="40" fill="#8f8572"/>
+  <ellipse cx="100" cy="58" rx="24" ry="26" fill="#f4ecd6"/>
+  <path d="M100 40 C96 80 104 120 100 170" stroke="#a0784a" stroke-width="7" fill="none" stroke-linecap="round"/>
+</svg>

@@ -48,7 +48,7 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see eight object layers and one group, `props`, and no tile layers.
+You should see nine object layers and one group, `props`, and no tile layers.
 They are listed here in
 the order Tiled shows them — **top of the panel is the top of the stack**, so
 read the table bottom-up to walk from the ground to the sky:
@@ -59,6 +59,7 @@ read the table bottom-up to walk from the ground to the sky:
 | `atmospheres` | the air over an area — fog, gloom, canopy — and the **clearings** that cut holes in it | **polygon** | 🔒 |
 | `darkAreas` | the unlit circles (the older primitive `atmospheres` is replacing) | ellipse | |
 | `bindPoints` | bind points / starting spawns (`AuraBindPoint`) | point | |
+| `exits` | doors to another place (`AuraExit`), see Exits | point | |
 | `spawns` | every mob and NPC | point, or a **polyline** if it patrols | |
 | `props` ▾ | a **group** of four prop layers, top to bottom `canopy` · `buildings` · `default` · `underfoot` (see Props) | tile object at its true physics size | |
 | `decals` | ground-texture patches (`AuraDecal`) | tile object (the art itself) | |
@@ -424,6 +425,77 @@ healing spring heals, because the same machinery runs both directions.
   clearing only erases atmosphere, and an erase that also burned you would be one
   shape doing two jobs.
 
+### Exits
+
+A way to another place (a cave mouth, a shaft up, the barn's cellar door) is an
+**exit**, not a spawn (plan-passages.md P1). The player walks up to it and
+presses E.
+
+1. Select the **`exits`** layer and click once with **Insert Point** (I).
+2. Set **Class** to `AuraExit`. That brings up the form.
+3. Type the destination into **`anchor`**: the **Name** of an `anchors`
+   point, in this zone or any other. A typo saves, then refuses the server's
+   boot naming the exit.
+4. Pick its **`look`**: `cave-mouth` (the default), `cave-exit` (a way up out
+   of a cave), `stairs-down`, `stairs-up` or `door`. The look is BOTH the
+   picture and the default words (plan-passages.md D12): a door says "A door." /
+   "Go through.", a cave mouth "A dark opening in the rock..." / "Climb down."
+   Rotate the point to turn the art: stairs and doors point UP at 0°. The exit's
+   mob draws nothing, no health bar and no name: the look is the whole picture.
+   ⚑ The look comes from the frontend's bundled copy of the zone, so it shows
+   after a frontend rebuild.
+5. Tick **`hidden`** to draw no picture at all (players find it by its E
+   prompt, e.g. where a cave-mouth prop already draws the hole). The look still
+   picks the words.
+6. Leave **`conversation`** at `(by look)`. Only an exit with a conversation
+   written for it alone (a quest gate, its own lines) names one: a new mob in
+   `api/mobs/` with one anchor travel row and `entityType: Passage`, which
+   shows in this list after `node tools/tiled/generate-palette.mjs`. Its own
+   lines then stand over the look's and the destination's.
+7. **Words** (plan-passages.md P3, D12). The panel is named after the place the
+   exit leads to (the region at the anchor, else the zone's name, e.g. "Barn").
+   Its line and button come from the look unless you write better ones:
+   - **every exit to one place:** add `anchor.<anchor name>.text` to
+     `api/lang/en/regions.arb` (e.g. `anchor.barn-inside.text`: "A low door
+     into the barn's cellar."). It replaces the look's line.
+   - **this one exit:** give it an **`id`** (a slug like `barn-door`, unique
+     across all zones) and add any of `exit.<id>.title` (the panel's name),
+     `exit.<id>.text` (the line) and `exit.<id>.go` (the button) to the same
+     file. These beat everything else.
+   - **every exit of one look:** the look's own words are
+     `exit-look.<look>.text` / `.go` in the same file.
+
+   Each English key needs a translator note (`@key` with a `description`)
+   and its German in `api/lang/de/regions.arb`, then
+   `UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/` (see
+   `manual-localization.md`). A key for an id or anchor nobody placed fails
+   that test as an orphan. ⚑ Words are read at server boot: restart to see
+   them.
+
+**Touch exits** (plan-passages.md P4): an area the player walks into instead
+of a point they talk to. On the same `exits` layer, draw a **polygon** or a
+**rectangle** and set its Class to `AuraExitArea`; fill in `anchor` (and
+optionally `id`, `look` and `hidden`, as for a talk exit). Walking in and staying a
+moment (about 0.3 s) moves the player; stepping back out first cancels it. A
+player who *arrives* inside one (a login, a respawn, a landing) is not moved
+until they have walked out once. ⛔ The server refuses to boot when any anchor
+stands inside a touch exit: whoever travels there would land on a crossing.
+In game it glows gold, shows its look at its centre, and names where it leads
+(the same rule as a talk exit's panel title) while the player is within about
+4 u of it; a `hidden` one shows none of that and is an invisible trigger. The
+screen transition starts while the player stands in it and cancels if they
+step out. ⚑ The world's only one is a TEST example in the Fallow Reach
+(`fallow-test-glow`, down to `under-west`): remove it before release.
+
+⛔ **Keep exits out of a campfire's circle.** The fire's flight map takes every
+E press near it, so the server refuses to boot when an exit stands inside a
+bind circle plus its own reach, and names both.
+
+⚑ A door placed on the `spawns` layer is refused on save, and a zone file that
+still has one there, or an exit still written with `door` or `look: hidden`
+(the shape before P3b), refuses to open: run
+`node scripts/migrate-exits.mjs <file>` once.
+
 ### Bind points, dark areas, anchors
 
 - **Bind point** (`bindPoints`, drawn in game as a campfire): a point whose
@@ -478,7 +550,7 @@ What needs rebuilding depends on what you touched:
 
 | You changed | What is needed |
 |---|---|
-| `props`, `spawns`, `anchors`, bounds | **backend restart** |
+| `props`, `spawns`, `exits`, `anchors`, bounds | **backend restart** |
 | `decals`, `darkAreas`, `regions` | **frontend rebuild** (the client bundles zone terrain) |
 | `bindPoints` | **both** |
 
@@ -589,6 +661,7 @@ after touching anything under `tools/tiled/`.
 | Move / rotate / scale a texture | Select Objects (S), drag or use the handles |
 | Scale a prop | Select Objects (S), drag a corner handle with **Shift** held |
 | Place a mob | Insert Point on `spawns`, set `mob` in the Properties panel |
+| Place a way to another place | Insert Point on `exits`, Class `AuraExit`, type its `anchor` |
 | Make it patrol | Insert Polyline on `spawns` — every vertex is a waypoint, the first is also the spawn |
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |

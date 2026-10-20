@@ -116,7 +116,6 @@
         "BurstTotem",
         "Camp",
         "Campfire",
-        "CaveExit",
         "CaveMouth",
         "CityGuard",
         "Companion",
@@ -1006,6 +1005,112 @@
         "homestead",
         "farmreinhard",
         "hans-pen"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 30,
+      "name": "AuraExitConversation",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(by look)"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 31,
+      "name": "AuraExit",
+      "type": "class",
+      "color": "#ff009688",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "anchor",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "hidden",
+          "type": "bool",
+          "value": false
+        },
+        {
+          "name": "conversation",
+          "type": "string",
+          "propertyType": "AuraExitConversation",
+          "value": "(by look)"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "AuraExitArea",
+      "type": "class",
+      "color": "#ff4db6ac",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "anchor",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "hidden",
+          "type": "bool",
+          "value": false
+        },
+        {
+          "name": "sigil",
+          "type": "string",
+          "propertyType": "AuraExitSigil",
+          "value": "runes"
+        },
+        {
+          "name": "particles",
+          "type": "string",
+          "propertyType": "AuraExitParticles",
+          "value": "rising"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "AuraExitSigil",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "runes",
+        "none"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 34,
+      "name": "AuraExitParticles",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "rising",
+        "none"
       ],
       "valuesAsFlags": false
     }

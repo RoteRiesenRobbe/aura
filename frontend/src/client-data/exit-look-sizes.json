@@ -1,0 +1,7 @@
+{
+  "cave-mouth": {"width": 3, "height": 2.4},
+  "cave-exit": {"width": 0.75, "height": 0.75},
+  "stairs-down": {"width": 1, "height": 1},
+  "stairs-up": {"width": 1, "height": 1},
+  "door": {"width": 1.6, "height": 0.8}
+}

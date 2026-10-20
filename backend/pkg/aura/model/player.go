@@ -277,6 +277,11 @@ type PlayerEntity interface {
 	// known the snapshot after its grant lands.
 	ConversingWith() uint64
 	SetConversingWith(id uint64)
+	// Crossing is the touch exit about to move this player, as the way it
+	// goes, TravelNone otherwise (plan-passages.md D9). The PassageSystem
+	// writes it every tick; serialized as GameState.crossing.
+	Crossing() TravelDirection
+	SetCrossing(d TravelDirection)
 	Conversation() *Conversation
 	SetConversation(c *Conversation)
 	// InCombat reports whether the player is inside the recent-combat window

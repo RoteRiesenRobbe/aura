@@ -1,4 +1,6 @@
 import {contentText} from '../../../../../client-data/LangBundle';
+import {exitHeader} from '../../../../exits/logic/ExitHeader';
+import * as GroundTextureManager from '../../../../ground-textures/logic/GroundTextureManager';
 import {formatList, formatText, t, tKey} from '../../../../localization/logic/Locale';
 import {mobName} from '../../../../localization/logic/WireText';
 import {mobDefinition} from '../../../../../client-data/Mobs';
@@ -109,6 +111,9 @@ export class GameStateMessage {
     // ONLY close signal, since the tree below is change-only and can no
     // longer double as one.
     conversationEntityId: number;
+    // A touch exit's dwell (plan-passages.md D9): the TravelDirection while it
+    // runs, held on the travel tick, 0 otherwise. Own player only.
+    crossing: number;
     // the open conversation's personalised tree, or undefined when nothing new
     // rode this tick (chunk 3b-ii, revised by chunk 3 D3). ⚑ undefined no
     // longer means "closed" — that is conversationEntityId's job now. It means
@@ -246,6 +251,7 @@ export class GameStateMessage {
         // change-only question (unmarshalConversation returns undefined on an
         // ordinary unchanged tick, not just on close).
         this.conversationEntityId = Number(gameState.conversationEntityId());
+        this.crossing = gameState.crossing();
         this.conversation = unmarshalConversation(gameState.conversation(null));
     }
 }
@@ -521,11 +527,14 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
 
     // C3: the header names the conversant from the localized mob catalog by
     // its species id (never the entity type, L18); the server's English name
-    // is the fallback.
+    // is the fallback. A door names its exit or where it leads instead
+    // (plan-passages.md D6).
     const actorMobId = actorMobIds.get(Number(c.entityId()));
+    const exitId = c.exitId() ?? '';
     return {
         entityId: Number(c.entityId()),
-        actorName: (actorMobId !== undefined && mobDefinition(actorMobId) && mobName(actorMobId)) || (c.actorName() ?? ''),
+        actorName: (exitId && exitHeader(exitId, GroundTextureManager.getZoneSet()))
+            || (actorMobId !== undefined && mobDefinition(actorMobId) && mobName(actorMobId)) || (c.actorName() ?? ''),
         entryNode: c.entryNode() ?? '',
         nodes,
     };
@@ -817,6 +826,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.EliteWolf]: Mobs.EliteWolf,
     [AuraApi.EntityType.Bramble]: Mobs.Bramble,
     [AuraApi.EntityType.Signpost]: Mobs.Signpost,
+    [AuraApi.EntityType.Passage]: Mobs.Passage,
     [AuraApi.EntityType.Hermit]: Mobs.Hermit,
     [AuraApi.EntityType.DogNpc]: Mobs.DogNpc,
     [AuraApi.EntityType.Kobold]: Mobs.Kobold,

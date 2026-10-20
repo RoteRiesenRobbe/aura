@@ -144,6 +144,10 @@ describe('medallion coverage', () => {
     // remains, portals, campfires (PO 2026-10-17: "things in the world to
     // interact with that have models instead").
     const OBJECTS = ['signpost', 'remains', 'fireTotem', 'campfire'];
+    // Entity types that draw NOTHING of their own, so no Graphics entry and
+    // no ring: a talk exit's door (plan-passages.md D4), whose picture is
+    // the exit's look.
+    const BARE = ['Passage'];
     // Where a class's Graphics key is not its EntityType with a lower-case
     // first letter.
     const KEY_ALIASES: Record<string, string> = {NpcPlaceholder: 'placeholder'};
@@ -172,6 +176,9 @@ describe('medallion coverage', () => {
                 continue;
             }
             const entityType: string = def.entityType ?? def.name;
+            if (BARE.includes(entityType)) {
+                continue;
+            }
             const key = KEY_ALIASES[entityType] ?? entityType[0].toLowerCase() + entityType.slice(1);
             expect(configs[key], `${def.name}: no Graphics entry "${key}" (add a KEY_ALIASES row?)`).toBeDefined();
             if (OBJECTS.includes(key)) {
@@ -188,6 +195,9 @@ describe('medallion coverage', () => {
     it('gives every medallion species a pack portrait the manifest lists', () => {
         for (const def of species) {
             const entityType: string = def.entityType ?? def.name;
+            if (BARE.includes(entityType)) {
+                continue;
+            }
             const key = KEY_ALIASES[entityType] ?? entityType[0].toLowerCase() + entityType.slice(1);
             if (!configs[key]?.medallion) {
                 continue;

@@ -147,12 +147,12 @@ func TestCrossValidateTravelAnchors_WarnsRatherThanFailsForAnUnplacedDoor(t *tes
 	surface := zoneAt("world", 144, 72, 0, 0)
 
 	warnings, err := CrossValidateTravelAnchors(
-		fakeRegistry{defs: []*mobs.MobDefinition{door("CaveMouth", ""), door("CaveExit", "gone")}},
+		fakeRegistry{defs: []*mobs.MobDefinition{door("CaveMouth", ""), door("BarredDoor", "gone")}},
 		[]*Zone{surface})
 
 	require.NoError(t, err)
 	require.Len(t, warnings, 2)
-	assert.Contains(t, warnings[0], "CaveExit")
+	assert.Contains(t, warnings[0], "BarredDoor")
 	assert.Contains(t, warnings[0], "gone", "a broken default is worth naming")
 	assert.Contains(t, warnings[1], "CaveMouth")
 }

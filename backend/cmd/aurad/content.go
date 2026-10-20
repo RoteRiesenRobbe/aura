@@ -211,6 +211,10 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		out.langEntries, langFindings = langEntries(out, zoneNames)
 		findings = append(findings, zoneFindings...)
 		findings = append(findings, langFindings...)
+		// The words each door shows (plan-passages.md D6): the exit's own,
+		// else its destination's. Here, because those keys are optional and
+		// only the English says which exist.
+		world.ApplyExitWords(out.zones, out.langBundle.Overlay(lang.Source))
 	}
 
 	return out, findings

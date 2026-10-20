@@ -403,6 +403,17 @@ func RegionSubtitle(region string) string  { return "region." + region + ".subti
 func ZoneName(zone string) string          { return "zone." + zone + ".name" }
 func AppearanceName(item string) string    { return "appearance." + item + ".name" }
 
+// The words a door shows (plan-passages.md D6): an exit's own, keyed by its
+// id, and a destination's, keyed by its anchor name. All optional.
+func ExitTitle(exit string) string    { return "exit." + exit + ".title" }
+func ExitText(exit string) string     { return "exit." + exit + ".text" }
+func ExitGo(exit string) string       { return "exit." + exit + ".go" }
+func AnchorText(anchor string) string { return "anchor." + anchor + ".text" }
+
+// The words every exit of one look says by default (D12).
+func ExitLookText(look string) string { return "exit-look." + look + ".text" }
+func ExitLookGo(look string) string   { return "exit-look." + look + ".go" }
+
 // Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
 // unique within that NPC (D27).
 func Conversation(npc, slug string) string { return "conv." + npc + "." + slug }

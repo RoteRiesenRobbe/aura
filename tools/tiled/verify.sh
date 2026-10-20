@@ -111,7 +111,7 @@ node -e '
 const fs = require("fs");
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 const parts = [z, ...(z.areas || [])];
-const KINDS = ["decals", "spawns", "bindPoints", "darkAreas", "regions",
+const KINDS = ["decals", "spawns", "exits", "exitAreas", "bindPoints", "darkAreas", "regions",
     "paths", "structures", "atmospheres", "clearings", "anchors"];
 const flat = {};
 // Every key in zone.go order: a kind the zone level no longer holds (all of
@@ -1150,6 +1150,94 @@ else
     ok "refused, nothing written"
 fi
 
+# ---- 2e. talk exits survive a real Tiled save (plan-passages.md P1) ---------
+# Every zone file that places a door, byte for byte: world.json keeps its exits
+# inside areas (two `hidden`, a bool member), the cave zones keep theirs at the
+# zone level with a typed `look` enum, which only Tiled's own reader and writer
+# can lose. ⚑ No shipped exit names a `conversation` since P3b, so that member
+# is pinned by vitest only. ⚑ Names only, never the GUI ([[project-tiled-roundtrip-blind-spot]]).
+echo
+echo "zone files with exits round-trip"
+for zf in api/zones/*.json; do
+    grep -q '"exits"' "$zf" || continue
+    out="$TMP/exits-$(basename "$zf")"
+    if "$TILED" --export-map aura-zone "$zf" "$(native "$out")" >/dev/null 2>&1 && cmp -s "$zf" "$out"; then
+        ok "$zf byte-identical"
+    else
+        bad "$zf NOT byte-identical — diff: $(cmp "$zf" "$out" 2>&1 | head -1)"
+    fi
+done
+if ! grep -q '"hidden": true' api/zones/*.json; then
+    bad "no zone authors a hidden exit — the bool member above went untested"
+fi
+
+# P2: a TURNED exit with a typed look. No shipped exit is turned, so the loop
+# above never sees a point object's rotation go through Tiled and back.
+echo
+echo "a turned exit with a look round-trips"
+node -e '
+const fs = require("fs");
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+C.useContent(require("./tools/tiled/palette/content.json"));
+// The tunnel: the barn way out became a touch exit (2026-10-19).
+const z = JSON.parse(fs.readFileSync("api/zones/tunnel.json", "utf8"));
+Object.assign(z.exits[0], {rotation: 1.571, look: "door"});
+fs.writeFileSync("tools/tiled/.verify/exit-turn.json", C.serializeZone(z, true));
+'
+if grep -q '"rotation": 1.571' tools/tiled/.verify/exit-turn.json \
+   && "$TILED" --export-map aura-zone tools/tiled/.verify/exit-turn.json \
+        "$(native "$ROOT/tools/tiled/.verify/exit-turn-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/exit-turn.json tools/tiled/.verify/exit-turn-out.json; then
+    ok "byte-identical — rotation and look survive"
+else
+    bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-turn.json tools/tiled/.verify/exit-turn-out.json 2>&1 | head -1)"
+fi
+
+# P4: TOUCH exits share the exits layer with the talk exits, told apart by
+# class (D2). No shipped zone has one yet, so this leg writes both classes on
+# one layer and needs both back in their own arrays.
+echo
+echo "touch exits share the exits layer and come back to their own array"
+node -e '
+const fs = require("fs");
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/barn.json", "utf8"));
+z.exitAreas = [
+  {id: "glow-pit", points: [{x: -2, y: -2}, {x: 0, y: -2}, {x: -1, y: 0}], anchor: "barn-surface", hidden: true, sigil: "none", particles: "none"},
+  {points: [{x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 1, y: 2}], anchor: "barn-surface"},
+];
+fs.writeFileSync("tools/tiled/.verify/exit-areas.json", C.serializeZone(z, true));
+'
+if grep -q '"exitAreas"' tools/tiled/.verify/exit-areas.json \
+   && "$TILED" --export-map aura-zone tools/tiled/.verify/exit-areas.json \
+        "$(native "$ROOT/tools/tiled/.verify/exit-areas-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json; then
+    ok "byte-identical — both classes, id, hidden, sigil and particles survive"
+else
+    bad "NOT byte-identical — diff: $(cmp tools/tiled/.verify/exit-areas.json tools/tiled/.verify/exit-areas-out.json 2>&1 | head -1)"
+fi
+
+# ⛔ D11/L2: a zone still placing a door in `spawns` is VALID to the server, so
+# only the converter stops it opening and the next save keeping the old shape.
+echo
+echo "a zone file still placing a door in spawns"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+const e = z.exits[0];
+z.spawns = z.spawns.concat([{mob: "CaveMouth", x: e.x, y: e.y, angle: 0, anchor: e.anchor}]);
+fs.writeFileSync("tools/tiled/.verify/door-spawn.json", JSON.stringify(z, null, 2) + "\n");
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/door-spawn.json \
+        "$(native "$ROOT/tools/tiled/.verify/door-spawn-out.json")" >/dev/null 2>&1; then
+    bad "the open was ACCEPTED — the door would stay in spawns"
+elif [ -e tools/tiled/.verify/door-spawn-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
 # ---- 3. the generated palette is in step with api/ --------------------------
 echo
 echo "generated palette matches the content it is generated from"
@@ -1161,7 +1249,7 @@ echo "generated palette matches the content it is generated from"
 # empty `before` is exactly the "stale, regenerate" answer this leg should give.
 palette_state() {
     cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
-        tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx \
+        tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx tools/tiled/palette/exits.tsx \
         tools/tiled/palette/templates/*/*.tx \
         tools/tiled/aura.tiled-project 2>/dev/null || true
 }

@@ -37,7 +37,7 @@ export const keys = {
  */
 export function arbOf(key) {
   const root = String(key).split('.')[0];
-  return { quest: 'quests', mob: 'mobs', conv: 'conversations', stock: 'conversations', skill: 'skills', region: 'regions', zone: 'regions', appearance: 'appearance' }[root];
+  return { quest: 'quests', mob: 'mobs', conv: 'conversations', stock: 'conversations', skill: 'skills', region: 'regions', zone: 'regions', exit: 'regions', anchor: 'regions', appearance: 'appearance' }[root];
 }
 
 /** A content key: dot-separated parts of letters, digits, `-` and `_`, a letter first (D29). */

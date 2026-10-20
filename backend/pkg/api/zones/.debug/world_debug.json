@@ -13993,20 +13993,6 @@
       "angle": 0
     },
     {
-      "mob": "CaveMouth",
-      "x": -56.05,
-      "y": -25.54,
-      "angle": 0,
-      "anchor": "under-west"
-    },
-    {
-      "mob": "CaveMouth",
-      "x": 55.8,
-      "y": -26.8,
-      "angle": 0,
-      "anchor": "under-east"
-    },
-    {
       "mob": "FrontAscensionStone",
       "x": 55.2,
       "y": 20.2,
@@ -14023,6 +14009,18 @@
       "x": 34.52,
       "y": -19.6,
       "angle": 0
+    }
+  ],
+  "exits": [
+    {
+      "x": -56.05,
+      "y": -25.54,
+      "anchor": "under-west"
+    },
+    {
+      "x": 55.8,
+      "y": -26.8,
+      "anchor": "under-east"
     }
   ],
   "bindPoints": [

@@ -4180,27 +4180,6 @@
           "level": 3
         },
         {
-          "mob": "CaveMouth",
-          "x": -260.87,
-          "y": -18.21,
-          "angle": 0,
-          "anchor": "under-west"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -196.23,
-          "y": -12.64,
-          "angle": 0,
-          "anchor": "under-east"
-        },
-        {
-          "mob": "CaveMouth",
-          "x": -197.51,
-          "y": 14.59,
-          "angle": 0,
-          "anchor": "barn-inside"
-        },
-        {
           "mob": "Stag",
           "x": -253.2,
           "y": 30.53,
@@ -4926,6 +4905,18 @@
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2
+        }
+      ],
+      "exits": [
+        {
+          "x": -260.87,
+          "y": -18.21,
+          "anchor": "under-west"
+        },
+        {
+          "x": -196.23,
+          "y": -12.64,
+          "anchor": "under-east"
         }
       ],
       "bindPoints": [
@@ -6939,8 +6930,8 @@
         },
         {
           "name": "barn-surface",
-          "x": -197.39,
-          "y": 13.86
+          "x": -197.35,
+          "y": 14.01
         },
         {
           "name": "surface-east",
@@ -8407,13 +8398,6 @@
           "angle": 0
         },
         {
-          "mob": "CaveMouth",
-          "x": -162.53,
-          "y": -21.15,
-          "angle": 0,
-          "anchor": "koboldcave-inside"
-        },
-        {
           "mob": "KoboldRanged",
           "x": -160.1,
           "y": -19.09,
@@ -9088,6 +9072,14 @@
           "x": -143.73,
           "y": -10.83,
           "angle": 2.2
+        }
+      ],
+      "exits": [
+        {
+          "x": -162.53,
+          "y": -21.15,
+          "anchor": "koboldcave-inside",
+          "hidden": true
         }
       ],
       "bindPoints": [
@@ -10357,12 +10349,12 @@
           "x": -46.47,
           "y": -1.99,
           "angle": 0
-        },
+        }
+      ],
+      "exits": [
         {
-          "mob": "CaveMouth",
           "x": -65.64,
           "y": 1.02,
-          "angle": 0,
           "anchor": "tunnel-east"
         }
       ],
@@ -11224,13 +11216,6 @@
       },
       "spawns": [
         {
-          "mob": "CaveMouth",
-          "x": -113.63,
-          "y": -52.54,
-          "angle": 0,
-          "anchor": "tunnel-west"
-        },
-        {
           "mob": "Bandit",
           "x": -129.47,
           "y": -48.42,
@@ -11289,6 +11274,14 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 6
+        }
+      ],
+      "exits": [
+        {
+          "x": -113.63,
+          "y": -52.54,
+          "anchor": "tunnel-west",
+          "hidden": true
         }
       ],
       "bindPoints": [
@@ -12698,6 +12691,60 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 15
+        }
+      ],
+      "exitAreas": [
+        {
+          "id": "fallow-test-glow",
+          "points": [
+            {
+              "x": -198.05,
+              "y": 13.2
+            },
+            {
+              "x": -196.72,
+              "y": 13.16
+            },
+            {
+              "x": -196.72,
+              "y": 13.34
+            },
+            {
+              "x": -196.76,
+              "y": 13.51
+            },
+            {
+              "x": -196.84,
+              "y": 13.62
+            },
+            {
+              "x": -197,
+              "y": 13.75
+            },
+            {
+              "x": -197.31,
+              "y": 13.76
+            },
+            {
+              "x": -197.63,
+              "y": 13.75
+            },
+            {
+              "x": -197.82,
+              "y": 13.66
+            },
+            {
+              "x": -197.93,
+              "y": 13.56
+            },
+            {
+              "x": -198.02,
+              "y": 13.42
+            }
+          ],
+          "anchor": "barn-inside",
+          "sigil": "none",
+          "particles": "none"
         }
       ],
       "bindPoints": [

@@ -556,8 +556,20 @@ func (rcv *GameState) QuestMarkersLength() int {
 	return 0
 }
 
+func (rcv *GameState) Crossing() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCrossing(n byte) bool {
+	return rcv._tab.MutateByteSlot(68, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(32)
+	builder.StartObject(33)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -690,6 +702,9 @@ func GameStateAddQuestMarkers(builder *flatbuffers.Builder, questMarkers flatbuf
 }
 func GameStateStartQuestMarkersVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func GameStateAddCrossing(builder *flatbuffers.Builder, crossing byte) {
+	builder.PrependByteSlot(32, crossing, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
