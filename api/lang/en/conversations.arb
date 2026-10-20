@@ -676,10 +676,6 @@
   "@conv.Henrik.flora-sends-me-to-hunt": {
     "description": "A row the player picks when talking to Henrik (node \"root\"), written as the player's own words."
   },
-  "conv.Henrik.hahaha-well-see": "Hahaha! We'll see.",
-  "@conv.Henrik.hahaha-well-see": {
-    "description": "Henrik speaks this in the conversation, node \"bravado\", line 1."
-  },
   "conv.Henrik.hm-speak-up-stranger": "Hm? Speak up, stranger.",
   "@conv.Henrik.hm-speak-up-stranger": {
     "description": "Henrik speaks this in the conversation, node \"root\", line 1."
@@ -688,21 +684,17 @@
   "@conv.Henrik.how-do-i-hunt": {
     "description": "A row the player picks when talking to Henrik (node \"root\"), written as the player's own words."
   },
-  "conv.Henrik.ill-teach-you-one-thing": "I'll teach you one thing. Learn it properly.",
+  "conv.Henrik.ill-teach-you-one-thing": "I can teach you a few things about hunting with a spear.",
   "@conv.Henrik.ill-teach-you-one-thing": {
     "description": "Henrik speaks this in the conversation, node \"teachings\", line 1."
   },
-  "conv.Henrik.no-problem-ill-kill": "No problem, I'll kill the deer in no time.",
-  "@conv.Henrik.no-problem-ill-kill": {
-    "description": "A row the player picks when talking to Henrik (node \"teachings\"), written as the player's own words."
+  "conv.Henrik.with-a-short-spear-youll": "With a short spear you'll reach farther than with that knife. Choose Short Spear as your active aura and give it your best shot!",
+  "@conv.Henrik.with-a-short-spear-youll": {
+    "description": "Henrik answers this when the player picks \"Short Spear\" (node \"teachings\")."
   },
   "conv.Henrik.with-that-tiny-knife-you": "With that tiny knife you carry? Hahaha! Come here, I'll teach you how to hunt.",
   "@conv.Henrik.with-that-tiny-knife-you": {
     "description": "Henrik speaks this in the conversation, node \"flora\", line 1."
-  },
-  "conv.Henrik.with-the-wild-aura-youll": "With the Wild aura you'll have a larger reach. Choose Wild as your active aura and give it your best shot!",
-  "@conv.Henrik.with-the-wild-aura-youll": {
-    "description": "Henrik answers this when the player picks \"Wild\" (node \"teachings\")."
   },
   "conv.Henrik.you-wont-win-by-hitting": "You won't win by hitting harder. You win by staying close.",
   "@conv.Henrik.you-wont-win-by-hitting": {

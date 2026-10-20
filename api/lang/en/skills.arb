@@ -543,6 +543,11 @@
     "description": "Name of the skill Shockwave: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.ShortSpear.name": "Short Spear",
+  "@skill.ShortSpear.name": {
+    "description": "Name of the skill ShortSpear: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Slow.name": "Slow",
   "@skill.Slow.name": {
     "description": "Name of the skill Slow: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -551,6 +556,11 @@
   "skill.SoldierBlades.name": "Soldier Blades",
   "@skill.SoldierBlades.name": {
     "description": "Name of the skill SoldierBlades: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.SpearThrow.name": "Spear Throw",
+  "@skill.SpearThrow.name": {
+    "description": "Name of the skill SpearThrow: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.Spearhead.name": "Spearhead",

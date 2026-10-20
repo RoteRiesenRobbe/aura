@@ -1,5 +1,5 @@
 {
-  "_comment": "A physical damage aura on the nearest enemy in a 1.4-unit ring every 40 ticks, 10 HP plus 2.4 per level: a wider reach than the base Damage aura, paid for with a resource cost per hit. All values placeholder.",
+  "_comment": "A physical damage aura on the nearest enemy in a 1.4-unit ring every 40 ticks, 10 HP plus 2.4 per level: a wider reach than the base Damage aura, paid for with a resource cost per hit. All values placeholder. No unlock source yet - cheat-only (SKILL) until it is placed.",
   "id": 3,
   "name": "Wild",
   "icon": "lorc/broadsword",

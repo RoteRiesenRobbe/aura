@@ -104,7 +104,7 @@ var expectedQuests = map[string]string{
 	"the-millers-ring": "Lost and Found",
 
 	// The quest sheet (2026-10-13) split the old dinner into Farmer Flora's two
-	// opening quests (Benjamin teaches Harvest, Henrik Wild), and added Hans's
+	// opening quests (Benjamin teaches Harvest, Henrik Short Spear and Spear Throw), and added Hans's
 	// wolf chain (Hans, the Town Crier, the Governor of Dionsburg), Herbalist
 	// Lionett's seaweed (FirstAid on the turn-in) and Reinhard's shipment, which
 	// ends at Tobias.

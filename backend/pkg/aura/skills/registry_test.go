@@ -270,7 +270,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// SKILL cheat only). 132 → 133 (88 player + 45 mob).
 	// + the Ashen Fields fire pair's mob skills FirelordAura 169,
 	// FireStirerAura 170 and FireStirerKindle 171. 133 -> 136 (88 player + 48 mob).
-	assert.Len(t, r.All(), 136)
+	// + ShortSpear 172 and SpearThrow 173, Henrik's two taught spear skills.
+	// 136 -> 138 (90 player + 48 mob).
+	assert.Len(t, r.All(), 138)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

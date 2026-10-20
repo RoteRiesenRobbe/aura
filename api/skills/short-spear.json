@@ -1,0 +1,31 @@
+{
+  "_comment": "A physical damage aura on the nearest enemy in a 1.4-unit ring every 40 ticks, 10 HP plus 2.4 per level, drawn as a spear thrust from the player: Wild's numbers under a spear's look, with a resource cost per hit. All values placeholder.",
+  "id": 172,
+  "name": "ShortSpear",
+  "icon": "lorc/broadsword",
+  "packIcon": "spear-thrust",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "thrust", "ms": 240 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.0082,
+      "costFractionOfMaxPerLevel": 0.00195,
+      "radius": 1.4,
+      "radiusPerLevel": 0.05,
+      "damageHP": 10,
+      "damageHPPerLevel": 2.4,
+      "damageTags": ["physical"],
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

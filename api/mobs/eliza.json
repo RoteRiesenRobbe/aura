@@ -1,5 +1,5 @@
 {
-  "_comment": "Farmer Flora, the first NPC in the game, at the homestead. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `ready-for-harvest` and then `meat-for-dinner`, each offer node gated on the one before completing, then hands over `eliza-sends-me` (Off to the Mill), which Reinhard turns in. Her husband Henrik teaches Wild, Benjamin teaches Harvest. Dialogue from the PO's quest sheet. entityType VillageHealer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Farmer Flora, the first NPC in the game, at the homestead. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Offers and turns in `ready-for-harvest` and then `meat-for-dinner`, each offer node gated on the one before completing, then hands over `eliza-sends-me` (Off to the Mill), which Reinhard turns in. Her husband Henrik teaches Short Spear and Spear Throw, Benjamin teaches Harvest. Dialogue from the PO's quest sheet. entityType VillageHealer is placeholder art. All values [PLACEHOLDER].",
   "id": 82,
   "name": "Flora",
   "type": "MOB",

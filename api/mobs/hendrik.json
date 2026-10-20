@@ -1,5 +1,5 @@
 {
-  "_comment": "Henrik, Flora's husband, teaches Wild (the first taught combat skill); talking to him is an objective of `meat-for-dinner`. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Henrik, Flora's husband, teaches Short Spear and Spear Throw (the first taught combat skills); talking to him is an objective of `meat-for-dinner`. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
   "id": 84,
   "name": "Henrik",
   "type": "MOB",
@@ -71,30 +71,23 @@
           {
             "grants": [
               {
-                "id": "with-the-wild-aura-youll",
+                "id": "with-a-short-spear-youll",
                 "kind": "teach_skill",
-                "skill": "Wild",
+                "skill": "ShortSpear",
                 "requiredLevel": 1
               }
             ]
           },
           {
-            "id": "no-problem-ill-kill",
-            "next": "bravado"
+            "grants": [
+              {
+                "stock": "teach-skill",
+                "kind": "teach_skill",
+                "skill": "SpearThrow",
+                "requiredLevel": 1
+              }
+            ]
           }
-        ]
-      },
-      {
-        "id": "bravado",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "meat-for-dinner",
-            "stage": "running"
-          }
-        ],
-        "lines": [
-          {"id": "hahaha-well-see"}
         ]
       },
       {
