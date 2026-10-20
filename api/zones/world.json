@@ -4917,13 +4917,6 @@
           "x": -196.23,
           "y": -12.64,
           "anchor": "under-east"
-        },
-        {
-          "x": -191.51,
-          "y": 4.27,
-          "rotation": 0.051,
-          "anchor": "barn-inside",
-          "look": "door"
         }
       ],
       "bindPoints": [
