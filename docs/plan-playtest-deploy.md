@@ -259,6 +259,16 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-10-20, `59780288` (baseline `82044c23`, deployed 2026-10-14
+  but never logged here; nothing between 2026-08-18 and 2026-10-14 is
+  logged):** full deploy carrying appearance C1-C3, the campfire menu and
+  passages P2-P6 (merged that day). Wire changed (`Character` +4 fields across C3
+  and the campfire menu, passages' `Passage` EntityType and exit fields) → hard
+  refresh required. **One new migration, `000004_appearance`** (`characters.ring`
+  + `appearance_unlocks`, additive), auto-applied at boot; no pre-deploy dump
+  (additive schema, losable-DB ruling). Verified: TLS boot, 46 campfires placed,
+  new client bundle `main.f6b291d5…js` served, `/skills` 200, Campfire in the live
+  `/mobs` catalog. PO smoke join on live owed.
 - **DEPLOYED 2026-08-18, `f5949100` (baseline was `9c3d1c5b`, 2026-08-07):** the
   ascension + CC/retaliation + effect-types C1–C4 + portal-spells + code-health
   stack, both-sides deploy (FlatBuffers changed: `ConversationOption.skill_id`

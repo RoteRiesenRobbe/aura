@@ -86,3 +86,10 @@ English and never refreshes the translated-from records: review the git diff,
 then run §5's record step. `--help` lists the rules and the Google Sheets
 traps (untick "Convert text to numbers, dates, and formulas" on import).
 Tests: `node --test tools/lang/*.test.mjs` (plan-localization.md C9).
+
+For a text pass rather than a translation pass, `python3
+tools/lang/dialogue-sheet.py --out <dir>` writes the same rows for dialogue and
+quests only (conversations, quests, door words), in play order from the starting
+campfire, with section, speaker, quest and kind columns, as `.xlsx` (upload to
+Google Drive for a Sheet) and `.csv`. Before importing German from it, `--strip
+<edited.csv>` drops the context columns, which `sheet.mjs import` refuses.
