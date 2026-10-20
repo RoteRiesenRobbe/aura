@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
+	aappearance "github.com/RoteRiesenRobbe/aura/pkg/api/appearance"
 	aareas "github.com/RoteRiesenRobbe/aura/pkg/api/areas"
 	aascension "github.com/RoteRiesenRobbe/aura/pkg/api/ascension"
 	aatmospheres "github.com/RoteRiesenRobbe/aura/pkg/api/atmospheres"
@@ -73,6 +74,9 @@ type contentSources struct {
 	// atmospheres is the atmosphere profile table, shared with the client; the
 	// server reads only each profile's darkness (plan-map-fog-darkness.md C1).
 	atmospheres fs.FS
+	// appearance is the look catalog, one file per portrait or ring
+	// (plan-appearance.md §4.1).
+	appearance fs.FS
 	// lang is the localization tree (plan-localization.md C1, L3): the
 	// authored English (D27) and the translations, api/lang/<locale>/.
 	lang fs.FS
@@ -93,11 +97,12 @@ func embeddedContent() contentSources {
 		areas:       aareas.Areas,
 		regions:     aregions.Regions,
 		atmospheres: aatmospheres.Atmospheres,
+		appearance:  aappearance.Appearance,
 		lang:        alang.Lang,
 	})
 }
 
-// withEnglish has the quest, mob, skill and region loaders read each file
+// withEnglish has the quest, mob, skill, region and appearance loaders read each file
 // with its English joined in from api/lang/en/ (plan-localization.md D27):
 // the content JSON keeps structure and ids, the ARB holds the text, and every
 // loader still sees one JSON with its text in it.
@@ -107,12 +112,13 @@ func withEnglish(c contentSources) contentSources {
 	c.mobs = lang.EnglishFS(c.mobs, lang.DomainMob, en)
 	c.skills = lang.EnglishFS(c.skills, lang.DomainSkill, en)
 	c.regions = lang.EnglishFS(c.regions, lang.DomainRegions, en)
+	c.appearance = lang.EnglishFS(c.appearance, lang.DomainAppearance, en)
 	return c
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/, skill-fx/, areas/, regions/, atmospheres/, lang/).
+// ascension/, skill-fx/, areas/, regions/, atmospheres/, appearance/, lang/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -163,6 +169,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.regions, err = sub("regions"); err != nil {
+		return contentSources{}, err
+	}
+	if c.appearance, err = sub("appearance"); err != nil {
 		return contentSources{}, err
 	}
 	if c.lang, err = sub("lang"); err != nil {

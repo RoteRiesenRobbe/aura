@@ -93,4 +93,23 @@ describe('Medallion', () => {
         medallion.setPortrait('NoSuchSpecies');
         expect(portrait.texture).toBe(Texture.WHITE);
     });
+
+    // The player's chosen portrait (plan-appearance.md C3) goes through the
+    // same swap as a species bust: one portrait path for every token.
+    it('wears a given portrait texture and keeps the drawn size', () => {
+        const medallion = build();
+        const {width, height} = portrait;
+        const bust = new Texture();
+        medallion.setPortraitTexture(bust);
+        expect(portrait.texture).toBe(bust);
+        expect(portrait.width).toBe(width);
+        expect(portrait.height).toBe(height);
+    });
+
+    it('falls back to the class portrait for no texture (no pack on this machine)', () => {
+        const medallion = build();
+        medallion.setPortraitTexture(new Texture());
+        medallion.setPortraitTexture(null);
+        expect(portrait.texture).toBe(Texture.WHITE);
+    });
 });

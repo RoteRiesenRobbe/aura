@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 )
@@ -32,6 +33,7 @@ var langDomains = []struct {
 	{"conversations", true},
 	{"skills", false},
 	{"regions", true},
+	{"appearance", false}, // the names ride /appearance
 }
 
 // langEntries reads every domain's entries. Findings name authored text that
@@ -140,6 +142,11 @@ func langEntries(c loadedContent, zoneNames map[string]string) (map[string][]lan
 	sort.Strings(stems)
 	for _, stem := range stems {
 		add("regions", fmt.Sprintf("zone %q name", stem), lang.Entry{Key: lang.ZoneName(stem), Text: zoneNames[stem]})
+	}
+	for _, items := range [][]appearance.Item{c.appearance.Portraits(), c.appearance.Rings()} {
+		for _, it := range items {
+			add("appearance", fmt.Sprintf("appearance %q name", it.ID), lang.Entry{Key: lang.AppearanceName(it.ID), Text: it.Name})
+		}
 	}
 	return out, findings
 }

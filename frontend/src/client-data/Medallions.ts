@@ -34,10 +34,6 @@ export type RingFamily = keyof typeof RING_FAMILY_FILES;
 
 export const FALLBACK_FAMILY: RingFamily = 'grey';
 
-// The ring every player character wears until C3 lets them choose one (D20):
-// the plain grey ring (PO 2026-10-19).
-export const PLAYER_RING: RingFamily = FALLBACK_FAMILY;
-
 // Faction name (api/factions) -> ring family. A faction left out draws the
 // grey fallback, which is why cult, dragonkin, fey, mercenary, undead and
 // townsfolk are absent. A key that names no faction is a typo: the pin in
@@ -98,7 +94,7 @@ export interface MedallionSpec {
 
 /**
  * The ring a species wears: its own (D23), else its faction's, else grey.
- * C3 gives the player a ring through the same `ring` key (D20).
+ * A player's ring is the family of the item they wear (Appearance.ringFamilyOf).
  */
 export function ringFamily(spec: MedallionSpec, faction: string | undefined): RingFamily {
     return spec.ring ?? FACTION_FAMILIES[faction ?? ''] ?? FALLBACK_FAMILY;

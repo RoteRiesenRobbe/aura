@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -63,6 +64,10 @@ type GameConfig struct {
 	// one entry from (plan-ascension.md D13). Empty until C3 authors it, and
 	// empty is a legal world (D14).
 	AscensionCatalog ascension.Catalog
+
+	// Appearance is the look catalog a player character may wear
+	// (plan-appearance.md C3).
+	Appearance appearance.Catalog
 
 	// Spawns are the authored mob spawn points from the zone (world foundation
 	// chunk 4). The MobSystem spawns one mob per point and respawns it at the

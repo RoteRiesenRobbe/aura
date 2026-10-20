@@ -42,7 +42,7 @@ type Ticket struct {
 	AccountID   int64
 	CharacterID int64
 
-	// Name, Avatar and Faction are the character's identity, carried so the
+	// Name, Avatar, Ring and Faction are the character's identity, carried so the
 	// GAME LOOP NEVER HAS TO READ THE DATABASE TO ANSWER A JOIN
 	// (PO 2026-08-01, plan-accounts-frontend.md §10b).
 	//
@@ -64,6 +64,7 @@ type Ticket struct {
 	// character) and worth knowing before something does.
 	Name    string
 	Avatar  string
+	Ring    string
 	Faction string
 
 	// State is the character's persisted progress — level, experience,

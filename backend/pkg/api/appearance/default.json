@@ -1,0 +1,6 @@
+{
+  "_comment": "The look every character wears unless it chose another; the id is the value characters.avatar held before plan-appearance.md C3. A starter portrait [PLACEHOLDER art: a PONETI bust until the artist's portraits land].",
+  "id": "default",
+  "slot": "portrait",
+  "starter": true
+}

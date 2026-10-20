@@ -32,6 +32,7 @@ func character(name string, accountID int64) store.NewCharacter {
 		AccountID: accountID,
 		Name:      name,
 		Avatar:    "default",
+		Ring:      "ring-plain",
 		Faction:   "aligned",
 		MaxAlive:  3,
 	}

@@ -1,6 +1,8 @@
 import * as NameGenerator from '../../../player/logic/NameGenerator';
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
+import {AppearanceItem, AppearanceSlot, appearanceCatalog, appearanceReady, defaultLook} from '../../../../client-data/Appearance';
+import {medallionElement} from './MedallionElement';
 
 /**
  * Character creation (plan-accounts-frontend.md §4b) — the first thing a new
@@ -42,6 +44,13 @@ let knownCharacterCount = 0;
  */
 let chosenSlotIndex: number | undefined;
 
+/**
+ * The picked look (plan-appearance.md C3), as appearance item ids; null until
+ * the catalog has arrived. Every show() starts on the defaults (the D12
+ * preselect for a successor is C5's).
+ */
+let chosenLook: { portrait: string, ring: string } | null = null;
+
 export function setup(handlers: {
     onCreated: (character: Character, wasFirstCharacter: boolean) => void,
     onCancel: () => void,
@@ -78,7 +87,52 @@ export function setup(handlers: {
             });
 
         AccountScreens.clearError(panel);
+        // The catalog usually lands before the panel shows; if not, the
+        // picker fills in when it does.
+        void appearanceReady.then(renderLook);
     });
+}
+
+/**
+ * Draws the picker: the chosen medallion, then each starter item as the
+ * medallion it would make with the other slot's current pick.
+ */
+function renderLook(): void {
+    const catalog = appearanceCatalog();
+    if (!catalog) {
+        return;
+    }
+    chosenLook ??= defaultLook(catalog);
+    const look = chosenLook;
+    const panel = AccountScreens.element('characterCreation');
+    panel.querySelector('.lookPreview').replaceChildren(medallionElement(look.portrait, look.ring));
+
+    const option = (slot: AppearanceSlot, item: AppearanceItem) => {
+        const tile = document.createElement('div');
+        tile.className = 'lookOption';
+        tile.title = item.name;
+        tile.setAttribute('role', 'button');
+        tile.setAttribute('aria-label', item.name);
+        const selected = look[slot] === item.id;
+        tile.classList.toggle('selected', selected);
+        tile.setAttribute('aria-pressed', String(selected));
+        tile.dataset.item = item.id;
+        tile.appendChild(slot === 'portrait'
+            ? medallionElement(item.id, look.ring)
+            : medallionElement(look.portrait, item.id));
+        // pointerdown, not click: see the back button above.
+        tile.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            chosenLook = {...look, [slot]: item.id};
+            renderLook();
+        });
+        return tile;
+    };
+    for (const slot of ['portrait', 'ring'] as AppearanceSlot[]) {
+        const items = slot === 'portrait' ? catalog.portraits : catalog.rings;
+        panel.querySelector(`.lookOptions[data-slot="${slot}"]`)
+            .replaceChildren(...items.filter(item => item.starter).map(item => option(slot, item)));
+    }
 }
 
 /**
@@ -110,6 +164,9 @@ export function show(mount: CreationMount, characterCount = 0, slotIndex?: numbe
     // last-used name (what the old start screen did) guarantees a rejected
     // submit under global uniqueness — see §4c.
     input.setAttribute('placeholder', NameGenerator.generate());
+
+    chosenLook = null;
+    renderLook();
 
     AccountScreens.showPanel('characterCreation');
     input.focus();
@@ -149,7 +206,7 @@ async function submit(): Promise<void> {
     try {
         for (let attempt = 0; ; attempt++) {
             try {
-                const created = await AccountsApi.createCharacter(name, chosenSlotIndex);
+                const created = await AccountsApi.createCharacter(name, chosenSlotIndex, chosenLook ?? undefined);
                 onCreated(created.character, knownCharacterCount === 0);
                 return;
             } catch (error) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"io/fs"
 	"os"
 	"reflect"
@@ -363,4 +364,19 @@ func TestEmbeddedAtmosphereProfiles_LoadAndMatchSource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got, "embedded atmosphere profiles are stale — run `make -C backend cp-defs`")
 	assert.Equal(t, float32(1), want["Cave Air"], "the cave darkness the map reveal gates on")
+}
+
+// The look catalog loads from the repo, and the embedded copy is the authored
+// one (plan-appearance.md C3): a stale copy would hand out wire indices the
+// served /appearance of a -content boot does not agree with.
+func TestEmbeddedAppearance_LoadsAndMatchesSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := appearance.Load(disk.appearance)
+	require.NoError(t, err)
+	got, err := appearance.Load(embeddedContent().appearance)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded appearance catalog is stale — run `make -C backend cp-defs`")
+	assert.Len(t, want.Portraits(), 8, "the starter portraits (D30 as picked 2026-10-20)")
+	assert.Len(t, want.Rings(), 2, "the starter rings (D30)")
 }

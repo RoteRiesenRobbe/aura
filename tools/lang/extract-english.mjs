@@ -44,6 +44,7 @@ export function contentFiles(root) {
     ...jsonFiles(join(root, 'api', 'mobs')).map((f) => ({ f, domain: 'mob', arb: 'mobs' })),
     ...jsonFiles(join(root, 'api', 'skills')).map((f) => ({ f, domain: 'skill', arb: 'skills' })),
     { f: join(root, 'api', 'regions', 'regions.json'), domain: 'regions', arb: 'regions' },
+    ...jsonFiles(join(root, 'api', 'appearance')).map((f) => ({ f, domain: 'appearance', arb: 'appearance' })),
   ];
 }
 
@@ -145,7 +146,7 @@ export function extractFile(source, domain, arbs, arbName) {
 
 function main() {
   const check = process.argv.includes('--check');
-  const arbNames = ['mobs', 'conversations', 'quests', 'skills', 'regions'];
+  const arbNames = ['mobs', 'conversations', 'quests', 'skills', 'regions', 'appearance'];
   const arbPath = (n) => join(ROOT, 'api', 'lang', 'en', `${n}.arb`);
   const arbs = Object.fromEntries(arbNames.map((n) => [n, parseArb(readFileSync(arbPath(n), 'utf8'))]));
   const before = Object.fromEntries(arbNames.map((n) => [n, formatArb('en', arbs[n].entries)]));

@@ -146,6 +146,10 @@ export class EntityManager {
             if (isDefined(entity.level) && isFunction(character.setLevel)) {
                 character.setLevel(entity.level);
             }
+            // The worn portrait and ring (plan-appearance.md C3).
+            if (isDefined(entity.portrait) && isFunction(character.setLook)) {
+                character.setLook(entity.portrait, entity.ring);
+            }
             // Ring colours come from the server-resolved effect-category
             // bitmask (0 = no aura → no rings); triage item 7 replaced the
             // client-side skill-ID mapping this used to do.

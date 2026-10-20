@@ -20,6 +20,14 @@
   "@account.create-character.login-button": {
     "description": "Account screens: text of the <a id=creationLoginButton> element in #characterCreation in #accountScreens."
   },
+  "account.create-character.portrait": "Portrait",
+  "@account.create-character.portrait": {
+    "description": "Account screens: heading over the row of portraits the new character can wear (plan-appearance.md C3)."
+  },
+  "account.create-character.ring": "Ring",
+  "@account.create-character.ring": {
+    "description": "Account screens: heading over the row of rings (the frame around the portrait) the new character can wear."
+  },
   "account.create-character.submit": "Create",
   "@account.create-character.submit": {
     "description": "Account screens: the value attribute of the <input> element in #characterCreationForm in #characterCreation."

@@ -104,14 +104,18 @@ type Config struct {
 	// moment they create a character.
 	AllowHarnessNames bool
 
-	// DefaultAvatar and DefaultFaction are [PLACEHOLDER] constants.
+	// Looks checks a creation's chosen portrait and ring (plan-appearance.md
+	// C3): the starter set only until unlocks exist (C5).
+	Looks interface {
+		CheckStarterLook(portrait, ring string) error
+	}
+
+	// DefaultFaction is a [PLACEHOLDER] constant.
 	//
-	// ⚑ Both columns are NOT NULL and neither has a chooser: avatars are their
-	// own feature (plan-avatar-system.md) and player.Faction() is hardcoded to
-	// aligned, so there is no player-facing choice to record yet. Creation
-	// therefore stamps a constant, and the day either picker lands it becomes a
-	// request field rather than a schema change.
-	DefaultAvatar  string
+	// ⚑ The column is NOT NULL and has no chooser: player.Faction() is
+	// hardcoded to aligned, so there is no player-facing choice to record yet.
+	// Creation therefore stamps a constant, and the day a picker lands it
+	// becomes a request field rather than a schema change.
 	DefaultFaction string
 }
 
@@ -140,8 +144,10 @@ func New(cfg Config) (*Server, error) {
 		return nil, errors.New("accounts: no origin allowlist")
 	case cfg.MaxAliveCharacters < 1:
 		return nil, fmt.Errorf("accounts: maxAliveCharacters must be at least 1, got %d", cfg.MaxAliveCharacters)
-	case cfg.DefaultAvatar == "" || cfg.DefaultFaction == "":
-		return nil, errors.New("accounts: characters need a default avatar and faction")
+	case cfg.Looks == nil:
+		return nil, errors.New("accounts: no appearance catalog")
+	case cfg.DefaultFaction == "":
+		return nil, errors.New("accounts: characters need a default faction")
 	}
 
 	s := &Server{cfg: cfg, mux: http.NewServeMux()}

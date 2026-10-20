@@ -216,6 +216,11 @@ type player struct {
 	bloodlineAscensions int
 	accountID           int64
 
+	// portrait and ring are the look this character wears, as wire values
+	// (appearance.Catalog.Wire; 0 = the slot's default), set at join from the
+	// ticket (plan-appearance.md C3) and by the LOOK cheat.
+	portrait, ring uint16
+
 	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation
 	// is refused by its precondition (plan-skill-vocab chunk 4, §3.5): the
 	// SkillSystem notes it, the wire carries it once, reset each tick
@@ -562,6 +567,12 @@ func (p *player) BloodlineUnlocks() []string { return p.bloodlineUnlocks }
 func (p *player) SetBloodlineUnlocks(keys []string) { p.bloodlineUnlocks = keys }
 
 func (p *player) BloodlineAscensions() int { return p.bloodlineAscensions }
+
+// Look / SetLook carry the worn portrait and ring as wire values
+// (plan-appearance.md C3).
+func (p *player) Look() (portrait, ring uint16) { return p.portrait, p.ring }
+
+func (p *player) SetLook(portrait, ring uint16) { p.portrait, p.ring = portrait, ring }
 
 func (p *player) SetBloodlineAscensions(n int) { p.bloodlineAscensions = n }
 

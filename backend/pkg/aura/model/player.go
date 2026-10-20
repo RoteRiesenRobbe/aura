@@ -236,6 +236,11 @@ type PlayerEntity interface {
 	// gate reads (plan-ascension.md D18 tier B).
 	BloodlineAscensions() int
 	SetBloodlineAscensions(n int)
+	// Look is the portrait and ring this character wears, as the wire values
+	// Character.portrait / Character.ring carry (appearance.Catalog.Wire,
+	// 0 = the slot's default; plan-appearance.md C3).
+	Look() (portrait, ring uint16)
+	SetLook(portrait, ring uint16)
 	// AccountID is which account this character belongs to, set once at join
 	// from the play ticket (plan-ascension.md C3 step 6, D25).
 	//

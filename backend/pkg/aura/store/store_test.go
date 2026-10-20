@@ -84,6 +84,8 @@ func TestMigrateCreatesTheWholeSchema(t *testing.T) {
 		"character_campfires",
 		// 000003 (plan-map-fog-persistence.md F1): the explored map-fog chunks.
 		"character_map_fog",
+		// 000004 (plan-appearance.md C3): earned looks, every scope.
+		"appearance_unlocks",
 	}
 	for _, table := range want {
 		t.Run(table, func(t *testing.T) {

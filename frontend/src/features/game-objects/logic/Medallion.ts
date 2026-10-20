@@ -108,7 +108,16 @@ export class Medallion {
      */
     setPortrait(species: string) {
         const entry = GraphicsConfig.speciesPortraits[species];
-        const texture = (entry && packIconTexture(entry.packIcon, entry.packTint)) || this.classPortrait;
+        this.setPortraitTexture(entry && packIconTexture(entry.packIcon, entry.packTint));
+    }
+
+    /**
+     * Wears `texture` as the portrait, at the size drawn so far, or the class
+     * portrait for null. The player's chosen portrait (plan-appearance.md C3)
+     * and the species bust above both come through here.
+     */
+    setPortraitTexture(texture: Texture | null) {
+        texture = texture || this.classPortrait;
         if (this.portrait.texture === texture) {
             return;
         }

@@ -110,6 +110,16 @@ func TestHydrate_SkillsAndRegions(t *testing.T) {
 	assert.Equal(t, map[string]any{"id": "farmlands", "title": "Farmlands"}, list[1])
 }
 
+func TestHydrate_Appearance(t *testing.T) {
+	en := map[string]string{"appearance.ring-plain.name": "Plain ring"}
+	a := hydrated(t, DomainAppearance, `{"id": "ring-plain", "slot": "ring", "family": "grey", "starter": true}`, en)
+	assert.Equal(t, "Plain ring", a["name"])
+	_, err := Hydrate(DomainAppearance, []byte(`{"id": "nameless", "slot": "portrait", "starter": true}`), en)
+	assert.ErrorContains(t, err, "appearance.nameless.name")
+	_, err = Hydrate(DomainAppearance, []byte(`{"id": "ring-plain", "name": "Inline"}`), en)
+	assert.ErrorContains(t, err, "inline English")
+}
+
 func TestHydrate_RefusesInlineEnglishAndMissingEnglish(t *testing.T) {
 	en := map[string]string{"quest.q.title": "Q", "mob.Farmer.name": "Farmer"}
 	for name, c := range map[string]struct {

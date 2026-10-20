@@ -265,4 +265,12 @@ describe('aiming a new character at a slot', () => {
         await AccountsApi.createCharacter('Wilma', 0);
         expect(JSON.parse(fetchMock.mock.calls[1][1].body).slotIndex).toBe(0);
     });
+
+    // plan-appearance.md C3: the picked look rides the create request.
+    it('sends the chosen portrait and ring', async () => {
+        fetchMock.mockResolvedValue(created(0));
+        await AccountsApi.createCharacter('Barney', undefined, {portrait: 'green-hood', ring: 'ring-leather'});
+        const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(body).toEqual({name: 'Barney', portrait: 'green-hood', ring: 'ring-leather'});
+    });
 });

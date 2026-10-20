@@ -1,0 +1,7 @@
+{
+  "_comment": "A starter ring. Names the leather ring family of client-data/Medallions.ts [PLACEHOLDER art until C0b].",
+  "id": "ring-leather",
+  "slot": "ring",
+  "family": "leather",
+  "starter": true
+}

@@ -4,6 +4,8 @@
   "account.create-character.close-button": "Close",
   "account.create-character.heading": "Create your character",
   "account.create-character.login-button": "Log in",
+  "account.create-character.portrait": "Portrait",
+  "account.create-character.ring": "Ring",
   "account.create-character.submit": "Create",
   "account.delete.already-gone": "That character is already gone.",
   "account.delete.cancel-button": "Cancel",

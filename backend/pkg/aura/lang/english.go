@@ -34,6 +34,7 @@ const (
 	DomainMob
 	DomainSkill
 	DomainRegions
+	DomainAppearance
 )
 
 // countPlaceholders are the authored counts a tracker substitutes ({n}/{m}).
@@ -63,6 +64,8 @@ func Hydrate(domain Domain, data []byte, en map[string]string) ([]byte, error) {
 		h.skill(obj)
 	case DomainRegions:
 		h.regions(obj)
+	case DomainAppearance:
+		h.text(obj, "name", AppearanceName(str(obj["id"])), fmt.Sprintf("appearance %q", str(obj["id"])), true)
 	}
 	if len(h.errs) > 0 {
 		return nil, errors.Join(h.errs...)

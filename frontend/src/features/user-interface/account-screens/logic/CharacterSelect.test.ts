@@ -59,6 +59,7 @@ function aCharacter(slotIndex: number, name: string): Character {
         slotIndex,
         name,
         avatar: 'default',
+        ring: 'ring-plain',
         faction: 'aligned',
         level: 30,
         experience: 0,

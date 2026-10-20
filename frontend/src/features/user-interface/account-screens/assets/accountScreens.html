@@ -26,13 +26,17 @@
 		<h2 data-i18n="account.create-character.heading">Create your character</h2>
 
 		<!--
-		  ⚑ Shown but inert, and deliberately carrying NO "change" affordance
-		  (§4b): a disabled control reads as broken, and promising a feature
-		  before it exists is worse than staying quiet. plan-avatar-system.md
-		  adds the picker here later and will shift this layout — known,
-		  accepted rework.
+		  The look picker (plan-appearance.md C3): the chosen medallion, then
+		  the starter portraits and rings, each drawn as the medallion it would
+		  make. Filled by CharacterCreation.ts once /appearance has arrived.
 		-->
-		<div class="characterPortrait default"></div>
+		<div class="lookPicker">
+			<div class="lookPreview"></div>
+			<p class="lookLabel" data-i18n="account.create-character.portrait">Portrait</p>
+			<div class="lookOptions" data-slot="portrait"></div>
+			<p class="lookLabel" data-i18n="account.create-character.ring">Ring</p>
+			<div class="lookOptions" data-slot="ring"></div>
+		</div>
 
 		<form id="characterCreationForm" class="accountForm layout-column">
 			<input class="characterNameInput" maxlength="20" autocomplete="off"

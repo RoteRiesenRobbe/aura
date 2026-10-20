@@ -556,6 +556,20 @@ export const GraphicsConfig = {
         },
     },
 
+    // The player's portraits, keyed by the api/appearance item id
+    // (plan-appearance.md C3, D39: PONETI busts like the mobs', PO pick
+    // 2026-10-20). Without the pack every one draws `character.file`.
+    playerPortraits: <{ [item: string]: { packIcon: string } }> {
+        'default': {packIcon: 'portrait-morion-helm'},
+        'red-hood': {packIcon: 'portrait-red-hood'},
+        'chainmail-coif': {packIcon: 'portrait-chainmail-coif'},
+        'green-hood': {packIcon: 'portrait-green-hood'},
+        'grey-beard': {packIcon: 'portrait-grey-beard'},
+        'bright-smile': {packIcon: 'portrait-bright-smile'},
+        'short-crop': {packIcon: 'portrait-short-crop'},
+        'auburn-curls': {packIcon: 'portrait-auburn-curls'},
+    },
+
     // Per-SPECIES portraits for species that share one sprite class, keyed by
     // the catalog name (api/mobs `name`), so each one draws its own pack bust
     // (plan-appearance.md D33). Today: the species drawing the NpcPlaceholder

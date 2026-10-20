@@ -707,6 +707,13 @@ table Character {
   // Mob.light_flicker. Appended at the table end so existing field IDs stay
   // stable.
   light_flicker:bool = false;
+
+  // The look this character wears (plan-appearance.md C3): 1 + the item's
+  // position in /appearance's `portraits` and `rings` arrays, as served;
+  // 0 = the slot's default. Every client draws every player's look. Appended
+  // at the table end so existing field IDs stay stable.
+  portrait:ushort = 0;
+  ring:ushort = 0;
 }
 
 table Spectator {

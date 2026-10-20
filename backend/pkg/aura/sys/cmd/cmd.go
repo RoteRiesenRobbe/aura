@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
@@ -253,11 +254,11 @@ type Campfires interface {
 
 // NewCommandSystem wires the cheat set: the static package commands plus the
 // space-bound THREAT closure (the space enables the query-nearby-mobs form),
-// the announcer-bound ANNOUNCE closure, the zone-bound REVEALMAP closure and
-// the campfire-bound WARP and HOME closures.
+// the announcer-bound ANNOUNCE closure, the zone-bound REVEALMAP closure, the
+// campfire-bound WARP and HOME closures and the catalog-bound LOOK closure.
 func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer Announcer,
-	revealer MapRevealer, zones []cfg.PlacedBounds, fires Campfires) *CommandSystem {
-	cmds := make(map[string]Command, len(commands)+5)
+	revealer MapRevealer, zones []cfg.PlacedBounds, fires Campfires, looks appearance.Catalog) *CommandSystem {
+	cmds := make(map[string]Command, len(commands)+6)
 	for name, action := range commands {
 		cmds[name] = action
 	}
@@ -266,6 +267,7 @@ func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer
 	cmds["REVEALMAP"] = revealCommand(revealer, zones)
 	cmds["WARP"] = warpCommand(fires)
 	cmds["HOME"] = homeCommand(fires)
+	cmds["LOOK"] = lookCommand(looks)
 	return &CommandSystem{tokens: tokens, g: g, commands: cmds}
 }
 
@@ -322,6 +324,30 @@ func homeCommand(fires Campfires) Command {
 func teleport(p model.PlayerEntity, pos phy.Vec2f) {
 	p.Ground()
 	p.SetPosition(pos)
+}
+
+// lookCommand builds LOOK <item-id>: wears any appearance item, owned or not
+// (plan-appearance.md C3), in the slot the item belongs to. Live only: a
+// relog wears the character row's look again (the in-game picker's save path
+// is C4's).
+func lookCommand(looks appearance.Catalog) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || *arg == "" {
+			return fmt.Errorf("usage: 'LOOK <appearance-item-id>'")
+		}
+		item, ok := looks.Item(*arg)
+		if !ok {
+			return fmt.Errorf("no appearance item with the id '%s'", *arg)
+		}
+		portrait, ring := p.Look()
+		if item.Slot == appearance.SlotPortrait {
+			portrait = looks.Wire(item.Slot, item.ID)
+		} else {
+			ring = looks.Wire(item.Slot, item.ID)
+		}
+		p.SetLook(portrait, ring)
+		return nil
+	}
 }
 
 // announceCommand builds ANNOUNCE <text> — the dev shortcut onto the same

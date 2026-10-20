@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
@@ -232,6 +233,10 @@ type ConnectionStateSystem struct {
 	// dark is where a mark needs light (plan-map-fog-darkness.md C1), baked
 	// once at boot; nil means nothing is dark.
 	dark *mapfog.DarkMask
+
+	// looks is the appearance catalog a join resolves its ticket's look
+	// against (plan-appearance.md C3).
+	looks appearance.Catalog
 	// dwell tracks a player's bind progress at ONE campfire, keyed by player
 	// entity ID (reset on leave or on reaching a different fire, dropped on
 	// removal).
@@ -339,6 +344,22 @@ func (s *ConnectionStateSystem) discoveredFor(client uuid.UUID) stringSet {
 // SetDarkMask installs where the map reveal needs light
 // (plan-map-fog-darkness.md C1); nil means nothing is dark.
 func (s *ConnectionStateSystem) SetDarkMask(mask *mapfog.DarkMask) { s.dark = mask }
+
+// SetAppearance installs the look catalog (plan-appearance.md C3).
+func (s *ConnectionStateSystem) SetAppearance(c appearance.Catalog) { s.looks = c }
+
+// lookOf is the ticket's look as wire values. An id this build's catalog does
+// not hold (a retired item) is logged and worn as the slot's default (0); it
+// never refuses the join.
+func (s *ConnectionStateSystem) lookOf(t auth.Ticket) (portrait, ring uint16) {
+	portrait = s.looks.Wire(appearance.SlotPortrait, t.Avatar)
+	ring = s.looks.Wire(appearance.SlotRing, t.Ring)
+	if portrait == 0 || ring == 0 {
+		log.Printf("⚠️ character %d wears a look the appearance catalog does not hold (portrait %q, ring %q); drawing the default",
+			t.CharacterID, t.Avatar, t.Ring)
+	}
+	return portrait, ring
+}
 
 // fogFor is a client's map reveal, created empty on first touch.
 func (s *ConnectionStateSystem) fogFor(client uuid.UUID) *mapfog.Fog {
@@ -968,6 +989,9 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// accountByClient, which is keyed by connection and unreachable from a
 	// conversation.
 	p.SetAccountID(ticket.AccountID)
+	// The look, from the ticket too (plan-appearance.md C3), resolved to its
+	// wire values once here rather than per tick in the codec.
+	p.SetLook(s.lookOf(ticket))
 
 	// Spawn at the bound campfire, or at a random starting fire when there is no
 	// usable bind.

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -133,6 +134,14 @@ func MilestoneUnlocks(unlocks []skills.MilestoneUnlock) Configuration {
 func AscensionCatalog(c ascension.Catalog) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.AscensionCatalog = c
+		return nil
+	}
+}
+
+// Appearance installs the look catalog (plan-appearance.md C3).
+func Appearance(c appearance.Catalog) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Appearance = c
 		return nil
 	}
 }

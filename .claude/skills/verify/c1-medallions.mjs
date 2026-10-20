@@ -34,6 +34,13 @@
 // disc, and the starting Campfire is a plain object (no ring, no disc). At the
 // front the plate-less ArmySoldiers wear the same.
 //
+// C3 (plan-appearance.md): a second, fresh profile picks the green-hood
+// portrait and the leather ring at creation. Its own token must wear the
+// leather ring (the Bandit's texture) and the green-hood bust (LOOK default
+// swaps it away, LOOK green-hood brings the same texture back), the select
+// card must show the same portrait and ring as the picker drew, and all of it
+// must survive a relog.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -122,7 +129,7 @@ await cmd('SKILL SummonCompanion');
 
 // Every token group (a container with a `token` child holding `frame`) plus
 // the plate text standing on it.
-const readTokens = () => page.evaluate(() => {
+const readTokensSource = () => {
   const out = [];
   const plates = window.__plates.children.map((p) => ({
     x: p.position.x, y: p.position.y,
@@ -158,7 +165,8 @@ const readTokens = () => page.evaluate(() => {
   walk(window.__auraRoot, 'root');
   const me = window.game.character;
   return { me: [me.getX() / 120, me.getY() / 120], tokens: out };
-});
+};
+const readTokens = () => page.evaluate(readTokensSource);
 
 const packIcons = await page.evaluate(async () =>
   Object.keys((await (await fetch('/icons/icons.json', { cache: 'no-store' })).json()).icons ?? {}).length);
@@ -287,6 +295,117 @@ for (const v of VENUES) {
   }
 }
 // Family identity: same family -> same texture, different family -> different.
+{
+  // C3: a fresh profile with a chosen look.
+  const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
+  const p2 = await ctx.newPage();
+  // A background page throttles its frames, and the look is drawn per frame.
+  await p2.bringToFront();
+  p2.on('console', (m) => { if (m.type() === 'error') errors.push('c3: ' + m.text()); });
+  p2.on('pageerror', (e) => errors.push('c3 pageerror: ' + e.message));
+  const ok = (cond, line) => { if (cond) { pass++; report.push(`PASS ${line}`); } else { fail++; report.push(`FAIL ${line}`); } };
+  const tile = (slot, id) => `#characterCreation .lookOptions[data-slot="${slot}"] .lookOption[data-item="${id}"]`;
+  const srcs = (sel) => p2.evaluate((q) => {
+    const el = document.querySelector(q);
+    return { portrait: el?.querySelector('.medallionPortrait')?.getAttribute('src'), ring: el?.querySelector('.medallionRing')?.getAttribute('src') };
+  }, sel);
+  await p2.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await p2.waitForSelector(tile('portrait', 'green-hood'), { timeout: 120_000 });
+  const tiles = await p2.locator('#characterCreation .lookOption').count();
+  ok(tiles === 10, `picker offers ${tiles} starter tiles (8 portraits + 2 rings)`);
+  const plainRing = (await srcs(tile('ring', 'ring-plain') + ' .medallion')).ring;
+  await p2.click(tile('portrait', 'green-hood'));
+  await p2.click(tile('ring', 'ring-leather'));
+  const preview = await srcs('#characterCreation .lookPreview .medallion');
+  const picked = await p2.evaluate(() => document.querySelector('#characterCreation .lookPreview .medallion')?.dataset);
+  ok(picked?.portrait === 'green-hood' && picked?.ring === 'ring-leather', `preview wears ${picked?.portrait} + ${picked?.ring}`);
+  ok(preview.ring && preview.ring !== plainRing, 'preview ring is not the plain ring');
+  await p2.screenshot({ path: join(shotDir, `c1-${label}-c3-picker.png`) });
+
+  const enterWorld = async () => {
+    await joinAsNewCharacter(p2, 'look');
+    await p2.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
+    await p2.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
+    await p2.evaluate(() => {
+      let r = window.game.character.plate.parent;
+      while (r.parent) r = r.parent;
+      window.__auraRoot = r;
+      window.__plates = window.game.character.plate.parent;
+      document.getElementById('developPanel').style.display = 'none';
+    });
+  };
+  const cmd2 = async (t) => {
+    await p2.evaluate((text) => {
+      document.getElementById('console_command').value = text;
+      document.getElementById('console').dispatchEvent(new Event('submit', { cancelable: true }));
+    }, t);
+    await p2.waitForTimeout(1500);
+  };
+  const readTokens2 = async () => {
+    const fn = readTokensSource;
+    return p2.evaluate(fn);
+  };
+  // In the world: the own ring is the Bandit's leather ring, the own bust the
+  // green hood, by texture identity inside this page.
+  const worldLegs = async (when) => {
+    await cmd2('GOD on');
+    const v = VENUES.find((x) => x.name === 'bandit');
+    await cmd2(`WARP ${v.at[0] * 120} ${v.at[1] * 120}`);
+    await p2.waitForTimeout(8000);
+    const snap = await readTokens2();
+    const me = snap.tokens.find((t) => t.layer === 'characters');
+    const bandit = snap.tokens.find((t) => t.plate.startsWith('Bandit'));
+    if (!me || !bandit) { inconclusive++; report.push(`INCONCLUSIVE c3 ${when}: player or Bandit not in view`); return; }
+    ok(me.rings.length === 1 && me.rings[0].uid === bandit.rings[0]?.uid, `c3 ${when}: own ring tex#${me.rings[0]?.uid} is the Bandit's leather tex#${bandit.rings[0]?.uid}`);
+    await p2.screenshot({ path: join(shotDir, `c1-${label}-c3-${when}.png`) });
+    if (packIcons === 0) { report.push(`c3 ${when}: no pack icons, portrait leg skipped`); return; }
+    // The medallion's own portrait sprite (actualShape holds more than it).
+    const ownPortrait = () => p2.evaluate(() => {
+      const t = window.game.character.medallion.portrait.texture;
+      return { uid: t.source.uid, pack: t.source.resource?.tagName === 'CANVAS' };
+    });
+    // Wait for the wire to name the look, then for frames to draw it.
+    const wearing = async (id) => {
+      await cmd2(`LOOK ${id}`);
+      await p2.waitForFunction((want) => {
+        const c = window.game.character;
+        const items = window.__appearanceIds;
+        return c.portraitWire === items.indexOf(want) + 1;
+      }, id, { timeout: 15_000 });
+      await p2.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 300)))));
+      return ownPortrait();
+    };
+    await p2.evaluate(async () => {
+      window.__appearanceIds = (await (await fetch('/appearance')).json()).portraits.map((p) => p.id);
+    });
+    const first = await ownPortrait();
+    const worn = first.uid;
+    const swapped = (await wearing('default')).uid;
+    const back = (await wearing('green-hood')).uid;
+    const wires = await p2.evaluate(() => [window.game.character.portraitWire, window.game.character.ringWire]);
+    ok(first.pack && swapped !== worn && back === worn, `c3 ${when}: own portrait is the green-hood bust (tex#${worn} pack=${first.pack}; LOOK default -> tex#${swapped}, back -> tex#${back}; wire ${wires})`);
+  };
+  await enterWorld();
+  await worldLegs('created');
+
+  // Relog, the in-product way out (chunk4-persistence): leaving ends the
+  // world session, so coming back is a cold join that reads the row. A page
+  // reload would reconnect into the stashed character instead.
+  await cmd2('LOOK default'); // live only: the row still says green-hood
+  await p2.click('#gameSettingsButton');
+  await p2.click('#leaveToCharacterSelect');
+  await p2.waitForSelector('#characterSelect:not(.hidden) .slotCard .medallion', { timeout: 60_000 });
+  await p2.waitForTimeout(2000);
+  const card = await srcs('#characterSelect .slotCard .medallion');
+  const cardLook = await p2.evaluate(() => document.querySelector('#characterSelect .slotCard .medallion')?.dataset);
+  ok(cardLook?.portrait === 'green-hood' && cardLook?.ring === 'ring-leather', `select card wears ${cardLook?.portrait} + ${cardLook?.ring}`);
+  ok(card.ring === preview.ring, 'select card ring is the picked ring art');
+  ok(card.portrait === preview.portrait, 'select card portrait is the picked portrait art');
+  await p2.screenshot({ path: join(shotDir, `c1-${label}-c3-select.png`) });
+  await enterWorld();
+  await worldLegs('relogged');
+  await ctx.close();
+}
 for (let i = 0; i < seen.length; i++) {
   for (let j = i + 1; j < seen.length; j++) {
     const [fa, ua, la] = seen[i], [fb, ub, lb] = seen[j];

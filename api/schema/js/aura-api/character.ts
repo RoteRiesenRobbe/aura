@@ -200,8 +200,18 @@ lightFlicker():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+portrait():number {
+  const offset = this.bb!.__offset(this.bb_pos, 80);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+ring():number {
+  const offset = this.bb!.__offset(this.bb_pos, 82);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(38);
+  builder.startObject(40);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -342,6 +352,14 @@ static addLightColor(builder:flatbuffers.Builder, lightColor:number) {
 
 static addLightFlicker(builder:flatbuffers.Builder, lightFlicker:boolean) {
   builder.addFieldInt8(37, +lightFlicker, +false);
+}
+
+static addPortrait(builder:flatbuffers.Builder, portrait:number) {
+  builder.addFieldInt16(38, portrait, 0);
+}
+
+static addRing(builder:flatbuffers.Builder, ring:number) {
+  builder.addFieldInt16(39, ring, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

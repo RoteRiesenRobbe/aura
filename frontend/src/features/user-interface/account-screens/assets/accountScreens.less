@@ -225,25 +225,67 @@
 		}
 	}
 
-	.characterPortrait {
+	// A player's medallion as DOM (MedallionElement.ts, plan-appearance.md
+	// C3): disc, portrait and ring stacked in one square, the disc sized to
+	// the pack bust's own disc (PackIconFiles.PORTRAIT_FILL) like the world's.
+	.medallion {
+		position: relative;
 		width: 6rem;
 		height: 6rem;
 		margin: 0 auto 1rem;
-		border-radius: 50%;
-		background-color: @backgroundColorMedium;
-		border: 2px solid @border-bright;
+		flex-shrink: 0;
 
-		// The default character graphic (plan-avatar-system.md will add a real
-		// picker; until then every portrait shows the same placeholder art —
-		// the same SVG the in-game character renders with, GraphicsConfig.character.file).
-		// In-world the character is rendered upside down relative to its SVG
-		// (rotated to face downward), so the portrait flips it back upright.
-		&.default {
-			background-image: url("../../../game-objects/assets/characters/player.svg");
-			background-repeat: no-repeat;
-			background-position: center;
-			background-size: 70%;
-			transform: scaleY(-1);
+		> * {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+		}
+
+		.medallionDisc {
+			border-radius: 50%;
+			transform: scale(0.86);
+		}
+	}
+
+	.lookPicker {
+		margin-bottom: 1rem;
+
+		.lookLabel {
+			margin: 0.5rem 0 0.25rem;
+			font-size: 1.2rem;
+			opacity: 0.8;
+		}
+	}
+
+	.lookOptions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.25rem;
+		max-width: 20rem;
+		margin: 0 auto;
+
+		.lookOption {
+			border-radius: 50%;
+			border: 2px solid transparent;
+			cursor: pointer;
+			transition: border-color 0.18s;
+
+			&:hover {
+				border-color: @border-bright;
+			}
+
+			&.selected {
+				border-color: @brand;
+			}
+
+			> .medallion {
+				width: 3.5rem;
+				height: 3.5rem;
+				margin: 0;
+			}
 		}
 	}
 
@@ -263,7 +305,7 @@
 		box-sizing: border-box;
 		font-size: 1.9rem;
 
-		> .characterPortrait {
+		> .medallion {
 			width: 4.5rem;
 			height: 4.5rem;
 			margin-bottom: 0.75rem;

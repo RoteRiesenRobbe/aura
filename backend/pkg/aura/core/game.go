@@ -254,6 +254,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 
 	s := sys.NewConnectionStateSystem(g)
 	s.SetDarkMask(gc.MapFogDark)
+	s.SetAppearance(gc.Appearance)
 	g.AddSystem(s)
 	g.connState = s
 	// Recall's anchor seam (plan-skill-vocab chunk 4): the SkillSystem is
@@ -303,7 +304,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// silently restores the pre-S3 cost rather than failing anything.
 	m.SetWakeSources(s)
 
-	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys, s, gc.Walls, s)
+	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys, s, gc.Walls, s, gc.Appearance)
 	g.AddSystem(c)
 
 	eq := equip.NewEquipSystem(g)

@@ -86,6 +86,10 @@ export class Player {
         if (isDefined(entity.health)) {
             this.character.setHealth(entity.health, entity.maxHealth);
         }
+        // The own worn look (plan-appearance.md C3), as everyone else sees it.
+        if (isDefined(entity.portrait)) {
+            this.character.setLook(entity.portrait, entity.ring);
+        }
         if (isDefined(entity.maxHealth)) {
             // The skill tooltip needs the real pool to show what a resource cost
             // will actually charge: the server floors every positive cost at

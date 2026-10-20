@@ -1,0 +1,43 @@
+{
+  "@@locale": "en",
+  "appearance.auburn-curls.name": "Auburn Curls",
+  "@appearance.auburn-curls.name": {
+    "description": "Name of the look \"auburn-curls\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.bright-smile.name": "Bright Smile",
+  "@appearance.bright-smile.name": {
+    "description": "Name of the look \"bright-smile\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.chainmail-coif.name": "Chainmail Coif",
+  "@appearance.chainmail-coif.name": {
+    "description": "Name of the look \"chainmail-coif\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.default.name": "Morion Helm",
+  "@appearance.default.name": {
+    "description": "Name of the look \"default\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.green-hood.name": "Green Hood",
+  "@appearance.green-hood.name": {
+    "description": "Name of the look \"green-hood\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.grey-beard.name": "Grey Beard",
+  "@appearance.grey-beard.name": {
+    "description": "Name of the look \"grey-beard\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.red-hood.name": "Red Hood",
+  "@appearance.red-hood.name": {
+    "description": "Name of the look \"red-hood\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.ring-leather.name": "Leather Ring",
+  "@appearance.ring-leather.name": {
+    "description": "Name of the look \"ring-leather\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.ring-plain.name": "Plain Ring",
+  "@appearance.ring-plain.name": {
+    "description": "Name of the look \"ring-plain\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.short-crop.name": "Short Crop",
+  "@appearance.short-crop.name": {
+    "description": "Name of the look \"short-crop\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  }
+}

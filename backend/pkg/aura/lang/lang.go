@@ -401,6 +401,7 @@ func SkillDescription(skill string) string { return "skill." + skill + ".descrip
 func RegionTitle(region string) string     { return "region." + region + ".title" }
 func RegionSubtitle(region string) string  { return "region." + region + ".subtitle" }
 func ZoneName(zone string) string          { return "zone." + zone + ".name" }
+func AppearanceName(item string) string    { return "appearance." + item + ".name" }
 
 // Conversation is a dialogue line's key: its NPC (the mob's name) and its slug,
 // unique within that NPC (D27).

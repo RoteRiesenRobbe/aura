@@ -1,7 +1,9 @@
 import {GameObject, readTokenOffset, writeTokenOffset} from './_GameObject';
 import {createTokenSlots} from './TokenSlots';
 import {Medallion} from './Medallion';
-import {PLAYER_RING} from '../../../client-data/Medallions';
+import {RingFamily} from '../../../client-data/Medallions';
+import {lookArt} from '../../../client-data/Appearance';
+import {packIconTexture} from '../../../client-data/icons/PackIconFiles';
 import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {isDefined} from '../../common/logic/Utils';
@@ -28,7 +30,7 @@ import {IMiniMapRendered, Layer} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
 import {tokenAlpha} from './EffectPips';
-import type {AuraDisplay, LevelDisplay, OverheadVitals} from './WireSetters';
+import type {AuraDisplay, CharacterLook, LevelDisplay, OverheadVitals} from './WireSetters';
 import {BeatDetector} from './AuraBeat';
 
 let Game: IGame = null;
@@ -37,7 +39,7 @@ GameSetupEvent.subscribe((game: IGame) => {
 });
 
 export class Character extends GameObject
-    implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay {
+    implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay, CharacterLook {
     static avatar: ISvgContainer = {svg: undefined};
     /**
      * Portrait rule (triage item 16): avatars never rotate, so the held facing
@@ -67,11 +69,15 @@ export class Character extends GameObject
     private token: Container;
     private aboveArt: Container;
     // The medallion (plan-appearance.md C2b, D37), the one every token wears,
-    // and whether its ring has been drawn yet (it waits for the ring texture,
-    // see updatePlate). Both set in initShape, so declared WITHOUT an
+    // and the ring family drawn in it so far (null until the ring texture has
+    // loaded, see updatePlate). Both set in initShape, so declared WITHOUT an
     // initializer, like token.
     private medallion: Medallion;
-    private ringDrawn: boolean;
+    private ringDrawn: RingFamily | null;
+    // The worn look as wire values (plan-appearance.md C3), 0 = the default.
+    // Never touched by initShape, so the initializers are safe.
+    private portraitWire = 0;
+    private ringWire = 0;
     private auraRings: AuraRingStack;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
@@ -117,11 +123,26 @@ export class Character extends GameObject
     // that before any Character exists.
     private updatePlate() {
         this.plate.position.copyFrom(this.shape.position);
-        // The ring texture may not have loaded when this character was
-        // built: try again each frame until it has, rather than stay bare.
-        if (!this.ringDrawn) {
-            this.ringDrawn = this.medallion.setRing(PLAYER_RING);
+        this.drawLook();
+    }
+
+    /**
+     * Draws the worn look, every frame until it is all there: the /appearance
+     * catalog, the pack atlases and the ring texture each arrive on their own
+     * time (the catalog race, plan-appearance.md §5), and setLook sees only
+     * wire values. Both lookups are cached, so a settled look costs a compare.
+     */
+    private drawLook() {
+        const {packIcon, family} = lookArt(this.portraitWire, this.ringWire);
+        if (family !== this.ringDrawn && this.medallion.setRing(family)) {
+            this.ringDrawn = family;
         }
+        this.medallion.setPortraitTexture(packIconTexture(packIcon));
+    }
+
+    setLook(portrait: number, ring: number) {
+        this.portraitWire = portrait;
+        this.ringWire = ring;
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
@@ -141,11 +162,11 @@ export class Character extends GameObject
         slots.belowArt.addChild(this.auraRings.container);
 
         // The player side is friendly to itself, so the disc is set here and
-        // not sent (D4); the tier stays normal. The ring is the default family
-        // until C3 lets the player choose one (D20).
+        // not sent (D4); the tier stays normal. The worn ring and portrait
+        // follow on the first frame (drawLook).
         this.medallion = new Medallion(slots, portrait, size);
         this.medallion.setStance(Stance.Friendly);
-        this.ringDrawn = this.medallion.setRing(PLAYER_RING);
+        this.ringDrawn = null;
 
         return group;
     }

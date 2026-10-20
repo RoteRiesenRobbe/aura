@@ -35,7 +35,7 @@ func corsHandler(t *testing.T) http.Handler {
 		Sessions:           auth.NewSessionRegistry(),
 		Origins:            origins.New([]string{"https://aura-game.test"}, false),
 		MaxAliveCharacters: 3,
-		DefaultAvatar:      "default",
+		Looks:              testLooks(t),
 		DefaultFaction:     "aligned",
 	})
 	require.NoError(t, err)

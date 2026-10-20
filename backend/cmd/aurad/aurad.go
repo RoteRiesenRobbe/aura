@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 
@@ -197,6 +198,7 @@ func main() {
 		core.Recipes(recipeRegistry),
 		core.QuestRegistry(questsRegistry),
 		core.AscensionCatalog(ascensionCatalog),
+		core.Appearance(loaded.appearance),
 		core.Tokens(tokens),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
@@ -350,6 +352,13 @@ func main() {
 		slog.Error("failed to build quest catalog", slog.Any("error", err))
 		panic(err)
 	}
+	// /appearance is the look catalog (plan-appearance.md §4.2): each slot in
+	// wire order, so a client turns Character.portrait/ring back into items.
+	appearanceHandler, err := appearance.CatalogHandler(loaded.appearance, loaded.langBundle)
+	if err != nil {
+		slog.Error("failed to build the appearance catalog", slog.Any("error", err))
+		panic(err)
+	}
 	// /lang is the content text no catalog carries (plan-localization.md D6
 	// item 2): region and zone names (C1), the dialogue (C3). Per locale.
 	langHandler, err := langBundleHandler(loaded.langBundle, loaded.langEntries)
@@ -362,11 +371,12 @@ func main() {
 		panic("game does not report a player count")
 	}
 	sidecars := map[string]http.Handler{
-		"/skills":  skillsHandler,
-		"/mobs":    mobsHandler,
-		"/quests":  questsHandler,
-		"/lang":    langHandler,
-		"/players": playersHandler(counter),
+		"/skills":     skillsHandler,
+		"/mobs":       mobsHandler,
+		"/quests":     questsHandler,
+		"/appearance": appearanceHandler,
+		"/lang":       langHandler,
+		"/players":    playersHandler(counter),
 	}
 
 	// Accounts & identity (step 8a chunk 1c): the eight HTTP/JSON endpoints,
@@ -431,7 +441,7 @@ func main() {
 		slog.Int("total", graveyard.Latest().Total))
 	installShutdownFlush(persistence, characterWriter, db)
 
-	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity)
+	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity, loaded.appearance)
 	if err != nil {
 		slog.Error("failed to start the accounts endpoints", slog.Any("err", err))
 		panic(err)

@@ -5,6 +5,8 @@
   "account.create-character.close-button": "Schließen",
   "account.create-character.heading": "Erstelle deine Figur",
   "account.create-character.login-button": "Anmelden",
+  "account.create-character.portrait": "Porträt",
+  "account.create-character.ring": "Ring",
   "account.create-character.submit": "Erstellen",
   "account.delete.already-gone": "Diese Figur gibt es schon nicht mehr.",
   "account.delete.cancel-button": "Abbrechen",

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/store"
 )
@@ -23,6 +24,7 @@ type characterView struct {
 	SlotIndex  int       `json:"slotIndex"`
 	Name       string    `json:"name"`
 	Avatar     string    `json:"avatar"`
+	Ring       string    `json:"ring"`
 	Faction    string    `json:"faction"`
 	Level      int       `json:"level"`
 	Experience int64     `json:"experience"`
@@ -35,6 +37,7 @@ func viewOf(c store.Character) characterView {
 		SlotIndex:  c.SlotIndex,
 		Name:       c.Name,
 		Avatar:     c.Avatar,
+		Ring:       c.Ring,
 		Faction:    c.Faction,
 		Level:      c.Level,
 		Experience: c.Experience,
@@ -50,6 +53,11 @@ type createCharacterRequest struct {
 	// ⚑ A pointer, so "not sent" and "slot 0" stay different requests — the
 	// distinction the whole succession path rests on (plan-ascension.md D15).
 	SlotIndex *int `json:"slotIndex"`
+	// Portrait and Ring are the chosen look (plan-appearance.md C3), checked
+	// against the starter set. Absent means the defaults, so a client that
+	// predates the picker still creates.
+	Portrait string `json:"portrait"`
+	Ring     string `json:"ring"`
 }
 
 type createCharacterResponse struct {
@@ -140,11 +148,25 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if body.Portrait == "" {
+		body.Portrait = appearance.DefaultPortrait
+	}
+	if body.Ring == "" {
+		body.Ring = appearance.DefaultRing
+	}
+	// The picker only offers what the catalog holds, so a refusal is a
+	// malformed request, not a rule a player can break.
+	if err := s.cfg.Looks.CheckStarterLook(body.Portrait, body.Ring); err != nil {
+		refuse(w, http.StatusBadRequest, codeBadRequest, msgBadRequest)
+		return
+	}
+
 	params := store.NewCharacter{
 		AccountID: who.accountID,
 		SlotIndex: body.SlotIndex,
 		Name:      body.Name,
-		Avatar:    s.cfg.DefaultAvatar,
+		Avatar:    body.Portrait,
+		Ring:      body.Ring,
 		Faction:   s.cfg.DefaultFaction,
 		MaxAlive:  s.cfg.MaxAliveCharacters,
 	}
@@ -394,6 +416,7 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 		SlotIndex:   character.SlotIndex,
 		Name:        character.Name,
 		Avatar:      character.Avatar,
+		Ring:        character.Ring,
 		Faction:     character.Faction,
 		State:       state,
 

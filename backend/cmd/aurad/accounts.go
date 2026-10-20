@@ -6,24 +6,18 @@ import (
 	"os"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/accounts"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/origins"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/store"
 )
 
-// Placeholder values for the two NOT NULL character columns that have no
-// player-facing chooser yet. [PLACEHOLDER]
-//
-// ⚑ Both are blocked on other work, not undecided here: avatars are their own
-// feature (plan-avatar-system.md, whose §8 asks whether avatar ownership is
-// per-account — this schema says per-character), and player.Faction() is
-// hardcoded to aligned, so there is no faction choice to record. When either
-// picker lands it becomes a field on the create request, not a migration.
-const (
-	defaultCharacterAvatar  = "default"
-	defaultCharacterFaction = "aligned"
-)
+// The placeholder for the NOT NULL faction column, which has no player-facing
+// chooser yet: player.Faction() is hardcoded to aligned, so there is no
+// faction choice to record. When a picker lands it becomes a field on the
+// create request, not a migration. [PLACEHOLDER]
+const defaultCharacterFaction = "aligned"
 
 // buildOriginPolicy assembles the one allowlist that guards BOTH the WebSocket
 // handshake and the credentialed /api endpoints (backlog §43).
@@ -64,7 +58,7 @@ func buildOriginPolicy(config *cfg.Config, dev bool) *origins.Policy {
 // symmetric, so this one secret both signs and verifies every session, and
 // anyone who can reproduce it can forge any of them.
 func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Config, dev bool,
-	tickets *auth.TicketStore, sessions *auth.SessionRegistry, world accounts.WorldSessions) (*accounts.Server, error) {
+	tickets *auth.TicketStore, sessions *auth.SessionRegistry, world accounts.WorldSessions, looks appearance.Catalog) (*accounts.Server, error) {
 	secret := os.Getenv(auth.EnvJWTKey)
 	if secret == "" {
 		return nil, fmt.Errorf("%s is not set; it signs every session and must come from a CSPRNG "+
@@ -95,7 +89,7 @@ func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Co
 		// Reserved harness names are a DEV affordance only; production refuses
 		// the prefix outright (plan-accounts-frontend.md §10b ruling 2).
 		AllowHarnessNames: dev,
-		DefaultAvatar:     defaultCharacterAvatar,
+		Looks:             looks,
 		DefaultFaction:    defaultCharacterFaction,
 	})
 }

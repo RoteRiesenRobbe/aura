@@ -111,7 +111,10 @@ export interface Character {
     id: number;
     slotIndex: number;
     name: string;
+    /** The worn portrait's appearance item id (plan-appearance.md D19). */
     avatar: string;
+    /** The worn ring's appearance item id. */
+    ring: string;
     faction: string;
     level: number;
     experience: number;
@@ -334,15 +337,21 @@ export const AccountsApi = {
      * ⚑ Stores the returned secret IMMEDIATELY when one comes back. It is
      * readable exactly once.
      */
-    async createCharacter(name: string, slotIndex?: number): Promise<CreatedCharacter> {
+    async createCharacter(name: string, slotIndex?: number,
+                          look?: { portrait: string, ring: string }): Promise<CreatedCharacter> {
         // ⛑ THE FIELD IS OMITTED, NOT SENT AS 0, when no slot was chosen. The
         // server tells "not sent" from "slot 0" by the field's presence — its
         // request struct uses a pointer for exactly that reason — and the whole
         // succession path rests on the distinction (D15). Sending 0 by default
         // would turn every first creation into a client-chosen slot, which
         // 409s the day slot 0 is the one slot already taken.
-        const created = await request<CreatedCharacter>('POST', 'characters',
-            slotIndex === undefined ? {name} : {name, slotIndex});
+        // The look is optional too: without one the server dresses the
+        // character in the defaults (plan-appearance.md C3).
+        const created = await request<CreatedCharacter>('POST', 'characters', {
+            name,
+            ...(slotIndex === undefined ? {} : {slotIndex}),
+            ...look,
+        });
         if (created.anonymousSecret) {
             Identity.anonymousSecret = created.anonymousSecret;
         }

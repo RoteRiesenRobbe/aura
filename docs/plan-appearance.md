@@ -4,7 +4,7 @@
 > refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
 > PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
 > PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
-component for every token). Next: C3.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). Next: C4.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -276,7 +276,8 @@ plan proposes on top (marked *proposed*).
 - **D29. Stance colours: hostile red, neutral yellow, friendly blue**
   [PLACEHOLDER shades] (M-§12.3; yellow avoids green-means-easy on the
   nameplate). The colour-blindness check stays C2's exit.
-- **D30. The starter set is 4 portraits and 2 rings** [PLACEHOLDER], all
+- **D30. The starter set is 4 portraits and 2 rings** [PLACEHOLDER; the PO picked **8
+  portraits** at C3, 2026-10-20, see D39], all
   placeholder art until the artist's portraits land. The two starter rings name
   two families (D2).
 - **D31. Mob and NPC portraits come from the PONETI pack** (PO 2026-10-18,
@@ -308,6 +309,12 @@ plan proposes on top (marked *proposed*).
   black drowns the detail, so they stay the fallback. Harvestables may use
   any pack icon, not only character busts (they are objects: fly agaric,
   mana mushroom, onion for the turnip, sea kale).
+- **D39. Player portraits are PONETI busts too** (PO 2026-10-20, C3; amends D3 for
+  players as D31 did for mobs). Eight `Characters_nobg` human busts, picked from a
+  contact sheet of the ones no NPC wears: Human_01 1 (`default`), 02 1, 05 1, 07 2,
+  14 2, 47, 49, 53. Clones without the pack draw `player.png`. The artist's player
+  portraits replace them later. The starter rings are the grey (default) and the
+  leather family (PO pick).
 - **D32. A calmed mob reads neutral** (PO 2026-10-18): yellow for the calm's
   duration, its normal stance when it wears off.
 - **D35. "Fighting the player side" means target OR threat** (PO 2026-10-18,
@@ -935,3 +942,86 @@ stopped first). Two older harness failures, unrelated (no token code
 involved): `skill-fx-preview.mjs` fails 2 legs (its `KINDS` list lacks
 `rush`, added in `d9a0b2ac`); `c3-zone-editor-level.mjs` 6/7, leg 3
 INCONCLUSIVE twice (the click selects spawn #479, not #0).
+
+### C3 - DONE 2026-10-20 `[uncommitted]` (PO in-game checks passed 2026-10-20)
+
+The player wears a chosen medallion (D19, D20, D30, D39). Rulings taken in the
+session (PO, 2026-10-19/20, prompt rounds): player portraits are PONETI busts
+(D39), the starter rings are grey (default) + leather, the `LOOK` cheat is
+live only (C4 owns the save path), the starter set is the 8 busts the PO picked.
+
+- **Content:** `api/appearance/` (one file per item, the file named after its id):
+  8 portraits (`default`, `red-hood`, `chainmail-coif`, `green-hood`, `grey-beard`,
+  `bright-smile`, `short-crop`, `auburn-curls`) and 2 rings (`ring-plain` = grey,
+  the default; `ring-leather`). Names in `api/lang/{en,de}/appearance.arb`
+  (`appearance.<id>.name`), hydrated like regions (`lang.DomainAppearance`); the
+  JS twin (`tools/lang/content-text.mjs`, `extract-english.mjs`, the key
+  fixture) knows the domain.
+- **Loader** (`pkg/aura/appearance`): slug ids, slot portrait | ring, a ring
+  must name a family and a portrait must not, unknown fields refused, and every
+  item a starter until C5 (no `conditions` yet: YAGNI). The default portrait
+  and ring must exist as starters, which keeps every pre-C3 row valid. Each
+  slot is sorted by id; **wire value = 1 + the position, 0 = the default**.
+- **Wired:** `contentSources` + `cp-defs` + `-validate` + the boot line
+  `Loaded appearance items portraits=8 rings=2`; `GET /appearance` per locale
+  (`lang.Handler`), each slot in wire order, the two defaults marked
+  `default: true` so the client never restates their ids.
+- **Migration `000004_appearance`:** `characters.ring TEXT NOT NULL DEFAULT
+  'ring-plain'` (the store test pins the default to `appearance.DefaultRing`)
+  and `game.appearance_unlocks` (scope CHECK per owner shape, three partial
+  unique indexes, no CASCADE), unwritten until C5. `characters.avatar` has its
+  first reader.
+- **Accounts:** `POST /characters` takes optional `portrait` + `ring` (absent =
+  the defaults), checked against the starter set (`Config.Looks`, replacing
+  `DefaultAvatar`), else 400 `bad_request`; the list carries `ring`; the
+  ticket carries `Ring`.
+- **Game + wire:** the join resolves the ticket's look to wire values once
+  (`ConnectionStateSystem.lookOf`; an id the catalog lacks logs and draws the
+  default, never refuses the join); `table Character` +`portrait:ushort`,
+  `ring:ushort` (appended). `LOOK <item-id>` sets either slot, owned or not,
+  live only.
+- **Client:** `client-data/Appearance.ts` (the catalog, `portraitAt`/`ringAt`/
+  `wireOf`, `lookArt`, `defaultLook`), `GraphicsConfig.playerPortraits` (id →
+  bust), `Character.setLook` via both wire routes (EntityManager for others,
+  Player.ts for the own token), redrawn every frame by `drawLook` until the
+  catalog, the atlases and the ring texture have all landed (the §5 race).
+  `Medallion.setPortraitTexture` is the ONE portrait swap; the species path
+  calls it too (D37). `PLAYER_RING` deleted.
+- **Creation + select:** `MedallionElement.ts` draws the same medallion as DOM
+  (friendly disc, the bust's own baked canvas as a data URL, the family ring at
+  the normal tier's shade as a brightness filter, exact for greyscale art), for
+  the picker's preview, its tiles (each tile is the medallion it would make
+  with the other slot's pick) and every select card. Labels `t()` en + de.
+- **Pack:** manifest +8 `portrait-*` busts, repacked (160 icons, 4 atlases).
+- **Found:** the content editor's validate seam copies a hand list of content
+  directories (`tools/content-editor/aurad-validate.mjs` `CONTENT_SUBDIRS`), a
+  third list beside `contentSources` and the validate test's; without
+  `appearance` there every editor validation would have failed.
+- **Pins** (red first unless noted): the loader (refusals, order, wire values,
+  defaults), hydration, the store (look round trip, the ring default, the scope
+  CHECKs and uniqueness), accounts (create/list/ticket, refusals), the join
+  look, the wire round trip, `LOOK`, the client catalog + its completeness pins
+  (every portrait has a manifest bust, every ring a drawable family), the DOM
+  medallion, the create request body. Written together with their code: the
+  `default` flag, `Medallion.setPortraitTexture`, `lookArt`/`defaultLook`.
+
+**Schema:** DB **+1 migration** (`characters.ring`, `appearance_unlocks`) · wire
+`Character` +2 · catalog +1 endpoint (`/appearance`) · accounts create +2 fields,
+list +1 · content +1 directory, +1 lang domain · conf none.
+
+**Verified:** Go build + vet; `go test -count=1 ./...` with `AURA_TEST_DB_URL`
+green bar the two known reds (`world` prop pin, simharness placements battery);
+`-validate` 0 findings · typecheck · vitest 1819/0 · prod build · the migration
+on the dev data (dumped first, server stopped): version 3 → 4 clean, 40 rows
+backfilled · `c1-medallions.mjs` extended with the C3 legs (picker 10 tiles,
+preview, own ring = the Bandit's leather texture, own bust by `LOOK` swap
+identity, select card art = picker art, the same after a relog through
+character select): 26/1 (the C2 boar-stance leg lost a timing race; its
+screenshot shows the hostile disc), re-run 27/0/0 · `r4-badge vanilla` 7/7 ·
+`hygiene-wire-prune` 0 console errors · editor `smoke.mjs` 0 findings · harness
+rows cleaned (server stopped first). ⚑ A page reload reconnects into the
+stashed character: a relog leg must leave through character select. ⚑ The
+second Playwright page draws late; wait on the wire value, not a timeout.
+`content-editor-lang.mjs` is stale (its quest "Boars in the Field" is gone),
+recorded in the verify skill.
+

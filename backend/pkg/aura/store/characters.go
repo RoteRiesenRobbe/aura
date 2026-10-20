@@ -58,11 +58,14 @@ var (
 // and the quest ledger belong to chunk 4's snapshot, and nothing 1c does should
 // make them look like fields anyone has to fill in.
 type Character struct {
-	ID         int64
-	AccountID  int64
-	SlotIndex  int
-	Name       string
-	Avatar     string
+	ID        int64
+	AccountID int64
+	SlotIndex int
+	Name      string
+	Avatar    string
+	// Ring is the chosen ring item (plan-appearance.md D19); Avatar is the
+	// chosen portrait.
+	Ring       string
 	Faction    string
 	Level      int
 	Experience int64
@@ -91,6 +94,7 @@ type NewCharacter struct {
 
 	Name    string
 	Avatar  string
+	Ring    string
 	Faction string
 
 	// MaxAlive is game.player.maxAliveCharacters. ⚑ An APPLICATION concern by
@@ -178,13 +182,14 @@ func (s *Store) createCharacterOnce(ctx context.Context, params NewCharacter) (C
 		SlotIndex: slot,
 		Name:      params.Name,
 		Avatar:    params.Avatar,
+		Ring:      params.Ring,
 		Faction:   params.Faction,
 	}
 	err = tx.QueryRow(ctx,
-		`INSERT INTO game.characters (account_id, slot_index, name, avatar, faction, previous_character_id)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		`INSERT INTO game.characters (account_id, slot_index, name, avatar, ring, faction, previous_character_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id, level, experience, created_at`,
-		accountID, slot, params.Name, params.Avatar, params.Faction, previous).
+		accountID, slot, params.Name, params.Avatar, params.Ring, params.Faction, previous).
 		Scan(&created.ID, &created.Level, &created.Experience, &created.CreatedAt)
 	switch {
 	case isUniqueViolation(err, constraintNameTaken):
@@ -277,7 +282,7 @@ func lowestFreeSlot(ctx context.Context, tx pgx.Tx, accountID int64, maxAlive in
 // (plan-accounts-frontend.md §5.3).
 func (s *Store) AliveCharacters(ctx context.Context, accountID int64) ([]Character, error) {
 	rows, err := s.Pool.Query(ctx,
-		`SELECT id, account_id, slot_index, name, avatar, faction, level, experience, created_at
+		`SELECT id, account_id, slot_index, name, avatar, ring, faction, level, experience, created_at
 		   FROM game.characters
 		  WHERE account_id = $1 AND sacrificed_at IS NULL AND deleted_at IS NULL
 		  ORDER BY slot_index`, accountID)
@@ -289,7 +294,7 @@ func (s *Store) AliveCharacters(ctx context.Context, accountID int64) ([]Charact
 	characters := []Character{}
 	for rows.Next() {
 		var c Character
-		if err := rows.Scan(&c.ID, &c.AccountID, &c.SlotIndex, &c.Name, &c.Avatar,
+		if err := rows.Scan(&c.ID, &c.AccountID, &c.SlotIndex, &c.Name, &c.Avatar, &c.Ring,
 			&c.Faction, &c.Level, &c.Experience, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("reading a character: %w", err)
 		}
@@ -309,11 +314,11 @@ func (s *Store) AliveCharacters(ctx context.Context, accountID int64) ([]Charact
 func (s *Store) AliveCharacter(ctx context.Context, accountID, characterID int64) (Character, error) {
 	var c Character
 	err := s.Pool.QueryRow(ctx,
-		`SELECT id, account_id, slot_index, name, avatar, faction, level, experience, created_at
+		`SELECT id, account_id, slot_index, name, avatar, ring, faction, level, experience, created_at
 		   FROM game.characters
 		  WHERE id = $1 AND account_id = $2 AND sacrificed_at IS NULL AND deleted_at IS NULL`,
 		characterID, accountID).
-		Scan(&c.ID, &c.AccountID, &c.SlotIndex, &c.Name, &c.Avatar,
+		Scan(&c.ID, &c.AccountID, &c.SlotIndex, &c.Name, &c.Avatar, &c.Ring,
 			&c.Faction, &c.Level, &c.Experience, &c.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Character{}, ErrNoCharacter

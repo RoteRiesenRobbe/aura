@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
@@ -34,6 +35,9 @@ type loadedContent struct {
 	// darkness is each atmosphere profile's declared darkness, which the map
 	// reveal reads (plan-map-fog-darkness.md C1).
 	darkness map[string]float32
+	// appearance is the look catalog a player character may wear
+	// (plan-appearance.md C3).
+	appearance appearance.Catalog
 	// langEntries is every translatable content string by domain, and
 	// langBundle the loaded translations (plan-localization.md C1).
 	langEntries map[string][]lang.Entry
@@ -154,6 +158,13 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	// And the atmosphere darkness table (plan-map-fog-darkness.md C1).
 	if out.darkness, err = world.LoadAtmosphereDarkness(src.atmospheres); err != nil {
 		fail("atmospheres", err)
+	}
+
+	// And the look catalog (plan-appearance.md §4.1).
+	if out.appearance, err = appearance.Load(src.appearance); err != nil {
+		fail("appearance", err)
+	} else {
+		slog.Info("Loaded appearance items", slog.Int("portraits", len(out.appearance.Portraits())), slog.Int("rings", len(out.appearance.Rings())))
 	}
 
 	// ⚑ Zones are PLACED here, with each zone's Origin already applied

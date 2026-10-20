@@ -5,6 +5,7 @@ import {
 import {skillDisplayNameFor} from '../../../../client-data/Skills';
 import * as AccountScreens from './AccountScreens';
 import * as DeleteDialog from './DeleteDialog';
+import {medallionElement} from './MedallionElement';
 
 /**
  * Character-select (plan-accounts-frontend.md §5.3, §10b ruling 7).
@@ -209,11 +210,8 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     card.className = 'slotCard';
     card.dataset.characterId = String(character.id);
 
-    // ⚑ `avatar` is wired but the art is not: plan-avatar-system.md owns it, so
-    // every character renders the one default portrait for now (§4).
-    const portrait = document.createElement('div');
-    portrait.className = 'characterPortrait default';
-    card.appendChild(portrait);
+    // The worn look (plan-appearance.md C3), the same medallion as in the world.
+    card.appendChild(medallionElement(character.avatar, character.ring));
 
     const name = document.createElement('div');
     name.className = 'slotCharacterName';

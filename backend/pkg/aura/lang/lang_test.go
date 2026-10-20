@@ -162,6 +162,7 @@ func TestKeys_AgreeWithTheJSTwin(t *testing.T) {
 		"regionTitle":           func(a []string) string { return RegionTitle(a[0]) },
 		"regionSubtitle":        func(a []string) string { return RegionSubtitle(a[0]) },
 		"zoneName":              func(a []string) string { return ZoneName(a[0]) },
+		"appearanceName":        func(a []string) string { return AppearanceName(a[0]) },
 		"conversation":          func(a []string) string { return Conversation(a[0], a[1]) },
 		"stock":                 func(a []string) string { return StockPhrase(a[0]) },
 	}

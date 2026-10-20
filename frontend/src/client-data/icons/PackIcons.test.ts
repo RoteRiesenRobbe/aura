@@ -68,6 +68,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
             ...Object.entries(GraphicsConfig.mobs).map(([key, mob]) => ({key, packIcon: mob.packIcon})),
             ...Object.entries(GraphicsConfig.npcs).map(([key, npc]) => ({key, packIcon: portraitOf(npc)})),
             ...Object.entries(GraphicsConfig.speciesPortraits).map(([key, entry]) => ({key, packIcon: entry.packIcon})),
+            ...Object.entries(GraphicsConfig.playerPortraits).map(([key, entry]) => ({key, packIcon: entry.packIcon})),
         ];
         const unknown = entries
             .filter(({packIcon}) => packIcon !== undefined && !manifestNames.has(packIcon))
@@ -83,6 +84,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
             ...Object.values(GraphicsConfig.mobs).map((mob) => mob.packIcon ?? ''),
             ...Object.values(GraphicsConfig.npcs).map((npc) => portraitOf(npc) ?? ''),
             ...Object.values(GraphicsConfig.speciesPortraits).map((entry) => entry.packIcon),
+            ...Object.values(GraphicsConfig.playerPortraits).map((entry) => entry.packIcon),
             GraphicsConfig.character.packIcon ?? '',
         ]);
         const unused = [...manifestNames].filter((name) => !used.has(name));

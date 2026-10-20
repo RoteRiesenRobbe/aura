@@ -1,0 +1,7 @@
+{
+  "_comment": "The default ring and the backfill of characters.ring (migration 000004_appearance). Names the grey ring family of client-data/Medallions.ts [PLACEHOLDER art until C0b].",
+  "id": "ring-plain",
+  "slot": "ring",
+  "family": "grey",
+  "starter": true
+}

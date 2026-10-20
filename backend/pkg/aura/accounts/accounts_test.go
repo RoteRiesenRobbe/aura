@@ -103,7 +103,7 @@ func newHarness(t *testing.T) *harness {
 		Origins:  origins.New([]string{testOrigin}, false),
 
 		MaxAliveCharacters: 3,
-		DefaultAvatar:      "default",
+		Looks:              testLooks(t),
 		DefaultFaction:     "aligned",
 	})
 	require.NoError(t, err)

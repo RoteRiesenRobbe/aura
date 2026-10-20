@@ -9,6 +9,7 @@
   {"builder": "regionTitle", "args": ["saltgrass"], "key": "region.saltgrass.title"},
   {"builder": "regionSubtitle", "args": ["wreckers-bluff"], "key": "region.wreckers-bluff.subtitle"},
   {"builder": "zoneName", "args": ["koboldCave"], "key": "zone.koboldCave.name"},
+  {"builder": "appearanceName", "args": ["ring-plain"], "key": "appearance.ring-plain.name"},
   {"builder": "conversation", "args": ["Farmer", "ill-do-it"], "key": "conv.Farmer.ill-do-it"},
   {"builder": "stock", "args": ["quest-accept"], "key": "stock.quest-accept"}
 ]

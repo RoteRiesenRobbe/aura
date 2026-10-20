@@ -438,8 +438,32 @@ func (rcv *Character) MutateLightFlicker(n bool) bool {
 	return rcv._tab.MutateBoolSlot(78, n)
 }
 
+func (rcv *Character) Portrait() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(80))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutatePortrait(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(80, n)
+}
+
+func (rcv *Character) Ring() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(82))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateRing(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(82, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(38)
+	builder.StartObject(40)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -539,6 +563,12 @@ func CharacterAddLightColor(builder *flatbuffers.Builder, lightColor uint32) {
 }
 func CharacterAddLightFlicker(builder *flatbuffers.Builder, lightFlicker bool) {
 	builder.PrependBoolSlot(37, lightFlicker, false)
+}
+func CharacterAddPortrait(builder *flatbuffers.Builder, portrait uint16) {
+	builder.PrependUint16Slot(38, portrait, 0)
+}
+func CharacterAddRing(builder *flatbuffers.Builder, ring uint16) {
+	builder.PrependUint16Slot(39, ring, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

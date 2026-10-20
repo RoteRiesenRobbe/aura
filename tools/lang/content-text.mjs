@@ -25,6 +25,7 @@ export const keys = {
   regionTitle: (r) => `region.${r}.title`,
   regionSubtitle: (r) => `region.${r}.subtitle`,
   zoneName: (stem) => `zone.${stem}.name`,
+  appearanceName: (item) => `appearance.${item}.name`,
   conversation: (npc, slug) => `conv.${npc}.${slug}`,
   stock: (name) => `${STOCK_PREFIX}${name}`,
 };
@@ -36,7 +37,7 @@ export const keys = {
  */
 export function arbOf(key) {
   const root = String(key).split('.')[0];
-  return { quest: 'quests', mob: 'mobs', conv: 'conversations', stock: 'conversations', skill: 'skills', region: 'regions', zone: 'regions' }[root];
+  return { quest: 'quests', mob: 'mobs', conv: 'conversations', stock: 'conversations', skill: 'skills', region: 'regions', zone: 'regions', appearance: 'appearance' }[root];
 }
 
 /** A content key: dot-separated parts of letters, digits, `-` and `_`, a letter first (D29). */
@@ -175,6 +176,7 @@ export const notes = {
   regionTitle: (r) => `Region banner title of the place "${r}". Descriptive names translate, coined ones stay (style guide §4).` + limitSentence('regionTitle'),
   regionSubtitle: (title) => `Region banner subtitle under "${title}".`,
   zoneName: (stem) => `Name of the zone "${stem}", shown on the crossing curtain when no region names the arrival point.`,
+  appearanceName: (item) => `Name of the look "${item}" (a portrait or a ring of the player's medallion), shown in the appearance picker.`,
   ambient: (npc) => `${spaced(npc)} calls this out to a player walking past (speech bubble).`,
   line: (npc, node, i) => `${spaced(npc)} speaks this in the conversation, node "${node}", line ${i + 1}.`,
   option: (npc, node) => `A row the player picks when talking to ${spaced(npc)} (node "${node}"), written as the player's own words.`,
@@ -416,7 +418,7 @@ export function objectiveTarget(o) {
  * 'grant', id, stock} and the key is undefined until the item has an id or
  * names a stock phrase.
  *
- * domain: 'quest' | 'mob' | 'skill' | 'regions'.
+ * domain: 'quest' | 'mob' | 'skill' | 'regions' | 'appearance'.
  */
 export function textFields(domain, raw) {
   const out = [];
@@ -437,6 +439,8 @@ export function textFields(domain, raw) {
   } else if (domain === 'skill') {
     out.push({ key: keys.skillName(raw.name), path: [], field: 'displayName', text: raw.displayName, note: notes.skillName(raw.name), limit: 'skillName' });
     out.push({ key: keys.skillDescription(raw.name), path: [], field: 'description', text: raw.description, note: notes.skillDescription(raw.name), optional: true });
+  } else if (domain === 'appearance') {
+    out.push({ key: keys.appearanceName(raw.id), path: [], field: 'name', text: raw.name, note: notes.appearanceName(raw.id) });
   } else if (domain === 'regions') {
     (raw.regions || []).forEach((r, ri) => {
       out.push({ key: keys.regionTitle(r.id), path: ['regions', ri], field: 'title', text: r.title, note: notes.regionTitle(r.id), limit: 'regionTitle' });

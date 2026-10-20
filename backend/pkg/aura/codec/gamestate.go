@@ -51,6 +51,10 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddLightRadius(builder, f32ToU16Px(p.LightRadius()))
 	AuraApi.CharacterAddLightColor(builder, p.LightColor())
 	AuraApi.CharacterAddLightFlicker(builder, p.LightFlicker())
+	// The worn look (plan-appearance.md C3), already wire values.
+	portrait, ring := p.Look()
+	AuraApi.CharacterAddPortrait(builder, portrait)
+	AuraApi.CharacterAddRing(builder, ring)
 	AuraApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	AuraApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 	// Resource cost paid this tick (round-7 item 7) — the blue number.

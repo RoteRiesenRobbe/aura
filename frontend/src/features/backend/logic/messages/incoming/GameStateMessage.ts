@@ -591,6 +591,8 @@ function unmarshalEntity(entity, eType) {
         lightRadius: undefined,
         lightColor: undefined,
         lightFlicker: undefined,
+        portrait: undefined,
+        ring: undefined,
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
@@ -707,6 +709,10 @@ function unmarshalEntity(entity, eType) {
         result.lightColor = entity.lightColor();
         // does it flicker (plan-lightmap.md L7)? Presentation only.
         result.lightFlicker = entity.lightFlicker();
+        // the worn look as wire values (plan-appearance.md C3), resolved
+        // against the /appearance catalog by the Character.
+        result.portrait = entity.portrait();
+        result.ring = entity.ring();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
         // resource cost paid this tick — the blue number (round-7 item 7)
