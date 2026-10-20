@@ -1,9 +1,9 @@
 {
-  "_comment": "A beach crab on Saltgrass Strand, the Farmlands' north shore. Aggressive (no faction = the default hostile: hunts players, ignores wildlife). Shell over speed: 75 HP (1.36 x the Wolf), speed 0.5, short 2.0 aggro so the strand stays walkable. Borrows RatBite (quick nips) until it gets its own pincer skill. entityType NpcPlaceholder: art owed. All values [PLACEHOLDER].",
+  "_comment": "A beach crab on Saltgrass Strand, the Farmlands' north shore. Aggressive (no faction = the default hostile: hunts players, ignores wildlife). Shell over speed: 75 HP (1.36 x the Wolf), speed 0.5, short 2.0 aggro so the strand stays walkable. Borrows RatBite (quick nips) until it gets its own pincer skill. entityType SandClamper: placeholder art (one raised crusher), replaced at the Zone 1 art pass. All values [PLACEHOLDER].",
   "id": 123,
   "name": "SandClamper",
   "type": "MOB",
-  "entityType": "NpcPlaceholder",
+  "entityType": "SandClamper",
   "tier": "normal",
   "curveLevel": 3,
   "factors": {

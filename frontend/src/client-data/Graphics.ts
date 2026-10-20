@@ -157,6 +157,15 @@ export const GraphicsConfig = {
             maxSize: <number> 34,
         },
 
+        // The beach's crab: placeholder art (one raised crusher, rust red)
+        // until the Zone 1 art pass; the pack bust wins where it is loaded.
+        sandClamper: {
+            file: require('../features/game-objects/assets/mobs/sandClamper.svg'),
+            packIcon: 'portrait-crab',
+            medallion: <MedallionSpec> {},
+            maxSize: <number> 46,
+        },
+
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.png'),
@@ -593,7 +602,6 @@ export const GraphicsConfig = {
         MercenaryCaptain: {packIcon: 'portrait-bold-warrior'},
         MercenaryCrossbowman: {packIcon: 'portrait-spearman'},
         SandBasilisk: {packIcon: 'portrait-lizard'},
-        SandClamper: {packIcon: 'portrait-crab'},
         Skeleton: {packIcon: 'portrait-skeleton'},
         SkeletonArcher: {packIcon: 'portrait-helmet-skeleton'},
         Treant: {packIcon: 'portrait-tree-man'},

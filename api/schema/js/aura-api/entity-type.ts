@@ -109,5 +109,6 @@ export enum EntityType {
   FireStirer = 119,
   BerryBush = 120,
   Sheep = 121,
-  Passage = 122
+  Passage = 122,
+  SandClamper = 123
 }
