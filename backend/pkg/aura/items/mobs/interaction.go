@@ -342,6 +342,14 @@ const (
 	// spellbook, the ledger or the XP curve, so it produces no unlock banner and
 	// no attribution: what it changes is where the player is standing.
 	GrantTravelTo GrantKind = "travel_to"
+
+	// The three campfire rows (E at a fire): bind the respawn there and refill
+	// the Camp charges, only refill them, or open the map as a departure board.
+	// Like travel_to they hand over nothing and are rows of their own; what they
+	// touch is connection state, through the conversation's travel seam.
+	GrantBindRestock GrantKind = "bind_restock"
+	GrantRestock     GrantKind = "restock"
+	GrantFly         GrantKind = "fly"
 )
 
 var grantKinds = map[string]GrantKind{
@@ -350,6 +358,9 @@ var grantKinds = map[string]GrantKind{
 	string(GrantAdvanceQuest): GrantAdvanceQuest,
 	string(GrantXP):           GrantXP,
 	string(GrantTravelTo):     GrantTravelTo,
+	string(GrantBindRestock):  GrantBindRestock,
+	string(GrantRestock):      GrantRestock,
+	string(GrantFly):          GrantFly,
 }
 
 // IsQuestKind reports whether the kind drives the quest ledger. Such a grant
@@ -358,6 +369,17 @@ var grantKinds = map[string]GrantKind{
 // (§5, the PO's ruling). That is what stops a re-clicked turn-in paying twice.
 func (k GrantKind) IsQuestKind() bool {
 	return k == GrantOfferQuest || k == GrantAdvanceQuest
+}
+
+// IsCampfireKind reports whether the kind is one of the campfire rows.
+func (k GrantKind) IsCampfireKind() bool {
+	return k == GrantBindRestock || k == GrantRestock || k == GrantFly
+}
+
+// isStandaloneKind reports whether the kind must be a row of its own: one per
+// option, sharing it with nothing, no next, an authored text.
+func (k GrantKind) isStandaloneKind() bool {
+	return k == GrantTravelTo || k.IsCampfireKind()
 }
 
 // ParseGrantKind resolves an authored grant kind. Unlike a trigger there is no
@@ -834,7 +856,7 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			if err := m.checkQuestRowShape(jn.ID, j, &opt); err != nil {
 				return nil, err
 			}
-			if err := m.checkTravelRowShape(jn.ID, j, &opt); err != nil {
+			if err := m.checkStandaloneRowShape(jn.ID, j, &opt); err != nil {
 				return nil, err
 			}
 			// An option is a clickable row now (D15), so one that neither
@@ -1110,31 +1132,38 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 			return g, fmt.Errorf("%s: mode %q resolves its destination from the portal's owner, so the "+
 				"`anchor` key would never be read - drop it or switch to mode %q", where, mode, TravelAnchor)
 		}
+
+	case GrantBindRestock, GrantRestock, GrantFly:
+		if jg.Quest != "" || jg.FromStage != "" || jg.ToStage != "" || jg.XP != 0 {
+			return g, fmt.Errorf("%s: a %s row hands over nothing - it takes no quest/stage/xp keys", where, kind)
+		}
 	}
 	return g, nil
 }
 
-// checkTravelRowShape enforces what a travel_to row must be, the quest row's
-// twin below (plan-portal-spells.md C1). All three rules exist because the
-// alternative is authored content that silently does nothing, which is the
-// failure mode the whole loader is written against.
-func (m *mobDefinition) checkTravelRowShape(nodeID string, j int, opt *InteractionOption) error {
+// checkStandaloneRowShape enforces what a travel_to or campfire row must be,
+// the quest row's twin below (plan-portal-spells.md C1). All the rules exist
+// because the alternative is authored content that silently does nothing,
+// which is the failure mode the whole loader is written against.
+func (m *mobDefinition) checkStandaloneRowShape(nodeID string, j int, opt *InteractionOption) error {
 	where := fmt.Sprintf("mob %q: interaction node %q option %d", m.Name, nodeID, j)
 
-	travels, others := 0, 0
+	standalone, others := 0, 0
+	var kind GrantKind
 	for i := range opt.Grants {
-		if opt.Grants[i].Kind == GrantTravelTo {
-			travels++
+		if opt.Grants[i].Kind.isStandaloneKind() {
+			standalone++
+			kind = opt.Grants[i].Kind
 		} else {
 			others++
 		}
 	}
-	if travels == 0 {
+	if standalone == 0 {
 		return nil
 	}
-	if travels > 1 {
-		return fmt.Errorf("%s: one travel_to per row - each renders its own row from the same text, so the "+
-			"player would see one label twice and could not tell the destinations apart", where)
+	if standalone > 1 {
+		return fmt.Errorf("%s: one %s per row - each renders its own row from the same text, so the "+
+			"player would see one label twice and could not tell them apart", where, kind)
 	}
 	// ⛑ A BUNDLE IS REFUSED, and not for tidiness: a quest-bearing option renders
 	// as ONE row and applyQuestRow hands over only XP and skills, so a travel_to
@@ -1142,19 +1171,19 @@ func (m *mobDefinition) checkTravelRowShape(nodeID string, j int, opt *Interacti
 	// one option is the same mismatch one step milder - the row is labelled once
 	// and would show up twice.
 	if others > 0 {
-		return fmt.Errorf("%s: travel_to is a row of its own - an option that also teaches or drives a quest "+
-			"either renders it twice or swallows it entirely", where)
+		return fmt.Errorf("%s: %s is a row of its own - an option that also teaches or drives a quest "+
+			"either renders it twice or swallows it entirely", where, kind)
 	}
-	// The session ends the moment the player lands out of range, so a `next` names
-	// a node nobody can reach.
+	// Taking the row ends the conversation, so a `next` names a node nobody can
+	// reach.
 	if opt.Next != "" {
-		return fmt.Errorf("%s: a travel_to row takes no next - stepping through ends the conversation, so the "+
-			"node it names could never be shown", where)
+		return fmt.Errorf("%s: a %s row takes no next - taking it ends the conversation, so the "+
+			"node it names could never be shown", where, kind)
 	}
 	// Nothing to fall back on: a teaching row borrows its skill's display name,
 	// and this row hands over no skill.
 	if strings.TrimSpace(opt.Text) == "" {
-		return fmt.Errorf("%s: a travel_to row needs an authored text - it has no skill name to label itself with", where)
+		return fmt.Errorf("%s: a %s row needs an authored text - it has no skill name to label itself with", where, kind)
 	}
 	return nil
 }

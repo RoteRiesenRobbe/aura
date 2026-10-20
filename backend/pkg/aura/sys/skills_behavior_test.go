@@ -3981,9 +3981,21 @@ type fakeConnState struct {
 	// fires are the authored campfires CampfireAt answers from - the D8 gate
 	// spawn_at_anchor's placement probe consults (plan-portal-spells.md C2).
 	fires []CampfireAnchor
+	// campfireRows are the campfire rows CampfireRow accepted, in order.
+	campfireRows []mobs.GrantKind
 }
 
 func (f *fakeConnState) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) { return f.anchor, f.bound }
+
+// CampfireRow records the campfire rows a conversation handed over; refused at
+// a position no fire covers, like the real one.
+func (f *fakeConnState) CampfireRow(_ uuid.UUID, at phy.Vec2f, kind mobs.GrantKind) bool {
+	if _, ok := f.CampfireAt(at); !ok {
+		return false
+	}
+	f.campfireRows = append(f.campfireRows, kind)
+	return true
+}
 
 func (f *fakeConnState) CampfireAt(pos phy.Vec2f) (string, bool) {
 	for _, c := range f.fires {

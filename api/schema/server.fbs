@@ -622,10 +622,11 @@ table Character {
   // the table end so existing field IDs stay stable.
   light_radius:ushort = 0;
 
-  // stamped true on the tick a campfire dwell completes (chunk 4): the fire
-  // became this player's respawn anchor. Drives the "bound" feedback over the
-  // own character; per-tick one-shot like damage_taken. Appended at the table
-  // end so existing field IDs stay stable.
+  // stamped true on the tick the player takes a fire's Bind & Restock row:
+  // the fire became this player's respawn anchor and the Camp charges were
+  // refilled. Drives the "bound" feedback over the own character; per-tick
+  // one-shot like damage_taken. Appended at the table end so existing field
+  // IDs stay stable.
   campfire_bound:bool = false;
 
   // crit-flagged share of damage_taken this tick (skill-vocab chunk 1): the
@@ -714,6 +715,13 @@ table Character {
   // at the table end so existing field IDs stay stable.
   portrait:ushort = 0;
   ring:ushort = 0;
+
+  // per-tick one-shots of the other two campfire rows, campfire_bound's
+  // twins: Restock refilled the Camp charges (the "restocked" feedback), Fly
+  // opens the own client's map as a departure board. Appended at the table
+  // end so existing field IDs stay stable.
+  camp_restocked:bool = false;
+  flight_offered:bool = false;
 }
 
 table Spectator {

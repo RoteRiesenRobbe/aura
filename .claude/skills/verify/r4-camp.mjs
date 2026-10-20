@@ -4,9 +4,11 @@
 // What this owns: the Camp BUTTON, its charge store and the placed fire at the
 // game surface — the wiring vitest cannot see and Go tests cannot reach.
 //
-//   1  join fresh, dwell at the spawn fire: the counter fills to the level-1
-//      cap, which is ONE — then level up and dwell again to watch the cap
-//      itself grow (D9's whole claim, and the only axis that visibly does)
+//   1  join fresh, stand in the spawn fire: the counter stays EMPTY (standing
+//      restocks nothing now), then E + "Bind & Restock" fills it to the
+//      level-1 cap, which is ONE; level up and take the fire's "Restock" row
+//      to watch the cap itself grow (D9's whole claim, and the only axis that
+//      visibly does)
 //   2  warp to open ground, far from every real fire
 //   3  press Camp: the cast bar winds up labelled "Camp" and the counter does
 //      NOT move (D4 — the charge is spent at completion, never at the press)
@@ -27,10 +29,13 @@
 //      that would make the loop a perpetual motion machine)
 //   9  spend the last charge: the button greys and a press starts no channel
 //  10  wait out the TTL: the camp is gone
-//  11  Recall home and dwell: the counter refills to cap at a REAL fire
+//  11  Recall home: the counter is still empty (standing restocks nothing), then
+//      E + "Restock" fills it to cap, and a second Restock after spending a
+//      charge fills it again (every press refills, no once-per-visit rule)
 //
-// ⚑ HOME is recorded, not hardcoded — a fresh character spawns at a RANDOM
-// startingSpawn fire (the C1 lesson).
+// ⚑ HOME is recorded, not hardcoded (the C1 lesson). The fire's rows are taken
+// standing on the ROUNDED fire tile: a rounded WARP is at most 0.71 u off, which
+// is inside the 0.75 u bind circle, but a jittered spawn point can be outside it.
 // ⚑ GOD is on for the whole run, and it is not just convenience: open ground
 // is prop-free, NOT mob-free (the nearest spawn to the best whole-unit tile is
 // ~5 units), and a level-1 character standing there through the warp settle
@@ -56,7 +61,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-const OPEN_GROUND = { x: -23, y: 14 }; // furthest whole-unit tile from any blocker (verify skill)
+const OPEN_GROUND = { x: -168, y: -84 }; // spawnpoint-5's clearing: no spawn within 40 u, 120+ u from the spawn fire
 
 // 150 ticks at 30/s = 5 s; the TTL is 450 = 15 s.
 const CHANNEL_MS = 5_000;
@@ -203,6 +208,85 @@ const waitForCamps = async (expected, timeoutMs = 8_000) => {
   return n;
 };
 
+
+// --- the campfire conversation (E at a fire opens a panel; standing binds nothing) ---
+// Copied from c2-pull-through.mjs (harnesses are self-contained). ⚑ E is a ~1.4 s
+// HOLD, never keyboard.press: the interact key is edge-triggered off Controls.update's
+// rAF-driven clock, which a headless page throttles far below the nominal input tick.
+const pressInteract = async () => {
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('e');
+  await page.waitForTimeout(1400);
+  await page.keyboard.up('e');
+  await page.waitForTimeout(1400);
+};
+const convPanel = () => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  const li = [...el.querySelectorAll('.conversationRows li')];
+  return {
+    actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    rows: li.filter((x) => !x.classList.contains('conversationLeaveRow')).map((x) => x.textContent.trim()),
+    hasLeave: li.some((x) => x.classList.contains('conversationLeaveRow')),
+  };
+});
+// A single E press is not evidence (the hold can fall between two rAF samples): retry.
+const pressForPanel = async (tries = 3) => {
+  for (let i = 0; i < tries; i++) {
+    await pressInteract();
+    const p = await convPanel();
+    if (p) return p;
+  }
+  return null;
+};
+// Rows are rebuilt on every render: scroll, elementFromPoint check, real mouse click.
+const clickRow = async (needle, exact = false) => {
+  const found = await page.evaluate(([n, ex]) => {
+    const row = [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => (ex ? li.textContent.trim() === n : li.textContent.includes(n)));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    return true;
+  }, [needle, exact]);
+  if (!found) return { ok: false, why: `no row matches "${needle}"` };
+  await page.waitForTimeout(250);
+  const node = (await page.evaluateHandle(([n, ex]) =>
+    [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => (ex ? li.textContent.trim() === n : li.textContent.includes(n))) ?? null, [needle, exact])).asElement();
+  const b = node && await node.boundingBox();
+  if (!b) return { ok: false, why: 'the row has no box' };
+  const cx = b.x + Math.min(60, b.width / 2), cy = b.y + b.height / 2;
+  const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('#conversation .conversationRows li'), [cx, cy]);
+  if (!hit) return { ok: false, why: 'something lies on top of the row' };
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(1100);
+  return { ok: true };
+};
+const homeFire = () => page.evaluate(() => window.game?.miniMap?.['campfires']?.['home'] ?? null);
+// Stand inside the fire's bind circle first. E opens the Campfire panel, "Bind & Restock"
+// is clicked, and the home marker is awaited.
+const bindAtFire = async () => {
+  const pnl = await pressForPanel();
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow('Bind');
+  if (!c.ok) return c;
+  for (let i = 0; i < 25; i++) {
+    const h = await homeFire();
+    if (h) return { ok: true, home: h };
+    await page.waitForTimeout(300);
+  }
+  return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+};
+
+// "Restock" is an EXACT match: "Bind & Restock" contains it. Every press refills to
+// cap (there is no once-per-visit rule), so this is callable repeatedly.
+const restockAtFire = async () => {
+  const pnl = await pressForPanel();
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow('Restock', true);
+  if (!c.ok) return c;
+  await page.waitForTimeout(600);
+  return { ok: true, panelClosed: !(await convPanel()) };
+};
+
 const pressCamp = () => page.click('#utilityList li[data-utility="2"]');
 const pressRecall = () => page.click('#utilityList li[data-utility="1"]');
 
@@ -227,8 +311,10 @@ try {
     window.__auraRoot = r;
   });
 
-  await page.waitForTimeout(8_000); // dwell-bind needs ~1.7 s; give it margin
-  const HOME = await pos();
+  // Stand ON the spawn fire (a jittered spawn point may be outside its circle).
+  const FIRE = await nearestFire();
+  await cmd(`WARP ${w(FIRE.x, FIRE.y)}`);
+  await page.waitForTimeout(3_000);
   const button = await campButton();
   check(!!button && button.label === 'Camp',
     'the Camp button is present, nothing discovered or slotted', JSON.stringify(button));
@@ -236,17 +322,23 @@ try {
   check(/^Camp/.test(tip) && /Utility/.test(tip) && /Charges:/.test(tip) && /Cast time:/.test(tip),
     'hovering it renders the GAME tooltip, not the browser one', JSON.stringify(tip.slice(0, 90)));
   await unhover();
+  const fresh = await charges();
+  check(fresh.have === 0, 'standing in a real fire restocked NOTHING (a fresh character holds no charges)',
+    `counter reads "${button?.charges}"`);
+  const bind = await bindAtFire();
+  check(bind.ok, 'E at the fire + "Bind & Restock" binds', bind.ok ? `home=${bind.home}` : bind.why);
+  const HOME = await pos();
+  await page.waitForTimeout(600);
   const start = await charges();
   check(start.cap === 1 && start.have === 1,
-    'dwelling at a real fire filled the store to the level-1 cap of ONE',
-    `counter reads "${button?.charges}"`);
-  check(button?.greyed === false, 'and the button is not greyed while charges are held');
+    'Bind & Restock filled the store to the level-1 cap of ONE',
+    `counter reads "${await chargeText()}"`);
+  check((await campButton())?.greyed === false, 'and the button is not greyed while charges are held');
 
   // The cap grows with the character, and it is the ONLY axis of the camp that
   // visibly does (D9 — the heal is %-of-max, so it scales invisibly with the
   // pool). Levelled to the ceiling so the assertion needs no knowledge of where
   // the curve's rungs sit; what is pinned is that the cap MOVED.
-  const FIRE = await nearestFire();
   await cmd('XP 100000000');
   await page.waitForTimeout(1_500);
   const raised = await charges();
@@ -254,14 +346,12 @@ try {
     'levelling up raised the CAP — and did NOT quietly top the store up with it',
     `${start.have}/${start.cap} at level 1 → ${raised.have}/${raised.cap} at the ceiling`);
 
-  // Step out and back onto the FIRE: the refill is exactly-at-threshold, once
-  // per entry, so it takes a real exit and re-entry.
-  await cmd(`WARP ${w(FIRE.x + 6, FIRE.y)}`);
-  await page.waitForTimeout(3_000);
-  await cmd(`WARP ${w(FIRE.x, FIRE.y)}`);
-  await page.waitForTimeout(6_000);
+  // The fire's "Restock" row refills to the NEW cap (no re-entry needed).
+  const rs = await restockAtFire();
+  check(rs.ok && rs.panelClosed, 'the Restock row closes the panel', rs.ok ? '' : rs.why);
+  await page.waitForTimeout(600);
   const grown = await charges();
-  check(grown.have === grown.cap, 'and the next dwell fills to the new cap',
+  check(grown.have === grown.cap, 'and Restock fills to the new cap',
     `${grown.have}/${grown.cap}`);
   const CAP = grown.cap;
 
@@ -332,7 +422,7 @@ try {
   check((await charges()).have === CAP - 2, 'and it cost a second charge', await chargeText());
 
   // --- 8. a placed camp refills nothing (L3) ---------------------------------
-  await page.waitForTimeout(4_000); // well past the ~1.7 s real-fire dwell threshold
+  await page.waitForTimeout(4_000); // standing restocks nothing anywhere; a placed camp is no fire either
   check((await charges()).have === CAP - 2,
     'standing INSIDE the placed camp refills nothing — it is not a real fire (L3)',
     await chargeText());
@@ -361,15 +451,31 @@ try {
   check((await waitForCamps(0)) === 0, 'the camp burned out on its own lifetime',
     `${await campsNearby()} camp sprite(s) left`);
 
-  // --- 11. back to a real fire: the store refills ----------------------------
+  // --- 11. back to a real fire: Restock refills on EVERY press ---------------
   await pressRecall();
-  await page.waitForTimeout(14_000); // 300 ticks = 10 s, plus the dwell + margin
+  await page.waitForTimeout(14_000); // 300 ticks = 10 s, plus margin
   const backHome = await pos();
   check(dist(backHome, HOME) <= 2.5, 'Recall took us back to the bound fire',
     `${dist(backHome, HOME).toFixed(2)} units from home`);
+  const idle = await charges();
+  check(idle.have === 0, 'and standing at the real fire restocked NOTHING', await chargeText());
+  await cmd(`WARP ${w(FIRE.x, FIRE.y)}`);
+  await page.waitForTimeout(3_000);
+  const rs1 = await restockAtFire();
+  await page.waitForTimeout(600);
   const refilled = await charges();
-  check(refilled.have === CAP && refilled.cap === CAP,
-    'and resting at a REAL fire refilled the store to cap', await chargeText());
+  check(rs1.ok && refilled.have === CAP && refilled.cap === CAP,
+    'E + Restock at a REAL fire refilled the store to cap', rs1.ok ? await chargeText() : rs1.why);
+  // Spend one charge beside the fire, then press Restock again: no once-per-visit rule.
+  await pressCamp();
+  await page.waitForTimeout(CHANNEL_MS + 2_500);
+  const spent = await charges();
+  check(spent.have === CAP - 1, 'a charge was spent beside the fire', await chargeText());
+  const rs2 = await restockAtFire();
+  await page.waitForTimeout(600);
+  const again = await charges();
+  check(rs2.ok && again.have === CAP, 'a SECOND Restock in the same visit refills again (every press)',
+    rs2.ok ? await chargeText() : rs2.why);
 } catch (err) {
   check(false, 'the run completed', String(err && err.message ? err.message : err));
   try { await page.screenshot({ path: '/tmp/r4-camp-fail.png' }); } catch { /* best effort */ }

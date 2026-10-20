@@ -80,6 +80,34 @@
   "@conv.Benjamin.you-can-only-have-one": {
     "description": "Benjamin speaks this in the conversation, node \"pull\", line 2."
   },
+  "conv.Campfire.bind-restock": "Bind & Restock",
+  "@conv.Campfire.bind-restock": {
+    "description": "A row the player picks when talking to Campfire (node \"root\"), written as the player's own words."
+  },
+  "conv.Campfire.fly": "Fly",
+  "@conv.Campfire.fly": {
+    "description": "A row the player picks when talking to Campfire (node \"root\"), written as the player's own words."
+  },
+  "conv.Campfire.restock": "Restock",
+  "@conv.Campfire.restock": {
+    "description": "A row the player picks when talking to Campfire (node \"root\"), written as the player's own words."
+  },
+  "conv.Campfire.the-fire-crackles-warmly": "The fire crackles warmly.",
+  "@conv.Campfire.the-fire-crackles-warmly": {
+    "description": "Campfire speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Campfire.where-to": "Where to?",
+  "@conv.Campfire.where-to": {
+    "description": "Campfire answers this when the player picks \"Fly\" (node \"root\")."
+  },
+  "conv.Campfire.you-bind-yourself-to-this": "You bind yourself to this fire and restock.",
+  "@conv.Campfire.you-bind-yourself-to-this": {
+    "description": "Campfire answers this when the player picks \"Bind & Restock\" (node \"root\")."
+  },
+  "conv.Campfire.you-restock-at-the-fire": "You restock at the fire.",
+  "@conv.Campfire.you-restock-at-the-fire": {
+    "description": "Campfire answers this when the player picks \"Restock\" (node \"root\")."
+  },
   "conv.CaveExit.a-narrow-shaft-and-daylight": "A narrow shaft, and daylight at the top of it.",
   "@conv.CaveExit.a-narrow-shaft-and-daylight": {
     "description": "Cave Exit speaks this in the conversation, node \"root\", line 1."

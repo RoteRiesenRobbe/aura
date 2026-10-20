@@ -4,11 +4,14 @@
 // machine: until this chunk no client could send StartFlight at all, so every
 // leg below is the first time that code has run outside a Go test.
 //
-// Owns: the map click that starts a flight (arm → confirm), the camera
+// Owns: the campfire panel's Fly row that opens the departure board, the map
+// click that starts a flight (arm → confirm), the camera
 // zoom-out coupled to the server AOI, the input + ability lock, the in-flight
 // indicator, and that LANDING RESTORES ALL OF IT. Plus the two-client
 // snapshot-invisibility check C2 deferred for want of a way to fly.
 //
+//   0  E at the spawn fire opens the Campfire panel (Bind & Restock / Restock /
+//      Fly), Fly opens the departure board, a second E closes it
 //   1  discover two fires, so there is somewhere to fly to (D4)
 //   2  one press on a marker ARMS it — no flight yet (D11 has no bail-out, so
 //      a single stray press must not commit the player to a crossing)
@@ -52,11 +55,11 @@ const outDir = dirname(fileURLToPath(import.meta.url));
 const w = (p) => `${Math.round(p.x) * 120} ${Math.round(p.y) * 120}`;
 
 // api/zones/world.json bindPoints. The origin is the fire the flight LEAVES
-// from — it must be discovered too (a C2 ruling), which the dwell provides.
-// The destination is the far southwest, ~85 units away: long enough that the
-// flight is still running several samples after takeoff at 4× walk.
-const ORIGIN = { id: 'spawnpoint-2', x: 44, y: 10.5 };
-const DEST = { id: 'spawnpoint-4', x: -21.26, y: -23.51 };
+// from — it must be discovered too (a C2 ruling), which standing in its circle provides (discovery is instant).
+// The destination is ~80 units east: long enough that the flight is still
+// running several samples after takeoff at 4× walk.
+const ORIGIN = { id: 'spawnpoint-2', x: -141.33, y: 2.13 };
+const DEST = { id: 'spawnpoint-12', x: -61.63, y: 0.41 };
 
 const results = [];
 const consoleErrors = [];
@@ -158,15 +161,20 @@ const readFlight = (page) => page.evaluate(() => {
     })(),
     // The E prompt over a campfire (PO 2026-08-05). Counted off the campfire
     // LAYER — each child is a fire's shape group, and a lit badge is a visible
-    // sub-container holding the 'E' text.
+    // container (inside the group's aboveArt slot) holding the 'E' text.
     fireBadges: (window.game?.layers?.mobs?.campfire?.children || [])
-      .filter((shape) => (shape.children || []).some((c) =>
-        c.visible !== false && (c.children || []).some((t) => t['text'] === 'E')))
+      .filter((shape) => {
+        const lit = (node, depth) => node.visible !== false && (node['text'] === 'E'
+          || (depth > 0 && (node.children || []).some((c) => lit(c, depth - 1))));
+        return lit(shape, 4);
+      })
       .length,
     // Map state, for the arm/confirm legs.
     mapOpen: !!map?.isOpen(),
+    board: !!map?.isDepartureBoard?.(),
     discovered: Array.from(campfires?.['discovered'] || []),
     armed: campfires?.['armed'] ?? null,
+    origin: campfires?.['origin'] ?? null,
     rings: (campfires?.layer.children || []).filter((c) => !!c.context).length,
     sprites: (campfires?.layer.children || []).filter((c) => !c.context).length,
     scale: map?.scale ?? null,
@@ -246,6 +254,56 @@ const lagPx = (scale) => 4.3 * 1.2 * 120 * scale + 2.0;
  * sample it — the standing hotkey gotcha, and the reason a 200 ms press reads
  * as a dead feature (chunk3b-interact's `press` verbatim).
  */
+// The campfire panel (a server conversation), page-parameterised. A single E hold
+// can fall between two rAF samples, so a panel press retries up to 3 times.
+const convPanel = (page) => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  const li = [...el.querySelectorAll('.conversationRows li')];
+  return {
+    actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    rows: li.filter((x) => !x.classList.contains('conversationLeaveRow')).map((x) => x.textContent.trim()),
+  };
+});
+const pressForPanel = async (page, tries = 3) => {
+  for (let i = 0; i < tries; i++) {
+    await pressInteract(page);
+    const p = await convPanel(page);
+    if (p) return p;
+  }
+  return null;
+};
+// Scroll, elementFromPoint check, real mouse click (rows are rebuilt on every render).
+const clickRow = async (page, needle, exact = false) => {
+  const sel = '#conversation .conversationRows li';
+  const found = await page.evaluate(([n, ex, q]) => {
+    const row = [...document.querySelectorAll(q)].find((li) => (ex ? li.textContent.trim() === n : li.textContent.includes(n)));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    return true;
+  }, [needle, exact, sel]);
+  if (!found) return { ok: false, why: `no row matches "${needle}"` };
+  await page.waitForTimeout(250);
+  const node = (await page.evaluateHandle(([n, ex, q]) =>
+    [...document.querySelectorAll(q)].find((li) => (ex ? li.textContent.trim() === n : li.textContent.includes(n))) ?? null,
+    [needle, exact, sel])).asElement();
+  const bb = node && await node.boundingBox();
+  if (!bb) return { ok: false, why: 'the row has no box' };
+  const cx = bb.x + Math.min(60, bb.width / 2), cy = bb.y + bb.height / 2;
+  const hit = await page.evaluate(([x, y, q]) => !!document.elementFromPoint(x, y)?.closest(q), [cx, cy, sel]);
+  if (!hit) return { ok: false, why: 'something lies on top of the row' };
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(1100);
+  return { ok: true };
+};
+// E at the fire, then the named row ("Bind", "Fly"); returns the panel it saw.
+const takeFireRow = async (page, needle) => {
+  const pnl = await pressForPanel(page);
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, pnl, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow(page, needle);
+  return { ...c, pnl };
+};
+
 const pressInteract = async (page) => {
   await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.down('e');
@@ -287,35 +345,48 @@ try {
     await cmd(p, 'PING');   // the first command after joining is dropped
     await cmd(p, 'GOD on');    // the eastern fire has company; dying proves nothing
   }
-  // ⚑ THE PROMPT AT A FIRE WITH NO CONVERSANT, scored FIRST and from the
-  // spawn, because it is the case the rest of this script structurally cannot
-  // reach. Both flight endpoints have an NPC standing on them — VillageHealer
-  // 1.5 units from spawnpoint-2, LamplessTraveller 1.1 from spawnpoint-4 — so
-  // every later badge reading is taken where a conversant is ALSO in range.
-  // That is what let the badge ship suppressed at every lonely fire while this
-  // script went green: the "my own panel is open" guard compared `offered`
-  // against a partnerId of 0 and matched whenever nobody was offered (PO:
-  // "sometimes the E is not visible"). spawnpoint-1 is the starting spawn and
-  // its nearest conversant is the TownCrier at 3.2 units — outside talk range —
-  // so a fresh character stands at a fire and nothing else.
-  await a.page.waitForTimeout(3000); // dwell in the spawn fire's radius
+  // ⚑ LEG 0, THE FIRE IS A CONVERSANT. Every fire now answers E with the server's
+  // Campfire conversation (nearest conversant wins; Flora stands 2 u from the
+  // spawn fire and loses to it), so the old "lonely fire" premise (spawnpoint-1
+  // had no conversant in talk range, and the client synthesised an offer) is
+  // gone. Scored first, from the spawn: the badge lights, E opens the panel with
+  // its three rows, Fly opens the departure board, and E closes it again.
+  await a.page.waitForTimeout(3000); // let the join settle at the spawn fire
   let spawnState = await readFlight(a.page);
   check(spawnState.discovered.includes('spawnpoint-1') && spawnState.fireBadges >= 1,
-    '0 the E prompt lights at a fire with NO conversant in range',
+    '0 the E prompt lights at the spawn fire (server-driven offer)',
     `discovered=[${spawnState.discovered}] badges=${spawnState.fireBadges}`);
+  const spawnPanel = await pressForPanel(a.page);
+  const wantRows = ['Bind', 'Restock', 'Fly'];
+  check(!!spawnPanel && /campfire/i.test(spawnPanel.actor) && wantRows.every((r) => spawnPanel.rows.some((t) => t.includes(r))),
+    '0a E at the spawn fire opens the Campfire panel with Bind & Restock / Restock / Fly',
+    spawnPanel ? `actor="${spawnPanel.actor}" rows=${JSON.stringify(spawnPanel.rows)}` : 'no panel');
+  const flyClick = await clickRow(a.page, 'Fly', true);
+  await a.page.waitForTimeout(600);
+  spawnState = await readFlight(a.page);
+  check(flyClick.ok && spawnState.mapOpen && spawnState.board && !(await convPanel(a.page)),
+    '0b Fly closes the panel and opens the map as the departure board',
+    `click=${JSON.stringify(flyClick)} mapOpen=${spawnState.mapOpen} board=${spawnState.board}`);
+  await pressInteract(a.page);
+  spawnState = await readFlight(a.page);
+  check(!spawnState.mapOpen, '0c E while the departure board is open closes it', `open=${spawnState.mapOpen}`);
+  if (spawnState.mapOpen) { await a.page.keyboard.press('Escape'); await a.page.waitForTimeout(600); }
 
-  // The flyer dwells at BOTH ends, because the destination must be discovered
-  // (D4) and so must the origin.
+  // The flyer stands in BOTH circles, because the destination must be discovered
+  // (D4) and so must the origin; the origin is also BOUND by hand, so the home
+  // ring exists for leg 2d.
   await cmd(a.page, `WARP ${w(DEST)}`);
   await a.page.waitForTimeout(6000);
   await cmd(a.page, `WARP ${w(ORIGIN)}`);
   await a.page.waitForTimeout(6000);
+  const aBind = await takeFireRow(a.page, 'Bind');
+  check(aBind.ok, '1a E + "Bind & Restock" at the origin binds it (the home ring for leg 2d)', aBind.ok ? '' : aBind.why);
   await cmd(b.page, `WARP ${w(ORIGIN)}`);
   await b.page.waitForTimeout(6000);
 
   let s = await readFlight(a.page);
   const haveBoth = s.discovered.includes(ORIGIN.id) && s.discovered.includes(DEST.id);
-  check(haveBoth, '1 both ends discovered by dwelling (D4)', `discovered=[${s.discovered}]`);
+  check(haveBoth, '1 both ends discovered by standing in their circles (D4)', `discovered=[${s.discovered}]`);
   if (!haveBoth) throw new Error('no flyable pair — the rest cannot be scored');
 
   // The observer must actually be able to see the flyer before takeoff, or
@@ -329,7 +400,7 @@ try {
   const groundX = s.x;
 
   // --- 2. the map opened with M is READ-ONLY (PO ruling 2026-08-05) --------
-  // Flight is reachable only through E at a fire, so the M map must not depart.
+  // Flight is reachable only through the fire's Fly row, so the M map must not depart.
   // This leg is the negative control for leg 2a: without it, an E that silently
   // did nothing would still score green as long as M happened to arm.
   phase = 'read-only map';
@@ -345,17 +416,18 @@ try {
   await a.page.keyboard.press('Escape');
   await a.page.waitForTimeout(600);
 
-  // --- 2a. E at the fire opens the map, and one press ARMS -----------------
+  // --- 2a. E + Fly at the fire opens the departure board, and one press ARMS --
   phase = 'arm';
   s = await readFlight(a.page);
   check(s.fireBadges >= 1,
     '2a1 the campfire wears the E prompt while you stand at it',
     `${s.fireBadges} badge(s) lit`);
-  await pressInteract(a.page);
+  const flyRow = await takeFireRow(a.page, 'Fly');
   await a.page.waitForTimeout(600);
   s = await readFlight(a.page);
-  check(s.mapOpen, '2b E at the campfire opens the flight map');
-  if (!s.mapOpen) throw new Error('E did not open the map — the flight legs cannot be scored');
+  check(flyRow.ok && s.mapOpen && s.board, '2b E at the campfire + the Fly row opens the flight map',
+    flyRow.ok ? `board=${s.board}` : flyRow.why);
+  if (!s.mapOpen) throw new Error('Fly did not open the map — the flight legs cannot be scored');
 
   // A second E closes it: once the map is up every remaining choice is made
   // with the mouse, so the control that opened it is the one players reach for
@@ -363,10 +435,33 @@ try {
   await pressInteract(a.page);
   s = await readFlight(a.page);
   check(!s.mapOpen, '2b2 and a second E closes it again', `open=${s.mapOpen}`);
-  await pressInteract(a.page);
+  // A third E opens the PANEL again (E is no longer a toggle for the map), and the
+  // Fly row re-opens the board: the cycle is stable.
+  const panelAgain = await pressForPanel(a.page);
   s = await readFlight(a.page);
-  check(s.mapOpen, '2b3 and a third re-opens it — the toggle is stable');
+  check(!!panelAgain && !s.mapOpen, '2b3 and a third E opens the fire\'s panel again, not the map',
+    panelAgain ? `rows=${JSON.stringify(panelAgain.rows)}` : 'no panel');
+  const flyAgain = await clickRow(a.page, 'Fly', true);
+  await a.page.waitForTimeout(600);
+  s = await readFlight(a.page);
+  check(flyAgain.ok && s.mapOpen, '2b4 and the Fly row re-opens it — stable');
   if (!s.mapOpen) throw new Error('the map did not re-open — the flight legs cannot be scored');
+  check(s.origin === ORIGIN.id, '2b5 the board rings the fire it departs from (green origin ring)',
+    `origin=${s.origin}`);
+
+  // The board is the fire's conversation, so it closes where a conversation
+  // panel would (PO 2026-10-20): leave the fire's range and it goes.
+  await cmd(a.page, `WARP ${w({ x: ORIGIN.x + 4, y: ORIGIN.y })}`);
+  await a.page.waitForTimeout(1500);
+  s = await readFlight(a.page);
+  check(!s.mapOpen && s.origin === '', '2b6 leaving the fire\'s range closes the board and drops the origin ring',
+    `open=${s.mapOpen} origin=${s.origin}`);
+  await cmd(a.page, `WARP ${w(ORIGIN)}`);
+  await a.page.waitForTimeout(6000);
+  const flyBack = await takeFireRow(a.page, 'Fly');
+  await a.page.waitForTimeout(600);
+  s = await readFlight(a.page);
+  if (!flyBack.ok || !s.mapOpen) throw new Error(`the board did not re-open after walking back: ${flyBack.why ?? 'map closed'}`);
 
   await pressFire(a.page, DEST);
   s = await readFlight(a.page);
@@ -376,7 +471,8 @@ try {
   check(!s.barShown && !s.locked,
     '2e a single press does NOT commit to the crossing (D11 has no bail-out)',
     `bar=${s.barShown} locked=${s.locked}`);
-  await a.page.screenshot({ path: join(outDir, `${label}-armed.png`) });
+  // ⚑ No screenshot here: a headless GL screenshot can outlast the 4 s arm
+  // window (MiniMap ARM_TIMEOUT_MS), and the confirm below then re-arms instead.
 
   // --- 3. the second press flies -------------------------------------------
   phase = 'takeoff';

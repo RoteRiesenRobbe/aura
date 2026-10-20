@@ -602,6 +602,8 @@ function unmarshalEntity(entity, eType) {
         xpInLevel: undefined,
         xpForNextLevel: undefined,
         campfireBound: undefined,
+        campRestocked: undefined,
+        flightOffered: undefined,
         inCombat: undefined,
         dwellRadius: undefined,
         auraTickInterval: undefined,
@@ -722,8 +724,10 @@ function unmarshalEntity(entity, eType) {
         result.xpGained = entity.xpGained();
         result.xpInLevel = entity.xpInLevel();
         result.xpForNextLevel = entity.xpForNextLevel();
-        // one-tick stamp: a campfire became the respawn anchor (chunk 4)
+        // one-tick stamps of the campfire rows: Bind & Restock, Restock, Fly
         result.campfireBound = entity.campfireBound();
+        result.campRestocked = entity.campRestocked();
+        result.flightOffered = entity.flightOffered();
         // true while inside the recent-combat window — drives the HUD combat indicator
         result.inCombat = entity.inCombat();
         // active aura's tick cadence + phase (game ticks), 0 while none active —

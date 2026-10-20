@@ -8,10 +8,10 @@
 //     caster's bound fire and the portal appears AT THE FIRE, on the authored
 //     2.5 u ring - the assertion is "nothing near the caster AND a totem on the
 //     ring at the fire", because either half alone is satisfiable by a bug;
-//   · the D8 ANNULUS, both presses (§10 item 10): E from inside the bind circle
-//     goes to the flight map (the client synthesises that offer and it OVERRIDES
-//     the server's, `Backend.ts` `flightOrigin || offered`), E from outside the
-//     bind edge but inside the portal's 2.0 u talk range goes to the portal;
+//   · the ANNULUS, both presses (§10 item 10): E from inside the bind circle goes
+//     to the fire (it is a server conversant now, nearest wins: the Campfire
+//     panel with Bind & Restock / Restock / Fly), E from outside the bind edge
+//     but inside the portal's 2.0 u talk range goes to the portal;
 //   · ⭐ the CASTER destination mode (§10 item 11, D5): A casts, WALKS 17 u away,
 //     and only then does B step through - so "B landed on A" cannot be confused
 //     with "B landed where the cast happened". A one-window run proves nothing
@@ -37,14 +37,16 @@
 // run of this script: a cast that really did raise a portal reported "the bar
 // closed with no charge, Focus 489 → 489" and four legs failed with "no portal".
 //
-// ⚑ A IS BOUND AT spawnpoint-5, NOT the fire it spawned on - the C1 rule, and
+// ⚑ A BINDS AT spawnpoint-5 BY HAND (E at the fire, then the "Bind & Restock"
+// row; standing in the circle binds nothing any more, and a fresh character is
+// UNBOUND until it does). It is NOT the fire it spawned on - the C1 rule, and
 // here it is what makes the placement leg mean anything: a portal at the DEFAULT
 // spawn would be indistinguishable from a portal at "some fire".
 //
-// ⚑ THE EMBERKEEPER STANDS 1.13 u FROM spawnpoint-5 and E goes to the NEAREST
-// interactable, so where B stands for a portal press is solved, not guessed:
-// integer tiles only (WARP truncates to whole units), inside the portal's talk
-// range, clear of the bind circle, and strictly nearer the portal than the NPC.
+// ⚑ E GOES TO THE NEAREST CONVERSANT and the fire is one, so where B stands for a
+// portal press is solved, not guessed: integer tiles only (WARP truncates to
+// whole units), inside the portal's talk range and clear of the bind circle (the
+// fire would win inside it).
 //
 // ⚑ GOD IS OFF FOR THE COST LEG ONLY (IsGod short-circuits the pricing site -
 // the r7-respec-cost lesson) and again for one command in the death leg.
@@ -71,11 +73,11 @@ const env = {
 };
 
 // --- venue, derived from api/zones/world.json --------------------------------
-const FIRE = { id: 'spawnpoint-5', x: 34.19, y: -20.68 };
-const FIRE_TILE = { x: 34, y: -21 };   // 0.37 u from the fire - inside the bind circle
-const EMBER = { x: 34.52, y: -19.60 };  // the Emberkeeper spawn, 1.13 u from the fire, stationary
-const VENUE = { x: 27, y: -24 };        // the cast venue: 7.92 u from the fire, 8.33 u of spawn clearance
-const FAR = { x: 39, y: -12 };          // the walk-away point: 9.92 u from the fire, 16.97 u from VENUE
+const FIRE = { id: 'spawnpoint-5', x: -160.47, y: -80.08 };
+const FIRE_TILE = { x: -160, y: -80 };  // 0.48 u from the fire - inside the bind circle
+// (World rebuild 2026-10-17: spawnpoint-5 stands in an empty clearing, no spawn within 40 u - no other conversant to out-rank.)
+const VENUE = { x: -168, y: -84 };      // the cast venue: 8.49 u from the fire, nothing else near
+const FAR = { x: -152, y: -73 };        // the walk-away point: 11.0 u from the fire, 19.4 u from VENUE
 const RING = 2.5;                       // sys.anchorSpawnOffset
 const DWELL_RADIUS = 0.75;              // campfire aura 1.5 × CampfireDwellRadiusFactor 0.5
 const TALK_RANGE = 2.0;                 // portal-summon.json interaction.range
@@ -212,6 +214,24 @@ function rig(page, tag) {
     return null;
   };
 
+  // Bind at the fire the player stands in: E opens the Campfire panel, the
+  // "Bind & Restock" row is clicked, and the home marker is awaited (the
+  // assertions that matter read the marker, not the panel).
+  const bindAtFire = async () => {
+    const pnl = await pressForPanel();
+    if (!pnl || !/campfire/i.test(pnl.actor)) {
+      return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+    }
+    const clicked = await clickRow('Bind');
+    if (!clicked.ok) return clicked;
+    for (let i = 0; i < 25; i++) {
+      const h = await homeFire();
+      if (h) return { ok: true, home: h };
+      await page.waitForTimeout(300);
+    }
+    return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+  };
+
   const pressCooldownQ = async () => {
     await page.evaluate(() => document.activeElement?.blur());
     await page.keyboard.down('q');
@@ -226,7 +246,18 @@ function rig(page, tag) {
   // ⚑ It reports WHY it failed. A bare false cannot tell "the row is gone" from
   // "something is lying on top of it", and the recorded Leave-row click race
   // (chunk3b-ii) makes that exactly the distinction worth having.
+  // ⚑ Retried up to 3 times when the row went stale or unlaid-out between the two
+  // reads: the conversation rebuilds its rows wholesale on a changed render.
   const clickRow = async (needle) => {
+    let last = null;
+    for (let i = 0; i < 3; i++) {
+      last = await clickRowOnce(needle);
+      if (last.ok || !/bounding box|stale/.test(last.why || '')) return last;
+      await page.waitForTimeout(500);
+    }
+    return last;
+  };
+  const clickRowOnce = async (needle) => {
     const found = await page.evaluate((n) => {
       const rows = [...document.querySelectorAll('#conversation .conversationRows li')];
       const row = rows.find(li => li.textContent.includes(n));
@@ -297,7 +328,7 @@ function rig(page, tag) {
   };
 
   return { page, tag, cmd, pos, focus, castBar, castSample, totems, totemsAtFire, totemsNearMe, panel,
-           mapOpen, pressInteract, pressForPanel, pressCooldownQ, clickRow, floatingSeen, homeFire,
+           mapOpen, pressInteract, pressForPanel, pressCooldownQ, clickRow, floatingSeen, homeFire, bindAtFire,
            primeRoot, warpTo, consoleErrors };
 }
 
@@ -360,7 +391,9 @@ async function equipCooldown(r, nameRe) {
 async function makeCaster(tag) {
   const c = await newClient(tag);
   await c.warpTo(FIRE_TILE.x, FIRE_TILE.y);
-  await c.page.waitForTimeout(9_000);            // dwell binds after ~1.7 s; margin for the settle
+  await c.page.waitForTimeout(2_000);            // the warp settle
+  const bind = await c.bindAtFire();
+  if (!bind.ok) console.log(`  (bind at the fire failed: ${bind.why})`);
   const home = await c.homeFire();
   await c.cmd('XP 20000');
   await c.page.waitForTimeout(3_000);
@@ -432,9 +465,8 @@ async function castPullThrough(A, B, { requireFullPool = false } = {}) {
 
 /**
  * Where B must stand to press E on the portal: an INTEGER tile (WARP truncates),
- * inside the 2.0 u talk range with margin, clear of the 0.75 u bind circle by a
- * wide margin, and strictly nearer the portal than the Emberkeeper - who is the
- * only other conversant in the scene and would answer the press otherwise.
+ * inside the 2.0 u talk range with margin and clear of the 0.75 u bind circle by a
+ * wide margin (the fire is a conversant and would answer the press inside it).
  */
 function solveStandTile(portal) {
   let best = null;
@@ -442,12 +474,11 @@ function solveStandTile(portal) {
   for (let X = cx - 3; X <= cx + 3; X++) {
     for (let Y = cy - 3; Y <= cy + 3; Y++) {
       const p = { x: X, y: Y };
-      const dP = dist(p, portal), dF = dist(p, FIRE), dE = dist(p, EMBER);
+      const dP = dist(p, portal), dF = dist(p, FIRE);
       if (dP > 1.6) continue;
       if (dF < 1.5) continue;
-      const margin = dE - dP;
-      if (margin < 0.8) continue;
-      if (!best || margin > best.margin) best = { x: X, y: Y, dP: +dP.toFixed(2), dF: +dF.toFixed(2), dE: +dE.toFixed(2), margin: +margin.toFixed(2) };
+      const margin = dF - dP;       // prefer the tile that is nearest the portal and furthest from the fire
+      if (!best || margin > best.margin) best = { x: X, y: Y, dP: +dP.toFixed(2), dF: +dF.toFixed(2), margin: +margin.toFixed(2) };
     }
   }
   return best;
@@ -456,9 +487,9 @@ function solveStandTile(portal) {
 /** Park B on the solved tile and report what it actually measures from there. */
 async function parkAtPortal(B, portal) {
   const tile = solveStandTile(portal);
-  if (!tile) return { ok: false, why: `no integer tile satisfies talk-range ≤1.6 u / bind-clear ≥1.5 u / nearer-than-the-NPC for a portal at (${portal.x}, ${portal.y})` };
+  if (!tile) return { ok: false, why: `no integer tile satisfies talk-range ≤1.6 u / bind-clear ≥1.5 u / for a portal at (${portal.x}, ${portal.y})` };
   const at = await B.warpTo(tile.x, tile.y);
-  const real = { dP: +dist(at, portal).toFixed(2), dF: +dist(at, FIRE).toFixed(2), dE: +dist(at, EMBER).toFixed(2) };
+  const real = { dP: +dist(at, portal).toFixed(2), dF: +dist(at, FIRE).toFixed(2) };
   if (real.dP > TALK_RANGE - 0.05) return { ok: false, why: `B landed ${real.dP} u from the portal, outside its ${TALK_RANGE} u range`, tile, at, real };
   return { ok: true, tile, at, real };
 }
@@ -489,7 +520,7 @@ try {
   const made = await makeCaster('pt');
   A = made.c;
   if (made.home === FIRE.id) {
-    pass('A1 · bind', `A is bound to ${made.home}, 7.92 u from the cast venue - so "the portal appeared at the bound fire" is a real reading`);
+    pass('A1 · bind', `A took Bind & Restock at the fire and is bound to ${made.home}, 7.92 u from the cast venue - so "the portal appeared at the bound fire" is a real reading`);
   } else {
     fail('A1 · bind', `expected home ${FIRE.id}, got ${made.home}`);
   }
@@ -609,7 +640,7 @@ try {
   await A.cmd('GOD on');
 
   // ------------------------------------------------------------------ CAST 2
-  console.log('\n== CAST 2: the D8 annulus - both presses (§10 item 10) ==');
+  console.log('\n== CAST 2: the annulus - both presses (§10 item 10) ==');
   await waitCooldown(lastCastT0);
   await waitPortalGone(B);
   const cast2 = await castPullThrough(A, B);
@@ -621,27 +652,24 @@ try {
     // ---- press 1: from INSIDE the bind circle, the fire owns E --------------
     await B.warpTo(FIRE_TILE.x, FIRE_TILE.y);
     const bIn = await B.pos();
-    await B.pressInteract();
+    const panelIn = await B.pressForPanel();
     const mapUp = await B.mapOpen();
-    const panelIn = await B.panel();
-    if (mapUp && !panelIn) {
-      pass('D1 · press inside the bind circle', `standing ${dist(bIn, FIRE).toFixed(2)} u from the fire (portal ${dist(bIn, portal2).toFixed(2)} u away, inside its ${TALK_RANGE} u range) E opened the FLIGHT MAP and no conversation - the client's campfire offer owns the annulus by design`);
-    } else if (panelIn) {
-      fail('D1 · press inside the bind circle', `E on the fire opened the conversation "${panelIn.actor}" instead of the flight map (mapOpen=${mapUp})`);
+    const wanted = ['Bind', 'Restock', 'Fly'];
+    const texts = panelIn ? panelIn.rows.map(r => r.text) : [];
+    if (panelIn && /campfire/i.test(panelIn.actor) && wanted.every(w => texts.some(t => t.includes(w))) && !mapUp) {
+      pass('D1 · press inside the bind circle', `standing ${dist(bIn, FIRE).toFixed(2)} u from the fire (portal ${dist(bIn, portal2).toFixed(2)} u away, inside its ${TALK_RANGE} u range) E opened the "${panelIn.actor}" conversation with rows ${JSON.stringify(texts)} - the fire is the nearest conversant and owns the annulus`);
+    } else if (panelIn && /portal/i.test(panelIn.actor)) {
+      fail('D1 · press inside the bind circle', `E inside the bind circle opened the PORTAL conversation, not the fire's`);
     } else {
-      fail('D1 · press inside the bind circle', `E on the fire opened neither the flight map nor a panel (mapOpen=${mapUp})`);
+      fail('D1 · press inside the bind circle', `E on the fire opened ${panelIn ? `"${panelIn.actor}" with rows ${JSON.stringify(texts)}` : 'nothing'} (mapOpen=${mapUp})`);
     }
-    await B.page.screenshot({ path: join(outdir, 'b-flight-map.png') });
-    // A second E closes it again (flight C3's shipped behaviour); Escape is the
-    // fallback, and either one leaves the annulus clean for the portal press.
-    await B.pressInteract();
-    if (!(await B.mapOpen())) pass('D2 · map closes', 'a second E closed the flight map, leaving the annulus clean for the portal press');
-    else {
-      await B.page.keyboard.press('Escape');
-      await B.page.waitForTimeout(800);
-      if (!(await B.mapOpen())) inconclusive('D2 · map closes', 'a second E did not close the flight map; Escape did');
-      else fail('D2 · map closes', 'the flight map stayed open through a second E and Escape');
-    }
+    await B.page.screenshot({ path: join(outdir, 'b-fire-panel.png') });
+    // Leave the panel through its Leave row (Escape is the fallback) so the
+    // annulus is clean for the portal press.
+    let left = await B.clickRow('Leave.');
+    if (!left.ok) { await B.page.keyboard.press('Escape'); await B.page.waitForTimeout(800); }
+    if (!(await B.panel())) pass('D2 · panel closes', 'the fire\'s panel closed, leaving the annulus clean for the portal press');
+    else fail('D2 · panel closes', 'the fire\'s panel stayed open through Leave and Escape');
 
   }
 
@@ -670,7 +698,7 @@ try {
         const age = ((Date.now() - cast2b.t0) / 1000).toFixed(1);
         fail('D3 · press outside the bind edge', `three E presses ${parked.real.dP} u from the portal opened no conversation ${age} s after the cast, with ${standing.length} portal(s) at the fire (map open? ${await B.mapOpen()})`);
       } else if (!/portal/i.test(pnl.actor)) {
-        fail('D3 · press outside the bind edge', `the panel belongs to "${pnl.actor}", not the portal (portal ${parked.real.dP} u, Emberkeeper ${parked.real.dE} u)`);
+        fail('D3 · press outside the bind edge', `the panel belongs to "${pnl.actor}", not the portal (portal ${parked.real.dP} u)`);
       } else {
         const step = pnl.rows.find(r => /Step through/i.test(r.text));
         if (!step) fail('D3 · press outside the bind edge', `no "Step through." row - rows were ${JSON.stringify(pnl.rows)}`);
@@ -894,44 +922,22 @@ try {
 
   // ------------------------------------------------------------------ LEG U
   console.log('\n== LEG U: an unbound caster is refused, and no cast starts ==');
-  // ⚑ The C1 race, won IN THE PAGE and not from the driver: a fresh character
-  // spawns inside spawnpoint-1's dwell circle and binds ~1.7 s later, and a
-  // Playwright round-trip per WARP loses every time. An interval installed with
-  // addInitScript fires the instant window.game.character exists.
+  // A fresh character is UNBOUND until it takes Bind & Restock at a fire, so the
+  // old race against the 1.7 s dwell bind is gone: it only has to NOT bind.
   const ctxU = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
-  await ctxU.addInitScript((target) => {
-    window.__warps = 0;
-    const tick = () => {
-      try {
-        const input = document.querySelector('#console_command');
-        const form = document.querySelector('#console');
-        if (input && form && window.game && window.game.character) {
-          input.value = target;
-          form.dispatchEvent(new Event('submit', { cancelable: true }));
-          window.__warps++;
-        }
-      } catch (e) { /* pre-boot; the console is not live yet */ }
-      // ⚑ 60 attempts over ~3.6 s, not 12 over 0.5 s: the dwell that binds a
-      // fresh character runs ~1.7 s and RESTARTS when it leaves the circle, so
-      // the barrage has to outlast it, not merely start before it.
-      if (window.__warps < 60) setTimeout(tick, 60);
-    };
-    setTimeout(tick, 40);
-  }, `WARP ${VENUE.x * 120} ${VENUE.y * 120}`);
   const pageU = await ctxU.newPage();
   const U = rig(pageU, 'ptu');
   U.ctx = ctxU;
   await pageU.goto(url, { waitUntil: 'domcontentloaded' });
   await joinAsNewCharacter(pageU, 'ptu', { timeout: 90_000 });
   await pageU.waitForFunction(() => !!window.game?.character, null, { timeout: 60_000 });
-  await pageU.waitForFunction(() => window.__warps >= 1, null, { timeout: 30_000 });
   await pageU.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
   await U.primeRoot();
   await U.warpTo(VENUE.x, VENUE.y);
   const uHome = await U.homeFire();
   console.log(`  fresh character home=${uHome} at ${JSON.stringify(await U.pos())}`);
   if (uHome) {
-    inconclusive('U · unbound refusal', `the fresh character bound to ${uHome} before the WARP landed - the ~1.7 s dwell window beat the harness. The property is owned by the Go pins on spawn_at_anchor's press and completion checks`);
+    fail('U · unbound refusal', `the fresh character is bound to ${uHome} without ever choosing Bind & Restock - a fresh character must be unbound`);
   } else {
     await U.cmd('GOD on');
     await U.cmd('SKILL PullThrough');
@@ -942,8 +948,12 @@ try {
     } else if (await U.homeFire()) {
       inconclusive('U · unbound refusal', 'the character bound while the loadout was being set up');
     } else {
-      await U.pressCooldownQ();
-      const refused = await U.floatingSeen('No campfire bound', 6_000);
+      // A single Q hold can fall between two throttled rAF samples: up to 3 presses.
+      let refused = false;
+      for (let i = 0; i < 3 && !refused; i++) {
+        await U.pressCooldownQ();
+        refused = await U.floatingSeen('No campfire bound', 4_000);
+      }
       let barEver = false;
       for (let i = 0; i < 20; i++) {
         if ((await U.castBar()).casting) { barEver = true; break; }

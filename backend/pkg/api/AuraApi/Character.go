@@ -462,8 +462,32 @@ func (rcv *Character) MutateRing(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(82, n)
 }
 
+func (rcv *Character) CampRestocked() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(84))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateCampRestocked(n bool) bool {
+	return rcv._tab.MutateBoolSlot(84, n)
+}
+
+func (rcv *Character) FlightOffered() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(86))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateFlightOffered(n bool) bool {
+	return rcv._tab.MutateBoolSlot(86, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(40)
+	builder.StartObject(42)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -569,6 +593,12 @@ func CharacterAddPortrait(builder *flatbuffers.Builder, portrait uint16) {
 }
 func CharacterAddRing(builder *flatbuffers.Builder, ring uint16) {
 	builder.PrependUint16Slot(39, ring, 0)
+}
+func CharacterAddCampRestocked(builder *flatbuffers.Builder, campRestocked bool) {
+	builder.PrependBoolSlot(40, campRestocked, false)
+}
+func CharacterAddFlightOffered(builder *flatbuffers.Builder, flightOffered bool) {
+	builder.PrependBoolSlot(41, flightOffered, false)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -12,6 +12,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -146,16 +147,12 @@ type IdentitySink interface {
 }
 
 // CampfireDwellRadiusFactor scales a campfire's heal radius down to its bind
-// radius: standing within heal range alone must NOT bind (healing without
-// binding is deliberate). [PLACEHOLDER] The client does not restate this: the
-// bind circle is drawn from the wire dwell_radius (Mobs.ts setDwellRadius),
-// so this factor is the single source. (chunk 4)
+// circle: the circle that discovers the fire and inside which its panel is
+// offered, so healing at the edge of the fire stays possible without either.
+// [PLACEHOLDER] The client does not restate this: the bind circle is drawn from
+// the wire dwell_radius (Mobs.ts setDwellRadius), so this factor is the single
+// source. (chunk 4)
 const CampfireDwellRadiusFactor = 0.5
-
-// campfireDwellTicks is how long a player must stay inside a campfire's bind
-// radius before it becomes their respawn anchor: ~1.7 s — a bit more than half
-// the original 3 s, which felt sluggish in play. [PLACEHOLDER] (chunk 4)
-const campfireDwellTicks = 17 * constant.TicksPerSecond / 10
 
 // CampfireAnchor is a placed world campfire as the respawn tracker sees it:
 // position + pre-scaled bind radius. Built in cmd/aurad right after
@@ -170,16 +167,6 @@ type CampfireAnchor struct {
 	// StartingSpawn marks this fire as a first-arrival spawn point (triage
 	// item 5): fresh / unbound players spawn only at flagged fires.
 	StartingSpawn bool
-}
-
-// dwellProgress is how long a player has stood at ONE campfire, and which.
-//
-// ⚑ The spawn point is half of it on purpose: a bare counter cannot tell
-// "still at the same fire" from "now at a different one", and that is exactly
-// the distinction the bind depends on.
-type dwellProgress struct {
-	spawnPoint string
-	ticks      int
 }
 
 // CampfireAnchorSink is implemented by the game so cmd/aurad can hand
@@ -200,7 +187,7 @@ type ConnectionStateSystem struct {
 	// with the campfire list, never mutated after.
 	campfireByID map[string]CampfireAnchor
 	// anchors is the SPAWN-POINT ID of the campfire a client last bound to
-	// (dwell completed); their respawn point. Keyed by client so it survives
+	// (the fire's Bind & Restock row); their respawn point. Keyed by client so it survives
 	// death; dropped on disconnect (client UUIDs are per-connection).
 	//
 	// ⚑ An id rather than a position, because this is also what gets persisted.
@@ -210,7 +197,7 @@ type ConnectionStateSystem struct {
 	// that no longer resolves behaves as unbound everywhere at once.
 	anchors map[uuid.UUID]string
 	// discovered is the set of spawn-point ids each client's character has ever
-	// dwelled at — the map's campfire markers (plan-world-map.md C2) and, once
+	// stood in the bind circle of — the map's campfire markers (plan-world-map.md C2) and, once
 	// flight ships, its flight network (plan-flight-paths.md D4).
 	//
 	// ⚑ CONNECTION STATE, keyed exactly like anchors, and every one of anchors'
@@ -237,10 +224,6 @@ type ConnectionStateSystem struct {
 	// looks is the appearance catalog a join resolves its ticket's look
 	// against (plan-appearance.md C3).
 	looks appearance.Catalog
-	// dwell tracks a player's bind progress at ONE campfire, keyed by player
-	// entity ID (reset on leave or on reaching a different fire, dropped on
-	// removal).
-	dwell map[uint64]dwellProgress
 	// tokenByClient maps a live connection to its character's reconnect token
 	// (minted on first join, reused across reconnects). Kept as a side map so
 	// the token stays out of the model.Client interface.
@@ -454,7 +437,7 @@ func sortedSet(set stringSet) []string {
 // "what if the client missed one" question to answer.
 //
 // ⚑ Called on every path that puts a player entity into the world (join,
-// reattach, respawn, revive) and at the dwell threshold — the only two moments
+// reattach, respawn, revive), on a discovery and on a bind — the only moments
 // either value can change. Deliberately NOT every tick: the pair changes minutes
 // apart, and a string vector at 30 Hz for that is the shape of waste the roster
 // message was kept out of GameState to avoid.
@@ -467,7 +450,7 @@ func (s *ConnectionStateSystem) publishCampfireState(p model.PlayerEntity) {
 // for this tick's GameState (plan-map-fog-persistence.md F2, D7).
 //
 // ⚑ ENTERING THE WORLD ONLY (join, reattach, respawn, revive), never per tick
-// and never at a dwell: the client keeps revealing locally exactly as before,
+// and never at a fire: the client keeps revealing locally exactly as before,
 // so it only needs what it cannot know, the stored reveal. The client merges,
 // so a respawn re-sending what it already drew is harmless.
 //
@@ -486,7 +469,6 @@ func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 		anchors:         map[uuid.UUID]string{},
 		discovered:      map[uuid.UUID]stringSet{},
 		fog:             map[uuid.UUID]*mapfog.Fog{},
-		dwell:           map[uint64]dwellProgress{},
 		tokenByClient:   map[uuid.UUID]string{},
 		stashByToken:    map[string]reconnectStash{},
 		accountByClient: map[uuid.UUID]int64{},
@@ -636,9 +618,9 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 		}
 	}
 
-	s.trackCampfireDwell()
+	s.discoverCampfires()
 	s.trackMapFog()
-	// ⚑ AFTER the join/death loops and the dwell tracker, never inside them —
+	// ⚑ AFTER the join/death loops and the discovery pass, never inside them —
 	// §4 Rule 2. A snapshot taken mid-tick can catch a player whose health has
 	// been decremented but whose death has not been processed yet; taken here it
 	// sees a world that has finished moving for this tick.
@@ -1000,7 +982,7 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// connection, so a cold login starts with nothing in it — and a player who
 	// spawned at their home fire but stayed *unbound* would find recall refused
 	// and their next death sending them across the map, until they happened to
-	// dwell at the fire they are already standing in.
+	// bind at the fire they are already standing in.
 	//
 	// ⚑ An unresolvable id leaves them unbound on purpose (campfireFor): the
 	// next save then writes NULL and the dead id is cleared, rather than being
@@ -1238,8 +1220,8 @@ func JitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
 }
 
 // CampfireAt resolves which authored fire's bind radius contains pos, if any —
-// the same geometry the dwell tracker walks every tick, shared so a "standing
-// at a fire" answer can never disagree between binding and flight validation
+// the same geometry the discovery pass walks every tick, shared so a "standing
+// at a fire" answer can never disagree between discovery and flight validation
 // (plan-flight-paths.md §4.4). Only the boot-frozen authored slice answers: a
 // player-placed mini-camp is never in it (L3), so it can no more become a
 // flight node than a spawn point.
@@ -1254,7 +1236,7 @@ func (s *ConnectionStateSystem) CampfireAt(pos phy.Vec2f) (string, bool) {
 }
 
 // CampfireDiscovered reports whether this client's character has discovered
-// the fire (dwelled at it, D4) — flight validation's authority
+// the fire (stood in its bind circle) — flight validation's authority
 // (plan-flight-paths.md §4.4).
 func (s *ConnectionStateSystem) CampfireDiscovered(client uuid.UUID, id string) bool {
 	return s.discovered[client].contains(id)
@@ -1340,75 +1322,69 @@ func (s *ConnectionStateSystem) spectatorByClient(id uuid.UUID) model.Spectator 
 	return nil
 }
 
-// trackCampfireDwell advances each player's bind progress: campfireDwellTicks
-// consecutive ticks inside a fire's bind radius make that fire the client's
-// respawn anchor. Full-health players bind too — this is a position check,
-// deliberately NOT keyed on heal events.
-func (s *ConnectionStateSystem) trackCampfireDwell() {
+// discoverCampfires adds the fire a player stands in to their discovered set
+// the moment they step into its bind circle: the map marker and the flight
+// network. Binding and restocking are rows in the fire's own panel
+// (CampfireRow), never a consequence of standing there.
+//
+// ⚑ Only the boot-frozen authored slice answers (L3): a player-placed camp is a
+// spawned mob that never enters s.campfires, so it can no more become a map
+// marker than a spawn point.
+func (s *ConnectionStateSystem) discoverCampfires() {
 	if len(s.campfires) == 0 {
 		return
 	}
 	for _, p := range s.players {
-		id := p.Basic().ID()
 		// A flyer's position sweeps the whole world (plan-flight-paths.md
-		// §4.2): without this skip a slow fly-over would discover — and
-		// REBIND the respawn to — fires never landed at, and a takeoff
-		// within the dwell threshold of arriving would complete the origin
-		// fire's dwell mid-air. Dropping the progress means a landing starts
-		// a fresh count, which is exactly what standing at the fire earns.
+		// §4.2): without this skip a fly-over would discover fires never
+		// landed at.
 		if p.Flying() {
-			delete(s.dwell, id)
 			continue
 		}
-		nearID, ok := s.CampfireAt(p.Position())
+		id, ok := s.CampfireAt(p.Position())
 		if !ok {
-			delete(s.dwell, id)
 			continue
 		}
-		// ⚑ A DIFFERENT fire restarts the count. Only checking "near nothing"
-		// left a player who moved straight from one bind radius into another
-		// still accumulating the first fire's ticks — and since the bind fires
-		// on the count being exactly at the threshold, it never fired again:
-		// they stayed bound to a campfire they had left. Reachable on foot
-		// wherever two bind radii touch, and instantly with a warp.
-		progress := s.dwell[id]
-		if progress.spawnPoint != nearID {
-			progress = dwellProgress{spawnPoint: nearID}
+		set := s.discoveredFor(p.Client().UUID())
+		if set.contains(id) {
+			continue
 		}
-		progress.ticks++
-		s.dwell[id] = progress
-		// Exactly-at-threshold: bind once per dwell (leaving and returning
-		// re-binds) and stamp the one-tick feedback for the client.
-		if progress.ticks == campfireDwellTicks {
-			s.anchors[p.Client().UUID()] = nearID
-			p.NoteCampfireBound()
-			// The same act rebinds the spawn point and refills the Camp
-			// charge store (C2): the fire is the one anchor of the whole
-			// downtime loop, and giving the two the same trigger is what
-			// makes "walk back to a fire" a single errand.
-			//
-			// ⚑ Exactly-at-threshold, like the bind: standing at a fire
-			// refills once per ENTRY, so spending charges without ever
-			// leaving the dwell radius does not re-refill until you step out
-			// and back in. Accepted (§6a) — the loop never does that.
-			//
-			// ⚑ L3 rides on s.campfires being the boot-frozen authored slice:
-			// a player-placed camp is a spawned mob that never enters it, so
-			// it can neither bind nor refill. Structural, and pinned in both
-			// directions by test because that is exactly the kind of
-			// invariant that erodes.
-			p.RefillCampCharges()
-			// …and discovers the fire (plan-world-map.md C2, absorbing
-			// plan-flight-paths.md C1 / D4). A fourth consequence of the one
-			// act, on the SAME firing rather than beside it: a discovery
-			// threshold of its own is exactly how the consequences of "rest at
-			// a fire" would drift apart. L3 above covers this too — a
-			// player-placed mini-camp is never in s.campfires, so it can no
-			// more become a map marker than it can become a spawn point.
-			s.discoveredFor(p.Client().UUID()).add(nearID)
-			s.publishCampfireState(p)
-		}
+		set.add(id)
+		s.publishCampfireState(p)
 	}
+}
+
+// CampfireRow performs one of the fire's panel rows for a client (the
+// AnchorSource seam the InteractionSystem calls): Bind & Restock makes the fire
+// the respawn anchor and refills the Camp charges, Restock only refills them,
+// Fly opens the client's departure board. `at` is the fire's own position.
+//
+// ⚑ Both refills go to cap on every press: the fire is the one anchor of the
+// downtime loop, so leaving it should always mean leaving it full.
+func (s *ConnectionStateSystem) CampfireRow(client uuid.UUID, at phy.Vec2f, kind mobs.GrantKind) bool {
+	p := s.playerByClient(client)
+	if p == nil {
+		return false
+	}
+	id, ok := s.CampfireAt(at)
+	if !ok {
+		return false
+	}
+	switch kind {
+	case mobs.GrantBindRestock:
+		s.anchors[client] = id
+		p.RefillCampCharges()
+		p.NoteCampfireBound()
+		s.publishCampfireState(p)
+	case mobs.GrantRestock:
+		p.RefillCampCharges()
+		p.NoteCampRestocked()
+	case mobs.GrantFly:
+		p.NoteFlightOffered()
+	default:
+		return false
+	}
+	return true
 }
 
 func (s *ConnectionStateSystem) doFuneral(p model.PlayerEntity) {
@@ -1541,7 +1517,6 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	delete(s.anchors, clientUUID)
 	delete(s.discovered, clientUUID)
 	delete(s.fog, clientUUID)
-	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)
 }
 

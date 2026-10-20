@@ -1,5 +1,11 @@
 # Plan: Downtime agency + baseline Recall (R4)
 
+> **Superseded in part, PO ruling 2026-10-20 (campfire menu).** The Camp
+> charges no longer refill on the dwell bind (C2's shared trigger and §6a's
+> once-per-entry rule are gone). They refill to cap through the fire's panel:
+> **Bind & Restock** (bind + refill) or **Restock** (refill only, on every
+> press). Floating text: "Bound and restocked" / "Restocked".
+
 > **Status: ✅ COMPLETE — ARCHIVED 2026-08-05.** C1 ✅ BUILT 2026-08-03
 > (`ec389164`, deployed + PO-verified in-game same day) · C2 ✅ BUILT 2026-08-03
 > (`3910e536`, PO hand pass the same day — it produced two accepted changes, the

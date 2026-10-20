@@ -187,16 +187,20 @@ type PlayerEntity interface {
 	// internal to stepLength, since a mob moves itself.
 	MovementFactor() float32
 	XpGained() uint64
-	// CampfireBound / NoteCampfireBound carry the per-tick "campfire became
-	// the respawn anchor" stamp (chunk 4): the ConnectionStateSystem notes it
-	// the tick a dwell completes, serialized as campfire_bound.
+	// The per-tick stamps of the three campfire rows, noted by the
+	// ConnectionStateSystem's CampfireRow: Bind & Restock (campfire_bound),
+	// Restock (camp_restocked) and Fly (flight_offered).
 	CampfireBound() bool
 	NoteCampfireBound()
+	CampRestocked() bool
+	NoteCampRestocked()
+	FlightOffered() bool
+	NoteFlightOffered()
 	// HomeCampfire / DiscoveredCampfires / NoteCampfireState carry the map's
 	// campfire markers (plan-world-map.md C2): which fire this character would
-	// respawn at, and every fire it has ever dwelled at. The
-	// ConnectionStateSystem publishes both together on the two occasions either
-	// can change — entering the world, and completing a dwell — and they are
+	// respawn at, and every fire it has ever discovered. The
+	// ConnectionStateSystem publishes both together on the occasions either
+	// can change — entering the world, a discovery and a bind — and they are
 	// serialized into the owner-only GameState table.
 	//
 	// ⚑ A ONE-SHOT like CampfireBound above, not live state, and the pair is
@@ -212,8 +216,8 @@ type PlayerEntity interface {
 	MapFog() []persist.FogChunk
 	NoteMapFog(chunks []persist.FogChunk)
 	// The Camp baseline utility's charge store (plan-downtime.md C2, D3):
-	// per-session, refilled to a level-derived cap by dwelling at a REAL
-	// campfire, spent at channel completion. Serialized as camp_charges.
+	// per-session, refilled to a level-derived cap by a REAL campfire's rows,
+	// spent at channel completion. Serialized as camp_charges.
 	// Not persisted and not carried through death — only through the
 	// reconnect stash.
 	CampCharges() int

@@ -17,7 +17,6 @@ import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import * as Flight from '../../flight/logic/Flight';
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
-import * as FlightOrigin from '../../flight/logic/FlightOrigin';
 import './PlayerJuice';
 
 export class Player {
@@ -176,12 +175,15 @@ export class Player {
         if (entity.xpGained > 0) {
             this.character.showFloatingNumber(entity.xpGained, 'xp');
         }
-        // Campfire became the respawn anchor (chunk 4): confirm the bind.
-        // Own player only — nobody else needs to see it. "Restocked" because
-        // the same dwell also refills the Camp charges (plan-downtime.md) —
-        // the fire does both, so the confirmation names both (round 9).
+        // The fire's panel rows, own player only. Bind & Restock and Restock
+        // confirm over the character; Fly opens the map as a departure board.
         if (entity.campfireBound) {
             this.character.showFloatingText(t('player.bound-restocked'), BRAND);
+        } else if (entity.campRestocked) {
+            this.character.showFloatingText(t('player.restocked'), BRAND);
+        }
+        if (entity.flightOffered) {
+            this.miniMap.openForFlight();
         }
         // In-combat indicator: shown while the recent-combat window is open
         // (also the window during which loadout editing is locked server-side).
@@ -199,7 +201,6 @@ export class Player {
         // (plan-skill-vfx.md §7.1): the prototype's lesson is that without
         // this, a bolt in flight and an ambient layer outlive the corpse.
         SkillFx.reset();
-        FlightOrigin.setOrigin(0);
         HUD.updateFlight(false, 0);
         // The own character is added to the minimap here rather than through
         // the entity snapshot, so nothing else will ever take it off again.

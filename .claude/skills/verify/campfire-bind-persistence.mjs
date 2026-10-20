@@ -6,13 +6,13 @@
 // by connection: it survived death and reconnect and nothing else, so every cold
 // login spawned the character at a RANDOM startingSpawn fire.
 //
-//   1  join a fresh character, warp to a NON-starting campfire and dwell there
-//      until the game confirms the bind
+//   1  join a fresh character, warp to a NON-starting campfire, press E there and
+//      take "Bind & Restock" (standing in the circle binds nothing any more)
 //   2  leave to character-select — a real session end, so the return is a cold
 //      join out of Postgres (the reconnect stash would prove nothing)
 //   3  play the same character again and check WHERE it lands
 //
-// ⚑ The fire it binds to is deliberately spawnpoint-2 (44, 10.5), which is NOT
+// ⚑ The fire it binds to is deliberately spawnpoint-2 (-141.33, 2.13), which is NOT
 // flagged startingSpawn. Binding at the starting fire would pass whether the fix
 // works or not, because that is exactly where an unbound character spawns —
 // the negative control is the whole point of the venue.
@@ -38,8 +38,8 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
 // api/zones/world.json bindPoints.
-const BOUND_FIRE = { x: 44, y: 10.5, id: 'spawnpoint-2' }; // not startingSpawn
-const START_FIRE = { x: -58.2, y: 24 };                    // spawnpoint-1, startingSpawn
+const BOUND_FIRE = { x: -141.33, y: 2.13, id: 'spawnpoint-2' }; // not startingSpawn
+const START_FIRE = { x: -239.78, y: 15.36 };               // spawnpoint-1, startingSpawn
 const WARP_TO_BOUND = w(BOUND_FIRE.x, BOUND_FIRE.y);
 
 const results = [];
@@ -75,6 +75,74 @@ const pos = () => page.evaluate(() => ({
 }));
 const distanceTo = (p, fire) => Math.hypot(p.x - fire.x, p.y - fire.y);
 
+
+// --- the campfire conversation (E at a fire opens a panel; standing binds nothing) ---
+// Copied from c2-pull-through.mjs (harnesses are self-contained). ⚑ E is a ~1.4 s
+// HOLD, never keyboard.press: the interact key is edge-triggered off Controls.update's
+// rAF-driven clock, which a headless page throttles far below the nominal input tick.
+const pressInteract = async () => {
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('e');
+  await page.waitForTimeout(1400);
+  await page.keyboard.up('e');
+  await page.waitForTimeout(1400);
+};
+const convPanel = () => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  const li = [...el.querySelectorAll('.conversationRows li')];
+  return {
+    actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    rows: li.filter((x) => !x.classList.contains('conversationLeaveRow')).map((x) => x.textContent.trim()),
+    hasLeave: li.some((x) => x.classList.contains('conversationLeaveRow')),
+  };
+});
+// A single E press is not evidence (the hold can fall between two rAF samples): retry.
+const pressForPanel = async (tries = 3) => {
+  for (let i = 0; i < tries; i++) {
+    await pressInteract();
+    const p = await convPanel();
+    if (p) return p;
+  }
+  return null;
+};
+// Rows are rebuilt on every render: scroll, elementFromPoint check, real mouse click.
+const clickRow = async (needle) => {
+  const found = await page.evaluate((n) => {
+    const row = [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    return true;
+  }, needle);
+  if (!found) return { ok: false, why: `no row matches "${needle}"` };
+  await page.waitForTimeout(250);
+  const node = (await page.evaluateHandle((n) =>
+    [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n)) ?? null, needle)).asElement();
+  const b = node && await node.boundingBox();
+  if (!b) return { ok: false, why: 'the row has no box' };
+  const cx = b.x + Math.min(60, b.width / 2), cy = b.y + b.height / 2;
+  const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('#conversation .conversationRows li'), [cx, cy]);
+  if (!hit) return { ok: false, why: 'something lies on top of the row' };
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(1100);
+  return { ok: true };
+};
+const homeFire = () => page.evaluate(() => window.game?.miniMap?.['campfires']?.['home'] ?? null);
+// Stand inside the fire's bind circle first. E opens the Campfire panel, "Bind & Restock"
+// is clicked, and the home marker is awaited.
+const bindAtFire = async () => {
+  const pnl = await pressForPanel();
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow('Bind');
+  if (!c.ok) return c;
+  for (let i = 0; i < 25; i++) {
+    const h = await homeFire();
+    if (h) return { ok: true, home: h };
+    await page.waitForTimeout(300);
+  }
+  return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+};
+
 const enterWorld = async () => {
   await page.waitForSelector('#accountScreens.hidden', { state: 'attached', timeout: 120_000 });
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
@@ -95,15 +163,16 @@ try {
   await enterWorld();
 
   await cmd('PING'); // the first command after joining is dropped (harness note)
-  await cmd('GOD on');  // the eastern fire has company; dying mid-dwell proves nothing
+  await cmd('GOD on');  // the eastern fire has company; dying mid-conversation proves nothing
   await cmd(`WARP ${WARP_TO_BOUND}`);
   await page.waitForTimeout(20_000); // camera + position settle across the warp (§20)
 
   const dwellPos = await pos();
   check(distanceTo(dwellPos, BOUND_FIRE) < 1.5, 'the character is standing at the eastern fire',
     `${JSON.stringify(dwellPos)} vs ${JSON.stringify(BOUND_FIRE)}`);
-  // The bind needs ~1.7 s of consecutive dwell; the warp settle above has
-  // already covered it several times over.
+  const bind = await bindAtFire();
+  check(bind.ok && bind.home === BOUND_FIRE.id, 'E at the fire + Bind & Restock sets the home marker',
+    bind.ok ? `home=${bind.home}` : bind.why);
   check(distanceTo(dwellPos, START_FIRE) > 50, 'and NOT at the starting fire — the venue is the test',
     `${distanceTo(dwellPos, START_FIRE).toFixed(1)} units away`);
 

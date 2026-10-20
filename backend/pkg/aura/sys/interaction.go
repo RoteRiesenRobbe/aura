@@ -109,8 +109,9 @@ type interactor interface {
 	SetPosition(pos phy.Vec2f)
 }
 
-// AnchorSource is the ConnectionStateSystem capability the travel_to grant needs:
-// the campfire a client is bound to (sys/state.go AnchorOf). Wired
+// AnchorSource is the ConnectionStateSystem capability the travel_to and
+// campfire grants need: the campfire a client is bound to (sys/state.go
+// AnchorOf), and the campfire rows themselves (CampfireRow). Wired
 // post-construction from core/game.go - the SkillSystem's SetConnState
 // precedent, for the same construction-order reason.
 //
@@ -118,6 +119,10 @@ type interactor interface {
 // anybody or spending an ascension. *ConnectionStateSystem satisfies both.
 type AnchorSource interface {
 	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
+	// CampfireRow performs one campfire row (bind_restock, restock or fly) for
+	// the client at the fire whose bind circle contains `at`, reporting whether
+	// it happened.
+	CampfireRow(client uuid.UUID, at phy.Vec2f, kind mobs.GrantKind) bool
 }
 
 // InteractionSystem drives conversations (chunk 3a; it replaced NpcSystem and
@@ -326,6 +331,9 @@ type travelSeam interface {
 	// ⚑ A READ, like CanReach, and asked from the same present() pass — the row
 	// is BUILT carrying its direction, so the client never has to ask.
 	Direction(mode mobs.TravelMode, anchor string) model.TravelDirection
+	// Campfire performs a campfire row for the clicking player at the fire this
+	// conversation is with, reporting whether it happened.
+	Campfire(kind mobs.GrantKind) bool
 }
 
 // portalTravel is the shipped seam: one conversation's destination and its
@@ -480,6 +488,20 @@ func (t portalTravel) Travel(mode mobs.TravelMode, anchor string) bool {
 	// already stamped the portal earlier in THIS Update, so refreshConversations
 	// would rebuild the tree once over a player who is no longer there (§5's last
 	// bullet, the pin the plan asked to tighten).
+	t.rider.SetConversingWith(0)
+	return true
+}
+
+// Campfire hands the row to the connection state, which owns the anchor and the
+// discovered set, then closes the session: every campfire row is a last word.
+// `from` is the fire itself, so the lookup cannot land on a neighbouring one.
+func (t portalTravel) Campfire(kind mobs.GrantKind) bool {
+	if t.anchors == nil || t.rider == nil {
+		return false
+	}
+	if !t.anchors.CampfireRow(t.rider.Client().UUID(), t.from, kind) {
+		return false
+	}
 	t.rider.SetConversingWith(0)
 	return true
 }
@@ -1098,11 +1120,22 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 				rows = append(rows, travelRow(oi, gi, opt, g, travel))
 				continue
 			}
+			if g.Kind.IsCampfireKind() {
+				rows = append(rows, model.ConversationOption{
+					OptionIndex: uint8(oi),
+					GrantIndex:  uint8(gi),
+					Text:        opt.Text,
+					TextID:      opt.ID,
+					Reply:       g.Line,
+					ReplyID:     g.LineID,
+				})
+				continue
+			}
 			if g.Kind != mobs.GrantTeachSkill {
 				// A reward inside a quest bundle is reached through its row, above;
 				// it is never separately takeable. Nothing else can appear here — the
 				// loader refuses a grant_xp with no quest op on the same option, and
-				// refuses a travel_to sharing an option with anything at all.
+				// refuses a travel_to or campfire row sharing an option with anything.
 				continue
 			}
 			// "Things already learned are not shown in that list" — the PO brief
@@ -1326,6 +1359,11 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSea
 		return applyTeach(g, p)
 	case g.Kind == mobs.GrantTravelTo:
 		return applyTravel(g, travel)
+	case g.Kind.IsCampfireKind():
+		if travel == nil || !travel.Campfire(g.Kind) {
+			return "", nil, false
+		}
+		return g.Line, nil, true
 	case grant == 0 && g.Kind.IsQuestKind():
 		return applyQuestRow(opt, p)
 	default:

@@ -9,9 +9,10 @@
 // Recall teaching went with the utility; the skill file itself is back since
 // 2026-09-18, cheat-only).
 //
-//   1  join fresh, dwell at the spawn fire long enough to bind (~1.7 s of
-//      consecutive dwell; we give it several times that), record HOME
-//   2  warp to open ground (-23, 14 — the documented clean tile), press the
+//   1  join fresh, stand in the spawn fire's circle, press E and take "Bind &
+//      Restock" (standing binds nothing any more; a fresh character is
+//      UNBOUND), record HOME
+//   2  warp to open ground (the empty clearing at spawnpoint-5), press the
 //      button, watch the cast bar light with "Recall"
 //   3  hold W mid-cast: the bar goes out, and 10 s later we are NOT home
 //      (movement-interrupt; the damage interrupt is pinned in Go —
@@ -23,11 +24,8 @@
 //      nodes, so the row had to go in content, and this leg is what notices
 //      if it ever comes back)
 //
-// ⚑ HOME is recorded, not hardcoded: a fresh character spawns at a RANDOM
-// startingSpawn fire, so asserting a named fire would pin a positional
-// accident. Recall-refused-when-unbound is pinned in Go
-// (TestUtilityRecall_NoAnchorRejectsPress) — browser-side the fresh spawn
-// binds within seconds, so the unbound state is not reachable here.
+// ⚑ HOME is recorded, not hardcoded. Recall-refused-when-unbound is pinned in Go
+// (TestUtilityRecall_NoAnchorRejectsPress).
 //
 // Usage: node .claude/skills/verify/r4-recall-utility.mjs [label] [url]
 // Afterwards: cd backend && go run ./cmd/harnessdb -cleanup
@@ -44,8 +42,9 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-const OPEN_GROUND = { x: -23, y: 14 }; // furthest whole-unit tile from any blocker (verify skill)
-const CRIER = { x: -55.7, y: 22.0 };   // isolated enough: Hermit is ~3.8 units from the warp tile
+const SPAWN_FIRE_TILE = { x: -240, y: 15 }; // spawnpoint-1 (-239.78, 15.36), 0.42 u: inside its bind circle
+const OPEN_GROUND = { x: -168, y: -84 };    // spawnpoint-5's clearing: no spawn within 40 u, 120+ u from HOME
+const CRIER = { x: -185, y: 8 };            // 0.57 u from the TownCrier spawn; the spawnpoint-3 fire is 4.7 u off
 
 const results = [];
 const consoleErrors = [];
@@ -81,6 +80,74 @@ const castBar = () => page.evaluate(() => {
   return { casting: bar?.classList.contains('casting') ?? false, text: bar?.querySelector('.barText')?.textContent ?? '' };
 });
 
+
+// --- the campfire conversation (E at a fire opens a panel; standing binds nothing) ---
+// Copied from c2-pull-through.mjs (harnesses are self-contained). ⚑ E is a ~1.4 s
+// HOLD, never keyboard.press: the interact key is edge-triggered off Controls.update's
+// rAF-driven clock, which a headless page throttles far below the nominal input tick.
+const pressInteract = async () => {
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('e');
+  await page.waitForTimeout(1400);
+  await page.keyboard.up('e');
+  await page.waitForTimeout(1400);
+};
+const convPanel = () => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  const li = [...el.querySelectorAll('.conversationRows li')];
+  return {
+    actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    rows: li.filter((x) => !x.classList.contains('conversationLeaveRow')).map((x) => x.textContent.trim()),
+    hasLeave: li.some((x) => x.classList.contains('conversationLeaveRow')),
+  };
+});
+// A single E press is not evidence (the hold can fall between two rAF samples): retry.
+const pressForPanel = async (tries = 3) => {
+  for (let i = 0; i < tries; i++) {
+    await pressInteract();
+    const p = await convPanel();
+    if (p) return p;
+  }
+  return null;
+};
+// Rows are rebuilt on every render: scroll, elementFromPoint check, real mouse click.
+const clickRow = async (needle) => {
+  const found = await page.evaluate((n) => {
+    const row = [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    return true;
+  }, needle);
+  if (!found) return { ok: false, why: `no row matches "${needle}"` };
+  await page.waitForTimeout(250);
+  const node = (await page.evaluateHandle((n) =>
+    [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n)) ?? null, needle)).asElement();
+  const b = node && await node.boundingBox();
+  if (!b) return { ok: false, why: 'the row has no box' };
+  const cx = b.x + Math.min(60, b.width / 2), cy = b.y + b.height / 2;
+  const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('#conversation .conversationRows li'), [cx, cy]);
+  if (!hit) return { ok: false, why: 'something lies on top of the row' };
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(1100);
+  return { ok: true };
+};
+const homeFire = () => page.evaluate(() => window.game?.miniMap?.['campfires']?.['home'] ?? null);
+// Stand inside the fire's bind circle first. E opens the Campfire panel, "Bind & Restock"
+// is clicked, and the home marker is awaited.
+const bindAtFire = async () => {
+  const pnl = await pressForPanel();
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow('Bind');
+  if (!c.ok) return c;
+  for (let i = 0; i < 25; i++) {
+    const h = await homeFire();
+    if (h) return { ok: true, home: h };
+    await page.waitForTimeout(300);
+  }
+  return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+};
+
 const pressRecall = () => page.click('#utilityList li[data-utility="1"]');
 
 try {
@@ -99,9 +166,11 @@ try {
   await cmd('PING'); // the first command after joining is dropped
   await cmd('GOD on');  // leg 5 stands beside NPCs inside aggro radii
 
-  await page.waitForTimeout(8_000); // dwell-bind needs ~1.7 s; give it margin
+  await cmd(`WARP ${w(SPAWN_FIRE_TILE.x, SPAWN_FIRE_TILE.y)}`);
+  await page.waitForTimeout(3_000);
+  const bind = await bindAtFire();
+  check(bind.ok, 'joined fresh and took Bind & Restock at the spawn fire', bind.ok ? `home=${bind.home}` : bind.why);
   const HOME = await pos();
-  check(true, 'joined fresh and dwelled at the spawn fire', `home=${JSON.stringify(HOME)}`);
 
   const button = await page.evaluate(() => {
     const li = document.querySelector('#utilityList li[data-utility="1"]');
@@ -164,9 +233,7 @@ try {
   // --- 5. the Town Crier no longer offers to teach ---------------------------
   await cmd(`WARP ${w(CRIER.x, CRIER.y)}`);
   await page.waitForTimeout(20_000);
-  await page.keyboard.down('e');
-  await page.waitForTimeout(1_300); // slot/interact keys are edge-triggered off a throttled clock
-  await page.keyboard.up('e');
+  await pressForPanel(); // slot/interact keys are edge-triggered off a throttled clock
   await page.waitForSelector('#conversation:not(.hidden)', { state: 'visible', timeout: 10_000 });
   const talk = await page.evaluate(() => ({
     actor: document.querySelector('#conversation .conversationActor')?.textContent ?? '',

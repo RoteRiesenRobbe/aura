@@ -9,6 +9,11 @@
 // stops it again. Does NOT own the inverse arithmetic (vitest, `mapToWorld`)
 // or GOD's toggle (Go, cmd_test.go).
 //
+// ⚑ A fresh character is UNBOUND, and standing in a fire binds nothing: the run
+// binds up front, JUMPER still off (a row click with JUMPER on could warp), by
+// standing on spawnpoint-1 and taking E + "Bind & Restock". Leg 6 then reads
+// that home marker.
+//
 // ⚑ A warp into a filled structure is ejected (m3-home-pointer.mjs), so every
 // landing is judged within LAND_TOLERANCE_U of the target.
 //
@@ -97,6 +102,74 @@ const landsAt = async (target) => {
   return d;
 };
 
+
+// --- the campfire conversation (E at a fire opens a panel; standing binds nothing) ---
+// Copied from c2-pull-through.mjs (harnesses are self-contained). ⚑ E is a ~1.4 s
+// HOLD, never keyboard.press: the interact key is edge-triggered off Controls.update's
+// rAF-driven clock, which a headless page throttles far below the nominal input tick.
+const pressInteract = async () => {
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('e');
+  await page.waitForTimeout(1400);
+  await page.keyboard.up('e');
+  await page.waitForTimeout(1400);
+};
+const convPanel = () => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  const li = [...el.querySelectorAll('.conversationRows li')];
+  return {
+    actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
+    rows: li.filter((x) => !x.classList.contains('conversationLeaveRow')).map((x) => x.textContent.trim()),
+    hasLeave: li.some((x) => x.classList.contains('conversationLeaveRow')),
+  };
+});
+// A single E press is not evidence (the hold can fall between two rAF samples): retry.
+const pressForPanel = async (tries = 3) => {
+  for (let i = 0; i < tries; i++) {
+    await pressInteract();
+    const p = await convPanel();
+    if (p) return p;
+  }
+  return null;
+};
+// Rows are rebuilt on every render: scroll, elementFromPoint check, real mouse click.
+const clickRow = async (needle) => {
+  const found = await page.evaluate((n) => {
+    const row = [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    return true;
+  }, needle);
+  if (!found) return { ok: false, why: `no row matches "${needle}"` };
+  await page.waitForTimeout(250);
+  const node = (await page.evaluateHandle((n) =>
+    [...document.querySelectorAll('#conversation .conversationRows li')].find((li) => li.textContent.includes(n)) ?? null, needle)).asElement();
+  const b = node && await node.boundingBox();
+  if (!b) return { ok: false, why: 'the row has no box' };
+  const cx = b.x + Math.min(60, b.width / 2), cy = b.y + b.height / 2;
+  const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('#conversation .conversationRows li'), [cx, cy]);
+  if (!hit) return { ok: false, why: 'something lies on top of the row' };
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(1100);
+  return { ok: true };
+};
+const homeFire = () => page.evaluate(() => window.game?.miniMap?.['campfires']?.['home'] ?? null);
+// Stand inside the fire's bind circle first. E opens the Campfire panel, "Bind & Restock"
+// is clicked, and the home marker is awaited.
+const bindAtFire = async () => {
+  const pnl = await pressForPanel();
+  if (!pnl || !/campfire/i.test(pnl.actor)) return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+  const c = await clickRow('Bind');
+  if (!c.ok) return c;
+  for (let i = 0; i < 25; i++) {
+    const h = await homeFire();
+    if (h) return { ok: true, home: h };
+    await page.waitForTimeout(300);
+  }
+  return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+};
+
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const fmt = (p) => p ? `(${p.x.toFixed(2)}, ${p.y.toFixed(2)})` : 'null';
 
@@ -110,6 +183,12 @@ try {
   });
   await cmd('GOD on');
   await sleep(1500);
+
+  // Bind first (see the header): spawnpoint-1 is (-239.78, 15.36), the tile is 0.42 u off.
+  await cmd(`WARP ${-240 * 120} ${15 * 120}`);
+  await sleep(3000);
+  const bind = await bindAtFire();
+  console.log(`bind at the spawn fire: ${bind.ok ? 'home=' + bind.home : 'FAILED, ' + bind.why}`);
 
   // --- leg 1: JUMPER off, a world press is inert ---------------------------
   const start = await player();
@@ -185,7 +264,7 @@ try {
     if (!home) await sleep(500);
   }
   if (!home) {
-    console.log('INCONCLUSIVE  no home campfire bound (the spawn dwell never completed)');
+    console.log(`INCONCLUSIVE  no home campfire bound (Bind & Restock at the spawn fire failed: ${bind.ok ? 'no marker' : bind.why})`);
   } else {
     await cmd(`WARP ${home.id}`);
     const d6 = await landsAt(home);

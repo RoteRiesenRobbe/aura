@@ -669,7 +669,7 @@
     "BroodMother": "combat",
     "BurstTotem": "fixture",
     "Camp": "fixture",
-    "Campfire": "fixture",
+    "Campfire": "talker",
     "CaveExit": "talker",
     "CaveMouth": "talker",
     "CityGuard": "talker",

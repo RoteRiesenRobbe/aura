@@ -235,7 +235,7 @@ func (s *Store) LoadCharacterState(ctx context.Context, accountID, characterID i
 	// carries — map it to "no aura active" rather than to slot 0.
 	var activeAuraSlot *int
 	// home_campfire_id is nullable too, and NULL is the ordinary state of any
-	// character that has not dwelled at a fire yet — "" for the game, which
+	// character that has not bound at a fire yet — "" for the game, which
 	// spawns it at the zone's default spawn.
 	var homeCampfireID *string
 	err := s.Pool.QueryRow(ctx,

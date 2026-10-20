@@ -1,5 +1,15 @@
 # Plan: Flight paths — campfire-to-campfire fast travel (fast travel, part 2)
 
+> **Superseded in part, PO ruling 2026-10-20 (campfire menu).** Standing at a
+> fire no longer binds or restocks, and the timer is gone: a fire is DISCOVERED
+> the first tick a player's centre is inside its bind circle (D4's trigger
+> replaced, the persisted set unchanged). E at a fire now opens the fire's own
+> server-side conversation (`api/mobs/campfire.json`): **Bind & Restock**,
+> **Restock**, **Fly**. Fly stamps `Character.flight_offered` and the client
+> opens the departure board; C3's client-only offer (`FlightOrigin.ts`,
+> `Backend.campfireUnderPlayer`) is deleted. Nearest conversant takes the E
+> press, which retires plan-portal-spells.md D8's "the fire overrides".
+
 **Status: ✅ COMPLETE — designed and fully shipped 2026-08-04 → 2026-08-05,
 PO-verified in-game.** Fast travel is live: dwell at a fire to discover it,
 press `E` there to open the map, two presses to fly.

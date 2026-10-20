@@ -143,6 +143,10 @@ the JSON never contains one.
   `entityType: Passage` (D4); a talk exit inside a campfire dwell circle **refuses the boot**.
   That last one upgrades underworld L8 (portal-spells D8) from a doc warning to a check,
   possible now that an exit is its own primitive.
+  ⚑ 2026-10-20: D8's premise is gone. The campfire menu made the fire a server
+  conversant, and the nearer conversant takes the E press, so nothing overrides the exit
+  any more (the content test that pinned the old rule was removed). Re-decide this check
+  at P1: it would now only keep two panels from competing.
 
 ### D4 — the `Passage` entity: draws nothing, no health bar, no frame
 

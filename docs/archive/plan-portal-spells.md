@@ -1,5 +1,12 @@
 # Plan: Portal spells (Open Portal + Pull Through)
 
+> **D8 premise retired, PO ruling 2026-10-20 (campfire menu).** The campfire is
+> a server conversant now and the nearer conversant takes an E press; nothing
+> overrides anything. `sys.anchorSpawnOffset` still keeps Pull Through's portal
+> out of the bind circle so the two never compete, and the content test that
+> pinned the old override (`TestPassages_NoDoorStandsInsideACampfiresDwellCircle`)
+> was removed with it.
+
 **Status: COMPLETE + ARCHIVED 2026-08-18.** C1 shipped `564f62c8`, C2 `a0bbc80e`
 the same day; **PO in-game check passed 2026-08-18 on the pair, played
 together** ("tested works"). Only §10 item 13 outlives the plan, and it is a

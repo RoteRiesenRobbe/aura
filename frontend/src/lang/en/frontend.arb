@@ -695,7 +695,11 @@
   },
   "player.bound-restocked": "Bound and restocked",
   "@player.bound-restocked": {
-    "description": "Floating text after resting at a campfire: it is now the home campfire and camp charges are refilled."
+    "description": "Floating text after picking Bind & Restock at a campfire: it is now the home campfire and camp charges are refilled."
+  },
+  "player.restocked": "Restocked",
+  "@player.restocked": {
+    "description": "Floating text after picking Restock at a campfire: camp charges are refilled, the home campfire is unchanged."
   },
   "player.level-banner": "Level {level, number}!",
   "@player.level-banner": {

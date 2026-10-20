@@ -31,12 +31,19 @@ type fakeTravel struct {
 	// which is what these older tests want: they predate the byte and assert
 	// nothing about it, so it must stay absent from the rows they build.
 	direction model.TravelDirection
+	// campfire records the campfire rows handed over.
+	campfire []mobs.GrantKind
 }
 
 func (f *fakeTravel) CanReach(mode mobs.TravelMode, _ string) bool { return f.reachable && mode != "" }
 
 func (f *fakeTravel) Direction(_ mobs.TravelMode, _ string) model.TravelDirection {
 	return f.direction
+}
+
+func (f *fakeTravel) Campfire(kind mobs.GrantKind) bool {
+	f.campfire = append(f.campfire, kind)
+	return true
 }
 
 func (f *fakeTravel) Travel(mode mobs.TravelMode, _ string) bool {

@@ -150,6 +150,7 @@
   "nag.register-button": "Konto erstellen",
   "nag.text": "Dein Fortschritt existiert nur auf diesem Gerät.",
   "player.bound-restocked": "Gebunden und aufgefüllt",
+  "player.restocked": "Aufgefüllt",
   "player.level-banner": "Stufe {level, number}!",
   "player.level-up": "Stufe aufgestiegen!",
   "save.failing": "⚠ Aura kann deinen Fortschritt gerade nicht speichern. Der jüngste Fortschritt könnte verloren gehen.",

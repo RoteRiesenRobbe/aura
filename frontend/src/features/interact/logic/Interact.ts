@@ -14,7 +14,6 @@
 import * as Conversation from '../../conversation/logic/Conversation';
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import {isMobile} from '../../user-interface/logic/Mobile';
-import * as FlightOrigin from '../../flight/logic/FlightOrigin';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {IGame} from '../../core/logic/IGame';
 
@@ -39,27 +38,12 @@ export function trigger(target: number) {
         Conversation.leave();
         return;
     }
-    // A campfire is the one interactable that opens a CLIENT panel instead of
-    // asking the server for a conversation (flight C3, PO 2026-08-05: flight
-    // starts by interacting with the fire). It branches here rather than at the
-    // two call sites so the key and the phone button cannot drift — the whole
-    // reason this function exists.
-    //
-    // ⚑ Sending InteractMessage for a campfire would be silently harmless
-    // (no authored `interaction`, so the server finds no actor and does
-    // nothing) — which is exactly why the branch has to be explicit. The
-    // failure would be a prompt that does nothing at all.
-    // ⚑ A second press CLOSES it, exactly like the conversation panel above:
-    // once the map is up every remaining choice is made with the mouse, so E
-    // has nothing left to do and "the control that opened it closes it" is what
-    // players reach for first (PO 2026-08-05). Routed through the map's own
-    // close(), so a pending flight arm is dropped like on every other exit.
-    if (FlightOrigin.isOrigin(target)) {
-        if (Game?.miniMap?.isOpen()) {
-            Game.miniMap.close();
-        } else {
-            Game?.miniMap?.openForFlight();
-        }
+    // The departure board a campfire's Fly row opened closes on E as well
+    // (PO 2026-08-05): every choice on it is made with the mouse, so E has
+    // nothing left to do there. Routed through the map's own close(), so a
+    // pending flight arm is dropped like on every other exit.
+    if (Game?.miniMap?.isDepartureBoard()) {
+        Game.miniMap.close();
         return;
     }
     if (target !== 0) {

@@ -62,8 +62,10 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
 	AuraApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
-	// One-tick stamp: a campfire became the respawn anchor (chunk 4).
+	// One-tick stamps of the three campfire rows: Bind & Restock, Restock, Fly.
 	AuraApi.CharacterAddCampfireBound(builder, p.CampfireBound())
+	AuraApi.CharacterAddCampRestocked(builder, p.CampRestocked())
+	AuraApi.CharacterAddFlightOffered(builder, p.FlightOffered())
 	// In-combat flag — drives the HUD combat indicator.
 	AuraApi.CharacterAddInCombat(builder, p.InCombat())
 	// Absolute XP progress for the HUD XP-bar text (xpInLevel/xpForNextLevel).
@@ -675,8 +677,8 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// skill_points above, but NOT gated by SkipOwnerState — it is a per-session
 	// counter with no revision to key off (plan-downtime.md's own currency, not
 	// part of the persisted spellbook/quest state SkillComponent.Revision and
-	// quests.Ledger.Revision track), and it changes on its own cadence (dwell,
-	// channel completion). Only the COUNT rides the wire — the client derives
+	// quests.Ledger.Revision track), and it changes on its own cadence (a
+	// campfire row, channel completion). Only the COUNT rides the wire — the client derives
 	// the cap from the level it already has, through the shared cap curve, so
 	// the button can read "2/3" off one field.
 	AuraApi.GameStateAddCampCharges(builder, uint8(min(max(gs.Player.CampCharges(), 0), 255)))
@@ -734,7 +736,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		AuraApi.GameStateAddQuestMarkers(builder, questMarkers)
 	}
 	// The map's campfire markers (plan-world-map.md C2): one-shots published on
-	// entering the world and on completing a dwell, absent on every other tick.
+	// entering the world, on a discovery and on a bind, absent on every other tick.
 	// Absent means "no change" — see the schema note; the set only grows, so
 	// there is no cleared state for absence to be confused with.
 	if homeCampfire != 0 {

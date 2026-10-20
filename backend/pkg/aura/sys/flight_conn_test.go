@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
@@ -34,20 +35,21 @@ func TestCampfireAt_AnswersFromTheAuthoredSetOnly(t *testing.T) {
 	assert.False(t, ok, "open ground is at no fire")
 }
 
-func TestCampfireDiscovered_FollowsTheDwell(t *testing.T) {
+func TestCampfireDiscovered_FollowsTheVisit(t *testing.T) {
 	s, g := newStateFixture(t)
 	first, second := twoFires()
+	first.StartingSpawn = true
 	s.SetCampfireAnchors([]CampfireAnchor{first, second})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	assert.False(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-1"),
-		"a fresh character has discovered nothing")
-
-	dwellAt(s, p, first)
-	assert.True(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-1"))
+	assert.True(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-1"),
+		"the join lands in the starting fire's circle, which discovers it")
 	assert.False(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-2"),
 		"discovery is per fire, not per character-has-any")
+
+	visit(s, p, second)
+	assert.True(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-2"))
 }
 
 func TestCampfirePosition_StaleIdIsSkippedNotAnError(t *testing.T) {
@@ -63,76 +65,35 @@ func TestCampfirePosition_StaleIdIsSkippedNotAnError(t *testing.T) {
 	assert.False(t, ok, "an id that no longer resolves is UNBOUND, not an error (§5)")
 }
 
-// The §4.2 dwell skip, in both of its failure directions: a fly-over must not
-// discover (or rebind), and a takeoff right after arrival must not complete
-// the origin fire's dwell mid-air.
-func TestDwell_SkipsFlyers(t *testing.T) {
+// The §4.2 flyer skip: a fly-over must not discover the fire below.
+func TestDiscovery_SkipsFlyers(t *testing.T) {
 	s, g := newStateFixture(t)
 	first, second := twoFires()
+	first.StartingSpawn = true
 	s.SetCampfireAnchors([]CampfireAnchor{first, second})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	dwellAt(s, p, first)
+	bindAt(t, s, p, first.Pos)
 	require.Equal(t, []string{"spawnpoint-1"}, s.DiscoveredCampfires(c.UUID()))
 	require.Equal(t, "spawnpoint-1", s.anchors[c.UUID()])
 
-	// Airborne, parked over the second fire for well past the threshold —
-	// the slow-fly-over scenario (the speed is a PLACEHOLDER; someone WILL
-	// tune it down).
+	// Airborne, parked over the second fire — the slow-fly-over scenario (the
+	// speed is a PLACEHOLDER; someone WILL tune it down).
 	p.BeginFlight(nil, "spawnpoint-1", "spawnpoint-2", second.Pos, 0)
 	p.SetPosition(second.Pos)
-	for i := 0; i < campfireDwellTicks*2; i++ {
+	for i := 0; i < 2*constant.TicksPerSecond; i++ {
 		s.Update(0)
 	}
 
 	assert.Equal(t, []string{"spawnpoint-1"}, s.DiscoveredCampfires(c.UUID()),
-		"a fly-over must not discover the fire below (D4: discovery = having stood there)")
-	assert.Equal(t, "spawnpoint-1", s.anchors[c.UUID()],
-		"a fly-over must not rebind the respawn anchor")
+		"a fly-over must not discover the fire below (discovery = having stood there)")
 
-	// Landing starts a FRESH count — standing at the fire then earns
-	// discovery exactly like walking up to it would.
+	// Landing at the fire discovers it exactly like walking up to it would.
 	p.Ground()
-	dwellAt(s, p, second)
+	visit(s, p, second)
 	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-2"}, s.DiscoveredCampfires(c.UUID()))
-	assert.Equal(t, "spawnpoint-2", s.anchors[c.UUID()])
-}
-
-// Takeoff inside the origin fire's radius with a dwell in progress: the
-// count must die with the takeoff, not keep accumulating through the early
-// lerp ticks while the flyer is still geometrically inside the radius.
-func TestDwell_TakeoffDropsAnInProgressCount(t *testing.T) {
-	s, g := newStateFixture(t)
-	first, second := twoFires()
-	s.SetCampfireAnchors([]CampfireAnchor{first, second})
-	c := newFakeClient()
-	p := joinPlayer(t, s, g, c, "Alice")
-
-	// The join tick itself can count one dwell tick: a fresh join spawns
-	// jittered INSIDE a random fire's bind radius (defaultSpawnPosition), and
-	// trackCampfireDwell runs in the same Update as tryJoin. Step off the
-	// fires and tick once so the count below verifiably starts at zero;
-	// without this the test is a coin flip on which fire the join picked.
-	p.SetPosition(phy.Vec2f{X: 100, Y: 100})
-	s.Update(0)
-
-	// Almost-complete dwell at the first fire…
-	p.SetPosition(first.Pos)
-	for i := 0; i < campfireDwellTicks-1; i++ {
-		s.Update(0)
-	}
-	require.Empty(t, s.DiscoveredCampfires(c.UUID()), "fixture: one tick short of the threshold")
-
-	// …then takeoff, still standing inside the radius.
-	p.BeginFlight(nil, "spawnpoint-1", "spawnpoint-2", second.Pos, 0)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
-
-	assert.Empty(t, s.DiscoveredCampfires(c.UUID()),
-		"the in-progress dwell must not complete mid-takeoff")
-	assert.Empty(t, s.anchors[c.UUID()], "nor may the bind fire")
+	assert.Equal(t, "spawnpoint-1", s.anchors[c.UUID()], "landing binds nothing")
 }
 
 // D12/D14: a disconnect mid-flight resolves the flight immediately — the
@@ -146,7 +107,7 @@ func TestDisconnect_MidFlightStashesTheDestination(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	dwellAt(s, p, first)
+	visit(s, p, first)
 	token := s.tokenByClient[c.UUID()]
 
 	p.BeginFlight(nil, "spawnpoint-1", "spawnpoint-2", second.Pos, 0)

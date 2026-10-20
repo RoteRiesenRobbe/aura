@@ -89,12 +89,9 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 	originClient := newFakeClient()
 	origin := joinPlayer(t, s, g, originClient, "Barney")
 	origin.SetProgression(model.PlayerProgression{Level: 9, Experience: 4321})
-	// Bind by really dwelling: the snapshot must pick up what the game wrote,
-	// not what the test wished for.
-	origin.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	// Bind through the real row: the snapshot must pick up what the game
+	// wrote, not what the test wished for.
+	bindAt(t, s, origin, phy.Vec2f{X: 10, Y: 10})
 	require.Equal(t, "spawnpoint-2", s.anchors[originClient.UUID()])
 	sc := origin.SkillComponent()
 	sc.Discover(harvest.ID)

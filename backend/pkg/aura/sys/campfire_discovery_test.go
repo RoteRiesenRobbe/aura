@@ -2,12 +2,12 @@ package sys
 
 // Campfire discovery — plan-world-map.md C2, absorbing plan-flight-paths.md C1.
 //
-// Discovery is a FOURTH consequence of the one act the dwell tracker already
-// performs (bind the respawn anchor, refill Camp charges, stamp the client's
-// "bound" feedback). These tests exist to hold that structure: the set is
-// connection state with the same four seams as s.anchors, and every seam that
-// is missing loses discoveries SILENTLY — the next save writes the shrunken set
-// back and the loss reads as "never discovered it".
+// A fire is discovered the moment a player steps into its bind circle; binding
+// and restocking are rows in the fire's panel and no longer share the trigger.
+// These tests hold the structure: the set is connection state with the same
+// four seams as s.anchors, and every seam that is missing loses discoveries
+// SILENTLY — the next save writes the shrunken set back and the loss reads as
+// "never discovered it".
 
 import (
 	"testing"
@@ -27,54 +27,55 @@ func twoFires() (CampfireAnchor, CampfireAnchor) {
 		CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
 }
 
-// dwellAt parks a player in a fire's bind radius for exactly the threshold.
-func dwellAt(s *ConnectionStateSystem, p model.PlayerEntity, fire CampfireAnchor) {
+// visit steps a player into a fire's bind circle for one tick.
+func visit(s *ConnectionStateSystem, p model.PlayerEntity, fire CampfireAnchor) {
 	p.SetPosition(fire.Pos)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	s.Update(0)
 }
 
-func TestDwell_DiscoversTheFireAndAccumulatesAcrossFires(t *testing.T) {
+func TestVisit_DiscoversTheFireAndAccumulatesAcrossFires(t *testing.T) {
 	s, g := newStateFixture(t)
 	first, second := twoFires()
+	second.StartingSpawn = true
 	s.SetCampfireAnchors([]CampfireAnchor{first, second})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	assert.Empty(t, s.DiscoveredCampfires(c.UUID()), "a fresh character has discovered nothing")
+	assert.Equal(t, []string{"spawnpoint-2"}, s.DiscoveredCampfires(c.UUID()),
+		"a fresh character discovers the starting fire it lands in")
+	assert.Empty(t, s.anchors, "and is bound nowhere until it takes the Bind & Restock row")
 
-	dwellAt(s, p, first)
-	assert.Equal(t, []string{"spawnpoint-1"}, s.DiscoveredCampfires(c.UUID()),
-		"completing a dwell must discover that fire")
-
-	// ⚑ The set ACCUMULATES; binding elsewhere does not move a marker, it adds
-	// one. Discovery and the bind share a trigger but not a shape — one is a
-	// growing set, the other a single current value.
-	dwellAt(s, p, second)
+	// ⚑ The set ACCUMULATES: a second fire adds a marker rather than moving one.
+	visit(s, p, first)
 	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-2"}, s.DiscoveredCampfires(c.UUID()),
-		"a second fire joins the set rather than replacing the first")
+		"one tick in the bind circle must discover that fire")
+	assert.Empty(t, s.anchors, "discovering a fire binds nothing")
+
+	bindAt(t, s, p, second.Pos)
+	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-2"}, s.DiscoveredCampfires(c.UUID()))
 	assert.Equal(t, "spawnpoint-2", s.anchors[c.UUID()], "the bind, unlike the set, moves")
 
 	// Returning to a known fire re-binds without duplicating it.
-	dwellAt(s, p, first)
+	bindAt(t, s, p, first.Pos)
 	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-2"}, s.DiscoveredCampfires(c.UUID()),
-		"re-dwelling at a known fire must not duplicate it")
+		"revisiting a known fire must not duplicate it")
 	assert.Equal(t, "spawnpoint-1", s.anchors[c.UUID()])
 }
 
 // The one-shot publication reaches the player, which is the only path the wire
 // has: codec reads HomeCampfire()/DiscoveredCampfires() off the player entity.
-func TestDwell_PublishesTheSetAndHomeToTheOwningPlayer(t *testing.T) {
+func TestVisit_PublishesTheSetToTheOwningPlayer(t *testing.T) {
 	s, g := newStateFixture(t)
-	first, _ := twoFires()
-	s.SetCampfireAnchors([]CampfireAnchor{first})
+	first, second := twoFires()
+	first.StartingSpawn = true // the join lands (and discovers) here, never at second
+	s.SetCampfireAnchors([]CampfireAnchor{first, second})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
+	p.(interface{ ResetTickNumbers() }).ResetTickNumbers()
 
-	dwellAt(s, p, first)
-	assert.Equal(t, "spawnpoint-1", p.HomeCampfire())
-	assert.Equal(t, []string{"spawnpoint-1"}, p.DiscoveredCampfires())
+	visit(s, p, second)
+	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-2"}, p.DiscoveredCampfires())
+	assert.False(t, p.CampfireBound(), "a discovery is not a bind")
 
 	// ⚑ A ONE-SHOT, like campfire_bound beside it: cleared with the per-tick
 	// accumulators, so an unchanged set costs nothing on the wire.
@@ -89,19 +90,19 @@ func TestDwell_PublishesTheSetAndHomeToTheOwningPlayer(t *testing.T) {
 // enters s.campfires, so it can no more become a map marker than it can become
 // a spawn point. Standing anywhere that is not an authored anchor discovers
 // nothing, however long you stand there.
-func TestDwell_OnlyAuthoredFiresAreDiscoverable(t *testing.T) {
+func TestVisit_OnlyAuthoredFiresAreDiscoverable(t *testing.T) {
 	s, g := newStateFixture(t)
 	first, _ := twoFires()
 	s.SetCampfireAnchors([]CampfireAnchor{first})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
+	before := s.DiscoveredCampfires(c.UUID()) // the fire the join landed in
+
 	p.SetPosition(phy.Vec2f{X: 500, Y: 500})
-	for i := 0; i < campfireDwellTicks*3; i++ {
-		s.Update(0)
-	}
-	assert.Empty(t, s.DiscoveredCampfires(c.UUID()),
-		"dwelling away from every authored anchor must discover nothing")
+	s.Update(0)
+	assert.Equal(t, before, s.DiscoveredCampfires(c.UUID()),
+		"standing away from every authored anchor must discover nothing")
 	assert.Empty(t, s.anchors, "and must bind nothing, which is the same guarantee")
 }
 
@@ -163,7 +164,7 @@ func TestDeath_KeepsTheDiscoveredSet(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	dwellAt(s, p, first)
+	visit(s, p, first)
 	require.Equal(t, []string{"spawnpoint-1"}, s.DiscoveredCampfires(c.UUID()))
 
 	kill(t, s, p)
@@ -188,8 +189,8 @@ func TestReconnect_CarriesTheDiscoveredSetThroughTheStash(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	dwellAt(s, p, first)
-	dwellAt(s, p, second)
+	visit(s, p, first)
+	visit(s, p, second)
 	require.Len(t, s.DiscoveredCampfires(c.UUID()), 2)
 	token := s.tokenByClient[c.UUID()]
 

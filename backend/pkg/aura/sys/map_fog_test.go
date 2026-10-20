@@ -233,22 +233,25 @@ func TestMapFog_EveryEntryIntoTheWorldRepublishes(t *testing.T) {
 	assert.True(t, reattached.RevealedAt(distantSpot), "reconnect republishes")
 }
 
-// A dwell republishes the campfire pair but NOT the fog: it is not an entry
+// A discovery republishes the campfire pair but NOT the fog: it is not an entry
 // into the world, and the client already has everything it walked.
-func TestMapFog_ADwellDoesNotRepublish(t *testing.T) {
+func TestMapFog_ADiscoveryDoesNotRepublish(t *testing.T) {
 	s, g := newStateFixture(t)
-	first, _ := twoFires()
-	s.SetCampfireAnchors([]CampfireAnchor{first})
-	p := joinPlayer(t, s, g, newFakeClient(), "Alice")
-	// Off the fire first: the join tick may already have counted dwell tick 1
-	// (joinPlayer's note), which would complete the dwell one tick early.
+	first, second := twoFires()
+	first.StartingSpawn = true // the join lands (and discovers) here
+	s.SetCampfireAnchors([]CampfireAnchor{first, second})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
 	walkTo(s, p, distantSpot)
-	p.SetPosition(first.Pos)
-	for range campfireDwellTicks {
-		resetTick(p)
-		s.Update(0)
-	}
-	require.NotNil(t, p.DiscoveredCampfires(), "the dwell completed this tick")
+	// Pre-reveal the fire's surroundings, so stepping in reveals nothing new
+	// and any fog on the wire could only be a republish.
+	fog := s.fogFor(c.UUID())
+	fog.MarkAt(second.Pos, p.LightRadius(), s.dark)
+	fog.TakeDirty()
+	resetTick(p)
+	p.SetPosition(second.Pos)
+	s.Update(0)
+	require.NotNil(t, p.DiscoveredCampfires(), "the discovery landed this tick")
 	assert.Nil(t, p.MapFog())
 }
 

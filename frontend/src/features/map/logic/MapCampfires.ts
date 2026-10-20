@@ -66,6 +66,14 @@ export const HOME_RING_COLOR = BRAND;
 const ARMED_RING_FACTOR = 1.15;
 const ARMED_RING_COLOR = 0x7FD1E8;
 
+/**
+ * The departure board's origin ring: the fire whose Fly row opened the board
+ * (PO 2026-10-20). Same radius as the armed ring, since a flight never arms
+ * its own origin, so the two can never sit on one fire; outside the home ring,
+ * which the origin often is. [PLACEHOLDER colour]
+ */
+const ORIGIN_RING_COLOR = 0x6FCF6F;
+
 export class MapCampfires {
     /**
      * Add to the stage ABOVE both icon layers — the topmost markers on the map
@@ -99,6 +107,8 @@ export class MapCampfires {
      * screen.
      */
     private armed = '';
+    /** The departure board's origin fire, or '' when no board is open. */
+    private origin = '';
 
     constructor(zoneName: string) {
         this.layer = createNamedContainer('campfires');
@@ -173,6 +183,11 @@ export class MapCampfires {
                     .circle(marker.x, marker.y, size * HOME_RING_FACTOR)
                     .stroke({width: Math.max(1, size * 0.16), color: HOME_RING_COLOR}));
             }
+            if (marker.id === this.origin) {
+                this.layer.addChild(new Graphics()
+                    .circle(marker.x, marker.y, size * ARMED_RING_FACTOR)
+                    .stroke({width: Math.max(1, size * 0.2), color: ORIGIN_RING_COLOR}));
+            }
             if (marker.id === this.armed) {
                 // Outside the home ring rather than replacing it — a fire can be
                 // both your bind point and the one you are about to fly to, and
@@ -220,38 +235,30 @@ export class MapCampfires {
         return this.drawn.find((marker) => marker.home) ?? null;
     }
 
+    /**
+     * Sets (or clears, with '') the origin ring. Returns whether the caller
+     * needs a redraw, like setArmed.
+     */
+    setOrigin(campfireId: string): boolean {
+        if (this.origin === campfireId) {
+            return false;
+        }
+        this.origin = campfireId;
+        return true;
+    }
+
     /** The armed destination, or '' — what the ring on screen is showing. */
     armedId(): string {
         return this.armed;
     }
 
     /**
-     * Whether the authored fire nearest to (x, y) — in ZONE units — has been
-     * discovered (plan-flight-paths.md C3, the E prompt's gate).
-     *
-     * ⚑ It takes a POSITION rather than an id because the caller has a campfire
-     * ENTITY, and the wire mob carries no spawn-point id — the two namespaces
-     * only ever meet through the position they were both authored from. The
-     * tolerance is deliberately tight: these are the same authored coordinates
-     * on both sides, so anything but a near-exact match means the caller is
-     * asking about something that is not an authored fire at all.
-     *
-     * The gate exists so the prompt cannot lie: flight validation requires the
-     * ORIGIN discovered too (§4.4), and an E that opened a map whose every
-     * press was then silently refused is the failure this whole entry point
-     * was built to remove.
+     * The discovered fire nearest to (x, y) in ZONE units within `radius`, or
+     * '' — which fire the player is standing at when the departure board opens.
      */
-    isDiscoveredAt(x: number, y: number): boolean {
-        const tolerance = 0.5;
-        for (const fire of this.campfires) {
-            if (!fire.id || !this.discovered.has(fire.id)) {
-                continue;
-            }
-            if (Math.abs(fire.x - x) <= tolerance && Math.abs(fire.y - y) <= tolerance) {
-                return true;
-            }
-        }
-        return false;
+    discoveredFireNear(x: number, y: number, radius: number): string {
+        const fires = this.campfires.filter((fire) => fire.id && this.discovered.has(fire.id));
+        return pickNearestMarker(fires, {x, y}, radius)?.id ?? '';
     }
 
     /**

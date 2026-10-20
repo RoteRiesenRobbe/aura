@@ -17,6 +17,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
@@ -287,11 +288,9 @@ func reconnectTicket(t *testing.T, s *ConnectionStateSystem, token, name string)
 // joinPlayer runs the full join flow for a fresh client and returns the player.
 //
 // ⚑ The join tick is a FULL Update: the new player spawns jittered INSIDE a
-// campfire's bind radius (defaultSpawnPosition) and trackCampfireDwell runs in
-// the same tick, so the returned player can already carry dwell tick 1 for a
-// RANDOM fire. A test that counts dwell ticks from here must first step off
-// the fires and tick once; skipping that made TestDwell_TakeoffDrops… a
-// 50/50 coin flip (fixed 2026-08-14).
+// campfire's bind radius (defaultSpawnPosition) and the discovery pass runs in
+// the same tick, so the returned player may already have discovered a RANDOM
+// starting fire.
 func joinPlayer(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fakeClient, name string) model.PlayerEntity {
 	t.Helper()
 	sp := spectatorFor(c)
@@ -303,6 +302,16 @@ func joinPlayer(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fak
 	s.Update(0)
 	require.Len(t, g.players, before+1, "join should create a player")
 	return g.players[len(g.players)-1]
+}
+
+// bindAt stands the player at `at` for one tick (which discovers the fire) and
+// takes that fire's Bind & Restock row, the way the panel does.
+func bindAt(t *testing.T, s *ConnectionStateSystem, p model.PlayerEntity, at phy.Vec2f) {
+	t.Helper()
+	p.SetPosition(at)
+	s.Update(0)
+	require.True(t, s.CampfireRow(p.Client().UUID(), at, mobs.GrantBindRestock),
+		"the Bind & Restock row must be taken at a fire")
 }
 
 func kill(t *testing.T, s *ConnectionStateSystem, p model.PlayerEntity) {
@@ -365,44 +374,78 @@ func TestRespawn_WithoutDeadStateIsIgnored(t *testing.T) {
 	assert.Empty(t, c.respawns, "the stray Respawn must still be consumed")
 }
 
-func TestDwell_BindsAnchorAfterThresholdInsideDwellRadius(t *testing.T) {
+// Standing at a fire binds nothing any more: binding is the panel's Bind &
+// Restock row, which binds, refills and stamps the one-tick feedback.
+func TestCampfireRow_BindRestockBindsOnlyWhenTaken(t *testing.T) {
 	s, g := newStateFixture(t)
 	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	// outside the dwell radius but plausibly inside heal range: never binds
-	p.SetPosition(phy.Vec2f{X: 11.2, Y: 10})
-	for i := 0; i < campfireDwellTicks+10; i++ {
+	p.SetPosition(fire.Pos)
+	for i := 0; i < 3*constant.TicksPerSecond; i++ {
 		s.Update(0)
 	}
-	assert.Empty(t, s.anchors, "standing outside the dwell radius must not bind")
+	assert.Empty(t, s.anchors, "standing at a fire must not bind")
+	assert.Zero(t, p.CampCharges(), "standing at a fire must not restock")
+	assert.False(t, p.CampfireBound())
 
-	// inside, but leaving before the threshold resets the counter
-	p.SetPosition(phy.Vec2f{X: 10.2, Y: 10})
-	for i := 0; i < campfireDwellTicks-1; i++ {
-		s.Update(0)
-	}
-	p.SetPosition(phy.Vec2f{X: 20, Y: 10})
-	s.Update(0)
-	p.SetPosition(phy.Vec2f{X: 10.2, Y: 10})
-	for i := 0; i < campfireDwellTicks-1; i++ {
-		s.Update(0)
-	}
-	assert.Empty(t, s.anchors, "leaving before the threshold must reset the dwell counter")
-
-	// completing the dwell binds and stamps the one-tick feedback
-	assert.False(t, p.CampfireBound(), "no bind stamp before the threshold")
-	s.Update(0)
-	require.Len(t, s.anchors, 1)
+	require.True(t, s.CampfireRow(c.UUID(), fire.Pos, mobs.GrantBindRestock))
 	assert.Equal(t, fire.ID, s.anchors[c.UUID()])
-	assert.True(t, p.CampfireBound(), "completing the dwell must stamp campfire_bound")
+	assert.Equal(t, skills.CampChargeCap(1), p.CampCharges(), "Bind & Restock refills to cap")
+	assert.True(t, p.CampfireBound(), "taking the row must stamp campfire_bound")
+	assert.Equal(t, fire.ID, p.HomeCampfire(), "the new home is published")
 
 	// the stamp is one-shot: staying at the fire doesn't re-stamp
 	p.(interface{ ResetTickNumbers() }).ResetTickNumbers()
 	s.Update(0)
 	assert.False(t, p.CampfireBound(), "staying bound must not re-stamp")
+}
+
+// Restock refills without touching the bind; Fly only stamps the departure
+// board. Neither stamps campfire_bound, so the client never says "bound".
+func TestCampfireRow_RestockAndFlyLeaveTheBindAlone(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetPosition(fire.Pos)
+	s.Update(0)
+
+	require.True(t, s.CampfireRow(c.UUID(), fire.Pos, mobs.GrantRestock))
+	assert.Equal(t, skills.CampChargeCap(1), p.CampCharges(), "Restock refills to cap")
+	assert.True(t, p.CampRestocked())
+	assert.False(t, p.CampfireBound())
+	assert.Empty(t, s.anchors, "Restock must not bind")
+
+	// Restock refills on every press, not once per visit.
+	require.True(t, p.SpendCampCharge())
+	require.True(t, s.CampfireRow(c.UUID(), fire.Pos, mobs.GrantRestock))
+	assert.Equal(t, skills.CampChargeCap(1), p.CampCharges())
+
+	p.(interface{ ResetTickNumbers() }).ResetTickNumbers()
+	require.True(t, s.CampfireRow(c.UUID(), fire.Pos, mobs.GrantFly))
+	assert.True(t, p.FlightOffered())
+	assert.False(t, p.CampRestocked())
+	assert.Empty(t, s.anchors, "Fly must not bind")
+}
+
+// A row names a fire by position; anywhere that is no authored fire, and any
+// client that is not in the world, is refused.
+func TestCampfireRow_RefusesAwayFromAFireAndForUnknownClients(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	assert.False(t, s.CampfireRow(c.UUID(), phy.Vec2f{X: 500, Y: 500}, mobs.GrantBindRestock))
+	assert.False(t, s.CampfireRow(newFakeClient().UUID(), fire.Pos, mobs.GrantBindRestock))
+	assert.False(t, s.CampfireRow(c.UUID(), fire.Pos, mobs.GrantTeachSkill), "not a campfire row")
+	assert.Empty(t, s.anchors)
+	assert.Zero(t, p.CampCharges())
 }
 
 func TestRespawn_SpawnsAtAnchorWithJitter(t *testing.T) {
@@ -411,10 +454,7 @@ func TestRespawn_SpawnsAtAnchorWithJitter(t *testing.T) {
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
-	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, phy.Vec2f{X: 10, Y: 10})
 	require.Len(t, s.anchors, 1, "dwell must bind before dying")
 
 	kill(t, s, p)
@@ -479,17 +519,14 @@ func joinPlayerWithState(t *testing.T, s *ConnectionStateSystem, g *stateFakeGam
 // The bind records the fire's SPAWN-POINT ID, not its position: the id is what
 // survives a restart, and resolving it back to a position through the placed
 // campfires is what lets a moved fire keep its dwellers.
-func TestDwell_BindsSpawnPointID(t *testing.T) {
+func TestCampfireRow_BindsSpawnPointID(t *testing.T) {
 	s, g := newStateFixture(t)
 	fire := CampfireAnchor{ID: "spawnpoint-7", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, phy.Vec2f{X: 10, Y: 10})
 
 	require.Len(t, s.anchors, 1)
 	assert.Equal(t, "spawnpoint-7", s.anchors[c.UUID()])
@@ -498,13 +535,8 @@ func TestDwell_BindsSpawnPointID(t *testing.T) {
 	assert.Equal(t, fire.Pos, pos)
 }
 
-// ⚑ Found by the browser harness, not by reasoning: the dwell counter only ever
-// reset when a player was near NO fire, so going straight from one fire's bind
-// radius into another's kept incrementing the FIRST fire's count. Past the
-// threshold the exactly-equal bind check never fires again, and the player stays
-// bound to a campfire they have left — which is a wrong "last campfire" long
-// before persistence gets involved.
-func TestDwell_RebindsWhenMovingStraightToAnotherFire(t *testing.T) {
+// Binding at a second fire moves the bind there.
+func TestCampfireRow_RebindsAtAnotherFire(t *testing.T) {
 	s, g := newStateFixture(t)
 	first := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
 	second := CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
@@ -512,20 +544,12 @@ func TestDwell_RebindsWhenMovingStraightToAnotherFire(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	p.SetPosition(first.Pos)
-	for i := 0; i < campfireDwellTicks+20; i++ { // well past the threshold
-		s.Update(0)
-	}
+	bindAt(t, s, p, first.Pos)
 	require.Equal(t, "spawnpoint-1", s.anchors[c.UUID()])
 
-	// Straight from one bind radius into the other, never standing clear of both.
-	p.SetPosition(second.Pos)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
-
+	bindAt(t, s, p, second.Pos)
 	assert.Equal(t, "spawnpoint-2", s.anchors[c.UUID()],
-		"dwelling at a second fire must re-bind to it")
+		"binding at a second fire must re-bind to it")
 }
 
 // The bug this whole change exists for: logging in put the character at a random
@@ -575,10 +599,7 @@ func TestDisconnectWhileDead_StashesDeathSceneAndRemovesCorpse(t *testing.T) {
 	s.SetCampfireAnchors([]CampfireAnchor{{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
-	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, phy.Vec2f{X: 10, Y: 10})
 	kill(t, s, p)
 	corpse := g.livingCorpses()[0]
 	require.Len(t, g.livingSpectators(), 1)
@@ -854,10 +875,7 @@ func TestReconnect_RestoresCharacter(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 	p.SetProgression(model.PlayerProgression{Level: 5, Experience: 1234})
-	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, phy.Vec2f{X: 10, Y: 10})
 	spot := phy.Vec2f{X: -13, Y: 4}
 	p.SetPosition(spot)
 	p.VitalSigns().Health = 42
@@ -909,10 +927,7 @@ func TestReconnectWhileDead_RebuildsDeathScene(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 	p.SetProgression(model.PlayerProgression{Level: 5})
-	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, phy.Vec2f{X: 10, Y: 10})
 	deathspot := phy.Vec2f{X: 7, Y: -3}
 	p.SetPosition(deathspot)
 	token := s.tokenByClient[c.UUID()]
@@ -1181,47 +1196,10 @@ func TestRejoiningTheSameCharacterKeepsItsName(t *testing.T) {
 
 // --- the Camp charge store (plan-downtime.md C2) ------------------------------
 
-// The dwell that rebinds the spawn point also refills the Camp charges (D9):
-// one act, one errand. A fresh character deliberately starts EMPTY — they spawn
-// at a fire, so their first 1.7 s of standing still fills them, which is §2's
-// "painless by construction" argument working rather than a seeding rule.
-func TestDwell_RefillsCampChargesToTheLevelCap(t *testing.T) {
-	s, g := newStateFixture(t)
-	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
-	s.SetCampfireAnchors([]CampfireAnchor{fire})
-	c := newFakeClient()
-	p := joinPlayer(t, s, g, c, "Alice")
-	require.Zero(t, p.CampCharges(), "a fresh character holds no charges")
-
-	// Step clear of the fire first: the join spawns AT it, so the dwell count
-	// is already running and a bare "tick threshold-1 times" would overshoot.
-	p.SetPosition(phy.Vec2f{X: 40, Y: 40})
-	s.Update(0)
-
-	p.SetPosition(fire.Pos)
-	for i := 0; i < campfireDwellTicks-1; i++ {
-		s.Update(0)
-	}
-	assert.Zero(t, p.CampCharges(), "the refill lands with the bind, not before it")
-
-	s.Update(0)
-	assert.Equal(t, skills.CampChargeCap(1), p.CampCharges(), "completing the dwell refills to cap")
-
-	// Refill is to-cap and idempotent while standing there: the exactly-at-
-	// threshold branch runs once per ENTRY, so spending without leaving does
-	// not silently top back up (§6a — accepted, the loop never does that).
-	require.True(t, p.SpendCampCharge())
-	for i := 0; i < campfireDwellTicks+5; i++ {
-		s.Update(0)
-	}
-	assert.Equal(t, skills.CampChargeCap(1)-1, p.CampCharges(),
-		"staying inside the dwell radius must not re-refill — you have to leave and come back")
-}
-
 // The cap rides the character's level, not a constant (D9): the camp's heal is
 // a fraction of the target's pool and scales for free, so COUNT is the axis
 // that grows visibly.
-func TestDwell_RefillCapScalesWithLevel(t *testing.T) {
+func TestCampfireRow_RefillCapScalesWithLevel(t *testing.T) {
 	s, g := newStateFixture(t)
 	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
@@ -1229,10 +1207,7 @@ func TestDwell_RefillCapScalesWithLevel(t *testing.T) {
 	p := joinPlayer(t, s, g, c, "Alice")
 	p.SetProgression(model.PlayerProgression{Level: 30, Experience: 0})
 
-	p.SetPosition(fire.Pos)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, fire.Pos)
 
 	assert.Equal(t, skills.CampChargeCap(30), p.CampCharges())
 	assert.Greater(t, skills.CampChargeCap(30), skills.CampChargeCap(1),
@@ -1240,11 +1215,11 @@ func TestDwell_RefillCapScalesWithLevel(t *testing.T) {
 }
 
 // L3, both directions, and the reason the loop is not a perpetual motion
-// machine: a PLACED camp is an ordinary spawned mob, while binding and
-// refilling read the boot-frozen authored campfire slice. Structural today —
+// machine: a PLACED camp is an ordinary spawned mob, while binding, refilling
+// and discovery read the boot-frozen authored campfire slice. Structural today —
 // SetCampfireAnchors has exactly one caller — but this is precisely the kind of
 // invariant that erodes when someone adds a second one.
-func TestDwell_APlacedCampNeitherBindsNorRefills(t *testing.T) {
+func TestCampfireRow_APlacedCampNeitherBindsNorRefills(t *testing.T) {
 	s, g := newStateFixture(t)
 	// A real fire exists, far away: the tracker is armed, so a green result
 	// here cannot be "campfires were empty and it returned early".
@@ -1260,12 +1235,14 @@ func TestDwell_APlacedCampNeitherBindsNorRefills(t *testing.T) {
 	camp.SetPosition(spot)
 	g.AddEntity(camp)
 
-	for i := 0; i < campfireDwellTicks*3; i++ {
-		s.Update(0)
-	}
+	s.Update(0)
+	assert.False(t, s.CampfireRow(c.UUID(), spot, mobs.GrantBindRestock), "a placed camp offers no bind")
+	assert.False(t, s.CampfireRow(c.UUID(), spot, mobs.GrantRestock), "a placed camp offers no restock")
 
 	assert.Empty(t, s.anchors, "standing in a placed camp must bind nothing")
 	assert.Zero(t, p.CampCharges(), "standing in a placed camp must refill nothing")
+	assert.Equal(t, []string{"spawnpoint-1"}, s.DiscoveredCampfires(c.UUID()),
+		"only the authored fire the join landed in is discovered, never a placed camp")
 }
 
 // campTestDef is the shape camp.json authors: a planted, structurally
@@ -1292,10 +1269,7 @@ func TestReconnect_CarriesCampCharges(t *testing.T) {
 	// charge would leave 0 to carry — and 0 is also what a broken carry
 	// produces, so the test would pass for the wrong reason.
 	p.SetProgression(model.PlayerProgression{Level: 14, Experience: 0})
-	p.SetPosition(fire.Pos)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, fire.Pos)
 	require.True(t, p.SpendCampCharge(), "spend one, so the carry cannot pass by refilling")
 	want := p.CampCharges()
 	require.Positive(t, want)
@@ -1320,10 +1294,7 @@ func TestRespawn_ZeroesCampCharges(t *testing.T) {
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
-	p.SetPosition(fire.Pos)
-	for i := 0; i < campfireDwellTicks; i++ {
-		s.Update(0)
-	}
+	bindAt(t, s, p, fire.Pos)
 	require.Positive(t, p.CampCharges())
 
 	s.handleDeath(p)

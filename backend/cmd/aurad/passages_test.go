@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 
 	"github.com/stretchr/testify/assert"
@@ -22,10 +20,6 @@ import (
 // point at the four anchors the world actually authors, and whether following
 // them gets you home. That is a property of the CONTENT, so it is pinned
 // against the content.
-//
-// ⚑ It is also the D8 guard. A door inside a campfire’s dwell circle loses
-// every E press to the client’s synthesized flight offer, which is invisible
-// server-side and therefore invisible to every other test in the tree.
 
 // passageDoors indexes the placed travel doors by the anchor they deliver to.
 func placedDoors(t *testing.T, zones []*world.Zone) map[string]*world.Spawn {
@@ -114,66 +108,6 @@ func TestPassages_EachOneReturnsYouWhereYouWentIn(t *testing.T) {
 			"%s → %q drops you %.1f units from the door to %q, which sends you somewhere else: "+
 				"the passage does not round-trip", door.Mob, dest, walk, back.Anchor)
 	}
-}
-
-// ⛑ THE D8 TRAP, and it is content-shaped so only a content test can catch it:
-// the client synthesizes a campfire interact offer that OVERRIDES the server’s
-// (plan-portal-spells.md D8), so a door standing inside a fire’s dwell circle
-// silently loses every E press to the flight map. An exit is exactly where a
-// cave’s campfire wants to stand, which is what makes this worth a test rather
-// than a comment.
-func TestPassages_NoDoorStandsInsideACampfiresDwellCircle(t *testing.T) {
-	mobsRegistry, _ := repoZoneRegistries(t)
-	zones := shippedZones(t)
-
-	// ⭐ DERIVED, NOT GUESSED. The bound is the two radii that actually decide
-	// the overlap — the fire's bind circle and the door's own interact sensor —
-	// so a retune of either moves this test with it, and a map edit that keeps
-	// the door out of the circle never reddens it. The constant this replaced
-	// was 8.0 against a real bound of 2.75, which made it a false-positive
-	// generator on every map edit and proved nothing when it passed.
-	dwell := campfireDwellRadius(t, mobsRegistry)
-	require.Greater(t, dwell, float32(0), "the Campfire mob must publish a bind radius")
-
-	for anchor, door := range placedDoors(t, zones) {
-		require.NotNil(t, door.Def.Interaction)
-		// Full separation of the two circles: no spot a player could stand in to
-		// use the door is also a spot the flight offer would claim.
-		clearance := float64(dwell + door.Def.Interaction.Range)
-		for _, z := range zones {
-			for _, c := range z.BindPoints {
-				d := math.Hypot(float64(c.X-door.X), float64(c.Y-door.Y))
-				assert.Greater(t, d, clearance,
-					"the door to %q stands %.2f units from campfire %q, inside the %.2f it needs "+
-						"(bind radius %.2f + interact range %.2f) - it would lose interact presses "+
-						"to the flight map (D8)", anchor, d, c.ID, clearance, dwell, door.Def.Interaction.Range)
-			}
-		}
-	}
-}
-
-// campfireDwellRadius reproduces the boot-time derivation in aurad.go: a
-// campfire's bind circle is its aura radius scaled by CampfireDwellRadiusFactor.
-// ⚑ Read from the registry rather than restated, so a content or factor change
-// cannot leave this test asserting against a number the game no longer uses.
-func campfireDwellRadius(t *testing.T, mr mobs.Registry) float32 {
-	t.Helper()
-	def, err := mr.GetByName("Campfire")
-	require.NoError(t, err, "no Campfire mob is defined")
-
-	var radius float32
-	for _, s := range def.Skills {
-		require.NotNil(t, s.Def, "a campfire skill did not resolve")
-		for _, e := range s.Def.Effects {
-			if e.Type == skills.EffectTypeLightAura {
-				continue // light never sizes the aura (EffectiveRadius)
-			}
-			if r := skills.Scaled(e.Radius, e.RadiusPerLevel, s.Level); r > radius {
-				radius = r
-			}
-		}
-	}
-	return radius * sys.CampfireDwellRadiusFactor
 }
 
 // Every arrival point must be somewhere a body can actually stand: inside its

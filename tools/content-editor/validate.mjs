@@ -16,8 +16,10 @@ import { mobNameForms, SLUG_PATTERN } from './content-text.mjs';
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const CONDITIONS_MODES = ['all', 'any']; // mobs.ConditionModeAll/Any, hand-synced (plan-quest-dialogue.md L2)
-const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
+const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to', 'bind_restock', 'restock', 'fly'];
 const QUEST_KINDS = ['offer_quest', 'advance_quest'];
+// The campfire rows (interaction.go IsCampfireKind): rows of their own, like travel_to.
+const CAMPFIRE_KINDS = ['bind_restock', 'restock', 'fly'];
 const QUEST_ID_PATTERN = /^[a-z0-9-]+$/; // quests.idPattern: a quest or stage id is a slug
 // The closed destination vocabulary of a travel_to grant (interaction.go
 // travelModes). `anchor` (underworld U3b, 2026-09-08) delivers to the zone
@@ -366,7 +368,7 @@ export function validateInteraction(mob, idx) {
       let questKindCount = 0;
       let trailingOffers = 0;
       let xpCount = 0;
-      let travelCount = 0;
+      let standaloneCount = 0;
       for (const [gi, g] of grants.entries()) {
         const gWho = `${oWho} grant ${gi}`;
         if (!GRANT_KINDS.includes(g.kind)) {
@@ -420,8 +422,12 @@ export function validateInteraction(mob, idx) {
           xpCount++;
           if (!(g.xp > 0)) err(`${gWho}: grant_xp needs an xp amount`);
           if (g.quest || g.fromStage || g.toStage) err(`${gWho}: grant_xp is a reward on a quest row, not a quest op`);
+        } else if (CAMPFIRE_KINDS.includes(g.kind)) {
+          standaloneCount++;
+          if (g.quest || g.fromStage || g.toStage || g.xp) err(`${gWho}: a ${g.kind} row takes no quest/stage/xp keys`);
+          if (g.anchor) err(`${gWho}: a ${g.kind} grant goes nowhere — drop "anchor"`);
         } else if (g.kind === 'travel_to') {
-          travelCount++;
+          standaloneCount++;
           if (g.quest || g.fromStage || g.toStage || g.xp) err(`${gWho}: travel_to takes no quest/stage/xp keys`);
           if (!g.mode) err(`${gWho}: travel_to needs a mode`);
           else if (!TRAVEL_MODES.includes(g.mode)) err(`${gWho}: mode "${g.mode}" must be one of ${TRAVEL_MODES.join('/')}`);
@@ -437,11 +443,11 @@ export function validateInteraction(mob, idx) {
       if (xpCount > 0 && questKindCount === 0) err(`${oWho}: grant_xp needs an advance_quest on the same row`);
       if (questKindCount === 1 && !opt.text?.trim()) err(`${oWho}: a quest row needs authored text`);
 
-      if (travelCount > 1) err(`${oWho}: one travel_to per row`);
-      if (travelCount === 1) {
-        if (grants.length > travelCount) err(`${oWho}: travel_to is a row of its own — it cannot share with other grants`);
-        if (opt.next) err(`${oWho}: a travel_to row takes no next — stepping through ends the conversation`);
-        if (!opt.text?.trim()) err(`${oWho}: a travel_to row needs authored text`);
+      if (standaloneCount > 1) err(`${oWho}: one travel_to or campfire grant per row`);
+      if (standaloneCount === 1) {
+        if (grants.length > standaloneCount) err(`${oWho}: a travel_to or campfire row is a row of its own — it cannot share with other grants`);
+        if (opt.next) err(`${oWho}: a travel_to or campfire row takes no next — taking it ends the conversation`);
+        if (!opt.text?.trim()) err(`${oWho}: a travel_to or campfire row needs authored text`);
       }
 
       if (grants.length === 0 && !opt.next) err(`${oWho}: needs at least one grant or a next`);

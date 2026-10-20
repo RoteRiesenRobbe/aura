@@ -1,5 +1,5 @@
 {
-  "_comment": "Atmosphere & recovery chunk 2: the fixed world campfire — a permanent aligned heal fixture (recovery = time-at-fire, GDD §3). Brazier pattern: role structure = aura always-on, speed 0 = planted, collisionLayer 32 (Viewport ONLY) = structurally unkillable/interaction-free body, collisionMask 16 = Border only. No faction key: an authored 'aligned' hard-fails by design — aurad.go sets FactionAligned post-construction (spawnSummon pattern). Placed from zone.campfires, never from spawns. maxHealth is moot (unreachable body), xpFactor 0, no aggroRadius (a structure acquires nothing). All values [PLACEHOLDER].",
+  "_comment": "Atmosphere & recovery chunk 2: the fixed world campfire — a permanent aligned heal fixture (recovery = time-at-fire, GDD §3). Brazier pattern: role structure = aura always-on, speed 0 = planted, collisionLayer 32 (Viewport ONLY) = structurally unkillable body, collisionMask 16 = Border only. No faction key: an authored 'aligned' hard-fails by design — aurad.go sets FactionAligned post-construction (spawnSummon pattern). Placed from zone.campfires, never from spawns. maxHealth is moot (unreachable body), xpFactor 0, no aggroRadius (a structure acquires nothing). All values [PLACEHOLDER]. interaction: E at the fire opens Bind & Restock / Restock / Fly; range 0.5 + the player's 0.25 body = the 0.75 bind circle (heal radius 1.5 x CampfireDwellRadiusFactor), pinned by a test.",
   "id": 13,
   "name": "Campfire",
   "type": "MOB",
@@ -17,6 +17,49 @@
     "collisionMask": 16
   },
   "skills": [
-    { "skillName": "CampfireAura", "level": 1 }
-  ]
+    {
+      "skillName": "CampfireAura",
+      "level": 1
+    }
+  ],
+  "interaction": {
+    "range": 0.5,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "the-fire-crackles-warmly"}
+        ],
+        "options": [
+          {
+            "id": "bind-restock",
+            "grants": [
+              {
+                "id": "you-bind-yourself-to-this",
+                "kind": "bind_restock"
+              }
+            ]
+          },
+          {
+            "id": "restock",
+            "grants": [
+              {
+                "id": "you-restock-at-the-fire",
+                "kind": "restock"
+              }
+            ]
+          },
+          {
+            "id": "fly",
+            "grants": [
+              {
+                "id": "where-to",
+                "kind": "fly"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -79,7 +79,7 @@ type CharacterState struct {
 
 	// HomeCampfireID is the spawn point this character last bound to — the
 	// authored `id` of a zone campfire (world.Campfire.ID) — or "" for a
-	// character that has never dwelled at a fire.
+	// character that has never bound at a fire.
 	//
 	// ⚑ "" IS A LEGITIMATE PERSISTED VALUE, not "not loaded": it maps to SQL
 	// NULL both ways, and the join path spawns an unbound character at the
@@ -92,8 +92,8 @@ type CharacterState struct {
 	// failure mode that must never lock anyone out of the world.
 	HomeCampfireID string `json:"homeCampfireId"`
 
-	// DiscoveredCampfires holds the spawn-point ids this character has dwelled
-	// at, sorted. The map draws a marker for each (plan-world-map.md C2) and
+	// DiscoveredCampfires holds the spawn-point ids this character has stood in
+	// the bind circle of, sorted. The map draws a marker for each (plan-world-map.md C2) and
 	// flight will fly between them (plan-flight-paths.md D4).
 	//
 	// ⚑ SORTED, always — build it through SortCampfires. Fingerprint() marshals

@@ -1415,3 +1415,39 @@ func TestMapMobDefinition_RejectsConditionsModeWithoutConditions(t *testing.T) {
 		assert.Contains(t, err.Error(), "conditionsMode", mode)
 	}
 }
+
+// The campfire rows parse with no payload at all.
+func TestMapMobDefinition_ParsesTheCampfireRows(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["The fire crackles."],
+	  "options": [
+	    {"text": "Bind & Restock", "grants": [{"kind": "bind_restock", "line": "a"}]},
+	    {"text": "Restock", "grants": [{"kind": "restock", "line": "b"}]},
+	    {"text": "Fly", "grants": [{"kind": "fly", "line": "c"}]}
+	  ]
+	}]}`)
+	require.NoError(t, err)
+	opts := def.Interaction.Nodes[0].Options
+	require.Len(t, opts, 3)
+	for i, kind := range []GrantKind{GrantBindRestock, GrantRestock, GrantFly} {
+		assert.Equal(t, kind, opts[i].Grants[0].Kind)
+		assert.True(t, kind.IsCampfireKind())
+	}
+	assert.False(t, GrantTravelTo.IsCampfireKind())
+}
+
+// A campfire row is a row of its own, exactly like travel_to: no payload keys,
+// no company, no next, an authored text.
+func TestMapMobDefinition_RejectsMisshapenCampfireRows(t *testing.T) {
+	for name, opt := range map[string]string{
+		"quest key": `{"text": "Rest", "grants": [{"kind": "restock", "quest": "pelts", "line": "a"}]}`,
+		"xp key":    `{"text": "Rest", "grants": [{"kind": "fly", "xp": 5, "line": "a"}]}`,
+		"mode key":  `{"text": "Rest", "grants": [{"kind": "restock", "mode": "caster", "line": "a"}]}`,
+		"shared":    `{"text": "Rest", "grants": [{"kind": "restock", "line": "a"}, {"kind": "fly", "line": "b"}]}`,
+		"next":      `{"text": "Rest", "next": "root", "grants": [{"kind": "bind_restock", "line": "a"}]}`,
+		"no text":   `{"grants": [{"kind": "restock", "line": "a"}]}`,
+	} {
+		_, err := mapInteraction(t, `{"nodes": [{"id": "root", "lines": ["hi"], "options": [`+opt+`]}]}`)
+		assert.Error(t, err, name)
+	}
+}

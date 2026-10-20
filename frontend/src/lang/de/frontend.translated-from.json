@@ -149,6 +149,7 @@
   "nag.register-button": "Create an account",
   "nag.text": "Your progress lives only on this device.",
   "player.bound-restocked": "Bound and restocked",
+  "player.restocked": "Restocked",
   "player.level-banner": "Level {level, number}!",
   "player.level-up": "Level up!",
   "save.failing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",

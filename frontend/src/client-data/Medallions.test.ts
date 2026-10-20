@@ -141,9 +141,9 @@ describe('one kind of token', () => {
 // own art. Player summons and the army wear one too (C2b, D37).
 describe('medallion coverage', () => {
     // Graphics keys of conversant OBJECTS: signs, stones, roots, cave mouths,
-    // remains, portals (PO 2026-10-17: "things in the world to interact with
-    // that have models instead").
-    const OBJECTS = ['signpost', 'remains', 'fireTotem'];
+    // remains, portals, campfires (PO 2026-10-17: "things in the world to
+    // interact with that have models instead").
+    const OBJECTS = ['signpost', 'remains', 'fireTotem', 'campfire'];
     // Where a class's Graphics key is not its EntityType with a lower-case
     // first letter.
     const KEY_ALIASES: Record<string, string> = {NpcPlaceholder: 'placeholder'};

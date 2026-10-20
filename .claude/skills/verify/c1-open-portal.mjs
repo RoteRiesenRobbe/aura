@@ -17,41 +17,33 @@
 //     both characters shared an anchor would go green proving nothing.
 //   · the unbound refusal (§10 item 6), TRI-STATE by construction - see below.
 //
-// ⚑ A IS BOUND AT spawnpoint-5, NOT the fire it spawned on. Every fresh
-// character spawns jittered inside spawnpoint-1's dwell radius (state.go
-// defaultSpawnPosition → JitterAround(pos, DwellRadius)) and binds there within
-// ~1.7 s, so a harness that let A keep its default anchor would deliver B to the
-// fire B is already bound to.
+// ⚑ BOTH CHARACTERS BIND BY HAND (E at the fire, then the "Bind & Restock" row;
+// standing in a fire's circle binds nothing any more and a fresh character is
+// UNBOUND). A binds at spawnpoint-5, NOT the fire it spawned near, and B binds at
+// spawnpoint-1, so the two anchors differ - a harness where both shared an anchor
+// would deliver B to the fire B is already bound to.
 //
-// ⚑ THE CAST VENUE IS 7.9 UNITS FROM THE FIRE, and that distance is the D8
-// landmine, not scenery: the client synthesises a campfire interact offer that
-// OVERRIDES the server's (Backend.ts `flightOrigin || offered`), so a portal
-// standing inside the 0.75-unit dwell circle loses every E press to the flight
-// map. Both venues below are derived from api/zones/world.json - the venue is
-// the whole-unit point 4-11 units from the fire with the most clearance from any
-// spawn (8.33 u) and ≥2 u from every blocking prop, so a re-placement moves it
-// rather than rotting it.
+// ⚑ THE CAST VENUE IS 8.5 UNITS FROM THE FIRE, and that distance is a landmine,
+// not scenery: the fire is a server conversant and the nearest one wins E, so a
+// portal standing inside the 0.75-unit bind circle loses every E press to the
+// fire's own panel. Both venues below are derived from api/zones/world.json
+// (spawnpoint-5 stands in an empty clearing, nothing within 40 u), so a
+// re-placement moves it rather than rotting it.
 //
 // ⚑ GOD IS OFF FOR THE COST LEG ONLY. IsGod short-circuits the pricing site, so
 // a run under it scores a broken cost as green (the r7-respec-cost lesson). It
 // goes on immediately afterwards - every later leg stands still for 30 s at a
 // time, and a dead player nulls the way into the scene graph.
 //
-// ⚑ THE UNBOUND LEG IS A RACE, and where it is run from decides whether it is
-// winnable at all. A fresh character spawns INSIDE a fire's bind radius
-// (defaultSpawnPosition jitters within the DWELL radius, not the heal radius)
-// and binds 1.7 s later, and there is no unbind - so the only unbound state
-// reachable in a browser is the one you warp out of first. A WARP driven from
-// the harness loses EVERY time (measured: bound to spawnpoint-1 before the first
-// command landed); the same WARP fired from an interval installed with
-// addInitScript, which runs in-page the instant window.game.character exists,
-// won 3/3. It stays TRI-STATE anyway: if the bind ever wins it says
-// INCONCLUSIVE and names the Go pins that own the property outright
-// (TestSpawn_RequiresAnchorRejectsThePress / …AtCompletionWhenTheAnchorIsLost).
+// ⚑ THE UNBOUND LEG IS NO LONGER A RACE: a fresh character stays unbound until
+// it takes Bind & Restock, so the leg just joins and casts. If the character is
+// ever bound without choosing, the leg FAILS (the Go pins
+// TestSpawn_RequiresAnchorRejectsThePress / …AtCompletionWhenTheAnchorIsLost own
+// the refusal itself).
 //
 // Boundary: `r4-recall-utility` owns the utility bar's cast and its own recall;
 // `chunk3b-ii-conversation` owns panel navigation in general; `r4-camp` owns
-// dwell refill. This asserts none of them - only the portal.
+// the fire's Restock row. This asserts none of them - only the portal.
 //
 // Usage: node c1-open-portal.mjs [url] [outdir]
 import { createRequire } from 'node:module';
@@ -75,12 +67,13 @@ const env = {
 };
 
 // --- venue, derived from api/zones/world.json (see header) --------------------
-const FIRE = { id: 'spawnpoint-5', x: 34.19, y: -20.68 };
-const FIRE_TILE = { x: 34, y: -21 };   // 0.37 u from the fire, inside the 0.75 bind radius
-const VENUE = { x: 27, y: -24 };       // 7.92 u out, 8.33 u from the nearest spawn
+const FIRE = { id: 'spawnpoint-5', x: -160.47, y: -80.08 };
+const FIRE_TILE = { x: -160, y: -80 }; // 0.48 u from the fire, inside the 0.75 bind radius
+const VENUE = { x: -168, y: -84 };     // 8.49 u out, nothing else near
 const DWELL_RADIUS = 0.75;             // campfire-aura radius 1.5 × CampfireDwellRadiusFactor 0.5
 const JITTER = 1.0;                    // sys.respawnJitterRadius
-const B_HOME = 'spawnpoint-1';         // the only startingSpawn fire - every fresh join binds here
+const B_HOME = 'spawnpoint-1';         // the startingSpawn fire (-239.78, 15.36); B binds here by hand
+const B_FIRE_TILE = { x: -240, y: 15 };// 0.42 u from it, inside the bind circle (Flora stands 2 u off: the fire is nearer)
 
 const results = [];
 const errors = [];
@@ -169,6 +162,25 @@ function rig(page, tag) {
     await page.waitForTimeout(1400);
   };
 
+  // Bind at the fire the player stands in: E opens the Campfire panel, the
+  // "Bind & Restock" row is clicked, and the home marker is awaited (the
+  // assertions that matter read the marker, not the panel). A single E press is
+  // not evidence (the hold can fall between two rAF samples), so up to 3 holds.
+  const bindAtFire = async () => {
+    let pnl = null;
+    for (let i = 0; i < 3 && !pnl; i++) { await pressInteract(); pnl = await panel(); }
+    if (!pnl || !/campfire/i.test(pnl.actor)) {
+      return { ok: false, why: `E opened ${pnl ? `"${pnl.actor}"` : 'nothing'}, not the Campfire panel` };
+    }
+    if (!(await clickRow('Bind'))) return { ok: false, why: 'the "Bind & Restock" row could not be clicked' };
+    for (let i = 0; i < 25; i++) {
+      const h = await homeFire();
+      if (h) return { ok: true, home: h };
+      await page.waitForTimeout(300);
+    }
+    return { ok: false, why: 'the home marker never appeared after the Bind & Restock click' };
+  };
+
   const pressCooldownQ = async () => {
     await page.evaluate(() => document.activeElement?.blur());
     await page.keyboard.down('q');
@@ -242,7 +254,7 @@ function rig(page, tag) {
   };
 
   return { page, tag, cmd, pos, focus, castBar, portalsNear, panel, pressInteract,
-           pressCooldownQ, clickRow, floatingSeen, homeFire, primeRoot, warpTo, consoleErrors };
+           pressCooldownQ, clickRow, floatingSeen, homeFire, bindAtFire, primeRoot, warpTo, consoleErrors };
 }
 
 async function newClient(tag) {
@@ -298,11 +310,13 @@ try {
   console.log('\n== LEG A: bind A at a fire that is NOT the default spawn ==');
   const A = await newClient('portal');
   await A.warpTo(FIRE_TILE.x, FIRE_TILE.y);
-  await A.page.waitForTimeout(9_000);               // dwell binds after ~1.7 s; margin for the settle
+  await A.page.waitForTimeout(2_000);               // the warp settle
+  const aBind = await A.bindAtFire();
+  if (!aBind.ok) console.log(`  (A's bind failed: ${aBind.why})`);
   const aHome = await A.homeFire();
   const aFirePos = await A.pos();
   if (aHome === FIRE.id) {
-    pass('A · bind', `A is bound to ${aHome} (standing at ${aFirePos.x},${aFirePos.y}); B will keep ${B_HOME}, so the two anchors differ`);
+    pass('A · bind', `A took Bind & Restock and is bound to ${aHome} (standing at ${aFirePos.x},${aFirePos.y}); B will keep ${B_HOME}, so the two anchors differ`);
   } else {
     fail('A · bind', `expected home ${FIRE.id}, got ${aHome}`);
   }
@@ -320,13 +334,13 @@ try {
   else fail('A · equip', `equip did not land: ${JSON.stringify(equipped)}`);
 
   // ------------------------------------------------------------------ LEG B
-  console.log('\n== LEG B: walk out past the dwell circle before casting (D8) ==');
+  console.log('\n== LEG B: walk out past the bind circle before casting ==');
   const venuePos = await A.warpTo(VENUE.x, VENUE.y);
   const dFire = Math.hypot(venuePos.x - FIRE.x, venuePos.y - FIRE.y);
   if (dFire > DWELL_RADIUS * 2) {
-    pass('B · out of the dwell circle', `A stands ${dFire.toFixed(2)} u from ${FIRE.id} (dwell radius ${DWELL_RADIUS}); E cannot be stolen by the flight offer`);
+    pass('B · out of the bind circle', `A stands ${dFire.toFixed(2)} u from ${FIRE.id} (bind radius ${DWELL_RADIUS}); E cannot be stolen by the fire's panel`);
   } else {
-    fail('B · out of the dwell circle', `A is only ${dFire.toFixed(2)} u from the fire - the client's campfire offer would override the portal's`);
+    fail('B · out of the bind circle', `A is only ${dFire.toFixed(2)} u from the fire - the fire's panel would override the portal's`);
   }
 
   // ------------------------------------------------------------------ LEG C
@@ -483,8 +497,12 @@ try {
   // ------------------------------------------------------------------ LEG G
   console.log('\n== LEG G: a SECOND player steps through - the point of the spell ==');
   const B = await newClient('portalb');
-  const bHomeBefore = await B.homeFire();
   await B.cmd('GOD on');
+  await B.warpTo(B_FIRE_TILE.x, B_FIRE_TILE.y);
+  await B.page.waitForTimeout(2_000);
+  const bBind = await B.bindAtFire();
+  if (!bBind.ok) console.log(`  (B's bind failed: ${bBind.why})`);
+  const bHomeBefore = await B.homeFire();
   await B.warpTo(VENUE.x, VENUE.y);
   await A.warpTo(VENUE.x, VENUE.y);
 
@@ -602,35 +620,14 @@ try {
 
   // ------------------------------------------------------------------ LEG J
   console.log('\n== LEG J: an unbound caster is refused, and no cast starts ==');
-  // ⚑ The race described in the header, and it is won IN THE PAGE, not from the
-  // driver: a Playwright round trip per WARP loses every time (measured - the
-  // character was already bound to spawnpoint-1 before the first one landed),
-  // while an interval installed BEFORE navigation fires the moment
-  // window.game.character exists and wins reliably (3/3 on a standalone probe).
+  // A fresh character is UNBOUND until it takes Bind & Restock (see the header).
   const ctxC = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
-  await ctxC.addInitScript((target) => {
-    window.__warps = 0;
-    const tick = () => {
-      try {
-        const input = document.querySelector('#console_command');
-        const form = document.querySelector('#console');
-        if (input && form && window.game && window.game.character) {
-          input.value = target;
-          form.dispatchEvent(new Event('submit', { cancelable: true }));
-          window.__warps++;
-        }
-      } catch (e) { /* pre-boot; the console is not live yet */ }
-      if (window.__warps < 12) setTimeout(tick, 40);
-    };
-    setTimeout(tick, 40);
-  }, `WARP ${VENUE.x * 120} ${VENUE.y * 120}`);
   const pageC = await ctxC.newPage();
   const C = rig(pageC, 'unbnd');
   C.ctx = ctxC;
   await pageC.goto(url, { waitUntil: 'domcontentloaded' });
   await joinAsNewCharacter(pageC, 'unbnd', { timeout: 90_000 });
   await pageC.waitForFunction(() => !!window.game?.character, null, { timeout: 60_000 });
-  await pageC.waitForFunction(() => window.__warps >= 1, null, { timeout: 30_000 });
   await pageC.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
   await C.primeRoot();
   await C.warpTo(VENUE.x, VENUE.y);
@@ -638,7 +635,7 @@ try {
   const cPos = await C.pos();
   console.log(`  fresh character home=${cHome} at (${cPos.x}, ${cPos.y})`);
   if (cHome) {
-    inconclusive('J · unbound refusal', `the fresh character bound to ${cHome} before the WARP landed - the ~1.7 s dwell window beat the harness. The property is owned by the Go pins TestSpawn_RequiresAnchorRejectsThePress and TestSpawn_RequiresAnchorRejectsAtCompletionWhenTheAnchorIsLost`);
+    fail('J · unbound refusal', `the fresh character is bound to ${cHome} without ever choosing Bind & Restock - a fresh character must be unbound`);
   } else {
     await C.cmd('GOD on');
     await C.cmd('SKILL OpenPortal');
@@ -651,8 +648,12 @@ try {
       if (stillUnbound) {
         inconclusive('J · unbound refusal', `the character bound to ${stillUnbound} while the loadout was being set up`);
       } else {
-        await C.pressCooldownQ();
-        const refused = await C.floatingSeen('No campfire bound', 6_000);
+        // A single Q hold can fall between two throttled rAF samples: up to 3 presses.
+        let refused = false;
+        for (let i = 0; i < 3 && !refused; i++) {
+          await C.pressCooldownQ();
+          refused = await C.floatingSeen('No campfire bound', 4_000);
+        }
         let barEver = false;
         for (let i = 0; i < 20; i++) {
           if ((await C.castBar()).casting) { barEver = true; break; }

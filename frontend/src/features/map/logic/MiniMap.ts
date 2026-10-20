@@ -21,6 +21,7 @@ import {
     rescaleCoordinate,
     resizeTerrain,
     rimPoint,
+    toZoneLocal,
     worldToMap,
 } from './MapScale';
 import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFlightMessage';
@@ -44,6 +45,13 @@ const sizeFactorRelatedToMapSize = 2;
  * the same gesture. [PLACEHOLDER]
  */
 const ARM_TIMEOUT_MS = 4000;
+
+/**
+ * How far from the player, in zone units, the departure board looks for the
+ * fire it departs from: the bind circle (0.75) plus slack. Fires stand far
+ * further apart than this.
+ */
+const ORIGIN_PICK_RADIUS = 1.5;
 
 /**
  * The radar's home-campfire pointer (plan-minimap-local-viewport.md M3): its
@@ -186,11 +194,16 @@ export class MiniMap {
      */
     private armedFlightTimeout: ReturnType<typeof setTimeout> | undefined;
     /**
-     * Whether this opening of the map can start a flight — true only when E at
-     * a campfire opened it (see openForFlight). Cleared on every close, so it
+     * Whether this opening of the map can start a flight — true only when a
+     * campfire's Fly row opened it (see openForFlight). Cleared on every close, so it
      * can never outlive the standing-at-a-fire fact that set it.
      */
     private flightMode = false;
+    /**
+     * The campfire whose Fly row opened the departure board; 0 until the first
+     * snapshot after the open names it (see followFlightOffer).
+     */
+    private flightFireId = 0;
 
     /** Other players, from the 1 Hz roster, in BOTH states — see MapPlayers. */
     private players: MapPlayers = null;
@@ -814,7 +827,7 @@ export class MiniMap {
      * 2026-08-05 ruling is that the ONE precondition the map could not observe
      * — standing at a discovered fire — is now guaranteed by how the map was
      * opened rather than reported after the fact: `flightMode` is set only by
-     * E at a fire. A map opened with M reads; it does not depart.
+     * a fire's Fly row. A map opened with M reads; it does not depart.
      */
     private pressOnMap(event: PointerEvent) {
         if (!this.flightMode) {
@@ -891,6 +904,30 @@ export class MiniMap {
         }
     }
 
+    /** Whether the map is open as a departure board (see openForFlight). */
+    public isDepartureBoard(): boolean {
+        return this.flightMode && this.isOpen();
+    }
+
+    /**
+     * Close the departure board when its campfire stops being on offer — the
+     * board is that fire's conversation, so it ends where a conversation panel
+     * would. `offeredId` is the server's interactable_entity_id this tick, the
+     * same stamp the server ends conversations on (refreshConversations), so
+     * both close at one distance. The first snapshot after the open adopts the
+     * offered fire; the player is standing in its range by construction.
+     */
+    public followFlightOffer(offeredId: number) {
+        if (!this.isDepartureBoard()) {
+            return;
+        }
+        if (this.flightFireId === 0 && offeredId !== 0) {
+            this.flightFireId = offeredId;
+        } else if (offeredId !== this.flightFireId) {
+            this.close();
+        }
+    }
+
     /**
      * Whether a press landed on the drawn map. False for the header, the
      * letterbox bands, and anything else in the overlay.
@@ -920,16 +957,6 @@ export class MiniMap {
         return this.state === MapState.FULLSCREEN;
     }
 
-    /**
-     * Whether the authored fire at (x, y) in ZONE units has been discovered —
-     * the E prompt's gate (flight C3). Delegated to MapCampfires, which owns
-     * the discovered set; the map is where that knowledge already lives, so
-     * asking it beats keeping a second copy beside the interact badge.
-     */
-    public isDiscoveredAt(x: number, y: number): boolean {
-        return this.campfires?.isDiscoveredAt(x, y) ?? false;
-    }
-
     public toggle() {
         // Through close()/open() rather than setState directly, so the M key and
         // the map button drop a pending flight arm like every other exit does.
@@ -951,8 +978,9 @@ export class MiniMap {
     }
 
     /**
-     * The map as a DEPARTURE BOARD — opened by E at a discovered campfire, the
-     * only way into flight (PO ruling 2026-08-05).
+     * The map as a DEPARTURE BOARD — opened by the Fly row in a discovered
+     * campfire's panel, the only way into flight (PO rulings 2026-08-05 and
+     * 2026-10-20). The server stamps flight_offered when the row is taken.
      *
      * ⚑ The mode is what makes the gesture honest. Flight needs the player to
      * be STANDING at a discovered fire, and nothing on the map can show that;
@@ -967,10 +995,24 @@ export class MiniMap {
      */
     public openForFlight() {
         this.flightMode = true;
+        this.flightFireId = 0;
         // The departure board says what it wants from you; the read-only map
         // stays "Map". Stamped on every open, so no restore is needed on close.
         this.setTitle(t('map.pick-destination'));
         this.setState(MapState.FULLSCREEN);
+        // Ring the fire this board departs from. The server only offers Fly
+        // inside a fire's bind circle, so the player stands at it.
+        const character = this.playerCharacter;
+        if (character && this.campfires) {
+            const unit = meter2px(1);
+            const origin = this.campfires.discoveredFireNear(
+                toZoneLocal(character.getX(), this.zoneOriginX) / unit,
+                toZoneLocal(character.getY(), this.zoneOriginY) / unit,
+                ORIGIN_PICK_RADIUS);
+            if (this.campfires.setOrigin(origin)) {
+                this.campfires.draw(this.state, this.scale);
+            }
+        }
     }
 
     private setTitle(text: string) {
@@ -987,6 +1029,10 @@ export class MiniMap {
         // has to be dropped. Closing the map is "never mind" by any route.
         this.disarmFlight();
         this.flightMode = false;
+        this.flightFireId = 0;
+        if (this.campfires?.setOrigin('')) {
+            this.campfires.draw(this.state, this.scale);
+        }
         // A tap's box would otherwise come back with the map's next opening.
         this.lastHoverClient = null;
         this.setState(MapState.DOCKED);

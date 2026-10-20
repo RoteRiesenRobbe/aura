@@ -274,10 +274,10 @@ Run the harnesses whose "Re-run when" column matches what you changed BEFORE wri
 | `skill-fx-preview.mjs` | dev-only live VFX preview page |  | `frontend/src/fx-preview.ts` / `.html`, `SkillFxPreview.ts`, ... |
 | `immune-feedback.mjs` | grey "Immune" label over a fully mitigated hit |  | `takeDamage`'s mitigation branches, `SkillEvent` / `HitKind.Immune` on the wire, ... |
 | `r7-respec-cost.mjs` | blue floating cost number; respec cost |  | floating combat text, cost pricing, the respec path, the points badge |
-| `r4-recall-utility.mjs` | Recall as a baseline utility |  | the utility bar, cast interrupts, bind-on-dwell, `startingSpawn`, ... |
+| `r4-recall-utility.mjs` | Recall as a baseline utility |  | the utility bar, cast interrupts, the fire's Bind & Restock row, `startingSpawn`, ... |
 | `c1-open-portal.mjs` | travel_to grant (open portal) at the game surface |  | `travel_to` parse or apply, the `AnchorSource` seam / `AnchorOf`, ... |
 | `c2-pull-through.mjs` | spawn_at_anchor and caster destination mode (pull-through) |  | `spawn_at_anchor` parse/validation or its placement probe, `anchorSpawnOffset`, ... |
-| `r4-camp.mjs` | mini-campfire: Camp button, charge store, placed fire |  | the camp charge store, cast completion, camp TTL or replacement, dwell refill, ... |
+| `r4-camp.mjs` | mini-campfire: Camp button, charge store, placed fire |  | the camp charge store, cast completion, camp TTL or replacement, the fire's Restock row, ... |
 | `filler-batch.mjs` | DAMAGE cheat, darkness damage numbers, minimap-on-death, Ctrl zoom |  | darkness suppression, minimap lifecycle, dev cheats |
 | `c1-world-map.mjs` | world map's two states and entry points |  | `MiniMap` state/toggle, `#worldMap` markup or z-index, `MapScale`, `MapTerrain`, ... |
 | `m1-minimap-radar.mjs` | docked radar scale and dot placement |  | `MapScale.mapScale`/`layerOffset`/`groundRing`/`fixedIconScale`, ... |
@@ -298,14 +298,14 @@ Run the harnesses whose "Re-run when" column matches what you changed BEFORE wri
 | `darkness-frametime.mjs` | darkness layer per-frame cost (measurement) |  | `DarknessOverlay`'s filters, base quad, ... |
 | `start-screen-tour.mjs` | start screen's live spectator tour backdrop |  | `model/spectator/tour.go`, `NewTouringSpectator`, ... |
 | `c3-player-roster.mjs` | other players on your map (two clients) |  | `codec.RosterFor`, the roster publication interval, the map's player layer, ... |
-| `c3-flight-client.mjs` | flight, client side (E to fly) |  | `Flight.ts`, `FlightOrigin.ts`, `Zoom`'s flight override, the `flyers` render layer, ... |
+| `c3-flight-client.mjs` | flight, client side (E at the fire, Fly row) |  | `Flight.ts`, the campfire's Fly row / `Interact.ts`, `Zoom`'s flight override, the `flyers` render layer, ... |
 | `mobile-layout.mjs` | phone HUD layout and tap playability |  | the mobile HUD CSS, the ☰ sheet, the action-tile row, `MOBILE_MAX_RESOLUTION`, ... |
 | `mobile-interact.mjs` | mobile interact button |  | the interact offer on touch, the mobile button, `Interact.trigger`, ... |
 | `focus-loss-sweep.mjs` | held keys survive focus loss |  | `KeyboardManager`'s blur sweep, the movement vector, the stop tail, ... |
 | `backlog33-prehot.mjs` | hot_aura on full-health allies vs heal_aura |  | `applyHotAura` / `applyHealAura` eligibility, `HotParams`, ... |
 | `hygiene-wire-prune.mjs` | join smoke for wire renumbering |  | **any `.fbs` field add or remove** |
 | `chunk4-persistence.mjs` | save and load end to end |  | the snapshot/restore mapping (`sys/persist.go`), ... |
-| `campfire-bind-persistence.mjs` | campfire bind surviving a login |  | `world.Campfire.ID`, zone campfire content, `trackCampfireDwell`, `s.anchors`, ... |
+| `campfire-bind-persistence.mjs` | campfire bind surviving a login |  | `world.Campfire.ID`, zone campfire content, the fire's Bind & Restock row (`CampfireRow`), `s.anchors`, ... |
 | `chunk2-accounts.mjs` | pre-game account screens and endpoints |  | the account screens, `AccountsApi`/`AccountFlow`, the nine endpoints, ... |
 | `p3-filled-polygon.mjs` | filled polygon blocks and lets go |  | `PolygonColliders`, `fillAt`'s merge (⛔ especially any cap put back on it), ... |
 | `p3-diagonal-slide.mjs` | diagonal wall slide without reversals |  | `appendPolygonBoundary`, `strokeThickness`, `fillAt`'s wholly-inside test, ... |

@@ -210,8 +210,18 @@ ring():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+campRestocked():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 84);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
+flightOffered():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 86);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(40);
+  builder.startObject(42);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -360,6 +370,14 @@ static addPortrait(builder:flatbuffers.Builder, portrait:number) {
 
 static addRing(builder:flatbuffers.Builder, ring:number) {
   builder.addFieldInt16(39, ring, 0);
+}
+
+static addCampRestocked(builder:flatbuffers.Builder, campRestocked:boolean) {
+  builder.addFieldInt8(40, +campRestocked, +false);
+}
+
+static addFlightOffered(builder:flatbuffers.Builder, flightOffered:boolean) {
+  builder.addFieldInt8(41, +flightOffered, +false);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

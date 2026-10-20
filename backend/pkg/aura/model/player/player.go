@@ -180,15 +180,18 @@ type player struct {
 	costPaid vitals.VitalSign
 	xpGained uint64
 
-	// campfireBound is stamped the tick a campfire dwell completes (chunk 4):
-	// the fire became this player's respawn anchor. Reset each tick alongside
-	// the accumulators above; drives the client's "bound" feedback.
+	// campfireBound, campRestocked and flightOffered are stamped the tick the
+	// player takes a campfire row: Bind & Restock, Restock, Fly. Reset each
+	// tick alongside the accumulators above; they drive the client's floating
+	// confirmation and its departure board.
 	campfireBound bool
+	campRestocked bool
+	flightOffered bool
 
 	// homeCampfire and discoveredCampfires are the map's campfire markers
 	// (plan-world-map.md C2), published together by the ConnectionStateSystem
-	// on the two occasions either can change: entering the world, and
-	// completing a dwell. Reset each tick alongside the accumulators above.
+	// on the occasions either can change: entering the world, a discovery and
+	// a bind. Reset each tick alongside the accumulators above.
 	//
 	// ⚑ EMPTY PUBLISHES NOTHING, and that is sound rather than sloppy: the set
 	// only grows, so "published empty" can only happen while the client's own
@@ -202,8 +205,8 @@ type player struct {
 
 	// campCharges is how many Camp baseline-utility charges this player is
 	// holding (plan-downtime.md C2, D3). Deliberately NOT a per-tick
-	// accumulator and deliberately NOT persisted: it refills to cap by
-	// dwelling at a real campfire, is spent at a channel's completion, and is
+	// accumulator and deliberately NOT persisted: it refills to cap at a
+	// real campfire's rows, is spent at a channel's completion, and is
 	// simply absent from the freshly built player struct a respawn produces —
 	// which is how "zeroed on death" is achieved by construction rather than
 	// by a reset someone has to remember. Only a reconnect carries it, through
@@ -518,13 +521,27 @@ func (p *player) Heal(h model.Healing) vitals.VitalSign {
 	return healed
 }
 
-// CampfireBound reports whether a campfire dwell completed this tick
-// (chunk 4); serialized as the Character campfire_bound wire field.
+// CampfireBound reports whether the player took a fire's Bind & Restock row
+// this tick; serialized as the Character campfire_bound wire field.
 func (p *player) CampfireBound() bool { return p.campfireBound }
 
 // NoteCampfireBound records that a campfire became this player's respawn
-// anchor this tick; the ConnectionStateSystem's dwell tracker calls it.
+// anchor this tick; the ConnectionStateSystem's CampfireRow calls it.
 func (p *player) NoteCampfireBound() { p.campfireBound = true }
+
+// CampRestocked reports whether the player took a fire's Restock row this
+// tick; serialized as camp_restocked.
+func (p *player) CampRestocked() bool { return p.campRestocked }
+
+// NoteCampRestocked records a Restock row taken this tick.
+func (p *player) NoteCampRestocked() { p.campRestocked = true }
+
+// FlightOffered reports whether the player took a fire's Fly row this tick;
+// serialized as flight_offered, which opens the client's departure board.
+func (p *player) FlightOffered() bool { return p.flightOffered }
+
+// NoteFlightOffered records a Fly row taken this tick.
+func (p *player) NoteFlightOffered() { p.flightOffered = true }
 
 // HomeCampfire is the spawn point this player would respawn at, published this
 // tick; "" when there is nothing to publish. Serialized into the owner-only
@@ -532,12 +549,12 @@ func (p *player) NoteCampfireBound() { p.campfireBound = true }
 func (p *player) HomeCampfire() string { return p.homeCampfire }
 
 // DiscoveredCampfires is the whole set of spawn points this character has
-// dwelled at, published this tick; nil when there is nothing to publish.
+// discovered, published this tick; nil when there is nothing to publish.
 func (p *player) DiscoveredCampfires() []string { return p.discoveredCampfires }
 
 // NoteCampfireState publishes both to this tick's GameState; the
-// ConnectionStateSystem calls it on entering the world and on completing a
-// dwell.
+// ConnectionStateSystem calls it on entering the world, on a discovery and on
+// a bind.
 //
 // ⚑ It does NOT stamp campfireBound. Entering the world republishes the pair
 // without anything having been bound just now, and the bound stamp is what pops
@@ -906,6 +923,8 @@ func (p *player) ResetTickNumbers() {
 	p.costPaid = 0
 	p.xpGained = 0
 	p.campfireBound = false
+	p.campRestocked = false
+	p.flightOffered = false
 	p.homeCampfire = ""
 	p.discoveredCampfires = nil
 	p.mapFog = nil

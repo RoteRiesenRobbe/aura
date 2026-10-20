@@ -81,11 +81,11 @@ type costPayer interface {
 type ConnState interface {
 	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
 	// CampfireAt reports which authored fire's BIND circle contains pos, if any
-	// - the same geometry the dwell tracker and flight validation share. The
+	// - the same geometry discovery and flight validation share. The
 	// spawn_at_anchor placement probe consults it to keep its portal OUT of
-	// every bind circle (plan-portal-spells.md D8): the client synthesizes a
-	// campfire interact offer that overrides the server's, so a portal inside
-	// one would lose every E press to the flight map.
+	// every bind circle (plan-portal-spells.md D8): the fire is itself a
+	// conversant there, and the nearer of two conversants takes the E press,
+	// so a portal inside one would compete with the fire's own panel.
 	//
 	// ⚑ Asked rather than derived from a constant on purpose. Bind radii are
 	// per-fire runtime data (aurad.go scales each fire's aura radius), so a
@@ -3256,9 +3256,9 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 // 10's first press unambiguous.
 //
 // ⚑ What it does NOT buy: a player anywhere inside the bind circle is still
-// within the portal's 2.0 range from the near edge. The client's campfire offer
-// OVERRIDES the server's there, so that annulus belongs to the fire by design:
-// step off the bind circle to press E on the portal.
+// within the portal's 2.0 range from the near edge. The nearer conversant takes
+// the press, and inside the bind circle that is the fire: step off it to press
+// E on the portal.
 const anchorSpawnOffset float32 = 2.5
 
 // anchorSpawnPosition picks the anchored summon's spot: up to

@@ -50,10 +50,10 @@ const w = (p) => `${Math.round(p.x) * 120} ${Math.round(p.y) * 120}`;
 // on a stale position cannot coincidentally land on the right answer.
 const B_FIRST = { x: 44, y: 10 };
 const B_SECOND = { x: -30, y: -20 };
-// The fire A discovers by spawning at it (startingSpawn, api/zones/world.json) —
-// leg 6 stands B on top of it. WARP's whole-unit granularity lands ~0.2 units
-// off, which is well inside either marker.
-const A_FIRE = { x: -58, y: 24 };
+// The fire A discovers by spawning at it (spawnpoint-1, startingSpawn,
+// api/zones/world.json: -239.78, 15.36) — leg 6 stands B on top of it. WARP's
+// whole-unit granularity lands ~0.4 units off, which is well inside either marker.
+const A_FIRE = { x: -240, y: 15 };
 // One publication is 1 s; 1.6 s is one full window plus slack for a throttled
 // headless page.
 const ROSTER_WINDOW = 1600;
@@ -279,9 +279,9 @@ try {
 
   // --- 6. the fire wins where a player stands on it -------------------------
   //
-  // ⚑ The case the ruling is ABOUT, made observable: a player dwelling at a
-  // fire is the single most likely place for two markers to coincide — binding
-  // a campfire is what standing still at one is FOR. Leg 3 proves the order in
+  // ⚑ The case the ruling is ABOUT, made observable: a player standing at a
+  // fire is the single most likely place for two markers to coincide — the fire
+  // is where players gather to bind, restock and fly. Leg 3 proves the order in
   // the abstract; this proves both markers actually exist at the same spot
   // while it applies, which is the only way the order can be shown to matter.
   //

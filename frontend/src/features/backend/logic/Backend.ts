@@ -43,10 +43,7 @@ import * as Journal from "../../journal/logic/Journal";
 import * as QuestTracker from "../../journal/logic/QuestTracker";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import * as Flight from "../../flight/logic/Flight";
-import * as FlightOrigin from "../../flight/logic/FlightOrigin";
-import {Campfire} from "../../game-objects/logic/Mobs";
 import {castProgress} from "../../game-objects/logic/AscensionChannelMath";
-import {meter2px} from "../../../client-data/BasicConfig";
 import {
     BackendConnectionFailureEvent,
     BackendSetupEvent,
@@ -647,38 +644,15 @@ export class Backend implements IBackend {
         // nobody is in range for as long as a panel is open — harmless today
         // only because the interact key checks Conversation.isOpen() first, and
         // a trap for the next reader of that getter.
-        // ⚑ A campfire is a SECOND source of offers, and the server knows
-        // nothing about it (flight C3, PO 2026-08-05). Campfires carry no
-        // authored `interaction`, so `sense()` never names one — but E at a
-        // fire is now the only way into flight, so the client adds the offer
-        // itself from data the server already streams (the bind radius) rather
-        // than from a rule of its own.
-        //
-        // ⚑ THE FIRE WINS OVER A CONVERSANT, and it has to. "Conversant wins"
-        // was tried first and is unshippable: `VillageHealer` stands 1.5 units
-        // from spawnpoint-2, well inside its own 2.0 talk range, so E at that
-        // fire talked to the healer and the fire could never be flown from at
-        // all — one of the world's five fires, silently. The bind radius is the
-        // far tighter condition (0.75 units vs 2.0), so standing inside one is
-        // an unambiguous statement of which thing you mean; the healer is one
-        // step away, and stepping off a fire is a gesture players already make.
-        // ⚑ The clash is a CONTENT fact and it will recur — see the skill's
-        // conversant-cluster gotcha. Anything that needs both at one spot needs
-        // a real answer (a row in the fire's own panel), not a re-ordering here.
-        const offered = snapshot.interactableEntityId ?? 0;
-        const flightOrigin = this.campfireUnderPlayer();
-        FlightOrigin.setOrigin(flightOrigin);
-        this.interactableEntityId = flightOrigin || offered;
+        this.interactableEntityId = snapshot.interactableEntityId ?? 0;
+        // The departure board is the campfire's conversation and closes at the
+        // same distance (PO 2026-10-20).
+        this.game.miniMap?.followFlightOffer(this.interactableEntityId);
         // ⚑ The "my own panel is open" suppression must compare against a REAL
-        // partner. `partnerId()` is 0 when nothing is open, so the older
-        // `offered === partnerId()` form was `0 === 0` — trivially true —
-        // whenever no conversant was in range. That cost nothing while the
-        // badge could only ever wear `offered` (both were 0 together), but the
-        // campfire offer made the two diverge: at a fire with no NPC nearby the
-        // prompt was suppressed while E kept working, because E reads the
-        // tracked id and the badge reads this. Reported by the PO as "sometimes
-        // the E is not visible" 2026-08-05; it was every fire that had no
-        // conversant standing next to it.
+        // partner. `partnerId()` is 0 when nothing is open, so an
+        // `offered === partnerId()` form would be `0 === 0` — trivially true —
+        // whenever no conversant was in range (PO 2026-08-05: "sometimes the E
+        // is not visible").
         const partner = Conversation.partnerId();
         const badged = partner !== 0 && this.interactableEntityId === partner
             ? 0
@@ -801,36 +775,5 @@ export class Backend implements IBackend {
             this.badgedEntityId,
             id,
             (entityId) => this.game.map.getObject(entityId) as Badgeable);
-    }
-
-    /**
-     * The campfire the player is standing at and has discovered, or 0 — the
-     * client-side half of the interact offer (flight C3, PO 2026-08-05).
-     *
-     * Both conditions are read from things the server already published: the
-     * bind radius rides every campfire snapshot, and the discovered set is the
-     * map's. Nothing here re-derives a rule — which is what keeps the prompt
-     * from ever lighting on a flight `tryStartFlight` would refuse.
-     *
-     * ⚑ Never offered mid-flight. A flyer passes directly over fires, and their
-     * own bind radius would light the prompt for the whole crossing — the same
-     * trap the server's dwell tracker sidesteps by skipping flyers outright.
-     */
-    private campfireUnderPlayer(): number {
-        const character = this.game.player?.character;
-        if (!character || Flight.isFlying()) {
-            return 0;
-        }
-        const fires = this.game.map.getObjectsInView()
-            .filter((o): o is Campfire => o instanceof Campfire);
-        const fire = FlightOrigin.fireUnderPlayer(fires, character.getX(), character.getY());
-        if (fire === null) {
-            return 0;
-        }
-        // Entity px back to the zone units the discovered set is authored in.
-        const unit = meter2px(1);
-        return this.game.miniMap.isDiscoveredAt(fire.getX() / unit, fire.getY() / unit)
-            ? fire.id
-            : 0;
     }
 }
