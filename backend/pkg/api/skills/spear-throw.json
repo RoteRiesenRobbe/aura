@@ -10,7 +10,6 @@
   "cooldownTicksPerLevel": -10,
   "visual": {
     "layers": [
-      { "kind": "cast-pose", "on": "fired", "ms": 400 },
       { "kind": "projectile", "on": "hit", "body": "arrow", "scale": 1.0, "speed": 700 }
     ]
   },
