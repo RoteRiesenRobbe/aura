@@ -860,6 +860,19 @@ export class Sheep extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Sheep, file('sheep'), maxSize('sheep'));
 
+// The beach crab (Saltgrass Strand): placeholder art on the wildlife layer.
+export class SandClamper extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            size, SandClamper.svg, medallion('sandClamper'));
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(SandClamper, file('sandClamper'), maxSize('sandClamper'));
+
 export class EliteWolf extends Mob {
     static svg: PIXI.Texture;
 

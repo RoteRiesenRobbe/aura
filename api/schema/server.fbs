@@ -293,7 +293,10 @@ enum EntityType : ushort {
   // The picture is the exit's `look`, drawn by the client from the bundled
   // zone, so a new look is never a new value here. Replaced Signpost on the
   // CaveMouth/CaveExit doors.
-  Passage = 122
+  Passage = 122,
+  // A placeholder beach crab (Saltgrass Strand), its own mean face instead
+  // of the NpcPlaceholder marker. Replaced at the Zone 1 art pass.
+  SandClamper = 123
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
