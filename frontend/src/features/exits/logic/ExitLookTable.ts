@@ -20,7 +20,7 @@ export const DEFAULT_EXIT_LOOK = 'cave-mouth';
 /**
  * Every drawn look's art box in world units, centred on the exit and pointing
  * UP (-y) at rotation 0. [PLACEHOLDER] sizes (the stairs halved, PO
- * 2026-10-19); the cave mouth's is its prop's body (api/props/cave-mouth.json),
+ * 2026-10-19; the cave exit cut from 2.4 to ~30 %, PO 2026-10-20); the cave mouth's is its prop's body (api/props/cave-mouth.json),
  * whose art it reuses. ⚑ JSON for the profile tables' reason: the Tiled palette
  * generator reads the same file, so an exit's box in Tiled is the size the game
  * draws it at.
