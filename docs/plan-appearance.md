@@ -1035,7 +1035,7 @@ second Playwright page draws late; wait on the wire value, not a timeout.
 `content-editor-lang.mjs` is stale (its quest "Boars in the Field" is gone),
 recorded in the verify skill.
 
-### C4 - BUILT 2026-10-21 `[uncommitted]` (PO look owed)
+### C4 - BUILT 2026-10-21 `79f6721e` (PO look owed)
 
 The in-game picker (D9-D11). Ruled in the session (PO, 2026-10-21): hotkey **C**
 (before the session); **LOOK persists** like a pick (one save path; it skips
