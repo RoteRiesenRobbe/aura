@@ -47,6 +47,7 @@ export { Resource } from './aura-api/resource.js';
 export { Respawn } from './aura-api/respawn.js';
 export { Respec } from './aura-api/respec.js';
 export { RosterEntry } from './aura-api/roster-entry.js';
+export { SelectAppearance } from './aura-api/select-appearance.js';
 export { ServerMessage } from './aura-api/server-message.js';
 export { ServerMessageBody } from './aura-api/server-message-body.js';
 export { SkillEvent } from './aura-api/skill-event.js';

@@ -159,6 +159,26 @@ func (c Catalog) Wire(slot Slot, id string) uint16 {
 	return 0
 }
 
+// ID is Wire's inverse: the id at a wire value, or "" for 0 and anything past
+// the slot's end.
+func (c Catalog) ID(slot Slot, wire uint16) string {
+	items := c.rings
+	if slot == SlotPortrait {
+		items = c.portraits
+	}
+	if wire == 0 || int(wire) > len(items) {
+		return ""
+	}
+	return items[wire-1].ID
+}
+
+// WearableLook reports whether an in-game pick (SelectAppearance, C4) may be
+// worn: a starter portrait and a starter ring, as wire values. C5 swaps the
+// starter set for the character's owned set here.
+func (c Catalog) WearableLook(portrait, ring uint16) bool {
+	return c.starter(SlotPortrait, c.ID(SlotPortrait, portrait)) && c.starter(SlotRing, c.ID(SlotRing, ring))
+}
+
 func (c Catalog) starter(slot Slot, id string) bool {
 	it, ok := c.byID[id]
 	return ok && it.Slot == slot && it.Starter

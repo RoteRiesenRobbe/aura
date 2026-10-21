@@ -319,3 +319,5 @@ func (nopClient) SendUnlock(uint64, lang.Message) error             { return nil
 func (nopClient) SendJournal(lang.Message) error                    { return nil }
 func (nopClient) Close()                                      {}
 func (nopClient) UUID() uuid.UUID                             { return uuid.Nil }
+
+func (nopClient) NextSelectAppearance() *model.SelectAppearance { return nil }

@@ -327,9 +327,9 @@ func teleport(p model.PlayerEntity, pos phy.Vec2f) {
 }
 
 // lookCommand builds LOOK <item-id>: wears any appearance item, owned or not
-// (plan-appearance.md C3), in the slot the item belongs to. Live only: a
-// relog wears the character row's look again (the in-game picker's save path
-// is C4's).
+// (plan-appearance.md C3), in the slot the item belongs to. It persists like
+// an in-game pick (C4, PO 2026-10-21): the save path reads the worn look and
+// asks nothing about how it was put on.
 func lookCommand(looks appearance.Catalog) Command {
 	return func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || *arg == "" {

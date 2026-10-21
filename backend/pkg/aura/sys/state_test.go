@@ -37,6 +37,7 @@ type fakeClient struct {
 	unlocks   []capturedUnlock
 	journals  []string
 	abandons  []*model.AbandonQuest
+	looks     []*model.SelectAppearance
 	closed    bool
 }
 
@@ -97,6 +98,16 @@ func (c *fakeClient) NextUseUtility() *model.UseUtility {
 
 func (c *fakeClient) NextStartFlight() *model.StartFlight {
 	return nil
+}
+
+// A real queue too: the in-game picker's message (plan-appearance.md C4).
+func (c *fakeClient) NextSelectAppearance() *model.SelectAppearance {
+	if len(c.looks) == 0 {
+		return nil
+	}
+	l := c.looks[0]
+	c.looks = c.looks[1:]
+	return l
 }
 
 // A real queue like the interacts above: the abandon verb's whole server half

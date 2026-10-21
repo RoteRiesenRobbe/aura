@@ -41,6 +41,14 @@
 // card must show the same portrait and ring as the picker drew, and all of it
 // must survive a relog.
 //
+// C4 (plan-appearance.md): the in-game Appearance panel on the same profile.
+// C opens it, Escape closes it, the desktop button opens it, the spellbook
+// opening closes it (PanelExclusivity); its selected tiles are the worn look.
+// Picking the red hood changes the own wire value, the first client sees the
+// second wearing it (the same texture the first wears by LOOK red-hood), and
+// it survives a death + respawn and a relog through character select (the
+// pick persists). A third, forced-?mobile page opens it from the ☰ sheet.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -322,8 +330,9 @@ for (const v of VENUES) {
   ok(preview.ring && preview.ring !== plainRing, 'preview ring is not the plain ring');
   await p2.screenshot({ path: join(shotDir, `c1-${label}-c3-picker.png`) });
 
+  let lookName = '';
   const enterWorld = async () => {
-    await joinAsNewCharacter(p2, 'look');
+    lookName = await joinAsNewCharacter(p2, 'look');
     await p2.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
     await p2.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
     await p2.evaluate(() => {
@@ -391,7 +400,6 @@ for (const v of VENUES) {
   // Relog, the in-product way out (chunk4-persistence): leaving ends the
   // world session, so coming back is a cold join that reads the row. A page
   // reload would reconnect into the stashed character instead.
-  await cmd2('LOOK default'); // live only: the row still says green-hood
   await p2.click('#gameSettingsButton');
   await p2.click('#leaveToCharacterSelect');
   await p2.waitForSelector('#characterSelect:not(.hidden) .slotCard .medallion', { timeout: 60_000 });
@@ -404,7 +412,109 @@ for (const v of VENUES) {
   await p2.screenshot({ path: join(shotDir, `c1-${label}-c3-select.png`) });
   await enterWorld();
   await worldLegs('relogged');
+
+  // --- C4: the in-game Appearance panel -----------------------------------
+  const panelOpen = () => p2.evaluate(() => !document.getElementById('appearance').classList.contains('hidden'));
+  const worn = () => p2.evaluate(() => [...document.querySelectorAll('#appearance .lookOption.selected')].map((t) => t.dataset.item));
+  const press = async (key) => { await p2.keyboard.press(key); await p2.waitForTimeout(300); };
+  await p2.mouse.click(640, 300); // focus the game, not the console
+  await press('KeyC');
+  ok(await panelOpen(), 'c4: C opens the Appearance panel');
+  const panelTiles = await p2.locator('#appearance .lookOption').count();
+  ok(panelTiles === 10, `c4: the panel offers ${panelTiles} starter tiles (8 portraits + 2 rings)`);
+  ok(JSON.stringify(await worn()) === JSON.stringify(['green-hood', 'ring-leather']), `c4: the panel shows the worn look ${await worn()}`);
+  await press('Escape');
+  ok(!(await panelOpen()), 'c4: Escape closes it');
+  await p2.click('#appearanceButton');
+  ok(await panelOpen(), 'c4: the desktop button opens it');
+  await p2.screenshot({ path: join(shotDir, `c1-${label}-c4-panel.png`) });
+  await p2.click('#spellbookButton');
+  await p2.waitForTimeout(300);
+  ok(!(await panelOpen()), 'c4: opening the spellbook closes it');
+  await press('Escape');
+
+  const redHood = await p2.evaluate(() => window.__appearanceIds.indexOf('red-hood') + 1);
+  await press('KeyC');
+  await p2.click('#appearance .lookOption[data-item="red-hood"]');
+  const pickedRed = await p2.waitForFunction((w) => window.game.character.portraitWire === w, redHood, { timeout: 15_000 })
+    .then(() => true).catch(() => false);
+  ok(pickedRed, `c4: picking the red hood sets the own portrait wire to ${redHood}`);
+  await p2.waitForTimeout(500);
+  ok(JSON.stringify(await worn()) === JSON.stringify(['red-hood', 'ring-leather']), `c4: the panel follows the server: ${await worn()}`);
+  await press('Escape');
+
+  // The first client, at the same spot, sees it (texture identity: it wears
+  // the red hood itself by LOOK and compares busts).
+  if (packIcons > 0) {
+    const v = VENUES.find((x) => x.name === 'bandit');
+    // Two units to the side: on the same spot the two tokens overlap, and a
+    // player's name is not in the plate layer, so the tokens are told apart
+    // by position (the second client stands at the venue point).
+    await cmd(`WARP ${(v.at[0] + 2) * 120} ${v.at[1] * 120}`);
+    await cmd('LOOK red-hood');
+    await page.bringToFront();
+    await page.waitForTimeout(6000);
+    const snap = await readTokens();
+    const dist = (t, x, y) => Math.hypot(t.x - x, t.y - y);
+    const chars = snap.tokens.filter((t) => t.layer === 'characters');
+    const mine = chars.sort((a, b) => dist(a, ...snap.me) - dist(b, ...snap.me))[0];
+    const theirs = chars.filter((t) => t !== mine && dist(t, v.at[0], v.at[1]) < 1.5)[0];
+    if (!theirs) { inconclusive++; report.push(`INCONCLUSIVE c4: ${lookName} not in the first client's view`); }
+    else ok(theirs.portrait.uid === mine?.portrait.uid, `c4: the first client sees ${lookName} in the red hood (tex#${theirs.portrait.uid} = own red hood tex#${mine?.portrait.uid})`);
+    await page.screenshot({ path: join(shotDir, `c1-${label}-c4-observer.png`) });
+    await p2.bringToFront();
+  } else report.push('c4: no pack icons, observer leg skipped');
+
+  // Death + respawn keeps it (the C3 gap C4 closed: deadState carries the look).
+  await cmd2('GOD off');
+  await cmd2('KILL');
+  const died = await p2.waitForFunction(() => document.getElementById('endScreen')?.classList.contains('showing'), null, { timeout: 15_000 })
+    .then(() => true).catch(() => false);
+  await p2.waitForTimeout(2500);
+  await p2.evaluate(() => document.querySelector('#endScreen .playerNameSubmit')?.click());
+  await p2.waitForFunction(() => !document.getElementById('endScreen')?.classList.contains('showing'), null, { timeout: 20_000 }).catch(() => null);
+  await p2.waitForTimeout(3000);
+  await p2.mouse.click(640, 300);
+  await press('KeyC');
+  ok(died && JSON.stringify(await worn()) === JSON.stringify(['red-hood', 'ring-leather']), `c4: after a death and respawn (died ${died}) the panel shows ${await worn()}`);
+  await press('Escape');
+
+  // Relog: the pick was saved, the select card reads the row.
+  await p2.click('#gameSettingsButton');
+  await p2.click('#leaveToCharacterSelect');
+  await p2.waitForSelector('#characterSelect:not(.hidden) .slotCard .medallion', { timeout: 60_000 });
+  await p2.waitForTimeout(2000);
+  const savedLook = await p2.evaluate(() => document.querySelector('#characterSelect .slotCard .medallion')?.dataset);
+  ok(savedLook?.portrait === 'red-hood' && savedLook?.ring === 'ring-leather', `c4: after a relog the select card wears ${savedLook?.portrait} + ${savedLook?.ring}`);
+  await enterWorld();
+  await p2.waitForTimeout(3000);
+  await p2.mouse.click(640, 300);
+  await press('KeyC');
+  ok(JSON.stringify(await worn()) === JSON.stringify(['red-hood', 'ring-leather']), `c4: back in the world the panel shows ${await worn()}`);
   await ctx.close();
+
+  // The phone: the ☰ sheet's row opens it, full screen.
+  const mctx = await browser.newContext({ locale: 'en-US', viewport: { width: 390, height: 844 } });
+  const mp = await mctx.newPage();
+  mp.on('pageerror', (e) => errors.push('c4 mobile pageerror: ' + e.message));
+  await mp.goto(url + '&mobile', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await joinAsNewCharacter(mp, 'lookm');
+  await mp.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
+  await mp.evaluate(() => { const d = document.getElementById('developPanel'); if (d) d.style.display = 'none'; });
+  await mp.waitForTimeout(3000);
+  const desktopButtonHidden = await mp.evaluate(() => getComputedStyle(document.getElementById('appearanceButton')).display === 'none');
+  await mp.click('#mobileMenuButton');
+  await mp.waitForTimeout(300);
+  await mp.click('#appearanceSheetButton');
+  await mp.waitForTimeout(500);
+  const mobile = await mp.evaluate(() => {
+    const r = document.getElementById('appearance').getBoundingClientRect();
+    return { open: !document.getElementById('appearance').classList.contains('hidden'), w: r.width, h: r.height, tiles: document.querySelectorAll('#appearance .lookOption').length };
+  });
+  ok(desktopButtonHidden && mobile.open && mobile.w >= 389 && mobile.tiles === 10,
+    `c4 mobile: desktop button hidden ${desktopButtonHidden}, the ☰ row opens it (${mobile.open}) full screen ${mobile.w}x${mobile.h}, ${mobile.tiles} tiles`);
+  await mp.screenshot({ path: join(shotDir, `c1-${label}-c4-mobile.png`) });
+  await mctx.close();
 }
 for (let i = 0; i < seen.length; i++) {
   for (let j = i + 1; j < seen.length; j++) {

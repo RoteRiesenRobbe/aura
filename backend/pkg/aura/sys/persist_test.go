@@ -104,14 +104,14 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 
 	saved := characterState(99, origin.Name(), s.anchors[originClient.UUID()],
 		s.DiscoveredCampfires(originClient.UUID()), s.fog[originClient.UUID()].Chunks(),
-		origin.Progression(), origin.SkillComponent(), origin.QuestLedger())
+		"", "", origin.Progression(), origin.SkillComponent(), origin.QuestLedger())
 
 	// Apply it to a brand-new player and snapshot again.
 	restoredClient := newFakeClient()
 	restored := joinWithState(t, s, g, restoredClient, "Fred", saved)
 	reSaved := characterState(99, "Barney", s.anchors[restoredClient.UUID()],
 		s.DiscoveredCampfires(restoredClient.UUID()), s.fog[restoredClient.UUID()].Chunks(),
-		restored.Progression(), restored.SkillComponent(), restored.QuestLedger())
+		"", "", restored.Progression(), restored.SkillComponent(), restored.QuestLedger())
 
 	// ⚑ The map fog is the one field a join adds to by itself: the restored
 	// player reveals its own spawn view on its first tick (a jittered spawn can
@@ -428,7 +428,7 @@ func TestCharacterStateEncodesTheQuestLedgerAsThreeRows(t *testing.T) {
 	ledger.NoteKill(3)
 	ledger.NoteTalkedTo(9)
 
-	state := characterState(7, "Barney", "", nil, nil, model.PlayerProgression{Level: 1},
+	state := characterState(7, "Barney", "", nil, nil, "", "", model.PlayerProgression{Level: 1},
 		skills.NewSkillComponent(true), ledger)
 
 	assert.Equal(t, json.RawMessage(`{"3":1}`), state.Flags[quests.FlagKillCounts])

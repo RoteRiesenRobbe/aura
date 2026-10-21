@@ -62,6 +62,8 @@ func (c *countingClient) NextAbandonQuest() *model.AbandonQuest       { return n
 func (c *countingClient) NextRespec() *model.Respec                   { return nil }
 func (c *countingClient) NextUseUtility() *model.UseUtility           { return nil }
 func (c *countingClient) NextStartFlight() *model.StartFlight         { return nil }
+
+func (c *countingClient) NextSelectAppearance() *model.SelectAppearance { return nil }
 func (c *countingClient) SendMessage(b []byte) error {
 	c.bytes += int64(len(b))
 	c.sends++

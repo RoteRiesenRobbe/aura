@@ -62,6 +62,15 @@
         <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span id="skillPointsBadge" class="skillPointsBadge hidden"></span>
     </div>
 
+    <!-- The Appearance panel's desktop way in (plan-appearance.md C4, D10),
+         one button height under #spellbookButton in the same hand-placed
+         column, the spellbook's pattern (plan-ui-pass.md C3); the phone's
+         entry is the ☰ sheet's row below. Both share .appearanceOpenButton,
+         which is what AppearancePanel.ts wires. -->
+    <div data-i18n-attr="title:hud.appearance-button.title" id="appearanceButton" class="appearanceOpenButton" title="Appearance (C)">
+        <span class="appearanceButtonHotkey">C</span><span data-i18n="appearance.label">Appearance</span>
+    </div>
+
     <!-- Quest tracker (2026-08-23; the list rebuilt at UI pass C7 D2): the
          journal button's desktop home, stacked under the map button, and below
          it one scrim listing every running quest as a gold title over its last
@@ -185,6 +194,25 @@
         </div>
     </div>
 
+    <!-- Appearance panel (plan-appearance.md C4): the look picker's in-game
+         mount (LookPicker.ts, D9), the same pieces as character creation. The
+         worn look comes from the server; a press asks for a change. Opened by
+         C / the open buttons, closed by ✕ / Esc. Visibility is
+         AppearancePanel.ts's. -->
+    <div id="appearance" class="hidden">
+        <div class="appearanceHeader">
+            <span data-i18n="appearance.label" class="appearanceTitle">Appearance</span>
+            <span data-i18n-attr="title:appearance.close.title" class="appearanceClose" title="Close (C / Esc)">✕</span>
+        </div>
+        <div class="appearanceBody lookPicker">
+            <div class="lookPreview"></div>
+            <p class="lookLabel" data-i18n="account.create-character.portrait">Portrait</p>
+            <div class="lookOptions" data-slot="portrait"></div>
+            <p class="lookLabel" data-i18n="account.create-character.ring">Ring</p>
+            <div class="lookOptions" data-slot="ring"></div>
+        </div>
+    </div>
+
     <!-- Help panel: a placeholder tutorial until a real one exists — the game's
          mechanics written down as short design statements, ordered by when a
          new player meets them. Opened by the ?-button beside the zoom control,
@@ -298,6 +326,12 @@
              mutually exclusive like every other family member. -->
         <div data-i18n-attr="title:hud.spellbook-sheet-button.title" id="spellbookSheetButton" class="spellbookOpenButton" title="Spellbook (B)">
             <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span class="skillPointsBadge hidden"></span>
+        </div>
+
+        <!-- The phone's way into the Appearance panel (C4), beside the
+             spellbook's row and mobile-only for the same reason. -->
+        <div data-i18n-attr="title:hud.appearance-sheet-button.title" id="appearanceSheetButton" class="appearanceOpenButton" title="Appearance (C)">
+            <span class="appearanceButtonHotkey">C</span><span data-i18n="appearance.label">Appearance</span>
         </div>
 
         <!-- ⚑ The list stays RENDERED whether the book is open or shut, and the

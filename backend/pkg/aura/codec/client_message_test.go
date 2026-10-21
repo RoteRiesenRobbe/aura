@@ -162,3 +162,22 @@ func TestUseUtilityMessageFlatbufferUnmarshal_RoundTrip(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, skills.UtilityRecall, result.Kind)
 }
+
+// --- SelectAppearance (plan-appearance.md C4) ---------------------------------
+
+func TestSelectAppearanceMessageFlatbufferUnmarshal_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.SelectAppearanceStart(b)
+	AuraApi.SelectAppearanceAddPortrait(b, 7)
+	AuraApi.SelectAppearanceAddRing(b, 2)
+	body := AuraApi.SelectAppearanceEnd(b)
+	AuraApi.ClientMessageStart(b)
+	AuraApi.ClientMessageAddBodyType(b, AuraApi.ClientMessageBodySelectAppearance)
+	AuraApi.ClientMessageAddBody(b, body)
+	b.Finish(AuraApi.ClientMessageEnd(b))
+
+	result := SelectAppearanceMessageFlatbufferUnmarshal(ClientMessageFlatbufferUnmarshal(b.FinishedBytes()))
+	require.NotNil(t, result)
+	assert.Equal(t, uint16(7), result.Portrait)
+	assert.Equal(t, uint16(2), result.Ring)
+}

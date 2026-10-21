@@ -16,7 +16,7 @@
  */
 
 /** The family. */
-export type PanelId = 'journal' | 'help' | 'conversation' | 'settings' | 'spellbook' | 'mobileMenu';
+export type PanelId = 'journal' | 'help' | 'conversation' | 'settings' | 'spellbook' | 'appearance' | 'mobileMenu';
 
 const closers = new Map<PanelId, () => void>();
 

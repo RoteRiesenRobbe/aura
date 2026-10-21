@@ -7,51 +7,54 @@ import "strconv"
 type ClientMessageBody byte
 
 const (
-	ClientMessageBodyNONE            ClientMessageBody = 0
-	ClientMessageBodyInput           ClientMessageBody = 1
-	ClientMessageBodyJoin            ClientMessageBody = 2
-	ClientMessageBodyCheat           ClientMessageBody = 3
-	ClientMessageBodyChatMessage     ClientMessageBody = 4
-	ClientMessageBodyEquip           ClientMessageBody = 5
-	ClientMessageBodySpendSkillPoint ClientMessageBody = 6
-	ClientMessageBodyRespawn         ClientMessageBody = 7
-	ClientMessageBodyInteract        ClientMessageBody = 8
-	ClientMessageBodyAbandonQuest    ClientMessageBody = 9
-	ClientMessageBodyRespec          ClientMessageBody = 10
-	ClientMessageBodyUseUtility      ClientMessageBody = 11
-	ClientMessageBodyStartFlight     ClientMessageBody = 12
+	ClientMessageBodyNONE             ClientMessageBody = 0
+	ClientMessageBodyInput            ClientMessageBody = 1
+	ClientMessageBodyJoin             ClientMessageBody = 2
+	ClientMessageBodyCheat            ClientMessageBody = 3
+	ClientMessageBodyChatMessage      ClientMessageBody = 4
+	ClientMessageBodyEquip            ClientMessageBody = 5
+	ClientMessageBodySpendSkillPoint  ClientMessageBody = 6
+	ClientMessageBodyRespawn          ClientMessageBody = 7
+	ClientMessageBodyInteract         ClientMessageBody = 8
+	ClientMessageBodyAbandonQuest     ClientMessageBody = 9
+	ClientMessageBodyRespec           ClientMessageBody = 10
+	ClientMessageBodyUseUtility       ClientMessageBody = 11
+	ClientMessageBodyStartFlight      ClientMessageBody = 12
+	ClientMessageBodySelectAppearance ClientMessageBody = 13
 )
 
 var EnumNamesClientMessageBody = map[ClientMessageBody]string{
-	ClientMessageBodyNONE:            "NONE",
-	ClientMessageBodyInput:           "Input",
-	ClientMessageBodyJoin:            "Join",
-	ClientMessageBodyCheat:           "Cheat",
-	ClientMessageBodyChatMessage:     "ChatMessage",
-	ClientMessageBodyEquip:           "Equip",
-	ClientMessageBodySpendSkillPoint: "SpendSkillPoint",
-	ClientMessageBodyRespawn:         "Respawn",
-	ClientMessageBodyInteract:        "Interact",
-	ClientMessageBodyAbandonQuest:    "AbandonQuest",
-	ClientMessageBodyRespec:          "Respec",
-	ClientMessageBodyUseUtility:      "UseUtility",
-	ClientMessageBodyStartFlight:     "StartFlight",
+	ClientMessageBodyNONE:             "NONE",
+	ClientMessageBodyInput:            "Input",
+	ClientMessageBodyJoin:             "Join",
+	ClientMessageBodyCheat:            "Cheat",
+	ClientMessageBodyChatMessage:      "ChatMessage",
+	ClientMessageBodyEquip:            "Equip",
+	ClientMessageBodySpendSkillPoint:  "SpendSkillPoint",
+	ClientMessageBodyRespawn:          "Respawn",
+	ClientMessageBodyInteract:         "Interact",
+	ClientMessageBodyAbandonQuest:     "AbandonQuest",
+	ClientMessageBodyRespec:           "Respec",
+	ClientMessageBodyUseUtility:       "UseUtility",
+	ClientMessageBodyStartFlight:      "StartFlight",
+	ClientMessageBodySelectAppearance: "SelectAppearance",
 }
 
 var EnumValuesClientMessageBody = map[string]ClientMessageBody{
-	"NONE":            ClientMessageBodyNONE,
-	"Input":           ClientMessageBodyInput,
-	"Join":            ClientMessageBodyJoin,
-	"Cheat":           ClientMessageBodyCheat,
-	"ChatMessage":     ClientMessageBodyChatMessage,
-	"Equip":           ClientMessageBodyEquip,
-	"SpendSkillPoint": ClientMessageBodySpendSkillPoint,
-	"Respawn":         ClientMessageBodyRespawn,
-	"Interact":        ClientMessageBodyInteract,
-	"AbandonQuest":    ClientMessageBodyAbandonQuest,
-	"Respec":          ClientMessageBodyRespec,
-	"UseUtility":      ClientMessageBodyUseUtility,
-	"StartFlight":     ClientMessageBodyStartFlight,
+	"NONE":             ClientMessageBodyNONE,
+	"Input":            ClientMessageBodyInput,
+	"Join":             ClientMessageBodyJoin,
+	"Cheat":            ClientMessageBodyCheat,
+	"ChatMessage":      ClientMessageBodyChatMessage,
+	"Equip":            ClientMessageBodyEquip,
+	"SpendSkillPoint":  ClientMessageBodySpendSkillPoint,
+	"Respawn":          ClientMessageBodyRespawn,
+	"Interact":         ClientMessageBodyInteract,
+	"AbandonQuest":     ClientMessageBodyAbandonQuest,
+	"Respec":           ClientMessageBodyRespec,
+	"UseUtility":       ClientMessageBodyUseUtility,
+	"StartFlight":      ClientMessageBodyStartFlight,
+	"SelectAppearance": ClientMessageBodySelectAppearance,
 }
 
 func (v ClientMessageBody) String() string {

@@ -62,6 +62,10 @@ type deadState struct {
 	// player struct is rebuilt on respawn, so like the skill component the
 	// ledger pointer must ride the stash or every death wipes quest progress.
 	quests *quests.Ledger
+	// portrait and ring are the worn look as wire values (plan-appearance.md
+	// C4): the rebuilt player struct starts on the defaults, and the next save
+	// would write those over the character's choice.
+	portrait, ring uint16
 }
 
 // reconnectStashTTLTicks is how long a disconnected character (and its name
@@ -81,8 +85,10 @@ type reconnectStash struct {
 	name        string
 	progression model.PlayerProgression
 	skills      *skills.SkillComponent
-	quests      *quests.Ledger   // the L11 carry, exactly like deadState's
-	health      vitals.VitalSign // alive-stash only; dead reconnects respawn normally
+	quests      *quests.Ledger // the L11 carry, exactly like deadState's
+	// portrait and ring: the look, carried like deadState's (C4).
+	portrait, ring uint16
+	health         vitals.VitalSign // alive-stash only; dead reconnects respawn normally
 	// campCharges is the Camp charge store (plan-downtime.md C2). Alive-stash
 	// only, and that asymmetry IS the ruling: the stash means "same session",
 	// so an F5 keeps the charges, while death — which stashes through
@@ -331,7 +337,7 @@ func (s *ConnectionStateSystem) SetDarkMask(mask *mapfog.DarkMask) { s.dark = ma
 // SetAppearance installs the look catalog (plan-appearance.md C3).
 func (s *ConnectionStateSystem) SetAppearance(c appearance.Catalog) { s.looks = c }
 
-// lookOf is the ticket's look as wire values. An id this build's catalog does
+// lookOf is the ticket's look as wire values; the save half is idsOf. An id this build's catalog does
 // not hold (a retired item) is logged and worn as the slot's default (0); it
 // never refuses the join.
 func (s *ConnectionStateSystem) lookOf(t auth.Ticket) (portrait, ring uint16) {
@@ -342,6 +348,36 @@ func (s *ConnectionStateSystem) lookOf(t auth.Ticket) (portrait, ring uint16) {
 			t.CharacterID, t.Avatar, t.Ring)
 	}
 	return portrait, ring
+}
+
+// applyLookPicks wears each player's in-game pick (plan-appearance.md C4,
+// D11: free, any time, combat included). A pick that is not wearable is
+// refused whole and silently, the established pattern for client requests.
+// The worn look reaches the save through saveWatch.
+func (s *ConnectionStateSystem) applyLookPicks() {
+	for _, p := range s.players {
+		pick := p.Client().NextSelectAppearance()
+		if pick == nil || !s.looks.WearableLook(pick.Portrait, pick.Ring) {
+			continue
+		}
+		p.SetLook(pick.Portrait, pick.Ring)
+	}
+}
+
+// idsOf is a look's wire values as the item ids the character row stores. Wire
+// 0, or a value this catalog does not hold, is the slot's default: the save
+// then clears a retired id from the row instead of keeping it forever (the
+// home_campfire_id rule). The load half is lookOf.
+func (s *ConnectionStateSystem) idsOf(portrait, ring uint16) (string, string) {
+	portraitID := s.looks.ID(appearance.SlotPortrait, portrait)
+	if portraitID == "" {
+		portraitID = appearance.DefaultPortrait
+	}
+	ringID := s.looks.ID(appearance.SlotRing, ring)
+	if ringID == "" {
+		ringID = appearance.DefaultRing
+	}
+	return portraitID, ringID
 }
 
 // fogFor is a client's map reveal, created empty on first touch.
@@ -618,6 +654,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 		}
 	}
 
+	s.applyLookPicks()
 	s.discoverCampfires()
 	s.trackMapFog()
 	// ⚑ AFTER the join/death loops and the discovery pass, never inside them —
@@ -769,6 +806,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
 	p.SetQuestLedger(dead.quests)
+	p.SetLook(dead.portrait, dead.ring)
 	p.SetPosition(s.respawnPosition(client.UUID()))
 	// Re-stamp full health AFTER progression/skills (triage item 14): the
 	// constructor stamped the base pool before +maxHealth passives were back.
@@ -1081,6 +1119,8 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 			progression: stash.progression,
 			skills:      stash.skills,
 			quests:      stash.quests,
+			portrait:    stash.portrait,
+			ring:        stash.ring,
 		}
 		s.game.AddEntity(spectator.NewSpectator(stash.position, client))
 		return
@@ -1091,6 +1131,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	p.SetProgression(stash.progression)
 	p.SetSkillComponent(stash.skills)
 	p.SetQuestLedger(stash.quests)
+	p.SetLook(stash.portrait, stash.ring)
 	p.SetPosition(stash.position)
 	// After the progression is back: the cap is level-derived, so restoring
 	// the count first would clamp against a level-1 cap.
@@ -1174,12 +1215,15 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 
 	c := corpse.New(deathspot)
 	s.game.AddEntity(c)
+	portrait, ring := p.Look()
 	s.deadByClient[client.UUID()] = deadState{
 		name:        name,
 		corpse:      c,
 		progression: p.Progression(),
 		skills:      p.SkillComponent(),
 		quests:      p.QuestLedger(),
+		portrait:    portrait,
+		ring:        ring,
 	}
 
 	// Drain stale lifecycle messages: a Join/Respawn banked while alive would
@@ -1302,6 +1346,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
+	p.SetLook(dead.portrait, dead.ring)
 	p.SetPosition(corpsePos)
 	// Partial revive: set health AFTER progression/skills so MaxHealth reflects
 	// the restored loadout.
@@ -1422,6 +1467,8 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				progression:    dead.progression,
 				skills:         dead.skills,
 				quests:         dead.quests,
+				portrait:       dead.portrait,
+				ring:           dead.ring,
 				position:       dead.corpse.Position(),
 				anchor:         s.anchors[client],
 				discovered:     s.discovered[client],
@@ -1486,11 +1533,14 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 		position = p.FlightDest()
 	}
 	if token, hasToken := s.tokenByClient[clientUUID]; hasToken {
+		portrait, ring := p.Look()
 		s.stashByToken[token] = reconnectStash{
 			name:           p.Name(),
 			progression:    p.Progression(),
 			skills:         p.SkillComponent(),
 			quests:         p.QuestLedger(),
+			portrait:       portrait,
+			ring:           ring,
 			health:         p.VitalSigns().Health,
 			campCharges:    p.CampCharges(),
 			position:       position,

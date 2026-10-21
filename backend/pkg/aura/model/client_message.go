@@ -88,6 +88,13 @@ type StartFlight struct {
 	DestinationCampfireID string
 }
 
+// SelectAppearance is the in-game picker's pick (plan-appearance.md C4): a
+// portrait and a ring as wire values (appearance.Catalog.Wire). The server
+// validates both and refuses the whole message silently otherwise.
+type SelectAppearance struct {
+	Portrait, Ring uint16
+}
+
 // AbandonQuest is the journal panel's one upstream message (plan-quests.md C3,
 // D13): give up a running quest. It returns to not-started — path and diary
 // cleared — and becomes offerable again; lifetime counters and the completed set

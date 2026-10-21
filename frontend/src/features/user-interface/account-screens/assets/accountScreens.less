@@ -225,28 +225,12 @@
 		}
 	}
 
-	// A player's medallion as DOM (MedallionElement.ts, plan-appearance.md
-	// C3): disc, portrait and ring stacked in one square, the disc sized to
-	// the pack bust's own disc (PackIconFiles.PORTRAIT_FILL) like the world's.
+	// A player's medallion as DOM (variables.less .medallion-dom()).
 	.medallion {
-		position: relative;
+		.medallion-dom();
 		width: 6rem;
 		height: 6rem;
 		margin: 0 auto 1rem;
-		flex-shrink: 0;
-
-		> * {
-			position: absolute;
-			inset: 0;
-			width: 100%;
-			height: 100%;
-			pointer-events: none;
-		}
-
-		.medallionDisc {
-			border-radius: 50%;
-			transform: scale(0.86);
-		}
 	}
 
 	.lookPicker {

@@ -141,3 +141,25 @@
 @z-settings: (@z-tooltip + 1);            // #gameSettings overlays start & end screen
 @z-world-map: (@z-settings + 1);          // #worldMap covers every HUD panel
 @z-start-screen: 105;
+
+// A player's medallion as DOM (MedallionElement.ts, plan-appearance.md C3):
+// disc, portrait and ring stacked in one square, the disc sized to the pack
+// bust's own disc (PackIconFiles.PORTRAIT_FILL) like the world's. Shared by the
+// account screens and the in-game Appearance panel (C4); each sets its size.
+.medallion-dom() {
+	position: relative;
+	flex-shrink: 0;
+
+	> * {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
+
+	.medallionDisc {
+		border-radius: 50%;
+		transform: scale(0.86);
+	}
+}

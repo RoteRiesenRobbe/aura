@@ -7,6 +7,7 @@ import {Camera} from '../../camera/logic/Camera';
 import {DamageState, VitalSigns, VitalSignValues} from '../../vital-signs/logic/VitalSigns';
 import {isDefined} from '../../common/logic/Utils';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
+import * as AppearancePanel from '../../user-interface/HUD/logic/AppearancePanel';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 import {MiniMap} from '../../map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
@@ -88,6 +89,8 @@ export class Player {
         // The own worn look (plan-appearance.md C3), as everyone else sees it.
         if (isDefined(entity.portrait)) {
             this.character.setLook(entity.portrait, entity.ring);
+            // ...and the Appearance panel shows it as worn (C4).
+            AppearancePanel.setOwnLook(entity.portrait, entity.ring);
         }
         if (isDefined(entity.maxHealth)) {
             // The skill tooltip needs the real pool to show what a resource cost

@@ -19,6 +19,7 @@ import * as GameSettingsUI from '../../game-settings/logic/GameSettingsUI';
 import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as Spellbook from '../../user-interface/HUD/logic/Spellbook';
+import * as AppearancePanel from '../../user-interface/HUD/logic/AppearancePanel';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 import * as Flight from '../../flight/logic/Flight';
@@ -160,6 +161,15 @@ export class Controls {
             return;
         }
 
+        // The Appearance panel (plan-appearance.md C4, D10). C was free -
+        // ruled by the PO 2026-10-21 against this file - and sits behind the
+        // same chat/console guards as J, M and B.
+        if (event.code === 'KeyC') {
+            AppearancePanel.toggle();
+            event.preventDefault();
+            return;
+        }
+
         if (event.code === 'Escape') {
             HUD.cancelEquipSelection();
             // ...and closes the journal, which is client-owned visibility (C3)
@@ -170,6 +180,8 @@ export class Controls {
             // ...and the spellbook, which became closable at C3 and joined the
             // family with it. Same rule: client-owned visibility, no-op shut.
             Spellbook.close();
+            // ...and the Appearance panel (C4), same rule.
+            AppearancePanel.close();
             // ...and the settings panel, which joined the exclusive family at
             // plan-ui-pass.md C2 (D2) and had no Escape close before that.
             // Escape stays a blanket close-all, never a stack pop.

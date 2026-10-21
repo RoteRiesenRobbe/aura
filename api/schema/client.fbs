@@ -110,6 +110,15 @@ table StartFlight {
     destination_campfire_id:string;
 }
 
+// The in-game appearance picker's pick (plan-appearance.md C4): a portrait and
+// a ring as catalog wire values (1 + the position in GET /appearance's slot
+// array). Free and allowed any time (D11). The server validates both against
+// what the character may wear and refuses the whole message silently.
+table SelectAppearance {
+    portrait:ushort;
+    ring:ushort;
+}
+
 // Respawn a dead player: sent from the death overlay instead of a fresh
 // Join — the server reuses the reserved name and carried progression and
 // spawns at the client's campfire anchor (atmosphere & recovery chunk 4).
@@ -177,7 +186,8 @@ union ClientMessageBody {
   AbandonQuest = 9,
   Respec = 10,
   UseUtility = 11,
-  StartFlight = 12
+  StartFlight = 12,
+  SelectAppearance = 13
 }
 table ClientMessage { body:ClientMessageBody; }
 

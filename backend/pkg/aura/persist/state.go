@@ -119,6 +119,13 @@ type CharacterState struct {
 	// chunk from another grid is skipped at seed time, never an error (D10).
 	MapFog []FogChunk `json:"mapFog"`
 
+	// Portrait and Ring are the worn look as appearance item ids
+	// (characters.avatar and characters.ring, plan-appearance.md C4). Save
+	// only: the join reads the look off the ticket (ConnectionStateSystem.
+	// lookOf), which /select fills from the same row.
+	Portrait string `json:"portrait"`
+	Ring     string `json:"ring"`
+
 	// Spellbook is skill id → level, mirroring SkillComponent.Spellbook.
 	//
 	// ⚑ An EMPTY spellbook means "this character has never been saved", and the

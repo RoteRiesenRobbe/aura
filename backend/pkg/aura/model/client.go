@@ -57,6 +57,10 @@ type Client interface {
 	// Returns nil if none available.
 	NextStartFlight() *StartFlight
 
+	// NextSelectAppearance deques an in-game look pick (plan-appearance.md C4).
+	// Returns nil if none available.
+	NextSelectAppearance() *SelectAppearance
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

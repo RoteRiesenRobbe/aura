@@ -623,7 +623,8 @@ html.mobile {
 	// the same place: the sheet's own #spellbookSheetButton row (C3, D4). One
 	// entry point per layout, never two.
 	#questTracker,
-	#spellbookButton {
+	#spellbookButton,
+	#appearanceButton {
 		display: none;
 	}
 
@@ -675,7 +676,9 @@ html.mobile {
 	// above every panel, and it landed squarely on the book's tab row.
 	// ⚑ The journal and help have the same overlap and keep it - that is
 	// mobile-layout leg 7's territory, not this chunk's.
-	&:has(#spellbook:not(.hidden)) #mapButton {
+	// The Appearance panel (plan-appearance.md C4) follows the book.
+	&:has(#spellbook:not(.hidden)) #mapButton,
+	&:has(#appearance:not(.hidden)) #mapButton {
 		display: none;
 	}
 
@@ -763,7 +766,8 @@ html.mobile {
 	// in (closing the panel behind it) - that is also the book's close.
 	#journal,
 	#help,
-	#spellbook {
+	#spellbook,
+	#appearance {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -790,6 +794,7 @@ html.mobile {
 	// the phone reverts to the plain divider header each panel had before.
 	#journal > .journalHeader,
 	#help > .helpHeader,
+	#appearance > .appearanceHeader,
 	#spellbook > .spellbookTitle {
 		margin: 0;
 		padding: 0 0 0.5rem;
@@ -801,15 +806,18 @@ html.mobile {
 	// With the wood strip gone, the gold/parchment header colors revert too -
 	// the phone keeps its pre-ink look wholesale.
 	#journal > .journalHeader,
-	#help > .helpHeader {
+	#help > .helpHeader,
+	#appearance > .appearanceHeader {
 		> .journalTitle,
-		> .helpTitle {
+		> .helpTitle,
+		> .appearanceTitle {
 			color: @panel-title-color;
 			font-weight: normal;
 		}
 
 		> .journalClose,
-		> .helpClose {
+		> .helpClose,
+		> .appearanceClose {
 			color: @panel-title-color;
 		}
 	}
@@ -867,8 +875,10 @@ html.mobile {
 		}
 	}
 
-	// The sheet's spellbook row, beside the journal's (C3, D4).
-	#spellbookSheetButton {
+	// The sheet's spellbook row, beside the journal's (C3, D4), and the
+	// Appearance row beside it (plan-appearance.md C4).
+	#spellbookSheetButton,
+	#appearanceSheetButton {
 		display: flex;
 	}
 
@@ -879,6 +889,7 @@ html.mobile {
 	// 1px, exactly as it did before C6.
 	#journalButton,
 	#spellbookSheetButton,
+	#appearanceSheetButton,
 	#mapButton {
 		background: @panel-bg;
 		border: 1px solid @panel-border;
@@ -893,7 +904,8 @@ html.mobile {
 	// `#journalButton > .journalButtonHotkey` and an id outranks any pile of
 	// classes - the bare-class revert silently loses to it.
 	#journalButton > .journalButtonHotkey,
-	.spellbookButtonHotkey {
+	.spellbookButtonHotkey,
+	.appearanceButtonHotkey {
 		display: inline;
 		width: auto;
 		height: auto;
@@ -907,6 +919,7 @@ html.mobile {
 	// Comfortable tap targets on the rows that are tapped, not hovered.
 	#journalButton,
 	#spellbookSheetButton,
+	#appearanceSheetButton,
 	.spellbookTab,
 	#spellbookList > li,
 	#passiveSlotList > .auraSlot,

@@ -64,6 +64,46 @@ func TestWire_IsOnePlusThePositionInTheSlot(t *testing.T) {
 	assert.Equal(t, uint16(0), c.Wire(SlotPortrait, "ring-plain"), "an id of the other slot")
 }
 
+// ID is Wire's inverse: the save path stores ids, the player holds wire values
+// (plan-appearance.md C4).
+func TestID_IsWiresInverse(t *testing.T) {
+	c, err := Load(catalogFS(starterFiles()))
+	require.NoError(t, err)
+
+	for _, slot := range []Slot{SlotPortrait, SlotRing} {
+		items := c.Portraits()
+		if slot == SlotRing {
+			items = c.Rings()
+		}
+		for _, it := range items {
+			assert.Equal(t, it.ID, c.ID(slot, c.Wire(slot, it.ID)))
+		}
+	}
+	assert.Equal(t, "", c.ID(SlotPortrait, 0), "0 names no item")
+	assert.Equal(t, "", c.ID(SlotRing, 3), "past the end")
+}
+
+// WearableLook is what SelectAppearance may put on (C4): a starter portrait
+// and a starter ring, as wire values. C5 swaps "starter" for "owned".
+func TestWearableLook(t *testing.T) {
+	c, err := Load(catalogFS(starterFiles()))
+	require.NoError(t, err)
+	archer, leather := c.Wire(SlotPortrait, "archer"), c.Wire(SlotRing, "ring-leather")
+
+	assert.True(t, c.WearableLook(archer, leather))
+	assert.False(t, c.WearableLook(0, leather), "0 is no item")
+	assert.False(t, c.WearableLook(archer, 0), "0 is no item")
+	assert.False(t, c.WearableLook(9, leather), "past the end")
+	assert.False(t, c.WearableLook(archer, 9), "past the end")
+
+	// The loader refuses a non-starter until C5, so the refusal is pinned on a
+	// hand-built catalog.
+	locked := Item{ID: "crown", Slot: SlotPortrait}
+	c.portraits = append(c.portraits, locked)
+	c.byID[locked.ID] = locked
+	assert.False(t, c.WearableLook(c.Wire(SlotPortrait, "crown"), leather), "not a starter")
+}
+
 func TestCheckStarterLook(t *testing.T) {
 	c, err := Load(catalogFS(starterFiles()))
 	require.NoError(t, err)

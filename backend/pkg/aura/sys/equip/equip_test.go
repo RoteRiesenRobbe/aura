@@ -97,6 +97,8 @@ func (c *stubClient) SendJournal(lang.Message) error              { return nil }
 func (c *stubClient) Close()                                {}
 func (c *stubClient) UUID() uuid.UUID                       { return uuid.UUID{} }
 
+func (c *stubClient) NextSelectAppearance() *model.SelectAppearance { return nil }
+
 // stubEquipEntity satisfies the narrow equipEntity interface.
 type stubEquipEntity struct {
 	ecs.BasicEntity

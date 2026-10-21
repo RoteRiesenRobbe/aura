@@ -110,6 +110,9 @@ type saveWatch struct {
 	// the coupling breaks silently: discoveries would simply stop being saved
 	// until something else forced a write.
 	discovered int
+	// portrait and ring are the worn look (plan-appearance.md C4): a pick in
+	// the in-game picker, or the LOOK cheat, saves at once.
+	portrait, ring uint16
 }
 
 // SetCharacterSaves installs the persistence writer.
@@ -270,7 +273,7 @@ func (s *ConnectionStateSystem) drainFlushRequests() {
 // trackCharacterSaves is the save scheduler: the 5-minute interval plus §2's
 // forced events, evaluated once per tick per live character.
 //
-// ⚑ Three integer comparisons per player, deliberately. "Did anything worth
+// ⚑ A handful of integer comparisons per player, deliberately. "Did anything worth
 // saving change" could also be answered by re-deriving the snapshot and
 // comparing it, but that walks the spellbook ~30 times a second per player for
 // an answer that is almost always no — and the idle loop's allocation
@@ -292,6 +295,7 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			anchor:     s.anchors[clientUUID],
 			discovered: len(s.discovered[clientUUID]),
 		}
+		current.portrait, current.ring = p.Look()
 		watch, known := s.saveWatch[clientUUID]
 		if !known {
 			// First sight: record the baseline and STAGGER the first interval
@@ -305,7 +309,9 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			current.skillRev != watch.skillRev ||
 			current.questRev != watch.questRev ||
 			current.anchor != watch.anchor ||
-			current.discovered != watch.discovered
+			current.discovered != watch.discovered ||
+			current.portrait != watch.portrait ||
+			current.ring != watch.ring
 		if !forced && now < watch.nextTick {
 			continue
 		}
@@ -325,9 +331,10 @@ func (s *ConnectionStateSystem) saveCharacter(p model.PlayerEntity) {
 	if characterID == 0 {
 		return
 	}
+	portrait, ring := s.idsOf(p.Look())
 	s.saves.Save(characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
 		s.DiscoveredCampfires(p.Client().UUID()), s.fog[p.Client().UUID()].Chunks(),
-		p.Progression(), p.SkillComponent(), p.QuestLedger()))
+		portrait, ring, p.Progression(), p.SkillComponent(), p.QuestLedger()))
 }
 
 // saveStash queues a snapshot of a DISCONNECTED character from its stash — §2's
@@ -343,9 +350,10 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 	if s.saves == nil || stash.characterID == 0 {
 		return
 	}
+	portrait, ring := s.idsOf(stash.portrait, stash.ring)
 	s.saves.Save(characterState(stash.characterID, stash.name, stash.anchor,
 		sortedSet(stash.discovered), stash.fog.Chunks(),
-		stash.progression, stash.skills, stash.quests))
+		portrait, ring, stash.progression, stash.skills, stash.quests))
 }
 
 // characterState is THE save half of plan-accounts-implementation.md §4's
@@ -357,12 +365,15 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 // It takes the pieces rather than a player because the session-expiry trigger
 // snapshots a stash, which has no player left to ask.
 //
+// ⚑ portrait and ring arrive as item ids (idsOf); their load half is the
+// ticket's look (lookOf), not restoreCharacterState below.
+//
 // ⚑ homeCampfireID and discovered are passed in rather than read off the player
 // because a character's bind and its discovered set are CONNECTION state
 // (s.anchors, s.discovered), not player state — and the session-expiry save has
 // neither, only a stash.
 func characterState(characterID int64, name, homeCampfireID string, discovered []string, fog []persist.FogChunk,
-	prog model.PlayerProgression, sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
+	portrait, ring string, prog model.PlayerProgression, sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
 
 	state := persist.CharacterState{
 		CharacterID:         characterID,
@@ -370,6 +381,8 @@ func characterState(characterID int64, name, homeCampfireID string, discovered [
 		HomeCampfireID:      homeCampfireID,
 		DiscoveredCampfires: discovered,
 		MapFog:              fog,
+		Portrait:            portrait,
+		Ring:                ring,
 		Level:               int(prog.Level),
 		Experience:          int64(prog.Experience),
 		ActiveAuraSlot:      persist.NoActiveAura,

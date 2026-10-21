@@ -221,7 +221,8 @@ type player struct {
 
 	// portrait and ring are the look this character wears, as wire values
 	// (appearance.Catalog.Wire; 0 = the slot's default), set at join from the
-	// ticket (plan-appearance.md C3) and by the LOOK cheat.
+	// ticket (plan-appearance.md C3), by the in-game picker (C4) and by the LOOK
+	// cheat; every rebuild of the player struct carries it (deadState, stash).
 	portrait, ring uint16
 
 	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation

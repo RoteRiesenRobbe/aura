@@ -1,8 +1,8 @@
 import * as NameGenerator from '../../../player/logic/NameGenerator';
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
-import {AppearanceItem, AppearanceSlot, appearanceCatalog, appearanceReady, defaultLook} from '../../../../client-data/Appearance';
-import {medallionElement} from './MedallionElement';
+import {appearanceCatalog, appearanceReady, defaultLook} from '../../../../client-data/Appearance';
+import {Look, renderLookPicker} from './LookPicker';
 
 /**
  * Character creation (plan-accounts-frontend.md §4b) — the first thing a new
@@ -49,7 +49,7 @@ let chosenSlotIndex: number | undefined;
  * the catalog has arrived. Every show() starts on the defaults (the D12
  * preselect for a successor is C5's).
  */
-let chosenLook: { portrait: string, ring: string } | null = null;
+let chosenLook: Look | null = null;
 
 export function setup(handlers: {
     onCreated: (character: Character, wasFirstCharacter: boolean) => void,
@@ -93,46 +93,17 @@ export function setup(handlers: {
     });
 }
 
-/**
- * Draws the picker: the chosen medallion, then each starter item as the
- * medallion it would make with the other slot's current pick.
- */
+/** Draws the look picker on the creation form's own pick (LookPicker, D9). */
 function renderLook(): void {
     const catalog = appearanceCatalog();
     if (!catalog) {
         return;
     }
     chosenLook ??= defaultLook(catalog);
-    const look = chosenLook;
-    const panel = AccountScreens.element('characterCreation');
-    panel.querySelector('.lookPreview').replaceChildren(medallionElement(look.portrait, look.ring));
-
-    const option = (slot: AppearanceSlot, item: AppearanceItem) => {
-        const tile = document.createElement('div');
-        tile.className = 'lookOption';
-        tile.title = item.name;
-        tile.setAttribute('role', 'button');
-        tile.setAttribute('aria-label', item.name);
-        const selected = look[slot] === item.id;
-        tile.classList.toggle('selected', selected);
-        tile.setAttribute('aria-pressed', String(selected));
-        tile.dataset.item = item.id;
-        tile.appendChild(slot === 'portrait'
-            ? medallionElement(item.id, look.ring)
-            : medallionElement(look.portrait, item.id));
-        // pointerdown, not click: see the back button above.
-        tile.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
-            chosenLook = {...look, [slot]: item.id};
-            renderLook();
-        });
-        return tile;
-    };
-    for (const slot of ['portrait', 'ring'] as AppearanceSlot[]) {
-        const items = slot === 'portrait' ? catalog.portraits : catalog.rings;
-        panel.querySelector(`.lookOptions[data-slot="${slot}"]`)
-            .replaceChildren(...items.filter(item => item.starter).map(item => option(slot, item)));
-    }
+    renderLookPicker(AccountScreens.element('characterCreation'), catalog, chosenLook, look => {
+        chosenLook = look;
+        renderLook();
+    });
 }
 
 /**

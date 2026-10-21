@@ -29,6 +29,7 @@ type client struct {
 	respecs   chan *model.Respec
 	utilities chan *model.UseUtility
 	flights   chan *model.StartFlight
+	looks     chan *model.SelectAppearance
 	uuid      uuid.UUID
 
 	// Input-transport instrumentation (plan-input-jitter.md chunk 1). Written on
@@ -157,6 +158,15 @@ func (c *client) NextUseUtility() *model.UseUtility {
 func (c *client) NextStartFlight() *model.StartFlight {
 	select {
 	case msg := <-c.flights:
+		return msg
+	default:
+	}
+	return nil
+}
+
+func (c *client) NextSelectAppearance() *model.SelectAppearance {
+	select {
+	case msg := <-c.looks:
 		return msg
 	default:
 	}
@@ -318,6 +328,13 @@ func (c *client) routeMessage(msg *AuraApi.ClientMessage) {
 		default:
 			log.Print("StartFlight dropped.")
 		}
+	case AuraApi.ClientMessageBodySelectAppearance:
+		m := codec.SelectAppearanceMessageFlatbufferUnmarshal(msg)
+		select {
+		case c.looks <- m:
+		default:
+			log.Print("SelectAppearance dropped.")
+		}
 	}
 }
 
@@ -336,6 +353,7 @@ func NewClient(c *net.Client) model.Client {
 		respecs:   make(chan *model.Respec, 2),
 		utilities: make(chan *model.UseUtility, 2),
 		flights:   make(chan *model.StartFlight, 2),
+		looks:     make(chan *model.SelectAppearance, 2),
 		uuid:      uuid.New(),
 	}
 

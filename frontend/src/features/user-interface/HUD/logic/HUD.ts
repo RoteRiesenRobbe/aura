@@ -6,6 +6,7 @@ import * as QuestTracker from '../../../journal/logic/QuestTracker';
 import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
 import * as Spellbook from './Spellbook';
+import * as AppearancePanel from './AppearancePanel';
 import * as Interact from '../../../interact/logic/Interact';
 import * as Utilities from '../../../utilities/logic/Utilities';
 import * as Mobile from '../../logic/Mobile';
@@ -139,6 +140,7 @@ export function setup(game) {
     Journal.setup();
     QuestTracker.setup();
     Help.setup();
+    AppearancePanel.setup();
     MobileMenu.setup();
     Interact.setupButton();
 }

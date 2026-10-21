@@ -1299,6 +1299,8 @@ system ships blind.
 
 Moved out of `CLAUDE.md ## Status` on 2026-10-18 to keep the always-loaded file small; the entries are verbatim as of that date. `CLAUDE.md` keeps only the live "Next" work and the standing rules. When an item here becomes current, move it back into `CLAUDE.md` Status "Next".
 
+- **REVIVE DROPS THE QUEST LEDGER** (found 2026-10-21 at `plan-appearance.md` C4, unfixed): `ConnectionStateSystem.ReviveAtCorpse` rebuilds the player without `SetQuestLedger(dead.quests)`, unlike respawn and reconnect, so a revived player plays on a fresh ledger (unverified whether a save in between writes it over the stored one). Needs a red-first pin beside `TestRespawn_CarriesQuestLedger`, then the one line.
+
 - **QUEST SHEET: PO walk passed 2026-10-14** (`docs/content-zone-1-farmland.md` §2.6a): drafted lines and placements stand; reworks in progress, nothing owed. Unbuilt from the sheet: the click-to-pick-up ring, the beast's underground den, Reinhard's quests gated behind Off to the Mill.
 
 - **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells a light covers (yours ≥ 2.5 u, or static); the server decides. PO look passed 2026-10-11; owed: the wire cost.

@@ -57,12 +57,16 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 	// writing that NULL is the point: a bind whose spawn point was deleted from
 	// the zone resolves to unbound at join, and this is what clears the dead id
 	// instead of leaving it to fail resolution on every future login.
+	//
+	// ⚑ avatar and ring are the worn look (plan-appearance.md C4), written here
+	// and read back through the /select ticket, not LoadCharacterState.
 	tag, err := tx.Exec(ctx,
 		`UPDATE game.characters
-		    SET level = $2, experience = $3, active_aura_slot = $4, home_campfire_id = $5
+		    SET level = $2, experience = $3, active_aura_slot = $4, home_campfire_id = $5,
+		        avatar = $6, ring = $7
 		  WHERE id = $1 AND sacrificed_at IS NULL AND deleted_at IS NULL`,
 		state.CharacterID, state.Level, state.Experience, state.ActiveAuraSlot,
-		nullableString(state.HomeCampfireID))
+		nullableString(state.HomeCampfireID), state.Portrait, state.Ring)
 	if err != nil {
 		return fmt.Errorf("saving a character: %w", err)
 	}

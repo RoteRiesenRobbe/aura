@@ -6,8 +6,8 @@ package core
 // exercised through the same tryStartFlight the wire drives.
 
 import (
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"fmt"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +95,7 @@ func (c *flightFakeClient) NextUseUtility() *model.UseUtility {
 	return m
 }
 
+func (c *flightFakeClient) NextSelectAppearance() *model.SelectAppearance { return nil }
 func (c *flightFakeClient) NextStartFlight() *model.StartFlight {
 	if len(c.flights) == 0 {
 		return nil

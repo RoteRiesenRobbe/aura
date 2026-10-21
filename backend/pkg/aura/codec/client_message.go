@@ -279,6 +279,27 @@ func StartFlightMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.St
 	return unmarshalStartFlight(unwrapStartFlight(msg))
 }
 
+func unwrapSelectAppearance(msg *AuraApi.ClientMessage) *AuraApi.SelectAppearance {
+	i := &AuraApi.SelectAppearance{}
+	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalSelectAppearance(a *AuraApi.SelectAppearance) *model.SelectAppearance {
+	if a == nil {
+		return nil
+	}
+	return &model.SelectAppearance{Portrait: a.Portrait(), Ring: a.Ring()}
+}
+
+func SelectAppearanceMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.SelectAppearance {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodySelectAppearance)
+	return unmarshalSelectAppearance(unwrapSelectAppearance(msg))
+}
+
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *AuraApi.ClientMessage {
 	return AuraApi.GetRootAsClientMessage(bytes, 0)
 }

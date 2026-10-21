@@ -4,7 +4,8 @@
 > refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
 > PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
 > PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
-component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). Next: C4.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 BUILT 2026-10-21
+(the in-game picker; PO look owed). Next: C5.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -444,7 +445,7 @@ character's rows. It rides the ticket like `BloodlineUnlocks` does.
 | --- | --- | --- |
 | `table Character` | **+2 appended** `portrait:ushort`, `ring:ushort` | catalog indices; 0 = default. Every client draws every player's look. |
 | `GameState` owner block | **+1** `appearance_owned:[ushort]`, change-only under `owner_state` | the client diffs it for the glow, as `updateSpellbook` diffs the spellbook (first call = silent baseline) |
-| `ClientMessageBody` | **+1** `SelectAppearance{portrait, ring} = 13` | server validates both against the owned set, refuses silently otherwise, writes the character row |
+| `ClientMessageBody` | **+1** `SelectAppearance{portrait, ring} = 13` | server validates both against the owned set, refuses silently otherwise, writes the character row. ⚑ Shipped at C4 against the STARTER set (`Catalog.WearableLook`); C5 swaps the owned set into it AND into `CheckStarterLook` (accounts create, by id) |
 | `table Resource` | **+1 appended** `portrait:ushort` | set on player corpses only (D14); 0 = gravestone. Props never set it, so FlatBuffers writes nothing for them (a default-valued scalar costs no bytes) |
 | `table Mob` | **+1 appended** stance `ubyte` | M-§6.2, unchanged |
 | `EntityMessage` | new key `KeyUnlockAppearance` (`lang/message.go`) | `unlock.banner` gains an `appearance` category; en + de; `message_test.go` pins it |
@@ -602,6 +603,13 @@ not landed.
   the same ~3 quads as a normal mob.
 - **L6. HUD chrome belongs to `plan-ui-pass.md`**, whose next chunk is C9
   (mobile). The new button must fit both the desktop column and the phone sheet.
+- **L7. Every rebuild of the player struct must carry the look** (found at C4).
+  `state.go` builds a player in four places (join, respawn, F5 reconnect,
+  revive); C3 set the look only at the join, so a death or a reload drew the
+  defaults, and once the look is saved that default would be written over the
+  choice. `deadState` and `reconnectStash` carry it now, pinned by four tests in
+  `state_appearance_test.go`. Anything C5 or C6 adds to the player (owned set,
+  corpse portrait) has the same four doors.
 
 ---
 
@@ -949,7 +957,8 @@ INCONCLUSIVE twice (the click selects spawn #479, not #0).
 The player wears a chosen medallion (D19, D20, D30, D39). Rulings taken in the
 session (PO, 2026-10-19/20, prompt rounds): player portraits are PONETI busts
 (D39), the starter rings are grey (default) + leather, the `LOOK` cheat is
-live only (C4 owns the save path), the starter set is the 8 busts the PO picked.
+live only (C4 owns the save path; ⚑ amended at C4 by the PO 2026-10-21: LOOK now
+persists like a pick), the starter set is the 8 busts the PO picked.
 
 - **Content:** `api/appearance/` (one file per item, the file named after its id):
   8 portraits (`default`, `red-hood`, `chainmail-coif`, `green-hood`, `grey-beard`,
@@ -980,7 +989,7 @@ live only (C4 owns the save path), the starter set is the 8 busts the PO picked.
   (`ConnectionStateSystem.lookOf`; an id the catalog lacks logs and draws the
   default, never refuses the join); `table Character` +`portrait:ushort`,
   `ring:ushort` (appended). `LOOK <item-id>` sets either slot, owned or not,
-  live only.
+  live only (persists since C4).
 - **Client:** `client-data/Appearance.ts` (the catalog, `portraitAt`/`ringAt`/
   `wireOf`, `lookArt`, `defaultLook`), `GraphicsConfig.playerPortraits` (id →
   bust), `Character.setLook` via both wire routes (EntityManager for others,
@@ -1026,3 +1035,70 @@ second Playwright page draws late; wait on the wire value, not a timeout.
 `content-editor-lang.mjs` is stale (its quest "Boars in the Field" is gone),
 recorded in the verify skill.
 
+### C4 - BUILT 2026-10-21 `[uncommitted]` (PO look owed)
+
+The in-game picker (D9-D11). Ruled in the session (PO, 2026-10-21): hotkey **C**
+(before the session); **LOOK persists** like a pick (one save path; it skips
+the starter check, so from C5 on a dev can save an unowned item through it).
+
+- **Wire:** `table SelectAppearance { portrait:ushort; ring:ushort; }`,
+  `ClientMessageBody` 13 (appended); codec unmarshal + round-trip pin; the
+  client channel `NextSelectAppearance` (and the five `model.Client` fakes).
+- **Validation:** `Catalog.ID(slot, wire)` (Wire's inverse) and
+  `Catalog.WearableLook(portrait, ring)`: both halves must be starter items as
+  wire values; 0, an unknown value or a non-starter refuses the WHOLE message,
+  silently. The non-starter refusal is pinned in-package on a hand-built catalog
+  (the loader refuses non-starters until C5). C5 swaps the owned set into
+  `WearableLook` and `CheckStarterLook`.
+- **Game:** `ConnectionStateSystem.applyLookPicks` (it owns the catalog) wears a
+  valid pick on the next snapshot, any time, combat included (D11).
+- **Persistence:** `persist.CharacterState` +`Portrait`/`Ring` (ids, through
+  `idsOf`: wire 0 or a retired value saves the default id, clearing a dead id
+  like `home_campfire_id`); `SaveCharacter` writes `avatar` + `ring`;
+  `saveWatch` carries the look, so a change forces a save. Save only: the join
+  still reads the look off the ticket (`lookOf`), each side points at the other.
+- **Found (L7):** respawn, F5 reconnect and revive rebuilt the player without
+  the look (a C3 gap); `deadState` and `reconnectStash` carry it now.
+- **Client:** `LookPicker.ts` (the tile builder, moved out of
+  `CharacterCreation.ts`; both mounts call it, D9); `AppearancePanel.ts`, a
+  member of the exclusive family (`PanelId` +`appearance`), opened by C
+  (`Controls.ts`, beside J/M/B behind the chat/console guards), the desktop
+  button under Spellbook and the ☰ sheet's row (both `.appearanceOpenButton`),
+  closed by ✕, Escape, a second C or any family member. ⚑ What it shows as worn
+  is the server's answer (`setOwnLook`, fed by `Player.ts` every snapshot), never
+  the press. `SelectAppearanceMessage.ts`. Labels en + de (`appearance.label`,
+  `appearance.close.title`, two button titles); the slot labels reuse
+  creation's.
+- **Chrome** (`plan-ui-pass.md` C3/C6 patterns, no restyle): the panel is the
+  journal/help ink panel; its tiles use the gold selection. The medallion DOM
+  rules moved into one `.medallion-dom()` mixin (`variables.less`) both sheets
+  call. ⚑ Two visible consequences for the PO look: the desktop **quest tracker
+  sits one button height lower** (its top is hand-coupled to the column), and
+  on the phone the floating Map button hides over the open panel (the
+  spellbook's C3 rule, extended). On the phone the registration nag covers the
+  panel's title, as it covers the spellbook's (the open nag item).
+- **Also found (not C4's):** `ReviveAtCorpse` does not restore the quest
+  ledger (parked in `roadmap.md`); `TestPassages_EveryDoorCarriesItsWords` is
+  red on HEAD (the barn exit's text, the passages thread).
+
+**Schema:** DB **none** (writes the existing `avatar` and `ring` columns) · wire
+`ClientMessageBody` +1 · `persist.CharacterState` +2 fields (the fingerprint
+changes, so every live character takes one extra write after the deploy) ·
+frontend lang +4 keys · content none · conf none.
+
+**Verified:** Go build + vet; `go test -count=1 ./...` with `AURA_TEST_DB_URL`
+green bar three reds, all red on HEAD: the two known (`world` prop pin, the
+simharness placements battery) and `TestPassages_EveryDoorCarriesItsWords`
+(store + accounts run with `-p 1`: they share `aura_test`, and in parallel one
+dropped the other's schema) · red first: `ID`/`WearableLook`, the four carry
+pins (all four reproduced the C3 gap), the pick + refusal + forced save + default
+ids, the store write, the codec round trip, `LookPicker` and `AppearancePanel`
+(vitest) · typecheck · vitest 1875/0 · prod build · `c1-medallions` **41/0/0**
+(the first run on a fresh server died at join, the skill's known race; the next
+was 40/0/1, the observer leg's own bug, fixed: a player's name is not in the
+plate layer) · `chunk2-accounts` 24/24, 0 console errors (the creation picker
+moved into `LookPicker`) · `mobile-layout` all legs green bar leg 7 (red at HEAD,
+the journal unreachable from the sheet; a join race first, re-run); the
+Appearance row sits at 214-262 px of the 844 px sheet, no overflow ·
+`hygiene-wire-prune` 0 console errors · harness rows cleaned, server stopped
+first.

@@ -191,6 +191,14 @@
   "@api-error.username-taken": {
     "description": "Account screens: a server refusal, localized by its machine code (D15)."
   },
+  "appearance.close.title": "Close (C / Esc)",
+  "@appearance.close.title": {
+    "description": "Appearance panel: the title attribute of the ✕ in #appearance (plan-appearance.md C4)."
+  },
+  "appearance.label": "Appearance",
+  "@appearance.label": {
+    "description": "The Appearance panel's title and its HUD buttons' label: where the player picks the portrait and ring their character wears (plan-appearance.md D10)."
+  },
   "backend.connection-lost": "Connection lost — reload to reconnect",
   "@backend.connection-lost": {
     "description": "Banner: the game connection dropped."
@@ -397,6 +405,14 @@
   "help.sources.heading": "Where skills come from",
   "@help.sources.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
+  },
+  "hud.appearance-button.title": "Appearance (C)",
+  "@hud.appearance-button.title": {
+    "description": "HUD: the title attribute of the <div id=appearanceButton> element in #gameUI."
+  },
+  "hud.appearance-sheet-button.title": "Appearance (C)",
+  "@hud.appearance-sheet-button.title": {
+    "description": "HUD: the title attribute of the <div id=appearanceSheetButton> element in #leftColumn in #gameUI."
   },
   "hud.bar.focus.text": "Focus {health, number}/{max, number}",
   "@hud.bar.focus.text": {
