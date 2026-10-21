@@ -531,7 +531,8 @@ whenever the pilot lands.**
   C0a + C1's resolver. Schema: the migration, `Character` +2, `/appearance`,
   accounts create.*
 - **C4, the in-game picker.** The "Appearance" HUD button, hotkey
-  [PLACEHOLDER, checked against B/J/M/E], phone-sheet entry, `PanelExclusivity`
+  **C** (PO 2026-10-21; free beside WASD/arrows, 1-3, Q R F, E, J, M, B, P, `, Enter,
+  Esc, all bound in `Controls.ts`/`HUD.ts`), phone-sheet entry, `PanelExclusivity`
   registration (HUD chrome stays `plan-ui-pass.md`'s style: cite it, do not
   restyle); `SelectAppearance`; the choice persists. Still starter set only.
   *Schema: `ClientMessageBody` +1.*
