@@ -96,11 +96,9 @@ let currentSkillPoints = 0;
 // Latest positional aura-slot contents from the server (skill id per slot, 0 = empty).
 // Source of truth for the activate-vs-empty check in the slot pointerdown handler.
 let currentAuraSlots: number[] = [];
-// The server's active aura slot (-1 = none) and passive slot contents, kept
-// for the buff tray's always-on circles. Unlike activeSlotIndex these never
-// carry the optimistic click.
+// The server's active aura slot (-1 = none), kept for the buff tray's
+// drawback circle. Unlike activeSlotIndex it never carries the optimistic click.
 let serverActiveAuraSlot = -1;
-let currentPassiveSlots: number[] = [];
 // Optimistically-highlighted active slot in the new panel; client-side only in 1a.
 let activeSlotIndex: number | null = null;
 
@@ -1064,7 +1062,7 @@ export function updateBuffTray(effects: OwnEffectData[] | undefined, tick: numbe
     buffTrayTick = tick;
     applyOwnEffects(buffTray, effects, tick, isAuraSkill);
     const activeAura = serverActiveAuraSlot >= 0 ? (currentAuraSlots[serverActiveAuraSlot] ?? 0) : 0;
-    buffAlwaysOn = alwaysOnTenants(currentPassiveSlots, activeAura, skillDefinition, skillLevelOf);
+    buffAlwaysOn = alwaysOnTenants(activeAura, skillDefinition, skillLevelOf);
     // Timed first, so the always-on circles sit at the OUTER end of each box (P5).
     renderBuffBox(buffBeneficialBox, [...buffTray.beneficial, ...buffAlwaysOn.beneficial], tick);
     renderBuffBox(buffHarmfulBox, [...buffTray.harmful, ...buffAlwaysOn.harmful], tick);
@@ -1156,7 +1154,6 @@ export function updateAuraLoadout(slots: number[]) {
 // normalised the passive slots onto the family's contract). Writing textContent
 // on the li would ALSO wipe the icon token out of it once per snapshot.
 export function updatePassiveLoadout(slots: number[]) {
-    currentPassiveSlots = slots;
     if (!passiveSlotListElement) return;
     for (let i = 0; i < slots.length; i++) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;

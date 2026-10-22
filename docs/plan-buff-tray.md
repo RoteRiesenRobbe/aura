@@ -76,7 +76,7 @@ cooldown slots' remaining ticks.
 | **D6** | Within a box, **newest nearest the centre, never reordered** while an effect lives. |
 | **D7** | **No cap. Overflow wraps to a second row** (against the recommended cap of six with a "+N" circle). |
 | **D8** | **Phone: under the Focus/XP bars along the top edge**, right-aligned, two boxes at a smaller circle size. |
-| **D9** | **Tenants**: timed skill effects (everything the buff store holds with a timer) · world effects and heir buffs · **always-on passives and the active aura's drawbacks** as permanent circles with no wedge. ⛔ NOT the stun resistance window. |
+| **D9** | **Tenants**: timed skill effects (everything the buff store holds with a timer) · world effects and heir buffs · **always-on passives and the active aura's drawbacks** as permanent circles with no wedge. ⛔ NOT the stun resistance window. ⚑ **Amended (PO 2026-10-22): passives leave the tray**, the passive slots already show them; the drawback circle stays. |
 | **D10** | The own player's **effect dots retire**. Mobs and other players keep theirs. |
 | **D11** | **One circle per skill** (the buff store's key). The wedge shows the longest remaining application; the tooltip may list the streams. |
 | **D12** | The tooltip shows the **effect description**, not only the time. On the phone a **held tap of about half a second** opens it; a plain tap does not. PO: *"a tap on the phone does not open it instantly, it needs to be held for a short time, half a second maybe"*. |
@@ -256,8 +256,9 @@ amend both to say "for others".
 
 ### 3.7 Always-on tenants (D9)
 
-Derived on the client, no wire: one beneficial circle per equipped passive
-(`passive_slots`), one harmful circle per active aura whose definition carries
+Derived on the client, no wire: ~~one beneficial circle per equipped passive
+(`passive_slots`)~~ (dropped, PO 2026-10-22: the passive slots already show
+them), one harmful circle per active aura whose definition carries
 while-active drawbacks (`stat_multiplier` self modifiers with a drawback sign,
 the tooltip already reads them, `SkillTooltip.ts`). Permanent circles have no
 wedge. One circle per skill (D11), so an aura with four drawbacks is one circle

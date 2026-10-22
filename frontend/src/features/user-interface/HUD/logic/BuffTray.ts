@@ -181,27 +181,26 @@ export function applyOwnEffects(state: TrayState, effects: OwnEffectData[] | und
 
 /**
  * The always-on circles (D9, plan §3.7), derived from the loadout rather than
- * the wire: one beneficial circle per equipped passive, in slot order, and one
- * harmful circle for the active aura when any of its while-active modifiers is
+ * the wire: one harmful circle for the active aura when any of its while-active modifiers is
  * negative at its level (a drawback). An aura with four drawbacks is still one
  * circle (D11); the tooltip names all four. A positive while-active modifier
- * draws nothing: no content has one (YAGNI).
+ * draws nothing: no content has one (YAGNI). Equipped passives draw nothing
+ * either (PO 2026-10-22): the passive slots already show them.
  *
  * Kept apart from the timed set: applyOwnEffects drops whatever the server
  * does not list, and these are never listed. The tray draws them after the
  * timed circles, at the outer end of each box (P5). Keyed `always:<skill>` so
- * a passive that also lands a timed effect keeps both circles.
+ * it never collides with a timed circle of the same skill.
  */
-export function alwaysOnTenants(passiveSlots: number[], activeAuraSkill: number,
+export function alwaysOnTenants(activeAuraSkill: number,
                                 defOf: (skillId: number) => SkillDefinition | undefined,
                                 levelOf: (skillId: number) => number): TrayState {
     const permanent = (skillId: number, harmful: boolean): Tenant => ({
         key: `always:${skillId}`, skillId, kinds: 0, totalTicks: 0, caster: 0, expiresTick: 0,
         harmful, sustained: false, permanent: true,
     });
-    const passives = [...new Set(passiveSlots.filter((id) => id !== 0))];
     return {
-        beneficial: passives.map((id) => permanent(id, false)),
+        beneficial: [],
         harmful: hasDrawback(defOf(activeAuraSkill), levelOf(activeAuraSkill)) ? [permanent(activeAuraSkill, true)] : [],
     };
 }
