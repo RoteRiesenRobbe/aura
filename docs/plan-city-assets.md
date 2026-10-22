@@ -597,7 +597,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   harness, screenshots or full suite (R8).
 - **Schema:** DB none · wire +4 `EntityType` (137-140) · conf none · content
   +13 props · zone format none · lang none.
-- **K4 follow-up, 2026-10-23 `[uncommitted]` (PO: walls, entrances and props
+- **K4 follow-up, 2026-10-23 `f5e516a9` (PO: walls, entrances and props
   for the library, tower, cathedral and barracks; "a roof hides where the door
   is"):** a new hero `Doorway` = 145 (`doorway.svg`, 260×100 for 2.6 × 1,
   non-blocking, lantern light 0.15 `#ffd890`, Tiled folder `City/Walls`): two
