@@ -1122,7 +1122,7 @@ Appearance row sits at 214-262 px of the 844 px sheet, no overflow ·
 `hygiene-wire-prune` 0 console errors · harness rows cleaned, server stopped
 first.
 
-### C5 - DONE 2026-10-21, PO look passed 2026-10-22 `[uncommitted]` (server + wire; the client half is C5c)
+### C5 - DONE 2026-10-21, PO look passed 2026-10-22 `0533ef28` (server + wire; the client half is C5c)
 
 Ownership and unlocks (D6-D8, D12, D13, D15, D16, D21a, D25). Ruled in the session
 (PO, 2026-10-21, prompt rounds): **C5 splits** into C5 (server, wire, content, the
