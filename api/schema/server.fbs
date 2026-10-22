@@ -316,7 +316,16 @@ enum EntityType : ushort {
   // placeholders (PO 2026-10-22).
   CathedralTranseptRoof = 131,
   CathedralApseRoof = 132,
-  BellTower = 133
+  BellTower = 133,
+
+  // ── Dionsburg's lazaret + slums (plan-city-assets.md K3). Both tents are
+  // non-blocking ROOFS: cots stand under the lazaret's, a Bedroll under the
+  // slum tent's.
+  LazaretTent = 134,
+  SlumTent = 135,
+  // The slum lean-to, drawn after K3 first shipped it as a placeholder
+  // (PO 2026-10-22). A one-pitch ROOF against a wall.
+  LeanTo = 136
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

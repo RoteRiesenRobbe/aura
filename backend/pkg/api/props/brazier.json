@@ -1,0 +1,9 @@
+{
+  "name": "Brazier",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.4 },
+  "lightFraction": 0.3,
+  "lightColor": "#ffa050",
+  "lightFlicker": true
+}

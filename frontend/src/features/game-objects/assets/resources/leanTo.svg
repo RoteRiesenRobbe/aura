@@ -1,0 +1,95 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" preserveAspectRatio="none">
+  <!-- Placeholder slum lean-to (plan-city-assets.md K3, drawn after the chunk
+       first shipped it as a box, PO 2026-10-22): TRUE top-down, a ROOF prop.
+       The viewBox is 240x160 to match the 2.4 x 1.6 rect body in
+       api/props/lean-to.json (preserveAspectRatio=none, so the two must stay
+       in sync); 100 units per metre. It fades to its revealAlpha while you
+       stand under it.
+
+       One pitch, propped against a wall: high along the north edge (a beam
+       laid against the wall) and dropping south, where the boards end ragged
+       at whatever length they were found. Salvaged planks run down the slope,
+       one missing, crossed by two battens; a patched brown cloth (R5) is
+       thrown over the east end where the boards ran out. Nothing past the
+       canvas: a roof draws over everyone walking past. -->
+  <defs>
+    <clipPath id="leanToShape">
+      <path d="M8,10 L232,10 L232,138 L210,146 L188,140 L164,150 L140,142 L116,148
+               L92,140 L68,150 L46,142 L26,148 L8,140 Z"/>
+    </clipPath>
+    <linearGradient id="leanToLight" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <path d="M16,18 L238,18 L238,146 L218,154 L196,148 L172,158 L148,150 L124,156
+           L100,148 L76,158 L54,150 L34,156 L16,148 Z" fill="#000000" opacity="0.22"/>
+
+  <g clip-path="url(#leanToShape)">
+    <!-- what shows through the missing board: the dark under the roof -->
+    <rect x="0" y="0" width="240" height="160" fill="#2a2016"/>
+    <!-- the salvaged planks, mismatched widths and greys -->
+    <rect x="8" y="0" width="22" height="160" fill="#7a6448"/>
+    <rect x="31" y="0" width="18" height="160" fill="#6b5840"/>
+    <rect x="50" y="0" width="25" height="160" fill="#85704f"/>
+    <rect x="76" y="0" width="20" height="160" fill="#5e4d37"/>
+    <!-- 96-104: the gap -->
+    <rect x="104" y="0" width="23" height="160" fill="#7f6a4a"/>
+    <rect x="128" y="0" width="19" height="160" fill="#6e5b41"/>
+    <rect x="148" y="0" width="24" height="160" fill="#7a6448"/>
+    <!-- grain -->
+    <g stroke="#3e3020" stroke-width="1" opacity="0.3">
+      <line x1="16" y1="14" x2="18" y2="140"/>
+      <line x1="40" y1="18" x2="39" y2="136"/>
+      <line x1="62" y1="12" x2="64" y2="144"/>
+      <line x1="86" y1="16" x2="85" y2="138"/>
+      <line x1="116" y1="14" x2="117" y2="142"/>
+      <line x1="137" y1="18" x2="136" y2="136"/>
+      <line x1="160" y1="12" x2="161" y2="140"/>
+    </g>
+    <!-- a knot and a split -->
+    <ellipse cx="62" cy="96" rx="4" ry="6" fill="#4a3a26" opacity="0.6"/>
+    <line x1="136" y1="60" x2="138" y2="104" stroke="#2a2016" stroke-width="1.5"/>
+
+    <!-- the cloth over the east end, where the boards ran out -->
+    <path d="M166,4 L236,4 L236,160 L170,160 Q160,120 168,84 Q158,44 166,4 Z" fill="#7d6142"/>
+    <path d="M186,40 L222,36 L224,76 L188,80 Z" fill="#94784f" stroke="#3e2c1a" stroke-width="1.4"
+          stroke-dasharray="3 2"/>
+    <path d="M178,104 L210,102 L212,132 L180,134 Z" fill="#6a5034" stroke="#3e2c1a" stroke-width="1.4"
+          stroke-dasharray="3 2"/>
+    <path d="M166,4 Q158,44 168,84 Q160,120 170,160" fill="none" stroke="#3a2a18" stroke-width="2.5"/>
+
+    <!-- two battens nailed across the boards -->
+    <g>
+      <rect x="6" y="36" width="166" height="8" fill="#5c4a33" stroke="#2b2014" stroke-width="1.2"/>
+      <rect x="6" y="104" width="166" height="8" fill="#5c4a33" stroke="#2b2014" stroke-width="1.2"/>
+      <g fill="#2b2014">
+        <circle cx="19" cy="40" r="1.4"/><circle cx="40" cy="40" r="1.4"/><circle cx="62" cy="40" r="1.4"/>
+        <circle cx="86" cy="40" r="1.4"/><circle cx="116" cy="40" r="1.4"/><circle cx="137" cy="40" r="1.4"/>
+        <circle cx="160" cy="40" r="1.4"/>
+        <circle cx="19" cy="108" r="1.4"/><circle cx="40" cy="108" r="1.4"/><circle cx="62" cy="108" r="1.4"/>
+        <circle cx="86" cy="108" r="1.4"/><circle cx="116" cy="108" r="1.4"/><circle cx="137" cy="108" r="1.4"/>
+        <circle cx="160" cy="108" r="1.4"/>
+      </g>
+    </g>
+
+    <rect x="0" y="0" width="240" height="160" fill="url(#leanToLight)"/>
+  </g>
+
+  <!-- the ragged edge -->
+  <path d="M8,10 L232,10 L232,138 L210,146 L188,140 L164,150 L140,142 L116,148
+           L92,140 L68,150 L46,142 L26,148 L8,140 Z"
+        fill="none" stroke="#3a2a18" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- the beam along the wall the whole thing leans on -->
+  <rect x="4" y="5" width="232" height="10" rx="3" fill="#5c4729" stroke="#2b2014" stroke-width="2.5"/>
+  <rect x="8" y="6" width="224" height="2.5" fill="#8a6d44" opacity="0.5"/>
+  <!-- stones on the cloth so the wind keeps out -->
+  <g fill="#8a857a" stroke="#4a463e" stroke-width="1.5">
+    <ellipse cx="226" cy="30" rx="7" ry="6"/>
+    <ellipse cx="200" cy="140" rx="8" ry="6"/>
+  </g>
+</svg>

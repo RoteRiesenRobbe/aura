@@ -26,6 +26,7 @@
     "AuraPropType": [
       "Altar",
       "AngelStatue",
+      "BandageTable",
       "Barn",
       "Barrel",
       "Bedroll",
@@ -33,6 +34,7 @@
       "Bench",
       "BerryBush",
       "Boulder",
+      "Brazier",
       "Bridge",
       "BrokenCrate",
       "BrokenFence",
@@ -47,6 +49,7 @@
       "CemeteryGate",
       "CentralFountain",
       "Confessional",
+      "Cot",
       "Cottage",
       "Crate",
       "DeadTree",
@@ -62,6 +65,8 @@
       "House",
       "IronFence",
       "LampPost",
+      "LazaretTent",
+      "LeanTo",
       "MarketCounter",
       "MarketStallRoof",
       "Mausoleum",
@@ -78,9 +83,12 @@
       "Remains",
       "Rock",
       "Rowboat",
+      "RubbishHeap",
       "RuinedHouse",
       "SackPile",
+      "Screen",
       "Shipwreck",
+      "SlumTent",
       "Stump",
       "Tent",
       "Tombstone",
@@ -533,6 +541,10 @@
       "w": 1.2,
       "h": 1.2
     },
+    "BandageTable": {
+      "w": 1.6,
+      "h": 0.8
+    },
     "Barn": {
       "w": 6,
       "h": 4
@@ -560,6 +572,10 @@
     "Boulder": {
       "w": 2.2,
       "h": 2.2
+    },
+    "Brazier": {
+      "w": 0.8,
+      "h": 0.8
     },
     "Bridge": {
       "w": 5,
@@ -616,6 +632,10 @@
     "Confessional": {
       "w": 2,
       "h": 1.5
+    },
+    "Cot": {
+      "w": 0.8,
+      "h": 1.9
     },
     "Cottage": {
       "w": 3,
@@ -676,6 +696,14 @@
     "LampPost": {
       "w": 0.4,
       "h": 0.4
+    },
+    "LazaretTent": {
+      "w": 6,
+      "h": 4
+    },
+    "LeanTo": {
+      "w": 2.4,
+      "h": 1.6
     },
     "MarketCounter": {
       "w": 2.6,
@@ -741,6 +769,10 @@
       "w": 2.6,
       "h": 1.1
     },
+    "RubbishHeap": {
+      "w": 1.6,
+      "h": 1.6
+    },
     "RuinedHouse": {
       "w": 4,
       "h": 3
@@ -749,9 +781,17 @@
       "w": 1,
       "h": 0.8
     },
+    "Screen": {
+      "w": 1.6,
+      "h": 0.2
+    },
     "Shipwreck": {
       "w": 8,
       "h": 3
+    },
+    "SlumTent": {
+      "w": 2.4,
+      "h": 2
     },
     "Stump": {
       "w": 1.1,

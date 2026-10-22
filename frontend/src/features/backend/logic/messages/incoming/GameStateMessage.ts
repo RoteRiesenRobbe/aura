@@ -961,6 +961,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.CathedralTranseptRoof]: Props.genericPropClasses.CathedralTranseptRoof,
     [AuraApi.EntityType.CathedralApseRoof]: Props.genericPropClasses.CathedralApseRoof,
     [AuraApi.EntityType.BellTower]: Props.genericPropClasses.BellTower,
+    [AuraApi.EntityType.LazaretTent]: Props.genericPropClasses.LazaretTent,
+    [AuraApi.EntityType.SlumTent]: Props.genericPropClasses.SlumTent,
+    [AuraApi.EntityType.LeanTo]: Props.genericPropClasses.LeanTo,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

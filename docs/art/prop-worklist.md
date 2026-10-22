@@ -145,9 +145,9 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, and CandleStand, C2, are the others).
-About a player wide. Tent is canvas - the only fabric in the prop set, bandit
-camp.
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, and Brazier, C3, are the others).
+About a player wide. Tent is canvas, bandit camp - the only fabric outside the
+city (the city's tents and awning are C1 and C3).
 
 ---
 
@@ -258,6 +258,25 @@ the nave alone is 1200 x 2880, the largest prop texture so far (cap 4096). The
 gold cross over the nave's north end marks the west front, so the altar and the
 pews face south. CandleStand is the third prop that **emits light**.
 
+### C3. Lazaret + slums - white with red cross bands; patched brown cloth
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| LazaretTent | P2 | placeholder (roof, fades to 0.3) | 720 x 480 |
+| SlumTent | P2 | placeholder (roof, fades to 0.3) | 288 x 240 |
+| LeanTo | P2 | placeholder (roof, fades to 0.3) | 288 x 192 |
+| Cot | P2 | box only | 96 x 228 |
+| Brazier | P2 | box only | 96 |
+| BandageTable | P3 | box only | 192 x 96 |
+| Screen | P3 | box only | 192 x 24 |
+| RubbishHeap | P3 | box only (walked over) | 192 |
+
+⭐ Both tents are **roofs**, the small form of a building: the lazaret's hipped
+marquee over rows of cots, its red bands forming one cross across the whole
+roof; the slum tent a patched tarp on a crooked branch over a Bedroll. The slum
+tent repeats across a district, so it must stay plain enough to repeat. Brazier
+is the fourth prop that **emits light**.
+
 ---
 
 ## Priority roll-up
@@ -270,13 +289,14 @@ Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
 CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof.
 
-**P2 (21):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+**P2 (26):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
 Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
-AngelStatue.
+AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier.
 
-**P3 (12):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
-ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave.
+**P3 (15):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·
+BandageTable · Screen · RubbishHeap.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

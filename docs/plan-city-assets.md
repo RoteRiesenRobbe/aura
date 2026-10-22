@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
 **Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1 + K2 BUILT 2026-10-22 (§11); next K3. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
+K1 + K2 + K3 BUILT 2026-10-22 (§11); next K4. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -179,7 +179,7 @@ Flags column, R = roof, nb = non-blocking, L = light.
 | Cot | P | 0.8×1.9 | |
 | BandageTable | P | 1.6×0.8 | |
 | Screen | P | 1.6×0.2 | |
-| LeanTo | P | 2.4×1.6 | R 0.3 |
+| LeanTo | S (drawn after K3, PO) | 2.4×1.6 | R 0.3 |
 | RubbishHeap | P | r 0.8 | nb |
 | Brazier | P | r 0.4 | L 0.3 `#ffa050` flicker |
 
@@ -493,3 +493,50 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   The palette picked the tile up in a regen this session did not run
   (Tiled had `world.json` open, L4): only the BellTower tile moved. Schema:
   wire +1 `EntityType` (now +7 for K2), 1 def edited.
+
+### K3 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (lazaret + slums)
+
+- **Wire:** `EntityType` +`LazaretTent` = 134, `SlumTent` = 135, and (drawn at
+  the PO's ask before the wrap) `LeanTo` = 136, appended (L1). TS binding via
+  `flatc_Windows_v24_3_25.exe --ts --gen-all -o <scratch> aura.fbs`, diffed:
+  only `entity-type.ts` moves. Go via `go generate` in `backend/pkg/api`. One
+  `gameObjectClasses` line each, after BellTower.
+- **Art (R1, R5):** `lazaretTent.svg` (300×200 for 6 × 4, 50 units/m): a
+  field-hospital marquee, a HIPPED roof on two king poles (four
+  planes on a short E-W ridge, north lit, east darkest), washed-out white
+  canvas, a red band along the ridge and one down both slopes so the whole
+  roof is the cross; a fresh patch, a scorch mark. `slumTent.svg` (240×200,
+  100 units/m): a crooked branch for a N-S ridge (the Bedroll lies along it),
+  mismatched brown patches, a ragged sagging hem weighted with stones; west
+  slope lit. `leanTo.svg` (240×160): one pitch against a wall, a beam along
+  the north edge, salvaged planks down the slope to a ragged south edge, one
+  board missing, two nailed battens, patched cloth over the east end. All
+  three keep everything inside the canvas (a roof draws over characters);
+  ids prefixed (`lazaret…`, `slumTent…`, `leanTo…`).
+- **Content (+8, D7 numbers, all [PLACEHOLDER]):** roofs `LazaretTent` 6×4,
+  `SlumTent` 2.4×2, `LeanTo` 2.4×1.6 (`revealAlpha` 0.3, `blocksMovement:
+  false`, D2's cloth alpha); `PropPlaceholder` defs: solid `Cot` 0.8×1.9,
+  `BandageTable` 1.6×0.8, `Screen` 1.6×0.2; non-blocking `RubbishHeap` r 0.8;
+  `Brazier` r 0.4 (light 0.3 `#ffa050`, flicker), the fourth light. No
+  placements anywhere.
+- **Palette:** Tiled had `world.json` open at the start, so the regen waited
+  (L4); after the PO closed it, regenerated (twice: again for LeanTo). Every
+  prop template's `gid` shifts (expected). `verify.sh` all green.
+- **cp-defs:** ⚑ NOT the full copy. The only api ↔ `pkg/api` gap besides the 8
+  new defs was `zones/world.json`, mid-edit in another session (Tiled), so
+  only the 8 props were copied: same result for K3, no EOL churn, nothing to
+  check out again, the other session's copy untouched.
+- **Tracker (D8):** 8 `assets.csv` rows (subcategory "Props — city: lazaret +
+  slums", zone Dionsburg, state `placeholder`; the 3 heroes SVG, the 5 boxes
+  PNG without `current_file`), `assets.md` regenerated (273 rows),
+  `prop-worklist.md` §C3 + the roll-up (P1 20 · P2 26 · P3 15); the Torch and
+  Tent notes there name Brazier and the city's cloth.
+- **Verified (R8 cheap tail only, re-run after LeanTo):** `go build ./...` ·
+  `go test -count=1 ./pkg/aura/world/...` red ONLY on the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate
+  -content ../api` (scratch build, L7) 0 findings, props 64 → 72 · vitest
+  1883/0 · typecheck clean · webpack cache cleared, `npm run build` ok (the 2
+  usual size warnings) · the 3 SVGs parse · `verify.sh` all green. No probe,
+  harness, screenshots or full suite (R8).
+- **Schema:** DB none · wire +3 `EntityType` (134-136) · conf none · content
+  +8 props · zone format none · lang none.

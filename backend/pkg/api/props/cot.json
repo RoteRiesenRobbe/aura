@@ -1,0 +1,6 @@
+{
+  "name": "Cot",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 0.8, "height": 1.9 }
+}

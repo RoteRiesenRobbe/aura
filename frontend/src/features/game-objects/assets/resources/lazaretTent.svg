@@ -1,0 +1,97 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" preserveAspectRatio="none">
+  <!-- Placeholder lazaret tent (plan-city-assets.md K3): TRUE top-down, a ROOF
+       prop. The viewBox is 300x200 to match the 6 x 4 rect body in
+       api/props/lazaret-tent.json (preserveAspectRatio=none, so the two must
+       stay in sync); 50 units per metre. It fades to its revealAlpha while
+       you stand under it, so the cots beneath show through.
+
+       A field-hospital marquee, not the bandit's ridge tent: a HIPPED roof on
+       two king poles, four planes meeting at a short E-W ridge. The light
+       (top-left) tells the planes apart: north lit, west half-lit, south in
+       shade, east darkest. White canvas with the red cross bands (R5): one
+       band along the ridge, one down both slopes, so the whole roof is the
+       cross from across the square. Washed and re-washed, so the white is
+       grey-cream and the red has faded toward rust. No ropes or pegs past
+       the canvas: a roof draws over everyone walking past. -->
+  <defs>
+    <clipPath id="lazaretCanvas">
+      <path d="M6,6 L294,6 L294,190 L6,190 Z"/>
+    </clipPath>
+    <linearGradient id="lazaretLight" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="14" y="14" width="284" height="184" rx="4" fill="#000000" opacity="0.22"/>
+
+  <g clip-path="url(#lazaretCanvas)">
+    <!-- the four planes -->
+    <path d="M6,6 L294,6 L236,98 L64,98 Z" fill="#ece5d2"/>
+    <path d="M6,6 L64,98 L6,190 Z" fill="#d8d0bb"/>
+    <path d="M64,98 L236,98 L294,190 L6,190 Z" fill="#b9b19c"/>
+    <path d="M294,6 L294,190 L236,98 Z" fill="#a69e89"/>
+
+    <!-- canvas seams, square to each eave -->
+    <g stroke="#8a826e" stroke-width="1.6" opacity="0.55">
+      <line x1="96" y1="6" x2="96" y2="98"/>
+      <line x1="204" y1="6" x2="204" y2="98"/>
+      <line x1="96" y1="98" x2="96" y2="190"/>
+      <line x1="204" y1="98" x2="204" y2="190"/>
+      <line x1="6" y1="54" x2="34" y2="54"/>
+      <line x1="6" y1="144" x2="34" y2="144"/>
+      <line x1="294" y1="54" x2="266" y2="54"/>
+      <line x1="294" y1="144" x2="266" y2="144"/>
+    </g>
+
+    <!-- the cross: a band down both slopes ... -->
+    <rect x="136" y="6" width="28" height="92" fill="#a8392c"/>
+    <rect x="136" y="98" width="28" height="92" fill="#7f2a21"/>
+    <!-- ... and one along the ridge, hipped down at each end -->
+    <path d="M64,90 L236,90 L244,98 L236,106 L64,106 L56,98 Z" fill="#96322a"/>
+    <path d="M64,90 L236,90 L244,98 L56,98 Z" fill="#a8392c"/>
+    <!-- the bands' stitched hems -->
+    <g fill="none" stroke="#5c1e17" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.6">
+      <line x1="139" y1="8" x2="139" y2="88"/>
+      <line x1="161" y1="8" x2="161" y2="88"/>
+      <line x1="139" y1="108" x2="139" y2="188"/>
+      <line x1="161" y1="108" x2="161" y2="188"/>
+      <line x1="68" y1="93" x2="132" y2="93"/>
+      <line x1="168" y1="93" x2="232" y2="93"/>
+      <line x1="68" y1="103" x2="132" y2="103"/>
+      <line x1="168" y1="103" x2="232" y2="103"/>
+    </g>
+
+    <!-- weather and use: rain streaks under the ridge, a scorched patch where
+         a brazier stood too close, a square of fresh canvas over a tear -->
+    <ellipse cx="88" cy="128" rx="20" ry="8" fill="#4a3e28" opacity="0.12"/>
+    <ellipse cx="222" cy="60" rx="16" ry="6" fill="#4a3e28" opacity="0.1"/>
+    <ellipse cx="250" cy="160" rx="14" ry="9" fill="#2a2016" opacity="0.16"/>
+    <rect x="56" y="30" width="24" height="20" fill="#f4efe0" stroke="#8a826e" stroke-width="1.4"
+          stroke-dasharray="3 2" transform="rotate(-4 68 40)"/>
+
+    <rect x="0" y="0" width="300" height="200" fill="url(#lazaretLight)"/>
+  </g>
+
+  <!-- the hips and the ridge, where the planes fold -->
+  <g stroke="#6a6250" stroke-width="2" stroke-linecap="round" opacity="0.7">
+    <line x1="6" y1="6" x2="64" y2="98"/>
+    <line x1="6" y1="190" x2="64" y2="98"/>
+    <line x1="294" y1="6" x2="236" y2="98"/>
+    <line x1="294" y1="190" x2="236" y2="98"/>
+  </g>
+  <line x1="64" y1="98" x2="236" y2="98" stroke="#4a1a14" stroke-width="2.5" opacity="0.7"/>
+
+  <!-- the canvas edge -->
+  <rect x="6" y="6" width="288" height="184" fill="none" stroke="#5a5446" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- the two king-pole caps poking through the ridge -->
+  <g>
+    <circle cx="100" cy="98" r="6" fill="#6b5232" stroke="#2b2014" stroke-width="1.8"/>
+    <circle cx="98.5" cy="96.5" r="2" fill="#9c7b4c"/>
+    <circle cx="200" cy="98" r="6" fill="#6b5232" stroke="#2b2014" stroke-width="1.8"/>
+    <circle cx="198.5" cy="96.5" r="2" fill="#9c7b4c"/>
+  </g>
+</svg>

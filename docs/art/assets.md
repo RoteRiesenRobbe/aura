@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 265 rows.
+Rendered 2026-10-22 from 273 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 265 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 231 |
+| Art | 239 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 265 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 84 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 92 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-22 from 265 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 64 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 93 | normal — placed but not everywhere |
-| **P3** | 77 | low — unplaced, deferred, or already fine |
+| **P2** | 98 | normal — placed but not everywhere |
+| **P3** | 80 | low — unplaced, deferred, or already fine |
 
-**151 rows need work** (missing, shared, placeholder, stock or blocked),
+**159 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 68
+## Prop — 76
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -241,6 +241,14 @@ of which **11 are P0**:
 | 🟡 | **IronFence** | — | P2 |  | 288 × 36 | Dionsburg — A wrought-iron cemetery railing section. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 | 🟡 | **CemeteryGate** | — | P2 |  | 360 × 60 | Dionsburg — The cemetery's wrought-iron gate, standing open between IronFence runs. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 | 🟡 | **AngelStatue** | — | P2 |  | 144 | Dionsburg — A weathered stone angel over a grave, wings from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **LazaretTent** | `lazaretTent.svg` | P2 |  | 720 × 480 | Dionsburg — The lazaret's field-hospital marquee, 6 × 4 m: a HIPPED roof on two king poles (four planes on a short east-west ridge, told apart by the top-left light), a red band along the ridge and one down both slopes so the whole roof is the cross. Washed-out canvas, a fresh patch, a scorch mark. Cots stand beneath and show when it fades. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **SlumTent** | `slumTent.svg` | P2 |  | 288 × 240 | Dionsburg — A shelter nobody bought: a crooked branch for a north-south ridge, mismatched cloth thrown over it and patched brown on brown, a ragged sagging hem weighted with stones. A Bedroll lies beneath. Repeated across the slums, so it must not read as one hero tent. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Cot** | — | P2 |  | 96 × 228 | Dionsburg — A canvas camp bed, north-south, in rows under the lazaret tent. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **BandageTable** | — | P3 |  | 192 × 96 | Dionsburg — A trestle table of rolled bandages, basins and bottles. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **Screen** | — | P3 |  | 192 × 24 | Dionsburg — A folding cloth screen between cots, seen edge-on from above. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **LeanTo** | `leanTo.svg` | P2 |  | 288 × 192 | Dionsburg — One pitch propped against a wall: a beam along the wall (north), salvaged planks of mismatched widths running down the slope to a ragged south edge, one board missing, two nailed battens, a patched brown cloth over the east end weighted with stones. Drawn after K3 first shipped it as a box (PO 2026-10-22). Slums palette (R5): patched brown cloth. |
+| 🟡 | **RubbishHeap** | — | P3 |  | 192 | Dionsburg — Refuse, rags and broken crockery in a low heap. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Brazier** | — | P2 |  | 96 | Dionsburg — An iron fire basket the slum warms itself at; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
 
 ## Ground decal — 20
 
