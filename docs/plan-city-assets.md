@@ -1,0 +1,351 @@
+# Plan: City Assets: a prop kit for Dionsburg, district by district
+
+**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R7 RULED, D1-D8 PROPOSED,
+nothing built.** No open PO calls (§7). Six chunks (§5); K1 can start once the plan is approved.
+
+**Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
+**Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
+(the labelled `PropPlaceholder` box), `plan-zone-polygons.md` (`structures`), the `City` and
+`Wall` terrain profiles. **Amends:** nothing. **Not in scope:** laying out the city itself in
+Tiled (PO authoring work, as for the release map), NPCs and quests.
+**Schema (as designed):** DB none · wire +1 `EntityType` per SVG hero (16 total, K1 +3) ·
+conf none · content 67 new `api/props/*.json` · zone format none · lang none.
+
+⚑ Line references pinned 2026-10-22 at `5ded547b` (main); re-verify before relying on them.
+
+---
+
+## 1. What this is
+
+Dionsburg (`content-world.md`, the hub with three entrances) exists as a region of `world.json`,
+painted with the `City` profile and `Cobblestone` streets, but has no city props. Every prop
+today is a farm, coast or forest piece. The PO asked for:
+
+- a market stall, whose awning uses the roof fade;
+- a lazaret and slum tents;
+- a library;
+- a large central cathedral and its interior;
+- a cemetery;
+- a dwarf-led military district with military and jail pieces;
+- a large central fountain;
+- an elf-led mage district;
+- a gnome-led craft district.
+
+### 1.1 What already exists and is reused
+
+- **Roof reveal** (`plan-roof-props.md`, built 2026-10-10, no shipped consumer yet). The
+  prop definition authors `"roof": {"revealAlpha": a}` together with `"blocksMovement": false`.
+  - The client fades it to `a` while the local player stands under it
+    (`frontend/src/features/game-objects/logic/RoofReveal.ts:39`).
+  - Touching roof pieces fade together, because `:90` flood-fills them.
+  - Circle bodies are handled (`:47`).
+  - The boot refuses a blocking roof (`backend/pkg/aura/world/props.go:351-361`), a roof
+    in `underfoot`, and a placement that overrides it to blocking (`zone.go:1532-1543`).
+  - Every definition sharing an entityType must agree on `roof` (`props.go:222`), except
+    `PropPlaceholder`.
+  - Manual: `manual-content-authoring.md:375-385`.
+- **`PropPlaceholder`** is a labelled box sized by the definition's body. It is JSON only,
+  with no wire change, because the name rides the wire (`Props.ts:375-395`). It honours
+  `roof` by name (`Props.ts:389`).
+- **Prop lights** are keyed by the placement's `type`, i.e. the prop name
+  (`DarknessOverlay.ts:377`), so a placeholder that authors `lightFraction` lights too. They
+  only show in dark areas.
+- **`structures`** are filled polygons with a ground profile and outline. The `Wall` profile
+  (`terrain-profiles.json:54`) already exists for stone shells.
+- **Reused props:** Crate, Cart, Tombstone, Bedroll, Torch and Well.
+- **Art conventions:**
+  - `docs/art/README.md`: top-down, gritty, 120 px/m.
+  - The `house.svg` style: true top-down, mostly roof, lit from the top-left, shadow baked
+    down-right.
+  - Non-square art uses `preserveAspectRatio="none"` with the body's aspect in its `viewBox`.
+
+## 2. PO rulings (2026-10-22)
+
+- **R1 - Hybrid fidelity: hero pieces get a hand-drawn SVG placeholder, the rest is a labelled
+  `PropPlaceholder` box.** The heroes set the look; the boxes let the city be blocked out now.
+  The artist replaces both later.
+- **R2 - Plan doc first, then one district per execution session.**
+- **R3 - Building shells are `structures` polygons** (the `Wall` profile, door gaps), not a
+  wall-prop kit. Any floor plan works and no new entityType is needed for walls.
+- **R4 - Big roofs are touching pieces** (nave + transept + apse), not one sprite. Each
+  texture stays under 4096 px, and the pieces are reusable.
+- **R5 - District palettes as proposed:**
+  - Dwarven: dark stone, iron, red banners.
+  - Elven: pale stone, silver, sage green, violet glow.
+  - Gnome: brass, copper, gears, soot.
+  - Slums: patched brown cloth.
+  - Lazaret: white with red cross bands.
+  - Market: striped awnings.
+  - Cathedral: grey slate with gold accents.
+- **R6 - Order: K1 market + fountain, K2 cathedral + cemetery, K3 lazaret + slums, K4
+  library + elven, K5 dwarven military + jail, K6 gnome craft.**
+- **R7 - The city's internal id is `city-hub`, with no place name in it.** Before this it
+  was `brunnstedt`, the city's old name, while players already saw "Dionsburg".
+  - Renamed: the area id, the region id, the `region.city-hub.*` lang keys (en + de), and
+    the dialogue sheet's label table.
+  - No saved state names it: the map fog is stored in world coordinates (migration
+    000003), and no quest reaches the region.
+  - Schema: DB none · wire none · content: one area/region id + 2 lang keys.
+
+## 3. Design
+
+### D1 - A building = shell + roof + interior [proposed]
+A building has three layers:
+- a `structures` polygon for its walls (`Wall` profile), with a door gap;
+- one or more non-blocking `roof` props on top, in the `buildings` sub-layer;
+- interior props in `default`.
+
+Walking in through the door fades the roof and shows the interior. This is the pattern
+`manual-content-authoring.md:384` already describes. The tents and the market stall are the
+small form of it: a roof prop over a solid piece (counter, cot) or a non-blocking one (bedroll).
+
+### D2 - Roof alpha [proposed]
+Every roof uses `revealAlpha` 0.25 [PLACEHOLDER], so the building's outline stays readable
+while you are inside it. Exception: tents and the stall use 0.3 [PLACEHOLDER], because the
+cloth is small and fading it out completely makes it vanish.
+
+### D3 - One entityType per SVG hero; placeholders share `PropPlaceholder` [proposed]
+Each hero follows the manual's new-entityType steps (§4). Each placeholder is one JSON file.
+When the artist's PNG lands, the placeholder file switches entityType (with its own wire
+value) and nothing else.
+
+### D4 - Naming [proposed]
+- File: kebab-case (`market-stall-roof.json`).
+- Name and entityType: PascalCase (`MarketStallRoof`).
+- SVG: camelCase (`marketStallRoof.svg`).
+- Roofs end in `Roof`.
+- District nouns stay generic (`Workbench`, not `GnomeWorkbench`), unless the look is the
+  district's (`ElvenPlanter`).
+
+### D5 - Lights only where the fiction burns or glows [proposed]
+Only these props author a light: LampPost, CandleStand, Brazier, Forge, CrystalPylon and
+ArcaneCircle. All values are [PLACEHOLDER]. The lights only show in dark areas (day/night is
+OFF), so in a lit city they are inert until a district is authored dark.
+
+### D6 - Blocking
+A prop blocks by default. Non-blocking means you walk over it or under it: roofs, rugs,
+mounds, chains, rubbish and the arcane circle. Doors and gates can be overridden per
+placement (`blocksMovement` in Tiled).
+
+### D7 - The prop list
+All sizes are metres, all [PLACEHOLDER]. In the Kind column, S = SVG hero (new entityType)
+and P = PropPlaceholder. In the Body column, `r` = radius and `cf` = collisionFactor. In the
+Flags column, R = roof, nb = non-blocking, L = light.
+
+**K1 - Market + fountain**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| MarketStallRoof | S | 3×2.4 | R 0.3 (striped awning) |
+| MarketCounter | S | 2.6×0.8 | sits under the awning |
+| CentralFountain | S | r 3, cf 0.9 | |
+| Barrel | P | r 0.4 | |
+| SackPile | P | 1×0.8 | |
+| ProduceBasket | P | r 0.35 | |
+| Bench | P | 1.8×0.5 | |
+| LampPost | P | r 0.2 | L 0.25 `#ffd890` |
+
+**K2 - Cathedral + cemetery**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| CathedralNaveRoof | S | 10×24 | R 0.25 |
+| Pew | S | 3×0.6 | |
+| Altar | S | 2.4×1.2 | |
+| Mausoleum | S | 4×3 | |
+| CathedralTranseptRoof | P | 24×8 | R 0.25 |
+| CathedralApseRoof | P | r 5 | R 0.25 |
+| BellTower | P | 5×5 | solid tower, not a roof |
+| Pillar | P | r 0.5 | |
+| CandleStand | P | r 0.3 | L 0.2 `#ffcf80` flicker |
+| Font | P | r 0.7 | |
+| Organ | P | 3×1.5 | |
+| Confessional | P | 2×1.5 | |
+| GraveMound | P | 1×2 | nb |
+| OpenGrave | P | 1×2 | |
+| IronFence | P | 2.4×0.3 | |
+| CemeteryGate | P | 3×0.5 | nb |
+| AngelStatue | P | r 0.6 | |
+
+**K3 - Lazaret + slums**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| LazaretTent | S | 6×4 | R 0.3 |
+| SlumTent | S | 2.4×2 | R 0.3 (Bedroll beneath) |
+| Cot | P | 0.8×1.9 | |
+| BandageTable | P | 1.6×0.8 | |
+| Screen | P | 1.6×0.2 | |
+| LeanTo | P | 2.4×1.6 | R 0.3 |
+| RubbishHeap | P | r 0.8 | nb |
+| Brazier | P | r 0.4 | L 0.3 `#ffa050` flicker |
+
+**K4 - Library + elven mage district**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| Bookshelf | S | 2.4×0.6 | |
+| MageTowerRoof | S | r 4 | R 0.25 |
+| CrystalPylon | S | r 0.5 | L 0.35 `#b7a6ff` |
+| LibraryRoof | P | 8×6 | R 0.25 (pieces) |
+| ReadingDesk | P | 1.8×1 | |
+| Lectern | P | r 0.4 | |
+| ScrollRack | P | 1.6×0.5 | |
+| BookPile | P | r 0.35 | nb |
+| ArcaneCircle | P | r 2 | nb, L 0.3 `#b7a6ff` |
+| AlchemyTable | P | 2×1 | |
+| Orrery | P | r 1 | |
+| MoonPool | P | r 1.8 | |
+| ElvenPlanter | P | 2×0.8 | |
+
+**K5 - Dwarven military + jail**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| TrainingDummy | S | r 0.45 | |
+| JailBars | S | 2.4×0.3 | |
+| BarracksRoof | P | 8×6 | R 0.25 (pieces) |
+| WeaponRack | P | 2×0.5 | |
+| ArmorStand | P | r 0.4 | |
+| Bunk | P | 1×2 | |
+| Banner | P | r 0.25 | |
+| Watchtower | P | 4×4 | |
+| CellDoor | P | 1.2×0.3 | blocks; override per placement |
+| Stocks | P | 2×0.6 | |
+| Chains | P | r 0.4 | nb |
+| GuardDesk | P | 1.8×0.9 | |
+
+**K6 - Gnome craft district**
+
+| Prop | Kind | Body | Flags |
+|---|---|---|---|
+| Workbench | S | 2.2×1 | |
+| GearContraption | S | 2.4×2.4 | |
+| WorkshopRoof | P | 6×5 | R 0.25 (pieces) |
+| Forge | P | 2×1.6 | L 0.35 `#ff9040` flicker |
+| Anvil | P | 0.9×0.5 | |
+| Crane | P | 3×3 | |
+| LumberStack | P | 2.4×1 | |
+| SteamBoiler | P | r 1 | |
+| ToolRack | P | 1.8×0.4 | |
+
+In total: 16 SVG heroes and 51 placeholders (67 prop files).
+
+### D8 - Tracker rows land with their chunk [proposed]
+Each chunk adds its props to `docs/art/assets.csv` (state `placeholder`, with the district's
+R5 palette in `notes`), regenerates `assets.md` (`node tools/asset-tracker.mjs`), and adds a
+city section to `prop-worklist.md`. Rows describe files that exist, so they are not
+pre-filled here.
+
+## 4. What changes for the author
+
+- **Placing a building in Tiled:**
+  1. Draw a `structures` polygon (`Wall` profile) with a door gap in the `paths` layer.
+  2. Drag the roof template(s) from `tools/tiled/palette/templates/props/` into
+     `props › buildings`, flush with each other.
+  3. Put the interior into `props › default`.
+- **Drag from Templates, never the tileset** ([[project-tiled-drop-size]]).
+- **Rect bodies never rotate** (`manual-content-authoring.md:331`), so a north-south nave and
+  an east-west one are two definitions (swapped width and height). Build the city on the grid.
+
+**Per chunk (the execution recipe):**
+- **SVG hero:**
+  1. Append the entityType at the END of `EntityType` in `api/schema/server.fbs`, then run
+     `api/schema/make.bat`.
+  2. Add the SVG to `frontend/src/features/game-objects/assets/resources/`.
+  3. Add the prop JSON.
+  4. Add a `gameObjectClasses` line in
+     `frontend/src/features/backend/logic/messages/incoming/GameStateMessage.ts` (beside
+     `:830`).
+- **Placeholder:** the JSON only, with `"entityType": "PropPlaceholder", "sprite":
+  "propPlaceholder.svg"`.
+- **After either:**
+  - With the zone closed in Tiled, run `node tools/tiled/generate-palette.mjs`, then
+    `bash tools/tiled/verify.sh`.
+  - Run cp-defs by hand (find + cp; [[project-no-make-on-windows-box]]).
+  - Clear the webpack cache after an fbs regen ([[project-webpack-cache-stale-bindings]]).
+  - Run `npm run build`.
+
+## 5. Chunks
+
+Each chunk takes one session, can ship on its own, and needs only K1's style reference before
+it.
+
+| # | Chunk | Contents | Size | Schema |
+|---|---|---|---|---|
+| K1 | Market + fountain | 3 SVG + 5 PH (D7). The first real `roof` consumer; the SVGs set the city's drawing style. | M | wire +3 EntityType · content +8 |
+| K2 | Cathedral + cemetery | 4 SVG + 13 PH. Roof pieces flood-fill as one building. | M | wire +4 · content +17 |
+| K3 | Lazaret + slums | 2 SVG + 6 PH | S | wire +2 · content +8 |
+| K4 | Library + elven | 3 SVG + 10 PH. The first circle roof (MageTowerRoof). | M | wire +3 · content +13 |
+| K5 | Dwarven military + jail | 2 SVG + 10 PH | S | wire +2 · content +12 |
+| K6 | Gnome craft | 2 SVG + 7 PH | S | wire +2 · content +9 |
+
+**In-game (PO), every chunk.** Place one of each new prop in a scratch spot of the debug world
+(`-debug-zones`), never in `world.json`, then check:
+- each SVG reads at play zoom and sits at the right aspect;
+- placeholders show their names;
+- walking under a roof fades it to its alpha, and its touching pieces fade with it;
+- solid props block, and nb props let you walk over them;
+- a light shows in a dark spot (debug caves; FX and light draw BELOW darkness, so check
+  both).
+
+Revert the scratch placements afterwards. K1 additionally checks a stall built as awning plus
+counter, walked under from all four sides.
+
+## 6. Test strategy
+
+- **Go:** no new code. `go -C backend test -count=1 ./pkg/aura/world/...` covers prop load,
+  the roof refusals and roof agreement for the new files. `aurad -validate -content ../api` is
+  clean, and the boot log's prop count grows by the chunk's count.
+- **vitest:** `npm --prefix frontend test` (RoofReveal, Props, any EntityType→class
+  completeness pin) and `npm --prefix frontend run typecheck`.
+- **Tiled:** `bash tools/tiled/verify.sh` is green.
+- **Harness:** a `verify` leg is optional; the PO's in-game look is the gate (R1: these are
+  placeholders).
+
+## 7. Open PO calls
+
+- ~~**Q1 - Rename the internal id `brunnstedt`?**~~ **RULED 2026-10-22: R7.** The id is
+  now `city-hub` and carries no place name; the title "Dionsburg" lives only in the lang
+  files. Done in the planning session, outside any chunk.
+
+## 8. Landmines
+
+- **L1** `EntityType` is append-only and streamed; a mid-enum insert shifts every later prop
+  on the wire. Append at the end, regenerate both bindings.
+- **L2** After an fbs regen, webpack can compile the OLD enum while tsc is clean. Clear
+  `frontend/node_modules/.cache/webpack` ([[project-webpack-cache-stale-bindings]]).
+- **L3** `-content ../api` is SERVER-only. `Props.ts` compiles prop defs in at webpack build
+  time, so a new placeholder renders unlabelled until `npm run build`
+  (`plan-prop-placeholders.md` §10).
+- **L4** Never regenerate the palette while the zone is open in Tiled: a changed body writes a
+  `scale` onto every open placement.
+- **L5** Without cp-defs, `go test` and plain `-validate` read stale embedded JSON
+  ([[project-no-make-on-windows-box]]).
+- **L6** A prop is baked at body × 120 px. Keep every side ≤ 34 m (4096 px) and split anything
+  bigger (R4).
+- **L7** A stale `backend/aurad.exe` shadows the freshly built `aurad` (Windows PATHEXT;
+  `verify` skill).
+- **L8** Known looks, not bugs (`plan-roof-props.md` §4): name plates show through roofs, and
+  the world map draws roofs opaque.
+
+## 9. Schema impact
+
+- **DB:** NONE.
+- **Wire:** +16 `EntityType` values across K1-K6, appended. No new fields.
+- **Conf:** NONE.
+- **Content:** 67 new `api/props/*.json`.
+- **Zone format:** NONE.
+- **Lang:** NONE (prop names are not player-facing text; a placeholder's label is a dev
+  look).
+- **Tiled palette:** regenerated per chunk.
+
+## 10. Cross-references
+
+`plan-roof-props.md`, `plan-prop-placeholders.md`, `manual-content-authoring.md` §1b,
+`manual-tiled-editor.md` §3, `docs/art/README.md`, `docs/art/prop-worklist.md`,
+`content-world.md` (Dionsburg).
+
+## 11. Chunk ledgers
+
+(none yet)
