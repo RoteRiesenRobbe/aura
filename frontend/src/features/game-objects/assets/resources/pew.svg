@@ -1,0 +1,44 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60" preserveAspectRatio="none">
+  <!-- Placeholder pew (plan-city-assets.md K2): TRUE top-down, a dark oak
+       bench seen from above. The viewBox is 300x60 to match the 3 x 0.6 rect
+       body in api/props/pew.json (preserveAspectRatio=none, so the two must
+       stay in sync). The backrest runs along the NORTH edge: the nave's altar
+       stands at its south end (cathedralNaveRoof.svg), so the pews face south.
+       Rect bodies never rotate, so this is the only way it sits.
+
+       Kept plain so a nave full of them reads as rows: seat, backrest, two
+       carved end boards, one hymnal left behind, a brass number plate. -->
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="7" y="8" width="291" height="50" rx="3" fill="#000000" opacity="0.26"/>
+
+  <!-- the seat -->
+  <rect x="4" y="16" width="290" height="36" rx="2" fill="#5e3f22" stroke="#2c1c0d" stroke-width="3"/>
+  <rect x="8" y="20" width="282" height="10" fill="#7a5530" opacity="0.6"/>
+  <line x1="8" y1="34" x2="290" y2="34" stroke="#2c1c0d" stroke-width="1.5" opacity="0.6"/>
+  <!-- worn pale where people sit -->
+  <g fill="#8a6338" opacity="0.35">
+    <ellipse cx="70" cy="38" rx="24" ry="7"/>
+    <ellipse cx="150" cy="38" rx="24" ry="7"/>
+    <ellipse cx="228" cy="38" rx="24" ry="7"/>
+  </g>
+
+  <!-- the backrest along the north edge, its top rail catching the light -->
+  <rect x="4" y="4" width="290" height="14" rx="2" fill="#4a3018" stroke="#2c1c0d" stroke-width="3"/>
+  <rect x="8" y="6" width="282" height="4" fill="#9a7244" opacity="0.55"/>
+
+  <!-- the carved end boards, higher than the seat -->
+  <rect x="2" y="2" width="16" height="54" rx="4" fill="#4a3018" stroke="#2c1c0d" stroke-width="3"/>
+  <rect x="5" y="5" width="5" height="46" rx="2" fill="#9a7244" opacity="0.45"/>
+  <rect x="280" y="2" width="16" height="54" rx="4" fill="#4a3018" stroke="#2c1c0d" stroke-width="3"/>
+  <rect x="283" y="5" width="5" height="46" rx="2" fill="#9a7244" opacity="0.45"/>
+
+  <!-- a brass number plate on the end board -->
+  <rect x="283" y="22" width="10" height="9" rx="1" fill="#c9a640" stroke="#6e5520" stroke-width="1"/>
+
+  <!-- a hymnal left on the seat -->
+  <rect x="190" y="22" width="22" height="16" fill="#000000" opacity="0.3" transform="translate(2 2) rotate(-6 201 30)"/>
+  <rect x="190" y="22" width="22" height="16" fill="#5a1f22" stroke="#2a0e10" stroke-width="1.5"
+        transform="rotate(-6 201 30)"/>
+  <line x1="194" y1="24" x2="194" y2="37" stroke="#c9a640" stroke-width="1.2" transform="rotate(-6 201 30)"/>
+</svg>

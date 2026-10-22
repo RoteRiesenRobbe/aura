@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 248 rows.
+Rendered 2026-10-22 from 265 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 248 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 214 |
+| Art | 231 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 248 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 67 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 84 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-22 from 248 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 61 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 84 | normal — placed but not everywhere |
-| **P3** | 72 | low — unplaced, deferred, or already fine |
+| **P1** | 64 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 93 | normal — placed but not everywhere |
+| **P3** | 77 | low — unplaced, deferred, or already fine |
 
-**134 rows need work** (missing, shared, placeholder, stock or blocked),
+**151 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 51
+## Prop — 68
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -224,6 +224,23 @@ of which **11 are P0**:
 | 🟡 | **ProduceBasket** | — | P3 |  | 84 | Dionsburg — A basket of produce on the cobbles. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
 | 🟡 | **Bench** | — | P3 |  | 216 × 60 | Dionsburg — A plank bench around the fountain or a stall. PropPlaceholder box (procedural, labelled); no file yet. |
 | 🟡 | **LampPost** | — | P2 |  | 48 | Dionsburg — A street lamp, the city's light source; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. |
+| 🟡 | **CathedralNaveRoof** | `cathedralNaveRoof.svg` | P1 |  | 1200 × 2880 | Dionsburg — The cathedral's long roof, north-south: slate courses, a lead ridge with gold cresting, three dormers a side, the gold cross over the west front (north). The transept sits flush across its south end, the apse beyond, and the three fade as one. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Pew** | `pew.svg` | P2 |  | 360 × 72 | Dionsburg — Dark oak bench, backrest on the north edge (it faces the altar at the nave's south end), carved end boards, a brass number plate, one hymnal. Plain so rows of them read as rows. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Altar** | `altar.svg` | P2 |  | 288 × 144 | Dionsburg — Stone block under a white cloth with a gold band falling toward the pews; gold cross, two candlesticks, an open book and a chalice. The cathedral's gold lives here. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Mausoleum** | `mausoleum.svg` | P2 |  | 480 × 360 | Dionsburg — A small stone tomb-house, mostly roof: slate pitches on an east-west ridge, a gold cross, stone urns at the corners, steps to a south door. Moss and a cracked slate. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CathedralTranseptRoof** | — | P1 |  | 2880 × 960 | Dionsburg — The cross arm of the cathedral roof, east-west across the nave's south end. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CathedralApseRoof** | — | P1 |  | 1200 | Dionsburg — The round east end over the altar, beyond the transept. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **BellTower** | — | P2 |  | 600 × 600 | Dionsburg — The cathedral's bell tower, seen from above: its spire or bell-cage top. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Pillar** | — | P3 |  | 120 | Dionsburg — A nave column, in rows under the roof. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CandleStand** | — | P2 |  | 72 | Dionsburg — A standing candelabrum; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Font** | — | P3 |  | 168 | Dionsburg — The stone baptismal font near the door. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Organ** | — | P3 |  | 360 × 180 | Dionsburg — The pipe organ against a wall, pipes seen from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Confessional** | — | P3 |  | 240 × 180 | Dionsburg — A wooden confessional booth, roofed. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **GraveMound** | — | P2 |  | 120 × 240 | Dionsburg — A fresh earth mound, the cemetery's filler. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **OpenGrave** | — | P3 |  | 120 × 240 | Dionsburg — A dug grave, the spoil heaped beside it. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **IronFence** | — | P2 |  | 288 × 36 | Dionsburg — A wrought-iron cemetery railing section. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CemeteryGate** | — | P2 |  | 360 × 60 | Dionsburg — The cemetery's wrought-iron gate, standing open between IronFence runs. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **AngelStatue** | — | P2 |  | 144 | Dionsburg — A weathered stone angel over a grave, wings from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 
 ## Ground decal — 20
 

@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
 **Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1 BUILT 2026-10-22 (§11); next K2. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
+K1 + K2 BUILT 2026-10-22 (§11); next K3. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -411,3 +411,58 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   errors, 0 context losses.
 - **Schema:** DB none · wire +3 `EntityType` (124-126) · conf none · content +8
   props · zone format none · lang none.
+
+### K2 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (cathedral + cemetery)
+
+- **Wire:** `EntityType` +`CathedralNaveRoof` = 127, `Pew` = 128, `Altar` = 129,
+  `Mausoleum` = 130, appended (L1). TS binding: `flatc_Windows_v24_3_25.exe --ts
+  --gen-all -o <scratch> aura.fbs` from `api/schema` (⚑ pass `aura.fbs`, not
+  `*.fbs`: per-file runs rewrite `aura-api.ts` and the message files; and
+  `make.bat`'s `--no-fb-import` is unknown to v24), diffed: only
+  `entity-type.ts` moves. Go via `go generate` in `backend/pkg/api`. One
+  `gameObjectClasses` line each, after K1's.
+- **Art (R1, R5 grey slate + gold):** `cathedralNaveRoof.svg` (200×480, bakes
+  1200 × 2880, under L6): slate courses (pattern `naveSlate`), the west pitch
+  lit, the east shaded, a lead ridge with gold cresting (`naveCresting`), three
+  dormers a side, the gold cross over the west front (NORTH). Unlike the
+  awning it fills its canvas edge to edge, so flush pieces show no seam; its
+  shadow is baked inside the east and south eaves. That orientation sets the
+  rest: the transept crosses the SOUTH end, the apse beyond, so the altar
+  stands south and the pews face south. `pew.svg` (300×60: backrest on the
+  north edge, end boards, a brass plate, a hymnal), `altar.svg` (240×120: stone
+  under a white cloth with a gold band toward the pews; cross, candlesticks,
+  book, chalice), `mausoleum.svg` (400×300: an E-W slate ridge, gold cross,
+  corner urns, steps to a south door).
+- **Content (+17, D7 numbers, all [PLACEHOLDER]):** the four heroes; 13
+  `PropPlaceholder` defs: roofs `CathedralTranseptRoof` 24×8 and
+  `CathedralApseRoof` r 5 (`revealAlpha` 0.25, `blocksMovement: false`, like
+  the nave); solid `BellTower`, `Pillar`, `Font`, `Organ`, `Confessional`,
+  `OpenGrave`, `IronFence`, `AngelStatue`; `CandleStand` (light 0.2 `#ffcf80`,
+  flicker); non-blocking `GraveMound`, `CemeteryGate`.
+- **Flood fill pinned:** `RoofReveal.test.ts` "opens the cathedral whole"
+  lays the three roof defs flush N-S (sizes read from the JSON) and stands
+  in each: all three open, a chapel 3 m off stays shut.
+- **Palette:** regenerated with Tiled closed (L4; it had `world.json` open
+  mid-session, so the regen waited). Every prop template's `gid` shifts again
+  (17 names joined the alphabetical tileset). `verify.sh` all green.
+  ⚑ Found, NOT fixed (outside K2): `generate-palette.mjs` `imageSize` takes
+  the first `width="N" … height="N"` in an SVG's first 2000 chars, so a root
+  `width="100%"` falls through to a child element: 21 tiles carry a wrong
+  image size (nave + mausoleum 14×12 from the slate pattern, K1's awning
+  28×240, `house.svg` 384×284 …). Templates are body-sized, so placements
+  are right; what Tiled draws for the tile is unchecked (roadmap watch item).
+- **Tracker (D8):** 17 `assets.csv` rows (subcategory "Props — city:
+  cathedral", zone Dionsburg, state `placeholder`, the 13 boxes without
+  `current_file`), `assets.md` regenerated (265 rows), `prop-worklist.md` §C2
+  + the roll-up (P1 20 · P2 21 · P3 12); CandleStand is the third light.
+- **Verified (R8 cheap tail only):** `go build ./...` · `go test -count=1
+  ./pkg/aura/world/...` red ONLY on the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate
+  -content ../api` 0 findings, props 47 → 64 (and `-debug-zones` 0) · vitest
+  1883/0 · typecheck clean · webpack cache cleared, `npm run build` ok · SVGs
+  parse · `verify.sh` all green. No probe, harness, screenshots or full suite
+  (R8). cp-defs by hand; the EOL-only copies (5 `lang/de`, 4 zones) checked
+  out again. The `pkg/api/zones/world.json` + `.debug` copies carry another
+  session's uncommitted zone edits and stay unstaged.
+- **Schema:** DB none · wire +4 `EntityType` (127-130) · conf none ·
+  content +17 props · zone format none · lang none.

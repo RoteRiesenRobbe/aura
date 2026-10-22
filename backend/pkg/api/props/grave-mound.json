@@ -1,0 +1,7 @@
+{
+  "name": "GraveMound",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1, "height": 2 },
+  "blocksMovement": false
+}

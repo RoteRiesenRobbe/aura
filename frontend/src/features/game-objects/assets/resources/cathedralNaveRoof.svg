@@ -1,0 +1,125 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 480" preserveAspectRatio="none">
+  <!-- Placeholder cathedral nave roof (plan-city-assets.md K2): TRUE top-down,
+       a ROOF prop. The viewBox is 200x480 to match the 10 x 24 rect body in
+       api/props/cathedral-nave-roof.json (preserveAspectRatio=none, so the two
+       must stay in sync). It bakes at 1200 x 2880 px, under the 4096 cap (L6).
+
+       The long piece of a three-piece roof: the transept (24 x 8) sits flush
+       across its SOUTH end and the apse (r 5) beyond that, so the three fade
+       together (RoofReveal's flood fill). The north end is the west front:
+       the gold cross stands there. Grey slate in courses, the ridge running
+       north-south with gold cresting (R5: grey slate, gold accents). The
+       slate fills the canvas edge to edge so the pieces meet without a seam;
+       the shadow is baked INSIDE the east and south eaves instead of onto
+       the ground. -->
+  <defs>
+    <!-- slate courses, each row's joints offset half a slate from the last -->
+    <pattern id="naveSlate" width="14" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0,6 H14 M0,12 H14 M7,0 V6 M0,6 V12 M14,6 V12" fill="none" stroke="#2f3338"
+            stroke-width="0.8" opacity="0.55"/>
+    </pattern>
+    <!-- the gold cresting along the ridge -->
+    <pattern id="naveCresting" width="6" height="24" patternUnits="userSpaceOnUse">
+      <path d="M3,8 L5.2,12 L3,16 L0.8,12 Z" fill="#c9a640" stroke="#6e5520" stroke-width="0.6"/>
+    </pattern>
+    <!-- light from the top-left: the west pitch faces it, the east turns away -->
+    <linearGradient id="naveWestLight" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="naveEastShade" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="naveLength" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the two pitches -->
+  <rect x="0" y="0" width="100" height="480" fill="#6c737c"/>
+  <rect x="100" y="0" width="100" height="480" fill="#555b63"/>
+  <rect x="0" y="0" width="200" height="480" fill="url(#naveSlate)"/>
+  <rect x="0" y="0" width="100" height="480" fill="url(#naveWestLight)"/>
+  <rect x="100" y="0" width="100" height="480" fill="url(#naveEastShade)"/>
+  <rect x="0" y="0" width="200" height="480" fill="url(#naveLength)"/>
+
+  <!-- weather: slates replaced over the years, lichen, rain streaks from the ridge -->
+  <g stroke="#2f3338" stroke-width="0.6">
+    <rect x="21" y="78" width="7" height="6" fill="#7b828b"/>
+    <rect x="56" y="198" width="7" height="6" fill="#5f666e"/>
+    <rect x="28" y="330" width="7" height="6" fill="#7b828b"/>
+    <rect x="70" y="414" width="7" height="6" fill="#626970"/>
+    <rect x="147" y="54" width="7" height="6" fill="#4a5057"/>
+    <rect x="126" y="276" width="7" height="6" fill="#62686f"/>
+    <rect x="168" y="390" width="7" height="6" fill="#4a5057"/>
+  </g>
+  <g fill="#8b9160" opacity="0.22">
+    <ellipse cx="14" cy="150" rx="9" ry="5"/>
+    <ellipse cx="60" cy="300" rx="7" ry="4"/>
+    <ellipse cx="178" cy="234" rx="10" ry="5"/>
+    <ellipse cx="150" cy="448" rx="8" ry="4"/>
+    <ellipse cx="40" cy="452" rx="6" ry="3"/>
+  </g>
+  <g stroke="#2a2d31" stroke-width="2" opacity="0.12">
+    <line x1="88" y1="40" x2="20" y2="46"/>
+    <line x1="112" y1="168" x2="186" y2="176"/>
+    <line x1="112" y1="360" x2="180" y2="366"/>
+  </g>
+
+  <!-- dormers, three a side, their little ridges running out to the eaves -->
+  <g>
+    <path d="M38,113 L66,113 L66,135 L38,135 Z" fill="#000000" opacity="0.25" transform="translate(3 3)"/>
+    <path d="M38,113 L66,113 L66,135 L38,135 Z" fill="#646b73" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M38,113 L66,113 L66,124 L38,124 Z" fill="#ffffff" opacity="0.12"/>
+    <line x1="38" y1="124" x2="66" y2="124" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M38,233 L66,233 L66,255 L38,255 Z" fill="#000000" opacity="0.25" transform="translate(3 3)"/>
+    <path d="M38,233 L66,233 L66,255 L38,255 Z" fill="#646b73" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M38,233 L66,233 L66,244 L38,244 Z" fill="#ffffff" opacity="0.12"/>
+    <line x1="38" y1="244" x2="66" y2="244" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M38,353 L66,353 L66,375 L38,375 Z" fill="#000000" opacity="0.25" transform="translate(3 3)"/>
+    <path d="M38,353 L66,353 L66,375 L38,375 Z" fill="#646b73" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M38,353 L66,353 L66,364 L38,364 Z" fill="#ffffff" opacity="0.12"/>
+    <line x1="38" y1="364" x2="66" y2="364" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M134,113 L162,113 L162,135 L134,135 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M134,113 L162,113 L162,135 L134,135 Z" fill="#4f555c" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M134,124 L162,124 L162,135 L134,135 Z" fill="#000000" opacity="0.15"/>
+    <line x1="134" y1="124" x2="162" y2="124" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M134,233 L162,233 L162,255 L134,255 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M134,233 L162,233 L162,255 L134,255 Z" fill="#4f555c" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M134,244 L162,244 L162,255 L134,255 Z" fill="#000000" opacity="0.15"/>
+    <line x1="134" y1="244" x2="162" y2="244" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M134,353 L162,353 L162,375 L134,375 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M134,353 L162,353 L162,375 L134,375 Z" fill="#4f555c" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M134,364 L162,364 L162,375 L134,375 Z" fill="#000000" opacity="0.15"/>
+    <line x1="134" y1="364" x2="162" y2="364" stroke="#c9a640" stroke-width="1.4"/>
+  </g>
+
+  <!-- the eaves: lead gutters on the long sides, the shadow baked inside the
+       east and south edges (down-right), a lit lip on the west and north -->
+  <rect x="0" y="0" width="5" height="480" fill="#8a9097"/>
+  <rect x="195" y="0" width="5" height="480" fill="#2a2e33"/>
+  <rect x="186" y="0" width="9" height="480" fill="#000000" opacity="0.14"/>
+  <rect x="0" y="0" width="200" height="3" fill="#ffffff" opacity="0.18"/>
+  <rect x="0" y="474" width="200" height="6" fill="#000000" opacity="0.22"/>
+
+  <!-- the ridge: a lead roll with gold cresting -->
+  <rect x="94" y="0" width="12" height="480" fill="#3b4046"/>
+  <rect x="95" y="0" width="3" height="480" fill="#9aa0a7" opacity="0.5"/>
+  <rect x="103" y="0" width="3" height="480" fill="#000000" opacity="0.25"/>
+  <rect x="97" y="0" width="6" height="480" fill="url(#naveCresting)"/>
+
+  <!-- the gold cross over the west front, its shadow falling down-right -->
+  <path d="M97,10 H103 V18 H111 V24 H103 V40 H97 V24 H89 V18 H97 Z" fill="#000000" opacity="0.35"
+        transform="translate(4 4)"/>
+  <path d="M97,10 H103 V18 H111 V24 H103 V40 H97 V24 H89 V18 H97 Z" fill="#c9a640" stroke="#6e5520"
+        stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M97.8,11 H100 V39 H97.8 Z M90,18.8 H110 V21 H90 Z" fill="#f0d98a" opacity="0.55"/>
+</svg>

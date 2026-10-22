@@ -1,0 +1,77 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="none">
+  <!-- Placeholder mausoleum (plan-city-assets.md K2): TRUE top-down, a small
+       stone tomb-house in the cemetery, mostly roof like house.svg. The
+       viewBox is 400x300 to match the 4 x 3 rect body in
+       api/props/mausoleum.json (preserveAspectRatio=none, so the two must
+       stay in sync). Solid, not a roof prop: nobody walks in.
+
+       A grey slate roof with its ridge running east-west, the north pitch
+       lit, the south one in shade; a gold cross at the ridge's middle and
+       stone urns on the corners (R5: grey slate, gold accents). The door
+       faces south, so its steps show below the eave. Moss and a cracked
+       slate: it is old, and the family is gone. -->
+  <defs>
+    <pattern id="mausoleumSlate" width="14" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0,6 H14 M0,12 H14 M7,0 V6 M0,6 V12 M14,6 V12" fill="none" stroke="#2f3338"
+            stroke-width="0.8" opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="16" y="16" width="382" height="282" rx="6" fill="#000000" opacity="0.26"/>
+
+  <!-- the steps up to the door, south -->
+  <rect x="150" y="244" width="100" height="50" fill="#8f8b82" stroke="#4f4c45" stroke-width="3"/>
+  <line x1="152" y1="262" x2="248" y2="262" stroke="#4f4c45" stroke-width="2"/>
+  <line x1="152" y1="278" x2="248" y2="278" stroke="#4f4c45" stroke-width="2"/>
+  <rect x="153" y="247" width="94" height="4" fill="#cfcbc0" opacity="0.45"/>
+
+  <!-- the stone cornice the roof sits on -->
+  <rect x="6" y="6" width="384" height="244" rx="4" fill="#a19d93" stroke="#4f4c45" stroke-width="4"/>
+  <rect x="9" y="9" width="378" height="5" fill="#cfcbc0" opacity="0.55"/>
+
+  <!-- the two pitches, slated -->
+  <rect x="20" y="20" width="356" height="106" fill="#6c737c"/>
+  <rect x="20" y="126" width="356" height="110" fill="#50565e"/>
+  <rect x="20" y="20" width="356" height="216" fill="url(#mausoleumSlate)"/>
+  <rect x="20" y="20" width="356" height="40" fill="#ffffff" opacity="0.08"/>
+  <rect x="20" y="206" width="356" height="30" fill="#000000" opacity="0.12"/>
+  <rect x="20" y="20" width="356" height="216" fill="none" stroke="#2f3338" stroke-width="3"/>
+
+  <!-- weather: moss along the shaded eave, a cracked slate, lichen -->
+  <g fill="#6f7a44" opacity="0.35">
+    <ellipse cx="80" cy="228" rx="34" ry="7"/>
+    <ellipse cx="300" cy="226" rx="26" ry="6"/>
+    <ellipse cx="350" cy="60" rx="12" ry="6"/>
+  </g>
+  <path d="M232,160 L240,170 L236,180 L244,190" fill="none" stroke="#24272b" stroke-width="2" opacity="0.7"/>
+  <rect x="98" y="62" width="7" height="6" fill="#7b828b" stroke="#2f3338" stroke-width="0.6"/>
+
+  <!-- the ridge -->
+  <rect x="20" y="120" width="356" height="12" fill="#3b4046"/>
+  <rect x="20" y="121" width="356" height="3" fill="#9aa0a7" opacity="0.5"/>
+  <rect x="20" y="129" width="356" height="3" fill="#000000" opacity="0.25"/>
+
+  <!-- stone urns on the four corners -->
+  <g>
+    <circle cx="22" cy="22" r="14" fill="#000000" opacity="0.3" transform="translate(4 4)"/>
+    <circle cx="22" cy="22" r="14" fill="#b3afa4" stroke="#4f4c45" stroke-width="2.5"/>
+    <circle cx="22" cy="22" r="6" fill="#6e6a62"/>
+    <circle cx="374" cy="22" r="14" fill="#000000" opacity="0.3" transform="translate(4 4)"/>
+    <circle cx="374" cy="22" r="14" fill="#b3afa4" stroke="#4f4c45" stroke-width="2.5"/>
+    <circle cx="374" cy="22" r="6" fill="#6e6a62"/>
+    <circle cx="22" cy="232" r="14" fill="#000000" opacity="0.3" transform="translate(4 4)"/>
+    <circle cx="22" cy="232" r="14" fill="#a19d93" stroke="#4f4c45" stroke-width="2.5"/>
+    <circle cx="22" cy="232" r="6" fill="#6e6a62"/>
+    <circle cx="374" cy="232" r="14" fill="#000000" opacity="0.3" transform="translate(4 4)"/>
+    <circle cx="374" cy="232" r="14" fill="#a19d93" stroke="#4f4c45" stroke-width="2.5"/>
+    <circle cx="374" cy="232" r="6" fill="#6e6a62"/>
+  </g>
+
+  <!-- the gold cross at the ridge's middle -->
+  <path d="M192,98 H204 V114 H220 V126 H204 V158 H192 V126 H176 V114 H192 Z" fill="#000000" opacity="0.35"
+        transform="translate(5 5)"/>
+  <path d="M192,98 H204 V114 H220 V126 H204 V158 H192 V126 H176 V114 H192 Z" fill="#c9a640" stroke="#6e5520"
+        stroke-width="2" stroke-linejoin="round"/>
+  <path d="M193.5,99.5 H198 V156 H193.5 Z M177.5,115.5 H218 V119 H177.5 Z" fill="#f0d98a" opacity="0.55"/>
+</svg>

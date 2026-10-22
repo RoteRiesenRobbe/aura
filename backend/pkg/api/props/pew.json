@@ -1,0 +1,6 @@
+{
+  "name": "Pew",
+  "entityType": "Pew",
+  "sprite": "pew.svg",
+  "body": { "width": 3, "height": 0.6 }
+}

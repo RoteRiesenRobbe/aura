@@ -1,0 +1,7 @@
+{
+  "name": "CemeteryGate",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 3, "height": 0.5 },
+  "blocksMovement": false
+}

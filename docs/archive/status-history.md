@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-10-22, the City Assets K2 wrap: the APPEARANCE C4 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: APPEARANCE C4, the in-game picker** ✅ DONE 2026-10-21 `79f6721e`, PO look passed 2026-10-22, DEPLOYED LIVE 2026-10-22 as `d9be8020` (ledger: `docs/plan-appearance.md` §12 C4): the "Appearance" panel (C, a desktop button under Spellbook, a ☰ row; in the exclusive family) reuses creation's picker (`LookPicker.ts`, D9); `SelectAppearance` = 13 is checked against the starter set (`Catalog.WearableLook`, C5 swaps the owned set in there AND in `CheckStarterLook`) and saved (`avatar`/`ring`); the panel shows the SERVER's worn look. LOOK persists too (PO). ⚑ Found (L7): respawn, reload and revive dropped the look (a C3 gap, now carried). Desktop quest tracker moved one button down. **Schema: DB none · wire `ClientMessageBody` +1 · `CharacterState` +2.** Verified: Go green bar 3 reds red on HEAD (the 2 known + `TestPassages_EveryDoorCarriesItsWords`) · vitest 1875/0 · `c1-medallions` 41/0/0 · `chunk2-accounts` 24/24 · `mobile-layout` green bar leg 7 · `hygiene-wire-prune` clean.
+
 *(2026-10-22, the City Assets K1 wrap: the SHORT SPEAR entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: SHORT SPEAR + SPEAR THROW, taught by Henrik** ✅ 2026-10-20 `6fc59a6c` + `d1b2829e` (PO content work, no plan doc; the commit messages are the record): Short Spear (id 172) is an active aura on Wild's numbers drawn as a spear thrust; Spear Throw (id 173) is a cooldown hitting the nearest enemy once in Long-Range Strike's 2.6 u ring (25 HP +3/lvl, 10 s, 2.2 % of max Focus; the arrow body stands in for a spear, no bow drawn on the thrower). Henrik teaches both instead of Wild, which has no unlock source left (cheat-only). All values [PLACEHOLDER]. **Schema: DB/wire none · content +2 skills, skill registry pin 136 → 138, Tiled palette regenerated.** DEPLOYED LIVE 2026-10-22 as `d9be8020`.

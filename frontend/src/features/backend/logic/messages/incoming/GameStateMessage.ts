@@ -952,6 +952,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.MarketStallRoof]: Props.genericPropClasses.MarketStallRoof,
     [AuraApi.EntityType.MarketCounter]: Props.genericPropClasses.MarketCounter,
     [AuraApi.EntityType.CentralFountain]: Props.genericPropClasses.CentralFountain,
+    // Dionsburg's cathedral + cemetery (plan-city-assets.md K2). The nave is a
+    // roof by its definition, like the awning.
+    [AuraApi.EntityType.CathedralNaveRoof]: Props.genericPropClasses.CathedralNaveRoof,
+    [AuraApi.EntityType.Pew]: Props.genericPropClasses.Pew,
+    [AuraApi.EntityType.Altar]: Props.genericPropClasses.Altar,
+    [AuraApi.EntityType.Mausoleum]: Props.genericPropClasses.Mausoleum,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

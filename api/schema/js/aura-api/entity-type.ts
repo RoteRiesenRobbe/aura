@@ -113,5 +113,9 @@ export enum EntityType {
   SandClamper = 123,
   MarketStallRoof = 124,
   MarketCounter = 125,
-  CentralFountain = 126
+  CentralFountain = 126,
+  CathedralNaveRoof = 127,
+  Pew = 128,
+  Altar = 129,
+  Mausoleum = 130
 }

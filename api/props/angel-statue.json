@@ -1,0 +1,6 @@
+{
+  "name": "AngelStatue",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.6 }
+}

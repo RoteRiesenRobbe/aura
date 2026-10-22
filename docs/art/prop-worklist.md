@@ -145,7 +145,7 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, is the other).
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, and CandleStand, C2, are the others).
 About a player wide. Tent is canvas - the only fabric in the prop set, bandit
 camp.
 
@@ -229,6 +229,35 @@ scalloped front) over a solid counter. Stripes are muted red and bleached
 cream, worn, not festive. LampPost is the second prop that **emits light**,
 after the Torch.
 
+### C2. Cathedral + cemetery - grey slate, gold accents
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| CathedralNaveRoof | P1 | placeholder (roof, fades to 0.25) | 1200 x 2880 |
+| CathedralTranseptRoof | P1 | box only (roof, fades to 0.25) | 2880 x 960 |
+| CathedralApseRoof | P1 | box only (roof, fades to 0.25) | 1200 |
+| Pew | P2 | placeholder | 360 x 72 |
+| Altar | P2 | placeholder | 288 x 144 |
+| Mausoleum | P2 | placeholder | 480 x 360 |
+| BellTower | P2 | box only | 600 x 600 |
+| CandleStand | P2 | box only | 72 |
+| GraveMound | P2 | box only (walked over) | 120 x 240 |
+| IronFence | P2 | box only | 288 x 36 |
+| CemeteryGate | P2 | box only (walked through) | 360 x 60 |
+| AngelStatue | P2 | box only | 144 |
+| Pillar | P3 | box only | 120 |
+| Font | P3 | box only | 168 |
+| Organ | P3 | box only | 360 x 180 |
+| Confessional | P3 | box only | 240 x 180 |
+| OpenGrave | P3 | box only | 120 x 240 |
+
+⭐ The cathedral roof is **three touching pieces** (R4): the nave runs north-south,
+the transept crosses its south end flush, the apse sits beyond, and all three
+fade together. Each piece fills its canvas edge to edge so the seams vanish;
+the nave alone is 1200 x 2880, the largest prop texture so far (cap 4096). The
+gold cross over the nave's north end marks the west front, so the altar and the
+pews face south. CandleStand is the third prop that **emits light**.
+
 ---
 
 ## Priority roll-up
@@ -236,16 +265,18 @@ after the Torch.
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (17):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (20):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
-CentralFountain.
+CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof.
 
-**P2 (12):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
-Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost.
+**P2 (21):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
+Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
+AngelStatue.
 
-**P3 (7):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
-ProduceBasket · Bench.
+**P3 (12):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

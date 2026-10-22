@@ -303,7 +303,15 @@ enum EntityType : ushort {
   // two props: the striped awning is a non-blocking ROOF over a solid counter.
   MarketStallRoof = 124,
   MarketCounter = 125,
-  CentralFountain = 126
+  CentralFountain = 126,
+
+  // ── Dionsburg's cathedral + cemetery (plan-city-assets.md K2). The nave is
+  // a ROOF piece; the transept and apse pieces (placeholders) touch it, so the
+  // three fade as one building.
+  CathedralNaveRoof = 127,
+  Pew = 128,
+  Altar = 129,
+  Mausoleum = 130
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

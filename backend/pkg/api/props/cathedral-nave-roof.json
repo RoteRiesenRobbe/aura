@@ -1,0 +1,8 @@
+{
+  "name": "CathedralNaveRoof",
+  "entityType": "CathedralNaveRoof",
+  "sprite": "cathedralNaveRoof.svg",
+  "body": { "width": 10, "height": 24 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.25 }
+}

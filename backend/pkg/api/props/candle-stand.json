@@ -1,0 +1,9 @@
+{
+  "name": "CandleStand",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.3 },
+  "lightFraction": 0.2,
+  "lightColor": "#ffcf80",
+  "lightFlicker": true
+}
