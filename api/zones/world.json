@@ -10327,7 +10327,7 @@
       ]
     },
     {
-      "id": "brunnstedt",
+      "id": "city-hub",
       "props": {
         "underfoot": [
           {
@@ -10377,7 +10377,7 @@
       ],
       "regions": [
         {
-          "id": "brunnstedt",
+          "id": "city-hub",
           "profile": "City",
           "points": [
             {

@@ -89,7 +89,7 @@ def walk(o, zone, region):
 for f in sorted(glob.glob(os.path.join(API, 'zones', '*.json'))):
     walk(json.load(open(f, encoding='utf-8')), os.path.basename(f), '')
 
-REGION_LABEL = {'farmlands': 'Farmlands', 'deep-woods': 'Deep Woods', 'brunnstedt': 'Brunnstedt',
+REGION_LABEL = {'farmlands': 'Farmlands', 'deep-woods': 'Deep Woods', 'city-hub': 'Dionsburg',
                 'umberwood': 'Umberwood', 'glimmerwood': 'Glimmerwood', 'Underworld': 'Kobold Cave'}
 
 def offers(mob):
@@ -264,7 +264,7 @@ from xml.sax.saxutils import escape
 INFO = [
     'Aura: every dialogue line and quest text, English + German, in play order.',
     'Order follows the path from the starting campfire: shared phrases, the campfire, then each NPC by region',
-    '(Farmlands, Deep Woods, Brunnstedt, then the later regions by quest level, then the Kobold Cave).',
+    '(Farmlands, Deep Woods, Dionsburg, then the later regions by quest level, then the Kobold Cave).',
     'After each NPC come the quests they offer (title, journal, trackers per stage), then the NPCs those quests send you to.',
     'Within an NPC, rows follow the conversation: a node\'s lines, each player option, the reply, then the node it leads to.',
     'Shared phrases (stock.*) are used by many NPCs and appear once, at the top.',

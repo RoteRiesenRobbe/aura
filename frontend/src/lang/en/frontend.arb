@@ -590,7 +590,7 @@
   "@journal.objective.reach": {
     "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
     "placeholders": {
-      "place": {"type": "String", "description": "Place name", "example": "Brunnstedt"}
+      "place": {"type": "String", "description": "Place name", "example": "Dionsburg"}
     }
   },
   "journal.objective.talk-to": "Talk to {name}",

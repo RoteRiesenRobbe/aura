@@ -62,15 +62,6 @@
     "description": "Region banner title of the place \"brackenfold\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
-  "region.brunnstedt.subtitle": "Walls and Wells",
-  "@region.brunnstedt.subtitle": {
-    "description": "Region banner subtitle under \"Brunnstedt\"."
-  },
-  "region.brunnstedt.title": "Dionsburg",
-  "@region.brunnstedt.title": {
-    "description": "Region banner title of the place \"brunnstedt\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
-    "x-maxLength": 24
-  },
   "region.cinder-conclave.subtitle": "Kindled Faith",
   "@region.cinder-conclave.subtitle": {
     "description": "Region banner subtitle under \"The Cinder Conclave\"."
@@ -78,6 +69,15 @@
   "region.cinder-conclave.title": "The Cinder Conclave",
   "@region.cinder-conclave.title": {
     "description": "Region banner title of the place \"cinder-conclave\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.city-hub.subtitle": "Walls and Wells",
+  "@region.city-hub.subtitle": {
+    "description": "Region banner subtitle under \"Dionsburg\"."
+  },
+  "region.city-hub.title": "Dionsburg",
+  "@region.city-hub.title": {
+    "description": "Region banner title of the place \"city-hub\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
   "region.deep-woods.subtitle": "City Outskirts",
