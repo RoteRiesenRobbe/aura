@@ -494,7 +494,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   (Tiled had `world.json` open, L4): only the BellTower tile moved. Schema:
   wire +1 `EntityType` (now +7 for K2), 1 def edited.
 
-### K3 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (lazaret + slums)
+### K3 - BUILT 2026-10-22, PO look owed (after K6, R8) `3e522386` (lazaret + slums)
 
 - **Wire:** `EntityType` +`LazaretTent` = 134, `SlumTent` = 135, and (drawn at
   the PO's ask before the wrap) `LeanTo` = 136, appended (L1). TS binding via
