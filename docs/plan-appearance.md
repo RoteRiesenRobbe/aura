@@ -4,8 +4,8 @@
 > refined the same day, D23-D30, §3.7). C0a SHIPPED 2026-10-17, C1 DONE 2026-10-17 (§12;
 > PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
 > PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
-component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 BUILT 2026-10-21
-(the in-game picker; PO look owed). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
+component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 DONE 2026-10-21
+(the in-game picker; PO look passed 2026-10-22). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
 by the PO into C5 + C5c; PO look passed 2026-10-22). Next: C5c (the client).** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
@@ -1054,7 +1054,7 @@ second Playwright page draws late; wait on the wire value, not a timeout.
 `content-editor-lang.mjs` is stale (its quest "Boars in the Field" is gone),
 recorded in the verify skill.
 
-### C4 - BUILT 2026-10-21 `79f6721e` (PO look owed)
+### C4 - DONE 2026-10-21 `79f6721e`, PO look passed 2026-10-22
 
 The in-game picker (D9-D11). Ruled in the session (PO, 2026-10-21): hotkey **C**
 (before the session); **LOOK persists** like a pick (one save path; it skips
