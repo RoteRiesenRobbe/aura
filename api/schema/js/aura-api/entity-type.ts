@@ -131,5 +131,6 @@ export enum EntityType {
   TrainingDummy = 141,
   JailBars = 142,
   BarracksRoof = 143,
-  Watchtower = 144
+  Watchtower = 144,
+  Doorway = 145
 }

@@ -597,6 +597,34 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   harness, screenshots or full suite (R8).
 - **Schema:** DB none · wire +4 `EntityType` (137-140) · conf none · content
   +13 props · zone format none · lang none.
+- **K4 follow-up, 2026-10-23 `[uncommitted]` (PO: walls, entrances and props
+  for the library, tower, cathedral and barracks; "a roof hides where the door
+  is"):** a new hero `Doorway` = 145 (`doorway.svg`, 260×100 for 2.6 × 1,
+  non-blocking, lantern light 0.15 `#ffd890`, Tiled folder `City/Walls`): two
+  jambs over a 2 m opening, threshold, a step out, a lantern. ⭐ Placed in
+  `props › underfoot` (walked on, under characters and under the roof), centre
+  on the wall's OUTER face, rotated so the step points out: from outside only
+  the step and the lantern's light clear the eave; inside, the whole frame
+  shows. (First tried in `buildings`, above the roof: it hid players walking
+  through and cut a notch in the roof; rejected.) Options weighed with the PO:
+  street cues, walls outside the roof, a door in the roof art, a distance fade
+  (code); kept 1 + this prop. In `world.json`'s `city-hub` area, by script (the
+  rest of the map byte-identical, checked): Wall `paths` 0.5 m set 0.25 m
+  inside each roof with door gaps (the area's first `paths`); library 16×6
+  (shelves on the north wall, +3 Bookshelf), mage tower ring r 3.6 with a NE
+  door (ArcaneCircle at its centre in `underfoot`, Orrery moved to the
+  library), cathedral (rotated 3π/2, so the west front leads in: a 2.8 m
+  portal, Doorway scale 1.4, plus both transept doors; 18 pews facing the apse
+  altar, 4 crossing piers, 2 candles, font, confessional, organ), barracks
+  (south door, 4 bunks, armor stands along the east wall, rack, desk); one
+  `Gloom` atmosphere over the mage quarter so its lights show. ⚑ Found: the
+  Bookshelf's back is on its north edge, so it lines north walls only (or
+  rotates, since C2b: rotated rects collide at their angle). Verified:
+  `-validate` 0 findings, props 85 → 98 (K5's 12 + Doorway) · `world` red only
+  on the known one · vitest 1883/0 · typecheck · `npm run build` · palette +
+  `verify.sh` green · an overlap script (no solid prop in a wall or another
+  prop). Schema: wire +1 `EntityType` · content +1 prop · zone: placements +
+  paths + 1 atmosphere in `city-hub`.
 
 ### K5 - BUILT 2026-10-23, PO look owed (after K6, R8) `02fc227a` (dwarven military + jail)
 

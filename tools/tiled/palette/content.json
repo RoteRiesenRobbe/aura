@@ -64,6 +64,7 @@
       "Crate",
       "CrystalPylon",
       "DeadTree",
+      "Doorway",
       "ElvenPlanter",
       "FallenLog",
       "FencePost",
@@ -717,6 +718,10 @@
     "DeadTree": {
       "w": 1.9,
       "h": 1.9
+    },
+    "Doorway": {
+      "w": 2.6,
+      "h": 1
     },
     "ElvenPlanter": {
       "w": 2,

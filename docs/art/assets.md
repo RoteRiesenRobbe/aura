@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 298 rows.
+Rendered 2026-10-22 from 299 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 298 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 264 |
+| Art | 265 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 298 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 117 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 118 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-22 from 298 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 68 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 108 | normal — placed but not everywhere |
+| **P2** | 109 | normal — placed but not everywhere |
 | **P3** | 91 | low — unplaced, deferred, or already fine |
 
-**184 rows need work** (missing, shared, placeholder, stock or blocked),
+**185 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 101
+## Prop — 102
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -274,6 +274,7 @@ of which **11 are P0**:
 | 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
 
 ## Ground decal — 20
 

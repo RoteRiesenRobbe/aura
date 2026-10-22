@@ -341,7 +341,10 @@ enum EntityType : ushort {
   TrainingDummy = 141,
   JailBars = 142,
   BarracksRoof = 143,
-  Watchtower = 144
+  Watchtower = 144,
+  // A building's door mark (plan-city-assets.md K4 follow-up, PO 2026-10-23):
+  // a roof hides the wall's door gap, so this sits above the roof on it.
+  Doorway = 145
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

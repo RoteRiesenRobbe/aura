@@ -1,0 +1,67 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 100" preserveAspectRatio="none">
+  <!-- Placeholder doorway (plan-city-assets.md K4 follow-up): TRUE top-down,
+       the mark that shows where a building's door is from outside. A roof
+       draws over its walls, so the gap in the wall is hidden; this piece is
+       placed in props > buildings ABOVE the roof, on the door gap, and does
+       not fade with it. The viewBox is 260x100 to match the 2.6 x 1 rect body
+       in api/props/doorway.json (preserveAspectRatio=none); 100 units per
+       metre. NON-BLOCKING: you walk through it.
+
+       Orientation at rotation 0: the wall runs east-west and OUTSIDE is
+       SOUTH (the bottom). Place it with its centre on the wall's OUTER face
+       and rotate it so the bottom points out of the building: the top half
+       (y 0-50) lies over the 0.5 m wall and the roof's eave, the bottom half
+       over the street. Rotation turns the baked shadow with it, so the
+       shadow is kept small.
+
+       Two stone jambs cap the wall ends either side of a 2 m opening; the
+       opening reads dark (the room beyond, under the roof); a worn threshold
+       stone, a broad step out into the street, and a lantern on the east
+       jamb, warm, which also lights the door in the dark (lightFraction).
+       Plain stone and iron so it sits in any district. -->
+  <defs>
+    <linearGradient id="doorwayStep" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#cfc9bb"/>
+      <stop offset="1" stop-color="#a39d90"/>
+    </linearGradient>
+    <radialGradient id="doorwayGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff1c4" stop-opacity="0.9"/>
+      <stop offset="0.4" stop-color="#ffd890" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffd890" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- the opening: the dark room beyond the gap -->
+  <rect x="30" y="0" width="200" height="50" fill="#1d1b18"/>
+  <rect x="30" y="0" width="200" height="50" fill="#000000" opacity="0.25"/>
+  <!-- light falling in through the door, onto the floor just inside -->
+  <path d="M40,50 L220,50 L205,14 L55,14 Z" fill="#6b6253" opacity="0.35"/>
+
+  <!-- the threshold stone across the gap, worn pale in the middle -->
+  <rect x="28" y="42" width="204" height="12" fill="#8f897d" stroke="#4a463f" stroke-width="2"/>
+  <ellipse cx="130" cy="48" rx="60" ry="3.5" fill="#bdb6a8" opacity="0.6"/>
+
+  <!-- the step out into the street: its shadow, then the stone -->
+  <rect x="50" y="58" width="170" height="36" rx="3" fill="#000000" opacity="0.25"/>
+  <rect x="44" y="54" width="172" height="36" rx="3" fill="url(#doorwayStep)" stroke="#4a463f" stroke-width="2.5"/>
+  <rect x="48" y="56" width="164" height="4" fill="#ece7db" opacity="0.6"/>
+  <line x1="130" y1="56" x2="130" y2="88" stroke="#4a463f" stroke-width="1.5" opacity="0.5"/>
+  <path d="M70,82 Q78,78 86,84" fill="none" stroke="#5e594f" stroke-width="1.2" opacity="0.6"/>
+
+  <!-- the two jambs, capping the wall ends; lit top-left, shaded right -->
+  <g stroke="#3f3b35" stroke-width="2.5">
+    <rect x="2" y="0" width="28" height="56" fill="#a7a194"/>
+    <rect x="230" y="0" width="28" height="56" fill="#8e887c"/>
+  </g>
+  <rect x="4" y="2" width="6" height="52" fill="#d4cec1" opacity="0.6"/>
+  <rect x="232" y="2" width="6" height="52" fill="#bdb6a8" opacity="0.4"/>
+  <rect x="22" y="2" width="6" height="52" fill="#000000" opacity="0.18"/>
+  <rect x="250" y="2" width="6" height="52" fill="#000000" opacity="0.22"/>
+
+  <!-- the lantern on the east jamb, hung out over the step -->
+  <circle cx="242" cy="70" r="20" fill="url(#doorwayGlow)"/>
+  <line x1="244" y1="54" x2="244" y2="64" stroke="#2b2925" stroke-width="3"/>
+  <rect x="236" y="63" width="14" height="14" rx="2" fill="#3a3630" stroke="#1f1d1a" stroke-width="2"/>
+  <rect x="239" y="66" width="8" height="8" fill="#ffe2a0"/>
+  <circle cx="243" cy="70" r="2" fill="#ffffff" opacity="0.9"/>
+</svg>

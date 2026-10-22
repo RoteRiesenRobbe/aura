@@ -294,6 +294,7 @@ is the fourth prop that **emits light**.
 | BookPile | P3 | box only (walked over) | 84 |
 | AlchemyTable | P3 | box only | 240 x 120 |
 | ElvenPlanter | P3 | box only | 240 x 96 |
+| Doorway (any district) | P2 | placeholder (walked over) | 312 x 120 |
 
 ⭐ The library takes the elven palette too (PO 2026-10-22). The mage tower roof
 is the first **circle** roof built as a whole tower: a sage-copper cone that
@@ -341,12 +342,12 @@ Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones �
 CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
 MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower.
 
-**P2 (36):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+**P2 (37):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
 Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
 AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier · Bookshelf ·
 CrystalPylon · ArcaneCircle · Orrery · MoonPool · TrainingDummy · JailBars ·
-WeaponRack · Banner · Stocks.
+WeaponRack · Banner · Stocks · Doorway.
 
 **P3 (26):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
 ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·

@@ -976,6 +976,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.JailBars]: Props.genericPropClasses.JailBars,
     [AuraApi.EntityType.BarracksRoof]: Props.genericPropClasses.BarracksRoof,
     [AuraApi.EntityType.Watchtower]: Props.genericPropClasses.Watchtower,
+    // The door mark that sits above a roof (K4 follow-up); walkable by its definition.
+    [AuraApi.EntityType.Doorway]: Props.genericPropClasses.Doorway,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,
