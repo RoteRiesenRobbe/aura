@@ -348,7 +348,7 @@ counter, walked under from all four sides.
 
 ## 11. Chunk ledgers
 
-### K1 - BUILT 2026-10-22, PO look owed `[uncommitted]` (market + fountain)
+### K1 - BUILT 2026-10-22, PO look owed `6e29ef99` (market + fountain)
 
 - **Wire:** `EntityType` +`MarketStallRoof` = 124, `MarketCounter` = 125,
   `CentralFountain` = 126, appended (L1). TS binding via
