@@ -412,7 +412,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
 - **Schema:** DB none · wire +3 `EntityType` (124-126) · conf none · content +8
   props · zone format none · lang none.
 
-### K2 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (cathedral + cemetery)
+### K2 - BUILT 2026-10-22, PO look owed (after K6, R8) `deb54aaf` (cathedral + cemetery)
 
 - **Wire:** `EntityType` +`CathedralNaveRoof` = 127, `Pew` = 128, `Altar` = 129,
   `Mausoleum` = 130, appended (L1). TS binding: `flatc_Windows_v24_3_25.exe --ts
