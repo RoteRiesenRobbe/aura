@@ -970,6 +970,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.MageTowerRoof]: Props.genericPropClasses.MageTowerRoof,
     [AuraApi.EntityType.CrystalPylon]: Props.genericPropClasses.CrystalPylon,
     [AuraApi.EntityType.LibraryRoof]: Props.genericPropClasses.LibraryRoof,
+    // Dionsburg's dwarven military district + jail (plan-city-assets.md K5).
+    // The barracks roof is a roof by its definition; the watchtower is solid.
+    [AuraApi.EntityType.TrainingDummy]: Props.genericPropClasses.TrainingDummy,
+    [AuraApi.EntityType.JailBars]: Props.genericPropClasses.JailBars,
+    [AuraApi.EntityType.BarracksRoof]: Props.genericPropClasses.BarracksRoof,
+    [AuraApi.EntityType.Watchtower]: Props.genericPropClasses.Watchtower,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

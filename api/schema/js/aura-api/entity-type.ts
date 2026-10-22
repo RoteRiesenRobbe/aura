@@ -127,5 +127,9 @@ export enum EntityType {
   Bookshelf = 137,
   MageTowerRoof = 138,
   CrystalPylon = 139,
-  LibraryRoof = 140
+  LibraryRoof = 140,
+  TrainingDummy = 141,
+  JailBars = 142,
+  BarracksRoof = 143,
+  Watchtower = 144
 }

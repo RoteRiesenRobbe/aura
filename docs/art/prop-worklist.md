@@ -302,6 +302,32 @@ the circle body. The library roof is a piece: it fills its canvas edge to edge
 and has no east or west eave, so pieces laid flush east-west read as one roof.
 CrystalPylon and ArcaneCircle are the fifth and sixth props that **emit light**.
 
+### C5. Dwarven military + jail - dark stone, iron, red banners, brass rivets
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| BarracksRoof | P1 | placeholder (roof, fades to 0.25) | 960 x 720 |
+| Watchtower | P1 | placeholder | 480 x 480 |
+| TrainingDummy | P2 | placeholder | 108 |
+| JailBars | P2 | placeholder | 288 x 36 |
+| WeaponRack | P2 | box only | 240 x 60 |
+| Banner | P2 | box only | 60 |
+| Stocks | P2 | box only | 240 x 72 |
+| ArmorStand | P3 | box only | 96 |
+| Bunk | P3 | box only | 120 x 240 |
+| CellDoor | P3 | box only | 144 x 36 |
+| GuardDesk | P3 | box only | 216 x 108 |
+| Chains | P3 | box only (walked over) | 96 |
+
+⭐ PO accent (2026-10-23): brass rivets on the iron, and the clan's **anvil
+sigil** in brass on the red banners (the barracks roof's draped banner, the
+watchtower's flag); the Banner box should carry it too. The barracks roof is a
+piece like the library's: edge to edge, no east or west eave. The watchtower is
+an open platform seen from above, solid, never fading, like the bell tower.
+JailBars is an east-west run (rect bodies never rotate); CellDoor sits in it
+and is set non-blocking per placement when it stands open. No K5 prop emits
+light.
+
 ---
 
 ## Priority roll-up
@@ -309,22 +335,24 @@ CrystalPylon and ArcaneCircle are the fifth and sixth props that **emit light**.
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (22):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (24):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
 CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
-MageTowerRoof · LibraryRoof.
+MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower.
 
-**P2 (31):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+**P2 (36):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
 Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
 AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier · Bookshelf ·
-CrystalPylon · ArcaneCircle · Orrery · MoonPool.
+CrystalPylon · ArcaneCircle · Orrery · MoonPool · TrainingDummy · JailBars ·
+WeaponRack · Banner · Stocks.
 
-**P3 (21):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+**P3 (26):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
 ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·
 BandageTable · Screen · RubbishHeap · ReadingDesk · Lectern · ScrollRack ·
-BookPile · AlchemyTable · ElvenPlanter.
+BookPile · AlchemyTable · ElvenPlanter · ArmorStand · Bunk · CellDoor ·
+GuardDesk · Chains.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

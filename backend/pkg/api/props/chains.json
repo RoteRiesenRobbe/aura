@@ -1,0 +1,7 @@
+{
+  "name": "Chains",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.4 },
+  "blocksMovement": false
+}

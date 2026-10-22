@@ -1,0 +1,6 @@
+{
+  "name": "JailBars",
+  "entityType": "JailBars",
+  "sprite": "jailBars.svg",
+  "body": { "width": 2.4, "height": 0.3 }
+}

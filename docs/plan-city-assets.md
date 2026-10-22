@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
 **Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1-K4 BUILT 2026-10-22 (§11); next K5. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
+K1-K4 BUILT 2026-10-22, K5 2026-10-23 (§11); next K6. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -70,7 +70,8 @@ today is a farm, coast or forest piece. The PO asked for:
 - **R4 - Big roofs are touching pieces** (nave + transept + apse), not one sprite. Each
   texture stays under 4096 px, and the pieces are reusable.
 - **R5 - District palettes as proposed:**
-  - Dwarven: dark stone, iron, red banners.
+  - Dwarven: dark stone, iron, red banners; + brass rivets and the clan's anvil sigil
+    (PO 2026-10-23, K5).
   - Elven: pale stone, silver, sage green, violet glow.
   - Gnome: brass, copper, gears, soot.
   - Slums: patched brown cloth.
@@ -207,12 +208,12 @@ Flags column, R = roof, nb = non-blocking, L = light.
 |---|---|---|---|
 | TrainingDummy | S | r 0.45 | |
 | JailBars | S | 2.4×0.3 | |
-| BarracksRoof | P | 8×6 | R 0.25 (pieces) |
+| BarracksRoof | S (drawn at K5, PO) | 8×6 | R 0.25 (pieces) |
 | WeaponRack | P | 2×0.5 | |
 | ArmorStand | P | r 0.4 | |
 | Bunk | P | 1×2 | |
 | Banner | P | r 0.25 | |
-| Watchtower | P | 4×4 | |
+| Watchtower | S (drawn at K5, PO) | 4×4 | solid tower, not a roof |
 | CellDoor | P | 1.2×0.3 | blocks; override per placement |
 | Stocks | P | 2×0.6 | |
 | Chains | P | r 0.4 | nb |
@@ -280,7 +281,7 @@ it.
 | K2 | Cathedral + cemetery | 4 SVG + 13 PH. Roof pieces flood-fill as one building. | M | wire +4 · content +17 |
 | K3 | Lazaret + slums | 2 SVG + 6 PH | S | wire +2 · content +8 |
 | K4 | Library + elven | 3 SVG + 10 PH (built: 4 + 9, LibraryRoof drawn). The first circle roof (MageTowerRoof). | M | wire +3 (built +4) · content +13 |
-| K5 | Dwarven military + jail | 2 SVG + 10 PH | S | wire +2 · content +12 |
+| K5 | Dwarven military + jail | 2 SVG + 10 PH (built: 4 + 8, BarracksRoof + Watchtower drawn) | S | wire +2 (built +4) · content +12 |
 | K6 | Gnome craft | 2 SVG + 7 PH | S | wire +2 · content +9 |
 
 **Per chunk (R8):** only the cheap tail in §6 (validate, `world` Go tests, vitest +
@@ -596,3 +597,69 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   harness, screenshots or full suite (R8).
 - **Schema:** DB none · wire +4 `EntityType` (137-140) · conf none · content
   +13 props · zone format none · lang none.
+
+### K5 - BUILT 2026-10-23, PO look owed (after K6, R8) `[uncommitted]` (dwarven military + jail)
+
+- **PO calls (asked up front, one prompt):** `BarracksRoof` and `Watchtower`
+  are DRAWN as SVG heroes, not boxes (wire +4 instead of +2; the prop count
+  stays 12); the dwarven palette (R5) gains two accents: **brass rivets** on
+  the iron and the clan's **anvil sigil** in brass on the red banners.
+- **Wire:** `EntityType` +`TrainingDummy` = 141, `JailBars` = 142,
+  `BarracksRoof` = 143, `Watchtower` = 144, appended (L1). TS binding via
+  `flatc_Windows_v24_3_25.exe --ts --gen-all -o <scratch> aura.fbs`, diffed:
+  only `entity-type.ts` moves. Go via `go generate` in `backend/pkg/api`. One
+  `gameObjectClasses` line each, after LibraryRoof.
+- **Art (R1, R5 dwarven + the two accents):** `trainingDummy.svg` (100×100,
+  the r 0.45 circle's square): a dark-stone base in a brass-riveted iron band,
+  a rope-bound burlap body with straw spilling from blade cuts, an oak
+  crossbar for arms with iron caps, a dented iron helm with a riveted rim, a
+  red rag on the east arm. `jailBars.svg` (240×30, 100 units/m): the TOPS of
+  the bars, an east-west run: a dark stone sill, the iron head rail, thirteen
+  square bar heads, heavier end posts, brass rivets at the rail joints, rust.
+  `barracksRoof.svg` (320×240, 40 units/m): a roof PIECE on the LibraryRoof
+  rule (edge to edge, no east or west eave, only the south eave darkened):
+  heavy dark slabs, an iron ridge cap studded with brass, a soot-ringed
+  chimney on the shaded pitch, the clan's red banner draped over the ridge
+  with the brass anvil (one per piece, so a long hall shows a row of them).
+  `watchtower.svg` (100×100 for 4 × 4, 25 units/m), on the BellTower rule
+  (solid, open top seen from above, never fades): a crenellated dark-stone
+  parapet with iron-capped corner turrets, an oak floor, an iron-strapped
+  trapdoor, a bolt-thrower on its swivel aimed north-east, a bolt rack, the
+  red anvil flag in the south-east corner, a long shadow. Nothing past any
+  canvas; ids prefixed (`dummy…`, `barracksRoof…`). Rasterized at body ×
+  120 with sharp for a look before the wrap.
+- **Content (+12, D7 numbers, all [PLACEHOLDER]):** the four heroes
+  (`TrainingDummy` r 0.45, `JailBars` 2.4×0.3, `Watchtower` 4×4 solid;
+  `BarracksRoof` 8×6 at `revealAlpha` 0.25, `blocksMovement: false`);
+  `PropPlaceholder` defs: solid `WeaponRack` 2×0.5, `ArmorStand` r 0.4,
+  `Bunk` 1×2, `Banner` r 0.25, `CellDoor` 1.2×0.3 (blocks; overridden per
+  placement), `Stocks` 2×0.6, `GuardDesk` 1.8×0.9; non-blocking `Chains`
+  r 0.4. No K5 prop emits light (D5). No placements anywhere.
+- **Tiled folders (new since K4, `1afeaf9d`):** `tools/tiled/prop-groups.json`
+  gains `City/Military` (BarracksRoof, Watchtower, TrainingDummy, WeaponRack,
+  ArmorStand, Bunk, Banner, GuardDesk) and `City/Jail` (JailBars, CellDoor,
+  Stocks, Chains); every later chunk adds its props there too.
+- **Palette:** Tiled closed (L4); regenerated once (97 props, 15 folders).
+  Every prop template's `gid` shifts (expected). `verify.sh` all green.
+- **cp-defs:** as at K3 and K4, only the 12 new defs copied: the one other api
+  ↔ `pkg/api` gap was `zones/world.json`, another session's in-flight edit,
+  left untouched. No EOL churn.
+- **Found (L2 again):** the PO's running webpack dev server reported
+  `TS2339 'TrainingDummy' does not exist on type 'typeof EntityType'` after the
+  regen while `tsc --noEmit` and a cache-cleared `npm run build` were clean: a
+  running dev server keeps the old enum, so it needs a restart after an fbs
+  regen, not only the cache clear.
+- **Tracker (D8):** 12 `assets.csv` rows after the K4 block (subcategory
+  "Props — city: dwarven military + jail", zone Dionsburg, state
+  `placeholder`; the 4 heroes SVG, the 8 boxes PNG without `current_file`),
+  `assets.md` regenerated (298 rows), `prop-worklist.md` §C5 + the roll-up
+  (P1 24 · P2 36 · P3 26).
+- **Verified (R8 cheap tail only):** `go build ./...` · `go test -count=1
+  ./pkg/aura/world/...` red ONLY on the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate
+  -content ../api` (scratch build, L7) 0 findings, props 85 → 97 · vitest
+  1883/0 · typecheck clean · webpack cache cleared, `npm run build` ok (the 2
+  usual size warnings) · the 4 SVGs parse (jsdom) · `verify.sh` all green. No
+  probe, harness, screenshots or full suite (R8).
+- **Schema:** DB none · wire +4 `EntityType` (141-144) · conf none · content
+  +12 props · zone format none · lang none.

@@ -1,0 +1,6 @@
+{
+  "name": "Watchtower",
+  "entityType": "Watchtower",
+  "sprite": "watchtower.svg",
+  "body": { "width": 4, "height": 4 }
+}

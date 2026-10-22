@@ -1,0 +1,6 @@
+{
+  "name": "TrainingDummy",
+  "entityType": "TrainingDummy",
+  "sprite": "trainingDummy.svg",
+  "body": { "radius": 0.45 }
+}

@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 286 rows.
+Rendered 2026-10-22 from 298 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 286 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 252 |
+| Art | 264 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 286 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 105 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 117 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-22 from 286 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 66 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 103 | normal — placed but not everywhere |
-| **P3** | 86 | low — unplaced, deferred, or already fine |
+| **P1** | 68 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 108 | normal — placed but not everywhere |
+| **P3** | 91 | low — unplaced, deferred, or already fine |
 
-**172 rows need work** (missing, shared, placeholder, stock or blocked),
+**184 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 89
+## Prop — 101
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -262,6 +262,18 @@ of which **11 are P0**:
 | 🟡 | **Orrery** | — | P2 |  | 240 | Dionsburg — A great brass-and-silver model of the heavens on a round base. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
 | 🟡 | **MoonPool** | — | P2 |  | 432 | Dionsburg — A round still pool in a pale stone rim that holds the moon. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
 | 🟡 | **ElvenPlanter** | — | P3 |  | 240 × 96 | Dionsburg — A long carved stone trough of sage herbs and pale flowers. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **TrainingDummy** | `trainingDummy.svg` | P2 |  | 108 | Dionsburg — The yard's practice post: a round dark-stone base in an iron band, a straw-stuffed burlap body bound with rope, an oak crossbar for arms with iron caps, an old dented iron helm on top; straw spills from the blade cuts, a red rag round one arm. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **JailBars** | `jailBars.svg` | P2 |  | 288 × 36 | Dionsburg — A cell's wall of iron bars, 2.4 × 0.3 m, seen from above as the tops of the bars: a dark stone sill, the iron head rail, each bar's square head standing proud of it, heavier end posts, brass rivets at the rail's joints, rust. A CellDoor sits in the run. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **BarracksRoof** | `barracksRoof.svg` | P1 |  | 960 × 720 | Dionsburg — A roof PIECE, 8 × 6 m: heavy dark stone slabs on an east-west iron ridge cap studded with brass rivets, a squat soot-ringed chimney on the shaded south pitch, the clan's red banner with the brass anvil draped over the ridge (one per piece, a row down a long hall). No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Watchtower** | `watchtower.svg` | P1 |  | 480 × 480 | Dionsburg — The district's watch post seen from above, an OPEN fighting platform: a crenellated dark stone parapet with iron-capped corner turrets, an oak plank floor, the iron-strapped trapdoor, a bolt-thrower on its swivel aimed north-east, a rack of bolts, and the clan's red flag with the brass anvil flying from the south-east corner; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **WeaponRack** | — | P2 |  | 240 × 60 | Dionsburg — An iron-bound rack of axes, hammers and spears. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **ArmorStand** | — | P3 |  | 96 | Dionsburg — A post wearing a dwarven mail shirt and helm. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Bunk** | — | P3 |  | 120 × 240 | Dionsburg — A plain soldier's bunk, a grey blanket, a chest at the foot. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Banner** | — | P2 |  | 60 | Dionsburg — A standing pole carrying the clan's red banner with the brass anvil. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **CellDoor** | — | P3 |  | 144 × 36 | Dionsburg — A barred iron cell door set into a JailBars run. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 
 ## Ground decal — 20
 

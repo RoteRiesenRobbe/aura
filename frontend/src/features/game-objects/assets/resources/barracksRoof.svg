@@ -1,0 +1,114 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" preserveAspectRatio="none">
+  <!-- Placeholder barracks roof (plan-city-assets.md K5): TRUE top-down, a
+       ROOF piece. The viewBox is 320x240 to match the 8 x 6 rect body in
+       api/props/barracks-roof.json (preserveAspectRatio=none, so the two must
+       stay in sync); 40 units per metre. It fades to its revealAlpha while
+       you stand under it, so the bunks and racks beneath show.
+
+       Built in PIECES (D7), like the library roof: the ridge runs east-west
+       and the slabs fill the canvas edge to edge, so pieces laid flush
+       east-west read as one long hall with no seam; the east and west edges
+       carry no eave, only the south eave is darkened. Heavy slabs of dark
+       stone, an iron ridge cap studded with brass rivets, a squat chimney for
+       the hall's hearth on the shaded pitch, and the clan's red banner
+       draped over the ridge with the brass anvil on it. A long barracks of
+       several pieces carries a banner per piece, a row of them down the hall.
+       Dwarven palette (R5): dark stone, iron, red banners; PO accent
+       2026-10-23: brass rivets and the clan's anvil sigil. -->
+  <defs>
+    <!-- heavy stone slabs, each course's joints offset half a slab -->
+    <pattern id="barracksRoofSlab" width="20" height="15" patternUnits="userSpaceOnUse">
+      <path d="M0,7.5 H20 M0,15 H20 M10,0 V7.5 M0,7.5 V15 M20,7.5 V15" fill="none" stroke="#1c1b19"
+            stroke-width="1" opacity="0.6"/>
+    </pattern>
+    <linearGradient id="barracksRoofNorth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="barracksRoofSouth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+    <radialGradient id="barracksRoofSoot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#121110" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#121110" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- the two pitches -->
+  <rect x="0" y="0" width="320" height="120" fill="#53504b"/>
+  <rect x="0" y="120" width="320" height="120" fill="#43413d"/>
+  <rect x="0" y="0" width="320" height="240" fill="url(#barracksRoofSlab)"/>
+  <rect x="0" y="0" width="320" height="120" fill="url(#barracksRoofNorth)"/>
+  <rect x="0" y="120" width="320" height="120" fill="url(#barracksRoofSouth)"/>
+
+  <!-- weather: cracked and replaced slabs, lichen on the shaded pitch -->
+  <g stroke="#1c1b19" stroke-width="0.8">
+    <rect x="180" y="30" width="10" height="7.5" fill="#6c6963"/>
+    <rect x="20" y="75" width="10" height="7.5" fill="#55524d"/>
+    <rect x="130" y="195" width="10" height="7.5" fill="#3a3835"/>
+  </g>
+  <path d="M232,52 L238,60 L236,68" fill="none" stroke="#1c1b19" stroke-width="1" opacity="0.8"/>
+  <g fill="#7a8060" opacity="0.22">
+    <ellipse cx="40" cy="210" rx="14" ry="5"/>
+    <ellipse cx="300" cy="196" rx="10" ry="4"/>
+  </g>
+
+  <!-- the hearth's chimney on the shaded pitch, soot spread round it -->
+  <circle cx="250" cy="172" r="40" fill="url(#barracksRoofSoot)"/>
+  <g>
+    <rect x="232" y="152" width="36" height="34" fill="#000000" opacity="0.35" transform="translate(5 5)"/>
+    <rect x="232" y="152" width="36" height="34" fill="#4a4744" stroke="#1c1b19" stroke-width="2"/>
+    <rect x="233" y="153" width="34" height="4" fill="#77736c" opacity="0.6"/>
+    <rect x="233" y="153" width="4" height="32" fill="#77736c" opacity="0.4"/>
+    <rect x="240" y="160" width="20" height="18" fill="#121110"/>
+    <!-- an iron rain cap on four lugs, brass-riveted -->
+    <rect x="238" y="158" width="24" height="22" fill="none" stroke="#2f3134" stroke-width="2.5"/>
+    <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.5">
+      <circle cx="238" cy="158" r="1.6"/><circle cx="262" cy="158" r="1.6"/>
+      <circle cx="238" cy="180" r="1.6"/><circle cx="262" cy="180" r="1.6"/>
+    </g>
+  </g>
+
+  <!-- the south eave, the shaded pitch's low edge -->
+  <rect x="0" y="230" width="320" height="10" fill="#1c1b19" opacity="0.6"/>
+  <rect x="0" y="222" width="320" height="8" fill="#000000" opacity="0.14"/>
+
+  <!-- the iron ridge cap along the middle, studded with brass rivets -->
+  <rect x="0" y="111" width="320" height="18" fill="#2f3134"/>
+  <rect x="0" y="112" width="320" height="4" fill="#8a8f96" opacity="0.45"/>
+  <rect x="0" y="125" width="320" height="4" fill="#000000" opacity="0.3"/>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.5">
+    <circle cx="10" cy="120" r="1.8"/><circle cx="30" cy="120" r="1.8"/>
+    <circle cx="50" cy="120" r="1.8"/><circle cx="130" cy="120" r="1.8"/>
+    <circle cx="150" cy="120" r="1.8"/><circle cx="170" cy="120" r="1.8"/>
+    <circle cx="190" cy="120" r="1.8"/><circle cx="210" cy="120" r="1.8"/>
+    <circle cx="230" cy="120" r="1.8"/><circle cx="250" cy="120" r="1.8"/>
+    <circle cx="270" cy="120" r="1.8"/><circle cx="290" cy="120" r="1.8"/>
+    <circle cx="310" cy="120" r="1.8"/>
+  </g>
+
+  <!-- the clan's banner, draped over the ridge, swallow-tailed at both ends:
+       bright on the lit north pitch, darker where it hangs down the south -->
+  <g>
+    <path d="M66,46 L110,46 L110,194 L88,182 L66,194 Z" fill="#000000" opacity="0.3"
+          transform="translate(4 4)"/>
+    <path d="M66,34 L88,46 L110,34 L110,120 L66,120 Z" fill="#9a2a24" stroke="#4e1210" stroke-width="1.5"/>
+    <path d="M66,120 L110,120 L110,194 L88,182 L66,194 Z" fill="#6e1b17" stroke="#4e1210" stroke-width="1.5"/>
+    <!-- brass edging stripes -->
+    <g stroke="#c9a24a" stroke-width="2" opacity="0.85">
+      <line x1="70" y1="40" x2="70" y2="188"/><line x1="106" y1="40" x2="106" y2="188"/>
+    </g>
+    <!-- the fold over the ridge -->
+    <rect x="66" y="114" width="44" height="12" fill="#000000" opacity="0.18"/>
+    <rect x="66" y="113" width="44" height="3" fill="#c4473e" opacity="0.6"/>
+    <!-- the anvil sigil, brass on the lit half -->
+    <path d="M0,1.5 Q3,0 5,0 H20 V3 H16 Q14,4 14,7 V9 L18,12 V14 H6 V12 L10,9 V7 Q10,4 7,3 H5 Q2,3 0,1.5 Z"
+          fill="#c9a24a" stroke="#6e5520" stroke-width="0.4" transform="translate(73 64) scale(1.5)"/>
+    <!-- the cords that hold it down, iron rings at the ends -->
+    <g fill="none" stroke="#2f3134" stroke-width="1.6">
+      <circle cx="66" cy="34" r="2.2"/><circle cx="110" cy="34" r="2.2"/>
+      <circle cx="66" cy="194" r="2.2"/><circle cx="110" cy="194" r="2.2"/>
+    </g>
+  </g>
+</svg>

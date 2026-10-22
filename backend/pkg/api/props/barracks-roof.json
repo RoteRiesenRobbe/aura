@@ -1,0 +1,8 @@
+{
+  "name": "BarracksRoof",
+  "entityType": "BarracksRoof",
+  "sprite": "barracksRoof.svg",
+  "body": { "width": 8, "height": 6 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.25 }
+}

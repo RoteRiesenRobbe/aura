@@ -6,6 +6,8 @@
   "City/Slums": ["SlumTent", "LeanTo", "RubbishHeap", "Brazier"],
   "City/Library": ["LibraryRoof", "Bookshelf", "ReadingDesk", "Lectern", "ScrollRack", "BookPile"],
   "City/Elven": ["MageTowerRoof", "CrystalPylon", "ArcaneCircle", "AlchemyTable", "Orrery", "MoonPool", "ElvenPlanter"],
+  "City/Military": ["BarracksRoof", "Watchtower", "TrainingDummy", "WeaponRack", "ArmorStand", "Bunk", "Banner", "GuardDesk"],
+  "City/Jail": ["JailBars", "CellDoor", "Stocks", "Chains"],
   "City/Walls": ["GateWall"],
   "Nature": ["Tree", "OakTree", "PineTree", "DeadTree", "Stump", "FallenLog", "Bush", "BerryBush", "Rock", "Boulder", "CaveMouth"],
   "Village": ["House", "Cottage", "Barn", "Mill", "Haystack", "Well", "Cart", "Crate", "FencePost", "Gate", "BrokenFence", "Bridge", "Tombstone"],
