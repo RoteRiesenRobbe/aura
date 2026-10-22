@@ -63,6 +63,11 @@ between similar systems. But: don't deduplicate things that just *look* similar
 — two pieces of code that happen to be identical today but represent different
 concepts should stay separate.
 
+Before proposing new code or calling something new work, find the existing feature
+that already does it for another entity type and extend that. When a concept gets a
+new system, list every builder or door that shares it and move them all, or say which
+ones stay (the totem tooltip and the companion medallions, 2026-10).
+
 ### YAGNI — You Aren't Gonna Need It
 
 Don't build for hypothetical future requirements. No "we might need this later"
@@ -141,25 +146,13 @@ make -C backend dev
 `aurad` **refuses to boot** without `AURA_DB_URL`, and panics without `AURA_JWT_KEY` (step 8a
 chunk 1c). That includes headless harness runs.
 
-> ⭐ **DOCKER IS OPTIONAL. What aurad needs is a reachable PostgreSQL, not a container**
-> (recorded 2026-09-12, PO correction). The `make db-up` target below is *one* way to get one
-> and the only one this file used to mention, which is how "no Docker on this host" became a
-> recorded reason for not booting the game — **three times, and wrongly each time.** A native
-> Postgres serving `AURA_DB_URL` is fully equivalent; nothing in the server, the harness or
-> the test suite can tell the difference.
->
-> ⚑ **The Windows dev box runs exactly that** and needs no Docker at all:
-> `scripts/dev-restart-windows.sh` builds, boots and health-checks `aurad` against a native
-> service (`ensure_db()` starts it if it is not already listening, and no-ops when something
-> already answers on the port). ⛔ **`docker` is not even on PATH there** — so if you are on
-> that machine and a doc, a status entry or your own earlier note says the game cannot be
-> booted for want of Docker, **that note is wrong: run the script.**
->
-> ⚑ **And the environment may already be set.** `AURA_DB_URL` / `AURA_TEST_DB_URL` /
-> `AURA_JWT_KEY` can come from `backend/.env.local` **or** from exported machine-scope
-> variables — the Windows box uses the latter, so `backend/.env.local` is legitimately
-> ABSENT there. ⛔ A missing `.env.local` is therefore NOT evidence that the game cannot
-> boot. Check `env | grep AURA_` before concluding anything.
+> ⭐ **Docker is optional: aurad needs a reachable PostgreSQL, not a
+> container** (PO 2026-09-12; "no Docker on this host" was given as a reason
+> not to boot three times, wrongly each time). The Windows box runs a native
+> Postgres and has no `docker` on PATH: `scripts/dev-restart-windows.sh`
+> builds, boots and starts the DB service itself. Its `AURA_*` variables are
+> exported at machine scope, so a missing `backend/.env.local` proves nothing:
+> check `env | grep AURA_` before concluding anything.
 
 One-time setup, either way:
 
@@ -232,8 +225,12 @@ Optional dev query params:
 ### Backend tests
 
 ```bash
-cd backend && go test -timeout 60s ./...
+go -C backend test -timeout 60s ./...
 ```
+
+⚑ **Never cut the suite's output with `head`/`tail`**: on 2026-10-20 a `tail -40` hid a third
+FAIL and the run was reported green. Scan all of it (`2>&1 | grep -E '^(FAIL|--- FAIL|panic)'`)
+and report the count.
 
 > ⚑ **`-race` needs `export PATH="/c/msys64/mingw64/bin:$PATH"` first** (Windows +
 > MSYS2). `gcc` is found through the MSYS alias `/mingw64/bin`, but the Windows
@@ -250,24 +247,16 @@ The test runner requires generated files (`go generate ./...`). The Makefile `ge
 ### Frontend tests
 
 ```bash
-cd frontend && npm test          # vitest run
-npm run typecheck                # tsc --noEmit
+npm --prefix frontend test        # vitest run
+npm --prefix frontend run typecheck  # tsc --noEmit
 ```
 
-Vitest (added with the round-4 tooltip fix) covers the pure, DOM-free logic
-modules — currently `SkillTooltip.ts`. Three things to know before adding a test:
-
-- **The environment is `jsdom`, not `node`** (`vitest.config.ts`). The client's
-  module graph reaches `window` at *import* time — `Urls.ts` derives the catalog
-  host from `window.location`, PixiJS wants a document — so even a pure
-  formatting unit needs a browser-shaped global.
-- **`vitest.setup.ts` stubs `fetch`.** `Skills.ts` and `Mobs.ts` fetch their
-  catalogs on import; without the stub a unit test does real DNS. The stub
-  rejects, which is the degrade path those modules are designed to survive.
-- **Import `{describe, it, expect}` explicitly** — globals are deliberately off
-  so `tsconfig.json`'s `types` array stays untouched. (`skipLibCheck: true` is
-  on there because vitest's own `.d.ts` files use private identifiers that tsc
-  otherwise reports against the app's `es5` target.)
+Vitest covers the pure logic modules. Before adding a test: the
+environment is **`jsdom`** (the module graph touches `window` and PixiJS at
+import time); **`vitest.setup.ts` stubs `fetch`** (catalog modules fetch on
+import; the stub rejects, which they survive); **import `{describe, it,
+expect}` explicitly** (globals are off so `tsconfig.json`'s `types` stays
+untouched; `skipLibCheck` is on for vitest's own `.d.ts`).
 
 ### Code generation
 
@@ -461,13 +450,11 @@ the **character-sacrifice loop** (moved *into* v1 by PO ruling 2026-07-19,
 `plan-intermission-triage.md` item 10 / GDD §11 — it lands right after step 8
 as persistence's first consumer).
 
-~~Line-of-sight for auras~~ — **CUT 2026-07-10.** Auras pass through walls and
-every environment object; props block movement, never effects. The `blocksAura`
-flag was deleted 2026-07-11. See `gdd.md` §142/§163 and `roadmap.md` item 6.
-⚑ **Prototyped anyway on 2026-08-15** (branch `prototype/aura-los`, `c42e1100`,
-deliberately never merged) so the PO could feel what the cut gave up. **PO verdict,
-recorded 2026-09-21: "we don't need it yet, or it is just a different game
-entirely."** The cut stands and the branch is parked.
+~~Line-of-sight for auras~~: **CUT 2026-07-10** (`gdd.md` §142/§163,
+`roadmap.md` item 6). Auras pass through walls and every environment object;
+props block movement, never effects. The parked prototype
+(`prototype/aura-los`, `c42e1100`) confirmed it, PO 2026-09-21: "we don't
+need it yet, or it is just a different game entirely."
 
 ### Not in v1.0
 
@@ -492,7 +479,11 @@ Across both:
   non-trivial change (new file, new system, refactor, multi-file edit); don't silently chain
   multiple chunks in one session.
 - **Propose options for design decisions** — don't commit to a direction unilaterally.
-- **Never commit (or branch/push) autonomously** — only when explicitly asked.
+- **Never commit (or branch/push) autonomously** — only when explicitly asked. A chunk wrap
+  is that ask for its own commit (the `chunk-wrap` skill); a push still needs its own.
+- **No `cd` in shell commands.** A `cd … &&` chain triggers a permission prompt even in auto
+  mode (PO 2026-10-21): use absolute paths, `git -C`, `make -C`, `go -C`, `npm --prefix`, and
+  change files with Edit/Write, not shell heredocs.
 - **Several sessions may share this working tree.** When committing, stage only the files this
   session changed, by path (never `git add -A` / `git add .`), and check `git status` and the
   staged diff for changes you did not make; leave those for their own session.

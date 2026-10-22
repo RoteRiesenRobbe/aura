@@ -54,6 +54,15 @@ Check what changed (`git status`, `git diff --stat`) and pick the cheapest path:
 | `api/schema/*.fbs` | `cd api/schema && ./make.sh`, then backend build **and** frontend build |
 | `frontend/**` | Nothing if the webpack dev server (port 2001) is up — HMR picks it up |
 
+⚑ **`git status` shows only uncommitted work.** Commits that landed after the
+running processes started (a pull or a merge) count as changes too: compare
+`git log -1 --format=%ci -- <area>` with the process start
+(`ps -o lstart= -p $(pgrep -x aurad)`, and `pgrep -f webpack` for the client;
+reading with `-f` is fine, only killing with it is banned). A change to
+`frontend/package*.json` needs `npm --prefix frontend install` and then a
+webpack restart, because HMR installs nothing (2026-10-14: a merge brought a
+new dependency, only aurad was restarted, and the PO got a broken page).
+
 `-content ../api` covers **all** of the api/ subdirs, zones included, so JSON
 edits skip both `cp-defs` and the rebuild. Never `make build` just for a JSON
 edit — `cp-defs` reverts `backend/pkg/api/` from source and wastes a minute.
@@ -91,10 +100,11 @@ exit plus the printed counts is the check. Content loading is validated at
 boot and **panics** on violation — never assume a restart succeeded without
 seeing those counts.
 
-Counts must match the current pin in the CLAUDE.md status banner (the
-`boot …` figures — read them from there, they move every content session).
-A count that is off by one is a definition that failed to register, not a
-rounding detail.
+There is no pinned set of expected counts any more, so do not report that
+you could not compare against one. The check is a clean exit with a non-zero
+count for every content type. Flag a count only when it is lower than this
+session's own changes imply: a missing one is a definition that failed to
+register, not a rounding detail.
 
 Hard-fail validators that show up as boot panics after a content edit:
 

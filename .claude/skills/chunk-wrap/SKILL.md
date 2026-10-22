@@ -1,14 +1,12 @@
 ---
 name: chunk-wrap
-description: Session-end bookkeeping when a plan chunk / session is finished — TIERED by session size (full plan-chunk ritual · light bugfix wrap · docs-only). Use when the user says a chunk/session is done, verified, or ready to record. Encodes the tier rule, the CLAUDE.md Status cap, the archive checklist + the no-autonomous-commit guardrail.
+description: Session-end bookkeeping when a plan chunk / session is finished — TIERED by session size (full plan-chunk ritual · light bugfix wrap · docs-only). Use when the user says a chunk/session is done, verified, or ready to record. Encodes the tier rule, the CLAUDE.md Status cap, the archive checklist, and the commit that ends every wrap (push only on request).
 ---
 
 Ritual for recording a finished chunk/session so the status surfaces stay
-consistent. **Never commit, branch, or push as part of this** — that is a
-separate, explicitly-requested step (project rule). Wrap-up = docs only.
-When that commit is requested, stage by path only the files this session
-changed (never `git add -A`): another session may have uncommitted work in
-the same tree.
+consistent. **A wrap ends with a commit on main** (PO 2026-10-22): invoking the
+wrap is the explicit ask for it. Pushing, branching and deploying still need
+their own request. The commit rules are in the last section.
 
 ## Pick the tier FIRST — most sessions are not FULL
 
@@ -37,7 +35,7 @@ it's LIGHT.
 ## The three surfaces (single sources, keep in sync)
 
 1. **The plan doc's chunk banner** — the **authoritative** full ledger
-   (`plan-<name>.md §13 C#`). The complete retrospective prose belongs here and
+   (the plan's ledger section, e.g. `plan-appearance.md` §12). The complete retrospective prose belongs here and
    nowhere else. Match the house style of the banners already in that doc; the
    two non-obvious bits are that the hash stays `[uncommitted]` until the user
    actually commits, and that dates are absolute, never relative.
@@ -64,13 +62,12 @@ CLAUDE.md loads every session. Budget for the whole `## Status` section:
   the two sections together **≤ ~8 KB**. Prune every line the finished chunk
   closed; a closed item is **deleted**, not annotated with "CLOSED".
 
-⚑ **Why bytes, and why the two halves.** The cap exists because by 2026-08-03
-Status had reached 136 KB / 87 % of the file — every session prepended a banner
-and nothing ever pruned. The line-based rule that replaced it ("≤10 lines") was
-then satisfied on a technicality: every entry complied by being one unwrapped
-4.7 KB bullet. As of 2026-08-09 Status is **27 KB** — Recent 9.7 KB, Next+Open
-**17 KB**, the half no rule governed. If the section is over when you arrive,
-collapsing it is part of *your* wrap, not a future someone's.
+⚑ **Why bytes, and why the two halves.** By 2026-08-03 Status had reached
+136 KB, 87 % of the file: every session prepended a banner and nothing pruned.
+The line-based cap that followed was met on a technicality (each entry one
+unwrapped 4.7 KB bullet), and the Next + Open half grew with no rule at all.
+Measure the section with `wc -c`. If it is over when you arrive, collapsing it
+is part of *your* wrap, not a future someone's.
 
 ## The harness gate — run it BEFORE writing the banner
 
@@ -113,3 +110,17 @@ nothing left open, no deferred half anyone will resume:
 
 A doc with *any* open item (deferred checklist, unstarted workstream, live-ops
 reference) **stays in `docs/`**.
+
+## Commit (the last step of every tier)
+
+1. Stage only the files this session changed, **by file path**. `git add <dir>`
+   and `git add -A <dir>` take everything under the directory, another
+   session's uncommitted edits included (2026-10-18: C1's merge swallowed the
+   spellbook session's work this way). New files and generated copies
+   (`backend/pkg/api/…`, schema bindings) count when this session made them.
+2. Check `git diff --cached --stat`: every path must be this session's. If a
+   file also carries another session's edits (CLAUDE.md often does), say so
+   and ask before committing it.
+3. One commit on main in the house style, with the schema impact line. Re-run
+   checks only if code changed after the last verification.
+4. Do not push; say it is not pushed, and push only when asked.
