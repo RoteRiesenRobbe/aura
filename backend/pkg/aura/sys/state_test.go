@@ -501,6 +501,23 @@ func TestDefaultSpawn_OnlyAtStartingSpawnFires(t *testing.T) {
 	}
 }
 
+// A zone that authors the `default-spawn` anchor puts every unbound arrival
+// there instead of at a starting fire: a fire-less start on the road (PO
+// 2026-10-22). The flagged fire stays the fallback when no anchor is authored.
+func TestDefaultSpawn_AtTheDefaultSpawnAnchorWhenAuthored(t *testing.T) {
+	s, _ := newStateFixture(t)
+	start := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
+	s.SetCampfireAnchors([]CampfireAnchor{start})
+	road := phy.Vec2f{X: -40, Y: 5}
+	s.SetDefaultSpawn(road)
+
+	for i := 0; i < 200; i++ {
+		pos := s.defaultSpawnPosition()
+		require.LessOrEqual(t, pos.Sub(road).Abs(), float32(respawnJitterRadius)+1e-4,
+			"an unbound arrival must land at the default-spawn anchor, never at the starting fire")
+	}
+}
+
 // joinPlayerWithState runs the join flow for a client whose play ticket carries
 // persisted character state — the COLD LOGIN path, the only one that reads
 // home_campfire_id.

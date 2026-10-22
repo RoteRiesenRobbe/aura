@@ -704,6 +704,10 @@
   "@conv.Hermit.about-the-village": {
     "description": "A row the player picks when talking to Hermit (node \"root\"), written as the player's own words."
   },
+  "conv.Hermit.hello-stranger-another-traveler": "Hello Stranger! Another traveler looking for work I assume? There's more coming through here every day. Talk to Flora, her Farm is just up ahead. I'm sure she has some work and a warm place to rest for you.",
+  "@conv.Hermit.hello-stranger-another-traveler": {
+    "description": "Hermit speaks this in the conversation, node \"root\", line 1."
+  },
   "conv.Hermit.i-talked-to-reinhard": "I talked to Reinhard and the Town Crier.",
   "@conv.Hermit.i-talked-to-reinhard": {
     "description": "A row the player picks when talking to Hermit (node \"welcome_running\"), written as the player's own words."

@@ -505,6 +505,10 @@ still has one there, or an exit still written with `door` or `look: hidden`
   carries one radius, so a stretched ellipse is refused.
 - **Anchor**: a point whose **Name** is what content refers to. Unique, and
   inside the zone bounds.
+  ⭐ An anchor named **`default-spawn`** (primary zone only) is the fire-less
+  start: every unbound arrival (a new character, an unbound login or death, an
+  heir whose stone names no `heirHome`) lands there instead of at a
+  `startingSpawn` fire. The flagged fire is still required, as the fallback.
 
 ### Areas: grouping a zone by place
 

@@ -25,6 +25,7 @@
       {
         "id": "root",
         "lines": [
+          {"id": "hello-stranger-another-traveler"},
           {"id": "what-do-you-need"}
         ],
         "options": [

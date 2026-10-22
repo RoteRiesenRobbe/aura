@@ -192,6 +192,19 @@ func TestPlace_RejectsAStartingSpawnOutsideThePrimaryZone(t *testing.T) {
 	assert.Contains(t, err.Error(), "starting spawn")
 }
 
+// The same L4 hazard for the fire-less start: the default-spawn anchor puts
+// every unbound arrival where it stands, so only the primary zone may author it.
+func TestPlace_RejectsTheDefaultSpawnAnchorOutsideThePrimaryZone(t *testing.T) {
+	a := zoneAt("world", 144, 72, 0, 0)
+	a.BindPoints = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
+	b := zoneAt("under", 144, 72, 0, -500)
+	b.Anchors = []Anchor{{Name: DefaultSpawnAnchor}}
+
+	err := Place([]*Zone{a, b})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), DefaultSpawnAnchor)
+}
+
 // A cave nobody binds in is legal: the set needs a starting spawn, the file
 // does not. This is the half that moved out of Zone.validate.
 func TestPlace_AllowsASecondZoneWithFiresButNoStartingSpawn(t *testing.T) {

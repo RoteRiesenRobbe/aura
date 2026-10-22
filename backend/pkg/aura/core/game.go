@@ -31,6 +31,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/cmd"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/equip"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/statuseffects"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 type entitiesMap map[uint64]model.BasicEntity
@@ -281,6 +282,9 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	}
 	if len(zoneAnchors) > 0 {
 		interactionSys.SetZoneAnchors(zoneAnchors)
+	}
+	if pos, ok := zoneAnchors[world.DefaultSpawnAnchor]; ok {
+		s.SetDefaultSpawn(pos)
 	}
 	// Touch exits (plan-passages.md P4): the same anchors and rectangles the
 	// talk exits travel by, so both kinds of exit move a player one way.

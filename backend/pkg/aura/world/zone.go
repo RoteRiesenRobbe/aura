@@ -667,6 +667,13 @@ type Polygon struct {
 	InArea
 }
 
+// DefaultSpawnAnchor is the reserved anchor name for the fire-less start: when
+// the primary zone authors it, every unbound arrival (a new character, an
+// unbound login or death, an heir whose stone names no heirHome) lands there
+// instead of at a startingSpawn fire (sys.defaultSpawnPosition). The flagged
+// fires stay required and are the fallback when no zone authors it.
+const DefaultSpawnAnchor = "default-spawn"
+
 // Anchor is a named point encounter scripts look up at registration (content
 // pass C6): the zone owns WHERE an encounter plays out (boss home, totem
 // spots, wave mouth — editor-movable), the Go script owns WHAT happens.

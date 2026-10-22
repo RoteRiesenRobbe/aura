@@ -79,7 +79,7 @@ const VENUES = [
   { name: 'wolf', at: [-190, -21], subjects: [['Wolf', 'forest', 'normal', 'hostile']] },
   { name: 'bandit', at: [-141, -23], subjects: [['Bandit', 'leather', 'normal', 'hostile']] },
   { name: 'alphaBoar', at: [-214, 35], subjects: [['Alpha Boar', 'forest', 'elite', 'neutral']] },
-  { name: 'hermit', at: [-121, -29], subjects: [['Hermit', 'grey', 'normal', 'friendly']] },
+  { name: 'hermit', at: [-254, 5], subjects: [['Hermit', 'grey', 'normal', 'friendly']] },
   { name: 'knot', at: [40, -147], subjects: [['Grandfather Knot', 'forest', 'normal', 'friendly']] },
   { name: 'dragon', at: [211, 163], subjects: [['Dragon', 'grey', 'boss', 'hostile']] },
   // C1b (D31-D34): the wolf line's own portraits, a pack-tinted harvestable,

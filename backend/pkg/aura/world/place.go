@@ -272,6 +272,11 @@ func checkSetWide(zones []*Zone) error {
 					"bare name across every loaded zone (plan-underworld.md L5b)", other, z.ID, name)
 			}
 			seenAnchor[name] = z.ID
+			if name == DefaultSpawnAnchor && i != 0 {
+				return fmt.Errorf("zone %q authors anchor %q, but only the primary zone (%q) may: every "+
+					"unbound arrival lands on it, so this would spawn them outside the starting world "+
+					"(plan-underworld.md L4)", z.ID, name, zones[0].ID)
+			}
 		}
 		ids := make([]string, 0, len(z.Exits)+len(z.ExitAreas))
 		for e := range z.Exits {

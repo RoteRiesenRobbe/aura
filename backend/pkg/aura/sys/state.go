@@ -221,6 +221,9 @@ type ConnectionStateSystem struct {
 	names        stringSet
 	deadByClient map[uuid.UUID]deadState
 	campfires    []CampfireAnchor
+	// defaultSpawn is the zone's `default-spawn` anchor (world.DefaultSpawnAnchor),
+	// nil when no zone authors one. Set, it wins over the starting fires.
+	defaultSpawn *phy.Vec2f
 	// campfireByID resolves a spawn-point id back to the placed fire. Rebuilt
 	// with the campfire list, never mutated after.
 	campfireByID map[string]CampfireAnchor
@@ -340,6 +343,11 @@ func (s *ConnectionStateSystem) SetCampfireAnchors(campfires []CampfireAnchor) {
 	for _, c := range campfires {
 		s.campfireByID[c.ID] = c
 	}
+}
+
+// SetDefaultSpawn installs the fire-less start every unbound arrival lands at.
+func (s *ConnectionStateSystem) SetDefaultSpawn(pos phy.Vec2f) {
+	s.defaultSpawn = &pos
 }
 
 // campfireFor resolves a bound spawn-point id to the fire it names. Not ok for
@@ -659,13 +667,18 @@ func randomSpawnPosition(width, height float32) phy.Vec2f {
 	}
 }
 
-// defaultSpawnPosition places a first-time / unbound arrival at a random
-// STARTING-SPAWN campfire (triage item 5), jittered within that campfire's bind
-// radius so they land inside the binding ring but never exactly on the fire.
+// defaultSpawnPosition places a first-time / unbound arrival at the zone's
+// `default-spawn` anchor when one is authored (SetDefaultSpawn), jittered like
+// a respawn. Otherwise at a random STARTING-SPAWN campfire (triage item 5),
+// jittered within that campfire's bind radius so they land inside the binding
+// ring but never exactly on the fire.
 // Real zones are guaranteed ≥1 flagged fire by world-zone validation; if none
 // is flagged (bare test zones) it falls back to any campfire, then to a random
 // world position when there are no campfires at all.
 func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
+	if s.defaultSpawn != nil {
+		return JitterAround(*s.defaultSpawn, respawnJitterRadius)
+	}
 	if len(s.campfires) == 0 {
 		return randomSpawnPosition(s.game.Bounds())
 	}

@@ -49,14 +49,14 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-// ⚑ Stand next to the HERMIT (-121.57, -29.72 since the world rebuild; it
+// ⚑ Stand next to the HERMIT (-254.3, 5.45 since 2026-10-22; it
 // stood at -54.9, 25.6 when this was written), the actor the throwaway aura is
 // authored on. Run 1 of this script warped to (-57, 26) intending the Farmer
 // and the server offered the Hermit instead — 0.6 units away vs the Farmer's
 // 2.6, i.e. the only one inside the 2.0 talk range. The geometry came back
 // clean and meant NOTHING, because the badged actor had no aura. Assert the
 // precondition, never assume the intended actor was the one reached.
-const NEAR_HERMIT = w(-121, -29);  // 0.9 units off the Hermit, no other conversant within 8 — badge lights without walking
+const NEAR_HERMIT = w(-254, 5);  // 0.5 units off the Hermit, no other conversant within 8 — badge lights without walking
 const FAR_AWAY = w(-23, 14);     // the most open tile in the zone, ~99 units off
 
 // The badge's own layout constants (InteractBadge.ts), needed to reconstruct
