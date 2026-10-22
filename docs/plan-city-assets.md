@@ -541,7 +541,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
 - **Schema:** DB none · wire +3 `EntityType` (134-136) · conf none · content
   +8 props · zone format none · lang none.
 
-### K4 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (library + elven mage district)
+### K4 - BUILT 2026-10-22, PO look owed (after K6, R8) `c9d2f1b0` (library + elven mage district)
 
 - **PO calls (asked up front, one prompt):** the library takes the ELVEN palette
   (pale stone, silver, sage green, violet glow), not its own; `LibraryRoof` is
