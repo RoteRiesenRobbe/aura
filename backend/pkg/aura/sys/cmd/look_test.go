@@ -35,7 +35,7 @@ func lookCatalog(t *testing.T) appearance.Catalog {
 		"green-hood.json":   item("green-hood", "portrait", ""),
 		"ring-plain.json":   item("ring-plain", "ring", "grey"),
 		"ring-leather.json": item("ring-leather", "ring", "leather"),
-	})
+	}, nil)
 	require.NoError(t, err)
 	return c
 }

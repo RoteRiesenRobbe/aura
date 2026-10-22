@@ -1561,6 +1561,11 @@ func conditionHolds(c mobs.InteractionCondition, p learner) bool {
 		if p.QuestLedger().KillCount(c.SpeciesID) < uint64(c.Value) {
 			return false
 		}
+	case mobs.ConditionSkillLevel:
+		// An unresolved skill fails closed, the kills_this_life rule above.
+		if c.SkillID == 0 || p.SkillComponent().SkillLevel(c.SkillID) < c.Value {
+			return false
+		}
 	default:
 		// Unreachable: the loader rejects an unknown kind at boot, which is
 		// the point of the parse table. Failing closed here keeps a future

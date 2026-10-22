@@ -2,8 +2,12 @@ package appearance
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"testing/fstest"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +34,7 @@ func starterFiles() map[string]string {
 }
 
 func TestLoad_StarterCatalog(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+	c, err := Load(catalogFS(starterFiles()), testWorld{})
 	require.NoError(t, err)
 
 	ids := func(items []Item) []string {
@@ -53,7 +57,7 @@ func TestLoad_StarterCatalog(t *testing.T) {
 // The wire value is 1 + the item's position in its slot's sorted list; 0 is
 // "the slot's default", what an unknown id resolves to.
 func TestWire_IsOnePlusThePositionInTheSlot(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+	c, err := Load(catalogFS(starterFiles()), testWorld{})
 	require.NoError(t, err)
 
 	assert.Equal(t, uint16(1), c.Wire(SlotPortrait, "archer"))
@@ -67,7 +71,7 @@ func TestWire_IsOnePlusThePositionInTheSlot(t *testing.T) {
 // ID is Wire's inverse: the save path stores ids, the player holds wire values
 // (plan-appearance.md C4).
 func TestID_IsWiresInverse(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+	c, err := Load(catalogFS(starterFiles()), testWorld{})
 	require.NoError(t, err)
 
 	for _, slot := range []Slot{SlotPortrait, SlotRing} {
@@ -83,36 +87,44 @@ func TestID_IsWiresInverse(t *testing.T) {
 	assert.Equal(t, "", c.ID(SlotRing, 3), "past the end")
 }
 
-// WearableLook is what SelectAppearance may put on (C4): a starter portrait
-// and a starter ring, as wire values. C5 swaps "starter" for "owned".
+// WearableLook is what SelectAppearance may put on (C4, C5): a starter, or an
+// item the player owns, in both slots, as wire values.
 func TestWearableLook(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
 	require.NoError(t, err)
 	archer, leather := c.Wire(SlotPortrait, "archer"), c.Wire(SlotRing, "ring-leather")
+	crown, forest := c.Wire(SlotPortrait, "crown"), c.Wire(SlotRing, "ring-forest")
 
-	assert.True(t, c.WearableLook(archer, leather))
-	assert.False(t, c.WearableLook(0, leather), "0 is no item")
-	assert.False(t, c.WearableLook(archer, 0), "0 is no item")
-	assert.False(t, c.WearableLook(9, leather), "past the end")
-	assert.False(t, c.WearableLook(archer, 9), "past the end")
+	assert.True(t, c.WearableLook(archer, leather, nil))
+	assert.False(t, c.WearableLook(0, leather, nil), "0 is no item")
+	assert.False(t, c.WearableLook(archer, 0, nil), "0 is no item")
+	assert.False(t, c.WearableLook(9, leather, nil), "past the end")
+	assert.False(t, c.WearableLook(archer, 9, nil), "past the end")
 
-	// The loader refuses a non-starter until C5, so the refusal is pinned on a
-	// hand-built catalog.
-	locked := Item{ID: "crown", Slot: SlotPortrait}
-	c.portraits = append(c.portraits, locked)
-	c.byID[locked.ID] = locked
-	assert.False(t, c.WearableLook(c.Wire(SlotPortrait, "crown"), leather), "not a starter")
+	assert.False(t, c.WearableLook(crown, leather, nil), "a locked portrait")
+	assert.False(t, c.WearableLook(archer, forest, nil), "a locked ring")
+	owned := []uint16{c.Flat("crown")}
+	assert.True(t, c.WearableLook(crown, leather, owned), "an owned portrait")
+	assert.False(t, c.WearableLook(archer, forest, owned), "owning one item owns no other")
+	assert.True(t, c.WearableLook(crown, forest, []uint16{c.Flat("ring-forest"), c.Flat("crown")}))
 }
 
-func TestCheckStarterLook(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+// CheckOwnedLook is creation's check (accounts, by id): a starter or an
+// owned item in both slots.
+func TestCheckOwnedLook(t *testing.T) {
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
 	require.NoError(t, err)
 
-	assert.NoError(t, c.CheckStarterLook("archer", "ring-leather"))
-	assert.Error(t, c.CheckStarterLook("nobody", "ring-plain"), "unknown portrait")
-	assert.Error(t, c.CheckStarterLook("default", "nobody"), "unknown ring")
-	assert.Error(t, c.CheckStarterLook("ring-plain", "ring-plain"), "a ring is no portrait")
-	assert.Error(t, c.CheckStarterLook("default", "archer"), "a portrait is no ring")
+	assert.NoError(t, c.CheckOwnedLook("archer", "ring-leather", nil))
+	assert.Error(t, c.CheckOwnedLook("nobody", "ring-plain", nil), "unknown portrait")
+	assert.Error(t, c.CheckOwnedLook("default", "nobody", nil), "unknown ring")
+	assert.Error(t, c.CheckOwnedLook("ring-plain", "ring-plain", nil), "a ring is no portrait")
+	assert.Error(t, c.CheckOwnedLook("default", "archer", nil), "a portrait is no ring")
+	assert.Error(t, c.CheckOwnedLook("crown", "ring-plain", nil), "a locked portrait")
+	assert.Error(t, c.CheckOwnedLook("default", "ring-forest", []string{"crown"}), "a locked ring")
+	assert.NoError(t, c.CheckOwnedLook("crown", "ring-forest", []string{"ring-forest", "crown"}))
+	assert.NoError(t, c.CheckOwnedLook("default", "ring-plain", []string{"ring-plain"}),
+		"a starter listed as owned is still a starter")
 }
 
 func TestLoad_Refusals(t *testing.T) {
@@ -122,8 +134,7 @@ func TestLoad_Refusals(t *testing.T) {
 		"unknown slot":            {"hat.json": `{"id": "hat", "slot": "hat", "starter": true, "name": "x"}`},
 		"ring without family":     {"r.json": `{"id": "r", "slot": "ring", "starter": true, "name": "x"}`},
 		"portrait with family":    {"p.json": `{"id": "p", "slot": "portrait", "family": "grey", "starter": true, "name": "x"}`},
-		"not a starter":           {"p.json": `{"id": "p", "slot": "portrait", "name": "x"}`},
-		"unknown field":           {"p.json": `{"id": "p", "slot": "portrait", "starter": true, "name": "x", "conditions": []}`},
+		"unknown field":           {"p.json": `{"id": "p", "slot": "portrait", "starter": true, "name": "x", "hat": 1}`},
 		"no name":                 {"p.json": `{"id": "p", "slot": "portrait", "starter": true}`},
 	}
 	for name, extra := range cases {
@@ -132,7 +143,7 @@ func TestLoad_Refusals(t *testing.T) {
 			for k, v := range extra {
 				files[k] = v
 			}
-			_, err := Load(catalogFS(files))
+			_, err := Load(catalogFS(files), testWorld{})
 			assert.Error(t, err)
 		})
 	}
@@ -145,13 +156,13 @@ func TestLoad_RequiresTheDefaults(t *testing.T) {
 	for _, missing := range []string{"default.json", "ring-plain.json"} {
 		files := starterFiles()
 		delete(files, missing)
-		_, err := Load(catalogFS(files))
+		_, err := Load(catalogFS(files), testWorld{})
 		assert.Error(t, err, missing)
 	}
 }
 
 func TestCatalogJSON_ServesEachSlotInWireOrder(t *testing.T) {
-	c, err := Load(catalogFS(starterFiles()))
+	c, err := Load(catalogFS(starterFiles()), testWorld{})
 	require.NoError(t, err)
 	tr := func(key, english string) string {
 		if key == lang.AppearanceName("archer") {
@@ -174,4 +185,152 @@ func TestCatalogJSON_ServesEachSlotInWireOrder(t *testing.T) {
 	assert.Equal(t, map[string]any{"id": "default", "name": "Wanderer", "starter": true, "default": true}, got.Portraits[1],
 		"the client draws wire value 0 as the item marked default")
 	assert.Equal(t, true, got.Rings[1]["default"])
+}
+
+// --- unlocks (plan-appearance.md C5, D7, D15) ---
+
+// testWorld resolves Thorns, the Wolf and the quest "welcome".
+type testWorld struct{}
+
+func (testWorld) GetByName(name string) (*skills.SkillDefinition, error) {
+	if name == "Thorns" {
+		return &skills.SkillDefinition{ID: 7, Name: "Thorns", MaxLevel: 30}, nil
+	}
+	return nil, fmt.Errorf("no skill %q", name)
+}
+
+func (testWorld) ResolveSpecies(name string) (mobs.MobID, error) {
+	if name == "Wolf" {
+		return 12, nil
+	}
+	return 0, fmt.Errorf("no mob %q", name)
+}
+
+func (testWorld) CheckQuestStage(quest, stage string) error {
+	if quest != "welcome" {
+		return fmt.Errorf("no quest %q", quest)
+	}
+	return nil
+}
+
+// gatedFiles adds one locked item per slot to the starter catalog.
+func gatedFiles() map[string]string {
+	files := starterFiles()
+	files["crown.json"] = `{"id": "crown", "slot": "portrait", "scope": "account", "name": "Crown",
+		"conditions": [{"kind": "quest_at_stage", "quest": "welcome", "stage": "completed"}]}`
+	files["ring-forest.json"] = `{"id": "ring-forest", "slot": "ring", "family": "forest", "scope": "character", "name": "Forest ring",
+		"conditions": [{"kind": "minLevel", "value": 3}, {"kind": "skill_level", "skill": "Thorns", "value": 2}],
+		"conditionsMode": "any"}`
+	return files
+}
+
+func TestLoad_GatedItems(t *testing.T) {
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
+	require.NoError(t, err)
+
+	crown, ok := c.Item("crown")
+	require.True(t, ok)
+	assert.False(t, crown.Starter)
+	assert.Equal(t, ScopeAccount, crown.Scope)
+	require.Len(t, crown.Gate.Conditions, 1)
+	assert.Equal(t, mobs.ConditionQuestAtStage, crown.Gate.Conditions[0].Kind)
+	assert.Equal(t, mobs.ConditionModeAll, crown.Gate.Mode, "absent is all")
+
+	forest, _ := c.Item("ring-forest")
+	assert.Equal(t, ScopeCharacter, forest.Scope)
+	assert.Equal(t, mobs.ConditionModeAny, forest.Gate.Mode)
+	require.Len(t, forest.Gate.Conditions, 2)
+	assert.Equal(t, skills.SkillID(7), forest.Gate.Conditions[1].SkillID, "skill_level resolves at load")
+}
+
+func TestLoad_GatedRefusals(t *testing.T) {
+	cases := map[string]string{
+		"a locked item without a scope": `{"id": "p", "slot": "portrait", "name": "x",
+			"conditions": [{"kind": "minLevel", "value": 3}]}`,
+		"a locked item without conditions": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x"}`,
+		"an unknown scope": `{"id": "p", "slot": "portrait", "scope": "guild", "name": "x",
+			"conditions": [{"kind": "minLevel", "value": 3}]}`,
+		"a starter with conditions": `{"id": "p", "slot": "portrait", "starter": true, "name": "x",
+			"conditions": [{"kind": "minLevel", "value": 3}]}`,
+		"a starter with a scope": `{"id": "p", "slot": "portrait", "starter": true, "scope": "account", "name": "x"}`,
+		"an unknown condition kind": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x",
+			"conditions": [{"kind": "hats", "value": 3}]}`,
+		"an unknown skill": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x",
+			"conditions": [{"kind": "skill_level", "skill": "Thornz", "value": 3}]}`,
+		// D15 names four kinds; a kill count moves no revision the evaluator
+		// watches, so it would wait for an unrelated level-up.
+		"a kill count": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x",
+			"conditions": [{"kind": "kills_this_life", "species": "Wolf", "value": 3}]}`,
+		"an unknown quest": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x",
+			"conditions": [{"kind": "quest_at_stage", "quest": "nope", "stage": "completed"}]}`,
+		"a mode on one condition list it cannot combine": `{"id": "p", "slot": "portrait", "scope": "account", "name": "x",
+			"conditionsMode": "sometimes", "conditions": [{"kind": "minLevel", "value": 3}]}`,
+	}
+	for name, file := range cases {
+		t.Run(name, func(t *testing.T) {
+			files := starterFiles()
+			files["p.json"] = file
+			_, err := Load(catalogFS(files), testWorld{})
+			assert.Error(t, err)
+		})
+	}
+}
+
+// The flat index is the owned set's wire form: every portrait in wire order,
+// then every ring.
+func TestFlat_PortraitsThenRings(t *testing.T) {
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
+	require.NoError(t, err)
+
+	// portraits: archer, crown, default; rings: ring-forest, ring-leather, ring-plain
+	assert.Equal(t, uint16(1), c.Flat("crown"))
+	assert.Equal(t, uint16(3), c.Flat("ring-forest"))
+	for i, id := range []string{"archer", "crown", "default", "ring-forest", "ring-leather", "ring-plain"} {
+		assert.Equal(t, uint16(i), c.Flat(id), id)
+		it, ok := c.AtFlat(uint16(i))
+		require.True(t, ok)
+		assert.Equal(t, id, it.ID)
+	}
+	_, ok := c.AtFlat(6)
+	assert.False(t, ok, "past the end")
+}
+
+// Gated is what the evaluator walks: every item with conditions, in flat order.
+func TestGated_ListsTheLockedItems(t *testing.T) {
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
+	require.NoError(t, err)
+	ids := []string{}
+	for _, it := range c.Gated() {
+		ids = append(ids, it.ID)
+	}
+	assert.Equal(t, []string{"crown", "ring-forest"}, ids)
+}
+
+// /appearance serves a locked item's scope and its conditions as lock data,
+// so the picker can word the hint (D8, D25) without the server composing text.
+func TestCatalogJSON_ServesTheLocks(t *testing.T) {
+	c, err := Load(catalogFS(gatedFiles()), testWorld{})
+	require.NoError(t, err)
+	raw, err := CatalogJSONIn(c, func(_, english string) string { return english })
+	require.NoError(t, err)
+
+	var got struct {
+		Rings []struct {
+			ID             string           `json:"id"`
+			Starter        bool             `json:"starter"`
+			Scope          string           `json:"scope"`
+			ConditionsMode string           `json:"conditionsMode"`
+			Locks          []map[string]any `json:"locks"`
+		} `json:"rings"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &got))
+	forest := got.Rings[0]
+	assert.Equal(t, "ring-forest", forest.ID)
+	assert.False(t, forest.Starter)
+	assert.Equal(t, "character", forest.Scope)
+	assert.Equal(t, "any", forest.ConditionsMode)
+	assert.Equal(t, []map[string]any{
+		{"kind": float64(mobs.LockMinLevel), "value": float64(3)},
+		{"kind": float64(mobs.LockSkillLevel), "value": float64(2), "skill": float64(7)},
+	}, forest.Locks)
 }

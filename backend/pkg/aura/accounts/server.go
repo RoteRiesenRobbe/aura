@@ -105,9 +105,9 @@ type Config struct {
 	AllowHarnessNames bool
 
 	// Looks checks a creation's chosen portrait and ring (plan-appearance.md
-	// C3): the starter set only until unlocks exist (C5).
+	// C3): a starter, or an item the account or the slot's bloodline owns (C5).
 	Looks interface {
-		CheckStarterLook(portrait, ring string) error
+		CheckOwnedLook(portrait, ring string, owned []string) error
 	}
 
 	// DefaultFaction is a [PLACEHOLDER] constant.

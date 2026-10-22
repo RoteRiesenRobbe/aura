@@ -269,6 +269,20 @@ func OwnEffectsMarshalFlatbuf(effects []skills.OwnEffect, tick uint64, builder *
 	return builder.EndVector(n)
 }
 
+// AppearanceOwnedMarshalFlatbuf writes the owned appearance set's flat
+// indices (plan-appearance.md C5), or 0 when it is empty: absent and empty
+// read the same on an owner-state tick.
+func AppearanceOwnedMarshalFlatbuf(owned []uint16, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if len(owned) == 0 {
+		return 0
+	}
+	AuraApi.GameStateStartAppearanceOwnedVector(builder, len(owned))
+	for i := len(owned) - 1; i >= 0; i-- {
+		builder.PrependUint16(owned[i])
+	}
+	return builder.EndVector(len(owned))
+}
+
 // QuestMarkersMarshalFlatbuf serializes the owning player's quest-giver
 // markers (plan-quest-giver-markers.md C2), or 0 for none. It rides the owner
 // block, so on an owner_state tick an absent vector IS the empty state.
@@ -350,6 +364,7 @@ func lockReasonsFlatbuf(builder *flatbuffers.Builder, reasons []model.LockReason
 			AuraApi.ConversationLockAddStage(builder, stage)
 		}
 		AuraApi.ConversationLockAddSpecies(builder, r.Species)
+		AuraApi.ConversationLockAddSkill(builder, r.Skill)
 		offsets[i] = AuraApi.ConversationLockEnd(builder)
 	}
 	AuraApi.ConversationOptionStartLocksVector(builder, len(offsets))
@@ -605,7 +620,8 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// per-player-per-tick allocations, not just the bytes — SkipOwnerState's
 	// doc comment on the struct is the authority on exactly what this covers
 	// and why cooldown_remaining_ticks is excluded.
-	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress, ownEffects, questMarkers flatbuffers.UOffsetT
+	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress, ownEffects, questMarkers,
+		appearanceOwned flatbuffers.UOffsetT
 	if !gs.SkipOwnerState {
 		spellbook = SpellbookMarshalFlatbuf(sc, builder)
 		spellbookLevels = SpellbookLevelsMarshalFlatbuf(sc, builder)
@@ -619,6 +635,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		// The quest-giver markers (plan-quest-giver-markers.md C2): computed by
 		// the caller behind the same gate, so they too ride here only.
 		questMarkers = QuestMarkersMarshalFlatbuf(gs.QuestMarkers, builder)
+		// The owned appearance set (plan-appearance.md C5): the gate watches
+		// its size, so a grant resends the block on the tick it lands.
+		appearanceOwned = AppearanceOwnedMarshalFlatbuf(gs.Player.AppearanceOwned(), builder)
 	}
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(sc, builder)
 
@@ -744,6 +763,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	}
 	if questMarkers != 0 {
 		AuraApi.GameStateAddQuestMarkers(builder, questMarkers)
+	}
+	if appearanceOwned != 0 {
+		AuraApi.GameStateAddAppearanceOwned(builder, appearanceOwned)
 	}
 	// The map's campfire markers (plan-world-map.md C2): one-shots published on
 	// entering the world, on a discovery and on a bind, absent on every other tick.

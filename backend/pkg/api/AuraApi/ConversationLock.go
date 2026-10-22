@@ -105,8 +105,20 @@ func (rcv *ConversationLock) MutateSpecies(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(14, n)
 }
 
+func (rcv *ConversationLock) Skill() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConversationLock) MutateSkill(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(16, n)
+}
+
 func ConversationLockStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func ConversationLockAddKind(builder *flatbuffers.Builder, kind ConversationLockKind) {
 	builder.PrependByteSlot(0, byte(kind), 255)
@@ -125,6 +137,9 @@ func ConversationLockAddStage(builder *flatbuffers.Builder, stage flatbuffers.UO
 }
 func ConversationLockAddSpecies(builder *flatbuffers.Builder, species uint64) {
 	builder.PrependUint64Slot(5, species, 0)
+}
+func ConversationLockAddSkill(builder *flatbuffers.Builder, skill uint16) {
+	builder.PrependUint16Slot(6, skill, 0)
 }
 func ConversationLockEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

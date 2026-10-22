@@ -139,6 +139,10 @@ export class GameStateMessage {
     // conversant species with something for this player. Rides the same
     // change-only gate: undefined = unchanged, [] = nothing to show.
     questMarkers: QuestMarkerData[] | undefined;
+    // the own player's owned appearance items (plan-appearance.md C5), flat
+    // indices into /appearance. Rides the same change-only gate:
+    // undefined = unchanged, [] = owns no locked item.
+    appearanceOwned: number[] | undefined;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -211,6 +215,10 @@ export class GameStateMessage {
             this.questProgress = unmarshalQuestProgress(gameState);
             this.ownEffects = unmarshalOwnEffects(gameState);
             this.questMarkers = unmarshalQuestMarkers(gameState);
+            this.appearanceOwned = [];
+            for (let i = 0; i < gameState.appearanceOwnedLength(); ++i) {
+                this.appearanceOwned.push(gameState.appearanceOwned(i));
+            }
         } else {
             this.spellbook = undefined;
             this.spellbookLevels = undefined;
@@ -224,6 +232,7 @@ export class GameStateMessage {
             this.questProgress = undefined;
             this.ownEffects = undefined;
             this.questMarkers = undefined;
+            this.appearanceOwned = undefined;
         }
 
         // cooldown_remaining_ticks stays always-sent (L3): it changes every
@@ -474,6 +483,8 @@ function lockReasonText(l: AuraApi.ConversationLock): string {
             return t('lock.quest-at-stage', {quest, stage: l.stage() ?? ''});
         case AuraApi.ConversationLockKind.Kills:
             return t('lock.kills', {value: l.value(), have: l.have(), mob: mobName(Number(l.species()))});
+        case AuraApi.ConversationLockKind.SkillLevel:
+            return t('lock.skill-level', {value: l.value(), have: l.have(), skill: skillDisplayName(l.skill())});
         case AuraApi.ConversationLockKind.TravelClosed:
             return t('lock.travel-closed');
         default:

@@ -26,6 +26,9 @@ type AscensionRequest struct {
 	// UnlockKey is the picked reward, or "" when the catalog had nothing left to
 	// offer — an ordinary ascension that grants no unlock (D14).
 	UnlockKey string
+	// Appearance is the count-based appearance items this sacrifice earns
+	// (plan-appearance.md D21a), granted in the same transaction.
+	Appearance []AppearanceGrant
 }
 
 // AscensionResult is a finished attempt, waiting for the loop to observe it.
@@ -41,7 +44,8 @@ type AscensionResult struct {
 // *store.Store, declared as an interface for the same reason Sink is: this
 // package depends on nothing else in aura.
 type AscensionSink interface {
-	AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string) (int, error)
+	AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string,
+		appearance []AppearanceGrant) (int, error)
 }
 
 // Ascender runs sacrifice transactions off the game loop and holds their
@@ -102,7 +106,7 @@ func (a *Ascender) Ascend(req AscensionRequest) {
 	a.live.Add(1)
 	go func() {
 		defer a.live.Done()
-		_, err := a.sink.AscendCharacter(context.Background(), req.AccountID, req.CharacterID, req.UnlockKey)
+		_, err := a.sink.AscendCharacter(context.Background(), req.AccountID, req.CharacterID, req.UnlockKey, req.Appearance)
 		if err == nil && a.onCommitted != nil {
 			// ⚑ AFTER the transaction returns, never before: the re-read has to
 			// see the committed row, and a nudge sent early would refresh the

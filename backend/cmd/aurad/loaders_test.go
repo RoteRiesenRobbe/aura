@@ -370,13 +370,26 @@ func TestEmbeddedAtmosphereProfiles_LoadAndMatchSource(t *testing.T) {
 // one (plan-appearance.md C3): a stale copy would hand out wire indices the
 // served /appearance of a -content boot does not agree with.
 func TestEmbeddedAppearance_LoadsAndMatchesSource(t *testing.T) {
+	// Through loadContent: since C5 the catalog's conditions resolve against
+	// the skills, mobs and quests.
 	disk, err := diskContent("../../../api")
 	require.NoError(t, err)
-	want, err := appearance.Load(disk.appearance)
-	require.NoError(t, err)
-	got, err := appearance.Load(embeddedContent().appearance)
-	require.NoError(t, err)
+	config := mustDefaultConfig(t)
+	fromDisk, findings := loadContent(disk, config, config.Game.StartZone)
+	require.Empty(t, findings)
+	embedded, findings := loadContent(embeddedContent(), config, config.Game.StartZone)
+	require.Empty(t, findings)
+	want, got := fromDisk.appearance, embedded.appearance
 	assert.Equal(t, want, got, "embedded appearance catalog is stale — run `make -C backend cp-defs`")
-	assert.Len(t, want.Portraits(), 8, "the starter portraits (D30 as picked 2026-10-20)")
-	assert.Len(t, want.Rings(), 2, "the starter rings (D30)")
+	starters := func(items []appearance.Item) (n int) {
+		for _, it := range items {
+			if it.Starter {
+				n++
+			}
+		}
+		return n
+	}
+	assert.Equal(t, 8, starters(want.Portraits()), "the starter portraits (D30 as picked 2026-10-20)")
+	assert.Equal(t, 2, starters(want.Rings()), "the starter rings (D30)")
+	assert.Len(t, want.Gated(), 3, "one unlock per scope (C5, PO 2026-10-21)")
 }

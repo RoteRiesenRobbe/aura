@@ -13,7 +13,16 @@
  */
 
 import * as PanelExclusivity from '../../logic/PanelExclusivity';
-import {appearanceCatalog, appearanceReady, portraitAt, ringAt, wireOf} from '../../../../client-data/Appearance';
+import {
+    appearanceCatalog,
+    appearanceReady,
+    isWearable,
+    ownedAppearance,
+    portraitAt,
+    ringAt,
+    setOwnedAppearance,
+    wireOf,
+} from '../../../../client-data/Appearance';
 import {renderLookPicker} from '../../account-screens/logic/LookPicker';
 import {SelectAppearanceMessage} from '../../../backend/logic/messages/outgoing/SelectAppearanceMessage';
 
@@ -71,13 +80,19 @@ export function setOwnLook(portrait: number, ring: number) {
     render();
 }
 
+/** The own character's owned set, from the owner block (C5). */
+export function setOwned(flats: number[]) {
+    setOwnedAppearance(flats);
+    render();
+}
+
 function render() {
     if (!panelElement) {
         return;
     }
     panelElement.classList.toggle('hidden', !open);
     const catalog = appearanceCatalog();
-    const key = `${open}:${portraitWire}:${ringWire}:${catalog !== null}`;
+    const key = `${open}:${portraitWire}:${ringWire}:${catalog !== null}:${ownedAppearance().join(',')}`;
     if (!open || !catalog || key === renderedKey) {
         return;
     }
@@ -85,5 +100,5 @@ function render() {
     // portraitAt/ringAt resolve 0 and unknown values to the slot's default.
     const look = {portrait: portraitAt(portraitWire)?.id ?? '', ring: ringAt(ringWire)?.id ?? ''};
     renderLookPicker(panelElement, catalog, look, pick =>
-        new SelectAppearanceMessage(wireOf('portrait', pick.portrait), wireOf('ring', pick.ring)).send());
+        new SelectAppearanceMessage(wireOf('portrait', pick.portrait), wireOf('ring', pick.ring)).send(), isWearable);
 }

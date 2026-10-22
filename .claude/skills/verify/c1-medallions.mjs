@@ -49,6 +49,11 @@
 // it survives a death + respawn and a relog through character select (the
 // pick persists). A third, forced-?mobile page opens it from the ☰ sheet.
 //
+// C5 (plan-appearance.md): the same profile is not offered the locked forest
+// ring at level 1; the XP cheat earns it with the "New look" toast, it is
+// worn and survives a relog. A fourth page with a forged catalog offers it at
+// level 1 and the server refuses the pick.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -491,7 +496,78 @@ for (const v of VENUES) {
   await p2.mouse.click(640, 300);
   await press('KeyC');
   ok(JSON.stringify(await worn()) === JSON.stringify(['red-hood', 'ring-leather']), `c4: back in the world the panel shows ${await worn()}`);
+  await press('Escape');
+
+  // --- C5: ownership and unlocks ------------------------------------------
+  // The forest ring is a character item at level 3 [PLACEHOLDER]: not offered
+  // to a fresh character, earned by the XP cheat with the toast, then worn and
+  // kept through a relog (the save writes it at character scope).
+  const offered = () => p2.evaluate(() => [...document.querySelectorAll('#appearance .lookOption')].map((t) => t.dataset.item));
+  const forestWire = await p2.evaluate(async () => (await (await fetch('/appearance')).json()).rings.findIndex((r) => r.id === 'ring-forest') + 1);
+  ok(forestWire > 0, `c5: /appearance serves the locked ring-forest (wire ${forestWire})`);
+  await press('KeyC');
+  ok(!(await offered()).includes('ring-forest'), `c5: a level-1 character is not offered the forest ring (${(await offered()).length} tiles)`);
+  await press('Escape');
+  await p2.evaluate(() => {
+    window.__banners = [];
+    const b = document.getElementById('alertBanner');
+    new MutationObserver(() => window.__banners.push(b.textContent)).observe(b, { childList: true, subtree: true, characterData: true });
+  });
+  await cmd2('XP 5000');
+  // The banner is a queue (4.9 s each) and the level-ups queue their own
+  // rewards ahead of the look's, so give it time.
+  const toast = await p2.waitForFunction(() => window.__banners.some((t) => /New look: Forest Ring/.test(t)), null, { timeout: 90_000 })
+    .then(() => true).catch(() => false);
+  ok(toast, `c5: the level-up fires the "New look: Forest Ring" toast (banners seen: ${(await p2.evaluate(() => window.__banners.length))})`);
+  await press('KeyC');
+  ok((await offered()).includes('ring-forest'), 'c5: the panel now offers the forest ring');
+  await p2.click('#appearance .lookOption[data-item="ring-forest"]');
+  const woreForest = await p2.waitForFunction((w) => window.game.character.ringWire === w, forestWire, { timeout: 15_000 })
+    .then(() => true).catch(() => false);
+  ok(woreForest, `c5: the earned forest ring is worn (own ring wire ${forestWire})`);
+  await p2.screenshot({ path: join(shotDir, `c1-${label}-c5-earned.png`) });
+  await press('Escape');
+  await p2.click('#gameSettingsButton');
+  await p2.click('#leaveToCharacterSelect');
+  await p2.waitForSelector('#characterSelect:not(.hidden) .slotCard .medallion', { timeout: 60_000 });
+  await p2.waitForTimeout(2000);
+  const savedRing = await p2.evaluate(() => document.querySelector('#characterSelect .slotCard .medallion')?.dataset.ring);
+  ok(savedRing === 'ring-forest', `c5: after a relog the select card wears ${savedRing}`);
+  await enterWorld();
+  await p2.waitForTimeout(3000);
+  await p2.mouse.click(640, 300);
+  await press('KeyC');
+  ok((await offered()).includes('ring-forest') && (await worn()).includes('ring-forest'),
+    `c5: back in the world the forest ring is still owned and worn (${await worn()})`);
   await ctx.close();
+
+  // A locked pick is refused by the SERVER: a client whose catalog is forged
+  // to call the forest ring a starter offers it, presses it, and keeps its ring.
+  const fctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } });
+  await fctx.route('**/appearance**', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    for (const r of body.rings) if (r.id === 'ring-forest') r.starter = true;
+    await route.fulfill({ response: res, json: body });
+  });
+  const fp = await fctx.newPage();
+  fp.on('pageerror', (e) => errors.push('c5 forged pageerror: ' + e.message));
+  await fp.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await joinAsNewCharacter(fp, 'lockd');
+  await fp.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
+  await fp.evaluate(() => { const d = document.getElementById('developPanel'); if (d) d.style.display = 'none'; });
+  await fp.waitForTimeout(3000);
+  await fp.mouse.click(640, 300);
+  await fp.keyboard.press('KeyC');
+  await fp.waitForTimeout(500);
+  const forgedTile = await fp.locator('#appearance .lookOption[data-item="ring-forest"]').count();
+  const before = await fp.evaluate(() => window.game.character.ringWire);
+  if (forgedTile === 1) await fp.click('#appearance .lookOption[data-item="ring-forest"]');
+  await fp.waitForTimeout(3000);
+  const after = await fp.evaluate(() => window.game.character.ringWire);
+  ok(forgedTile === 1 && after === before && after !== forestWire,
+    `c5: the server refuses a locked ring (forged tile ${forgedTile}, ring wire ${before} -> ${after}, forest is ${forestWire})`);
+  await fctx.close();
 
   // The phone: the ☰ sheet's row opens it, full screen.
   const mctx = await browser.newContext({ locale: 'en-US', viewport: { width: 390, height: 844 } });

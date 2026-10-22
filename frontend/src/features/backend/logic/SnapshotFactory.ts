@@ -63,6 +63,7 @@ export class Snapshot {
     // the quest-giver markers (plan-quest-giver-markers.md C3), change-only like
     // the spellbook: undefined = unchanged, [] = no giver has anything for you
     questMarkers: QuestMarkerData[] | undefined;
+    appearanceOwned: number[] | undefined;
     // This tick's skill landings and casts (plan-skill-vfx.md C1); [] on a
     // quiet tick. Events, not state: nothing to carry forward, ever.
     skillEvents: SkillEventData[];
@@ -149,6 +150,8 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // C2): carried VERBATIM, undefined meaning unchanged, [] meaning cleared.
         snapshot.ownEffects = gameState.ownEffects;
         snapshot.questMarkers = gameState.questMarkers;
+        // The owned appearance set (plan-appearance.md C5), the same gate.
+        snapshot.appearanceOwned = gameState.appearanceOwned;
         // Always carried, and never diffed: an event that happened cannot be
         // "unchanged". An empty list is the honest reading of a quiet tick.
         snapshot.skillEvents = gameState.skillEvents;

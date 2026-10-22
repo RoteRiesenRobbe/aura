@@ -2977,3 +2977,48 @@ func TestPresent_AnAnyGatedDestinationJoinsItsGateWithOr(t *testing.T) {
 	assert.True(t, rows[0].Locked)
 	assert.Contains(t, rows[0].Text, "level 30 (12/30) or ")
 }
+
+// --- skill_level (plan-appearance.md C5, D15) ---
+
+func skillGate(id skills.SkillID, level int) mobs.Gate {
+	return mobs.Gate{Conditions: []mobs.InteractionCondition{
+		{Kind: mobs.ConditionSkillLevel, Skill: "Thorns", SkillID: id, Value: level},
+	}}
+}
+
+// The spellbook level is what counts: undiscovered is 0.
+func TestConditionsPass_SkillLevelReadsTheSpellbook(t *testing.T) {
+	const thorns = skills.SkillID(7)
+	for _, tc := range []struct {
+		level int
+		pass  bool
+	}{{0, false}, {9, false}, {10, true}, {11, true}} {
+		p := newLearner(30)
+		if tc.level > 0 {
+			p.sc.Spellbook[thorns] = tc.level
+		}
+		assert.Equal(t, tc.pass, conditionsPass(skillGate(thorns, 10), p),
+			"Thorns at %d against a threshold of 10", tc.level)
+	}
+}
+
+// An unresolved skill fails closed, the kills_this_life rule.
+func TestConditionsPass_SkillLevelFailsClosedOnAnUnresolvedSkill(t *testing.T) {
+	p := newLearner(30)
+	p.sc.Spellbook[0] = 30
+	assert.False(t, conditionsPass(skillGate(0, 1), p), "a gate nobody resolved must never pass")
+}
+
+func TestLockReasons_SkillLevelCarriesTheSkillAndTheProgress(t *testing.T) {
+	p := newLearner(30)
+	p.sc.Spellbook[7] = 6
+	got := lockReasons(skillGate(7, 10), p)
+	require.Len(t, got, 1)
+	assert.Equal(t, model.LockReason{Kind: model.LockSkillLevel, Value: 10, Have: 6, Skill: 7}, got[0])
+}
+
+func TestDescribeCondition_SkillLevelNamesTheSkill(t *testing.T) {
+	p := newLearner(30)
+	p.sc.Spellbook[7] = 6
+	assert.Equal(t, "Thorns 10 (6/10)", describeConditions(skillGate(7, 10), p))
+}

@@ -24,6 +24,8 @@ import {
 } from '../../../client-data/Skills';
 import {getLocalPlayerLevel} from '../../../client-data/Mobs';
 import {allQuestMarkers, setQuestMarkers} from '../../../client-data/QuestMarkers';
+import {appearanceReady, itemAtFlat} from '../../../client-data/Appearance';
+import * as AppearancePanel from '../../user-interface/HUD/logic/AppearancePanel';
 import {AuraApi} from './AuraApi';
 import {wireMessageText} from '../../localization/logic/WireText';
 import * as flatbuffers from 'flatbuffers';
@@ -325,7 +327,18 @@ export class Backend implements IBackend {
                     Develop.get().logServerMessage(entityMessage, 'EntityMessage', timeSinceLastMessage);
                 }
 
-                if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock) {
+                if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock
+                    && entityMessage.key() === 'unlock.appearance') {
+                    // An earned portrait or ring (plan-appearance.md C5): the
+                    // entity id is the item's flat index, not a skill id. A
+                    // grant on the join tick can beat /appearance, so the name
+                    // waits for the catalog (appearanceReady always resolves).
+                    const flat = Number(entityMessage.entityId());
+                    const source = wireMessageText(entityMessage);
+                    void appearanceReady.then(() => AlertBanner.show(
+                        t('unlock.banner', {category: 'appearance', name: itemAtFlat(flat)?.item.name ?? ''})
+                        + `\n${source}`, 'unlock'));
+                } else if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock) {
                     // Skill unlock (plan-unlock-attribution.md): entity_id carries
                     // the skill id, message carries the source label. The client
                     // owns the "New <category>: <name>" line so it stays in sync
@@ -646,6 +659,12 @@ export class Backend implements IBackend {
         } else if (Utils.isDefined(snapshot.questMarkers)) {
             setQuestMarkers(snapshot.questMarkers);
             this.game.miniMap?.refreshQuestMarkers();
+        }
+
+        // The owned appearance set (plan-appearance.md C5): what the
+        // Appearance panel offers beyond the starters.
+        if (Utils.isDefined(snapshot.appearanceOwned)) {
+            AppearancePanel.setOwned(snapshot.appearanceOwned);
         }
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that

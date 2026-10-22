@@ -219,6 +219,10 @@ type player struct {
 	bloodlineAscensions int
 	accountID           int64
 
+	// appearanceOwned is the owned set (plan-appearance.md C5), carried by
+	// every rebuild of the player struct like the look below.
+	appearanceOwned []uint16
+
 	// portrait and ring are the look this character wears, as wire values
 	// (appearance.Catalog.Wire; 0 = the slot's default), set at join from the
 	// ticket (plan-appearance.md C3), by the in-game picker (C4) and by the LOOK
@@ -595,6 +599,11 @@ func (p *player) BloodlineAscensions() int { return p.bloodlineAscensions }
 func (p *player) Look() (portrait, ring uint16) { return p.portrait, p.ring }
 
 func (p *player) SetLook(portrait, ring uint16) { p.portrait, p.ring = portrait, ring }
+
+// AppearanceOwned / SetAppearanceOwned carry the owned set (C5).
+func (p *player) AppearanceOwned() []uint16 { return p.appearanceOwned }
+
+func (p *player) SetAppearanceOwned(owned []uint16) { p.appearanceOwned = owned }
 
 func (p *player) SetBloodlineAscensions(n int) { p.bloodlineAscensions = n }
 

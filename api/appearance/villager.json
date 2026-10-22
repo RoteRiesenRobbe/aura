@@ -1,0 +1,7 @@
+{
+  "_comment": "A portrait the whole account earns when any character completes Village Welcome. PONETI bust Human_01 (Graphics.ts playerPortraits).",
+  "id": "villager",
+  "slot": "portrait",
+  "scope": "account",
+  "conditions": [{ "kind": "quest_at_stage", "quest": "village-welcome", "stage": "completed" }]
+}

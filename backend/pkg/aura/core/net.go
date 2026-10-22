@@ -45,10 +45,13 @@ const ownerStateHeartbeatTicks = uint64(5 * constant.TicksPerSecond)
 // opened conversation needs its tree even when no revision moved. nextForce is
 // the heartbeat baseline underneath all of that.
 type ownerStateWatch struct {
-	level          uint32
-	skillRev       uint64
-	questRev       uint64
-	buffRev        uint64
+	level    uint32
+	skillRev uint64
+	questRev uint64
+	buffRev  uint64
+	// owned is the appearance owned set's size (plan-appearance.md C5): the
+	// set only grows, so a grant is a size change.
+	owned          int
 	conversingWith uint64
 	nextForce      uint64
 }
@@ -78,6 +81,7 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		// block, so an application, an extending refresh or a removal in the
 		// buff store resends it on the same tick. Aging does not bump it.
 		buffRev:        p.BuffRevision(),
+		owned:          len(p.AppearanceOwned()),
 		conversingWith: p.ConversingWith(),
 	}
 
@@ -93,7 +97,8 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		current.level != watch.level ||
 		current.skillRev != watch.skillRev ||
 		current.questRev != watch.questRev ||
-		current.buffRev != watch.buffRev
+		current.buffRev != watch.buffRev ||
+		current.owned != watch.owned
 	sendConvTree = sendOwner || current.conversingWith != watch.conversingWith
 
 	if sendOwner || sendConvTree {

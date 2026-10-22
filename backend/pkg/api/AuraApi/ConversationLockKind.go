@@ -13,6 +13,7 @@ const (
 	ConversationLockKindQuestComplete ConversationLockKind = 3
 	ConversationLockKindKills         ConversationLockKind = 4
 	ConversationLockKindTravelClosed  ConversationLockKind = 5
+	ConversationLockKindSkillLevel    ConversationLockKind = 6
 	ConversationLockKindUnknown       ConversationLockKind = 255
 )
 
@@ -23,6 +24,7 @@ var EnumNamesConversationLockKind = map[ConversationLockKind]string{
 	ConversationLockKindQuestComplete: "QuestComplete",
 	ConversationLockKindKills:         "Kills",
 	ConversationLockKindTravelClosed:  "TravelClosed",
+	ConversationLockKindSkillLevel:    "SkillLevel",
 	ConversationLockKindUnknown:       "Unknown",
 }
 
@@ -33,6 +35,7 @@ var EnumValuesConversationLockKind = map[string]ConversationLockKind{
 	"QuestComplete": ConversationLockKindQuestComplete,
 	"Kills":         ConversationLockKindKills,
 	"TravelClosed":  ConversationLockKindTravelClosed,
+	"SkillLevel":    ConversationLockKindSkillLevel,
 	"Unknown":       ConversationLockKindUnknown,
 }
 

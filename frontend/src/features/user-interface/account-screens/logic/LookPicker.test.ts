@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {renderLookPicker} from './LookPicker';
-import {AppearanceCatalog, setAppearanceCatalog} from '../../../../client-data/Appearance';
+import {AppearanceCatalog, isWearable, setAppearanceCatalog, setOwnedAppearance} from '../../../../client-data/Appearance';
 
 // plan-appearance.md C4, D9: creation and the in-game panel draw the same
 // picker, the chosen medallion and one tile per item the character may wear.
@@ -59,5 +59,19 @@ describe('renderLookPicker', () => {
 
         tiles(root, 'ring')[0].dispatchEvent(new Event('pointerdown'));
         expect(picks).toEqual([{portrait: 'default', ring: 'ring-leather'}]);
+    });
+
+    // plan-appearance.md C5: the in-game mount offers starters plus owned items.
+    it('offers what the mount says, an owned locked item among them', () => {
+        setAppearanceCatalog(catalog);
+        const root = fixture();
+        setOwnedAppearance([]);
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, isWearable);
+        expect(tiles(root, 'portrait').map(t => t.dataset.item)).toEqual(['default', 'green-hood']);
+
+        setOwnedAppearance([1, 2]); // flat: default 0, green-hood 1, crown 2
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, isWearable);
+        expect(tiles(root, 'portrait').map(t => t.dataset.item)).toEqual(['default', 'green-hood', 'crown']);
+        setOwnedAppearance([]);
     });
 });

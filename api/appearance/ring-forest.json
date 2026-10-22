@@ -1,0 +1,8 @@
+{
+  "_comment": "A ring earned by one life at a level. Names the forest ring family of client-data/Medallions.ts [PLACEHOLDER art until C0b]; the level is [PLACEHOLDER].",
+  "id": "ring-forest",
+  "slot": "ring",
+  "family": "forest",
+  "scope": "character",
+  "conditions": [{ "kind": "minLevel", "value": 3 }]
+}

@@ -1,8 +1,11 @@
 package mobs
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1458,4 +1461,68 @@ func TestMapMobDefinition_RejectsMisshapenCampfireRows(t *testing.T) {
 		_, err := mapInteraction(t, `{"nodes": [{"id": "root", "lines": ["hi"], "options": [`+opt+`]}]}`)
 		assert.Error(t, err, name)
 	}
+}
+
+// --- skill_level (plan-appearance.md C5, D15) ---
+
+// skillNames is the narrow skill lookup ResolveSkillCondition needs.
+type skillNames map[string]*skills.SkillDefinition
+
+func (n skillNames) GetByName(name string) (*skills.SkillDefinition, error) {
+	if def, ok := n[name]; ok {
+		return def, nil
+	}
+	return nil, fmt.Errorf("no skill %q", name)
+}
+
+func TestParseCondition_SkillLevelCarriesTheAuthoredSkill(t *testing.T) {
+	cond, err := ParseCondition(JSONCondition{Kind: "skill_level", Skill: "Thorns", Value: 10})
+	require.NoError(t, err)
+	assert.Equal(t, ConditionSkillLevel, cond.Kind)
+	assert.Equal(t, "Thorns", cond.Skill)
+	assert.Equal(t, 10, cond.Value)
+	assert.Zero(t, cond.SkillID, "the parse stage cannot resolve a name")
+}
+
+func TestParseCondition_RejectsASkillGateWithNoSkill(t *testing.T) {
+	_, err := ParseCondition(JSONCondition{Kind: "skill_level", Value: 10})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "skill")
+}
+
+func TestParseCondition_RejectsANonPositiveSkillLevel(t *testing.T) {
+	for _, value := range []int{0, -1} {
+		_, err := ParseCondition(JSONCondition{Kind: "skill_level", Skill: "Thorns", Value: value})
+		require.Error(t, err, "value %d", value)
+		assert.Contains(t, err.Error(), "positive")
+	}
+}
+
+func TestResolveSkillCondition_FillsTheID(t *testing.T) {
+	names := skillNames{"Thorns": {ID: 7, Name: "Thorns", MaxLevel: 30}}
+	cond, err := ParseCondition(JSONCondition{Kind: "skill_level", Skill: "Thorns", Value: 10})
+	require.NoError(t, err)
+	require.NoError(t, ResolveSkillCondition(&cond, names))
+	assert.Equal(t, skills.SkillID(7), cond.SkillID)
+}
+
+func TestResolveSkillCondition_RefusesAnUnknownSkill(t *testing.T) {
+	cond := InteractionCondition{Kind: ConditionSkillLevel, Skill: "Thornz", Value: 10}
+	err := ResolveSkillCondition(&cond, skillNames{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Thornz")
+}
+
+// A level past the skill's cap is a gate that never opens.
+func TestResolveSkillCondition_RefusesALevelPastTheCap(t *testing.T) {
+	names := skillNames{"Thorns": {ID: 7, Name: "Thorns", MaxLevel: 30}}
+	cond := InteractionCondition{Kind: ConditionSkillLevel, Skill: "Thorns", Value: 31}
+	err := ResolveSkillCondition(&cond, names)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "30")
+}
+
+func TestResolveSkillCondition_LeavesOtherKindsAlone(t *testing.T) {
+	cond := InteractionCondition{Kind: ConditionMinLevel, Value: 3}
+	require.NoError(t, ResolveSkillCondition(&cond, skillNames{}))
 }

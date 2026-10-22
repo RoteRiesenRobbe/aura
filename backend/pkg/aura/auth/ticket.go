@@ -112,6 +112,12 @@ type Ticket struct {
 	// ⚑ Session-constant by construction: ascending ends the session, so nothing
 	// can invalidate it mid-dialogue.
 	BloodlineAscensions int
+
+	// AppearanceOwned is every locked appearance item this character owns, as
+	// item ids (plan-appearance.md C5): the account's rows, this slot's
+	// bloodline rows and this character's own, read at /select like the
+	// bloodline above. Starters are owned by everyone and never listed.
+	AppearanceOwned []string
 }
 
 type ticketEntry struct {

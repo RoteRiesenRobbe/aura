@@ -304,6 +304,11 @@ type InteractionCondition struct {
 	// an id would be a second lookup on that same path.
 	Species   string
 	SpeciesID MobID
+	// Skill is ConditionSkillLevel's authored skill name, and SkillID that name
+	// resolved against the skill registry (ResolveSkillCondition), the same
+	// two-field shape as Species for the same reason.
+	Skill   string
+	SkillID skills.SkillID
 }
 
 // maxAddressableIndex is the highest option/grant index a row can carry (L4,
@@ -442,6 +447,12 @@ const (
 	// ⚑ Unlike every other kind here, it carries an authored NAME that must be
 	// resolved before it can be evaluated. See Species/SpeciesID below.
 	ConditionKillsThisLife ConditionKind = "kills_this_life"
+
+	// ConditionSkillLevel passes when the player's spellbook holds Skill at
+	// Value or higher (plan-appearance.md D15). Like kills_this_life it names
+	// content, so the name rides the parse and ResolveSkillCondition fills in
+	// SkillID at load.
+	ConditionSkillLevel ConditionKind = "skill_level"
 )
 
 // The stage sentinels a quest_at_stage condition may name instead of a stage
@@ -512,6 +523,7 @@ var conditionKinds = map[string]ConditionKind{
 	string(ConditionQuestAtStage):        ConditionQuestAtStage,
 	string(ConditionBloodlineAscensions): ConditionBloodlineAscensions,
 	string(ConditionKillsThisLife):       ConditionKillsThisLife,
+	string(ConditionSkillLevel):          ConditionSkillLevel,
 }
 
 // ParseConditionKind resolves an authored condition kind.
@@ -682,6 +694,7 @@ type JSONCondition struct {
 	Quest   string `json:"quest"`
 	Stage   string `json:"stage"`
 	Species string `json:"species"`
+	Skill   string `json:"skill"`
 }
 
 // ParseCondition resolves and validates one authored condition. The error names
@@ -699,6 +712,18 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 		Quest:   jc.Quest,
 		Stage:   jc.Stage,
 		Species: strings.TrimSpace(jc.Species),
+		Skill:   strings.TrimSpace(jc.Skill),
+	}
+	if kind == ConditionSkillLevel {
+		if cond.Skill == "" {
+			return InteractionCondition{}, fmt.Errorf("skill_level needs a skill: an unnamed one resolves to nothing and " +
+				"locks the gate forever")
+		}
+		if cond.Value <= 0 {
+			return InteractionCondition{}, fmt.Errorf(
+				"skill_level needs a positive level: %d passes for every character alive, "+
+					"which is an authored gate that does nothing", cond.Value)
+		}
 	}
 	if kind == ConditionKillsThisLife {
 		if cond.Species == "" {
@@ -725,6 +750,66 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 			QuestStageNotStarted, QuestStageCompleted, QuestStageRunning)
 	}
 	return cond, nil
+}
+
+// SkillNamer is the narrow half of skills.Registry a skill_level condition
+// resolves against.
+type SkillNamer interface {
+	GetByName(name string) (*skills.SkillDefinition, error)
+}
+
+// ResolveSkillCondition fills in a skill_level condition's SkillID, and
+// refuses a skill no file defines or a level past the skill's cap (a gate that
+// never opens). Every other kind passes through untouched, so each surface
+// that parses conditions calls it on every one: dialogue nodes, ascension
+// entries and appearance items.
+func ResolveSkillCondition(c *InteractionCondition, r SkillNamer) error {
+	if c.Kind != ConditionSkillLevel {
+		return nil
+	}
+	def, err := r.GetByName(c.Skill)
+	if err != nil {
+		return fmt.Errorf("skill_level names skill %q, which no skill file defines", c.Skill)
+	}
+	if c.Value > def.MaxLevel {
+		return fmt.Errorf("skill_level asks %s for level %d, past its maxLevel %d: a gate that never opens",
+			c.Skill, c.Value, def.MaxLevel)
+	}
+	c.SkillID = def.ID
+	return nil
+}
+
+// ConditionRefs is what a condition naming other content resolves against
+// beyond the skill registry: a species name turned into the id the kill ledger
+// counts by, and a quest reference checked against the quest graph.
+type ConditionRefs interface {
+	ResolveSpecies(name string) (MobID, error)
+	CheckQuestStage(questID, stage string) error
+}
+
+// ResolveCondition finishes one parsed condition against the world it refers
+// to: the species, the quest and the skill. The surfaces that hold the whole
+// world at load call it (ascension entries, appearance items); dialogue nodes
+// resolve in their own passes because the mob registry is mid-construction
+// when they parse.
+//
+// ⚑ It takes a POINTER because the species and skill halves write back: the
+// ids are what conditionsPass reads, and a copy would be resolved and thrown
+// away (the trap resolveConditionSpecies documents).
+func ResolveCondition(c *InteractionCondition, sk SkillNamer, refs ConditionRefs) error {
+	switch c.Kind {
+	case ConditionKillsThisLife:
+		id, err := refs.ResolveSpecies(c.Species)
+		if err != nil {
+			return fmt.Errorf("kills_this_life names species %q, which no mob definition matches", c.Species)
+		}
+		c.SpeciesID = id
+	case ConditionQuestAtStage:
+		return refs.CheckQuestStage(c.Quest, c.Stage)
+	case ConditionSkillLevel:
+		return ResolveSkillCondition(c, sk)
+	}
+	return nil
 }
 
 type jsonInteractionCost struct {
@@ -806,6 +891,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		}
 		for j, jc := range jn.Conditions {
 			cond, err := ParseCondition(jc)
+			if err == nil {
+				err = ResolveSkillCondition(&cond, sr)
+			}
 			if err != nil {
 				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: %w", m.Name, jn.ID, j, err)
 			}

@@ -541,6 +541,14 @@ func (g catalogGates) CheckQuestStage(questID, stage string) error {
 	return quests.CheckStageRef(g.quests, questID, stage)
 }
 
+// appearanceWorld is what an appearance item's conditions resolve against
+// (plan-appearance.md C5): the skill registry for skill_level, and the same
+// species and quest checks the ascension catalog runs.
+type appearanceWorld struct {
+	skills.Registry
+	catalogGates
+}
+
 // skillFxBodiesFile is the one file api/skill-fx/ carries: the GENERATED list
 // of body names, written by tools/make-skill-fx-manifest.mjs.
 const skillFxBodiesFile = "bodies.json"

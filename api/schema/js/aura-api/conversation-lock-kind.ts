@@ -9,5 +9,6 @@ export enum ConversationLockKind {
   QuestComplete = 3,
   Kills = 4,
   TravelClosed = 5,
+  SkillLevel = 6,
   Unknown = 255
 }

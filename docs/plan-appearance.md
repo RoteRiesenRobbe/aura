@@ -5,7 +5,8 @@
 > PO look passed, the real-phone check waived to the next deploy). C1b DONE 2026-10-18 (D31-D34,
 > PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
 component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 BUILT 2026-10-21
-(the in-game picker; PO look owed). Next: C5.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 (+C5b) → C6, C0b whenever the artist's pilot lands;
+(the in-game picker; PO look owed). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
+by the PO into C5 + C5c; PO look passed 2026-10-22). Next: C5c (the client).** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -545,6 +546,17 @@ whenever the pilot lands.**
   preselect; count-based ascension items (D21a) through the evaluator, plus
   their grant inside `AscendCharacter` (D21).
   *Schema: owner block +1, accounts list fields, `KeyUnlockAppearance`.*
+- **C5c, the unlock client** (split from C5 by the PO 2026-10-21): locked entries
+  greyed with their hint and this character's progress (D8, D25; `/appearance` already
+  serves each item's `locks`, `scope`, `conditionsMode`); the glow on the Appearance
+  buttons and the entry highlighted (D13; the client diffs `appearance_owned`, first
+  send = silent baseline); creation offers the account's and the slot's items and
+  preselects the predecessor's look where still owned (D12; the accounts list already
+  carries `appearanceOwned`, per slot `appearanceOwned`, `predecessorPortrait`,
+  `predecessorRing`); `chunk2-accounts` gains the preselect leg. ⚑ D25 survey: in game
+  the client holds the level and the spellbook levels, NOT the slot's ascension count
+  (only the `/characters` slot card has it): cache it client-side or add a value.
+  *Schema: none expected (client only).*
 - **C5b, stone rewards** (D21b, D21c). Appearance entries in a site's reward
   list, `pick` rows beside the skill rows and `bonus` grants on top, written in
   the `AscendCharacter` transaction; the stone's rows render the item. May fold
@@ -609,7 +621,14 @@ not landed.
   defaults, and once the look is saved that default would be written over the
   choice. `deadState` and `reconnectStash` carry it now, pinned by four tests in
   `state_appearance_test.go`. Anything C5 or C6 adds to the player (owned set,
-  corpse portrait) has the same four doors.
+  corpse portrait) has the same four doors. ⚑ C5 found the same gap in the
+  ticket's bloodline and account (`lineage`, now carried too).
+- **L8. The evaluator watches three revisions** (level, `SkillComponent`, the
+  quest ledger's SAVE revision), found at C5. A condition whose input moves none
+  of them (a kill count: the ledger's `Revision` ignores objective progress)
+  would wait for an unrelated change, so the appearance loader refuses
+  `kills_this_life`. A new condition kind must move a watched revision or join
+  the watch.
 
 ---
 
@@ -1102,3 +1121,119 @@ the journal unreachable from the sheet; a join race first, re-run); the
 Appearance row sits at 214-262 px of the 844 px sheet, no overflow ·
 `hygiene-wire-prune` 0 console errors · harness rows cleaned, server stopped
 first.
+
+### C5 - DONE 2026-10-21, PO look passed 2026-10-22 `[uncommitted]` (server + wire; the client half is C5c)
+
+Ownership and unlocks (D6-D8, D12, D13, D15, D16, D21a, D25). Ruled in the session
+(PO, 2026-10-21, prompt rounds): **C5 splits** into C5 (server, wire, content, the
+minimum client) and **C5c** (greyed hints with progress, glow + highlight, the
+creation preselect, §7); the three unlocks are **`ring-forest`** (character, `minLevel`
+3), **`ring-leather-claws`** (bloodline, `bloodline_ascensions` 1) and **`villager`**
+(account, `village-welcome` completed; PONETI bust `Human_01`, named "Villager" /
+"Dorfbewohner"), all numbers [PLACEHOLDER]; the **lineage gap is folded in** (below).
+⚑ The contact sheet of the 120 spare busts did not reach the PO (this session could
+not place a file), so the bust was picked from a description. **PO look passed 2026-10-22** ("all good",
+the bust included: the three unlocks, toasts, wear, death/relog carry, the bloodline slot
+split and the lineage regressions).
+
+- **`skill_level {skill, value}`** (D15): `value`, not §4.1's `level`, because every
+  condition kind uses `value` and the loaders refuse unknown keys. Parsed in
+  `mobs.ParseCondition` (a skill and a positive value), resolved by
+  `mobs.ResolveSkillCondition` (refuses an unknown skill and a value past its
+  `maxLevel`), judged on the spellbook level (an unresolved skill fails closed),
+  `LockSkillLevel` = 6 with its skill id, `describeCondition`, and the client's
+  `lock.skill-level` en + de. ⚑ The species/quest/skill resolution the ascension
+  catalog ran privately is now `mobs.ResolveCondition`, shared with the appearance
+  loader. ⚑ `LockKind`, `LockReason` and the new `LockReasonOf` moved to
+  `items/mobs/lockreason.go` (`cfg` imports `appearance`, so `appearance` cannot
+  import `model`); `model` keeps aliases, no caller changed.
+- **Catalog:** locked items carry `scope` + `conditions` (+ `conditionsMode`); a
+  starter carries none of them; `kills_this_life` is refused (L8). `Flat` /
+  `AtFlat` (every portrait in wire order, then every ring) and `Gated`.
+  `/appearance` serves `scope`, `conditionsMode` and `locks` (lock data, no
+  progress). `appearance.Load` takes a `World` (skills + mob + quest checks);
+  `cmd/aurad` loads it after quests (`appearanceWorld`), and the embedded-copy pin
+  now loads through `loadContent`.
+- **Evaluator** (`sys/appearance_grants.go`, §4.4's `Grant(p)`): **one watch
+  replaces the four call sites.** Level, `SkillComponent.Revision` and the quest
+  ledger's save `Revision` are exactly what a level-up, a skill raise and a stage
+  change move; the first sight of a connection is the join's catch-up (it also
+  catches the XP/SKILL/QUEST cheats). It reuses `conditionsPass`, only ever adds
+  (D16: a respec revokes nothing), and announces each grant (`SendUnlock`, entity id
+  = the flat index, key `unlock.appearance`).
+- **Persistence (L1):** the grants ride `SaveCharacter` (`CharacterState
+  .AppearanceGrants`, ids + scope; `saveWatch` watches the owned set's size, so a
+  grant saves at once). The UPDATE now `RETURNING account_id, slot_index`, and each
+  grant is an `INSERT ... ON CONFLICT DO NOTHING` at its scope (the
+  discovered-campfires rule), never into `bloodline_unlocks` (L2). That is the
+  account write path: through the save of the character that earned it. ⚑ Loss
+  window: a crash before any save loses the grant until the next join re-grants it
+  (when the condition still holds); a save on a character deleted in the same
+  moment (`ErrGone`) loses an account grant for good. `AppearanceGrants` is
+  `omitempty`: only characters owning a locked item change fingerprint.
+- **Owned set:** `/select` reads it (`store.OwnedAppearance`: account ∪ this slot's
+  bloodline ∪ this character) onto the ticket (`AppearanceOwned`, ids); the join
+  turns it into sorted flat indices on the player (an id the catalog lacks is
+  logged and dropped). `deadState` + `reconnectStash` carry it (L7).
+- **Validators:** `WearableLook(portrait, ring, owned)` (SelectAppearance) and
+  `CheckOwnedLook(portrait, ring, owned)` (creation, replacing `CheckStarterLook`;
+  owned = the account's rows and, with a slot, that slot's bloodline rows; an
+  anonymous first visitor owns starters only). ⚑ `LOOK` still saves any item (C4
+  ruling): a dev can save an unowned one.
+- **Wire:** `GameState.appearance_owned:[ushort]` (appended) in the owner block;
+  `ownerStateGate` watches its size, so a grant resends the block on the same tick.
+  `ConversationLock` +`skill:ushort`, `ConversationLockKind` +`SkillLevel = 6`
+  (not in §6's list: a dialogue row may gate on the new kind). `KeyUnlockAppearance`
+  (`unlock.appearance`, "Wear it under Appearance" / "Anlegen unter Aussehen"),
+  pinned by `message_test.go`'s `ServerKeys` loop; `unlock.banner` +`appearance`
+  ("New look: {name}" / "Neues Aussehen: {name}").
+- **D21a:** `RequestAscension` evaluates the bloodline and account items at the
+  count + 1 (`ascended` wraps the player) and hands them to `AscendCharacter`, which
+  writes them in the sacrifice's transaction (a failed ascension grants nothing).
+  `persist.AscensionRequest` + `AscensionSink` +1 argument.
+- **Accounts list:** `appearanceOwned` (account items), per slot `appearanceOwned`
+  (bloodline items, never null), `predecessorPortrait` / `predecessorRing` (the last
+  spent life's look, from `SlotBloodlines`), for C5c's creation.
+- **Client (the minimum):** the catalog types, `itemAtFlat`, the owned set off the
+  wire (`setOwnedAppearance`, `isWearable`, answering right after the §5 race), the
+  in-game picker offering starters + owned (`renderLookPicker`'s `offered`;
+  creation stays starters-only until C5c), and the toast (`Backend.ts` routes
+  `unlock.appearance` before the skill path and waits for `appearanceReady`, so a
+  join-tick grant never shows a blank name).
+- **Content:** the three items, names en + de (`extract-english.mjs`), manifest
+  `portrait-villager` + `playerPortraits.villager`, repacked (161 icons).
+- **Found (L7, folded in by the PO):** `BloodlineUnlocks`, `BloodlineAscensions` and
+  `AccountID` rode only the fresh join; respawn, reconnect and revive dropped them, so
+  after one death the stone offered spent rewards, `bloodline_ascensions` gates read
+  0 and the memorial stopped marking your names. `lineage` rides `deadState` and
+  `reconnectStash` now, pinned at all four doors (all four reproduced the gap).
+- **Found at the cleanup:** `cmd/harnessdb -cleanup` failed on
+  `appearance_unlocks_character_id_fkey` the first time a harness character owned a
+  grant (the 000002/000003 story again); the table now leaves with the account-keyed
+  list, before `game.characters`. Production only soft-deletes, so nothing else
+  hard-deletes a character.
+
+**Schema:** DB **none** (writes the shipped `appearance_unlocks`) · wire `GameState`
++1 vector, `ConversationLock` +1 field, `ConversationLockKind` +1 value, +1 message
+key · `/appearance` +3 fields per item · accounts list +1 field, +3 per slot ·
+ticket +1 · `persist.CharacterState` +1 (fingerprint changes only for owners of a
+locked item) · `AscensionRequest` / `AscendCharacter` +1 argument · content +3
+items, +3 names en + de · frontend lang +2 keys, +1 banner branch · manifest +1
+bust · conf none.
+
+**Verified:** Go build + vet; `go test -count=1 -p 1 ./...` with `AURA_TEST_DB_URL`
+green bar the three reds red on HEAD (`world` prop pin, simharness placements,
+`TestPassages_EveryDoorCarriesItsWords`) · red first: `skill_level` parse / resolve /
+judge / lock reason, the codec lock round trip + kind mirror (the comment claimed a
+pin that did not exist), the gated loader + refusals, `Flat`, both validators, the
+evaluator (join catch-up, once on a level-up, a respec revokes nothing), the
+ticket's owned set, the forced save naming scopes, the four-door carries (owned and
+lineage), the store per scope (idempotent, a plain delete keeps the bloodline row,
+nothing crosses accounts or slots, ascension grants, the predecessor look), accounts
+create/list/select, the owner-block resend; D21a's two pins written after the code
+and falsified by mutation (dropping the +1, dropping the scope filter) · `-validate`
+0 findings · typecheck · vitest 1879/0 · prod build · `c1-medallions` **49/0/0** (C5
+legs: not offered at level 1, `XP` earns it with the toast, worn, kept through a
+relog; a forged-catalog page's pick refused by the server; the first run died at
+the known join race, the second missed the queued toast at 20 s, fixed to 90 s) ·
+`hygiene-wire-prune` 0 console errors · harness rows cleaned (server stopped first) · `chunk2-accounts` **24/24**, 0 console errors (two earlier runs timed out at the first name fill, "element is not visible" for 30 s, while the screen was up when photographed; the third, unchanged, passed: a load-timing flake, not C5).

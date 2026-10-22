@@ -457,3 +457,31 @@ func TestNetSystem_QuestMarkersRideTheOwnerBlock(t *testing.T) {
 	require.True(t, accepted.OwnerState(), "the accept moved the quest revision")
 	assert.Equal(t, 0, accepted.QuestMarkersLength(), "taken: the `!` is gone, and that is a real state")
 }
+
+// --- the appearance owned set (plan-appearance.md C5) ---
+
+// A grant brings the owner block back on the same tick, carrying every owned
+// locked item as a flat index; the next quiet tick omits it again, and the
+// client keeps what it has.
+func TestNetSystem_AppearanceOwnedRidesTheOwnerBlock(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+
+	first := decodeGameState(t, send(n, p))
+	assert.True(t, first.OwnerState())
+	assert.Zero(t, first.AppearanceOwnedLength(), "a fresh character owns starters only")
+
+	n.game.Tick = 2
+	p.SetAppearanceOwned([]uint16{0, 4})
+	got := decodeGameState(t, send(n, p))
+	require.True(t, got.OwnerState(), "a grant must bring the block back on the same tick")
+	require.Equal(t, 2, got.AppearanceOwnedLength())
+	assert.Equal(t, uint16(0), got.AppearanceOwned(0))
+	assert.Equal(t, uint16(4), got.AppearanceOwned(1))
+
+	n.game.Tick = 3
+	quiet := decodeGameState(t, send(n, p))
+	assert.False(t, quiet.OwnerState())
+	assert.Zero(t, quiet.AppearanceOwnedLength(), "unchanged: nothing on the wire")
+}

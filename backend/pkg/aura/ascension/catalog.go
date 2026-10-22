@@ -232,7 +232,10 @@ func parseEntry(data []byte, r skillResolver, g gateResolver) (Entry, error) {
 		if err != nil {
 			return Entry{}, fmt.Errorf("condition %d: %w", i, err)
 		}
-		if err := resolveGate(&cond, g); err != nil {
+		// ⭐ The SAME check the dialogue rows run, called rather than copied
+		// (§13 step 2), shared with the appearance catalog since
+		// plan-appearance.md C5.
+		if err := mobs.ResolveCondition(&cond, r, g); err != nil {
 			return Entry{}, fmt.Errorf("condition %d: %w", i, err)
 		}
 		entry.Gate.Conditions = append(entry.Gate.Conditions, cond)
@@ -243,33 +246,4 @@ func parseEntry(data []byte, r skillResolver, g gateResolver) (Entry, error) {
 	}
 	entry.Gate.Mode = mode
 	return entry, nil
-}
-
-// resolveGate finishes one parsed condition against the world it refers to.
-//
-// ⚑ It takes a POINTER because the species half writes back: the id is what
-// conditionsPass reads, and a copy would be resolved and thrown away: the same
-// trap resolveConditionSpecies documents on the dialogue-node side.
-//
-// ⚑ The kinds not listed need nothing: minLevel and bloodline_ascensions are
-// self-contained integers. A new kind that referenced content would land in
-// this switch, and until it did it would simply go unresolved, which is why
-// conditionsPass keeps its own unresolved-species refusal rather than trusting
-// this to have run.
-func resolveGate(c *mobs.InteractionCondition, g gateResolver) error {
-	switch c.Kind {
-	case mobs.ConditionKillsThisLife:
-		id, err := g.ResolveSpecies(c.Species)
-		if err != nil {
-			return fmt.Errorf("kills_this_life names species %q, which no mob definition matches", c.Species)
-		}
-		c.SpeciesID = id
-	case mobs.ConditionQuestAtStage:
-		// ⭐ The SAME check the dialogue rows run, called rather than copied
-		// (§13 step 2). Two checkers would drift the day a third stage sentinel
-		// is added, and the drift would show up as content that boots on one
-		// surface and not the other.
-		return g.CheckQuestStage(c.Quest, c.Stage)
-	}
-	return nil
 }

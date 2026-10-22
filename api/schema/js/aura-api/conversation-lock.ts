@@ -59,8 +59,13 @@ species():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+skill():number {
+  const offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startConversationLock(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(7);
 }
 
 static addKind(builder:flatbuffers.Builder, kind:ConversationLockKind) {
@@ -87,12 +92,16 @@ static addSpecies(builder:flatbuffers.Builder, species:bigint) {
   builder.addFieldInt64(5, species, BigInt('0'));
 }
 
+static addSkill(builder:flatbuffers.Builder, skill:number) {
+  builder.addFieldInt16(6, skill, 0);
+}
+
 static endConversationLock(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationLock(builder:flatbuffers.Builder, kind:ConversationLockKind, value:number, have:number, questOffset:flatbuffers.Offset, stageOffset:flatbuffers.Offset, species:bigint):flatbuffers.Offset {
+static createConversationLock(builder:flatbuffers.Builder, kind:ConversationLockKind, value:number, have:number, questOffset:flatbuffers.Offset, stageOffset:flatbuffers.Offset, species:bigint, skill:number):flatbuffers.Offset {
   ConversationLock.startConversationLock(builder);
   ConversationLock.addKind(builder, kind);
   ConversationLock.addValue(builder, value);
@@ -100,6 +109,7 @@ static createConversationLock(builder:flatbuffers.Builder, kind:ConversationLock
   ConversationLock.addQuest(builder, questOffset);
   ConversationLock.addStage(builder, stageOffset);
   ConversationLock.addSpecies(builder, species);
+  ConversationLock.addSkill(builder, skill);
   return ConversationLock.endConversationLock(builder);
 }
 }

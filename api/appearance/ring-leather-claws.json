@@ -1,0 +1,8 @@
+{
+  "_comment": "A ring a bloodline earns with its first ascension, granted in the sacrifice (plan-appearance.md D21a). Names the leatherClaws ring family of client-data/Medallions.ts [PLACEHOLDER art until C0b]; the count is [PLACEHOLDER].",
+  "id": "ring-leather-claws",
+  "slot": "ring",
+  "family": "leatherClaws",
+  "scope": "bloodline",
+  "conditions": [{ "kind": "bloodline_ascensions", "value": 1 }]
+}

@@ -91,6 +91,9 @@ type listCharactersResponse struct {
 	// which Characters excludes by design, and the slot this matters most for has
 	// no character row at all because ascending is what emptied it.
 	Slots []slotBloodlineView `json:"slots"`
+	// AppearanceOwned is every account-scope appearance item (plan-appearance.md
+	// C5, D9): creation offers these in every slot. Never null.
+	AppearanceOwned []string `json:"appearanceOwned"`
 }
 
 // slotBloodlineView is one slot card's worth of bloodline.
@@ -106,6 +109,14 @@ type slotBloodlineView struct {
 	// omitted, so a client cannot accidentally render a blank name as a real one.
 	// The erasure itself happens in the store; see store.SlotBloodline.
 	PredecessorName string `json:"predecessorName,omitempty"`
+	// AppearanceOwned is this slot's bloodline-scope appearance items, offered
+	// to a new life here on top of the account's (C5). Never null.
+	AppearanceOwned []string `json:"appearanceOwned"`
+	// PredecessorPortrait and PredecessorRing are the last spent life's look,
+	// which the successor's creation picker preselects where still owned
+	// (D12). Absent when the slot has no predecessor.
+	PredecessorPortrait string `json:"predecessorPortrait,omitempty"`
+	PredecessorRing     string `json:"predecessorRing,omitempty"`
 }
 
 // handleCreateCharacter creates a character, minting an account behind it when
@@ -154,9 +165,25 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 	if body.Ring == "" {
 		body.Ring = appearance.DefaultRing
 	}
-	// The picker only offers what the catalog holds, so a refusal is a
+	// What this new life may wear (plan-appearance.md C5, D9): the starters,
+	// plus the account's items and the chosen slot's bloodline items. A
+	// first-ever visitor has no account and owns starters only; a request
+	// with no slot (server-assigned) owns no bloodline item, slot -1 matching
+	// none.
+	var owned []string
+	if who.accountID != 0 {
+		slot := -1
+		if body.SlotIndex != nil {
+			slot = *body.SlotIndex
+		}
+		if owned, err = s.cfg.Store.OwnedAppearance(r.Context(), who.accountID, slot, 0); err != nil {
+			failStore(w, r, err, "reading the owned appearance for a creation")
+			return
+		}
+	}
+	// The picker only offers what the character may wear, so a refusal is a
 	// malformed request, not a rule a player can break.
-	if err := s.cfg.Looks.CheckStarterLook(body.Portrait, body.Ring); err != nil {
+	if err := s.cfg.Looks.CheckOwnedLook(body.Portrait, body.Ring, owned); err != nil {
 		refuse(w, http.StatusBadRequest, codeBadRequest, msgBadRequest)
 		return
 	}
@@ -269,6 +296,11 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 		failStore(w, r, err, "reading bloodlines")
 		return
 	}
+	looks, err := s.cfg.Store.AccountAppearance(r.Context(), who.accountID)
+	if err != nil {
+		failStore(w, r, err, "reading the account's appearance")
+		return
+	}
 	// ⚑ EVERY SLOT IS EMITTED, including ones nothing has ever happened in
 	// (D23). The store returns only the slots with a history, so the loop is over
 	// the CAP rather than over the map: the client draws a card per slot either
@@ -282,11 +314,18 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 		if b.Unlocks == nil {
 			b.Unlocks = []string{}
 		}
+		owned := looks.BySlot[slot]
+		if owned == nil {
+			owned = []string{}
+		}
 		slots = append(slots, slotBloodlineView{
-			SlotIndex:       slot,
-			Unlocks:         b.Unlocks,
-			Ascensions:      b.Ascensions,
-			PredecessorName: b.PredecessorName,
+			SlotIndex:           slot,
+			Unlocks:             b.Unlocks,
+			Ascensions:          b.Ascensions,
+			PredecessorName:     b.PredecessorName,
+			AppearanceOwned:     owned,
+			PredecessorPortrait: b.PredecessorPortrait,
+			PredecessorRing:     b.PredecessorRing,
 		})
 	}
 
@@ -294,6 +333,7 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 		Characters:         views,
 		MaxAliveCharacters: s.cfg.MaxAliveCharacters,
 		Slots:              slots,
+		AppearanceOwned:    looks.Account,
 	})
 }
 
@@ -409,6 +449,13 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 		failStore(w, r, err, "reading a bloodline for selection")
 		return
 	}
+	// And the owned appearance set (plan-appearance.md C5, §4.4), for the same
+	// reason: the loop never reads the database.
+	owned, err := s.cfg.Store.OwnedAppearance(r.Context(), who.accountID, character.SlotIndex, character.ID)
+	if err != nil {
+		failStore(w, r, err, "reading the owned appearance for selection")
+		return
+	}
 
 	ticket, err := s.cfg.Tickets.Mint(auth.Ticket{
 		AccountID:   who.accountID,
@@ -422,6 +469,7 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 
 		BloodlineUnlocks:    bloodline.Unlocks,
 		BloodlineAscensions: bloodline.Ascensions,
+		AppearanceOwned:     owned,
 	})
 	if err != nil {
 		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)

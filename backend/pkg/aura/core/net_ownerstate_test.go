@@ -27,6 +27,7 @@ type ownerStatePlayer struct {
 	sc             *skills.SkillComponent
 	ledger         *quests.Ledger
 	buffRev        uint64
+	owned          []uint16
 	conversingWith uint64
 }
 
@@ -39,6 +40,7 @@ func (p *ownerStatePlayer) SkillComponent() *skills.SkillComponent { return p.sc
 func (p *ownerStatePlayer) QuestLedger() *quests.Ledger            { return p.ledger }
 func (p *ownerStatePlayer) BuffRevision() uint64                   { return p.buffRev }
 func (p *ownerStatePlayer) ConversingWith() uint64                 { return p.conversingWith }
+func (p *ownerStatePlayer) AppearanceOwned() []uint16              { return p.owned }
 
 type ownerStateClient struct {
 	model.Client

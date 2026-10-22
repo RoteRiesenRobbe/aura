@@ -161,7 +161,11 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	}
 
 	// And the look catalog (plan-appearance.md §4.1).
-	if out.appearance, err = appearance.Load(src.appearance); err != nil {
+	// Its unlock conditions resolve against skills, mobs and quests (C5).
+	if !okSkills || !okMobs || !okQuests {
+		skip("appearance", missing(input{okSkills, "skills"}, input{okMobs, "mobs"}, input{okQuests, "quests"})...)
+	} else if out.appearance, err = appearance.Load(src.appearance,
+		appearanceWorld{out.skills, catalogGates{mobs: out.mobs, quests: out.quests}}); err != nil {
 		fail("appearance", err)
 	} else {
 		slog.Info("Loaded appearance items", slog.Int("portraits", len(out.appearance.Portraits())), slog.Int("rings", len(out.appearance.Rings())))

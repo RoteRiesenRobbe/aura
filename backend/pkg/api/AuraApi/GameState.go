@@ -568,8 +568,34 @@ func (rcv *GameState) MutateCrossing(n byte) bool {
 	return rcv._tab.MutateByteSlot(68, n)
 }
 
+func (rcv *GameState) AppearanceOwned(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *GameState) AppearanceOwnedLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateAppearanceOwned(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(33)
+	builder.StartObject(34)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -705,6 +731,12 @@ func GameStateStartQuestMarkersVector(builder *flatbuffers.Builder, numElems int
 }
 func GameStateAddCrossing(builder *flatbuffers.Builder, crossing byte) {
 	builder.PrependByteSlot(32, crossing, 0)
+}
+func GameStateAddAppearanceOwned(builder *flatbuffers.Builder, appearanceOwned flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(33, flatbuffers.UOffsetT(appearanceOwned), 0)
+}
+func GameStateStartAppearanceOwnedVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

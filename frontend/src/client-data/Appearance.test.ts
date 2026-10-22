@@ -1,6 +1,18 @@
 import {describe, expect, it} from 'vitest';
 import {readdirSync, readFileSync} from 'node:fs';
-import {AppearanceCatalog, defaultLook, lookArt, portraitAt, ringAt, ringFamilyOf, setAppearanceCatalog, wireOf} from './Appearance';
+import {
+    AppearanceCatalog,
+    defaultLook,
+    isWearable,
+    itemAtFlat,
+    lookArt,
+    portraitAt,
+    ringAt,
+    ringFamilyOf,
+    setAppearanceCatalog,
+    setOwnedAppearance,
+    wireOf,
+} from './Appearance';
 import {RING_FAMILY_FILES} from './Medallions';
 import {GraphicsConfig} from './Graphics';
 
@@ -93,5 +105,43 @@ describe('the authored catalog', () => {
     it('every ring names a family the client draws', () => {
         const unknown = items.filter(i => i.slot === 'ring' && !(i.family in RING_FAMILY_FILES)).map(i => `${i.id}: ${i.family}`);
         expect(unknown).toEqual([]);
+    });
+});
+
+// plan-appearance.md C5: the owned set and the unlock toast count items flat,
+// every portrait then every ring.
+describe('the flat index', () => {
+    const gated: AppearanceCatalog = {
+        portraits: [...catalog.portraits, {id: 'villager', name: 'Villager', starter: false, scope: 'account'}],
+        rings: [...catalog.rings, {id: 'ring-forest', name: 'Forest Ring', family: 'forest', starter: false, scope: 'character'}],
+    };
+
+    it('runs through the portraits, then the rings', () => {
+        setAppearanceCatalog(gated);
+        expect(itemAtFlat(0)).toEqual({slot: 'portrait', item: gated.portraits[0]});
+        expect(itemAtFlat(2)?.item.id).toBe('villager');
+        expect(itemAtFlat(3)).toEqual({slot: 'ring', item: gated.rings[0]});
+        expect(itemAtFlat(5)?.item.id).toBe('ring-forest');
+        expect(itemAtFlat(6)).toBeUndefined();
+    });
+
+    it('a starter is always wearable, a locked item only once owned', () => {
+        setAppearanceCatalog(gated);
+        setOwnedAppearance([]);
+        expect(isWearable(gated.portraits[0])).toBe(true);
+        expect(isWearable(gated.portraits[2])).toBe(false);
+        setOwnedAppearance([2]);
+        expect(isWearable(gated.portraits[2])).toBe(true);
+        expect(isWearable(gated.rings[2])).toBe(false);
+        setOwnedAppearance([]);
+    });
+
+    it('answers no before the catalog lands, then yes (the §5 race)', () => {
+        setAppearanceCatalog(null);
+        setOwnedAppearance([2]);
+        expect(isWearable(gated.portraits[2])).toBe(false);
+        setAppearanceCatalog(gated);
+        expect(isWearable(gated.portraits[2])).toBe(true);
+        setOwnedAppearance([]);
     });
 });

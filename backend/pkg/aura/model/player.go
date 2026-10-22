@@ -245,6 +245,12 @@ type PlayerEntity interface {
 	// 0 = the slot's default; plan-appearance.md C3).
 	Look() (portrait, ring uint16)
 	SetLook(portrait, ring uint16)
+	// AppearanceOwned is every locked appearance item this character owns, as
+	// sorted flat indices (appearance.Catalog.Flat; starters are owned by
+	// everyone and never listed): the ticket's rows at join plus what the
+	// evaluator grants (plan-appearance.md C5). It only grows.
+	AppearanceOwned() []uint16
+	SetAppearanceOwned(owned []uint16)
 	// AccountID is which account this character belongs to, set once at join
 	// from the play ticket (plan-ascension.md C3 step 6, D25).
 	//

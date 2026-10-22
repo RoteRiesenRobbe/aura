@@ -61,12 +61,15 @@ const (
 	KeyUnlockCombination = "unlock.combination"
 	KeyUnlockTaughtBy    = "unlock.taught-by"
 	KeyUnlockCheat       = "unlock.cheat"
-	KeyJournalUpdated    = "journal.updated"
-	KeyQuestComplete     = "journal.quest-complete"
-	KeyWarlordFallen     = "warlord.fallen"
-	KeyWarlordReturned   = "warlord.returned"
-	KeySaveResumed       = "save.resumed"
-	KeySaveFailing       = "save.failing"
+	// KeyUnlockAppearance is the second line of an earned portrait or ring's
+	// banner (plan-appearance.md C5); the client words the first from the item.
+	KeyUnlockAppearance = "unlock.appearance"
+	KeyJournalUpdated   = "journal.updated"
+	KeyQuestComplete    = "journal.quest-complete"
+	KeyWarlordFallen    = "warlord.fallen"
+	KeyWarlordReturned  = "warlord.returned"
+	KeySaveResumed      = "save.resumed"
+	KeySaveFailing      = "save.failing"
 	// KeyContentLines carries authored lines by id (C3): the client shows
 	// each conv.<id> from the /lang bundle, one per line.
 	KeyContentLines = "content.lines"
@@ -79,6 +82,7 @@ var ServerKeys = map[string][]string{
 	KeyUnlockCombination: nil,
 	KeyUnlockTaughtBy:    {"mob"},
 	KeyUnlockCheat:       nil,
+	KeyUnlockAppearance:  nil,
 	KeyJournalUpdated:    {"quest"},
 	KeyQuestComplete:     {"quest"},
 	KeyWarlordFallen:     {"names", "count"},

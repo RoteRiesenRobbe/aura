@@ -47,7 +47,7 @@ func TestAscendCharacter_SpendsTheLifeAndGrantsTheUnlock(t *testing.T) {
 	created, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
 
-	slot, err := db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	slot, err := db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	require.NoError(t, err)
 	assert.Equal(t, created.SlotIndex, slot, "the transaction reports the slot it wrote")
 
@@ -72,7 +72,7 @@ func TestAscendCharacter_EmptyPickCommitsWithNoUnlockRow(t *testing.T) {
 	created, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "", nil)
 	require.NoError(t, err)
 
 	assert.False(t, scalar[bool](t, db.Pool,
@@ -92,7 +92,7 @@ func TestAscendCharacter_ADuplicateUnlockRollsBackTheSacrifice(t *testing.T) {
 
 	first, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, first.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, first.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	second := character("Wilma", accountID)
@@ -100,7 +100,7 @@ func TestAscendCharacter_ADuplicateUnlockRollsBackTheSacrifice(t *testing.T) {
 	successor, err := db.CreateCharacter(ctx, second)
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, accountID, successor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, successor.ID, "FrostShield", nil)
 	require.ErrorIs(t, err, store.ErrUnlockAlreadyOwned)
 
 	assert.True(t, scalar[bool](t, db.Pool,
@@ -115,10 +115,10 @@ func TestAscendCharacter_RefusesASecondAscension(t *testing.T) {
 	created, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "Paralyze")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "Paralyze", nil)
 	assert.ErrorIs(t, err, store.ErrNoCharacter)
 	assert.Equal(t, []string{"FrostShield"}, unlockKeys(t, db, accountID, created.SlotIndex),
 		"the refused second ascension grants nothing")
@@ -133,7 +133,7 @@ func TestAscendCharacter_RefusesAnotherAccountsCharacter(t *testing.T) {
 	created, err := db.CreateCharacter(ctx, character("Barney", owner))
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, stranger, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, stranger, created.ID, "FrostShield", nil)
 	assert.ErrorIs(t, err, store.ErrNoCharacter)
 
 	assert.True(t, scalar[bool](t, db.Pool,
@@ -151,7 +151,7 @@ func TestAscendCharacter_RefusesADeletedCharacterRatherThanTrippingTheCheck(t *t
 	require.NoError(t, err)
 	require.NoError(t, db.SoftDeleteCharacter(ctx, accountID, created.ID))
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	assert.ErrorIs(t, err, store.ErrNoCharacter)
 	assert.True(t, scalar[bool](t, db.Pool,
 		`SELECT sacrificed_at IS NULL FROM game.characters WHERE id = $1`, created.ID))
@@ -167,7 +167,7 @@ func TestAscendCharacter_LeavesAHeirlessSlotThatLoadsAsEmpty(t *testing.T) {
 	created, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	alive, err := db.AliveCharacters(ctx, accountID)
@@ -197,7 +197,7 @@ func TestAscendCharacter_UnlocksAccumulateAcrossLives(t *testing.T) {
 		c.SlotIndex = &slot
 		created, err := db.CreateCharacter(ctx, c)
 		require.NoError(t, err, step.name)
-		_, err = db.AscendCharacter(ctx, accountID, created.ID, step.key)
+		_, err = db.AscendCharacter(ctx, accountID, created.ID, step.key, nil)
 		require.NoError(t, err, step.name)
 	}
 
@@ -240,7 +240,7 @@ func TestSaveCharacter_AgainstASacrificedRowDropsWithoutTouchingItsChildren(t *t
 		Loadout:        []persist.LoadoutSlot{{Type: persist.SlotAura, Index: 0, SkillID: 5}},
 	}))
 
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	err = db.SaveCharacter(ctx, persist.CharacterState{
@@ -324,7 +324,7 @@ func TestCreateCharacter_ChainsToTheSacrificedPredecessor(t *testing.T) {
 	first.SlotIndex = &slot
 	predecessor, err := db.CreateCharacter(ctx, first)
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	second := character("Wilma", accountID)
@@ -346,7 +346,7 @@ func TestCreateCharacter_ChainsOnAServerAssignedSlotToo(t *testing.T) {
 	predecessor, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
 	require.Equal(t, 0, predecessor.SlotIndex)
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	heir, err := db.CreateCharacter(ctx, character("Wilma", accountID))
@@ -366,7 +366,7 @@ func TestCreateCharacter_DeletingTheHeirDoesNotReleaseItsClaim(t *testing.T) {
 
 	predecessor, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	heir, err := db.CreateCharacter(ctx, character("Wilma", accountID))
@@ -407,7 +407,7 @@ func TestCreateCharacter_DoesNotChainAcrossSlots(t *testing.T) {
 
 	predecessor, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	slot := 1
@@ -441,7 +441,7 @@ func TestCreateCharacter_LosesTheHeirRaceWithoutSurfacingAConstraint(t *testing.
 
 	predecessor, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	// A rival heir, claiming both the slot and the predecessor, held open.
@@ -492,7 +492,7 @@ func TestLoadBloodline_ReturnsTheSlotsUnlocksAndAscensionCount(t *testing.T) {
 		c.SlotIndex = &slot
 		created, err := db.CreateCharacter(ctx, c)
 		require.NoError(t, err)
-		_, err = db.AscendCharacter(ctx, accountID, created.ID, step.key)
+		_, err = db.AscendCharacter(ctx, accountID, created.ID, step.key, nil)
 		require.NoError(t, err)
 	}
 
@@ -522,12 +522,12 @@ func TestLoadBloodline_IsScopedToOneSlotOfOneAccount(t *testing.T) {
 
 	first, err := db.CreateCharacter(ctx, character("Barney", mine))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, mine, first.ID, "Paralyze")
+	_, err = db.AscendCharacter(ctx, mine, first.ID, "Paralyze", nil)
 	require.NoError(t, err)
 
 	stranger, err := db.CreateCharacter(ctx, character("Wilma", theirs))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, theirs, stranger.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, theirs, stranger.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	mineSlot0, err := db.LoadBloodline(ctx, mine, 0)
@@ -578,7 +578,7 @@ func sacrificeInto(t *testing.T, db *store.Store, accountID int64, slot int, nam
 	c.SlotIndex = &slot
 	created, err := db.CreateCharacter(context.Background(), c)
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, key)
+	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, key, nil)
 	require.NoError(t, err)
 	return created
 }
@@ -716,7 +716,7 @@ func TestAscendCharacter_TheSuccessorInheritsNothingButTheBloodline(t *testing.T
 	}
 	require.NoError(t, db.SaveCharacter(ctx, lived))
 
-	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, predecessor.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	heir, err := db.CreateCharacter(ctx, character("Wilma", accountID))
@@ -764,7 +764,7 @@ func TestBloodlineDrivesTheCatalogFilter(t *testing.T) {
 
 	created, err := db.CreateCharacter(ctx, character("Barney", accountID))
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield")
+	_, err = db.AscendCharacter(ctx, accountID, created.ID, "FrostShield", nil)
 	require.NoError(t, err)
 
 	after, err := db.LoadBloodline(ctx, accountID, 0)
@@ -811,7 +811,7 @@ func ascendAt(t *testing.T, db *store.Store, accountID int64, name string, level
 	_, err = db.Pool.Exec(context.Background(),
 		`UPDATE game.characters SET level = $2 WHERE id = $1`, created.ID, level)
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, "")
+	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, "", nil)
 	require.NoError(t, err)
 	return created.ID
 }

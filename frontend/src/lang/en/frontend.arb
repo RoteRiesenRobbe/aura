@@ -677,6 +677,15 @@
       "quest": {"type": "String", "description": "Quest title, localized", "example": "The Lost Friend"}
     }
   },
+  "lock.skill-level": "{skill} {value, number} ({have, number}/{value, number})",
+  "@lock.skill-level": {
+    "description": "Lock reason: one skill must reach a level (plan-appearance.md C5). {skill} is the skill's name.",
+    "placeholders": {
+      "skill": {"type": "String", "description": "Skill name, already localized", "example": "Thorns"},
+      "value": {"type": "int", "description": "Required skill level", "example": "10"},
+      "have": {"type": "int", "description": "The skill's level now", "example": "6"}
+    }
+  },
   "lock.travel-closed": "its far end is gone",
   "@lock.travel-closed": {
     "description": "Lock reason on a travel row: the destination no longer exists."
@@ -1623,13 +1632,17 @@
   "@tooltip.while-active": {
     "description": "Skill tooltip. Scope suffix; keep the leading space."
   },
-  "unlock.banner": "{category, select, aura {New aura: {name}} passive {New passive: {name}} cooldown {New cooldown: {name}} other {New skill: {name}}}",
+  "unlock.banner": "{category, select, aura {New aura: {name}} passive {New passive: {name}} cooldown {New cooldown: {name}} appearance {New look: {name}} other {New skill: {name}}}",
   "@unlock.banner": {
     "description": "Banner when the player unlocks a skill. {category} is the skill kind; the branches name it.",
     "placeholders": {
-      "category": {"type": "String", "description": "Skill kind: aura, passive or cooldown", "example": "aura"},
+      "category": {"type": "String", "description": "Skill kind: aura, passive or cooldown; appearance for an earned portrait or ring", "example": "aura"},
       "name": {"type": "String", "description": "Skill name, already localized", "example": "Fireball"}
     }
+  },
+  "unlock.appearance": "Wear it under Appearance",
+  "@unlock.appearance": {
+    "description": "Unlock banner, second line: the player earned a portrait or ring (plan-appearance.md C5); Appearance is the HUD button's name."
   },
   "unlock.cheat": "Cheat",
   "@unlock.cheat": {

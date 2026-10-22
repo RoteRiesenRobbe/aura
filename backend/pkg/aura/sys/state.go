@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -66,6 +67,34 @@ type deadState struct {
 	// C4): the rebuilt player struct starts on the defaults, and the next save
 	// would write those over the character's choice.
 	portrait, ring uint16
+	// owned is the appearance owned set (plan-appearance.md C5), carried for
+	// the look's reason: a rebuilt player would otherwise own only starters.
+	owned []uint16
+	// lineage is the slot's bloodline and the account, carried for the same
+	// reason (found at C5).
+	lineage lineage
+}
+
+// lineage is what the play ticket stamps on a player at the fresh join and
+// nothing else rebuilds: the slot's spent unlocks and ascension count, and the
+// account (plan-ascension.md D16, D18, D25). Found at plan-appearance.md C5:
+// respawn, reconnect and revive built the player without it, so after one
+// death the stone's rows, every bloodline_ascensions gate and the memorial read
+// an empty slot. It rides deadState and reconnectStash like the look (L7).
+type lineage struct {
+	unlocks    []string
+	ascensions int
+	accountID  int64
+}
+
+func lineageOf(p model.PlayerEntity) lineage {
+	return lineage{unlocks: p.BloodlineUnlocks(), ascensions: p.BloodlineAscensions(), accountID: p.AccountID()}
+}
+
+func (l lineage) applyTo(p model.PlayerEntity) {
+	p.SetBloodlineUnlocks(l.unlocks)
+	p.SetBloodlineAscensions(l.ascensions)
+	p.SetAccountID(l.accountID)
 }
 
 // reconnectStashTTLTicks is how long a disconnected character (and its name
@@ -86,8 +115,11 @@ type reconnectStash struct {
 	progression model.PlayerProgression
 	skills      *skills.SkillComponent
 	quests      *quests.Ledger // the L11 carry, exactly like deadState's
-	// portrait and ring: the look, carried like deadState's (C4).
+	// portrait and ring: the look, carried like deadState's (C4), and the
+	// owned set with it (C5).
 	portrait, ring uint16
+	owned          []uint16
+	lineage        lineage
 	health         vitals.VitalSign // alive-stash only; dead reconnects respawn normally
 	// campCharges is the Camp charge store (plan-downtime.md C2). Alive-stash
 	// only, and that asymmetry IS the ruling: the stash means "same session",
@@ -255,6 +287,9 @@ type ConnectionStateSystem struct {
 	// saveWatch is what each live character's last save was taken against, so a
 	// forced-save event is three integer comparisons rather than a rebuild.
 	saveWatch map[uuid.UUID]saveWatch
+	// grantWatch is what each live player's last appearance evaluation was
+	// taken against (plan-appearance.md C5); see appearance_grants.go.
+	grantWatch map[uuid.UUID]grantWatch
 	// These four drive §5b's "your progress is not being saved" warning:
 	// whether writes are currently failing, since when, when players were last
 	// told, and whether they have been told at all.
@@ -350,6 +385,24 @@ func (s *ConnectionStateSystem) lookOf(t auth.Ticket) (portrait, ring uint16) {
 	return portrait, ring
 }
 
+// ownedOf is the ticket's owned set as sorted flat indices. An id this
+// build's catalog does not hold (a retired file) is dropped with a log line,
+// never a refused join: items are never deleted, so this is an edit gone wrong.
+func (s *ConnectionStateSystem) ownedOf(t auth.Ticket) []uint16 {
+	var owned []uint16
+	for _, id := range t.AppearanceOwned {
+		it, ok := s.looks.Item(id)
+		if !ok || it.Starter {
+			log.Printf("⚠️ character %d owns appearance item %q, which the catalog does not hold as a locked item; skipping it",
+				t.CharacterID, id)
+			continue
+		}
+		owned = append(owned, s.looks.Flat(id))
+	}
+	slices.Sort(owned)
+	return slices.Compact(owned)
+}
+
 // applyLookPicks wears each player's in-game pick (plan-appearance.md C4,
 // D11: free, any time, combat included). A pick that is not wearable is
 // refused whole and silently, the established pattern for client requests.
@@ -357,7 +410,7 @@ func (s *ConnectionStateSystem) lookOf(t auth.Ticket) (portrait, ring uint16) {
 func (s *ConnectionStateSystem) applyLookPicks() {
 	for _, p := range s.players {
 		pick := p.Client().NextSelectAppearance()
-		if pick == nil || !s.looks.WearableLook(pick.Portrait, pick.Ring) {
+		if pick == nil || !s.looks.WearableLook(pick.Portrait, pick.Ring, p.AppearanceOwned()) {
 			continue
 		}
 		p.SetLook(pick.Portrait, pick.Ring)
@@ -511,6 +564,7 @@ func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 
 		characterByClient: map[uuid.UUID]int64{},
 		saveWatch:         map[uuid.UUID]saveWatch{},
+		grantWatch:        map[uuid.UUID]grantWatch{},
 	}
 }
 
@@ -654,6 +708,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 		}
 	}
 
+	s.grantAppearance()
 	s.applyLookPicks()
 	s.discoverCampfires()
 	s.trackMapFog()
@@ -807,6 +862,8 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p.SetSkillComponent(dead.skills)
 	p.SetQuestLedger(dead.quests)
 	p.SetLook(dead.portrait, dead.ring)
+	p.SetAppearanceOwned(dead.owned)
+	dead.lineage.applyTo(p)
 	p.SetPosition(s.respawnPosition(client.UUID()))
 	// Re-stamp full health AFTER progression/skills (triage item 14): the
 	// constructor stamped the base pool before +maxHealth passives were back.
@@ -1012,6 +1069,7 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// The look, from the ticket too (plan-appearance.md C3), resolved to its
 	// wire values once here rather than per tick in the codec.
 	p.SetLook(s.lookOf(ticket))
+	p.SetAppearanceOwned(s.ownedOf(ticket))
 
 	// Spawn at the bound campfire, or at a random starting fire when there is no
 	// usable bind.
@@ -1121,6 +1179,8 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 			quests:      stash.quests,
 			portrait:    stash.portrait,
 			ring:        stash.ring,
+			owned:       stash.owned,
+			lineage:     stash.lineage,
 		}
 		s.game.AddEntity(spectator.NewSpectator(stash.position, client))
 		return
@@ -1132,6 +1192,8 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	p.SetSkillComponent(stash.skills)
 	p.SetQuestLedger(stash.quests)
 	p.SetLook(stash.portrait, stash.ring)
+	p.SetAppearanceOwned(stash.owned)
+	stash.lineage.applyTo(p)
 	p.SetPosition(stash.position)
 	// After the progression is back: the cap is level-derived, so restoring
 	// the count first would clamp against a level-1 cap.
@@ -1224,6 +1286,8 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 		quests:      p.QuestLedger(),
 		portrait:    portrait,
 		ring:        ring,
+		owned:       p.AppearanceOwned(),
+		lineage:     lineageOf(p),
 	}
 
 	// Drain stale lifecycle messages: a Join/Respawn banked while alive would
@@ -1347,6 +1411,8 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
 	p.SetLook(dead.portrait, dead.ring)
+	p.SetAppearanceOwned(dead.owned)
+	dead.lineage.applyTo(p)
 	p.SetPosition(corpsePos)
 	// Partial revive: set health AFTER progression/skills so MaxHealth reflects
 	// the restored loadout.
@@ -1469,6 +1535,8 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				quests:         dead.quests,
 				portrait:       dead.portrait,
 				ring:           dead.ring,
+				owned:          dead.owned,
+				lineage:        dead.lineage,
 				position:       dead.corpse.Position(),
 				anchor:         s.anchors[client],
 				discovered:     s.discovered[client],
@@ -1541,6 +1609,8 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			quests:         p.QuestLedger(),
 			portrait:       portrait,
 			ring:           ring,
+			owned:          p.AppearanceOwned(),
+			lineage:        lineageOf(p),
 			health:         p.VitalSigns().Health,
 			campCharges:    p.CampCharges(),
 			position:       position,

@@ -1,5 +1,7 @@
 package model
 
+import "github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+
 // The personalised conversation tree (plan-entity-model.md chunk 3b-ii, D16).
 //
 // While a player has a panel open, GameState carries the WHOLE tree for the
@@ -72,28 +74,28 @@ type ConversationNode struct {
 	Options []ConversationOption
 }
 
-// LockKind mirrors AuraApi.ConversationLockKind (pinned in codec).
-type LockKind uint8
-
-const (
-	LockMinLevel      LockKind = 0
-	LockAscensions    LockKind = 1
-	LockQuestAtStage  LockKind = 2
-	LockQuestComplete LockKind = 3
-	LockKills         LockKind = 4
-	LockTravelClosed  LockKind = 5
-	LockUnknown       LockKind = 255
+// LockKind and LockReason live beside the condition vocabulary they word
+// (mobs/lockreason.go, plan-appearance.md C5): the appearance catalog serves
+// them too, and it sits below model in the import graph. Aliased here so the
+// transport shapes keep their names.
+type (
+	LockKind   = mobs.LockKind
+	LockReason = mobs.LockReason
 )
 
-// LockReason is one reason a row is locked, as data the client words
-// (plan-localization.md C3): never a composed sentence.
-type LockReason struct {
-	Kind        LockKind
-	Value, Have uint32
-	Quest       string
-	Stage       string
-	Species     uint64
-}
+const (
+	LockMinLevel      = mobs.LockMinLevel
+	LockAscensions    = mobs.LockAscensions
+	LockQuestAtStage  = mobs.LockQuestAtStage
+	LockQuestComplete = mobs.LockQuestComplete
+	LockKills         = mobs.LockKills
+	LockTravelClosed  = mobs.LockTravelClosed
+	LockSkillLevel    = mobs.LockSkillLevel
+	LockUnknown       = mobs.LockUnknown
+)
+
+// LockReasonOf is mobs.LockReasonOf.
+var LockReasonOf = mobs.LockReasonOf
 
 // ConversationOption is one row — the only interactive element in the whole
 // panel (D15). Branch or grant, it is the same row.

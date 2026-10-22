@@ -113,6 +113,9 @@ type saveWatch struct {
 	// portrait and ring are the worn look (plan-appearance.md C4): a pick in
 	// the in-game picker, or the LOOK cheat, saves at once.
 	portrait, ring uint16
+	// owned is the size of the appearance owned set (C5): a grant saves at
+	// once. A size is a faithful detector because the set only grows.
+	owned int
 }
 
 // SetCharacterSaves installs the persistence writer.
@@ -171,6 +174,7 @@ func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey
 		CharacterID: characterID,
 		ClientUUID:  clientUUID,
 		UnlockKey:   unlockKey,
+		Appearance:  s.ascensionAppearance(p),
 	})
 	return true
 }
@@ -296,6 +300,7 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			discovered: len(s.discovered[clientUUID]),
 		}
 		current.portrait, current.ring = p.Look()
+		current.owned = len(p.AppearanceOwned())
 		watch, known := s.saveWatch[clientUUID]
 		if !known {
 			// First sight: record the baseline and STAGGER the first interval
@@ -311,7 +316,8 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			current.anchor != watch.anchor ||
 			current.discovered != watch.discovered ||
 			current.portrait != watch.portrait ||
-			current.ring != watch.ring
+			current.ring != watch.ring ||
+			current.owned != watch.owned
 		if !forced && now < watch.nextTick {
 			continue
 		}
@@ -332,9 +338,11 @@ func (s *ConnectionStateSystem) saveCharacter(p model.PlayerEntity) {
 		return
 	}
 	portrait, ring := s.idsOf(p.Look())
-	s.saves.Save(characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
+	state := characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
 		s.DiscoveredCampfires(p.Client().UUID()), s.fog[p.Client().UUID()].Chunks(),
-		portrait, ring, p.Progression(), p.SkillComponent(), p.QuestLedger()))
+		portrait, ring, p.Progression(), p.SkillComponent(), p.QuestLedger())
+	state.AppearanceGrants = appearanceGrants(s.looks, p.AppearanceOwned())
+	s.saves.Save(state)
 }
 
 // saveStash queues a snapshot of a DISCONNECTED character from its stash — §2's
@@ -351,9 +359,11 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 		return
 	}
 	portrait, ring := s.idsOf(stash.portrait, stash.ring)
-	s.saves.Save(characterState(stash.characterID, stash.name, stash.anchor,
+	state := characterState(stash.characterID, stash.name, stash.anchor,
 		sortedSet(stash.discovered), stash.fog.Chunks(),
-		portrait, ring, stash.progression, stash.skills, stash.quests))
+		portrait, ring, stash.progression, stash.skills, stash.quests)
+	state.AppearanceGrants = appearanceGrants(s.looks, stash.owned)
+	s.saves.Save(state)
 }
 
 // characterState is THE save half of plan-accounts-implementation.md §4's
@@ -629,4 +639,5 @@ func (s *ConnectionStateSystem) tellPlayers(m lang.Message) {
 // connection's world presence ends.
 func (s *ConnectionStateSystem) forgetSaveWatch(clientUUID uuid.UUID) {
 	delete(s.saveWatch, clientUUID)
+	s.forgetGrantWatch(clientUUID)
 }

@@ -28,6 +28,14 @@
   "@appearance.red-hood.name": {
     "description": "Name of the look \"red-hood\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   },
+  "appearance.ring-forest.name": "Forest Ring",
+  "@appearance.ring-forest.name": {
+    "description": "Name of the look \"ring-forest\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.ring-leather-claws.name": "Clawed Leather Ring",
+  "@appearance.ring-leather-claws.name": {
+    "description": "Name of the look \"ring-leather-claws\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
   "appearance.ring-leather.name": "Leather Ring",
   "@appearance.ring-leather.name": {
     "description": "Name of the look \"ring-leather\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
@@ -39,5 +47,9 @@
   "appearance.short-crop.name": "Short Crop",
   "@appearance.short-crop.name": {
     "description": "Name of the look \"short-crop\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.villager.name": "Villager",
+  "@appearance.villager.name": {
+    "description": "Name of the look \"villager\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   }
 }

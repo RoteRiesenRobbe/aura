@@ -13,11 +13,14 @@ export interface Look {
  * root's `.lookPreview`, then each starter item into its slot's `.lookOptions`
  * as the medallion it would make with the other slot as given. A press hands
  * the look with that slot replaced to onPick; the mount decides what the
- * picked look means (creation keeps it, the panel asks the server). C5 swaps
- * the starter filter for the owned set.
+ * picked look means (creation keeps it, the panel asks the server).
+ * `offered` says which items the mount offers: the panel the starters plus
+ * what the character owns (C5), creation the starters until C5c brings it
+ * the account's and the bloodline's.
  */
 export function renderLookPicker(root: ParentNode, catalog: AppearanceCatalog, look: Look,
-                                 onPick: (look: Look) => void): void {
+                                 onPick: (look: Look) => void,
+                                 offered: (item: AppearanceItem) => boolean = item => item.starter): void {
     root.querySelector('.lookPreview').replaceChildren(medallionElement(look.portrait, look.ring));
 
     const option = (slot: AppearanceSlot, item: AppearanceItem) => {
@@ -44,6 +47,6 @@ export function renderLookPicker(root: ParentNode, catalog: AppearanceCatalog, l
     for (const slot of ['portrait', 'ring'] as AppearanceSlot[]) {
         const items = slot === 'portrait' ? catalog.portraits : catalog.rings;
         root.querySelector(`.lookOptions[data-slot="${slot}"]`)
-            .replaceChildren(...items.filter(item => item.starter).map(item => option(slot, item)));
+            .replaceChildren(...items.filter(offered).map(item => option(slot, item)));
     }
 }

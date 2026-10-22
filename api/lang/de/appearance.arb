@@ -7,7 +7,10 @@
   "appearance.green-hood.name": "Grüne Kapuze",
   "appearance.grey-beard.name": "Graubart",
   "appearance.red-hood.name": "Rote Kapuze",
+  "appearance.ring-forest.name": "Waldring",
+  "appearance.ring-leather-claws.name": "Lederring mit Klauen",
   "appearance.ring-leather.name": "Lederring",
   "appearance.ring-plain.name": "Schlichter Ring",
-  "appearance.short-crop.name": "Kurzhaarschnitt"
+  "appearance.short-crop.name": "Kurzhaarschnitt",
+  "appearance.villager.name": "Dorfbewohner"
 }

@@ -83,6 +83,12 @@ type SlotBloodline struct {
 	// are player-authored free text and erasure wins. The filter lives in the
 	// SQL below so there is exactly one of it, and C3's memorial inherits it.
 	PredecessorName string
+	// PredecessorPortrait and PredecessorRing are that same life's look, what
+	// a successor's creation picker preselects where still owned
+	// (plan-appearance.md D12). Kept even when the name was erased: a look
+	// names catalog items, not a person.
+	PredecessorPortrait string
+	PredecessorRing     string
 }
 
 // SlotBloodlines reads every bloodline an account has, keyed by slot.
@@ -114,7 +120,9 @@ func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]Sl
 		`SELECT slot_index,
 		        count(*),
 		        coalesce((array_agg(NULLIF(name, 'deleted_' || id)
-		                            ORDER BY sacrificed_at DESC, id DESC))[1], '')
+		                            ORDER BY sacrificed_at DESC, id DESC))[1], ''),
+		        (array_agg(avatar ORDER BY sacrificed_at DESC, id DESC))[1],
+		        (array_agg(ring ORDER BY sacrificed_at DESC, id DESC))[1]
 		   FROM game.characters
 		  WHERE account_id = $1 AND sacrificed_at IS NOT NULL
 		  GROUP BY slot_index`, accountID)
@@ -125,7 +133,7 @@ func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]Sl
 	for rows.Next() {
 		var slot int
 		var b SlotBloodline
-		if err := rows.Scan(&slot, &b.Ascensions, &b.PredecessorName); err != nil {
+		if err := rows.Scan(&slot, &b.Ascensions, &b.PredecessorName, &b.PredecessorPortrait, &b.PredecessorRing); err != nil {
 			return nil, fmt.Errorf("reading a bloodline history row: %w", err)
 		}
 		b.Unlocks = []string{}
@@ -193,7 +201,14 @@ func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]Sl
 // ⚑ No synchronous_commit = off here, per the standing note in state.go. That
 // treatment is for the periodic save path, where losing the last few seconds is
 // acceptable; this is irreversible and happens once per life.
-func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string) (int, error) {
+//
+// ⚑ appearance is the count-based appearance items the new ascension count
+// earns (plan-appearance.md D21a), written here so a failed ascension grants
+// nothing and the heir's creation picker already sees them. Bloodline and
+// account scope only: the caller leaves out character items, which would land
+// on the life that is ending.
+func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string,
+	appearance []persist.AppearanceGrant) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("starting the ascension transaction: %w", err)
@@ -230,6 +245,10 @@ func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int6
 		case err != nil:
 			return 0, fmt.Errorf("granting a bloodline unlock: %w", err)
 		}
+	}
+
+	if err := insertAppearanceGrants(ctx, tx, accountID, slotIndex, characterID, appearance); err != nil {
+		return 0, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {

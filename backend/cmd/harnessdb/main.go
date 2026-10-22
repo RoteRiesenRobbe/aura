@@ -219,6 +219,10 @@ func runCleanup(ctx context.Context, db *store.Store) error {
 	for _, table := range []string{
 		"game.audit_log",
 		"game.bloodline_unlocks",
+		// plan-appearance.md C5: the appearance grants. Every scope's row
+		// carries the account, and a character row's grant points at the
+		// character, so it leaves before game.characters.
+		"game.appearance_unlocks",
 		"game.characters",
 		"game.account_credentials",
 	} {

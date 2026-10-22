@@ -126,6 +126,14 @@ type CharacterState struct {
 	Portrait string `json:"portrait"`
 	Ring     string `json:"ring"`
 
+	// AppearanceGrants is every locked appearance item the character owns,
+	// with the scope it is owned at (plan-appearance.md C5). The store writes
+	// each at its scope with ON CONFLICT DO NOTHING: the set only grows, so a
+	// snapshot repeating rows another save already wrote changes nothing (the
+	// discovered-campfires rule). Save only, like the look: the join reads the
+	// owned set off the ticket.
+	AppearanceGrants []AppearanceGrant `json:"appearanceGrants,omitempty"`
+
 	// Spellbook is skill id → level, mirroring SkillComponent.Spellbook.
 	//
 	// ⚑ An EMPTY spellbook means "this character has never been saved", and the
@@ -250,4 +258,11 @@ func (c CharacterState) Fingerprint() string {
 		return ""
 	}
 	return string(raw)
+}
+
+// AppearanceGrant is one owned appearance item and its scope ("character",
+// "bloodline" or "account", the appearance_unlocks.scope values).
+type AppearanceGrant struct {
+	Item  string `json:"item"`
+	Scope string `json:"scope"`
 }

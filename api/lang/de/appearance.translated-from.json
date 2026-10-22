@@ -6,7 +6,10 @@
   "appearance.green-hood.name": "Green Hood",
   "appearance.grey-beard.name": "Grey Beard",
   "appearance.red-hood.name": "Red Hood",
+  "appearance.ring-forest.name": "Forest Ring",
+  "appearance.ring-leather-claws.name": "Clawed Leather Ring",
   "appearance.ring-leather.name": "Leather Ring",
   "appearance.ring-plain.name": "Plain Ring",
-  "appearance.short-crop.name": "Short Crop"
+  "appearance.short-crop.name": "Short Crop",
+  "appearance.villager.name": "Villager"
 }

@@ -21,7 +21,8 @@ type fakeAscensions struct {
 	err   error
 }
 
-func (f *fakeAscensions) AscendCharacter(_ context.Context, accountID, characterID int64, unlockKey string) (int, error) {
+func (f *fakeAscensions) AscendCharacter(_ context.Context, accountID, characterID int64, unlockKey string,
+	_ []AppearanceGrant) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls = append(f.calls, AscensionRequest{AccountID: accountID, CharacterID: characterID, UnlockKey: unlockKey})

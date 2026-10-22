@@ -45,6 +45,7 @@ type fakeClient struct {
 type capturedUnlock struct {
 	skillID uint64
 	source  string
+	key     string
 }
 
 func newFakeClient() *fakeClient {
@@ -124,7 +125,7 @@ func (c *fakeClient) NextAbandonQuest() *model.AbandonQuest {
 func (c *fakeClient) SendMessage(b []byte) error { c.sent = append(c.sent, b); return nil }
 func (c *fakeClient) SendUnlock(id uint64, msg lang.Message) error {
 	source := msg.English
-	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
+	c.unlocks = append(c.unlocks, capturedUnlock{id, source, msg.Key})
 	return nil
 }
 func (c *fakeClient) SendJournal(msg lang.Message) error {

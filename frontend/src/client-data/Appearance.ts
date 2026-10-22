@@ -20,6 +20,22 @@ export interface AppearanceItem {
     starter: boolean;
     /** What wire value 0 draws; one per slot. */
     default?: boolean;
+    /** A locked item's owner (plan-appearance.md C5, D7); absent on a starter. */
+    scope?: 'character' | 'bloodline' | 'account';
+    /** How its locks combine: 'all' or 'any'. */
+    conditionsMode?: 'all' | 'any';
+    /** A locked item's conditions as lock data, without progress (D8, D25). */
+    locks?: AppearanceLock[];
+}
+
+/** One condition of a locked item: a ConversationLockKind and its data. */
+export interface AppearanceLock {
+    kind: number;
+    value?: number;
+    quest?: string;
+    stage?: string;
+    species?: number;
+    skill?: number;
 }
 
 /** Each slot in wire order: wire value n is element n - 1. */
@@ -93,4 +109,43 @@ export function lookArt(portraitWire: number, ringWire: number): { packIcon: str
 export function defaultLook(c: AppearanceCatalog): { portrait: string, ring: string } {
     const id = (items: AppearanceItem[]) => (items.find(item => item.default) ?? items[0])?.id ?? '';
     return {portrait: id(c.portraits), ring: id(c.rings)};
+}
+
+/**
+ * The item at a flat index: every portrait in wire order, then every ring.
+ * The owned set (GameState.appearance_owned) and an appearance unlock's
+ * entity id both count this way (plan-appearance.md C5).
+ */
+export function itemAtFlat(flat: number): { slot: AppearanceSlot, item: AppearanceItem } | undefined {
+    if (!catalog) {
+        return undefined;
+    }
+    if (flat < catalog.portraits.length) {
+        return {slot: 'portrait', item: catalog.portraits[flat]};
+    }
+    const ring = catalog.rings[flat - catalog.portraits.length];
+    return ring && {slot: 'ring', item: ring};
+}
+
+let ownedFlats: number[] = [];
+
+/** The own character's owned locked items, from the owner block. */
+export function setOwnedAppearance(flats: number[]) {
+    ownedFlats = flats;
+}
+
+export function ownedAppearance(): readonly number[] {
+    return ownedFlats;
+}
+
+/**
+ * Whether the own character may wear an item: a starter, or a locked item it
+ * owns. Read through the flat index, so it answers right once the catalog has
+ * landed even when the owned set arrived first (the §5 race).
+ */
+export function isWearable(item: AppearanceItem): boolean {
+    if (item.starter) {
+        return true;
+    }
+    return ownedFlats.some(flat => itemAtFlat(flat)?.item.id === item.id);
 }

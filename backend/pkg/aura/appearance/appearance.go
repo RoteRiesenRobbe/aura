@@ -3,9 +3,10 @@
 // api/appearance/. A ring names a ring family of the client's registry
 // (client-data/Medallions.ts, D2); the art itself stays client-side.
 //
-// C3 ships the starter set only (D30): every item is owned by everyone.
-// Unlock conditions and ownership scopes arrive with C5, so the loader refuses
-// any item that is not a starter until then.
+// A starter item is owned by everyone (D30). Every other item declares its
+// conditions, in the shared condition vocabulary, and the scope it is owned
+// at (D7, D15): a character that meets the conditions earns it there,
+// permanently (D16).
 package appearance
 
 import (
@@ -19,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 )
 
@@ -28,6 +30,17 @@ type Slot string
 const (
 	SlotPortrait Slot = "portrait"
 	SlotRing     Slot = "ring"
+)
+
+// Scope is who owns an earned item (D7): one life, the slot's chain of
+// lives, or every character of the account. The values are the
+// appearance_unlocks.scope CHECK's.
+type Scope string
+
+const (
+	ScopeCharacter Scope = "character"
+	ScopeBloodline Scope = "bloodline"
+	ScopeAccount   Scope = "account"
 )
 
 // The look every character wears unless it chose another. DefaultPortrait is
@@ -47,6 +60,21 @@ type Item struct {
 	Family  string `json:"family,omitempty"`
 	Starter bool   `json:"starter"`
 	Name    string `json:"name"`
+	// Scope, Conditions and ConditionsMode are a locked item's (C5); a
+	// starter carries none of them. Gate is the conditions parsed and
+	// resolved, what the evaluator judges.
+	Scope          Scope                `json:"scope,omitempty"`
+	Conditions     []mobs.JSONCondition `json:"conditions,omitempty"`
+	ConditionsMode string               `json:"conditionsMode,omitempty"`
+	Gate           mobs.Gate            `json:"-"`
+}
+
+// World is what a locked item's conditions resolve against at load: the
+// skill registry, the mob registry and the quest graph. Starter-only
+// catalogs never call it, so a test may pass nil.
+type World interface {
+	mobs.SkillNamer
+	mobs.ConditionRefs
 }
 
 // Catalog is every item, each slot sorted by id. The position in that order
@@ -60,14 +88,14 @@ type Catalog struct {
 var idPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 // Load reads every *.json of fsys as one item.
-func Load(fsys fs.FS) (Catalog, error) {
+func Load(fsys fs.FS, w World) (Catalog, error) {
 	files, err := fs.Glob(fsys, "*.json")
 	if err != nil {
 		return Catalog{}, err
 	}
 	c := Catalog{byID: map[string]Item{}}
 	for _, f := range files {
-		it, err := loadItem(fsys, f)
+		it, err := loadItem(fsys, f, w)
 		if err != nil {
 			return Catalog{}, err
 		}
@@ -98,7 +126,7 @@ func Load(fsys fs.FS) (Catalog, error) {
 	return c, nil
 }
 
-func loadItem(fsys fs.FS, f string) (Item, error) {
+func loadItem(fsys fs.FS, f string, w World) (Item, error) {
 	data, err := fs.ReadFile(fsys, f)
 	if err != nil {
 		return Item{}, err
@@ -124,11 +152,38 @@ func loadItem(fsys fs.FS, f string) (Item, error) {
 		return Item{}, fmt.Errorf("appearance/%s: a ring must name its family", f)
 	case it.Slot == SlotPortrait && it.Family != "":
 		return Item{}, fmt.Errorf("appearance/%s: only a ring names a family", f)
-	case !it.Starter:
-		return Item{}, fmt.Errorf("appearance/%s: every item is a starter until unlocks exist (plan-appearance.md C5)", f)
 	case strings.TrimSpace(it.Name) == "":
 		return Item{}, fmt.Errorf("appearance/%s: no name", f)
+	case it.Starter && (len(it.Conditions) > 0 || it.Scope != "" || it.ConditionsMode != ""):
+		return Item{}, fmt.Errorf("appearance/%s: a starter is owned by everyone and carries no conditions or scope", f)
+	case !it.Starter && len(it.Conditions) == 0:
+		return Item{}, fmt.Errorf("appearance/%s: an item that is not a starter needs the conditions that earn it", f)
+	case !it.Starter && it.Scope != ScopeCharacter && it.Scope != ScopeBloodline && it.Scope != ScopeAccount:
+		return Item{}, fmt.Errorf("appearance/%s: scope %q must be %q, %q or %q", f, it.Scope,
+			ScopeCharacter, ScopeBloodline, ScopeAccount)
 	}
+	for i, jc := range it.Conditions {
+		cond, err := mobs.ParseCondition(jc)
+		// D15's four kinds only. A kill count moves no revision the
+		// evaluator watches (sys/appearance_grants.go), so an item gated on
+		// one would stay locked until an unrelated level-up.
+		if err == nil && cond.Kind == mobs.ConditionKillsThisLife {
+			err = fmt.Errorf("kills_this_life is not an appearance unlock: use minLevel, skill_level, " +
+				"quest_at_stage or bloodline_ascensions")
+		}
+		if err == nil {
+			err = mobs.ResolveCondition(&cond, w, w)
+		}
+		if err != nil {
+			return Item{}, fmt.Errorf("appearance/%s: condition %d: %w", f, i, err)
+		}
+		it.Gate.Conditions = append(it.Gate.Conditions, cond)
+	}
+	mode, err := mobs.ParseConditionMode(it.ConditionsMode, len(it.Conditions))
+	if err != nil {
+		return Item{}, fmt.Errorf("appearance/%s: %w", f, err)
+	}
+	it.Gate.Mode = mode
 	return it, nil
 }
 
@@ -172,11 +227,70 @@ func (c Catalog) ID(slot Slot, wire uint16) string {
 	return items[wire-1].ID
 }
 
+// Flat is an item's position in the flat order, every portrait in wire order
+// then every ring: the owned set's wire form (GameState.appearance_owned) and
+// the unlock toast's entity_id. An unknown id answers 0 like Wire; callers
+// hold ids the catalog served.
+func (c Catalog) Flat(id string) uint16 {
+	for i, it := range c.portraits {
+		if it.ID == id {
+			return uint16(i)
+		}
+	}
+	for i, it := range c.rings {
+		if it.ID == id {
+			return uint16(len(c.portraits) + i)
+		}
+	}
+	return 0
+}
+
+// AtFlat is Flat's inverse.
+func (c Catalog) AtFlat(flat uint16) (Item, bool) {
+	i := int(flat)
+	switch {
+	case i < len(c.portraits):
+		return c.portraits[i], true
+	case i < len(c.portraits)+len(c.rings):
+		return c.rings[i-len(c.portraits)], true
+	}
+	return Item{}, false
+}
+
+// Gated is every locked item in flat order: what the evaluator walks.
+func (c Catalog) Gated() []Item {
+	var out []Item
+	for _, items := range [][]Item{c.portraits, c.rings} {
+		for _, it := range items {
+			if !it.Starter {
+				out = append(out, it)
+			}
+		}
+	}
+	return out
+}
+
 // WearableLook reports whether an in-game pick (SelectAppearance, C4) may be
-// worn: a starter portrait and a starter ring, as wire values. C5 swaps the
-// starter set for the character's owned set here.
-func (c Catalog) WearableLook(portrait, ring uint16) bool {
-	return c.starter(SlotPortrait, c.ID(SlotPortrait, portrait)) && c.starter(SlotRing, c.ID(SlotRing, ring))
+// worn: in each slot a starter or an item of owned (flat indices), as wire
+// values.
+func (c Catalog) WearableLook(portrait, ring uint16, owned []uint16) bool {
+	wearable := func(slot Slot, wire uint16) bool {
+		id := c.ID(slot, wire)
+		if c.starter(slot, id) {
+			return true
+		}
+		if id == "" {
+			return false
+		}
+		flat := c.Flat(id)
+		for _, o := range owned {
+			if o == flat {
+				return true
+			}
+		}
+		return false
+	}
+	return wearable(SlotPortrait, portrait) && wearable(SlotRing, ring)
 }
 
 func (c Catalog) starter(slot Slot, id string) bool {
@@ -184,14 +298,29 @@ func (c Catalog) starter(slot Slot, id string) bool {
 	return ok && it.Slot == slot && it.Starter
 }
 
-// CheckStarterLook refuses a creation pick that is not a starter portrait
-// and a starter ring.
-func (c Catalog) CheckStarterLook(portrait, ring string) error {
-	if !c.starter(SlotPortrait, portrait) {
-		return fmt.Errorf("appearance: %q is not a starter portrait", portrait)
+// CheckOwnedLook refuses a creation pick (accounts, by id) that is not, in
+// each slot, a starter or an item of owned.
+func (c Catalog) CheckOwnedLook(portrait, ring string, owned []string) error {
+	ownedItem := func(slot Slot, id string) bool {
+		if c.starter(slot, id) {
+			return true
+		}
+		it, ok := c.byID[id]
+		if !ok || it.Slot != slot {
+			return false
+		}
+		for _, o := range owned {
+			if o == id {
+				return true
+			}
+		}
+		return false
 	}
-	if !c.starter(SlotRing, ring) {
-		return fmt.Errorf("appearance: %q is not a starter ring", ring)
+	if !ownedItem(SlotPortrait, portrait) {
+		return fmt.Errorf("appearance: %q is not a portrait this character owns", portrait)
+	}
+	if !ownedItem(SlotRing, ring) {
+		return fmt.Errorf("appearance: %q is not a ring this character owns", ring)
 	}
 	return nil
 }
@@ -207,12 +336,25 @@ func CatalogJSONIn(c Catalog, tr lang.Tr) ([]byte, error) {
 		// Default marks what wire value 0 draws, so the client never restates
 		// DefaultPortrait or DefaultRing.
 		Default bool `json:"default,omitempty"`
+		// A locked item's scope and conditions, the conditions as lock data
+		// the client words with this character's progress (D8, D25).
+		Scope          Scope      `json:"scope,omitempty"`
+		ConditionsMode string     `json:"conditionsMode,omitempty"`
+		Locks          []lockJSON `json:"locks,omitempty"`
 	}
 	entries := func(items []Item) []entry {
 		out := make([]entry, len(items))
 		for i, it := range items {
 			out[i] = entry{ID: it.ID, Name: tr(lang.AppearanceName(it.ID), it.Name), Family: it.Family, Starter: it.Starter,
-				Default: it.ID == DefaultPortrait || it.ID == DefaultRing}
+				Default: it.ID == DefaultPortrait || it.ID == DefaultRing, Scope: it.Scope}
+			if len(it.Gate.Conditions) > 0 {
+				out[i].ConditionsMode = string(it.Gate.Mode)
+			}
+			for _, cond := range it.Gate.Conditions {
+				r := mobs.LockReasonOf(cond)
+				out[i].Locks = append(out[i].Locks, lockJSON{Kind: uint8(r.Kind), Value: r.Value,
+					Quest: r.Quest, Stage: r.Stage, Species: r.Species, Skill: r.Skill})
+			}
 		}
 		return out
 	}
@@ -220,6 +362,17 @@ func CatalogJSONIn(c Catalog, tr lang.Tr) ([]byte, error) {
 		Portraits []entry `json:"portraits"`
 		Rings     []entry `json:"rings"`
 	}{entries(c.portraits), entries(c.rings)})
+}
+
+// lockJSON is a model.LockReason in /appearance, without the player's
+// progress: the client counts that from its own state (D25).
+type lockJSON struct {
+	Kind    uint8  `json:"kind"`
+	Value   uint32 `json:"value,omitempty"`
+	Quest   string `json:"quest,omitempty"`
+	Stage   string `json:"stage,omitempty"`
+	Species uint64 `json:"species,omitempty"`
+	Skill   uint16 `json:"skill,omitempty"`
 }
 
 // CatalogHandler serves /appearance per locale. Mirrors quests.CatalogHandler.

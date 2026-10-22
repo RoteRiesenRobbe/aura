@@ -353,22 +353,18 @@ func (a *ascensionRows) spent(p learner, key string) bool {
 func lockReasons(gate mobs.Gate, p learner) []model.LockReason {
 	out := make([]model.LockReason, 0, len(gate.Conditions))
 	for _, c := range gate.Conditions {
-		r := model.LockReason{Kind: model.LockUnknown, Value: uint32(c.Value)}
-		switch c.Kind {
-		case mobs.ConditionMinLevel:
-			r.Kind, r.Have = model.LockMinLevel, uint32(p.Progression().Level)
-		case mobs.ConditionBloodlineAscensions:
-			r.Kind, r.Have = model.LockAscensions, uint32(p.BloodlineAscensions())
-		case mobs.ConditionQuestAtStage:
-			r.Kind, r.Quest, r.Stage = model.LockQuestAtStage, c.Quest, c.Stage
-			if c.Stage == mobs.QuestStageCompleted {
-				r.Kind, r.Stage = model.LockQuestComplete, ""
-			}
-		case mobs.ConditionKillsThisLife:
-			r.Kind, r.Species = model.LockKills, uint64(c.SpeciesID)
+		r := model.LockReasonOf(c)
+		switch r.Kind {
+		case model.LockMinLevel:
+			r.Have = uint32(p.Progression().Level)
+		case model.LockAscensions:
+			r.Have = uint32(p.BloodlineAscensions())
+		case model.LockKills:
 			if c.SpeciesID != 0 {
 				r.Have = uint32(p.QuestLedger().KillCount(c.SpeciesID))
 			}
+		case model.LockSkillLevel:
+			r.Have = uint32(p.SkillComponent().SkillLevel(c.SkillID))
 		}
 		out = append(out, r)
 	}
@@ -435,6 +431,11 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 		// C3), so this line never needed the authored English name.
 		return fmt.Sprintf("slay %d × %s this life (%d/%d)",
 			c.Value, skills.DeriveDisplayName(c.Species), killed, c.Value)
+	case mobs.ConditionSkillLevel:
+		// The old-client fallback, like the kill line: the client words the
+		// lock from the wire's skill id in its own language.
+		return fmt.Sprintf("%s %d (%d/%d)", skills.DeriveDisplayName(c.Skill), c.Value,
+			p.SkillComponent().SkillLevel(c.SkillID), c.Value)
 	default:
 		// Unreachable while the loader refuses an unknown kind at boot. It is
 		// spelled out rather than left to a bare default so a NEW kind lands here

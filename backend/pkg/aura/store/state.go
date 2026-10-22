@@ -60,17 +60,24 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 	//
 	// ⚑ avatar and ring are the worn look (plan-appearance.md C4), written here
 	// and read back through the /select ticket, not LoadCharacterState.
-	tag, err := tx.Exec(ctx,
+	//
+	// ⚑ RETURNING the owners, for the appearance grants below: the account and
+	// the slot come off the row, never from the caller (the AscendCharacter
+	// rule), so a grant cannot be filed under a bloodline that did not earn it.
+	var accountID int64
+	var slotIndex int
+	err = tx.QueryRow(ctx,
 		`UPDATE game.characters
 		    SET level = $2, experience = $3, active_aura_slot = $4, home_campfire_id = $5,
 		        avatar = $6, ring = $7
-		  WHERE id = $1 AND sacrificed_at IS NULL AND deleted_at IS NULL`,
+		  WHERE id = $1 AND sacrificed_at IS NULL AND deleted_at IS NULL
+		  RETURNING account_id, slot_index`,
 		state.CharacterID, state.Level, state.Experience, state.ActiveAuraSlot,
-		nullableString(state.HomeCampfireID), state.Portrait, state.Ring)
-	if err != nil {
+		nullableString(state.HomeCampfireID), state.Portrait, state.Ring).Scan(&accountID, &slotIndex)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("saving a character: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
+	if errors.Is(err, pgx.ErrNoRows) {
 		// ⚑ Wrapped as persist.ErrGone so the writer can tell "this can never
 		// succeed" from "the database is unwell" and stop retrying it — the
 		// distinction the save queue has no other way to make, and whose absence
@@ -104,6 +111,15 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 			state.CharacterID, slot.Type, slot.Index, slot.SkillID); err != nil {
 			return fmt.Errorf("saving loadout slot %s/%d: %w", slot.Type, slot.Index, err)
 		}
+	}
+
+	// The appearance grants (plan-appearance.md C5, L1): each at its scope,
+	// ON CONFLICT DO NOTHING because the owned set only grows, the campfire
+	// rule below. This is how an ACCOUNT grant reaches the database from the
+	// game loop: through the save of the character that earned it, with the
+	// account read off that character's row.
+	if err := insertAppearanceGrants(ctx, tx, accountID, slotIndex, state.CharacterID, state.AppearanceGrants); err != nil {
+		return err
 	}
 
 	// ⚑ NOT DELETED FIRST, deliberately (nor is the map fog below). Discovery is
