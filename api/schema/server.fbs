@@ -296,7 +296,14 @@ enum EntityType : ushort {
   Passage = 122,
   // A placeholder beach crab (Saltgrass Strand), its own mean face instead
   // of the NpcPlaceholder marker. Replaced at the Zone 1 art pass.
-  SandClamper = 123
+  SandClamper = 123,
+
+  // ── Dionsburg's market (plan-city-assets.md K1). Generic props like the
+  // farm set, hand-drawn placeholders until the artist's pass. The stall is
+  // two props: the striped awning is a non-blocking ROOF over a solid counter.
+  MarketStallRoof = 124,
+  MarketCounter = 125,
+  CentralFountain = 126
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

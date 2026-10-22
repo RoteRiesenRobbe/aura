@@ -1,0 +1,6 @@
+{
+  "name": "CentralFountain",
+  "entityType": "CentralFountain",
+  "sprite": "centralFountain.svg",
+  "body": { "radius": 3, "collisionFactor": 0.9 }
+}

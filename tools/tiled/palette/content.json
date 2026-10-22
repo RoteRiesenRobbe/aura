@@ -25,7 +25,9 @@
     ],
     "AuraPropType": [
       "Barn",
+      "Barrel",
       "Bedroll",
+      "Bench",
       "BerryBush",
       "Boulder",
       "Bridge",
@@ -35,6 +37,7 @@
       "Bush",
       "Cart",
       "CaveMouth",
+      "CentralFountain",
       "Cottage",
       "Crate",
       "DeadTree",
@@ -46,15 +49,20 @@
       "GateWall",
       "Haystack",
       "House",
+      "LampPost",
+      "MarketCounter",
+      "MarketStallRoof",
       "Mill",
       "NetRack",
       "OakTree",
       "Palisade",
       "PineTree",
+      "ProduceBasket",
       "Remains",
       "Rock",
       "Rowboat",
       "RuinedHouse",
+      "SackPile",
       "Shipwreck",
       "Stump",
       "Tent",
@@ -504,9 +512,17 @@
       "w": 6,
       "h": 4
     },
+    "Barrel": {
+      "w": 0.8,
+      "h": 0.8
+    },
     "Bedroll": {
       "w": 0.5,
       "h": 1.4
+    },
+    "Bench": {
+      "w": 1.8,
+      "h": 0.5
     },
     "BerryBush": {
       "w": 0.9,
@@ -543,6 +559,10 @@
     "CaveMouth": {
       "w": 3,
       "h": 2.4
+    },
+    "CentralFountain": {
+      "w": 6,
+      "h": 6
     },
     "Cottage": {
       "w": 3,
@@ -588,6 +608,18 @@
       "w": 4,
       "h": 3
     },
+    "LampPost": {
+      "w": 0.4,
+      "h": 0.4
+    },
+    "MarketCounter": {
+      "w": 2.6,
+      "h": 0.8
+    },
+    "MarketStallRoof": {
+      "w": 3,
+      "h": 2.4
+    },
     "Mill": {
       "w": 5,
       "h": 4
@@ -608,6 +640,10 @@
       "w": 1.8,
       "h": 1.8
     },
+    "ProduceBasket": {
+      "w": 0.7,
+      "h": 0.7
+    },
     "Remains": {
       "w": 0.9,
       "h": 0.9
@@ -623,6 +659,10 @@
     "RuinedHouse": {
       "w": 4,
       "h": 3
+    },
+    "SackPile": {
+      "w": 1,
+      "h": 0.8
     },
     "Shipwreck": {
       "w": 8,

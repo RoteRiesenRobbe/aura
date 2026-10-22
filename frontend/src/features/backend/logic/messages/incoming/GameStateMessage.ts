@@ -947,6 +947,11 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FishingHut]: Props.genericPropClasses.FishingHut,
     [AuraApi.EntityType.Fish]: Props.genericPropClasses.Fish,
     [AuraApi.EntityType.RemainsProp]: Props.genericPropClasses.RemainsProp,
+    // Dionsburg's market (plan-city-assets.md K1). Generic — the awning is a
+    // roof by its definition (`roof`, `blocksMovement: false`), never a class.
+    [AuraApi.EntityType.MarketStallRoof]: Props.genericPropClasses.MarketStallRoof,
+    [AuraApi.EntityType.MarketCounter]: Props.genericPropClasses.MarketCounter,
+    [AuraApi.EntityType.CentralFountain]: Props.genericPropClasses.CentralFountain,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

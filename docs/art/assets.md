@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-03 from 240 rows.
+Rendered 2026-10-22 from 248 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-03 from 240 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 206 |
+| Art | 214 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-03 from 240 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 59 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 67 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-03 from 240 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 60 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 81 | normal — placed but not everywhere |
-| **P3** | 68 | low — unplaced, deferred, or already fine |
+| **P1** | 61 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 84 | normal — placed but not everywhere |
+| **P3** | 72 | low — unplaced, deferred, or already fine |
 
-**126 rows need work** (missing, shared, placeholder, stock or blocked),
+**134 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 43
+## Prop — 51
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -216,6 +216,14 @@ of which **11 are P0**:
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
 | 🟡 | **Cave mouth frame** | `caveMouth.svg` | P1 |  | 360 x 288 | Z2 |
+| 🟡 | **MarketStallRoof** | `marketStallRoof.svg` | P2 |  | 360 × 288 | Dionsburg — The market stall's awning, the city's first roof prop: one pitch, pole at the back (north), scalloped valance at the front. Sits over a MarketCounter and fades while you stand under it. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **MarketCounter** | `marketCounter.svg` | P2 |  | 312 × 96 | Dionsburg — The solid half of the stall: a plank counter with two produce baskets, a cloth bundle and scales. Goods stay small so it reads as one counter. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **CentralFountain** | `centralFountain.svg` | P1 |  | 720 | Dionsburg — Dionsburg's landmark at the market square, 6 m across: pale stone basin, wide water ring, an upper bowl on a pedestal. Must read from a distance on the water ring. |
+| 🟡 | **Barrel** | — | P3 |  | 96 | Dionsburg — Market clutter. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **SackPile** | — | P3 |  | 120 × 96 | Dionsburg — Grain sacks heaped by a stall. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **ProduceBasket** | — | P3 |  | 84 | Dionsburg — A basket of produce on the cobbles. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **Bench** | — | P3 |  | 216 × 60 | Dionsburg — A plank bench around the fountain or a stall. PropPlaceholder box (procedural, labelled); no file yet. |
+| 🟡 | **LampPost** | — | P2 |  | 48 | Dionsburg — A street lamp, the city's light source; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. |
 
 ## Ground decal — 20
 
@@ -292,7 +300,7 @@ of which **11 are P0**:
 | ⚙️ | **Map markers** | — | P3 |  |  | Minimap/world map dots. Own player #00008B, others white, tree green circle, stone grey hex, campfire orange ring #E37313. Known bug: your own 3.5 px dot vanishes under the 9 px campfire marker at your bound fire. |
 | ✅ | **NpcPlaceholder** | `npcPlaceholder.svg` | P3 |  |  | The loud "unconfigured NPC" marker. Keep it ugly on purpose. Not used by any shipped mob. |
 | ❌ | **Ability icons** | — | P0 |  |  | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
-| ✅ | **Logo** | `logo.svg` | P3 |  |  | The favicon source: an aura icon (core + two rings, brand orange), replacing the inherited Berryhunter berry. |
+| ✅ | **Logo** | `logo.svg` | P3 |  |  | The favicon source: an aura icon (core + two rings + brand orange) replacing the inherited Berryhunter berry. |
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 

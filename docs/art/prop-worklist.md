@@ -145,7 +145,7 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch is **the only prop that emits light** (half a campfire radius, 3.5 u).
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, is the other).
 About a player wide. Tent is canvas - the only fabric in the prop set, bandit
 camp.
 
@@ -198,19 +198,54 @@ Shieldbearer- and MedicCompanion. All **P3, all drawn.**
 
 ---
 
+## C. City props - Dionsburg
+
+Scenery like the A list (top-down, no frame, no portrait rule), added one
+district at a time by [`plan-city-assets.md`](../plan-city-assets.md). Each
+district has its own palette (R5 there). The SVG placeholders set the look; the
+rest are labelled `PropPlaceholder` boxes in game, i.e. **no file at all yet**.
+None is placed in the release map yet, so there are no placement counts.
+
+A building is a wall polygon plus a **roof prop** on top that fades while you
+stand under it: a roof draws over every character, so **nothing may reach past
+its canvas** (no ropes, no overhanging eaves outside the body).
+
+### C1. Market + fountain - striped awnings
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| CentralFountain | P1 | placeholder | 720 |
+| MarketStallRoof | P2 | placeholder (roof, fades to 0.3) | 360 x 288 |
+| MarketCounter | P2 | placeholder | 312 x 96 |
+| LampPost | P2 | box only | 48 |
+| Barrel | P3 | box only | 96 |
+| SackPile | P3 | box only | 120 x 96 |
+| ProduceBasket | P3 | box only | 84 |
+| Bench | P3 | box only | 216 x 60 |
+
+⭐ The fountain is the city's landmark and must read from a distance on its
+water ring. The stall is two props: the awning (one pitch, pole at the back,
+scalloped front) over a solid counter. Stripes are muted red and bleached
+cream, worn, not festive. LampPost is the second prop that **emits light**,
+after the Torch.
+
+---
+
 ## Priority roll-up
 
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (16):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (17):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
-Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones.
+Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
+CentralFountain.
 
-**P2 (9):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
-Mossy rock · Tent.
+**P2 (12):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost.
 
-**P3 (3):** Crate · Trough · Mushroom cluster.
+**P3 (7):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+ProduceBasket · Bench.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

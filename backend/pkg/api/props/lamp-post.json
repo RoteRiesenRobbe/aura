@@ -1,0 +1,8 @@
+{
+  "name": "LampPost",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.2 },
+  "lightFraction": 0.25,
+  "lightColor": "#ffd890"
+}

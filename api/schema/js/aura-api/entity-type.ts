@@ -110,5 +110,8 @@ export enum EntityType {
   BerryBush = 120,
   Sheep = 121,
   Passage = 122,
-  SandClamper = 123
+  SandClamper = 123,
+  MarketStallRoof = 124,
+  MarketCounter = 125,
+  CentralFountain = 126
 }

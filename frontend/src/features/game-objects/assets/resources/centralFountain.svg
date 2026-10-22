@@ -1,0 +1,73 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder central fountain (plan-city-assets.md K1): TRUE top-down,
+       Dionsburg's landmark at the market square, 6 m across. Like the well
+       it is built to be seen from above: a wide pale stone basin, a broad
+       ring of water, a pedestal with a smaller upper bowl, and the spout at
+       the centre. It must read from a distance on the water ring alone, so
+       the water is wide and the stonework stays plain.
+
+       Body is a circle (r 3, collisionFactor 0.9): you can stand at the rim. -->
+
+  <!-- ground shadow, offset down-right -->
+  <circle cx="52.5" cy="53" r="46" fill="#000000" opacity="0.24"/>
+
+  <!-- the paving the basin stands on, worn by the crowd -->
+  <circle cx="50" cy="50" r="48" fill="#6e6a62" opacity="0.35"/>
+
+  <!-- the outer basin wall -->
+  <circle cx="50" cy="50" r="45" fill="#a19d93" stroke="#4f4c45" stroke-width="2.6"/>
+  <!-- coping stones: radial joints across the wall only -->
+  <g stroke="#4f4c45" stroke-width="1.2" opacity="0.6">
+    <line x1="50" y1="5" x2="50" y2="11"/>
+    <line x1="73" y1="11" x2="70" y2="16"/>
+    <line x1="89" y1="27" x2="84" y2="30"/>
+    <line x1="95" y1="50" x2="89" y2="50"/>
+    <line x1="89" y1="73" x2="84" y2="70"/>
+    <line x1="73" y1="89" x2="70" y2="84"/>
+    <line x1="50" y1="95" x2="50" y2="89"/>
+    <line x1="27" y1="89" x2="30" y2="84"/>
+    <line x1="11" y1="73" x2="16" y2="70"/>
+    <line x1="5" y1="50" x2="11" y2="50"/>
+    <line x1="11" y1="27" x2="16" y2="30"/>
+    <line x1="27" y1="11" x2="30" y2="16"/>
+  </g>
+  <!-- the wall's lit and shaded halves -->
+  <path d="M50,6 A44,44 0 0,0 6,50" fill="none" stroke="#cfcbc0" stroke-width="3.5" opacity="0.55"/>
+  <path d="M50,94 A44,44 0 0,0 94,50" fill="none" stroke="#5f5c55" stroke-width="3.5" opacity="0.5"/>
+
+  <!-- the water in the basin -->
+  <circle cx="50" cy="50" r="39" fill="#2c5a6e" stroke="#3b3934" stroke-width="2"/>
+  <!-- the inner wall's shadow falls on the water's top-left edge -->
+  <path d="M50,11.5 A38.5,38.5 0 0,0 11.5,50" fill="none" stroke="#0f2530" stroke-width="3" opacity="0.6"/>
+  <!-- ripples spreading from the falling water -->
+  <g fill="none" stroke="#7fb2c6" stroke-width="0.9" opacity="0.45">
+    <circle cx="50" cy="50" r="22"/>
+    <circle cx="50" cy="50" r="28"/>
+    <circle cx="50" cy="50" r="34"/>
+  </g>
+  <!-- light on the water, top-left -->
+  <ellipse cx="30" cy="32" rx="9" ry="3.5" fill="#a9d2e0" opacity="0.35" transform="rotate(-40 30 32)"/>
+  <ellipse cx="70" cy="70" rx="6" ry="2.5" fill="#5f97ad" opacity="0.3" transform="rotate(-40 70 70)"/>
+  <!-- a few coins on the basin floor -->
+  <g fill="#c9a640" opacity="0.6">
+    <circle cx="66" cy="34" r="1"/><circle cx="35" cy="66" r="1"/><circle cx="72" cy="58" r="0.9"/>
+  </g>
+
+  <!-- the pedestal's shadow on the water -->
+  <circle cx="52.5" cy="53" r="16" fill="#0b1a22" opacity="0.4"/>
+  <!-- the upper bowl, raised on its pedestal -->
+  <circle cx="50" cy="50" r="15" fill="#b3afa4" stroke="#4f4c45" stroke-width="2"/>
+  <path d="M50,35.5 A14.5,14.5 0 0,0 35.5,50" fill="none" stroke="#dcd8cd" stroke-width="2.2" opacity="0.6"/>
+  <circle cx="50" cy="50" r="11" fill="#3d7088" stroke="#3b3934" stroke-width="1.4"/>
+  <circle cx="50" cy="50" r="7" fill="none" stroke="#8fc0d2" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- the spout: a small stone finial with water spilling all round it -->
+  <circle cx="50" cy="50" r="4.5" fill="#cfcbc0" stroke="#4f4c45" stroke-width="1.4"/>
+  <circle cx="49" cy="49" r="1.6" fill="#ffffff" opacity="0.5"/>
+  <g fill="none" stroke="#d6eef6" stroke-width="0.9" stroke-linecap="round" opacity="0.7">
+    <path d="M50,44 Q50,40 50,37"/>
+    <path d="M56,50 Q60,50 63,50"/>
+    <path d="M50,56 Q50,60 50,63"/>
+    <path d="M44,50 Q40,50 37,50"/>
+  </g>
+</svg>

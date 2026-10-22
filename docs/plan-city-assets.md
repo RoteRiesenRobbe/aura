@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
-**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R7 RULED, D1-D8 PROPOSED,
-nothing built.** No open PO calls (§7). Six chunks (§5); K1 can start once the plan is approved.
+**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R7 RULED, D1-D8 PROPOSED.
+K1 BUILT 2026-10-22, PO look owed (§11); next K2.** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -348,4 +348,53 @@ counter, walked under from all four sides.
 
 ## 11. Chunk ledgers
 
-(none yet)
+### K1 - BUILT 2026-10-22, PO look owed `[uncommitted]` (market + fountain)
+
+- **Wire:** `EntityType` +`MarketStallRoof` = 124, `MarketCounter` = 125,
+  `CentralFountain` = 126, appended (L1). TS binding via
+  `flatc_Windows_v24_3_25.exe --ts --gen-all` (diffed in a scratch dir first:
+  only those three lines move), Go via `go generate` in `backend/pkg/api`.
+  One `gameObjectClasses` line each (`Props.genericPropClasses`); no render class.
+- **Art (R1, the city's style reference):** `marketStallRoof.svg` (300×240: one
+  pitch, pole at the back/north, ten muted red and bleached-cream stripes down
+  the slope, scalloped valance at the front/south, a sewn patch; nothing past
+  the canvas), `marketCounter.svg` (260×80: plank top, two produce baskets, a
+  cloth bundle, scales), `centralFountain.svg` (100×100: pale stone basin, wide
+  water ring with ripples, an upper bowl on a pedestal, the spout). House-style
+  light from the top-left, shadow baked down-right; ids prefixed (`stallCanvas`).
+- **Content (+8, D7 numbers, all [PLACEHOLDER]):** the three heroes, plus the
+  first SHIPPED `PropPlaceholder` defs: `Barrel`, `SackPile`, `ProduceBasket`,
+  `Bench`, `LampPost` (`lightFraction` 0.25, `#ffd890`, no flicker). The awning is
+  the first shipped `roof` consumer (`revealAlpha` 0.3, `blocksMovement: false`).
+- **Palette:** regenerated with Tiled closed (L4). ⚑ Every existing prop
+  template's `gid` shifts, because the tileset is alphabetical and 8 names
+  joined it; the converter reads names, not gids, so nothing placed moves.
+  `verify.sh` all green.
+- **Tracker (D8):** 8 `assets.csv` rows (subcategory "Props — city: market",
+  zone Dionsburg, state `placeholder`; the 5 boxes have no `current_file`),
+  `assets.md` regenerated (248 rows), `prop-worklist.md` §C "City props -
+  Dionsburg" / C1 + the priority roll-up; the Torch line no longer says
+  "the only prop that emits light".
+- **In game (headless probe, debug world, scratch placements):** the three
+  heroes draw at their body aspect (360×288, 312×96, 720×720); every box
+  carries its name; the awning goes 1 → 0.3 walked in from N, E and W, and the
+  counter stops a walk from the south outside it (alpha stays 1: the counter is
+  the stall's front by design); the LampPosts light a dark patch of the debug
+  world. ⚑ The probe's first run was cut by an outside server restart onto the
+  main zones; rerun on a fresh `-debug-zones` boot.
+- **Scratch placements** (9: the stall at (44, -3) with its counter at
+  (44, -2.25), the fountain at (34, -13), the boxes around the stall, LampPosts
+  at (46.5, -5) and (43, -8)) are in `api/zones/.debug/world_debug.json`,
+  UNCOMMITTED, for the PO look; `git checkout -- api/zones/.debug/world_debug.json`
+  reverts them (§5).
+- **Verified:** `go build ./...` · `go test -count=1 ./pkg/aura/world/...` red
+  ONLY on `TestPropContent_C1bMigrationPreservesLookAndCollision` (Tree/Boulder),
+  red at HEAD too (proved in a HEAD worktree; a known-inconclusive in the verify
+  skill) · full Go suite: the 3 known reds only (that one,
+  `TestPassages_EveryDoorCarriesItsWords`, simharness
+  `TestRunPlacementsBattery_…` rungs 1-30; none touches props) · codec ok · `aurad -validate -content ../api` 0 findings, props
+  39 → 47 (and `-debug-zones` 0 findings) · vitest 1879/0 · typecheck clean ·
+  `npm run build` ok · `verify.sh` all green · `hygiene-wire-prune` 0 console
+  errors, 0 context losses.
+- **Schema:** DB none · wire +3 `EntityType` (124-126) · conf none · content +8
+  props · zone format none · lang none.

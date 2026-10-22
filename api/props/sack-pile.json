@@ -1,0 +1,6 @@
+{
+  "name": "SackPile",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1, "height": 0.8 }
+}
