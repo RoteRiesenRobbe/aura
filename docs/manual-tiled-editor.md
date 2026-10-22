@@ -166,6 +166,12 @@ one; inside a layer, Raise / Lower decide.
   and they could not be dragged in at all. A template carries the box; a tileset
   tile carries only the picture. (Fixed 2026-09-17; the tileset is still there
   because the templates are built on it, but it is not the thing to drag.)
+- The prop templates sit in **folders by where they belong** (`City ▸ Market`,
+  `City ▸ Cathedral`, `Nature`, `Village`, `Coast` …). The folders come from
+  `tools/tiled/prop-groups.json`, a hand-kept list the palette generator reads;
+  a prop not listed there shows up in `Other`. Moving a prop to another folder
+  is a one-line edit there plus a palette regen, with Tiled closed. Nothing
+  placed changes: a template only matters at the drop.
 - ⭐ **If you dragged one anyway: Map ▸ Fit to true size (`Ctrl+Alt+F`).** Select
   the props or textures — `Edit ▸ Select All` takes the whole layer — and each
   snaps to its true box, **about its centre**, in one undo step. That is the

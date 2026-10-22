@@ -1250,8 +1250,11 @@ echo "generated palette matches the content it is generated from"
 palette_state() {
     cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
         tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx tools/tiled/palette/exits.tsx \
-        tools/tiled/palette/templates/*/*.tx \
         tools/tiled/aura.tiled-project 2>/dev/null || true
+    # The prop templates nest in folders (prop-groups.json); listing the paths
+    # too makes a template that only MOVED read as a change.
+    find tools/tiled/palette/templates -name '*.tx' -print0 2>/dev/null | sort -z \
+        | while IFS= read -r -d '' f; do echo "$f"; cat "$f"; done
 }
 before="$(palette_state)"
 node tools/tiled/generate-palette.mjs >/dev/null
