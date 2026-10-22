@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
-**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R7 RULED, D1-D8 PROPOSED.
-K1 BUILT 2026-10-22, PO look owed (§11); next K2.** No open PO calls (§7). Six chunks (§5).
+**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
+K1 BUILT 2026-10-22 (§11); next K2. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -86,6 +86,9 @@ today is a farm, coast or forest piece. The PO asked for:
   - No saved state names it: the map fog is stored in world coordinates (migration
     000003), and no quest reaches the region.
   - Schema: DB none · wire none · content: one area/region id + 2 lang keys.
+- **R8 - Heavy checks once, at the end (PO 2026-10-22, after K1).** K2-K6 run only the
+  cheap per-chunk tail (§6); in-game probes, harnesses, screenshots and the full Go suite
+  run once after K6, over all six districts. The chunk order and contents stay as planned.
 
 ## 3. Design
 
@@ -280,8 +283,12 @@ it.
 | K5 | Dwarven military + jail | 2 SVG + 10 PH | S | wire +2 · content +12 |
 | K6 | Gnome craft | 2 SVG + 7 PH | S | wire +2 · content +9 |
 
-**In-game (PO), every chunk.** Place one of each new prop in a scratch spot of the debug world
-(`-debug-zones`), never in `world.json`, then check:
+**Per chunk (R8):** only the cheap tail in §6 (validate, `world` Go tests, vitest +
+typecheck, palette + `verify.sh`, cp-defs, `npm run build`). No in-game probe, harness,
+screenshots or full Go suite until K6.
+
+**In-game (PO), ONCE after K6, over all six districts.** Place one of each prop in a scratch
+spot of the debug world (`-debug-zones`), never in `world.json`, then check:
 - each SVG reads at play zoom and sits at the right aspect;
 - placeholders show their names;
 - walking under a roof fades it to its alpha, and its touching pieces fade with it;
@@ -290,9 +297,12 @@ it.
   both).
 
 Revert the scratch placements afterwards. K1 additionally checks a stall built as awning plus
-counter, walked under from all four sides.
+counter, walked under from all four sides (done headless at K1, §11; the PO look is still
+owed and joins the final pass).
 
 ## 6. Test strategy
+
+Per R8, the first five bullets run every chunk; the last two run once, after K6.
 
 - **Go:** no new code. `go -C backend test -count=1 ./pkg/aura/world/...` covers prop load,
   the roof refusals and roof agreement for the new files. `aurad -validate -content ../api` is
@@ -300,8 +310,11 @@ counter, walked under from all four sides.
 - **vitest:** `npm --prefix frontend test` (RoofReveal, Props, any EntityType→class
   completeness pin) and `npm --prefix frontend run typecheck`.
 - **Tiled:** `bash tools/tiled/verify.sh` is green.
-- **Harness:** a `verify` leg is optional; the PO's in-game look is the gate (R1: these are
-  placeholders).
+- **Build:** cp-defs by hand, then `npm --prefix frontend run build` (L3: unlabelled boxes
+  otherwise; clear the webpack cache first after an fbs regen, L2).
+- **After K6 only:** the full Go suite (`go -C backend test -count=1 ./...`, report the reds
+  against the known list), `hygiene-wire-prune` for the EntityType additions, and the §5
+  in-game look. A `verify` leg stays optional; the PO's look is the gate (R1).
 
 ## 7. Open PO calls
 
