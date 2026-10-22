@@ -145,7 +145,7 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, and Brazier, C3, are the others).
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, Brazier, C3, and CrystalPylon and ArcaneCircle, C4, are the others).
 About a player wide. Tent is canvas, bandit camp - the only fabric outside the
 city (the city's tents and awning are C1 and C3).
 
@@ -277,6 +277,31 @@ roof; the slum tent a patched tarp on a crooked branch over a Bedroll. The slum
 tent repeats across a district, so it must stay plain enough to repeat. Brazier
 is the fourth prop that **emits light**.
 
+### C4. Library + elven mage district - pale stone, silver, sage green, violet glow
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| MageTowerRoof | P1 | placeholder (roof, fades to 0.25) | 960 |
+| LibraryRoof | P1 | placeholder (roof, fades to 0.25) | 960 x 720 |
+| Bookshelf | P2 | placeholder | 288 x 72 |
+| CrystalPylon | P2 | placeholder | 120 |
+| ArcaneCircle | P2 | box only (walked over) | 480 |
+| Orrery | P2 | box only | 240 |
+| MoonPool | P2 | box only | 432 |
+| ReadingDesk | P3 | box only | 216 x 120 |
+| Lectern | P3 | box only | 96 |
+| ScrollRack | P3 | box only | 192 x 60 |
+| BookPile | P3 | box only (walked over) | 84 |
+| AlchemyTable | P3 | box only | 240 x 120 |
+| ElvenPlanter | P3 | box only | 240 x 96 |
+
+⭐ The library takes the elven palette too (PO 2026-10-22). The mage tower roof
+is the first **circle** roof built as a whole tower: a sage-copper cone that
+fills its circle and leaves the square's corners empty, because the fade tests
+the circle body. The library roof is a piece: it fills its canvas edge to edge
+and has no east or west eave, so pieces laid flush east-west read as one roof.
+CrystalPylon and ArcaneCircle are the fifth and sixth props that **emit light**.
+
 ---
 
 ## Priority roll-up
@@ -284,19 +309,22 @@ is the fourth prop that **emits light**.
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (20):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (22):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
-CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof.
+CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
+MageTowerRoof · LibraryRoof.
 
-**P2 (26):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+**P2 (31):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
 Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
-AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier.
+AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier · Bookshelf ·
+CrystalPylon · ArcaneCircle · Orrery · MoonPool.
 
-**P3 (15):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+**P3 (21):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
 ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·
-BandageTable · Screen · RubbishHeap.
+BandageTable · Screen · RubbishHeap · ReadingDesk · Lectern · ScrollRack ·
+BookPile · AlchemyTable · ElvenPlanter.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

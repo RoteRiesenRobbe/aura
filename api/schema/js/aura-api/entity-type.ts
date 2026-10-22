@@ -123,5 +123,9 @@ export enum EntityType {
   BellTower = 133,
   LazaretTent = 134,
   SlumTent = 135,
-  LeanTo = 136
+  LeanTo = 136,
+  Bookshelf = 137,
+  MageTowerRoof = 138,
+  CrystalPylon = 139,
+  LibraryRoof = 140
 }

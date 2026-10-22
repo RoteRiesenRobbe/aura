@@ -24,8 +24,10 @@
       "Kelp Line"
     ],
     "AuraPropType": [
+      "AlchemyTable",
       "Altar",
       "AngelStatue",
+      "ArcaneCircle",
       "BandageTable",
       "Barn",
       "Barrel",
@@ -33,6 +35,8 @@
       "BellTower",
       "Bench",
       "BerryBush",
+      "BookPile",
+      "Bookshelf",
       "Boulder",
       "Brazier",
       "Bridge",
@@ -52,7 +56,9 @@
       "Cot",
       "Cottage",
       "Crate",
+      "CrystalPylon",
       "DeadTree",
+      "ElvenPlanter",
       "FallenLog",
       "FencePost",
       "Fish",
@@ -67,19 +73,25 @@
       "LampPost",
       "LazaretTent",
       "LeanTo",
+      "Lectern",
+      "LibraryRoof",
+      "MageTowerRoof",
       "MarketCounter",
       "MarketStallRoof",
       "Mausoleum",
       "Mill",
+      "MoonPool",
       "NetRack",
       "OakTree",
       "OpenGrave",
       "Organ",
+      "Orrery",
       "Palisade",
       "Pew",
       "Pillar",
       "PineTree",
       "ProduceBasket",
+      "ReadingDesk",
       "Remains",
       "Rock",
       "Rowboat",
@@ -87,6 +99,7 @@
       "RuinedHouse",
       "SackPile",
       "Screen",
+      "ScrollRack",
       "Shipwreck",
       "SlumTent",
       "Stump",
@@ -533,6 +546,10 @@
     "Kelp Line"
   ],
   "PROP_SIZE": {
+    "AlchemyTable": {
+      "w": 2,
+      "h": 1
+    },
     "Altar": {
       "w": 2.4,
       "h": 1.2
@@ -540,6 +557,10 @@
     "AngelStatue": {
       "w": 1.2,
       "h": 1.2
+    },
+    "ArcaneCircle": {
+      "w": 4,
+      "h": 4
     },
     "BandageTable": {
       "w": 1.6,
@@ -568,6 +589,14 @@
     "BerryBush": {
       "w": 0.9,
       "h": 0.9
+    },
+    "BookPile": {
+      "w": 0.7,
+      "h": 0.7
+    },
+    "Bookshelf": {
+      "w": 2.4,
+      "h": 0.6
     },
     "Boulder": {
       "w": 2.2,
@@ -645,9 +674,17 @@
       "w": 0.9,
       "h": 0.9
     },
+    "CrystalPylon": {
+      "w": 1,
+      "h": 1
+    },
     "DeadTree": {
       "w": 1.9,
       "h": 1.9
+    },
+    "ElvenPlanter": {
+      "w": 2,
+      "h": 0.8
     },
     "FallenLog": {
       "w": 2.4,
@@ -705,6 +742,18 @@
       "w": 2.4,
       "h": 1.6
     },
+    "Lectern": {
+      "w": 0.8,
+      "h": 0.8
+    },
+    "LibraryRoof": {
+      "w": 8,
+      "h": 6
+    },
+    "MageTowerRoof": {
+      "w": 8,
+      "h": 8
+    },
     "MarketCounter": {
       "w": 2.6,
       "h": 0.8
@@ -721,6 +770,10 @@
       "w": 5,
       "h": 4
     },
+    "MoonPool": {
+      "w": 3.6,
+      "h": 3.6
+    },
     "NetRack": {
       "w": 3,
       "h": 0.8
@@ -736,6 +789,10 @@
     "Organ": {
       "w": 3,
       "h": 1.5
+    },
+    "Orrery": {
+      "w": 2,
+      "h": 2
     },
     "Palisade": {
       "w": 2.4,
@@ -756,6 +813,10 @@
     "ProduceBasket": {
       "w": 0.7,
       "h": 0.7
+    },
+    "ReadingDesk": {
+      "w": 1.8,
+      "h": 1
     },
     "Remains": {
       "w": 0.9,
@@ -784,6 +845,10 @@
     "Screen": {
       "w": 1.6,
       "h": 0.2
+    },
+    "ScrollRack": {
+      "w": 1.6,
+      "h": 0.5
     },
     "Shipwreck": {
       "w": 8,

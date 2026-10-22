@@ -964,6 +964,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.LazaretTent]: Props.genericPropClasses.LazaretTent,
     [AuraApi.EntityType.SlumTent]: Props.genericPropClasses.SlumTent,
     [AuraApi.EntityType.LeanTo]: Props.genericPropClasses.LeanTo,
+    // Dionsburg's library + elven mage district (plan-city-assets.md K4).
+    // Both roofs are roofs by their definitions, the tower's on a circle body.
+    [AuraApi.EntityType.Bookshelf]: Props.genericPropClasses.Bookshelf,
+    [AuraApi.EntityType.MageTowerRoof]: Props.genericPropClasses.MageTowerRoof,
+    [AuraApi.EntityType.CrystalPylon]: Props.genericPropClasses.CrystalPylon,
+    [AuraApi.EntityType.LibraryRoof]: Props.genericPropClasses.LibraryRoof,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

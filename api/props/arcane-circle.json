@@ -1,0 +1,9 @@
+{
+  "name": "ArcaneCircle",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 2 },
+  "blocksMovement": false,
+  "lightFraction": 0.3,
+  "lightColor": "#b7a6ff"
+}

@@ -1,0 +1,61 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder crystal pylon (plan-city-assets.md K4): TRUE top-down, the
+       mage district's street light. The body is a circle (r 0.5,
+       api/props/crystal-pylon.json), so the canvas is the 1 m square around
+       it; 100 units per metre. It emits light (lightFraction 0.35, #b7a6ff),
+       which shows only in dark areas, so the drawing carries its own glow.
+
+       From above: an octagonal plinth of pale stone, a silver collar, and a
+       violet crystal standing out of it, seen point-on as a six-faced prism
+       whose facets meet at its tip. The facets toward the top-left catch the
+       light; the glow spills over the stone. Elven palette (R5): pale stone,
+       silver, sage green, violet glow. -->
+  <defs>
+    <radialGradient id="pylonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e6deff" stop-opacity="0.9"/>
+      <stop offset="0.45" stop-color="#b7a6ff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#b7a6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <path d="M33,8 L71,8 L96,33 L96,71 L71,96 L33,96 L8,71 L8,33 Z" fill="#000000" opacity="0.26"
+        transform="translate(3 3)"/>
+
+  <!-- the plinth: pale stone, an octagon, lit from the top-left -->
+  <path d="M30,4 L70,4 L96,30 L96,70 L70,96 L30,96 L4,70 L4,30 Z" fill="#c9c4b7" stroke="#5e5b54" stroke-width="2.5"/>
+  <path d="M30,4 L70,4 L50,50 Z" fill="#ddd9ce"/>
+  <path d="M4,30 L30,4 L50,50 Z" fill="#e3dfd5"/>
+  <path d="M4,70 L4,30 L50,50 Z" fill="#d6d1c5"/>
+  <path d="M96,30 L96,70 L50,50 Z" fill="#a8a397"/>
+  <path d="M70,96 L96,70 L50,50 Z" fill="#9b968a"/>
+  <path d="M30,96 L70,96 L50,50 Z" fill="#aca79b"/>
+  <!-- a sage-green leaf carved into each lit face of the plinth -->
+  <g fill="#8fa58a" stroke="#4d5c48" stroke-width="0.6" opacity="0.85">
+    <path d="M17,25 Q19,16 26,14 Q24,22 17,25 Z"/>
+    <path d="M8,50 Q12,43 18,44 Q14,50 8,50 Z"/>
+  </g>
+  <!-- the plinth's edge stroke again over the faces -->
+  <path d="M30,4 L70,4 L96,30 L96,70 L70,96 L30,96 L4,70 L4,30 Z" fill="none" stroke="#5e5b54" stroke-width="2.5"/>
+
+  <!-- the glow spilling over the stone -->
+  <circle cx="50" cy="50" r="42" fill="url(#pylonGlow)"/>
+
+  <!-- the silver collar the crystal stands in -->
+  <circle cx="50" cy="50" r="24" fill="#9ea4ad" stroke="#4f545b" stroke-width="2"/>
+  <path d="M50,27 A23,23 0 0,0 27,50" fill="none" stroke="#eef0f3" stroke-width="2.5" opacity="0.8"/>
+  <path d="M50,73 A23,23 0 0,0 73,50" fill="none" stroke="#5f656d" stroke-width="2.5" opacity="0.7"/>
+
+  <!-- the crystal, point-on: six facets meeting at the tip -->
+  <g stroke="#3b2a7a" stroke-width="1.2" stroke-linejoin="round">
+    <path d="M50,50 L50,31 L66.5,40.5 Z" fill="#a593f2"/>
+    <path d="M50,50 L66.5,40.5 L66.5,59.5 Z" fill="#7c66d6"/>
+    <path d="M50,50 L66.5,59.5 L50,69 Z" fill="#6b4fc7"/>
+    <path d="M50,50 L50,69 L33.5,59.5 Z" fill="#8a76e0"/>
+    <path d="M50,50 L33.5,59.5 L33.5,40.5 Z" fill="#c4b6ff"/>
+    <path d="M50,50 L33.5,40.5 L50,31 Z" fill="#d9cfff"/>
+  </g>
+  <!-- the tip, burning white, and a glint on the lit facet -->
+  <circle cx="50" cy="50" r="4" fill="#f4f0ff"/>
+  <path d="M39,42 L47,36" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+</svg>

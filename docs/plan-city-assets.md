@@ -1,7 +1,7 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
 **Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1 + K2 + K3 BUILT 2026-10-22 (§11); next K4. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
+K1-K4 BUILT 2026-10-22 (§11); next K5. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -190,7 +190,7 @@ Flags column, R = roof, nb = non-blocking, L = light.
 | Bookshelf | S | 2.4×0.6 | |
 | MageTowerRoof | S | r 4 | R 0.25 |
 | CrystalPylon | S | r 0.5 | L 0.35 `#b7a6ff` |
-| LibraryRoof | P | 8×6 | R 0.25 (pieces) |
+| LibraryRoof | S (drawn at K4, PO) | 8×6 | R 0.25 (pieces) |
 | ReadingDesk | P | 1.8×1 | |
 | Lectern | P | r 0.4 | |
 | ScrollRack | P | 1.6×0.5 | |
@@ -279,7 +279,7 @@ it.
 | K1 | Market + fountain | 3 SVG + 5 PH (D7). The first real `roof` consumer; the SVGs set the city's drawing style. | M | wire +3 EntityType · content +8 |
 | K2 | Cathedral + cemetery | 4 SVG + 13 PH. Roof pieces flood-fill as one building. | M | wire +4 · content +17 |
 | K3 | Lazaret + slums | 2 SVG + 6 PH | S | wire +2 · content +8 |
-| K4 | Library + elven | 3 SVG + 10 PH. The first circle roof (MageTowerRoof). | M | wire +3 · content +13 |
+| K4 | Library + elven | 3 SVG + 10 PH (built: 4 + 9, LibraryRoof drawn). The first circle roof (MageTowerRoof). | M | wire +3 (built +4) · content +13 |
 | K5 | Dwarven military + jail | 2 SVG + 10 PH | S | wire +2 · content +12 |
 | K6 | Gnome craft | 2 SVG + 7 PH | S | wire +2 · content +9 |
 
@@ -540,3 +540,59 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   harness, screenshots or full suite (R8).
 - **Schema:** DB none · wire +3 `EntityType` (134-136) · conf none · content
   +8 props · zone format none · lang none.
+
+### K4 - BUILT 2026-10-22, PO look owed (after K6, R8) `[uncommitted]` (library + elven mage district)
+
+- **PO calls (asked up front, one prompt):** the library takes the ELVEN palette
+  (pale stone, silver, sage green, violet glow), not its own; `LibraryRoof` is
+  DRAWN as an SVG hero now, not a box (wire +4 instead of +3; the prop count
+  stays 13).
+- **Wire:** `EntityType` +`Bookshelf` = 137, `MageTowerRoof` = 138,
+  `CrystalPylon` = 139, `LibraryRoof` = 140, appended (L1). TS binding via
+  `flatc_Windows_v24_3_25.exe --ts --gen-all -o <scratch> aura.fbs`, diffed:
+  only `entity-type.ts` moves. Go via `go generate` in `backend/pkg/api`. One
+  `gameObjectClasses` line each, after LeanTo.
+- **Art (R1, R5 elven):** `bookshelf.svg` (240×60, 100 units/m): pale wood,
+  back board along the NORTH edge (it stands against a north wall), the open
+  top showing a row of muted bindings between silver-capped uprights, one book
+  leaning into a gap. `mageTowerRoof.svg` (200×200, the circle's square,
+  25 units/m): the FIRST circle roof built as a whole tower: a cone that fills
+  the circle and nothing else (the square's corners stay empty, so the fade,
+  which tests the circle body, opens wherever the roof is drawn, unlike the
+  apse's chancel corners); twelve sage-copper facets in fish scales shaded
+  from the top-left, silver ribs and two bands, three violet dormers, a violet
+  crystal finial; its shadow is baked inside the bottom-right eave.
+  `crystalPylon.svg` (100×100): an octagonal pale-stone plinth, a silver
+  collar, the violet crystal point-on with its own glow. `libraryRoof.svg`
+  (320×240, 40 units/m): a roof PIECE, pale sage slate on an E-W silver ridge
+  with leaf cresting, two skylights on the lit north pitch (violet lamplight
+  in the glass); edge to edge, with NO east or west eave, so pieces laid flush
+  E-W read as one roof (only the south eave is darkened). Nothing past any
+  canvas; ids prefixed (`bookshelf…`, `mageTower…`, `pylon…`, `libraryRoof…`).
+- **Content (+13, D7 numbers, all [PLACEHOLDER]):** the four heroes (roofs
+  `MageTowerRoof` r 4 and `LibraryRoof` 8×6 at `revealAlpha` 0.25,
+  `blocksMovement: false`; `CrystalPylon` r 0.5 solid, light 0.35 `#b7a6ff`,
+  no flicker); `PropPlaceholder` defs: solid `ReadingDesk` 1.8×1, `Lectern`
+  r 0.4, `ScrollRack` 1.6×0.5, `AlchemyTable` 2×1, `Orrery` r 1, `MoonPool`
+  r 1.8, `ElvenPlanter` 2×0.8; non-blocking `BookPile` r 0.35 and
+  `ArcaneCircle` r 2 (light 0.3 `#b7a6ff`). CrystalPylon and ArcaneCircle are
+  the fifth and sixth lights. No placements anywhere.
+- **Palette:** Tiled closed from the start (L4); regenerated once. Every prop
+  template's `gid` shifts (expected). `verify.sh` all green.
+- **cp-defs:** as at K3, only the 13 new defs copied: the one other api ↔
+  `pkg/api` gap was `zones/world.json`, another session's in-flight edit,
+  left untouched. No EOL churn.
+- **Tracker (D8):** 13 `assets.csv` rows after the K3 block (subcategory
+  "Props — city: library + elven", zone Dionsburg, state `placeholder`; the 4
+  heroes SVG, the 9 boxes PNG without `current_file`), `assets.md` regenerated
+  (286 rows), `prop-worklist.md` §C4 + the roll-up (P1 22 · P2 31 · P3 21);
+  the Torch note in §A9 names the two new lights.
+- **Verified (R8 cheap tail only):** `go build ./...` · `go test -count=1
+  ./pkg/aura/world/...` red ONLY on the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate
+  -content ../api` (scratch build, L7) 0 findings, props 72 → 85 · vitest
+  1883/0 · typecheck clean · webpack cache cleared, `npm run build` ok (the 2
+  usual size warnings) · the 4 SVGs parse · `verify.sh` all green. No probe,
+  harness, screenshots or full suite (R8).
+- **Schema:** DB none · wire +4 `EntityType` (137-140) · conf none · content
+  +13 props · zone format none · lang none.

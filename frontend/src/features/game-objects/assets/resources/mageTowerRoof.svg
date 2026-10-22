@@ -1,0 +1,121 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Placeholder mage tower roof (plan-city-assets.md K4): TRUE top-down, a
+       ROOF prop on a circle body (r 4, api/props/mage-tower-roof.json), so the
+       canvas is the 8 m square around it; 25 units per metre. It fades to its
+       revealAlpha while you stand under it, so the tower's round room shows.
+
+       The first circle roof built as a whole tower (the apse is half a
+       chancel): a cone that fills the circle and nothing else, so the four
+       corners of the square stay empty ground, and the fade (which tests the
+       circle body) opens wherever the roof is drawn. Twelve facets of
+       sage-green weathered copper laid in fish scales, lightest toward the
+       top-left, on silver ribs; two silver bands ring it; three round
+       dormers glow violet; a violet crystal finial crowns the apex. The
+       shadow is baked inside the eave's bottom-right, never onto the ground:
+       a roof draws over everyone walking past. Elven palette (R5): pale
+       stone, silver, sage green, violet glow. -->
+  <defs>
+    <clipPath id="mageTowerCone">
+      <circle cx="100" cy="100" r="100"/>
+    </clipPath>
+    <!-- copper fish scales, each row offset half a scale from the last -->
+    <pattern id="mageTowerScales" width="12" height="10" patternUnits="userSpaceOnUse">
+      <path d="M0,5 A6,6 0 0,0 12,5 M-6,10 A6,6 0 0,0 6,10 M6,10 A6,6 0 0,0 18,10" fill="none"
+            stroke="#2f3a2c" stroke-width="0.8" opacity="0.45"/>
+    </pattern>
+    <radialGradient id="mageTowerGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e6deff" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#b7a6ff" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#b7a6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- the cone: twelve facets, lit from the top-left -->
+  <g>
+    <path d="M100,100 L200,100 A100,100 0 0,1 186.6,150 Z" fill="#53624e"/>
+    <path d="M100,100 L186.6,150 A100,100 0 0,1 150,186.6 Z" fill="#4d5c48"/>
+    <path d="M100,100 L150,186.6 A100,100 0 0,1 100,200 Z" fill="#53624e"/>
+    <path d="M100,100 L100,200 A100,100 0 0,1 50,186.6 Z" fill="#64745f"/>
+    <path d="M100,100 L50,186.6 A100,100 0 0,1 13.4,150 Z" fill="#7b8c76"/>
+    <path d="M100,100 L13.4,150 A100,100 0 0,1 0,100 Z" fill="#92a48c"/>
+    <path d="M100,100 L0,100 A100,100 0 0,1 13.4,50 Z" fill="#a3b69d"/>
+    <path d="M100,100 L13.4,50 A100,100 0 0,1 50,13.4 Z" fill="#a9bca3"/>
+    <path d="M100,100 L50,13.4 A100,100 0 0,1 100,0 Z" fill="#a3b69d"/>
+    <path d="M100,100 L100,0 A100,100 0 0,1 150,13.4 Z" fill="#92a48c"/>
+    <path d="M100,100 L150,13.4 A100,100 0 0,1 186.6,50 Z" fill="#7b8c76"/>
+    <path d="M100,100 L186.6,50 A100,100 0 0,1 200,100 Z" fill="#64745f"/>
+  </g>
+  <circle cx="100" cy="100" r="100" fill="url(#mageTowerScales)"/>
+
+  <!-- weather: verdigris streaks running down the cone, a re-laid scale -->
+  <g clip-path="url(#mageTowerCone)" fill="#c3d3bd" opacity="0.18">
+    <ellipse cx="62" cy="40" rx="5" ry="16" transform="rotate(-50 62 40)"/>
+    <ellipse cx="40" cy="128" rx="4" ry="14" transform="rotate(60 40 128)"/>
+  </g>
+  <path d="M146,62 A6,6 0 0,0 158,62 L158,57 L146,57 Z" fill="#b48a5a" stroke="#2f3a2c" stroke-width="0.8"/>
+
+  <!-- two silver bands ringing the cone -->
+  <g fill="none">
+    <circle cx="100" cy="100" r="44" stroke="#9ea4ad" stroke-width="4"/>
+    <circle cx="100" cy="100" r="78" stroke="#9ea4ad" stroke-width="4"/>
+  </g>
+  <g fill="none" stroke="#eef0f3" stroke-width="1.5" opacity="0.75">
+    <path d="M100,57 A43,43 0 0,0 57,100"/>
+    <path d="M100,23 A77,77 0 0,0 23,100"/>
+  </g>
+
+  <!-- the silver ribs between the facets -->
+  <g stroke="#7d838b" stroke-width="3" stroke-linecap="round">
+    <line x1="100" y1="100" x2="200" y2="100"/>
+    <line x1="100" y1="100" x2="186.6" y2="150"/>
+    <line x1="100" y1="100" x2="150" y2="186.6"/>
+    <line x1="100" y1="100" x2="100" y2="200"/>
+    <line x1="100" y1="100" x2="50" y2="186.6"/>
+    <line x1="100" y1="100" x2="13.4" y2="150"/>
+    <line x1="100" y1="100" x2="0" y2="100"/>
+    <line x1="100" y1="100" x2="13.4" y2="50"/>
+    <line x1="100" y1="100" x2="50" y2="13.4"/>
+    <line x1="100" y1="100" x2="100" y2="0"/>
+    <line x1="100" y1="100" x2="150" y2="13.4"/>
+    <line x1="100" y1="100" x2="186.6" y2="50"/>
+  </g>
+  <g stroke="#eef0f3" stroke-width="1" opacity="0.5">
+    <line x1="99" y1="99" x2="12.4" y2="49"/>
+    <line x1="99" y1="99" x2="49" y2="12.4"/>
+    <line x1="99" y1="99" x2="1" y2="99"/>
+  </g>
+
+  <!-- three round dormers between the bands, their windows lit violet -->
+  <g>
+    <circle cx="61" cy="77" r="13" fill="url(#mageTowerGlow)"/>
+    <circle cx="61" cy="77" r="7" fill="#c8ccd2" stroke="#4f545b" stroke-width="1.5"/>
+    <circle cx="61" cy="77" r="4.5" fill="#b7a6ff"/>
+    <circle cx="59.5" cy="75.5" r="1.5" fill="#f4f0ff"/>
+    <circle cx="149" cy="91" r="13" fill="url(#mageTowerGlow)"/>
+    <circle cx="149" cy="91" r="7" fill="#9ea4ad" stroke="#4f545b" stroke-width="1.5"/>
+    <circle cx="149" cy="91" r="4.5" fill="#8a76e0"/>
+    <circle cx="147.5" cy="89.5" r="1.5" fill="#e6deff"/>
+    <circle cx="92" cy="152" r="13" fill="url(#mageTowerGlow)"/>
+    <circle cx="92" cy="152" r="7" fill="#aab0b8" stroke="#4f545b" stroke-width="1.5"/>
+    <circle cx="92" cy="152" r="4.5" fill="#9a88e8"/>
+    <circle cx="90.5" cy="150.5" r="1.5" fill="#f4f0ff"/>
+  </g>
+
+  <!-- the eave: a silver rim, lit top-left, shaded and shadowed bottom-right -->
+  <circle cx="100" cy="100" r="97.5" fill="none" stroke="#5f656d" stroke-width="5"/>
+  <path d="M100,2.5 A97.5,97.5 0 0,0 2.5,100" fill="none" stroke="#c8ccd2" stroke-width="5"/>
+  <path d="M190,100 A90,90 0 0,1 100,190" fill="none" stroke="#000000" stroke-width="10" opacity="0.16"/>
+
+  <!-- the crystal finial at the apex -->
+  <circle cx="100" cy="100" r="22" fill="url(#mageTowerGlow)"/>
+  <circle cx="100" cy="100" r="11" fill="#9ea4ad" stroke="#4f545b" stroke-width="1.8"/>
+  <g stroke="#3b2a7a" stroke-width="1" stroke-linejoin="round">
+    <path d="M100,100 L100,91 L107.8,95.5 Z" fill="#a593f2"/>
+    <path d="M100,100 L107.8,95.5 L107.8,104.5 Z" fill="#7c66d6"/>
+    <path d="M100,100 L107.8,104.5 L100,109 Z" fill="#6b4fc7"/>
+    <path d="M100,100 L100,109 L92.2,104.5 Z" fill="#8a76e0"/>
+    <path d="M100,100 L92.2,104.5 L92.2,95.5 Z" fill="#c4b6ff"/>
+    <path d="M100,100 L92.2,95.5 L100,91 Z" fill="#d9cfff"/>
+  </g>
+  <circle cx="100" cy="100" r="2.2" fill="#f4f0ff"/>
+</svg>

@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 273 rows.
+Rendered 2026-10-22 from 286 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 273 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 239 |
+| Art | 252 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 273 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 92 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 105 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-22 from 273 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 64 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 98 | normal — placed but not everywhere |
-| **P3** | 80 | low — unplaced, deferred, or already fine |
+| **P1** | 66 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 103 | normal — placed but not everywhere |
+| **P3** | 86 | low — unplaced, deferred, or already fine |
 
-**159 rows need work** (missing, shared, placeholder, stock or blocked),
+**172 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 76
+## Prop — 89
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -249,6 +249,19 @@ of which **11 are P0**:
 | 🟡 | **LeanTo** | `leanTo.svg` | P2 |  | 288 × 192 | Dionsburg — One pitch propped against a wall: a beam along the wall (north), salvaged planks of mismatched widths running down the slope to a ragged south edge, one board missing, two nailed battens, a patched brown cloth over the east end weighted with stones. Drawn after K3 first shipped it as a box (PO 2026-10-22). Slums palette (R5): patched brown cloth. |
 | 🟡 | **RubbishHeap** | — | P3 |  | 192 | Dionsburg — Refuse, rags and broken crockery in a low heap. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
 | 🟡 | **Brazier** | — | P2 |  | 96 | Dionsburg — An iron fire basket the slum warms itself at; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Bookshelf** | `bookshelf.svg` | P2 |  | 288 × 72 | Dionsburg — A tall case of pale elven wood, 2.4 × 0.6 m, back board along the north edge so it stands against a north wall. From above it is its open top: a row of muted bindings between silver-capped uprights, one book leaning into the gap where another was taken. The library lines its walls with it. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **MageTowerRoof** | `mageTowerRoof.svg` | P1 |  | 960 | Dionsburg — The first circle roof built as a whole tower: a cone of sage-green weathered copper in fish scales, twelve facets lit from the top-left, silver ribs and two silver bands, three round dormers glowing violet, a violet crystal finial. It fills the circle and nothing else, because the fade tests the circle body. The mage district's landmark. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **CrystalPylon** | `crystalPylon.svg` | P2 |  | 120 | Dionsburg — The mage district's street light: an octagonal pale stone plinth, a silver collar, a violet crystal seen point-on as a six-faced prism, its glow spilling over the stone. The light shows only in dark areas. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **LibraryRoof** | `libraryRoof.svg` | P1 |  | 960 × 720 | Dionsburg — A roof PIECE, 8 × 6 m: pale sage slate on an east-west silver ridge with leaf cresting, two skylights on the lit north pitch showing violet lamplight, moss on the shaded south pitch. No eave on the east and west edges, so pieces laid flush east-west read as one long roof. Drawn at the PO's ask instead of a box (2026-10-22). Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ReadingDesk** | — | P3 |  | 216 × 120 | Dionsburg — A broad desk with open books, a lamp and a stool. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **Lectern** | — | P3 |  | 96 | Dionsburg — A slanted stand holding one great open book. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ScrollRack** | — | P3 |  | 192 × 60 | Dionsburg — A low lattice of pigeonholes, each holding a rolled scroll. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **BookPile** | — | P3 |  | 84 | Dionsburg — A low stack of books left on the floor. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ArcaneCircle** | — | P2 |  | 480 | Dionsburg — A ritual circle inlaid in the floor, runes glowing violet; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **AlchemyTable** | — | P3 |  | 240 × 120 | Dionsburg — A long table of flasks, a burner and a mortar. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **Orrery** | — | P2 |  | 240 | Dionsburg — A great brass-and-silver model of the heavens on a round base. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **MoonPool** | — | P2 |  | 432 | Dionsburg — A round still pool in a pale stone rim that holds the moon. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ElvenPlanter** | — | P3 |  | 240 × 96 | Dionsburg — A long carved stone trough of sage herbs and pale flowers. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
 
 ## Ground decal — 20
 

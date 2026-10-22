@@ -1,0 +1,88 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" preserveAspectRatio="none">
+  <!-- Placeholder library roof (plan-city-assets.md K4): TRUE top-down, a ROOF
+       piece. The viewBox is 320x240 to match the 8 x 6 rect body in
+       api/props/library-roof.json (preserveAspectRatio=none, so the two must
+       stay in sync); 40 units per metre. It fades to its revealAlpha while you
+       stand under it, so the shelves and desks beneath show.
+
+       Built in PIECES (D7): the ridge runs east-west and the tiles fill the
+       canvas edge to edge, like the nave, so two pieces laid flush east-west
+       read as one long roof with no seam. That is also why the east and west
+       edges carry no eave, lit or shaded: only the south eave, the low edge
+       of the shaded pitch, is darkened. The north pitch faces the top-left
+       light; north light is what a reading room wants, so its two skylights
+       are on that side. Pale sage slate, a silver ridge with leaf cresting,
+       a violet lamp glow showing through the glass. Elven palette (R5): pale
+       stone, silver, sage green, violet glow. -->
+  <defs>
+    <!-- slate courses, each row's joints offset half a slate from the last -->
+    <pattern id="libraryRoofSlate" width="16" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0,6 H16 M0,12 H16 M8,0 V6 M0,6 V12 M16,6 V12" fill="none" stroke="#3e4a3d"
+            stroke-width="0.8" opacity="0.5"/>
+    </pattern>
+    <!-- silver leaf cresting along the ridge -->
+    <pattern id="libraryRoofCresting" width="20" height="12" patternUnits="userSpaceOnUse">
+      <path d="M10,2 Q15,6 10,10 Q5,6 10,2 Z" fill="#c8ccd2" stroke="#5f656d" stroke-width="0.6"/>
+    </pattern>
+    <linearGradient id="libraryRoofNorth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="libraryRoofSouth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.24"/>
+    </linearGradient>
+    <linearGradient id="libraryRoofGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6e9ee"/>
+      <stop offset="0.5" stop-color="#b9b3d6"/>
+      <stop offset="1" stop-color="#8a80b8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the two pitches -->
+  <rect x="0" y="0" width="320" height="120" fill="#9aa79a"/>
+  <rect x="0" y="120" width="320" height="120" fill="#737f72"/>
+  <rect x="0" y="0" width="320" height="240" fill="url(#libraryRoofSlate)"/>
+  <rect x="0" y="0" width="320" height="120" fill="url(#libraryRoofNorth)"/>
+  <rect x="0" y="120" width="320" height="120" fill="url(#libraryRoofSouth)"/>
+
+  <!-- weather: slates replaced over the years, moss on the shaded pitch -->
+  <g stroke="#3e4a3d" stroke-width="0.6">
+    <rect x="40" y="36" width="8" height="6" fill="#aab7a9"/>
+    <rect x="232" y="72" width="8" height="6" fill="#8b988a"/>
+    <rect x="120" y="168" width="8" height="6" fill="#64705f"/>
+    <rect x="280" y="204" width="8" height="6" fill="#828e80"/>
+  </g>
+  <g fill="#5f7a4e" opacity="0.28">
+    <ellipse cx="72" cy="214" rx="14" ry="5"/>
+    <ellipse cx="206" cy="190" rx="10" ry="4"/>
+    <ellipse cx="300" cy="226" rx="9" ry="4"/>
+  </g>
+
+  <!-- two skylights on the north pitch, the lamplight violet through the glass -->
+  <g>
+    <rect x="68" y="36" width="56" height="52" fill="#000000" opacity="0.25" transform="translate(4 4)"/>
+    <rect x="68" y="36" width="56" height="52" fill="#9ea4ad" stroke="#4f545b" stroke-width="2"/>
+    <rect x="74" y="42" width="44" height="40" fill="url(#libraryRoofGlass)"/>
+    <path d="M96,42 V82 M74,62 H118" stroke="#7d838b" stroke-width="2.5"/>
+    <path d="M76,44 L92,44 L76,58 Z" fill="#ffffff" opacity="0.35"/>
+    <rect x="196" y="36" width="56" height="52" fill="#000000" opacity="0.25" transform="translate(4 4)"/>
+    <rect x="196" y="36" width="56" height="52" fill="#9ea4ad" stroke="#4f545b" stroke-width="2"/>
+    <rect x="202" y="42" width="44" height="40" fill="url(#libraryRoofGlass)"/>
+    <path d="M224,42 V82 M202,62 H246" stroke="#7d838b" stroke-width="2.5"/>
+    <path d="M204,44 L220,44 L204,58 Z" fill="#ffffff" opacity="0.35"/>
+  </g>
+  <!-- a small vent on the shaded pitch -->
+  <rect x="146" y="162" width="20" height="16" rx="2" fill="#5f656d" stroke="#3b4046" stroke-width="1.5"/>
+  <rect x="148" y="164" width="16" height="3" fill="#9ea4ad" opacity="0.6"/>
+
+  <!-- the south eave, the shaded pitch's low edge -->
+  <rect x="0" y="230" width="320" height="10" fill="#3e4a3d" opacity="0.55"/>
+  <rect x="0" y="222" width="320" height="8" fill="#000000" opacity="0.12"/>
+
+  <!-- the silver ridge along the middle, with its leaf cresting -->
+  <rect x="0" y="112" width="320" height="16" fill="#7d838b"/>
+  <rect x="0" y="113" width="320" height="4" fill="#eef0f3" opacity="0.6"/>
+  <rect x="0" y="124" width="320" height="4" fill="#000000" opacity="0.25"/>
+  <rect x="0" y="114" width="320" height="12" fill="url(#libraryRoofCresting)"/>
+</svg>

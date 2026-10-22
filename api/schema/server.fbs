@@ -325,7 +325,15 @@ enum EntityType : ushort {
   SlumTent = 135,
   // The slum lean-to, drawn after K3 first shipped it as a placeholder
   // (PO 2026-10-22). A one-pitch ROOF against a wall.
-  LeanTo = 136
+  LeanTo = 136,
+
+  // ── Dionsburg's library + elven mage district (plan-city-assets.md K4).
+  // The tower roof is the first ROOF on a circle body built as a whole
+  // building; the library roof is a piece, filled edge to edge.
+  Bookshelf = 137,
+  MageTowerRoof = 138,
+  CrystalPylon = 139,
+  LibraryRoof = 140
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
