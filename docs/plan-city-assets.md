@@ -466,3 +466,18 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   session's uncommitted zone edits and stay unstaged.
 - **Schema:** DB none · wire +4 `EntityType` (127-130) · conf none ·
   content +17 props · zone format none · lang none.
+- **K2 follow-up, 2026-10-22 `[uncommitted]` (PO: "can you draw them? no
+  testing"):** the transept and apse moved from boxes to SVG heroes:
+  `CathedralTranseptRoof` = 131, `CathedralApseRoof` = 132 (bindings
+  regenerated as above, two `gameObjectClasses` lines, the two defs switch
+  entityType + sprite and nothing else, D3). `cathedralTranseptRoof.svg`
+  (480×160): slate arms on an E-W ridge, the nave's N-S roof running through
+  the crossing (four valleys), a slate flèche with a gold finial; the eaves
+  stop where the nave and apse join. `cathedralApseRoof.svg` (200×200, the
+  circle's square): a square-cornered chancel carrying the nave's roof on (so
+  it meets the transept without a gap), then a half-cone on lead ribs with a
+  gold boss; the bottom corners stay empty. ⚑ The fade tests the circle
+  body, so the two chancel corners (~5 m² each) do not open the roof by
+  standing in them. Palette regenerated, `npm run build` ok; per the PO, no
+  tests or validate run. Schema: wire +2 `EntityType` (now +6 for K2),
+  content unchanged in count (2 defs edited).

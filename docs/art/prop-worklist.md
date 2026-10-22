@@ -234,8 +234,8 @@ after the Torch.
 | Prop | Prio | State | px |
 |---|---|---|---|
 | CathedralNaveRoof | P1 | placeholder (roof, fades to 0.25) | 1200 x 2880 |
-| CathedralTranseptRoof | P1 | box only (roof, fades to 0.25) | 2880 x 960 |
-| CathedralApseRoof | P1 | box only (roof, fades to 0.25) | 1200 |
+| CathedralTranseptRoof | P1 | placeholder (roof, fades to 0.25) | 2880 x 960 |
+| CathedralApseRoof | P1 | placeholder (roof, fades to 0.25) | 1200 |
 | Pew | P2 | placeholder | 360 x 72 |
 | Altar | P2 | placeholder | 288 x 144 |
 | Mausoleum | P2 | placeholder | 480 x 360 |

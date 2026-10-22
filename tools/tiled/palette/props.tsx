@@ -102,7 +102,7 @@
   <properties>
    <property name="auraType" value="CathedralApseRoof"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/propPlaceholder.svg" width="512" height="512"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/cathedralApseRoof.svg" width="14" height="12"/>
  </tile>
  <tile id="17" type="AuraProp">
   <properties>
@@ -114,7 +114,7 @@
   <properties>
    <property name="auraType" value="CathedralTranseptRoof"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/propPlaceholder.svg" width="512" height="512"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/cathedralTranseptRoof.svg" width="12" height="14"/>
  </tile>
  <tile id="19" type="AuraProp">
   <properties>

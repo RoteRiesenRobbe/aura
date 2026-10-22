@@ -1,0 +1,100 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Placeholder cathedral apse roof (plan-city-assets.md K2): TRUE top-down,
+       a ROOF prop on a circle body (r 5, api/props/cathedral-apse-roof.json),
+       so the canvas is the 10 m square around it; 20 units per metre, like
+       the nave and transept. It sits flush below the transept's middle.
+
+       Drawn as a real apse, not a disc: the top half is the chancel, carrying
+       the nave's north-south roof on to the transept (square corners, so it
+       meets the transept without a gap), and the bottom half is the round
+       end, a half-cone of slate on lead ribs with a gold boss at the apex.
+       The two bottom corners stay empty ground.
+
+       ⚑ The fade tests the CIRCLE body, so a player standing in one of the
+       two chancel corners (outside the circle, ~5 m² each) does not open the
+       roof by standing there; standing anywhere else in the building does. -->
+  <defs>
+    <pattern id="apseSlate" width="14" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0,6 H14 M0,12 H14 M7,0 V6 M0,6 V12 M14,6 V12" fill="none" stroke="#2f3338"
+            stroke-width="0.8" opacity="0.55"/>
+    </pattern>
+    <pattern id="apseCresting" width="6" height="24" patternUnits="userSpaceOnUse">
+      <path d="M3,8 L5.2,12 L3,16 L0.8,12 Z" fill="#c9a640" stroke="#6e5520" stroke-width="0.6"/>
+    </pattern>
+    <clipPath id="apseCone">
+      <path d="M200,100 A100,100 0 0,1 0,100 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- ground shadow of the round end, offset down-right -->
+  <path d="M200,100 A100,100 0 0,1 0,100 Z" fill="#000000" opacity="0.24" transform="translate(5 5)"/>
+
+  <!-- the chancel: the nave's two pitches carried on -->
+  <rect x="0" y="0" width="100" height="100" fill="#6c737c"/>
+  <rect x="100" y="0" width="100" height="100" fill="#555b63"/>
+  <rect x="0" y="0" width="200" height="100" fill="url(#apseSlate)"/>
+  <rect x="0" y="0" width="100" height="100" fill="#ffffff" opacity="0.06"/>
+
+  <!-- the half-cone: eight slate facets, lightest toward the west -->
+  <g stroke="#2f3338" stroke-width="0.8">
+    <path d="M100,100 L200,100 A100,100 0 0,1 192.4,138.3 Z" fill="#4a5057"/>
+    <path d="M100,100 L192.4,138.3 A100,100 0 0,1 170.7,170.7 Z" fill="#4d535a"/>
+    <path d="M100,100 L170.7,170.7 A100,100 0 0,1 138.3,192.4 Z" fill="#51575e"/>
+    <path d="M100,100 L138.3,192.4 A100,100 0 0,1 100,200 Z" fill="#555b63"/>
+    <path d="M100,100 L100,200 A100,100 0 0,1 61.7,192.4 Z" fill="#5a6068"/>
+    <path d="M100,100 L61.7,192.4 A100,100 0 0,1 29.3,170.7 Z" fill="#60666e"/>
+    <path d="M100,100 L29.3,170.7 A100,100 0 0,1 7.6,138.3 Z" fill="#666d76"/>
+    <path d="M100,100 L7.6,138.3 A100,100 0 0,1 0,100 Z" fill="#6b727b"/>
+  </g>
+  <!-- slate courses ringing the cone -->
+  <g clip-path="url(#apseCone)" fill="none" stroke="#2f3338" stroke-width="0.8" opacity="0.55">
+    <circle cx="100" cy="100" r="18"/><circle cx="100" cy="100" r="30"/>
+    <circle cx="100" cy="100" r="42"/><circle cx="100" cy="100" r="54"/>
+    <circle cx="100" cy="100" r="66"/><circle cx="100" cy="100" r="78"/>
+    <circle cx="100" cy="100" r="90"/>
+  </g>
+
+  <!-- weather: lichen on the shaded cone, a replaced slate in the chancel -->
+  <g fill="#8b9160" opacity="0.22">
+    <ellipse cx="150" cy="168" rx="10" ry="5" transform="rotate(-40 150 168)"/>
+    <ellipse cx="40" cy="150" rx="7" ry="4" transform="rotate(35 40 150)"/>
+  </g>
+  <rect x="35" y="42" width="7" height="6" fill="#7b828b" stroke="#2f3338" stroke-width="0.6"/>
+  <rect x="150" y="66" width="7" height="6" fill="#4a5057" stroke="#2f3338" stroke-width="0.6"/>
+
+  <!-- the lead ribs between the facets -->
+  <g stroke="#3b4046" stroke-width="4" stroke-linecap="round">
+    <line x1="100" y1="100" x2="192.4" y2="138.3"/>
+    <line x1="100" y1="100" x2="170.7" y2="170.7"/>
+    <line x1="100" y1="100" x2="138.3" y2="192.4"/>
+    <line x1="100" y1="100" x2="100" y2="200"/>
+    <line x1="100" y1="100" x2="61.7" y2="192.4"/>
+    <line x1="100" y1="100" x2="29.3" y2="170.7"/>
+    <line x1="100" y1="100" x2="7.6" y2="138.3"/>
+  </g>
+  <g stroke="#9aa0a7" stroke-width="1" opacity="0.4">
+    <line x1="99" y1="101" x2="60.7" y2="191.4"/>
+    <line x1="99" y1="101" x2="28.3" y2="169.7"/>
+    <line x1="99" y1="101" x2="6.6" y2="137.3"/>
+  </g>
+
+  <!-- the eaves: lit lead on the chancel's west side, shadow on its east, and
+       the round rim darkening toward the bottom-right -->
+  <rect x="0" y="0" width="5" height="100" fill="#8a9097"/>
+  <rect x="195" y="0" width="5" height="100" fill="#2a2e33"/>
+  <rect x="186" y="0" width="9" height="100" fill="#000000" opacity="0.14"/>
+  <path d="M197.5,100 A97.5,97.5 0 0,1 2.5,100" fill="none" stroke="#2a2e33" stroke-width="5"/>
+  <path d="M190,100 A90,90 0 0,1 100,190" fill="none" stroke="#000000" stroke-width="9" opacity="0.14"/>
+  <path d="M60,188 A90,90 0 0,1 12,128" fill="none" stroke="#9aa0a7" stroke-width="2" opacity="0.35"/>
+
+  <!-- the nave's ridge carried to the apex, with its gold cresting -->
+  <rect x="94" y="0" width="12" height="100" fill="#3b4046"/>
+  <rect x="95" y="0" width="3" height="100" fill="#9aa0a7" opacity="0.5"/>
+  <rect x="103" y="0" width="3" height="100" fill="#000000" opacity="0.25"/>
+  <rect x="97" y="0" width="6" height="96" fill="url(#apseCresting)"/>
+
+  <!-- the gold boss at the apex -->
+  <circle cx="100" cy="100" r="8" fill="#000000" opacity="0.35" transform="translate(3.5 3.5)"/>
+  <circle cx="100" cy="100" r="8" fill="#c9a640" stroke="#6e5520" stroke-width="1.6"/>
+  <circle cx="98" cy="98" r="2.6" fill="#f0d98a" opacity="0.8"/>
+</svg>

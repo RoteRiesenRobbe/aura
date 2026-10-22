@@ -311,7 +311,11 @@ enum EntityType : ushort {
   CathedralNaveRoof = 127,
   Pew = 128,
   Altar = 129,
-  Mausoleum = 130
+  Mausoleum = 130,
+  // The other two cathedral roof pieces, drawn after K2 shipped them as
+  // placeholders (PO 2026-10-22).
+  CathedralTranseptRoof = 131,
+  CathedralApseRoof = 132
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

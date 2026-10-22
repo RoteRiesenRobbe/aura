@@ -958,6 +958,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Pew]: Props.genericPropClasses.Pew,
     [AuraApi.EntityType.Altar]: Props.genericPropClasses.Altar,
     [AuraApi.EntityType.Mausoleum]: Props.genericPropClasses.Mausoleum,
+    [AuraApi.EntityType.CathedralTranseptRoof]: Props.genericPropClasses.CathedralTranseptRoof,
+    [AuraApi.EntityType.CathedralApseRoof]: Props.genericPropClasses.CathedralApseRoof,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,
