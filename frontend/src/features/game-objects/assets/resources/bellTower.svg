@@ -1,0 +1,121 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <!-- Placeholder cathedral bell tower (plan-city-assets.md K2): TRUE top-down,
+       the tower seen from straight above. The viewBox is 100x100 to match
+       the 5 x 5 rect body in api/props/bell-tower.json (preserveAspectRatio=
+       none, so the two must stay in sync); 20 units per metre, like the
+       cathedral's roof pieces. SOLID, not a roof: nobody goes in, and it
+       never fades. One tower (PO 2026-10-22), meant to stand flush against
+       the nave's north-west corner, beside the west front.
+
+       An OPEN belfry, so the bell is what you see (PO: no second cross): a
+       crenellated stone parapet around a dark bell chamber, two oak frame
+       beams spanning it, and the bronze bell hanging from its headstock,
+       its ringing wheel edge-on beside it. The bronze is the tower's gold
+       accent. It is the tallest thing in the city, so its shadow falls
+       further down-right than any roof's. -->
+  <defs>
+    <radialGradient id="bellTowerBronze" cx="0.38" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#e0b860"/>
+      <stop offset="0.45" stop-color="#b08533"/>
+      <stop offset="1" stop-color="#6b4a18"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow, long, offset down-right -->
+  <rect x="12" y="12" width="88" height="88" fill="#000000" opacity="0.28"/>
+
+  <!-- the parapet -->
+  <rect x="2" y="2" width="86" height="86" fill="#a19d93" stroke="#4f4c45" stroke-width="1.6"/>
+  <rect x="3" y="3" width="84" height="2" fill="#cfcbc0" opacity="0.6"/>
+  <rect x="3" y="3" width="2" height="84" fill="#cfcbc0" opacity="0.45"/>
+  <rect x="3" y="85" width="84" height="2" fill="#5f5c55" opacity="0.5"/>
+  <rect x="85" y="3" width="2" height="84" fill="#5f5c55" opacity="0.5"/>
+  <!-- the crenels: gaps between the merlons, dark across the parapet -->
+  <g fill="#4f4c45" opacity="0.7">
+    <rect x="20" y="2" width="5" height="6"/><rect x="42.5" y="2" width="5" height="6"/>
+    <rect x="65" y="2" width="5" height="6"/>
+    <rect x="20" y="82" width="5" height="6"/><rect x="42.5" y="82" width="5" height="6"/>
+    <rect x="65" y="82" width="5" height="6"/>
+    <rect x="2" y="20" width="6" height="5"/><rect x="2" y="42.5" width="6" height="5"/>
+    <rect x="2" y="65" width="6" height="5"/>
+    <rect x="82" y="20" width="6" height="5"/><rect x="82" y="42.5" width="6" height="5"/>
+    <rect x="82" y="65" width="6" height="5"/>
+  </g>
+
+  <!-- the open bell chamber, looking down into it: deep and dark, the inner
+       faces of the south and east walls catching the light from the top-left -->
+  <rect x="8" y="8" width="74" height="74" fill="#2b2926" stroke="#3b3934" stroke-width="1"/>
+  <path d="M8,82 L82,82 L82,8 L76,14 L76,76 L14,76 Z" fill="#6e6a62" opacity="0.8"/>
+  <path d="M8,8 L82,8 L76,14 L14,14 L14,76 L8,82 Z" fill="#1c1a18" opacity="0.8"/>
+  <!-- louvre slats in the openings, seen from above as thin dark bars -->
+  <g stroke="#4a3a26" stroke-width="1.2" opacity="0.7">
+    <line x1="30" y1="78" x2="60" y2="78"/><line x1="78" y1="30" x2="78" y2="60"/>
+  </g>
+
+  <!-- the oak bell frame: two beams spanning east-west, wall to wall -->
+  <g>
+    <rect x="8" y="28" width="74" height="6" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+    <rect x="8" y="56" width="74" height="6" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+    <rect x="8" y="28" width="74" height="6" fill="#6a4a28" stroke="#2c1c0d" stroke-width="1"/>
+    <rect x="8" y="56" width="74" height="6" fill="#6a4a28" stroke="#2c1c0d" stroke-width="1"/>
+    <rect x="9" y="29" width="72" height="1.6" fill="#9a7244" opacity="0.6"/>
+    <rect x="9" y="57" width="72" height="1.6" fill="#9a7244" opacity="0.6"/>
+    <!-- iron straps where the beams sit in the walls -->
+    <g fill="#2f2e2b">
+      <rect x="13" y="28" width="2" height="6"/><rect x="75" y="28" width="2" height="6"/>
+      <rect x="13" y="56" width="2" height="6"/><rect x="75" y="56" width="2" height="6"/>
+    </g>
+    <!-- the pigeons have found it -->
+    <g fill="#e8e4da" opacity="0.8">
+      <circle cx="22" cy="31" r="0.8"/><circle cx="24.5" cy="32.2" r="0.6"/>
+      <circle cx="67" cy="59" r="0.8"/><circle cx="30" cy="58.5" r="0.6"/>
+    </g>
+  </g>
+
+  <!-- the ringing wheel, edge-on from above: a narrow slatted rim east of the bell -->
+  <rect x="64" y="30" width="5" height="30" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+  <rect x="64" y="30" width="5" height="30" rx="2" fill="#7a5530" stroke="#2c1c0d" stroke-width="0.9"/>
+  <g stroke="#2c1c0d" stroke-width="0.6" opacity="0.7">
+    <line x1="64" y1="36" x2="69" y2="36"/><line x1="64" y1="42" x2="69" y2="42"/>
+    <line x1="64" y1="48" x2="69" y2="48"/><line x1="64" y1="54" x2="69" y2="54"/>
+  </g>
+  <!-- the bell rope, dropping away into the dark -->
+  <circle cx="66.5" cy="63" r="1.1" fill="#b59a6a" stroke="#4a3a26" stroke-width="0.4"/>
+
+  <!-- the bell: its shadow on the dark below, the bronze shoulder, the waist
+       flaring out under it, verdigris where the rain sits -->
+  <circle cx="45" cy="45" r="17" fill="#000000" opacity="0.4" transform="translate(3 3)"/>
+  <circle cx="45" cy="45" r="17" fill="url(#bellTowerBronze)" stroke="#4a3210" stroke-width="1.2"/>
+  <circle cx="45" cy="45" r="12" fill="none" stroke="#5a3e14" stroke-width="1" opacity="0.6"/>
+  <circle cx="45" cy="45" r="7.5" fill="none" stroke="#e8c878" stroke-width="0.8" opacity="0.45"/>
+  <g fill="#5f8f7a" opacity="0.5">
+    <ellipse cx="53" cy="53" rx="3.2" ry="1.8" transform="rotate(45 53 53)"/>
+    <ellipse cx="34" cy="52" rx="2" ry="1.2" transform="rotate(-30 34 52)"/>
+  </g>
+  <ellipse cx="38.5" cy="38" rx="4.5" ry="2.2" fill="#fff4d0" opacity="0.4" transform="rotate(-40 38.5 38)"/>
+
+  <!-- the headstock the bell hangs from, across its crown, bearing on both beams -->
+  <rect x="41.5" y="30" width="7" height="30" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+  <rect x="41.5" y="30" width="7" height="30" fill="#5e3f22" stroke="#2c1c0d" stroke-width="1"/>
+  <rect x="42.5" y="31" width="2" height="28" fill="#9a7244" opacity="0.5"/>
+  <!-- the crown's iron bolts -->
+  <g fill="#2f2e2b">
+    <circle cx="45" cy="40.5" r="1.1"/><circle cx="45" cy="49.5" r="1.1"/>
+  </g>
+
+  <!-- stone pinnacles on the corners -->
+  <g>
+    <rect x="1" y="1" width="9" height="9" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <rect x="1" y="1" width="9" height="9" fill="#b3afa4" stroke="#4f4c45" stroke-width="1"/>
+    <rect x="3.5" y="3.5" width="4" height="4" fill="#cfcbc0" opacity="0.6"/>
+    <rect x="80" y="1" width="9" height="9" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <rect x="80" y="1" width="9" height="9" fill="#b3afa4" stroke="#4f4c45" stroke-width="1"/>
+    <rect x="82.5" y="3.5" width="4" height="4" fill="#cfcbc0" opacity="0.6"/>
+    <rect x="1" y="80" width="9" height="9" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <rect x="1" y="80" width="9" height="9" fill="#a19d93" stroke="#4f4c45" stroke-width="1"/>
+    <rect x="3.5" y="82.5" width="4" height="4" fill="#cfcbc0" opacity="0.45"/>
+    <rect x="80" y="80" width="9" height="9" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <rect x="80" y="80" width="9" height="9" fill="#a19d93" stroke="#4f4c45" stroke-width="1"/>
+    <rect x="82.5" y="82.5" width="4" height="4" fill="#cfcbc0" opacity="0.45"/>
+  </g>
+</svg>

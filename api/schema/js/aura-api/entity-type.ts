@@ -119,5 +119,6 @@ export enum EntityType {
   Altar = 129,
   Mausoleum = 130,
   CathedralTranseptRoof = 131,
-  CathedralApseRoof = 132
+  CathedralApseRoof = 132,
+  BellTower = 133
 }

@@ -36,7 +36,7 @@
   <properties>
    <property name="auraType" value="BellTower"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/propPlaceholder.svg" width="512" height="512"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/bellTower.svg" width="88" height="88"/>
  </tile>
  <tile id="6" type="AuraProp">
   <properties>

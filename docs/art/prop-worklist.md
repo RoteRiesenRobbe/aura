@@ -239,7 +239,7 @@ after the Torch.
 | Pew | P2 | placeholder | 360 x 72 |
 | Altar | P2 | placeholder | 288 x 144 |
 | Mausoleum | P2 | placeholder | 480 x 360 |
-| BellTower | P2 | box only | 600 x 600 |
+| BellTower | P2 | placeholder | 600 x 600 |
 | CandleStand | P2 | box only | 72 |
 | GraveMound | P2 | box only (walked over) | 120 x 240 |
 | IronFence | P2 | box only | 288 x 36 |

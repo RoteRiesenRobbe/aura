@@ -480,4 +480,16 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   body, so the two chancel corners (~5 m² each) do not open the roof by
   standing in them. Palette regenerated, `npm run build` ok; per the PO, no
   tests or validate run. Schema: wire +2 `EntityType` (now +6 for K2),
-  content unchanged in count (2 defs edited).
+  content unchanged in count (2 defs edited). Committed `f3863607`.
+- **K2 follow-up 2, 2026-10-22 `[uncommitted]` (PO: "draw one"):** ONE bell
+  tower, drawn: `BellTower` = 133, `bellTower.svg` (100×100 for 5 × 5, solid):
+  an OPEN belfry, so the bell shows from above (PO: "another cross is a
+  bit much"): a crenellated stone parapet around the dark bell chamber, two
+  oak frame beams, the bronze bell on its headstock (the bronze is its gold
+  accent), the ringing wheel edge-on, the city's longest shadow. Meant
+  to stand flush against the nave's north-west corner, outside the nave
+  (overlapping it would put a solid block inside the church). Not a roof:
+  it never fades and joins no flood fill. `npm run build` ok; no tests (PO).
+  The palette picked the tile up in a regen this session did not run
+  (Tiled had `world.json` open, L4): only the BellTower tile moved. Schema:
+  wire +1 `EntityType` (now +7 for K2), 1 def edited.

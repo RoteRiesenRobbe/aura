@@ -1,6 +1,6 @@
 {
   "name": "BellTower",
-  "entityType": "PropPlaceholder",
-  "sprite": "propPlaceholder.svg",
+  "entityType": "BellTower",
+  "sprite": "bellTower.svg",
   "body": { "width": 5, "height": 5 }
 }
