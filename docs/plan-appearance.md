@@ -218,6 +218,9 @@ plan proposes on top (marked *proposed*).
 
 ### 3.6 Answered at the end of the session (PO, 2026-10-17)
 
+- ⚑ **AMENDED 2026-10-22 by `plan-ascension-ceremony.md` (R2, R6-R8):** (b) is now a
+  look step IN ADDITION to the skill gift, one slot per step, always skippable, nothing
+  preselected for the heir; it is built there (AC2). (c) stays here, in C5b.
 - **D21. Ascension unlocks come three ways.** (a) **By count**: an item's
   `bloodline_ascensions` condition (D15). (b) **A pick at the stone**: an
   appearance item offered as a row beside the skill rewards, taken *instead of* a
@@ -557,7 +560,8 @@ whenever the pilot lands.**
   the client holds the level and the spellbook levels, NOT the slot's ascension count
   (only the `/characters` slot card has it): cache it client-side or add a value.
   *Schema: none expected (client only).*
-- **C5b, stone rewards** (D21b, D21c). Appearance entries in a site's reward
+- **C5b, stone rewards** (D21b, D21c). ⚑ 2026-10-22: the `pick` half moved to
+  `plan-ascension-ceremony.md` AC2; C5b keeps only the `bonus` (D21c). Appearance entries in a site's reward
   list, `pick` rows beside the skill rows and `bonus` grants on top, written in
   the `AscendCharacter` transaction; the stone's rows render the item. May fold
   into C5 if C5 runs small. *Schema: ascension content format +1 entry kind; no

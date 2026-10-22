@@ -244,6 +244,10 @@ timestamp in the database and the database owns it:
 
 ### 3.4 The ceremony (D20, D21)
 
+> ⚑ **Superseded 2026-10-22 by `plan-ascension-ceremony.md`** (the PO ruled a general
+> ordered walk with a summary). The heir-buff and world-effect picks below become two
+> step kinds on its seam (D3) once this plan is approved; read that plan for the walk.
+
 Today: a gift row click stashes `PendingAscension{Key, Gate}`
 (`skills/component.go:323`) and starts the channel (`ApplyRow` → `stash` →
 `UtilityAscend`, `sys/ascension_rows.go:200,269`); `applyAscension`
