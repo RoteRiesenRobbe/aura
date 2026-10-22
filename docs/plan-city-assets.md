@@ -598,7 +598,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
 - **Schema:** DB none · wire +4 `EntityType` (137-140) · conf none · content
   +13 props · zone format none · lang none.
 
-### K5 - BUILT 2026-10-23, PO look owed (after K6, R8) `[uncommitted]` (dwarven military + jail)
+### K5 - BUILT 2026-10-23, PO look owed (after K6, R8) `02fc227a` (dwarven military + jail)
 
 - **PO calls (asked up front, one prompt):** `BarracksRoof` and `Watchtower`
   are DRAWN as SVG heroes, not boxes (wire +4 instead of +2; the prop count
