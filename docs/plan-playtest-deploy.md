@@ -259,6 +259,18 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-10-22, `d9be8020` (baseline `59780288`, 2026-10-20):** full
+  deploy carrying appearance C4 (the in-game picker) and C5 (ownership and
+  unlocks), Short Spear + Spear Throw taught by Henrik, passives leaving the buff
+  tray, the fire-less west-road spawn with the Hermit's greeting, and the Hermit
+  no longer teaching FirstAid. Wire changed (`SelectAppearance` client message,
+  `CharacterState` +2, `GameState` +1, `ConversationLock` +1 field +1 kind) → hard
+  refresh required. No migrations; no pre-deploy dump. No announcement (nobody
+  online: `💾 flushed 0 live character(s)`). Verified: content source `./api`,
+  token count 1, TLS boot, 46 campfires placed, no ERROR, one known WARN (the
+  parked `the-strays` quest is offered by no conversant, cleanup.md #7), new
+  client bundle `main.ad215af6…js` served, `/skills` 200. PO smoke join on live
+  passed.
 - **DEPLOYED 2026-10-20, `59780288` (baseline `82044c23`, deployed 2026-10-14
   but never logged here; nothing between 2026-08-18 and 2026-10-14 is
   logged):** full deploy carrying appearance C1-C3, the campfire menu and
