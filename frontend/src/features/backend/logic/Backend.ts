@@ -363,7 +363,7 @@ export class Backend implements IBackend {
                 else if (Number(entityMessage.entityId()) === 0) {
                     AlertBanner.show(wireMessageText(entityMessage), 'announce');
                 } else {
-                    Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
+                    Chat.showMessage(Number(entityMessage.entityId()), wireMessageText(entityMessage));
                 }
 
                 break;

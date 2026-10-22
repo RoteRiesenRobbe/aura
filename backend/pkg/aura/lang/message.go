@@ -70,6 +70,9 @@ const (
 	KeyWarlordReturned  = "warlord.returned"
 	KeySaveResumed      = "save.resumed"
 	KeySaveFailing      = "save.failing"
+	// KeyAscensionRefused is the bubble over a player whose ascension did not
+	// land (plan-ascension.md P14).
+	KeyAscensionRefused = "ascension.refused"
 	// KeyContentLines carries authored lines by id (C3): the client shows
 	// each conv.<id> from the /lang bundle, one per line.
 	KeyContentLines = "content.lines"
@@ -89,5 +92,6 @@ var ServerKeys = map[string][]string{
 	KeyWarlordReturned:   nil,
 	KeySaveResumed:       nil,
 	KeySaveFailing:       nil,
+	KeyAscensionRefused:  nil,
 	KeyContentLines:      {"ids"},
 }

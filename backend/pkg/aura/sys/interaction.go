@@ -832,9 +832,9 @@ func speakToSensor(a Conversant, lines, ids []string) {
 // to speak as. The completed ceremony's refusal happens inside the SkillSystem,
 // and the transaction's failure is observed by a drain that holds a client
 // UUID and nothing else.
-func sayToPlayer(p model.PlayerEntity, line string) {
+func sayToPlayer(p model.PlayerEntity, line lang.Message) {
 	builder := flatbuffers.NewBuilder(64)
-	msg := codec.EntityMessageFlatbufMarshal(builder, p.Basic().ID(), line, AuraApi.EntityMessageKindChat)
+	msg := codec.KeyedEntityMessageFlatbufMarshal(builder, p.Basic().ID(), line, AuraApi.EntityMessageKindChat)
 	builder.Finish(msg)
 	p.Client().SendMessage(builder.FinishedBytes())
 }

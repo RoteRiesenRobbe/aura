@@ -1,7 +1,8 @@
 import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {AuraApi} from '../../backend/logic/AuraApi';
-import {objectiveLine, resolveArgs, WireArg} from './WireText';
+import {objectiveLine, resolveArgs, WireArg, wireMessageText} from './WireText';
 import {formatMobName, loadMobCatalog, mobName} from '../../../client-data/Mobs';
+import {loadLangBundle} from '../../../client-data/LangBundle';
 import {loadCatalog, setLocaleForTest} from './Locale';
 
 beforeAll(() => loadCatalog('de'));
@@ -54,6 +55,47 @@ describe('objectiveLine (Q2)', () => {
         expect(objectiveLine('q', {...herd, n: 6, done: true})).toBe('6/6 999 brought back');
         setLocaleForTest('de');
         expect(objectiveLine('q', herd)).toBe('2/6 999 zurückgebracht');
+    });
+});
+
+// The speech bubble's text (Backend.ts): what an NPC calls out, and the
+// ascension refusal, both arrive keyed and must not show the English.
+describe('wireMessageText for speech bubbles', () => {
+    // Just the EntityMessage surface wireMessageText reads.
+    const message = (key: string, english: string, ids: string[] = []) => ({
+        key: () => key,
+        message: () => english,
+        argsLength: () => (ids.length ? 1 : 0),
+        args: () => ({
+            name: () => 'ids', kind: () => AuraApi.MessageArgKind.List, text: () => '', number: () => 0, id: () => 0,
+            itemsLength: () => ids.length, items: (j: number) => ids[j],
+        }),
+    }) as unknown as AuraApi.EntityMessage;
+
+    it('words an ambient line from the /lang bundle, the English as fallback', async () => {
+        const stubbedFetch = globalThis.fetch;
+        globalThis.fetch = () => Promise.resolve({ok: true, json: () => Promise.resolve({
+            'conv.TownCrier.hail-adventurer': 'Gegrüßt seist du!',
+        })} as Response);
+        try {
+            await loadLangBundle();
+        } finally {
+            globalThis.fetch = stubbedFetch;
+        }
+        expect(wireMessageText(message('content.lines', 'Hail, adventurer!\nWolves!',
+            ['conv.TownCrier.hail-adventurer', 'conv.TownCrier.unknown'])))
+            .toBe('Gegrüßt seist du!\nWolves!');
+    });
+
+    it('words the ascension refusal in German', () => {
+        setLocaleForTest('de');
+        expect(wireMessageText(message('ascension.refused', 'The stone is silent. Nothing has changed.')))
+            .toBe('Der Stein schweigt. Nichts hat sich verändert.');
+    });
+
+    it('shows an unkeyed message (player chat) verbatim', () => {
+        setLocaleForTest('de');
+        expect(wireMessageText(message('', 'hello there'))).toBe('hello there');
     });
 });
 

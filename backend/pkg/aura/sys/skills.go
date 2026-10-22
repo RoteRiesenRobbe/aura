@@ -9,6 +9,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
@@ -1943,7 +1944,7 @@ func (s *SkillSystem) fireUtility(e skillEntity, kind skills.UtilityKind) {
 // the transaction did not commit. ⚑ One line rather than a diagnosis, because
 // every variant means the same thing to the player, and it is the true one:
 // nothing happened and the character is untouched.
-const ascensionRefusedLine = "The stone is silent. Nothing has changed."
+var ascensionRefusedLine = lang.Message{Key: lang.KeyAscensionRefused, English: "The stone is silent. Nothing has changed."}
 
 // applyAscension spends a completed ceremony.
 //

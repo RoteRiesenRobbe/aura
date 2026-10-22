@@ -158,6 +158,7 @@
   "player.restocked": "Aufgefüllt",
   "player.level-banner": "Stufe {level, number}!",
   "player.level-up": "Stufe aufgestiegen!",
+  "ascension.refused": "Der Stein schweigt. Nichts hat sich verändert.",
   "save.failing": "⚠ Aura kann deinen Fortschritt gerade nicht speichern. Der jüngste Fortschritt könnte verloren gehen.",
   "save.resumed": "Dein Fortschritt wird wieder gespeichert.",
   "select.continue-bloodline": "Diese Blutlinie fortführen",

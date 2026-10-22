@@ -737,6 +737,10 @@
   "@player.level-up": {
     "description": "Floating text over the player on level up."
   },
+  "ascension.refused": "The stone is silent. Nothing has changed.",
+  "@ascension.refused": {
+    "description": "Speech bubble over the player when an ascension did not go through; the character is untouched."
+  },
   "save.failing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",
   "@save.failing": {
     "description": "Banner while the server cannot save progress."
