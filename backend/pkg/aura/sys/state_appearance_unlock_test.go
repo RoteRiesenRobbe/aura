@@ -36,8 +36,17 @@ func (lookWorld) CheckQuestStage(string, string) error      { return fmt.Errorf(
 // ring-forest 4, ring-leather 5, ring-plain 6.
 func gatedLooks(t *testing.T) appearance.Catalog {
 	t.Helper()
+	c, err := appearance.Load(gatedLookFiles(), lookWorld{})
+	require.NoError(t, err)
+	require.Equal(t, uint16(0), c.Flat("crown"))
+	require.Equal(t, uint16(3), c.Flat("ring-claws"))
+	require.Equal(t, uint16(4), c.Flat("ring-forest"))
+	return c
+}
+
+func gatedLookFiles() fstest.MapFS {
 	file := func(s string) *fstest.MapFile { return &fstest.MapFile{Data: []byte(s)} }
-	c, err := appearance.Load(fstest.MapFS{
+	return fstest.MapFS{
 		"default.json":      file(`{"id": "default", "slot": "portrait", "starter": true, "name": "x"}`),
 		"green-hood.json":   file(`{"id": "green-hood", "slot": "portrait", "starter": true, "name": "x"}`),
 		"ring-plain.json":   file(`{"id": "ring-plain", "slot": "ring", "family": "grey", "starter": true, "name": "x"}`),
@@ -48,12 +57,7 @@ func gatedLooks(t *testing.T) appearance.Catalog {
 			"conditions": [{"kind": "bloodline_ascensions", "value": 1}]}`),
 		"crown.json": file(`{"id": "crown", "slot": "portrait", "scope": "account", "name": "x",
 			"conditions": [{"kind": "skill_level", "skill": "Thorns", "value": 2}]}`),
-	}, lookWorld{})
-	require.NoError(t, err)
-	require.Equal(t, uint16(0), c.Flat("crown"))
-	require.Equal(t, uint16(3), c.Flat("ring-claws"))
-	require.Equal(t, uint16(4), c.Flat("ring-forest"))
-	return c
+	}
 }
 
 const (
@@ -250,7 +254,7 @@ func TestRequestAscensionCarriesTheCountBasedItems(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	require.Zero(t, p.BloodlineAscensions(), "a first life")
 
-	require.True(t, s.RequestAscension(p, ""))
+	require.True(t, s.RequestAscension(p, "", nil))
 	require.Len(t, ascensions.requested, 1)
 	assert.Equal(t, []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}},
 		ascensions.requested[0].Appearance, "count 0 + this sacrifice = 1 earns the bloodline ring")
@@ -261,7 +265,7 @@ func TestRequestAscensionSkipsWhatIsOwned(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	p.SetAppearanceOwned([]uint16{flatClaws})
 
-	require.True(t, s.RequestAscension(p, ""))
+	require.True(t, s.RequestAscension(p, "", nil))
 	assert.Empty(t, ascensions.requested[0].Appearance)
 }
 

@@ -67,7 +67,18 @@ type Item struct {
 	Conditions     []mobs.JSONCondition `json:"conditions,omitempty"`
 	ConditionsMode string               `json:"conditionsMode,omitempty"`
 	Gate           mobs.Gate            `json:"-"`
+	// GrantedBy marks a look nothing earns by itself (C5b, D21c): only the
+	// named source grants it, so it carries a scope and no conditions.
+	GrantedBy string `json:"grantedBy,omitempty"`
 }
+
+// GrantedByStone is a look an ascension stone grants on top of the pick: the
+// stone's `bonusLooks` (D21c).
+const GrantedByStone = "stone"
+
+// StoneGift reports whether only an ascension stone grants the item. The
+// evaluator must skip it: its empty gate would pass for everyone.
+func (it Item) StoneGift() bool { return it.GrantedBy == GrantedByStone }
 
 // World is what a locked item's conditions resolve against at load: the
 // skill registry, the mob registry and the quest graph. Starter-only
@@ -156,7 +167,16 @@ func loadItem(fsys fs.FS, f string, w World) (Item, error) {
 		return Item{}, fmt.Errorf("appearance/%s: no name", f)
 	case it.Starter && (len(it.Conditions) > 0 || it.Scope != "" || it.ConditionsMode != ""):
 		return Item{}, fmt.Errorf("appearance/%s: a starter is owned by everyone and carries no conditions or scope", f)
-	case !it.Starter && len(it.Conditions) == 0:
+	case it.GrantedBy != "" && it.GrantedBy != GrantedByStone:
+		return Item{}, fmt.Errorf("appearance/%s: grantedBy %q must be %q", f, it.GrantedBy, GrantedByStone)
+	case it.StoneGift() && (it.Starter || len(it.Conditions) > 0 || it.ConditionsMode != ""):
+		return Item{}, fmt.Errorf("appearance/%s: a stone gift is earned by no condition and owned by nobody at first", f)
+	case it.StoneGift() && it.Scope != ScopeBloodline && it.Scope != ScopeAccount:
+		// Granted during the sacrifice, a character item would land on the life
+		// that is ending (D21).
+		return Item{}, fmt.Errorf("appearance/%s: a stone gift's scope must be %q or %q, not %q", f,
+			ScopeBloodline, ScopeAccount, it.Scope)
+	case !it.Starter && !it.StoneGift() && len(it.Conditions) == 0:
 		return Item{}, fmt.Errorf("appearance/%s: an item that is not a starter needs the conditions that earn it", f)
 	case !it.Starter && it.Scope != ScopeCharacter && it.Scope != ScopeBloodline && it.Scope != ScopeAccount:
 		return Item{}, fmt.Errorf("appearance/%s: scope %q must be %q, %q or %q", f, it.Scope,
@@ -325,6 +345,43 @@ func (c Catalog) CheckOwnedLook(portrait, ring string, owned []string) error {
 	return nil
 }
 
+// StoneSites is the slice of mobs.Registry CrossValidateStones reads.
+type StoneSites interface {
+	Mobs() []*mobs.MobDefinition
+}
+
+// CrossValidateStones checks every stone's bonusLooks (C5b) against the
+// catalog: each id must name a stone gift, or the stone would hand out an
+// item something else earns (or nothing). A stone gift that no stone names
+// is a warning: it loads, but nobody can ever own it.
+func CrossValidateStones(sites StoneSites, c Catalog) ([]string, error) {
+	named := map[string]bool{}
+	for _, def := range sites.Mobs() {
+		if def.Interaction == nil {
+			continue
+		}
+		for _, node := range def.Interaction.Nodes {
+			for _, id := range node.BonusLooks {
+				it, ok := c.byID[id]
+				if !ok || !it.StoneGift() {
+					return nil, fmt.Errorf("mob %q: interaction node %q: bonusLooks %q is not a look with "+
+						"\"grantedBy\": %q", def.Name, node.ID, id, GrantedByStone)
+				}
+				named[id] = true
+			}
+		}
+	}
+	var warnings []string
+	for _, items := range [][]Item{c.portraits, c.rings} {
+		for _, it := range items {
+			if it.StoneGift() && !named[it.ID] {
+				warnings = append(warnings, fmt.Sprintf("appearance %q is a stone gift no stone grants", it.ID))
+			}
+		}
+	}
+	return warnings, nil
+}
+
 // CatalogJSONIn is the /appearance payload in one language: each slot in
 // wire order, so the client indexes the arrays as served.
 func CatalogJSONIn(c Catalog, tr lang.Tr) ([]byte, error) {
@@ -354,6 +411,9 @@ func CatalogJSONIn(c Catalog, tr lang.Tr) ([]byte, error) {
 				r := mobs.LockReasonOf(cond)
 				out[i].Locks = append(out[i].Locks, lockJSON{Kind: uint8(r.Kind), Value: r.Value,
 					Quest: r.Quest, Stage: r.Stage, Species: r.Species, Skill: r.Skill})
+			}
+			if it.StoneGift() {
+				out[i].Locks = append(out[i].Locks, lockJSON{Kind: uint8(mobs.LockStoneGift)})
 			}
 		}
 		return out

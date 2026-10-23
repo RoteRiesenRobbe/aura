@@ -156,7 +156,7 @@ func (s *ConnectionStateSystem) SetCharacterAscensions(ascensions CharacterAscen
 //
 // ⚑ Accepting is not committing. The session survives until the transaction is
 // observed to have succeeded; see drainAscensions.
-func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey string) bool {
+func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey string, bonusLooks []string) bool {
 	if s.ascensions == nil {
 		return false
 	}
@@ -174,7 +174,7 @@ func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey
 		CharacterID: characterID,
 		ClientUUID:  clientUUID,
 		UnlockKey:   unlockKey,
-		Appearance:  s.ascensionAppearance(p),
+		Appearance:  s.ascensionAppearance(p, bonusLooks),
 	})
 	return true
 }

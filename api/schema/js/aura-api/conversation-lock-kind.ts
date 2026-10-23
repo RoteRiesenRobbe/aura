@@ -10,5 +10,6 @@ export enum ConversationLockKind {
   Kills = 4,
   TravelClosed = 5,
   SkillLevel = 6,
+  StoneGift = 7,
   Unknown = 255
 }

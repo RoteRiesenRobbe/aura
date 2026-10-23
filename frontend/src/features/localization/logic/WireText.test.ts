@@ -159,6 +159,15 @@ describe('lockReasonText', () => {
     it('falls back for a kind it does not know', () => {
         expect(lockReasonText({kind: 200})).toBe('an unnamed requirement');
     });
+
+    // plan-appearance.md C5b: a look only a stone gives has no progress.
+    it('words a stone gift', () => {
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.StoneGift}))
+            .toBe('a gift of an ascension stone');
+        setLocaleForTest('de');
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.StoneGift}))
+            .toBe('ein Geschenk eines Aufstiegssteins');
+    });
 });
 
 describe('lockedText', () => {

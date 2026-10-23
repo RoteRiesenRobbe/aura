@@ -110,6 +110,37 @@ func TestAscension_TheEmptyPickCompletesToo(t *testing.T) {
 	assert.Equal(t, "", conn.ascendKey)
 }
 
+// plan-appearance.md C5b (D21c): the stone's bonus looks ride the stash, as
+// its price does, and reach the request on every ascension there, the empty
+// pick included.
+func TestAscension_TheStonesBonusRidesToCompletion(t *testing.T) {
+	// The empty pick is offered only when nothing else can be taken.
+	walled := map[string]mobs.Gate{
+		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
+	}
+	for name, tc := range map[string]struct {
+		index int
+		gates map[string]mobs.Gate
+	}{"a reward": {1, nil}, "the empty pick": {ascensionEmptyPickIndex, walled}} {
+		t.Run(name, func(t *testing.T) {
+			index := tc.index
+			caster, conn, src, sk := ascensionChannelSetup(t, tc.gates)
+			node := catalogNode()
+			node.BonusLooks = []string{"elder"}
+			_, ok := src.ApplyRow(node, caster, index, 0)
+			require.True(t, ok)
+
+			for i := 0; i < ascendCastUpdates; i++ {
+				sk.Update(33.0)
+			}
+
+			require.Equal(t, 1, conn.ascendCalls)
+			assert.Equal(t, []string{"elder"}, conn.ascendBonus)
+		})
+	}
+}
+
 // --- every way it must NOT happen -------------------------------------------
 
 // ⭐ A NON-NIL STASH IS NOT A VALID PICK. The pick is judged when the row is

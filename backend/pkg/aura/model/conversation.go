@@ -91,6 +91,7 @@ const (
 	LockKills         = mobs.LockKills
 	LockTravelClosed  = mobs.LockTravelClosed
 	LockSkillLevel    = mobs.LockSkillLevel
+	LockStoneGift     = mobs.LockStoneGift
 	LockUnknown       = mobs.LockUnknown
 )
 

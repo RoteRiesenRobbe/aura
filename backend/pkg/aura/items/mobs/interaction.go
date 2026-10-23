@@ -95,6 +95,13 @@ type InteractionNode struct {
 	// imports `mobs`, so the reverse is a cycle. ascension.CrossValidate checks
 	// them at boot, where both registries stand (P4).
 	Rewards []string
+
+	// BonusLooks is what this stone grants on top of the pick, on every
+	// ascension here, the empty pick included (plan-appearance.md C5b, D21c):
+	// appearance ids, each a stone gift. Optional, and refused on any node but
+	// a catalog node, where the stone's price lives too. Resolved at boot by
+	// appearance.CrossValidateStones, for the same cycle as Rewards.
+	BonusLooks []string
 }
 
 // RowSourceKind names one generated row list. A closed vocabulary with the
@@ -591,6 +598,8 @@ type jsonInteractionNode struct {
 	// offers", which is refused, and "this site offers nothing", which is
 	// legitimate — and a plain slice decodes both to nil.
 	Rewards *[]string `json:"rewards"`
+
+	BonusLooks []string `json:"bonusLooks"`
 }
 
 // jsonDialogueLine is one line as the loader reads it: {"id": key, "text": "…"}.
@@ -889,6 +898,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		if err := mapRewards(m.Name, jn, &node); err != nil {
 			return nil, err
 		}
+		if err := mapBonusLooks(m.Name, jn, &node); err != nil {
+			return nil, err
+		}
 		for j, jc := range jn.Conditions {
 			cond, err := ParseCondition(jc)
 			if err == nil {
@@ -1108,6 +1120,28 @@ func mapRewards(mobName string, jn *jsonInteractionNode, node *InteractionNode) 
 		}
 		seen[key] = true
 		node.Rewards = append(node.Rewards, key)
+	}
+	return nil
+}
+
+// mapBonusLooks takes a catalog node's bonus looks (plan-appearance.md C5b),
+// shape only: appearance.CrossValidateStones checks the ids at boot.
+func mapBonusLooks(mobName string, jn *jsonInteractionNode, node *InteractionNode) error {
+	if len(jn.BonusLooks) > 0 && node.Rows != RowSourceAscensionCatalog {
+		return fmt.Errorf("mob %q: interaction node %q: bonusLooks is what an %q node grants, and this node is "+
+			"not one", mobName, jn.ID, RowSourceAscensionCatalog)
+	}
+	seen := make(map[string]bool, len(jn.BonusLooks))
+	for i, id := range jn.BonusLooks {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return fmt.Errorf("mob %q: interaction node %q bonusLooks %d: must name an appearance id", mobName, jn.ID, i)
+		}
+		if seen[id] {
+			return fmt.Errorf("mob %q: interaction node %q bonusLooks %d: %q is listed twice", mobName, jn.ID, i, id)
+		}
+		seen[id] = true
+		node.BonusLooks = append(node.BonusLooks, id)
 	}
 	return nil
 }

@@ -697,6 +697,10 @@
       "have": {"type": "int", "description": "The skill's level now", "example": "6"}
     }
   },
+  "lock.stone-gift": "a gift of an ascension stone",
+  "@lock.stone-gift": {
+    "description": "Lock reason on a look only an ascension stone grants, on top of the pick (plan-appearance.md C5b). Shown as 'Locked: …'."
+  },
   "lock.travel-closed": "its far end is gone",
   "@lock.travel-closed": {
     "description": "Lock reason on a travel row: the destination no longer exists."

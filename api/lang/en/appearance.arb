@@ -16,6 +16,10 @@
   "@appearance.default.name": {
     "description": "Name of the look \"default\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   },
+  "appearance.gold-amulet.name": "Gold Amulet",
+  "@appearance.gold-amulet.name": {
+    "description": "Name of the look \"gold-amulet\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
   "appearance.green-hood.name": "Green Hood",
   "@appearance.green-hood.name": {
     "description": "Name of the look \"green-hood\" (a portrait or a ring of the player's medallion), shown in the appearance picker."

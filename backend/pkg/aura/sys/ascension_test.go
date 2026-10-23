@@ -94,7 +94,7 @@ func TestRequestAscensionDoesNotPriceTheAscensionItself(t *testing.T) {
 	progression.Level = 29
 	p.SetProgression(progression)
 
-	assert.True(t, s.RequestAscension(p, "FrostShield"),
+	assert.True(t, s.RequestAscension(p, "FrostShield", nil),
 		"the entry price is the SITE's now, and this entry point holds no rule of its own")
 	assert.Len(t, ascensions.requested, 1)
 	assert.Len(t, g.players, 1, "the session lives until the transaction commits")
@@ -103,7 +103,7 @@ func TestRequestAscensionDoesNotPriceTheAscensionItself(t *testing.T) {
 func TestRequestAscensionHandsTheTransactionOffTheLoop(t *testing.T) {
 	s, g, c, p, ascensions, _ := ascendingFixture(t)
 
-	require.True(t, s.RequestAscension(p, "FrostShield"))
+	require.True(t, s.RequestAscension(p, "FrostShield", nil))
 
 	require.Len(t, ascensions.requested, 1)
 	req := ascensions.requested[0]
@@ -124,7 +124,7 @@ func TestRequestAscensionHandsTheTransactionOffTheLoop(t *testing.T) {
 func TestRequestAscensionAcceptsAnEmptyPick(t *testing.T) {
 	s, _, _, p, ascensions, _ := ascendingFixture(t)
 
-	require.True(t, s.RequestAscension(p, ""))
+	require.True(t, s.RequestAscension(p, "", nil))
 	require.Len(t, ascensions.requested, 1)
 	assert.Empty(t, ascensions.requested[0].UnlockKey)
 }
@@ -135,7 +135,7 @@ func TestObservedAscensionEndsTheWorldSession(t *testing.T) {
 	s, g, c, p, ascensions, saves := ascendingFixture(t)
 	accountID := s.accountByClient[c.UUID()]
 	require.NotZero(t, accountID)
-	require.True(t, s.RequestAscension(p, "FrostShield"))
+	require.True(t, s.RequestAscension(p, "FrostShield", nil))
 
 	before := len(saves.saved)
 	ascensions.finish(t, nil)
@@ -187,7 +187,7 @@ func TestOrdinaryDisconnectStillSavesAndStashes(t *testing.T) {
 // that the database still holds as alive — the one outcome worse than refusing.
 func TestObservedAscensionFailureLeavesThePlayerInTheWorld(t *testing.T) {
 	s, g, c, p, ascensions, _ := ascendingFixture(t)
-	require.True(t, s.RequestAscension(p, "FrostShield"))
+	require.True(t, s.RequestAscension(p, "FrostShield", nil))
 
 	ascensions.finish(t, errors.New("the database is having a moment"))
 	s.Update(0)
@@ -216,7 +216,7 @@ func TestAscensionWithoutASeamIsRefusedRatherThanCrashing(t *testing.T) {
 	p := joinWithState(t, s, g, c, "Elder", persist.CharacterState{Level: 30, ActiveAuraSlot: persist.NoActiveAura})
 	atMaxLevel(t, g, p)
 
-	assert.False(t, s.RequestAscension(p, "FrostShield"))
+	assert.False(t, s.RequestAscension(p, "FrostShield", nil))
 	assert.Len(t, g.players, 1)
 }
 
@@ -232,7 +232,7 @@ func TestAscensionWithoutASeamIsRefusedRatherThanCrashing(t *testing.T) {
 func TestAscensionTeardownCannotStashTheSuccessorsSession(t *testing.T) {
 	s, g, c, p, ascensions, _ := ascendingFixture(t)
 	accountID := s.accountByClient[c.UUID()]
-	require.True(t, s.RequestAscension(p, "FrostShield"))
+	require.True(t, s.RequestAscension(p, "FrostShield", nil))
 	ascensions.finish(t, nil)
 	s.Update(0)
 

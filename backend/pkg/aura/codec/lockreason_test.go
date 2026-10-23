@@ -21,7 +21,8 @@ func TestLockKind_MirrorsTheWireEnum(t *testing.T) {
 		model.LockKills:         AuraApi.ConversationLockKindKills,
 		model.LockTravelClosed:  AuraApi.ConversationLockKindTravelClosed,
 		model.LockSkillLevel:    AuraApi.ConversationLockKindSkillLevel,
-		model.LockUnknown:       AuraApi.ConversationLockKindUnknown,
+		model.LockStoneGift:     AuraApi.ConversationLockKindStoneGift,
+		model.LockUnknown:     AuraApi.ConversationLockKindUnknown,
 	} {
 		assert.Equal(t, uint8(wire), uint8(kind), "%s", wire)
 	}

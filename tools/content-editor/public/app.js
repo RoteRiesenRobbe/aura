@@ -998,7 +998,7 @@ function dialogueTreeSection(mob, onChange) {
       }),
       select(ROW_KINDS, node.rows || '', (v) => {
         if (v) { node.rows = v; node.options = []; if (v === 'ascension_catalog' && !node.rewards) node.rewards = []; }
-        else { delete node.rows; delete node.rewards; }
+        else { delete node.rows; delete node.rewards; delete node.bonusLooks; }
         rerenderNodes();
       }, (k) => k || 'rows: none'),
       el('div', { class: 'card-actions' }, [
@@ -1020,6 +1020,15 @@ function dialogueTreeSection(mob, onChange) {
       card.appendChild(el('div', { class: 'subsection' }, [
         el('label', { text: 'Rewards (one unlock key per line)' }),
         textArea((node.rewards || []).join('\n'), (v) => { node.rewards = splitLines(v); onChange(); }, 'rewards-textarea'),
+      ]));
+      // plan-appearance.md C5b: looks granted on top of every pick here.
+      card.appendChild(el('div', { class: 'subsection' }, [
+        el('label', { text: 'Bonus looks (one appearance id per line, each "grantedBy": "stone")' }),
+        textArea((node.bonusLooks || []).join('\n'), (v) => {
+          const ids = splitLines(v);
+          if (ids.length) node.bonusLooks = ids; else delete node.bonusLooks;
+          onChange();
+        }, 'bonus-looks-textarea'),
       ]));
     }
 

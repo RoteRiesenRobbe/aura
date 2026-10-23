@@ -529,6 +529,16 @@ for (const v of VENUES) {
   ok(tip.shown && /Forest Ring/.test(tip.text) && /Locked: level 3 \(1\/3\)/.test(tip.text) && tip.titles === 0,
     `c5c: the game tooltip names the level with the progress, no title attribute: ${JSON.stringify(tip)}`);
   await p2.screenshot({ path: join(shotDir, `c1-${label}-c5c-locked.png`) });
+  // plan-appearance.md C5b: a look only a stone gives is locked with no progress.
+  await p2.hover('#appearance .lookOption[data-item="gold-amulet"]');
+  await p2.waitForTimeout(300);
+  const stoneTip = await p2.evaluate(() => {
+    const tile = document.querySelector('#appearance .lookOption[data-item="gold-amulet"]');
+    const t = document.getElementById('skillTooltip');
+    return { locked: !!tile?.classList.contains('locked'), text: t && !t.classList.contains('hidden') ? t.innerText : '' };
+  });
+  ok(stoneTip.locked && /Gold Amulet/.test(stoneTip.text) && /Locked: a gift of an ascension stone/.test(stoneTip.text),
+    `c5b: the stone's gift is locked and its tooltip says so: ${JSON.stringify(stoneTip)}`);
   await p2.click('#appearance .lookOption[data-item="ring-forest"]', { force: true }); // aria-disabled: Playwright waits for enabled otherwise
   await p2.waitForTimeout(1500);
   ok(!(await worn()).includes('ring-forest'), 'c5c: pressing the locked tile wears nothing');

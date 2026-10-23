@@ -334,3 +334,106 @@ func TestCatalogJSON_ServesTheLocks(t *testing.T) {
 		{"kind": float64(mobs.LockSkillLevel), "value": float64(2), "skill": float64(7)},
 	}, forest.Locks)
 }
+
+// --- stone gifts (plan-appearance.md C5b, D21c) ---
+
+// stoneFiles adds one look only a stone gives to the gated catalog.
+func stoneFiles() map[string]string {
+	files := gatedFiles()
+	files["elder.json"] = `{"id": "elder", "slot": "portrait", "scope": "bloodline", "grantedBy": "stone", "name": "Elder"}`
+	return files
+}
+
+func TestLoad_StoneGift(t *testing.T) {
+	c, err := Load(catalogFS(stoneFiles()), testWorld{})
+	require.NoError(t, err)
+	elder, ok := c.Item("elder")
+	require.True(t, ok)
+	assert.True(t, elder.StoneGift(), "granted by a stone only")
+	assert.Equal(t, ScopeBloodline, elder.Scope)
+	assert.Empty(t, elder.Gate.Conditions)
+	crown, _ := c.Item("crown")
+	assert.False(t, crown.StoneGift(), "a gated item is earned by its conditions")
+
+	ids := []string{}
+	for _, it := range c.Gated() {
+		ids = append(ids, it.ID)
+	}
+	assert.Equal(t, []string{"crown", "elder", "ring-forest"}, ids, "a stone gift is locked until a stone grants it")
+}
+
+func TestLoad_StoneGiftRefusals(t *testing.T) {
+	cases := map[string]string{
+		"an unknown source": `{"id": "p", "slot": "portrait", "scope": "bloodline", "grantedBy": "quest", "name": "x"}`,
+		"a stone gift with conditions": `{"id": "p", "slot": "portrait", "scope": "bloodline", "grantedBy": "stone", "name": "x",
+			"conditions": [{"kind": "minLevel", "value": 3}]}`,
+		"a stone gift with a mode": `{"id": "p", "slot": "portrait", "scope": "bloodline", "grantedBy": "stone", "name": "x",
+			"conditionsMode": "any"}`,
+		"a starter stone gift": `{"id": "p", "slot": "portrait", "starter": true, "grantedBy": "stone", "name": "x"}`,
+		// Granted during the sacrifice, a character item would land on the life
+		// that is ending (D21).
+		"a character stone gift": `{"id": "p", "slot": "portrait", "scope": "character", "grantedBy": "stone", "name": "x"}`,
+		"a stone gift without a scope": `{"id": "p", "slot": "portrait", "grantedBy": "stone", "name": "x"}`,
+	}
+	for name, file := range cases {
+		t.Run(name, func(t *testing.T) {
+			files := starterFiles()
+			files["p.json"] = file
+			_, err := Load(catalogFS(files), testWorld{})
+			assert.Error(t, err)
+		})
+	}
+}
+
+type stoneSites []*mobs.MobDefinition
+
+func (s stoneSites) Mobs() []*mobs.MobDefinition { return s }
+
+func stoneOffering(name string, looks ...string) *mobs.MobDefinition {
+	return &mobs.MobDefinition{Name: name, Interaction: &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "catalog", Rows: mobs.RowSourceAscensionCatalog, BonusLooks: looks},
+	}}}
+}
+
+// A stone's bonus names stone gifts: an unknown id or an item something else
+// earns is a boot failure; a stone gift no stone names is a warning (the
+// ascension catalog's P7: authoring an item and placing it are two edits).
+func TestCrossValidateStones(t *testing.T) {
+	c, err := Load(catalogFS(stoneFiles()), testWorld{})
+	require.NoError(t, err)
+
+	warnings, err := CrossValidateStones(stoneSites{stoneOffering("Stone", "elder"), {Name: "Wolf"}}, c)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	warnings, err = CrossValidateStones(stoneSites{stoneOffering("Stone")}, c)
+	require.NoError(t, err)
+	require.Len(t, warnings, 1)
+	assert.Contains(t, warnings[0], "elder")
+
+	for _, bad := range []string{"nobody", "crown", "archer"} {
+		_, err := CrossValidateStones(stoneSites{stoneOffering("Stone", bad)}, c)
+		assert.Error(t, err, bad)
+	}
+}
+
+// /appearance serves a stone gift's one lock: "a gift of an ascension stone".
+func TestCatalogJSON_ServesTheStoneGiftLock(t *testing.T) {
+	c, err := Load(catalogFS(stoneFiles()), testWorld{})
+	require.NoError(t, err)
+	raw, err := CatalogJSONIn(c, func(_, english string) string { return english })
+	require.NoError(t, err)
+
+	var got struct {
+		Portraits []struct {
+			ID    string           `json:"id"`
+			Scope string           `json:"scope"`
+			Locks []map[string]any `json:"locks"`
+		} `json:"portraits"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &got))
+	elder := got.Portraits[3] // archer, crown, default, elder
+	assert.Equal(t, "elder", elder.ID)
+	assert.Equal(t, "bloodline", elder.Scope)
+	assert.Equal(t, []map[string]any{{"kind": float64(mobs.LockStoneGift)}}, elder.Locks)
+}

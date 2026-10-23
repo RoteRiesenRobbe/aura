@@ -579,6 +579,8 @@ export const GraphicsConfig = {
         'auburn-curls': {packIcon: 'portrait-auburn-curls'},
         // Earned, not a starter (C5, PO pick 2026-10-21).
         'villager': {packIcon: 'portrait-villager'},
+        // Only the ascension stone grants it (C5b) [PLACEHOLDER bust].
+        'gold-amulet': {packIcon: 'portrait-gold-amulet'},
     },
 
     // Per-SPECIES portraits for species that share one sprite class, keyed by

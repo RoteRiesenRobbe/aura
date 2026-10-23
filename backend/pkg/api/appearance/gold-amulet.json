@@ -1,0 +1,7 @@
+{
+  "_comment": "A portrait only the ascension stone grants, on top of the pick (plan-appearance.md C5b): every ascension at AscensionStone gives it to the slot's line. PONETI bust Human_12 (Graphics.ts playerPortraits). [PLACEHOLDER bust and name]",
+  "id": "gold-amulet",
+  "slot": "portrait",
+  "scope": "bloodline",
+  "grantedBy": "stone"
+}

@@ -7,8 +7,8 @@
 component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 DONE 2026-10-21
 (the in-game picker; PO look passed 2026-10-22). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
 by the PO into C5 + C5c; PO look passed 2026-10-22). C5c DONE 2026-10-23 (the unlock client; PO look
-passed the same day). Next: C5b (the stone bonus only; the pick moved to `plan-ascension-ceremony.md` AC2),
-then C6.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
+passed the same day). C5b DONE 2026-10-23 (the stone bonus only, D21c; the pick moved to
+`plan-ascension-ceremony.md` AC2; PO look passed the same day). Next: C6.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -581,6 +581,18 @@ whenever the pilot lands.**
   the `AscendCharacter` transaction; the stone's rows render the item. May fold
   into C5 if C5 runs small. *Schema: ascension content format +1 entry kind; no
   new migration.*
+  ⭐ **Ruled at the C5b start (PO, 2026-10-23, prompt round):** (1) a look only a stone
+  gives is marked by an **explicit field**, `"grantedBy": "stone"` [PLACEHOLDER key], with
+  a `bloodline` or `account` scope and no conditions (the loader refuses conditions beside
+  it, a starter, and a `character` scope); the evaluator never grants it on its own, and
+  AC2's look steps reuse the same marker; (2) until owned, the in-game panel shows it
+  **greyed with a generic hint**, "Locked: a gift of an ascension stone", the server
+  sending a new lock kind (+1 `ConversationLockKind`, en + de); (3) placeholder content:
+  the **main stone** (`ascension-stone`) gives a **new portrait** (a spare PONETI bust,
+  C5's villager route), **bloodline** scope. The stone authors the list on its `catalog`
+  node beside `rewards` (where its price lives), `bonusLooks: [ids]` [PLACEHOLDER key];
+  it is granted on every ascension there, the empty pick included; no toast (the heir's
+  first owned set is a silent baseline, creation offers it).
 - **C6, player corpses and summons.** The corpse carries the portrait with the
   death marker (D14). (Summons onto the medallion moved to C2b.) If Q4's marker is a
   broken ring, the corpse carries the player's ring too (one more `Resource`
@@ -1322,3 +1334,58 @@ the account's look only; one earlier run's "confirm is disabled and counting dow
 after the 1 s countdown, green on the rerun, the dialog untouched) · a creation hover screenshot
 (the game tooltip above `#accountScreens`, both at z 100, the tooltip later in the body) · harness
 rows cleaned, server stopped first.
+
+### C5b - DONE 2026-10-23 `[uncommitted]`, PO look passed 2026-10-23 ("works as described")
+
+The stone bonus (D21c): a look a stone grants on top of whatever was picked, the empty pick
+included. The pick half moved to `plan-ascension-ceremony.md` AC2 (2026-10-22); C5b builds the
+seams AC2 reuses. Ruled at the start (PO, 2026-10-23, one prompt round; recorded in §7): an
+**explicit marker** `grantedBy: "stone"`; until owned the panel shows the item **greyed with a
+generic hint**; placeholder content on the **main stone**, a **new portrait**, **bloodline** scope.
+At the look the PO asked why it is a single fixed look with no choice at the stone: that is AC1 +
+AC2 (the step walk and the look step in the picker), not this chunk.
+
+- **Catalog:** `Item.GrantedBy` + `StoneGift()`; the loader refuses an unknown source, conditions
+  or a mode beside the marker, a starter stone gift, and a `character` or absent scope (granted in
+  the sacrifice, a character item lands on the life that ends). `Gated()` lists stone gifts (they
+  are locked); `/appearance` serves their one lock `{kind: 7}`.
+- ⚑ **An empty gate PASSES** (`conditionsPass`): a stone gift's gate is empty by design, so both
+  evaluators skip it by the marker, `grantEarned` (listing it locked with `LockStoneGift`) and
+  `ascensionAppearance`'s count pass. Both guards pinned and falsified by mutation. A future
+  source-granted item kind has the same trap.
+- **Authoring:** `InteractionNode.BonusLooks` from `bonusLooks` on an `ascension_catalog` node
+  only (beside `rewards` and the stone's price), shape-checked in `mapBonusLooks`;
+  `appearance.CrossValidateStones` (run in `cmd/aurad/content.go` after the catalog loads)
+  refuses an id that is not a stone gift and warns for a stone gift no stone names.
+- **Grant path:** `AscensionPick.BonusLooks` (stashed with the price), `applyAscension` →
+  `RequestAscension(p, key, bonusLooks)` (+1 argument, the `connState` seam too) →
+  `ascensionAppearance(p, bonus)` appends each stone gift not owned (an id the catalog lacks is
+  dropped) → `AscensionRequest.Appearance`, written by the unchanged `AscendCharacter`.
+- **Wire + words:** `ConversationLockKind.StoneGift = 7` (`mobs.LockStoneGift`, model alias,
+  codec mirror pin); `lock.stone-gift` "a gift of an ascension stone" / "ein Geschenk eines
+  Aufstiegssteins", so the tooltip reads "Locked: a gift of an ascension stone".
+- **Content:** `gold-amulet` (PONETI Human_12, "Gold Amulet" / "Goldamulett" [PLACEHOLDER]; no
+  unused bust read as an elder, so it is named after the bust), manifest + `playerPortraits`,
+  repacked (162); the main stone's `bonusLooks` and one line naming it ("Whatever you pick, the
+  line that follows may also wear the Gold Amulet."). ⚑ That line repeats the item's name: a
+  rename touches both. Editor: a "Bonus looks" textarea beside Rewards, the shape rule ported
+  to `validate.mjs` (mob nodes are edited in place, so the key survived a save anyway).
+
+**Schema:** DB **none** (writes the shipped `appearance_unlocks`) · wire `ConversationLockKind`
++1 value · content +1 node key, +1 item key (`grantedBy`), +1 item, +1 stone line en + de · frontend
+lang +1 key en + de (record refreshed) · manifest +1 bust · `AscensionPick` +1 field,
+`RequestAscension` +1 argument · conf none.
+
+**Verified:** Go build + vet; `go test -count=1 -p 1 ./...` with `AURA_TEST_DB_URL` green bar the
+three known reds (`TestPassages_EveryDoorCarriesItsWords`, the simharness placements battery, the
+`world` prop pin; `TestEmbeddedAppearance`'s census moved 3 → 4 gated) · red first: the loader
+marker + refusals + `/appearance` lock, `CrossValidateStones`, `mapBonusLooks`, the evaluator skip
++ lock reason, the count pass skip, the bonus grant (owned and unknown ids dropped), the bonus
+riding the stash to completion for a reward and the empty pick, the codec mirror, the client
+wording en + de · `-validate` 0 findings (10 portraits) · typecheck · vitest 1903/0 · prod build ·
+editor tests 12/0 · `c2a-ascension-site` **35/35** (new legs: the catalog names the bonus, the dev
+DB holds `gold-amulet` at `bloodline` on the spent slot, the heir's creation offers it unworn) ·
+`c1-medallions` **53/0/1** on the rerun (new leg: the gold-amulet tile greyed with "Locked: a gift
+of an ascension stone"; the first run's `live stance` leg failed for want of a boar in reach, a
+venue flake; a `timeout 900` wrapper killed one earlier attempt mid-join) · harness rows cleaned,
+server stopped first.

@@ -908,7 +908,8 @@ table ConversationOption {
   locks_any:bool = false;
 }
 
-enum ConversationLockKind:ubyte { MinLevel = 0, Ascensions = 1, QuestAtStage = 2, QuestComplete = 3, Kills = 4, TravelClosed = 5, SkillLevel = 6, Unknown = 255 }
+// StoneGift: a look only an ascension stone gives (plan-appearance.md C5b).
+enum ConversationLockKind:ubyte { MinLevel = 0, Ascensions = 1, QuestAtStage = 2, QuestComplete = 3, Kills = 4, TravelClosed = 5, SkillLevel = 6, StoneGift = 7, Unknown = 255 }
 
 // One reason a row is locked. value/have are the threshold and the player's
 // count; quest + stage name a quest condition (ids); species is a MobID;

@@ -148,6 +148,7 @@
   "lock.quest-at-stage": "„{quest}“ bei „{stage}“",
   "lock.quest-complete": "„{quest}“ abschließen",
   "lock.skill-level": "{skill} {value, number} ({have, number}/{value, number})",
+  "lock.stone-gift": "ein Geschenk eines Aufstiegssteins",
   "lock.travel-closed": "sein anderes Ende ist verschwunden",
   "lock.unknown": "eine unbenannte Bedingung",
   "map.close.title": "Schließen (M / Esc)",

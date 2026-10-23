@@ -247,6 +247,8 @@ export function lockReasonText(l: LockData): string {
             return t('lock.skill-level', {value, have, skill: skillDisplayName(l.skill ?? 0)});
         case AuraApi.ConversationLockKind.TravelClosed:
             return t('lock.travel-closed');
+        case AuraApi.ConversationLockKind.StoneGift:
+            return t('lock.stone-gift');
         default:
             return t('lock.unknown');
     }

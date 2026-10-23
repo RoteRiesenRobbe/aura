@@ -11,7 +11,10 @@ const (
 	LockKills         LockKind = 4
 	LockTravelClosed  LockKind = 5
 	LockSkillLevel    LockKind = 6
-	LockUnknown       LockKind = 255
+	// LockStoneGift is a look only an ascension stone gives
+	// (plan-appearance.md C5b): no condition, no progress.
+	LockStoneGift LockKind = 7
+	LockUnknown   LockKind = 255
 )
 
 // LockReason is one reason a row is locked, as data the client words
