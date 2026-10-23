@@ -8,7 +8,9 @@
 > current six loose overlays. See §4. (Since 2026-10-17 those medallion chunks
 > are `plan-appearance.md` C0-C2.) ⭐ **Scheduled 2026-10-17 (PO): this plan's
 > design session runs right after `plan-appearance.md` C6** (that plan is
-> approved and next, order in its §7).
+> approved and next, order in its §7). ⭐ **Moved AHEAD of C6 2026-10-23 (PO):
+> C6's death marker is this plan's state layer, so this session runs NEXT and C6
+> builds on it** (`plan-appearance.md` D40-D43; §6 item 11 here).
 >
 > ⚑ The backlog number **§39 stays the citation anchor**: many docs and two
 > other backlog sections cite "§39" by number, and the backlog entry remains
@@ -154,6 +156,17 @@ Collected 2026-08-24 from the docs; input inventory for the design session.
 10. **Per-skill hit/field dressings** (PO animation mockups 2026-08-24):
     MOVED to `plan-skill-vfx.md`, C0 (the authored `visual` vocabulary,
     shipped 2026-09-19) and C2a/C2b (the renderer).
+11. **"Dead" on a medallion: the first concrete case** (`plan-appearance.md`
+    C6, D40-D43, PO 2026-10-23). A player corpse becomes a medallion wearing the
+    dead player's portrait and ring and must read as dead. Ruled already: the art
+    is greyscale plus a skull, PONETI `Rune_Death_nb` with a repo placeholder SVG
+    (D42). Open, and this plan's to rule: where a mark sits on the medallion, how
+    many fit and in what order, whether `EffectPips` move onto the ring, and how
+    whole-token treatments (stealth's `tokenAlpha` today, dead's greyscale next)
+    are one mechanism. Today's seams: `TokenSlots.ts` (named slots inside the
+    token, C0a), `Medallion.ts`, `EffectPips.ts`, `tokenAlpha`, `lumaGreyscale`
+    (`ColorMatrixFilterExtensions.ts`; a filter is a render pass, the fill-rate
+    budget applies). C6 is paused until this lands.
 
 ## 7. Open questions for the design session
 

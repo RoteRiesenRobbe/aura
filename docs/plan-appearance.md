@@ -8,8 +8,9 @@ component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion
 (the in-game picker; PO look passed 2026-10-22). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
 by the PO into C5 + C5c; PO look passed 2026-10-22). C5c DONE 2026-10-23 (the unlock client; PO look
 passed the same day). C5b DONE 2026-10-23 (the stone bonus only, D21c; the pick moved to
-`plan-ascension-ceremony.md` AC2; PO look passed the same day). Next: C6.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
-> `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
+`plan-ascension-ceremony.md` AC2; PO look passed the same day). C6 PAUSED 2026-10-23 (PO) behind
+`plan-entity-presentation.md`'s design session: the death marker is that plan's state layer
+(D40-D43, §7 C6). Next: that design session, then C6 whole.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → [entity-presentation design] → C6, C0b whenever the artist's pilot lands. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
 > ring, a starter set plus unlocks, owned per character, bloodline or account).
@@ -349,6 +350,27 @@ plan proposes on top (marked *proposed*).
 - **Cut: "avatar state reactions"** (damaged / happy / dead, `roadmap.md`
   step 8b). The hit flash already ships, dead is D14; nothing else is planned.
 
+### 3.8 The C6 session (PO, 2026-10-23, before any code)
+
+- **D40. The corpse wears the player's own ring as well as the portrait**, so
+  `Resource` gains two fields, not one (§5).
+- **D41. On the corpse, wire value 0 is the default look**, as it is on
+  `Character`; only players leave corpses, so nothing needs a gravestone value.
+  The gravestone (`corpse.svg`, `GraphicsConfig.corpse`) retires with C6. This
+  corrects §5's original "0 = gravestone".
+- **D42. The death marker's art is greyscale plus a skull**: the skull is the PONETI
+  `SkillsIcons/SkillIcons3/SkillVol3_nb/Rune_Death_nb.png` (a red skull, no
+  background) as a `packIcon`, with a committed placeholder SVG as the `file`
+  fallback for clones without the pack. WHERE the skull sits, and how the grey
+  is applied, are NOT ruled here (D43).
+- **D43. "Dead" belongs to `plan-entity-presentation.md`** (PO: "we are looking
+  for clean and correct outcomes, not just quick solutions"). Showing an actor's
+  state on its medallion (marks, whole-token treatments such as stealth's alpha)
+  is that plan's state layer, and "dead" is its first concrete case. C6 waits for
+  its design session and then lands whole; the identity half alone was declined,
+  since a corpse wearing a look with no marker reads as a living player standing
+  still.
+
 ---
 
 ## 4. Data model
@@ -452,7 +474,7 @@ character's rows. It rides the ticket like `BloodlineUnlocks` does.
 | `table Character` | **+2 appended** `portrait:ushort`, `ring:ushort` | catalog indices; 0 = default. Every client draws every player's look. |
 | `GameState` owner block | **+1** `appearance_owned:[ushort]`, change-only under `owner_state` | the client diffs it for the glow, as `updateSpellbook` diffs the spellbook (first call = silent baseline) |
 | `ClientMessageBody` | **+1** `SelectAppearance{portrait, ring} = 13` | server validates both against the owned set, refuses silently otherwise, writes the character row. ⚑ Shipped at C4 against the STARTER set (`Catalog.WearableLook`); C5 swaps the owned set into it AND into `CheckStarterLook` (accounts create, by id) |
-| `table Resource` | **+1 appended** `portrait:ushort` | set on player corpses only (D14); 0 = gravestone. Props never set it, so FlatBuffers writes nothing for them (a default-valued scalar costs no bytes) |
+| `table Resource` | **+2 appended** `portrait:ushort`, `ring:ushort` | set on player corpses only (D14, D40); 0 = the DEFAULT look, as on `Character` (D41; the gravestone retires). Props never set them, so FlatBuffers writes nothing for them (a default-valued scalar costs no bytes) |
 | `table Mob` | **+1 appended** stance `ubyte` | M-§6.2, unchanged |
 | `EntityMessage` | new key `KeyUnlockAppearance` (`lang/message.go`) | `unlock.banner` gains an `appearance` category; en + de; `message_test.go` pins it |
 | `GET /appearance` | new endpoint | §4.2 |
@@ -593,11 +615,15 @@ whenever the pilot lands.**
   node beside `rewards` (where its price lives), `bonusLooks: [ids]` [PLACEHOLDER key];
   it is granted on every ascension there, the empty pick included; no toast (the heir's
   first owned set is a silent baseline, creation offers it).
-- **C6, player corpses and summons.** The corpse carries the portrait with the
-  death marker (D14). (Summons onto the medallion moved to C2b.) If Q4's marker is a
-  broken ring, the corpse carries the player's ring too (one more `Resource`
-  field) or wears a fixed death ring; decided with Q4. *Schema: `Resource` +1
-  (or +2).*
+- **C6, player corpses. ⏸ PAUSED 2026-10-23 (PO) behind `plan-entity-presentation.md`'s
+  design session**, which owns how a dead actor shows it is dead (D43). Built in one
+  piece afterwards (D43: a corpse wearing a look with no marker reads as a living player
+  standing still). The corpse is a medallion wearing the dead player's portrait AND ring
+  (D14, D40), wire 0 = the default look (D41), with the death marker that plan rules.
+  (Summons onto the medallion moved to C2b.) Survey (2026-10-23): two spawn doors in
+  `sys/state.go` (the death path and the dead reconnect), both already holding the look
+  in `deadState` / the reconnect stash; `CorpseEntityFlatbufMarshal` writes it.
+  *Schema: DB none · wire `Resource` +2.*
 
 What waits on art, and what does not: all data plumbing (C3-C5) runs on
 placeholders. The frame bake (C1), the family rings, the real portraits and the
@@ -673,8 +699,9 @@ stance colours → **D29** · item 4 corpses → **D14** · item 5 boss mark →
 
 Still open, each with a ruled owner and moment:
 
-1. **Q4. The death marker's look** (skull overlay, greyed portrait, broken ring):
-   art's call at C6.
+1. ~~**Q4. The death marker's look**~~: **MOVED 2026-10-23** to
+   `plan-entity-presentation.md` (its §6 item 11, D42/D43): the PO ruled "dead" is the
+   first case of that plan's state layer, not a one-off on the corpse.
 2. ~~**M-§12.1, M-D15 sizing**~~: **RULED 2026-10-17** (PO): the ring is drawn at the
    collider (2 × `body.radius`, the wire radius) and the per-instance size roll is gone
    for every medallion species. Recorded in C1's ledger (§12).
