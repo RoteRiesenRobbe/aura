@@ -485,3 +485,46 @@ func TestNetSystem_AppearanceOwnedRidesTheOwnerBlock(t *testing.T) {
 	assert.False(t, quiet.OwnerState())
 	assert.Zero(t, quiet.AppearanceOwnedLength(), "unchanged: nothing on the wire")
 }
+
+// --- the locked appearance items' progress (plan-appearance.md C5c) ---
+
+// The owner block carries every still-locked item with its reasons and the
+// player's progress; a quiet tick omits it and the client keeps what it has.
+func TestNetSystem_AppearanceLocksRideTheOwnerBlock(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+	p.SetAppearanceLocks([]model.AppearanceLock{
+		{Item: 4, Reasons: []model.LockReason{{Kind: model.LockMinLevel, Value: 3, Have: 1}}},
+		{Item: 0, Reasons: []model.LockReason{
+			{Kind: model.LockSkillLevel, Value: 2, Have: 1, Skill: 7},
+			{Kind: model.LockQuestComplete, Quest: "village-welcome"},
+		}},
+	})
+
+	got := decodeGameState(t, send(n, p))
+	require.True(t, got.OwnerState())
+	require.Equal(t, 2, got.AppearanceLocksLength())
+	var l AuraApi.AppearanceLock
+	var r AuraApi.ConversationLock
+	require.True(t, got.AppearanceLocks(&l, 0))
+	assert.Equal(t, uint16(4), l.Item(), "entry order survives the reversal")
+	require.Equal(t, 1, l.LocksLength())
+	require.True(t, l.Locks(&r, 0))
+	assert.Equal(t, AuraApi.ConversationLockKindMinLevel, r.Kind())
+	assert.Equal(t, uint32(3), r.Value())
+	assert.Equal(t, uint32(1), r.Have())
+	require.True(t, got.AppearanceLocks(&l, 1))
+	assert.Equal(t, uint16(0), l.Item())
+	require.Equal(t, 2, l.LocksLength())
+	require.True(t, l.Locks(&r, 0))
+	assert.Equal(t, AuraApi.ConversationLockKindSkillLevel, r.Kind())
+	assert.Equal(t, uint16(7), r.Skill())
+	require.True(t, l.Locks(&r, 1))
+	assert.Equal(t, "village-welcome", string(r.Quest()))
+
+	n.game.Tick = 2
+	quiet := decodeGameState(t, send(n, p))
+	assert.False(t, quiet.OwnerState())
+	assert.Zero(t, quiet.AppearanceLocksLength(), "unchanged: nothing on the wire")
+}

@@ -5,6 +5,7 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { ActivationRejection } from '../aura-api/activation-rejection.js';
+import { AppearanceLock } from '../aura-api/appearance-lock.js';
 import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { MapFog } from '../aura-api/map-fog.js';
@@ -307,8 +308,18 @@ appearanceOwnedArray():Uint16Array|null {
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
+appearanceLocks(index: number, obj?:AppearanceLock):AppearanceLock|null {
+  const offset = this.bb!.__offset(this.bb_pos, 72);
+  return offset ? (obj || new AppearanceLock()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+appearanceLocksLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 72);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(34);
+  builder.startObject(35);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -623,6 +634,22 @@ static createAppearanceOwnedVector(builder:flatbuffers.Builder, data:number[]|Ui
 
 static startAppearanceOwnedVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(2, numElems, 2);
+}
+
+static addAppearanceLocks(builder:flatbuffers.Builder, appearanceLocksOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(34, appearanceLocksOffset, 0);
+}
+
+static createAppearanceLocksVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startAppearanceLocksVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

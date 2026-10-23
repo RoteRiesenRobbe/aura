@@ -3976,6 +3976,7 @@ type fakeConnState struct {
 	// ascension stubs (C2a step 5): what the completed channel asked for.
 	ascendCalls  int
 	ascendKey    string
+	ascendBonus  []string
 	ascendResult bool
 
 	// fires are the authored campfires CampfireAt answers from - the D8 gate
@@ -4014,9 +4015,10 @@ func (p *fakePlayer) SetBloodlineUnlocks(keys []string) { p.bloodline = keys }
 func (p *fakePlayer) BloodlineAscensions() int          { return p.ascensions }
 func (p *fakePlayer) SetBloodlineAscensions(n int)      { p.ascensions = n }
 
-func (f *fakeConnState) RequestAscension(p model.PlayerEntity, unlockKey string) bool {
+func (f *fakeConnState) RequestAscension(p model.PlayerEntity, unlockKey string, bonusLooks []string) bool {
 	f.ascendCalls++
 	f.ascendKey = unlockKey
+	f.ascendBonus = bonusLooks
 	return f.ascendResult
 }
 

@@ -32,6 +32,7 @@
  * and page state above, and nowhere else.
  */
 
+import {setMenuBreadcrumb} from './MenuBreadcrumb';
 import {playCssAnimation} from '../../../common/logic/Utils';
 import * as PanelExclusivity from '../../logic/PanelExclusivity';
 
@@ -269,10 +270,7 @@ function applyTrail(entries: HTMLElement[], inTab: HTMLElement[], onPage: Set<HT
     for (const button of document.querySelectorAll('.spellbookOpenButton')) {
         button.classList.toggle('breadcrumb', trailing && !open);
     }
-    const menuButton = document.getElementById('mobileMenuButton');
-    if (menuButton) {
-        menuButton.classList.toggle('breadcrumb', trailing && !open);
-    }
+    setMenuBreadcrumb('spellbook', trailing && !open);
 
     const unseenCategories = new Set(entries
         .filter((entry) => unseen.has(entry.dataset.skillId))

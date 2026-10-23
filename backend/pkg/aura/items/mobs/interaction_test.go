@@ -914,6 +914,45 @@ func TestMapMobDefinition_RejectsARewardListThatNamesOneKeyTwice(t *testing.T) {
 	assert.Contains(t, err.Error(), "RimeBurst")
 }
 
+// --- a stone's bonus looks (plan-appearance.md C5b, D21c) ---
+
+func TestMapMobDefinition_ResolvesBonusLooks(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["pick one"],
+	  "rows": "ascension_catalog",
+	  "rewards": [],
+	  "bonusLooks": ["elder", "ring-ember"]
+	}]}`)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"elder", "ring-ember"}, def.Interaction.Nodes[0].BonusLooks)
+}
+
+func TestMapMobDefinition_BonusLooksAreOptional(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["pick one"], "rows": "ascension_catalog", "rewards": []
+	}]}`)
+	require.NoError(t, err)
+	assert.Empty(t, def.Interaction.Nodes[0].BonusLooks)
+}
+
+func TestMapMobDefinition_RejectsBadBonusLooks(t *testing.T) {
+	for name, node := range map[string]string{
+		"on a node that is not the catalog": `{"id": "root", "lines": ["hi"], "bonusLooks": ["elder"]}`,
+		"on a memorial":                     `{"id": "root", "lines": ["the dead"], "rows": "memorial_names", "bonusLooks": ["elder"]}`,
+		"one look twice": `{"id": "root", "lines": ["pick one"], "rows": "ascension_catalog", "rewards": [],
+			"bonusLooks": ["elder", "elder"]}`,
+		"an empty id": `{"id": "root", "lines": ["pick one"], "rows": "ascension_catalog", "rewards": [],
+			"bonusLooks": [" "]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := mapInteraction(t, `{"nodes": [`+node+`]}`)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "bonusLooks")
+		})
+	}
+}
+
 func TestMapMobDefinition_RejectsUnknownRowSource(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",

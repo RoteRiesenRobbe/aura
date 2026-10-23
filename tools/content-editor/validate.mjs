@@ -323,6 +323,17 @@ export function validateInteraction(mob, idx) {
     } else if ('rewards' in node) {
       err(`${nWho}: rewards is only for an ascension_catalog node`);
     }
+    // plan-appearance.md C5b, a port of mobs.mapBonusLooks (shape only; aurad
+    // checks each id names a stone gift).
+    if ('bonusLooks' in node) {
+      if (node.rows !== 'ascension_catalog') err(`${nWho}: bonusLooks is only for an ascension_catalog node`);
+      const seenLook = new Set();
+      for (const id of node.bonusLooks || []) {
+        if (!id?.trim()) err(`${nWho}: a bonusLooks entry must name an appearance id`);
+        else if (seenLook.has(id)) err(`${nWho}: bonusLooks "${id}" is listed twice`);
+        seenLook.add(id);
+      }
+    }
 
     // conditionsMode (plan-quest-dialogue.md D5/D7): a hand-synced port of
     // mobs.ParseConditionMode. Absent is "all"; a mode on no conditions is refused.

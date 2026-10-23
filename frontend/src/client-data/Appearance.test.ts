@@ -3,6 +3,8 @@ import {readdirSync, readFileSync} from 'node:fs';
 import {
     AppearanceCatalog,
     defaultLook,
+    heirLook,
+    heirWears,
     isWearable,
     itemAtFlat,
     lookArt,
@@ -143,5 +145,39 @@ describe('the flat index', () => {
         setAppearanceCatalog(gated);
         expect(isWearable(gated.portraits[2])).toBe(true);
         setOwnedAppearance([]);
+    });
+});
+
+// plan-appearance.md C5c, D12: a new life wears what the account and its slot
+// own, preselected with the predecessor's look wherever it is still owned.
+describe('heirLook', () => {
+    const withLocked: AppearanceCatalog = {
+        portraits: [...catalog.portraits, {id: 'crown', name: 'Crown', starter: false}],
+        rings: [...catalog.rings, {id: 'ring-claws', name: 'Claws', starter: false}],
+    };
+
+    it('offers the starters and what the heir owns', () => {
+        const heritage = {owned: ['crown']};
+        expect(withLocked.portraits.filter(item => heirWears(heritage, item)).map(item => item.id))
+            .toEqual(['auburn-curls', 'default', 'crown']);
+        expect(withLocked.rings.filter(item => heirWears(heritage, item)).map(item => item.id))
+            .toEqual(['ring-leather', 'ring-plain']);
+    });
+
+    it('wears the predecessor\'s look where it is still owned', () => {
+        expect(heirLook(withLocked, {owned: ['crown'], predecessor: {portrait: 'crown', ring: 'ring-leather'}}))
+            .toEqual({portrait: 'crown', ring: 'ring-leather'});
+    });
+
+    it('falls back to the default per slot where it is not', () => {
+        // Neither locked item is owned here (a character item ended with its life).
+        expect(heirLook(withLocked, {owned: [], predecessor: {portrait: 'crown', ring: 'ring-leather'}}))
+            .toEqual({portrait: 'default', ring: 'ring-leather'});
+        expect(heirLook(withLocked, {owned: [], predecessor: {portrait: 'auburn-curls', ring: 'ring-claws'}}))
+            .toEqual({portrait: 'auburn-curls', ring: 'ring-plain'});
+    });
+
+    it('without a predecessor wears the defaults', () => {
+        expect(heirLook(withLocked, {owned: ['crown']})).toEqual({portrait: 'default', ring: 'ring-plain'});
     });
 });

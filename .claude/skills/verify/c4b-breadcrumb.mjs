@@ -184,6 +184,14 @@ check('1 ⭐ the join baseline NEVER pulses - shut, open, on any tab (D4)',
 await cmd('XP 20000');
 await page.waitForTimeout(2500);
 
+// The same level-ups earn the forest ring (appearance C5c), and its breadcrumb
+// shares the ☰ and lights the Appearance button: shut the panel once so the
+// legs below count the spellbook's trail alone.
+await page.click('#appearanceButton');
+await page.waitForTimeout(500);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(500);
+
 async function dwellBookClean(rounds = 3) {
   await openSpellbook(page);
   for (let round = 0; round < rounds; round++) {

@@ -91,11 +91,21 @@ const (
 	LockKills         = mobs.LockKills
 	LockTravelClosed  = mobs.LockTravelClosed
 	LockSkillLevel    = mobs.LockSkillLevel
+	LockStoneGift     = mobs.LockStoneGift
 	LockUnknown       = mobs.LockUnknown
 )
 
 // LockReasonOf is mobs.LockReasonOf.
 var LockReasonOf = mobs.LockReasonOf
+
+// AppearanceLock is one locked appearance item the own player does not own
+// yet (plan-appearance.md C5c): its flat index (appearance.Catalog.Flat) and
+// its reasons with this player's progress, worded by the client like a
+// locked row's.
+type AppearanceLock struct {
+	Item    uint16
+	Reasons []LockReason
+}
 
 // ConversationOption is one row — the only interactive element in the whole
 // panel (D15). Branch or grant, it is the same row.

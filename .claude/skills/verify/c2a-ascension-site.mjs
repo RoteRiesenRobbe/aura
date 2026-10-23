@@ -50,6 +50,7 @@
 // correctly. What its rows do belongs to later steps of C2a; whether a
 // bloodline unlock reaches a joining character is `c1-bloodline-seed.mjs`.
 
+import { execFileSync } from 'child_process';
 import { createRequire } from 'module';
 import { join } from 'path';
 import { joinAsNewCharacter } from './lib/join.mjs';
@@ -75,6 +76,9 @@ const PREVIEW_LINE = 'A life can be laid down here';
 const READY_LINE = 'you can spend this character here';
 const CATALOG_ROW = 'Show me the rewards';
 const CATALOG_LINE = 'unlocks permanently for this character slot';
+// plan-appearance.md C5b: the main stone's bonus look, granted on any pick.
+const BONUS_LINE = 'may also wear the Gold Amulet';
+const BONUS_LOOK = 'gold-amulet';
 const EMPTY_PICK = 'take no reward';
 // FrostShield is the probe reward on purpose: it is a Troll DROP, so it is also
 // the finding-4 case, a skill the spellbook can know without the bloodline ever
@@ -101,7 +105,7 @@ page.on('response', (r) => {
 });
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-await joinAsNewCharacter(page, 'stone');
+const characterName = await joinAsNewCharacter(page, 'stone');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
 await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
 
@@ -380,6 +384,9 @@ await clickRow(CATALOG_ROW);
 const catalog = await panel();
 check('the catalog node opens', !!catalog && catalog.lines.includes(CATALOG_LINE),
   catalog ? catalog.lines.replace(/\s+/g, ' ').slice(0, 80) : 'no panel');
+// plan-appearance.md C5b: the stone says what it gives on top of the pick.
+check('the catalog names the stone\'s bonus look', !!catalog && catalog.lines.includes(BONUS_LINE),
+  catalog ? catalog.lines.replace(/\s+/g, ' ').slice(0, 160) : 'no panel');
 
 const rows = catalog ? catalog.rows : [];
 const ungatedRow = rows.find((r) => r.includes(UNGATED_ROW));
@@ -520,6 +527,32 @@ if (ungatedRow) {
   check('...and never shows the "Connection lost" banner',
     !/connection lost/i.test(ended.banner), ended.banner || '(none)');
   await page.screenshot({ path: `.claude/skills/verify/c2a-ascended-${label}.png` });
+
+  // ⭐ plan-appearance.md C5b (D21c): the stone's bonus look rides the
+  // sacrifice's transaction. The row is the unambiguous proof (bloodline scope,
+  // this slot); the heir's creation picker offering the tile is what a player
+  // sees. ⚑ SELECT only: the dev DB is read, never written, here.
+  try {
+    const row = execFileSync('docker', ['exec', 'aura-dev-db', 'psql', '-U', 'aura', '-d', 'aura', '-tAc',
+      `SELECT u.scope || ':' || u.slot_index FROM game.appearance_unlocks u
+         JOIN game.characters c ON c.account_id = u.account_id AND c.slot_index = u.slot_index
+        WHERE c.name = '${characterName}' AND u.item_key = '${BONUS_LOOK}'`], { encoding: 'utf8' }).trim();
+    check('the stone\'s bonus look is granted to the line (C5b)', /^bloodline:\d+$/.test(row), row || 'no row');
+  } catch (e) {
+    check('the stone\'s bonus look is granted to the line (C5b)', null, `no docker DB: ${String(e).slice(0, 80)}`);
+  }
+  const offered = async () => page.$$eval('#characterCreation .lookOption', (els) => els.map((e) => e.dataset.item));
+  try {
+    await page.click('#characterSelect .slotCard[data-slot-index="0"]');
+    await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+    const tiles = await offered();
+    const worn = await page.$$eval('#characterCreation .lookOption.selected', (els) => els.map((e) => e.dataset.item));
+    check('the heir\'s creation offers the bonus look (C5b)', tiles.includes(BONUS_LOOK), tiles.join(' '));
+    check('...without wearing it (the predecessor never did)', !worn.includes(BONUS_LOOK), worn.join(' + '));
+    await page.screenshot({ path: `.claude/skills/verify/c2a-heir-${label}.png` });
+  } catch (e) {
+    check('the heir\'s creation offers the bonus look (C5b)', false, String(e).slice(0, 120));
+  }
 } else {
   // ⚑ RED, not SKIP. Before C3 step 4 an absent reward row was the correct
   // answer to an empty catalog; now the seed ships and this row is authored, so

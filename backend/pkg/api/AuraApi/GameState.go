@@ -594,8 +594,28 @@ func (rcv *GameState) MutateAppearanceOwned(j int, n uint16) bool {
 	return false
 }
 
+func (rcv *GameState) AppearanceLocks(obj *AppearanceLock, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(72))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *GameState) AppearanceLocksLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(72))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(34)
+	builder.StartObject(35)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -737,6 +757,12 @@ func GameStateAddAppearanceOwned(builder *flatbuffers.Builder, appearanceOwned f
 }
 func GameStateStartAppearanceOwnedVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddAppearanceLocks(builder *flatbuffers.Builder, appearanceLocks flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(34, flatbuffers.UOffsetT(appearanceLocks), 0)
+}
+func GameStateStartAppearanceLocksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

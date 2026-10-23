@@ -47,6 +47,7 @@ vi.mock('../../../../client-data/Skills', () => ({
     skillDisplayNameFor: (key: string) => (key === 'FrostShield' ? 'Frost Shield' : key),
 }));
 
+import type {LookHeritage} from '../../../../client-data/Appearance';
 import * as AccountScreens from './AccountScreens';
 import * as CharacterSelect from './CharacterSelect';
 import {Character, CharacterList, SlotBloodline} from '../../../accounts/logic/AccountsApi';
@@ -83,13 +84,13 @@ function cards(): HTMLElement[] {
     return Array.from(container.children) as HTMLElement[];
 }
 
-let created: Array<{ characterCount: number, slotIndex: number }>;
+let created: Array<{ characterCount: number, slotIndex: number, heritage?: LookHeritage }>;
 
 beforeEach(() => {
     created = [];
     CharacterSelect.setup({
         onPlay: () => undefined,
-        onCreate: (characterCount, slotIndex) => created.push({characterCount, slotIndex}),
+        onCreate: (characterCount, slotIndex, heritage) => created.push({characterCount, slotIndex, heritage}),
         onLoggedOut: () => undefined,
         onLoginRequested: () => undefined,
     });
@@ -154,7 +155,7 @@ describe('an empty slot that continues a bloodline', () => {
         ]), aSession);
 
         cards()[0].dispatchEvent(new Event('pointerdown'));
-        expect(created).toEqual([{characterCount: 0, slotIndex: 0}]);
+        expect(created).toEqual([{characterCount: 0, slotIndex: 0, heritage: {owned: []}}]);
     });
 });
 
@@ -307,5 +308,35 @@ describe('the greeting', () => {
 
         expect(greeting().classList.contains('hidden')).toBe(true);
         expect(greeting().textContent).toBe('');
+    });
+});
+
+// plan-appearance.md C5c, D12: creation is handed what the new life may wear
+// (the account's items and that slot's) and the look of the life it continues.
+describe('creating in a slot hands over its looks', () => {
+    it('passes the account and slot items and the predecessor\'s look', () => {
+        const list = aList([], [
+            aBloodline(0),
+            aBloodline(1, {ascensions: 1, predecessorName: 'Grimwald', appearanceOwned: ['ring-leather-claws'],
+                predecessorPortrait: 'villager', predecessorRing: 'ring-forest'}),
+            aBloodline(2),
+        ]);
+        list.appearanceOwned = ['villager'];
+        CharacterSelect.show(list, aSession);
+
+        cards()[1].dispatchEvent(new Event('pointerdown'));
+        expect(created).toEqual([{characterCount: 0, slotIndex: 1, heritage: {
+            owned: ['villager', 'ring-leather-claws'],
+            predecessor: {portrait: 'villager', ring: 'ring-forest'},
+        }}]);
+    });
+
+    it('a slot without a past hands over the account items only', () => {
+        const list = aList([], [aBloodline(0), aBloodline(1), aBloodline(2)]);
+        list.appearanceOwned = ['villager'];
+        CharacterSelect.show(list, aSession);
+
+        cards()[0].dispatchEvent(new Event('pointerdown'));
+        expect(created[0].heritage).toEqual({owned: ['villager']});
     });
 });

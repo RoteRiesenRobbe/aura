@@ -54,6 +54,12 @@
 // worn and survives a relog. A fourth page with a forged catalog offers it at
 // level 1 and the server refuses the pick.
 //
+// C5c (plan-appearance.md): the panel shows the locked items greyed, the
+// forest ring's GAME tooltip (#skillTooltip, no title attribute) naming the
+// level with this character's progress from the server; the earned ring
+// lights the Appearance button, glows in the picker for one visit and is seen
+// once the panel shuts.
+//
 // Usage: node .claude/skills/verify/c1-medallions.mjs [label] [url]
 // Screenshots go to C1_SHOT_DIR (default: the script's directory).
 import { createRequire } from 'node:module';
@@ -425,7 +431,7 @@ for (const v of VENUES) {
   await p2.mouse.click(640, 300); // focus the game, not the console
   await press('KeyC');
   ok(await panelOpen(), 'c4: C opens the Appearance panel');
-  const panelTiles = await p2.locator('#appearance .lookOption').count();
+  const panelTiles = await p2.locator('#appearance .lookOption:not(.locked)').count();
   ok(panelTiles === 10, `c4: the panel offers ${panelTiles} starter tiles (8 portraits + 2 rings)`);
   ok(JSON.stringify(await worn()) === JSON.stringify(['green-hood', 'ring-leather']), `c4: the panel shows the worn look ${await worn()}`);
   await press('Escape');
@@ -505,8 +511,37 @@ for (const v of VENUES) {
   const offered = () => p2.evaluate(() => [...document.querySelectorAll('#appearance .lookOption')].map((t) => t.dataset.item));
   const forestWire = await p2.evaluate(async () => (await (await fetch('/appearance')).json()).rings.findIndex((r) => r.id === 'ring-forest') + 1);
   ok(forestWire > 0, `c5: /appearance serves the locked ring-forest (wire ${forestWire})`);
+  const lockedTiles = () => p2.evaluate(() => [...document.querySelectorAll('#appearance .lookOption.locked')].map((t) => t.dataset.item));
+  const forestTile = () => p2.evaluate(() => {
+    const t = document.querySelector('#appearance .lookOption[data-item="ring-forest"]');
+    return t && { locked: t.classList.contains('locked'), fresh: t.classList.contains('fresh') };
+  });
   await press('KeyC');
-  ok(!(await offered()).includes('ring-forest'), `c5: a level-1 character is not offered the forest ring (${(await offered()).length} tiles)`);
+  const locked = await forestTile();
+  ok(locked?.locked, `c5c: a level-1 character sees the forest ring locked (locked tiles ${await lockedTiles()})`);
+  // The game's tooltip (#skillTooltip), never the browser's title (PO 2026-10-23).
+  await p2.hover('#appearance .lookOption[data-item="ring-forest"]');
+  await p2.waitForTimeout(300);
+  const tip = await p2.evaluate(() => {
+    const t = document.getElementById('skillTooltip');
+    return { shown: !!t && !t.classList.contains('hidden'), text: t?.innerText ?? '', titles: document.querySelectorAll('#appearance .lookOption[title]').length };
+  });
+  ok(tip.shown && /Forest Ring/.test(tip.text) && /Locked: level 3 \(1\/3\)/.test(tip.text) && tip.titles === 0,
+    `c5c: the game tooltip names the level with the progress, no title attribute: ${JSON.stringify(tip)}`);
+  await p2.screenshot({ path: join(shotDir, `c1-${label}-c5c-locked.png`) });
+  // plan-appearance.md C5b: a look only a stone gives is locked with no progress.
+  await p2.hover('#appearance .lookOption[data-item="gold-amulet"]');
+  await p2.waitForTimeout(300);
+  const stoneTip = await p2.evaluate(() => {
+    const tile = document.querySelector('#appearance .lookOption[data-item="gold-amulet"]');
+    const t = document.getElementById('skillTooltip');
+    return { locked: !!tile?.classList.contains('locked'), text: t && !t.classList.contains('hidden') ? t.innerText : '' };
+  });
+  ok(stoneTip.locked && /Gold Amulet/.test(stoneTip.text) && /Locked: a gift of an ascension stone/.test(stoneTip.text),
+    `c5b: the stone's gift is locked and its tooltip says so: ${JSON.stringify(stoneTip)}`);
+  await p2.click('#appearance .lookOption[data-item="ring-forest"]', { force: true }); // aria-disabled: Playwright waits for enabled otherwise
+  await p2.waitForTimeout(1500);
+  ok(!(await worn()).includes('ring-forest'), 'c5c: pressing the locked tile wears nothing');
   await press('Escape');
   await p2.evaluate(() => {
     window.__banners = [];
@@ -519,13 +554,20 @@ for (const v of VENUES) {
   const toast = await p2.waitForFunction(() => window.__banners.some((t) => /New look: Forest Ring/.test(t)), null, { timeout: 90_000 })
     .then(() => true).catch(() => false);
   ok(toast, `c5: the level-up fires the "New look: Forest Ring" toast (banners seen: ${(await p2.evaluate(() => window.__banners.length))})`);
+  const crumb = await p2.evaluate(() => document.getElementById('appearanceButton').classList.contains('breadcrumb'));
+  ok(crumb, 'c5c: the earned ring lights the Appearance button');
   await press('KeyC');
-  ok((await offered()).includes('ring-forest'), 'c5: the panel now offers the forest ring');
+  const earned = await forestTile();
+  ok(earned && !earned.locked && earned.fresh, `c5c: the panel offers the forest ring, glowing (${JSON.stringify(earned)})`);
   await p2.click('#appearance .lookOption[data-item="ring-forest"]');
   const woreForest = await p2.waitForFunction((w) => window.game.character.ringWire === w, forestWire, { timeout: 15_000 })
     .then(() => true).catch(() => false);
   ok(woreForest, `c5: the earned forest ring is worn (own ring wire ${forestWire})`);
   await p2.screenshot({ path: join(shotDir, `c1-${label}-c5-earned.png`) });
+  await press('Escape');
+  const seenAfter = await p2.evaluate(() => document.getElementById('appearanceButton').classList.contains('breadcrumb'));
+  await press('KeyC');
+  ok(!seenAfter && !(await forestTile())?.fresh, 'c5c: shutting the panel counts it as seen (no breadcrumb, no glow)');
   await press('Escape');
   await p2.click('#gameSettingsButton');
   await p2.click('#leaveToCharacterSelect');
@@ -585,7 +627,7 @@ for (const v of VENUES) {
   await mp.waitForTimeout(500);
   const mobile = await mp.evaluate(() => {
     const r = document.getElementById('appearance').getBoundingClientRect();
-    return { open: !document.getElementById('appearance').classList.contains('hidden'), w: r.width, h: r.height, tiles: document.querySelectorAll('#appearance .lookOption').length };
+    return { open: !document.getElementById('appearance').classList.contains('hidden'), w: r.width, h: r.height, tiles: document.querySelectorAll('#appearance .lookOption:not(.locked)').length };
   });
   ok(desktopButtonHidden && mobile.open && mobile.w >= 389 && mobile.tiles === 10,
     `c4 mobile: desktop button hidden ${desktopButtonHidden}, the ☰ row opens it (${mobile.open}) full screen ${mobile.w}x${mobile.h}, ${mobile.tiles} tiles`);

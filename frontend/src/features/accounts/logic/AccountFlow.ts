@@ -80,8 +80,8 @@ export function setup(): void {
         onPlay: (character) => {
             void enterWorld(character);
         },
-        onCreate: (characterCount, slotIndex) => {
-            CharacterCreation.show('select', characterCount, slotIndex);
+        onCreate: (characterCount, slotIndex, heritage) => {
+            CharacterCreation.show('select', characterCount, slotIndex, heritage);
         },
         onLoggedOut: () => {
             // A registered player never carries an anonymous secret, so after

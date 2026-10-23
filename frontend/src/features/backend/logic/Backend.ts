@@ -666,6 +666,10 @@ export class Backend implements IBackend {
         if (Utils.isDefined(snapshot.appearanceOwned)) {
             AppearancePanel.setOwned(snapshot.appearanceOwned);
         }
+        // What is still locked, with its progress (C5c): the panel's tooltips.
+        if (Utils.isDefined(snapshot.appearanceLocks)) {
+            AppearancePanel.setLocks(snapshot.appearanceLocks);
+        }
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
         // entered the viewport this same tick already has a game object to

@@ -365,6 +365,9 @@ func (d DerivedStats) CostFactor() float32 {
 type AscensionPick struct {
 	Key  string
 	Gate any
+	// BonusLooks is the stone's bonus (plan-appearance.md C5b), stashed with
+	// its price: appearance ids granted on top of Key at completion.
+	BonusLooks []string
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.

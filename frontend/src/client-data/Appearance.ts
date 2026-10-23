@@ -112,6 +112,38 @@ export function defaultLook(c: AppearanceCatalog): { portrait: string, ring: str
 }
 
 /**
+ * What a new life inherits in looks (plan-appearance.md D12, C5c): the locked
+ * items it may wear (the account's and its slot's, as ids) and the look of
+ * the life it continues, when there was one.
+ */
+export interface LookHeritage {
+    owned: string[];
+    predecessor?: { portrait?: string, ring?: string };
+}
+
+/** Whether a new life may wear an item: a starter, or one it inherits. */
+export function heirWears(heritage: LookHeritage, item: AppearanceItem): boolean {
+    return item.starter || heritage.owned.includes(item.id);
+}
+
+/**
+ * The look creation preselects: the predecessor's portrait and ring, each
+ * where the new life may still wear it (a character item ended with its
+ * life), the slot's default otherwise.
+ */
+export function heirLook(c: AppearanceCatalog, heritage: LookHeritage): { portrait: string, ring: string } {
+    const fallback = defaultLook(c);
+    const keep = (items: AppearanceItem[], id: string | undefined, otherwise: string) => {
+        const item = items.find(candidate => candidate.id === id);
+        return item && heirWears(heritage, item) ? item.id : otherwise;
+    };
+    return {
+        portrait: keep(c.portraits, heritage.predecessor?.portrait, fallback.portrait),
+        ring: keep(c.rings, heritage.predecessor?.ring, fallback.ring),
+    };
+}
+
+/**
  * The item at a flat index: every portrait in wire order, then every ring.
  * The owned set (GameState.appearance_owned) and an appearance unlock's
  * entity id both count this way (plan-appearance.md C5).

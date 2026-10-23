@@ -36,8 +36,17 @@ func (lookWorld) CheckQuestStage(string, string) error      { return fmt.Errorf(
 // ring-forest 4, ring-leather 5, ring-plain 6.
 func gatedLooks(t *testing.T) appearance.Catalog {
 	t.Helper()
+	c, err := appearance.Load(gatedLookFiles(), lookWorld{})
+	require.NoError(t, err)
+	require.Equal(t, uint16(0), c.Flat("crown"))
+	require.Equal(t, uint16(3), c.Flat("ring-claws"))
+	require.Equal(t, uint16(4), c.Flat("ring-forest"))
+	return c
+}
+
+func gatedLookFiles() fstest.MapFS {
 	file := func(s string) *fstest.MapFile { return &fstest.MapFile{Data: []byte(s)} }
-	c, err := appearance.Load(fstest.MapFS{
+	return fstest.MapFS{
 		"default.json":      file(`{"id": "default", "slot": "portrait", "starter": true, "name": "x"}`),
 		"green-hood.json":   file(`{"id": "green-hood", "slot": "portrait", "starter": true, "name": "x"}`),
 		"ring-plain.json":   file(`{"id": "ring-plain", "slot": "ring", "family": "grey", "starter": true, "name": "x"}`),
@@ -48,12 +57,7 @@ func gatedLooks(t *testing.T) appearance.Catalog {
 			"conditions": [{"kind": "bloodline_ascensions", "value": 1}]}`),
 		"crown.json": file(`{"id": "crown", "slot": "portrait", "scope": "account", "name": "x",
 			"conditions": [{"kind": "skill_level", "skill": "Thorns", "value": 2}]}`),
-	}, lookWorld{})
-	require.NoError(t, err)
-	require.Equal(t, uint16(0), c.Flat("crown"))
-	require.Equal(t, uint16(3), c.Flat("ring-claws"))
-	require.Equal(t, uint16(4), c.Flat("ring-forest"))
-	return c
+	}
 }
 
 const (
@@ -250,7 +254,7 @@ func TestRequestAscensionCarriesTheCountBasedItems(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	require.Zero(t, p.BloodlineAscensions(), "a first life")
 
-	require.True(t, s.RequestAscension(p, ""))
+	require.True(t, s.RequestAscension(p, "", nil))
 	require.Len(t, ascensions.requested, 1)
 	assert.Equal(t, []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}},
 		ascensions.requested[0].Appearance, "count 0 + this sacrifice = 1 earns the bloodline ring")
@@ -261,7 +265,7 @@ func TestRequestAscensionSkipsWhatIsOwned(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	p.SetAppearanceOwned([]uint16{flatClaws})
 
-	require.True(t, s.RequestAscension(p, ""))
+	require.True(t, s.RequestAscension(p, "", nil))
 	assert.Empty(t, ascensions.requested[0].Appearance)
 }
 
@@ -325,4 +329,59 @@ func TestBloodlineAndAccount_RideTheFourDoors(t *testing.T) {
 		require.Len(t, g.players, 2)
 		carries(t, p, g.players[1])
 	})
+}
+
+// --- the locked items' progress (plan-appearance.md C5c) ---
+
+// lockOf is the reasons the player's lock list carries for one item, or nil
+// when the item is not listed.
+func lockOf(p model.PlayerEntity, flat uint16) []model.LockReason {
+	for _, l := range p.AppearanceLocks() {
+		if l.Item == flat {
+			return l.Reasons
+		}
+	}
+	return nil
+}
+
+// Every locked item the character does not own is listed with its reasons
+// and this character's progress, the conversation rows' lockReasons; a grant
+// drops the item from the list, and a raise moves the progress.
+func TestGrant_LocksCarryEveryUnownedItemWithProgress(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetAppearance(gatedLooks(t))
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	require.Len(t, p.AppearanceLocks(), 3, "the join lists every locked item")
+	assert.Equal(t, []model.LockReason{{Kind: model.LockMinLevel, Value: 3, Have: 1}}, lockOf(p, flatForest))
+	assert.Equal(t, []model.LockReason{{Kind: model.LockAscensions, Value: 1, Have: 0}}, lockOf(p, flatClaws))
+	assert.Equal(t, []model.LockReason{{Kind: model.LockSkillLevel, Value: 2, Have: 0, Skill: uint16(testThorns)}},
+		lockOf(p, flatCrown))
+
+	p.SkillComponent().Discover(testThorns)
+	s.Update(0)
+	require.NotNil(t, lockOf(p, flatCrown))
+	assert.Equal(t, uint32(1), lockOf(p, flatCrown)[0].Have, "learning the skill moves the progress")
+
+	p.AddExperience(100000)
+	s.Update(0)
+	assert.Nil(t, lockOf(p, flatForest), "a granted item leaves the list")
+	assert.Len(t, p.AppearanceLocks(), 2)
+}
+
+// The list is rebuilt at every door: a respawned player starts a fresh watch,
+// so the first tick lists its locks again.
+func TestGrant_LocksAreRebuiltAfterRespawn(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetAppearance(gatedLooks(t))
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	require.Len(t, p.AppearanceLocks(), 3)
+
+	kill(t, s, p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+	require.Len(t, g.players, 2)
+	assert.Len(t, g.players[1].AppearanceLocks(), 3)
 }

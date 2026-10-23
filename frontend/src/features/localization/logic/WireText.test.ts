@@ -1,6 +1,6 @@
 import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {AuraApi} from '../../backend/logic/AuraApi';
-import {objectiveLine, resolveArgs, WireArg, wireMessageText} from './WireText';
+import {lockedText, lockReasonText, objectiveLine, resolveArgs, WireArg, wireMessageText} from './WireText';
 import {formatMobName, loadMobCatalog, mobName} from '../../../client-data/Mobs';
 import {loadLangBundle} from '../../../client-data/LangBundle';
 import {loadCatalog, setLocaleForTest} from './Locale';
@@ -138,5 +138,51 @@ describe('mob names as ICU (D24)', () => {
 
     it('degrades a broken name readably, never blank (D14)', () => {
         expect(formatMobName('{count, plural, one {Wolf}', 2)).toBe('{count, plural, one {Wolf}');
+    });
+});
+
+// plan-appearance.md C5c: one wording for a lock reason, whether it arrived on
+// a conversation row or on the owner block's locked appearance items.
+describe('lockReasonText', () => {
+    it('words a numeric kind with its progress', () => {
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.MinLevel, value: 3, have: 1}))
+            .toBe('level 3 (1/3)');
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.Ascensions, value: 1, have: 0}))
+            .toBe('1 ascension in this line (0/1)');
+    });
+
+    it('words a quest kind by its id when the catalog lacks it', () => {
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.QuestComplete, quest: 'village-welcome'}))
+            .toBe('complete “village-welcome”');
+    });
+
+    it('falls back for a kind it does not know', () => {
+        expect(lockReasonText({kind: 200})).toBe('an unnamed requirement');
+    });
+
+    // plan-appearance.md C5b: a look only a stone gives has no progress.
+    it('words a stone gift', () => {
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.StoneGift}))
+            .toBe('a gift of an ascension stone');
+        setLocaleForTest('de');
+        expect(lockReasonText({kind: AuraApi.ConversationLockKind.StoneGift}))
+            .toBe('ein Geschenk eines Aufstiegssteins');
+    });
+});
+
+describe('lockedText', () => {
+    const level = {kind: AuraApi.ConversationLockKind.MinLevel, value: 3, have: 1};
+    const line = {kind: AuraApi.ConversationLockKind.Ascensions, value: 1, have: 0};
+
+    it('joins reasons by the mode, after the label', () => {
+        expect(lockedText('Forest ring', [level, line], false))
+            .toBe('Forest ring - locked: level 3 (1/3) and 1 ascension in this line (0/1)');
+        expect(lockedText('Forest ring', [level, line], true))
+            .toBe('Forest ring - locked: level 3 (1/3) or 1 ascension in this line (0/1)');
+    });
+
+    it('words it in German', () => {
+        setLocaleForTest('de');
+        expect(lockedText('Waldring', [level], false)).toBe('Waldring – gesperrt: Stufe 3 (1/3)');
     });
 });

@@ -16,6 +16,10 @@
   "@conv.AscensionStone.spending-one-here-unlocks": {
     "description": "Ascension Stone speaks this in the conversation, node \"root\", line 2."
   },
+  "conv.AscensionStone.whatever-you-pick-the-line": "Whatever you pick, the line that follows may also wear the Gold Amulet.",
+  "@conv.AscensionStone.whatever-you-pick-the-line": {
+    "description": "Ascension Stone speaks this in the conversation, node \"catalog\", line 2."
+  },
   "conv.AscensionStone.you-are-max-level-so": "You are max level, so you can spend this character here.",
   "@conv.AscensionStone.you-are-max-level-so": {
     "description": "Ascension Stone speaks this in the conversation, node \"ready\", line 1."

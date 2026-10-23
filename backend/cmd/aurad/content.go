@@ -167,7 +167,13 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	} else if out.appearance, err = appearance.Load(src.appearance,
 		appearanceWorld{out.skills, catalogGates{mobs: out.mobs, quests: out.quests}}); err != nil {
 		fail("appearance", err)
+	} else if warnings, err := appearance.CrossValidateStones(out.mobs, out.appearance); err != nil {
+		// A stone's bonusLooks (C5b): both registries stand here.
+		fail("appearance", err)
 	} else {
+		for _, w := range warnings {
+			slog.Warn("unreachable appearance item", slog.String("detail", w))
+		}
 		slog.Info("Loaded appearance items", slog.Int("portraits", len(out.appearance.Portraits())), slog.Int("rings", len(out.appearance.Rings())))
 	}
 

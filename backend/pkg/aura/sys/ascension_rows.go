@@ -280,7 +280,7 @@ func (a *ascensionRows) stash(node *mobs.InteractionNode, p learner, key string)
 	if sc == nil {
 		return "", false
 	}
-	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Gate}
+	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Gate, BonusLooks: node.BonusLooks}
 	sc.StartUtilityCast(skills.UtilityAscend)
 	if key == "" {
 		return "Channelling now. Walk away to cancel.", true

@@ -167,6 +167,12 @@ index), so the client words them in its own language.
   "looks": ["villager-elder", "hunter"], "lines": [ ... ] }
 ```
 
+- ⚑ **Built by appearance C5b (2026-10-23), reuse it:** the stone-gift marker
+  `"grantedBy": "stone"` (bloodline/account scope, no conditions; the loader refuses the
+  rest), `Item.StoneGift()` (the evaluator never grants one by itself), the locked
+  reason `LockStoneGift` = 7 ("Locked: a gift of an ascension stone"), and
+  `appearance.CrossValidateStones` (today it reads a catalog node's `bonusLooks`; a
+  `looks` list should join it).
 - `slot` is `portrait` or `ring`; every id in `looks` must be that slot (R7), exist in
   the appearance catalog, and be **`bloodline` or `account` scope** (a character item
   would land on the life that is ending, `plan-appearance.md` D21's proposed refusal,

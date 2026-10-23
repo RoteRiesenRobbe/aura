@@ -14,6 +14,8 @@
 //   5. a returning browser lands on character-select, now offering Logout
 //   6. logout returns to creation; logging back in returns to character-select
 //   7. the delete dialog opens with its confirm disabled
+//   8. an heir's creation offers the account's and the slot's looks and
+//      preselects the predecessor's (plan-appearance.md C5c, D12)
 //
 // ⚑ EVERY RUN MUST START FROM A CLEAN PROFILE. A leftover anonymous secret
 // routes to character-select instead of creation, which is a different flow and
@@ -25,6 +27,7 @@
 // Usage: node .claude/skills/verify/chunk2-accounts.mjs [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -264,6 +267,56 @@ try {
   closed ? pass('cancel closes the dialog') : fail('cancel closes the dialog');
 } catch (e) {
   fail('the delete dialog', String(e).slice(0, 160));
+}
+
+// --- 8. an heir's creation (plan-appearance.md C5c, D12) ---------------------
+// ⚑ SEEDED IN THE DEV DATABASE, like c1-bloodline-seed: a spent life in slot 1
+// wearing the account's villager bust and that slot's claws ring, plus the two
+// grants. Every row is keyed to this run's account, so `harnessdb -cleanup`
+// takes them with it.
+const psql = (sql) => execFileSync('docker', ['exec', 'aura-dev-db', 'psql', '-U', 'aura', '-d', 'aura', '-tAc', sql],
+  { encoding: 'utf8' }).trim();
+const creationLook = () => page.$$eval('#characterCreation .lookOption.selected', (els) => els.map((e) => e.dataset.item));
+const creationOffers = () => page.$$eval('#characterCreation .lookOption', (els) => els.map((e) => e.dataset.item));
+try {
+  const accountId = psql(`SELECT account_id FROM game.account_credentials WHERE username = '${username}'`);
+  psql(`INSERT INTO game.characters (account_id, slot_index, name, avatar, ring, faction, sacrificed_at)
+        SELECT account_id, 1, '${harnessCharacterName('heir')}', 'villager', 'ring-leather-claws', faction, now()
+          FROM game.characters WHERE account_id = ${accountId} AND sacrificed_at IS NULL AND deleted_at IS NULL LIMIT 1`);
+  psql(`INSERT INTO game.appearance_unlocks (account_id, scope, item_key) VALUES (${accountId}, 'account', 'villager')`);
+  psql(`INSERT INTO game.appearance_unlocks (account_id, scope, slot_index, item_key)
+        VALUES (${accountId}, 'bloodline', 1, 'ring-leather-claws')`);
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await waitShown('#characterSelect');
+
+  await page.click('#characterSelect .slotCard[data-slot-index="1"]');
+  await waitShown('#characterCreation', 30_000);
+  await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+  const heirLook = await creationLook();
+  JSON.stringify(heirLook) === JSON.stringify(['villager', 'ring-leather-claws'])
+    ? pass('an heir starts on the predecessor\'s look', heirLook.join(' + '))
+    : fail('an heir starts on the predecessor\'s look', heirLook.join(' + '));
+  const heirOffers = await creationOffers();
+  heirOffers.includes('villager') && heirOffers.includes('ring-leather-claws') && !heirOffers.includes('ring-forest')
+    ? pass('the heir is offered the account\'s and the slot\'s looks, no locked one', `${heirOffers.length} tiles`)
+    : fail('the heir is offered the account\'s and the slot\'s looks, no locked one', heirOffers.join(' '));
+  await page.screenshot({ path: join(process.env.C1_SHOT_DIR || '.', 'chunk2-heir-creation.png') });
+
+  await page.click('#creationBackButton');
+  await waitShown('#characterSelect', 30_000);
+  await page.click('#characterSelect .slotCard[data-slot-index="2"]');
+  await waitShown('#characterCreation', 30_000);
+  await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+  const freshLook = await creationLook();
+  const freshOffers = await creationOffers();
+  JSON.stringify(freshLook) === JSON.stringify(['default', 'ring-plain'])
+    && freshOffers.includes('villager') && !freshOffers.includes('ring-leather-claws')
+    ? pass('a slot without a past starts on the defaults, offered the account\'s look only', freshLook.join(' + '))
+    : fail('a slot without a past starts on the defaults, offered the account\'s look only',
+      `${freshLook.join(' + ')} / ${freshOffers.join(' ')}`);
+  await page.click('#creationBackButton');
+} catch (e) {
+  fail('an heir\'s creation', String(e).slice(0, 160));
 }
 
 consoleErrors.length === 0

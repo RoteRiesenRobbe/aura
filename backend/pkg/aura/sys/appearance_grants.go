@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
@@ -47,16 +48,32 @@ func (s *ConnectionStateSystem) grantAppearance() {
 // announced. It only ever adds (D16): a respec, or anything else that later
 // fails a condition, revokes nothing. The save persists the grant at its
 // scope (saveWatch watches the owned set's size).
+//
+// What stays locked is listed with this player's progress for the owner
+// block (C5c), through the conversation rows' lockReasons. The watch's
+// revisions are a subset of the owner block's gate, so the tick a progress
+// value moves is a tick the block is sent.
 func (s *ConnectionStateSystem) grantEarned(p model.PlayerEntity) {
 	owned := p.AppearanceOwned()
 	var earned []uint16
+	var locks []model.AppearanceLock
 	for _, it := range s.looks.Gated() {
 		flat := s.looks.Flat(it.ID)
-		if slices.Contains(owned, flat) || !conditionsPass(it.Gate, p) {
+		if slices.Contains(owned, flat) {
 			continue
 		}
-		earned = append(earned, flat)
+		// ⚑ A stone gift's gate is empty and would pass: only a stone grants it.
+		if it.StoneGift() {
+			locks = append(locks, model.AppearanceLock{Item: flat, Reasons: []model.LockReason{{Kind: mobs.LockStoneGift}}})
+			continue
+		}
+		if conditionsPass(it.Gate, p) {
+			earned = append(earned, flat)
+		} else {
+			locks = append(locks, model.AppearanceLock{Item: flat, Reasons: lockReasons(it.Gate, p)})
+		}
 	}
+	p.SetAppearanceLocks(locks)
 	if len(earned) == 0 {
 		return
 	}
@@ -98,16 +115,27 @@ func (a ascended) BloodlineAscensions() int { return a.PlayerEntity.BloodlineAsc
 // ascension count. Granted in AscendCharacter's transaction rather than at
 // the heir's first join, so creation's picker and its preselect (D12) already
 // see it. Character items stay out: they would land on the life that ends.
-func (s *ConnectionStateSystem) ascensionAppearance(p model.PlayerEntity) []persist.AppearanceGrant {
+//
+// The stone's bonus (C5b, D21c) follows: its stone gifts not yet owned. An id
+// the catalog lacks is dropped (the loader checked the ids, so only a content
+// change under a running channel reaches it).
+func (s *ConnectionStateSystem) ascensionAppearance(p model.PlayerEntity, bonusLooks []string) []persist.AppearanceGrant {
 	owned := p.AppearanceOwned()
 	var out []persist.AppearanceGrant
 	for _, it := range s.looks.Gated() {
-		if it.Scope == appearance.ScopeCharacter || slices.Contains(owned, s.looks.Flat(it.ID)) {
+		if it.Scope == appearance.ScopeCharacter || it.StoneGift() || slices.Contains(owned, s.looks.Flat(it.ID)) {
 			continue
 		}
 		if conditionsPass(it.Gate, ascended{p}) {
 			out = append(out, persist.AppearanceGrant{Item: it.ID, Scope: string(it.Scope)})
 		}
+	}
+	for _, id := range bonusLooks {
+		it, ok := s.looks.Item(id)
+		if !ok || !it.StoneGift() || slices.Contains(owned, s.looks.Flat(id)) {
+			continue
+		}
+		out = append(out, persist.AppearanceGrant{Item: it.ID, Scope: string(it.Scope)})
 	}
 	return out
 }

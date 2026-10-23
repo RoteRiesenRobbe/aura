@@ -918,7 +918,8 @@ table ConversationOption {
   locks_any:bool = false;
 }
 
-enum ConversationLockKind:ubyte { MinLevel = 0, Ascensions = 1, QuestAtStage = 2, QuestComplete = 3, Kills = 4, TravelClosed = 5, SkillLevel = 6, Unknown = 255 }
+// StoneGift: a look only an ascension stone gives (plan-appearance.md C5b).
+enum ConversationLockKind:ubyte { MinLevel = 0, Ascensions = 1, QuestAtStage = 2, QuestComplete = 3, Kills = 4, TravelClosed = 5, SkillLevel = 6, StoneGift = 7, Unknown = 255 }
 
 // One reason a row is locked. value/have are the threshold and the player's
 // count; quest + stage name a quest condition (ids); species is a MobID;
@@ -931,6 +932,14 @@ table ConversationLock {
   stage:string;
   species:ulong;
   skill:ushort;
+}
+
+// One locked appearance item's reasons (plan-appearance.md C5c): item is its
+// flat index into /appearance (every portrait, then every ring), the way
+// appearance_owned counts.
+table AppearanceLock {
+  item:ushort;
+  locks:[ConversationLock];
 }
 
 table ConversationNode {
@@ -1393,6 +1402,16 @@ table GameState {
   // client diffs it for the new-item glow (the first send is a silent
   // baseline). Appended at the table end so existing field IDs stay stable.
   appearance_owned:[ushort];
+
+  // The own player's locked appearance items (plan-appearance.md C5c): one
+  // entry per locked item this character does NOT own yet, with its lock
+  // reasons and this character's progress (`have`), built by the same
+  // lockReasons the conversation rows use, so every condition kind words its
+  // progress without client code. Rides the owner block like
+  // appearance_owned: on an owner_state tick an absent vector means "nothing
+  // locked left", on a tick without it the client keeps what it has.
+  // Appended at the table end so existing field IDs stay stable.
+  appearance_locks:[AppearanceLock];
 }
 
 table Welcome {

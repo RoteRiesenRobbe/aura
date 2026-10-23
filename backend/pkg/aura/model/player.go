@@ -251,6 +251,12 @@ type PlayerEntity interface {
 	// evaluator grants (plan-appearance.md C5). It only grows.
 	AppearanceOwned() []uint16
 	SetAppearanceOwned(owned []uint16)
+	// AppearanceLocks is every locked item this character does not own yet,
+	// with its reasons and this character's progress (plan-appearance.md
+	// C5c), for the owner block. Rebuilt by the evaluator whenever its watch
+	// moves, so no door carries it.
+	AppearanceLocks() []AppearanceLock
+	SetAppearanceLocks(locks []AppearanceLock)
 	// AccountID is which account this character belongs to, set once at join
 	// from the play ticket (plan-ascension.md C3 step 6, D25).
 	//
