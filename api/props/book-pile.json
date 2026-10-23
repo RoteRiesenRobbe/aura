@@ -1,0 +1,7 @@
+{
+  "name": "BookPile",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.35 },
+  "blocksMovement": false
+}

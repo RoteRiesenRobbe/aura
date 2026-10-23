@@ -949,6 +949,37 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FishingHut]: Props.genericPropClasses.FishingHut,
     [AuraApi.EntityType.Fish]: Props.genericPropClasses.Fish,
     [AuraApi.EntityType.RemainsProp]: Props.genericPropClasses.RemainsProp,
+    // Dionsburg's market (plan-city-assets.md K1). Generic — the awning is a
+    // roof by its definition (`roof`, `blocksMovement: false`), never a class.
+    [AuraApi.EntityType.MarketStallRoof]: Props.genericPropClasses.MarketStallRoof,
+    [AuraApi.EntityType.MarketCounter]: Props.genericPropClasses.MarketCounter,
+    [AuraApi.EntityType.CentralFountain]: Props.genericPropClasses.CentralFountain,
+    // Dionsburg's cathedral + cemetery (plan-city-assets.md K2). The nave is a
+    // roof by its definition, like the awning.
+    [AuraApi.EntityType.CathedralNaveRoof]: Props.genericPropClasses.CathedralNaveRoof,
+    [AuraApi.EntityType.Pew]: Props.genericPropClasses.Pew,
+    [AuraApi.EntityType.Altar]: Props.genericPropClasses.Altar,
+    [AuraApi.EntityType.Mausoleum]: Props.genericPropClasses.Mausoleum,
+    [AuraApi.EntityType.CathedralTranseptRoof]: Props.genericPropClasses.CathedralTranseptRoof,
+    [AuraApi.EntityType.CathedralApseRoof]: Props.genericPropClasses.CathedralApseRoof,
+    [AuraApi.EntityType.BellTower]: Props.genericPropClasses.BellTower,
+    [AuraApi.EntityType.LazaretTent]: Props.genericPropClasses.LazaretTent,
+    [AuraApi.EntityType.SlumTent]: Props.genericPropClasses.SlumTent,
+    [AuraApi.EntityType.LeanTo]: Props.genericPropClasses.LeanTo,
+    // Dionsburg's library + elven mage district (plan-city-assets.md K4).
+    // Both roofs are roofs by their definitions, the tower's on a circle body.
+    [AuraApi.EntityType.Bookshelf]: Props.genericPropClasses.Bookshelf,
+    [AuraApi.EntityType.MageTowerRoof]: Props.genericPropClasses.MageTowerRoof,
+    [AuraApi.EntityType.CrystalPylon]: Props.genericPropClasses.CrystalPylon,
+    [AuraApi.EntityType.LibraryRoof]: Props.genericPropClasses.LibraryRoof,
+    // Dionsburg's dwarven military district + jail (plan-city-assets.md K5).
+    // The barracks roof is a roof by its definition; the watchtower is solid.
+    [AuraApi.EntityType.TrainingDummy]: Props.genericPropClasses.TrainingDummy,
+    [AuraApi.EntityType.JailBars]: Props.genericPropClasses.JailBars,
+    [AuraApi.EntityType.BarracksRoof]: Props.genericPropClasses.BarracksRoof,
+    [AuraApi.EntityType.Watchtower]: Props.genericPropClasses.Watchtower,
+    // The door mark that sits above a roof (K4 follow-up); walkable by its definition.
+    [AuraApi.EntityType.Doorway]: Props.genericPropClasses.Doorway,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

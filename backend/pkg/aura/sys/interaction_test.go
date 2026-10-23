@@ -118,6 +118,19 @@ func decodeEntityMessage(t *testing.T, b []byte) (uint64, string) {
 	return em.EntityId(), string(em.Message())
 }
 
+// entityMessageKey is the same message's wire key ("" = unkeyed, shown
+// verbatim): what the client localizes by (plan-localization.md D10).
+func entityMessageKey(t *testing.T, b []byte) string {
+	t.Helper()
+	sm := AuraApi.GetRootAsServerMessage(b, 0)
+	require.Equal(t, AuraApi.ServerMessageBodyEntityMessage, sm.BodyType())
+	var tbl flatbuffers.Table
+	require.True(t, sm.Body(&tbl))
+	var em AuraApi.EntityMessage
+	em.Init(tbl.Bytes, tbl.Pos)
+	return string(em.Key())
+}
+
 // --- builders: the degenerate one-node case content authors ---
 
 // grant builds one teach_skill grant with a distinct skill definition (the id

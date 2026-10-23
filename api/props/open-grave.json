@@ -1,0 +1,6 @@
+{
+  "name": "OpenGrave",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1, "height": 2 }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ElvenPlanter",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 2, "height": 0.8 }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Font",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.7 }
+}

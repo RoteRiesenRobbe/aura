@@ -1,0 +1,6 @@
+{
+  "name": "Orrery",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 1 }
+}

@@ -1,0 +1,17 @@
+{
+  "City/Market": ["MarketStallRoof", "MarketCounter", "CentralFountain", "Barrel", "SackPile", "ProduceBasket", "Bench", "LampPost"],
+  "City/Cathedral": ["CathedralNaveRoof", "CathedralTranseptRoof", "CathedralApseRoof", "BellTower", "Pew", "Altar", "Pillar", "CandleStand", "Font", "Organ", "Confessional"],
+  "City/Cemetery": ["Mausoleum", "GraveMound", "OpenGrave", "IronFence", "CemeteryGate", "AngelStatue"],
+  "City/Lazaret": ["LazaretTent", "Cot", "Screen", "BandageTable"],
+  "City/Slums": ["SlumTent", "LeanTo", "RubbishHeap", "Brazier"],
+  "City/Library": ["LibraryRoof", "Bookshelf", "ReadingDesk", "Lectern", "ScrollRack", "BookPile"],
+  "City/Elven": ["MageTowerRoof", "CrystalPylon", "ArcaneCircle", "AlchemyTable", "Orrery", "MoonPool", "ElvenPlanter"],
+  "City/Military": ["BarracksRoof", "Watchtower", "TrainingDummy", "WeaponRack", "ArmorStand", "Bunk", "Banner", "GuardDesk"],
+  "City/Jail": ["JailBars", "CellDoor", "Stocks", "Chains"],
+  "City/Walls": ["GateWall", "Doorway"],
+  "Nature": ["Tree", "OakTree", "PineTree", "DeadTree", "Stump", "FallenLog", "Bush", "BerryBush", "Rock", "Boulder", "CaveMouth"],
+  "Village": ["House", "Cottage", "Barn", "Mill", "Haystack", "Well", "Cart", "Crate", "FencePost", "Gate", "BrokenFence", "Bridge", "Tombstone"],
+  "Ruins": ["RuinedHouse", "BurntCart", "BrokenCrate", "Remains"],
+  "Coast": ["FishingHut", "Fish", "NetRack", "Rowboat", "Shipwreck", "WreckDebris"],
+  "Camp": ["Tent", "Bedroll", "Torch", "Palisade"]
+}

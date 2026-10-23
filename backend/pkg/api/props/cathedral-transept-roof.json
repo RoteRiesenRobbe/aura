@@ -1,0 +1,8 @@
+{
+  "name": "CathedralTranseptRoof",
+  "entityType": "CathedralTranseptRoof",
+  "sprite": "cathedralTranseptRoof.svg",
+  "body": { "width": 24, "height": 8 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.25 }
+}

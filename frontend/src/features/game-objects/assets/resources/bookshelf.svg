@@ -1,0 +1,79 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" preserveAspectRatio="none">
+  <!-- Placeholder bookshelf (plan-city-assets.md K4): TRUE top-down, a tall
+       case of pale elven wood seen from above. The viewBox is 240x60 to match
+       the 2.4 x 0.6 rect body in api/props/bookshelf.json
+       (preserveAspectRatio=none, so the two must stay in sync); 100 units per
+       metre. The back board runs along the NORTH edge, so the case stands
+       against a north wall and the books face south into the room. Rect
+       bodies never rotate, so this is the only way it sits.
+
+       From above a case is its top board, so the top is left open between
+       two silver-capped uprights: the tops of the books show, in a row of
+       muted bindings (sage, violet, parchment, slate), one leaning, one gap
+       where a book was taken. Elven palette (R5): pale stone, silver, sage
+       green, violet glow. -->
+  <defs>
+    <linearGradient id="bookshelfWood" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#d9d2bf"/>
+      <stop offset="1" stop-color="#b3aa94"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="7" y="8" width="231" height="50" rx="2" fill="#000000" opacity="0.26"/>
+
+  <!-- the case: pale wood, the back board along the north edge -->
+  <rect x="3" y="3" width="232" height="50" rx="2" fill="url(#bookshelfWood)" stroke="#5e5848" stroke-width="3"/>
+  <rect x="3" y="3" width="232" height="10" fill="#c7bfa9" stroke="#5e5848" stroke-width="2"/>
+  <rect x="6" y="5" width="226" height="3" fill="#f0ebdc" opacity="0.6"/>
+
+  <!-- the open top: the shadowed well the books stand in -->
+  <rect x="14" y="13" width="210" height="36" fill="#3a3830"/>
+
+  <!-- the books, tops seen from above: each a block of pages edged by its binding -->
+  <g stroke="#26241e" stroke-width="1">
+    <rect x="15" y="15" width="9" height="30" fill="#6f8569"/>
+    <rect x="24" y="17" width="7" height="28" fill="#7a6aa8"/>
+    <rect x="31" y="14" width="11" height="32" fill="#c9bf9f"/>
+    <rect x="42" y="16" width="8" height="29" fill="#59605f"/>
+    <rect x="50" y="15" width="10" height="31" fill="#8fa58a"/>
+    <rect x="60" y="18" width="6" height="27" fill="#a39a7c"/>
+    <rect x="66" y="15" width="12" height="31" fill="#5c4f8a"/>
+    <rect x="78" y="16" width="8" height="29" fill="#d1c9ad"/>
+    <rect x="86" y="14" width="9" height="32" fill="#66795f"/>
+    <!-- the gap where a book was taken, then one leaning into it -->
+    <rect x="104" y="17" width="9" height="29" fill="#7a6aa8" transform="rotate(-16 104 46)"/>
+    <rect x="113" y="15" width="10" height="31" fill="#bfb595"/>
+    <rect x="123" y="16" width="8" height="30" fill="#4d5c48"/>
+    <rect x="131" y="14" width="12" height="32" fill="#8b80b5"/>
+    <rect x="143" y="17" width="7" height="28" fill="#a9bca3"/>
+    <rect x="150" y="15" width="10" height="31" fill="#6a706d"/>
+    <rect x="160" y="16" width="9" height="30" fill="#c9bf9f"/>
+    <rect x="169" y="14" width="11" height="32" fill="#6f8569"/>
+    <rect x="180" y="18" width="6" height="27" fill="#5c4f8a"/>
+    <rect x="186" y="15" width="10" height="31" fill="#d1c9ad"/>
+    <rect x="196" y="16" width="8" height="30" fill="#7d838b"/>
+    <rect x="204" y="14" width="10" height="32" fill="#8fa58a"/>
+    <rect x="214" y="17" width="9" height="29" fill="#a39a7c"/>
+  </g>
+  <!-- light on the books' tops from the top-left -->
+  <rect x="14" y="13" width="210" height="6" fill="#ffffff" opacity="0.12"/>
+  <rect x="14" y="41" width="210" height="8" fill="#000000" opacity="0.18"/>
+
+  <!-- the middle upright and the two end uprights, silver-capped -->
+  <rect x="96" y="11" width="6" height="40" fill="#c7bfa9" stroke="#5e5848" stroke-width="1.5"/>
+  <rect x="3" y="3" width="12" height="50" rx="2" fill="#c7bfa9" stroke="#5e5848" stroke-width="2.5"/>
+  <rect x="223" y="3" width="12" height="50" rx="2" fill="#bab29b" stroke="#5e5848" stroke-width="2.5"/>
+  <g fill="#c8ccd2" stroke="#7d838b" stroke-width="1">
+    <rect x="5" y="5" width="8" height="8" rx="1.5"/>
+    <rect x="225" y="5" width="8" height="8" rx="1.5"/>
+    <rect x="5" y="43" width="8" height="8" rx="1.5"/>
+    <rect x="225" y="43" width="8" height="8" rx="1.5"/>
+  </g>
+  <g fill="#eef0f3" opacity="0.8">
+    <rect x="6" y="6" width="3" height="3"/>
+    <rect x="226" y="6" width="3" height="3"/>
+  </g>
+  <!-- a carved leaf along the front of the middle upright -->
+  <path d="M99,44 Q95,37 99,30 Q103,37 99,44 Z" fill="#8fa58a" stroke="#4d5c48" stroke-width="0.8"/>
+</svg>

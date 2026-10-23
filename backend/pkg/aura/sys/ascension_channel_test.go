@@ -15,6 +15,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -199,6 +200,13 @@ func TestAscension_ASitePriceThatLapsesMidChannelRefuses(t *testing.T) {
 
 	assert.Zero(t, conn.ascendCalls, "the completion re-judge is what refuses it")
 	assert.Nil(t, caster.sc.PendingAscension)
+
+	// P14's word goes out keyed, so a German client words it in German.
+	require.Len(t, sentOf(caster), 1, "the player is told nothing happened")
+	id, msg := decodeEntityMessage(t, sentOf(caster)[0])
+	assert.Equal(t, caster.Basic().ID(), id, "anchored on the player")
+	assert.Equal(t, lang.KeyAscensionRefused, entityMessageKey(t, sentOf(caster)[0]))
+	assert.Equal(t, "The stone is silent. Nothing has changed.", msg, "the English fallback rides along")
 }
 
 // ⛑ FAIL CLOSED. A pick carrying no gate at all is not an ungated site — it is a

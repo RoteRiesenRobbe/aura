@@ -24,43 +24,102 @@
       "Kelp Line"
     ],
     "AuraPropType": [
+      "AlchemyTable",
+      "Altar",
+      "AngelStatue",
+      "ArcaneCircle",
+      "ArmorStand",
+      "BandageTable",
+      "Banner",
       "Barn",
+      "BarracksRoof",
+      "Barrel",
       "Bedroll",
+      "BellTower",
+      "Bench",
       "BerryBush",
+      "BookPile",
+      "Bookshelf",
       "Boulder",
+      "Brazier",
       "Bridge",
       "BrokenCrate",
       "BrokenFence",
+      "Bunk",
       "BurntCart",
       "Bush",
+      "CandleStand",
       "Cart",
+      "CathedralApseRoof",
+      "CathedralNaveRoof",
+      "CathedralTranseptRoof",
       "CaveMouth",
+      "CellDoor",
+      "CemeteryGate",
+      "CentralFountain",
+      "Chains",
+      "Confessional",
+      "Cot",
       "Cottage",
       "Crate",
+      "CrystalPylon",
       "DeadTree",
+      "Doorway",
+      "ElvenPlanter",
       "FallenLog",
       "FencePost",
       "Fish",
       "FishingHut",
+      "Font",
       "Gate",
       "GateWall",
+      "GraveMound",
+      "GuardDesk",
       "Haystack",
       "House",
+      "IronFence",
+      "JailBars",
+      "LampPost",
+      "LazaretTent",
+      "LeanTo",
+      "Lectern",
+      "LibraryRoof",
+      "MageTowerRoof",
+      "MarketCounter",
+      "MarketStallRoof",
+      "Mausoleum",
       "Mill",
+      "MoonPool",
       "NetRack",
       "OakTree",
+      "OpenGrave",
+      "Organ",
+      "Orrery",
       "Palisade",
+      "Pew",
+      "Pillar",
       "PineTree",
+      "ProduceBasket",
+      "ReadingDesk",
       "Remains",
       "Rock",
       "Rowboat",
+      "RubbishHeap",
       "RuinedHouse",
+      "SackPile",
+      "Screen",
+      "ScrollRack",
       "Shipwreck",
+      "SlumTent",
+      "Stocks",
       "Stump",
       "Tent",
       "Tombstone",
       "Torch",
+      "TrainingDummy",
       "Tree",
+      "Watchtower",
+      "WeaponRack",
       "Well",
       "WreckDebris"
     ],
@@ -417,7 +476,7 @@
       "deep-woods",
       "southgate",
       "umberwood",
-      "brunnstedt",
+      "city-hub",
       "grimwatch",
       "ashen-fields",
       "cinder-conclave",
@@ -443,7 +502,7 @@
       "deep-woods",
       "southgate",
       "umberwood",
-      "brunnstedt",
+      "city-hub",
       "grimwatch",
       "ashen-fields",
       "cinder-conclave",
@@ -500,21 +559,77 @@
     "Kelp Line"
   ],
   "PROP_SIZE": {
+    "AlchemyTable": {
+      "w": 2,
+      "h": 1
+    },
+    "Altar": {
+      "w": 2.4,
+      "h": 1.2
+    },
+    "AngelStatue": {
+      "w": 1.2,
+      "h": 1.2
+    },
+    "ArcaneCircle": {
+      "w": 4,
+      "h": 4
+    },
+    "ArmorStand": {
+      "w": 0.8,
+      "h": 0.8
+    },
+    "BandageTable": {
+      "w": 1.6,
+      "h": 0.8
+    },
+    "Banner": {
+      "w": 0.5,
+      "h": 0.5
+    },
     "Barn": {
       "w": 6,
       "h": 4
+    },
+    "BarracksRoof": {
+      "w": 8,
+      "h": 6
+    },
+    "Barrel": {
+      "w": 0.8,
+      "h": 0.8
     },
     "Bedroll": {
       "w": 0.5,
       "h": 1.4
     },
+    "BellTower": {
+      "w": 5,
+      "h": 5
+    },
+    "Bench": {
+      "w": 1.8,
+      "h": 0.5
+    },
     "BerryBush": {
       "w": 0.9,
       "h": 0.9
     },
+    "BookPile": {
+      "w": 0.7,
+      "h": 0.7
+    },
+    "Bookshelf": {
+      "w": 2.4,
+      "h": 0.6
+    },
     "Boulder": {
       "w": 2.2,
       "h": 2.2
+    },
+    "Brazier": {
+      "w": 0.8,
+      "h": 0.8
     },
     "Bridge": {
       "w": 5,
@@ -528,6 +643,10 @@
       "w": 2,
       "h": 1.6
     },
+    "Bunk": {
+      "w": 1,
+      "h": 2
+    },
     "BurntCart": {
       "w": 2.2,
       "h": 1.3
@@ -536,13 +655,53 @@
       "w": 0.9,
       "h": 0.9
     },
+    "CandleStand": {
+      "w": 0.6,
+      "h": 0.6
+    },
     "Cart": {
       "w": 2.2,
       "h": 1.3
     },
+    "CathedralApseRoof": {
+      "w": 10,
+      "h": 10
+    },
+    "CathedralNaveRoof": {
+      "w": 10,
+      "h": 24
+    },
+    "CathedralTranseptRoof": {
+      "w": 24,
+      "h": 8
+    },
     "CaveMouth": {
       "w": 3,
       "h": 2.4
+    },
+    "CellDoor": {
+      "w": 1.2,
+      "h": 0.3
+    },
+    "CemeteryGate": {
+      "w": 3,
+      "h": 0.5
+    },
+    "CentralFountain": {
+      "w": 6,
+      "h": 6
+    },
+    "Chains": {
+      "w": 0.8,
+      "h": 0.8
+    },
+    "Confessional": {
+      "w": 2,
+      "h": 1.5
+    },
+    "Cot": {
+      "w": 0.8,
+      "h": 1.9
     },
     "Cottage": {
       "w": 3,
@@ -552,9 +711,21 @@
       "w": 0.9,
       "h": 0.9
     },
+    "CrystalPylon": {
+      "w": 1,
+      "h": 1
+    },
     "DeadTree": {
       "w": 1.9,
       "h": 1.9
+    },
+    "Doorway": {
+      "w": 2.6,
+      "h": 1
+    },
+    "ElvenPlanter": {
+      "w": 2,
+      "h": 0.8
     },
     "FallenLog": {
       "w": 2.4,
@@ -572,6 +743,10 @@
       "w": 3,
       "h": 2.4
     },
+    "Font": {
+      "w": 1.4,
+      "h": 1.4
+    },
     "Gate": {
       "w": 4,
       "h": 1.6
@@ -579,6 +754,14 @@
     "GateWall": {
       "w": 2.4,
       "h": 2.4
+    },
+    "GraveMound": {
+      "w": 1,
+      "h": 2
+    },
+    "GuardDesk": {
+      "w": 1.8,
+      "h": 0.9
     },
     "Haystack": {
       "w": 1.7,
@@ -588,9 +771,57 @@
       "w": 4,
       "h": 3
     },
+    "IronFence": {
+      "w": 2.4,
+      "h": 0.3
+    },
+    "JailBars": {
+      "w": 2.4,
+      "h": 0.3
+    },
+    "LampPost": {
+      "w": 0.4,
+      "h": 0.4
+    },
+    "LazaretTent": {
+      "w": 6,
+      "h": 4
+    },
+    "LeanTo": {
+      "w": 2.4,
+      "h": 1.6
+    },
+    "Lectern": {
+      "w": 0.8,
+      "h": 0.8
+    },
+    "LibraryRoof": {
+      "w": 8,
+      "h": 6
+    },
+    "MageTowerRoof": {
+      "w": 8,
+      "h": 8
+    },
+    "MarketCounter": {
+      "w": 2.6,
+      "h": 0.8
+    },
+    "MarketStallRoof": {
+      "w": 3,
+      "h": 2.4
+    },
+    "Mausoleum": {
+      "w": 4,
+      "h": 3
+    },
     "Mill": {
       "w": 5,
       "h": 4
+    },
+    "MoonPool": {
+      "w": 3.6,
+      "h": 3.6
     },
     "NetRack": {
       "w": 3,
@@ -600,13 +831,41 @@
       "w": 2,
       "h": 2
     },
+    "OpenGrave": {
+      "w": 1,
+      "h": 2
+    },
+    "Organ": {
+      "w": 3,
+      "h": 1.5
+    },
+    "Orrery": {
+      "w": 2,
+      "h": 2
+    },
     "Palisade": {
       "w": 2.4,
       "h": 0.8
     },
+    "Pew": {
+      "w": 3,
+      "h": 0.6
+    },
+    "Pillar": {
+      "w": 1,
+      "h": 1
+    },
     "PineTree": {
       "w": 1.8,
       "h": 1.8
+    },
+    "ProduceBasket": {
+      "w": 0.7,
+      "h": 0.7
+    },
+    "ReadingDesk": {
+      "w": 1.8,
+      "h": 1
     },
     "Remains": {
       "w": 0.9,
@@ -620,13 +879,37 @@
       "w": 2.6,
       "h": 1.1
     },
+    "RubbishHeap": {
+      "w": 1.6,
+      "h": 1.6
+    },
     "RuinedHouse": {
       "w": 4,
       "h": 3
     },
+    "SackPile": {
+      "w": 1,
+      "h": 0.8
+    },
+    "Screen": {
+      "w": 1.6,
+      "h": 0.2
+    },
+    "ScrollRack": {
+      "w": 1.6,
+      "h": 0.5
+    },
     "Shipwreck": {
       "w": 8,
       "h": 3
+    },
+    "SlumTent": {
+      "w": 2.4,
+      "h": 2
+    },
+    "Stocks": {
+      "w": 2,
+      "h": 0.6
     },
     "Stump": {
       "w": 1.1,
@@ -644,9 +927,21 @@
       "w": 0.52,
       "h": 0.52
     },
+    "TrainingDummy": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Tree": {
       "w": 2,
       "h": 2
+    },
+    "Watchtower": {
+      "w": 4,
+      "h": 4
+    },
+    "WeaponRack": {
+      "w": 2,
+      "h": 0.5
     },
     "Well": {
       "w": 1.4,
@@ -1113,7 +1408,7 @@
     "deep-woods",
     "southgate",
     "umberwood",
-    "brunnstedt",
+    "city-hub",
     "grimwatch",
     "ashen-fields",
     "cinder-conclave",
@@ -1138,7 +1433,7 @@
     "deep-woods",
     "southgate",
     "umberwood",
-    "brunnstedt",
+    "city-hub",
     "grimwatch",
     "ashen-fields",
     "cinder-conclave",

@@ -1,0 +1,8 @@
+{
+  "name": "MageTowerRoof",
+  "entityType": "MageTowerRoof",
+  "sprite": "mageTowerRoof.svg",
+  "body": { "radius": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.25 }
+}

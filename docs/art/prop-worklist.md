@@ -145,9 +145,9 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch is **the only prop that emits light** (half a campfire radius, 3.5 u).
-About a player wide. Tent is canvas - the only fabric in the prop set, bandit
-camp.
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, Brazier, C3, and CrystalPylon and ArcaneCircle, C4, are the others).
+About a player wide. Tent is canvas, bandit camp - the only fabric outside the
+city (the city's tents and awning are C1 and C3).
 
 ---
 
@@ -198,19 +198,162 @@ Shieldbearer- and MedicCompanion. All **P3, all drawn.**
 
 ---
 
+## C. City props - Dionsburg
+
+Scenery like the A list (top-down, no frame, no portrait rule), added one
+district at a time by [`plan-city-assets.md`](../plan-city-assets.md). Each
+district has its own palette (R5 there). The SVG placeholders set the look; the
+rest are labelled `PropPlaceholder` boxes in game, i.e. **no file at all yet**.
+None is placed in the release map yet, so there are no placement counts.
+
+A building is a wall polygon plus a **roof prop** on top that fades while you
+stand under it: a roof draws over every character, so **nothing may reach past
+its canvas** (no ropes, no overhanging eaves outside the body).
+
+### C1. Market + fountain - striped awnings
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| CentralFountain | P1 | placeholder | 720 |
+| MarketStallRoof | P2 | placeholder (roof, fades to 0.3) | 360 x 288 |
+| MarketCounter | P2 | placeholder | 312 x 96 |
+| LampPost | P2 | box only | 48 |
+| Barrel | P3 | box only | 96 |
+| SackPile | P3 | box only | 120 x 96 |
+| ProduceBasket | P3 | box only | 84 |
+| Bench | P3 | box only | 216 x 60 |
+
+⭐ The fountain is the city's landmark and must read from a distance on its
+water ring. The stall is two props: the awning (one pitch, pole at the back,
+scalloped front) over a solid counter. Stripes are muted red and bleached
+cream, worn, not festive. LampPost is the second prop that **emits light**,
+after the Torch.
+
+### C2. Cathedral + cemetery - grey slate, gold accents
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| CathedralNaveRoof | P1 | placeholder (roof, fades to 0.25) | 1200 x 2880 |
+| CathedralTranseptRoof | P1 | placeholder (roof, fades to 0.25) | 2880 x 960 |
+| CathedralApseRoof | P1 | placeholder (roof, fades to 0.25) | 1200 |
+| Pew | P2 | placeholder | 360 x 72 |
+| Altar | P2 | placeholder | 288 x 144 |
+| Mausoleum | P2 | placeholder | 480 x 360 |
+| BellTower | P2 | placeholder | 600 x 600 |
+| CandleStand | P2 | box only | 72 |
+| GraveMound | P2 | box only (walked over) | 120 x 240 |
+| IronFence | P2 | box only | 288 x 36 |
+| CemeteryGate | P2 | box only (walked through) | 360 x 60 |
+| AngelStatue | P2 | box only | 144 |
+| Pillar | P3 | box only | 120 |
+| Font | P3 | box only | 168 |
+| Organ | P3 | box only | 360 x 180 |
+| Confessional | P3 | box only | 240 x 180 |
+| OpenGrave | P3 | box only | 120 x 240 |
+
+⭐ The cathedral roof is **three touching pieces** (R4): the nave runs north-south,
+the transept crosses its south end flush, the apse sits beyond, and all three
+fade together. Each piece fills its canvas edge to edge so the seams vanish;
+the nave alone is 1200 x 2880, the largest prop texture so far (cap 4096). The
+gold cross over the nave's north end marks the west front, so the altar and the
+pews face south. CandleStand is the third prop that **emits light**.
+
+### C3. Lazaret + slums - white with red cross bands; patched brown cloth
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| LazaretTent | P2 | placeholder (roof, fades to 0.3) | 720 x 480 |
+| SlumTent | P2 | placeholder (roof, fades to 0.3) | 288 x 240 |
+| LeanTo | P2 | placeholder (roof, fades to 0.3) | 288 x 192 |
+| Cot | P2 | box only | 96 x 228 |
+| Brazier | P2 | box only | 96 |
+| BandageTable | P3 | box only | 192 x 96 |
+| Screen | P3 | box only | 192 x 24 |
+| RubbishHeap | P3 | box only (walked over) | 192 |
+
+⭐ Both tents are **roofs**, the small form of a building: the lazaret's hipped
+marquee over rows of cots, its red bands forming one cross across the whole
+roof; the slum tent a patched tarp on a crooked branch over a Bedroll. The slum
+tent repeats across a district, so it must stay plain enough to repeat. Brazier
+is the fourth prop that **emits light**.
+
+### C4. Library + elven mage district - pale stone, silver, sage green, violet glow
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| MageTowerRoof | P1 | placeholder (roof, fades to 0.25) | 960 |
+| LibraryRoof | P1 | placeholder (roof, fades to 0.25) | 960 x 720 |
+| Bookshelf | P2 | placeholder | 288 x 72 |
+| CrystalPylon | P2 | placeholder | 120 |
+| ArcaneCircle | P2 | box only (walked over) | 480 |
+| Orrery | P2 | box only | 240 |
+| MoonPool | P2 | box only | 432 |
+| ReadingDesk | P3 | box only | 216 x 120 |
+| Lectern | P3 | box only | 96 |
+| ScrollRack | P3 | box only | 192 x 60 |
+| BookPile | P3 | box only (walked over) | 84 |
+| AlchemyTable | P3 | box only | 240 x 120 |
+| ElvenPlanter | P3 | box only | 240 x 96 |
+| Doorway (any district) | P2 | placeholder (walked over) | 312 x 120 |
+
+⭐ The library takes the elven palette too (PO 2026-10-22). The mage tower roof
+is the first **circle** roof built as a whole tower: a sage-copper cone that
+fills its circle and leaves the square's corners empty, because the fade tests
+the circle body. The library roof is a piece: it fills its canvas edge to edge
+and has no east or west eave, so pieces laid flush east-west read as one roof.
+CrystalPylon and ArcaneCircle are the fifth and sixth props that **emit light**.
+
+### C5. Dwarven military + jail - dark stone, iron, red banners, brass rivets
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| BarracksRoof | P1 | placeholder (roof, fades to 0.25) | 960 x 720 |
+| Watchtower | P1 | placeholder | 480 x 480 |
+| TrainingDummy | P2 | placeholder | 108 |
+| JailBars | P2 | placeholder | 288 x 36 |
+| WeaponRack | P2 | box only | 240 x 60 |
+| Banner | P2 | box only | 60 |
+| Stocks | P2 | box only | 240 x 72 |
+| ArmorStand | P3 | box only | 96 |
+| Bunk | P3 | box only | 120 x 240 |
+| CellDoor | P3 | box only | 144 x 36 |
+| GuardDesk | P3 | box only | 216 x 108 |
+| Chains | P3 | box only (walked over) | 96 |
+
+⭐ PO accent (2026-10-23): brass rivets on the iron, and the clan's **anvil
+sigil** in brass on the red banners (the barracks roof's draped banner, the
+watchtower's flag); the Banner box should carry it too. The barracks roof is a
+piece like the library's: edge to edge, no east or west eave. The watchtower is
+an open platform seen from above, solid, never fading, like the bell tower.
+JailBars is an east-west run (rect bodies never rotate); CellDoor sits in it
+and is set non-blocking per placement when it stands open. No K5 prop emits
+light.
+
+---
+
 ## Priority roll-up
 
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (16):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (24):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
-Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones.
+Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
+CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
+MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower.
 
-**P2 (9):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
-Mossy rock · Tent.
+**P2 (37):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
+Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
+AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier · Bookshelf ·
+CrystalPylon · ArcaneCircle · Orrery · MoonPool · TrainingDummy · JailBars ·
+WeaponRack · Banner · Stocks · Doorway.
 
-**P3 (3):** Crate · Trough · Mushroom cluster.
+**P3 (26):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·
+BandageTable · Screen · RubbishHeap · ReadingDesk · Lectern · ScrollRack ·
+BookPile · AlchemyTable · ElvenPlanter · ArmorStand · Bunk · CellDoor ·
+GuardDesk · Chains.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

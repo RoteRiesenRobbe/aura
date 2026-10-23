@@ -1,0 +1,90 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder training dummy (plan-city-assets.md K5): TRUE top-down, the
+       dwarven yard's practice post. The body is a circle (r 0.45,
+       api/props/training-dummy.json), so the canvas is the 0.9 m square
+       around it; about 111 units per metre. Solid: you hit it, you do not
+       walk through it.
+
+       From above: a round base of dark stone with an iron band, the burlap
+       body stuffed with straw and bound with rope, an oak crossbar for arms,
+       and an old dented iron helm on top with brass rivets round the rim. The
+       straw spills out of the blade cuts; a red rag is tied round one arm.
+       Dwarven palette (R5): dark stone, iron, red banners; PO accent 2026-10-23:
+       brass rivets and the clan's anvil sigil. -->
+  <defs>
+    <radialGradient id="dummyHelm" cx="0.36" cy="0.34" r="0.75">
+      <stop offset="0" stop-color="#9aa0a7"/>
+      <stop offset="0.5" stop-color="#5d6268"/>
+      <stop offset="1" stop-color="#2c2e31"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <circle cx="53" cy="53" r="44" fill="#000000" opacity="0.26"/>
+
+  <!-- the base: dark stone, an iron band with brass rivets -->
+  <circle cx="50" cy="50" r="43" fill="#4a4744" stroke="#24221f" stroke-width="2.5"/>
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#2f3134" stroke-width="4"/>
+  <path d="M19,33 A36,36 0 0,1 36,15" fill="none" stroke="#8a8f96" stroke-width="1.4" opacity="0.7"/>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.5">
+    <circle cx="50" cy="12" r="1.5"/><circle cx="88" cy="50" r="1.5"/>
+    <circle cx="50" cy="88" r="1.5"/><circle cx="12" cy="50" r="1.5"/>
+    <circle cx="23" cy="23" r="1.5"/><circle cx="77" cy="23" r="1.5"/>
+    <circle cx="77" cy="77" r="1.5"/><circle cx="23" cy="77" r="1.5"/>
+  </g>
+  <!-- straw trodden into the stone -->
+  <g stroke="#c8a960" stroke-width="1" stroke-linecap="round" opacity="0.7">
+    <line x1="70" y1="80" x2="77" y2="76"/><line x1="25" y1="70" x2="22" y2="77"/>
+    <line x1="74" y1="30" x2="80" y2="34"/>
+  </g>
+
+  <!-- the burlap body, lit from the top-left -->
+  <ellipse cx="51.5" cy="52" rx="27" ry="23" fill="#000000" opacity="0.3"/>
+  <ellipse cx="50" cy="50" rx="27" ry="23" fill="#a88b55" stroke="#4e3c1e" stroke-width="2"/>
+  <ellipse cx="45" cy="45" rx="17" ry="13" fill="#c4a76c" opacity="0.6"/>
+  <!-- the rope bindings -->
+  <g fill="none" stroke="#6b5530" stroke-width="2">
+    <path d="M30,36 Q50,30 70,36"/>
+    <path d="M28,64 Q50,70 72,64"/>
+  </g>
+  <!-- blade cuts, the straw spilling out of them -->
+  <g stroke="#3b2c14" stroke-width="1.4" stroke-linecap="round">
+    <line x1="34" y1="54" x2="41" y2="60"/><line x1="62" y1="38" x2="67" y2="45"/>
+  </g>
+  <g stroke="#e0c47a" stroke-width="1" stroke-linecap="round">
+    <line x1="37" y1="57" x2="33" y2="62"/><line x1="38" y1="57" x2="36" y2="64"/>
+    <line x1="65" y1="41" x2="71" y2="40"/><line x1="65" y1="42" x2="70" y2="45"/>
+  </g>
+
+  <!-- the oak crossbar, the arms, east-west through the shoulders -->
+  <rect x="8" y="46" width="84" height="8" rx="2" fill="#000000" opacity="0.3" transform="translate(2 2)"/>
+  <rect x="8" y="46" width="84" height="8" rx="2" fill="#6a4a28" stroke="#2c1c0d" stroke-width="1.2"/>
+  <rect x="9" y="47" width="82" height="2" fill="#9a7244" opacity="0.6"/>
+  <!-- iron caps on the ends, notched by blades -->
+  <g fill="#2f3134" stroke="#1a1b1d" stroke-width="0.6">
+    <rect x="7" y="45" width="6" height="10" rx="1"/><rect x="87" y="45" width="6" height="10" rx="1"/>
+  </g>
+  <g fill="#c9a24a"><circle cx="10" cy="50" r="1.1"/><circle cx="90" cy="50" r="1.1"/></g>
+  <g stroke="#2c1c0d" stroke-width="0.8" opacity="0.8">
+    <line x1="22" y1="46" x2="24" y2="54"/><line x1="78" y1="46" x2="75" y2="54"/>
+  </g>
+  <!-- the red rag round the east arm -->
+  <path d="M80,44 L85,44 L85,56 L80,56 Z" fill="#9a2a24" stroke="#4e1210" stroke-width="0.8"/>
+  <path d="M83,56 L86,63 L81,61 Z" fill="#6e1b17"/>
+
+  <!-- the helm: dented iron, a brass-riveted rim, a nose guard pointing south -->
+  <circle cx="51.5" cy="51.5" r="15" fill="#000000" opacity="0.35"/>
+  <circle cx="50" cy="50" r="15" fill="url(#dummyHelm)" stroke="#1a1b1d" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="12.5" fill="none" stroke="#2c2e31" stroke-width="1" opacity="0.6"/>
+  <path d="M50,35 V65" stroke="#2c2e31" stroke-width="2" opacity="0.7"/>
+  <rect x="48" y="62" width="4" height="8" rx="1" fill="#3a3c3f" stroke="#1a1b1d" stroke-width="0.6"/>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.4">
+    <circle cx="50" cy="36.5" r="1.1"/><circle cx="63.5" cy="50" r="1.1"/>
+    <circle cx="36.5" cy="50" r="1.1"/><circle cx="40.5" cy="40.5" r="1.1"/>
+    <circle cx="59.5" cy="40.5" r="1.1"/><circle cx="59.5" cy="59.5" r="1.1"/>
+    <circle cx="40.5" cy="59.5" r="1.1"/>
+  </g>
+  <!-- the dent, and the light on the crown -->
+  <path d="M56,44 Q60,47 57,52" fill="none" stroke="#1a1b1d" stroke-width="1.2" opacity="0.6"/>
+  <ellipse cx="44" cy="43" rx="4.5" ry="2.4" fill="#ffffff" opacity="0.3" transform="rotate(-40 44 43)"/>
+</svg>

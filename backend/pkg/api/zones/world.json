@@ -637,8 +637,36 @@
           "y": 11.99
         },
         {
-          "x": -50.19,
-          "y": 18.53
+          "x": -50.24,
+          "y": 17.91
+        },
+        {
+          "x": -47.39,
+          "y": 21.62
+        },
+        {
+          "x": -45.03,
+          "y": 23.62
+        },
+        {
+          "x": -42.36,
+          "y": 24.07
+        },
+        {
+          "x": -35.37,
+          "y": 24.24
+        },
+        {
+          "x": -32.17,
+          "y": 23.68
+        },
+        {
+          "x": -30.67,
+          "y": 22.71
+        },
+        {
+          "x": -29.89,
+          "y": 21.33
         }
       ],
       "width": 2,
@@ -1065,6 +1093,148 @@
       "corners": "sharp",
       "endsStart": "fade",
       "endsEnd": "fade"
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -81.53,
+          "y": -0.2
+        },
+        {
+          "x": -83.27,
+          "y": -5.33
+        },
+        {
+          "x": -82.4,
+          "y": -11
+        },
+        {
+          "x": -80,
+          "y": -15.27
+        },
+        {
+          "x": -77.73,
+          "y": -17.6
+        },
+        {
+          "x": -73.73,
+          "y": -19.67
+        },
+        {
+          "x": -70.4,
+          "y": -20.67
+        },
+        {
+          "x": -64.6,
+          "y": -22.2
+        },
+        {
+          "x": -59.8,
+          "y": -22.8
+        },
+        {
+          "x": -54.27,
+          "y": -23.07
+        },
+        {
+          "x": -50.13,
+          "y": -22.6
+        },
+        {
+          "x": -43.87,
+          "y": -21.87
+        },
+        {
+          "x": -40.2,
+          "y": -23.27
+        },
+        {
+          "x": -39.4,
+          "y": -24.73
+        },
+        {
+          "x": -39.27,
+          "y": -25.4
+        }
+      ],
+      "width": 1.5
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -57.47,
+          "y": -22.9
+        },
+        {
+          "x": -55.8,
+          "y": -19
+        },
+        {
+          "x": -56.47,
+          "y": -14.2
+        },
+        {
+          "x": -58.13,
+          "y": -8.6
+        },
+        {
+          "x": -58.39,
+          "y": -7.24
+        },
+        {
+          "x": -58,
+          "y": -6.07
+        },
+        {
+          "x": -55.88,
+          "y": -4.53
+        },
+        {
+          "x": -53.97,
+          "y": -2.6
+        },
+        {
+          "x": -53.02,
+          "y": -1.15
+        },
+        {
+          "x": -50.8,
+          "y": -1
+        }
+      ],
+      "width": 1.5
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -53.07,
+          "y": -1.13
+        },
+        {
+          "x": -53.8,
+          "y": 1.27
+        },
+        {
+          "x": -54.47,
+          "y": 4.13
+        },
+        {
+          "x": -55.29,
+          "y": 5.13
+        },
+        {
+          "x": -56.92,
+          "y": 5.47
+        },
+        {
+          "x": -59.4,
+          "y": 5.34
+        }
+      ],
+      "width": 1.5
     }
   ],
   "structures": [
@@ -1422,6 +1592,63 @@
       "outlineProfile": "Cliff Smooth",
       "outlineWidth": 1.5,
       "outlineFacing": "in"
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -83.33,
+          "y": 3.63
+        },
+        {
+          "x": -81.93,
+          "y": 0.69
+        },
+        {
+          "x": -79.88,
+          "y": -1.93
+        },
+        {
+          "x": -76.42,
+          "y": -4.96
+        },
+        {
+          "x": -72.5,
+          "y": -5.94
+        },
+        {
+          "x": -67.46,
+          "y": -5.06
+        },
+        {
+          "x": -63.3,
+          "y": -2.63
+        },
+        {
+          "x": -61.43,
+          "y": 3.07
+        },
+        {
+          "x": -63.44,
+          "y": 5.54
+        },
+        {
+          "x": -67.08,
+          "y": 7.27
+        },
+        {
+          "x": -73.67,
+          "y": 8.11
+        },
+        {
+          "x": -80.16,
+          "y": 7.69
+        },
+        {
+          "x": -83.19,
+          "y": 5.36
+        }
+      ]
     }
   ],
   "atmospheres": [
@@ -10327,7 +10554,7 @@
       ]
     },
     {
-      "id": "brunnstedt",
+      "id": "city-hub",
       "props": {
         "underfoot": [
           {
@@ -10336,6 +10563,663 @@
             "y": 3.42,
             "rotation": 6.27,
             "scale": 0.833
+          },
+          {
+            "type": "ArcaneCircle",
+            "x": -33.87,
+            "y": 29.87,
+            "rotation": 0
+          },
+          {
+            "type": "BookPile",
+            "x": -33.6,
+            "y": 19.3,
+            "rotation": 0
+          },
+          {
+            "type": "Doorway",
+            "x": -30,
+            "y": 21,
+            "rotation": 0
+          },
+          {
+            "type": "Doorway",
+            "x": -32.37,
+            "y": 26.33,
+            "rotation": 3.54
+          },
+          {
+            "type": "Doorway",
+            "x": -50.47,
+            "y": -0.8,
+            "rotation": 1.57,
+            "scale": 1.4
+          },
+          {
+            "type": "Doorway",
+            "x": -30.47,
+            "y": -12.8,
+            "rotation": 3.14
+          },
+          {
+            "type": "Doorway",
+            "x": -30.47,
+            "y": 11.2,
+            "rotation": 0
+          },
+          {
+            "type": "Doorway",
+            "x": -37.2,
+            "y": -25.8,
+            "rotation": 0
+          }
+        ],
+        "default": [
+          {
+            "type": "CentralFountain",
+            "x": -58.07,
+            "y": -0.41,
+            "rotation": 0
+          },
+          {
+            "type": "Bench",
+            "x": -52.1,
+            "y": -4.48,
+            "rotation": 0
+          },
+          {
+            "type": "Barrel",
+            "x": -72.77,
+            "y": -7.31,
+            "rotation": 0
+          },
+          {
+            "type": "Barrel",
+            "x": -65.03,
+            "y": 6.75,
+            "rotation": 0
+          },
+          {
+            "type": "Barrel",
+            "x": -73.9,
+            "y": -1.78,
+            "rotation": 0
+          },
+          {
+            "type": "Barrel",
+            "x": -72.9,
+            "y": -8.28,
+            "rotation": 0
+          },
+          {
+            "type": "LampPost",
+            "x": -80.63,
+            "y": 2.14,
+            "rotation": 0
+          },
+          {
+            "type": "ProduceBasket",
+            "x": -76.8,
+            "y": -4.95,
+            "rotation": 0
+          },
+          {
+            "type": "ProduceBasket",
+            "x": -74.7,
+            "y": -0.78,
+            "rotation": 0
+          },
+          {
+            "type": "ProduceBasket",
+            "x": -73.17,
+            "y": 9.38,
+            "rotation": 0
+          },
+          {
+            "type": "MarketCounter",
+            "x": -79.46,
+            "y": -4.19,
+            "rotation": 5.44
+          },
+          {
+            "type": "MarketCounter",
+            "x": -75.05,
+            "y": -7.8,
+            "rotation": 6.016
+          },
+          {
+            "type": "MarketCounter",
+            "x": -69.39,
+            "y": -7.92,
+            "rotation": 0.268
+          },
+          {
+            "type": "MarketCounter",
+            "x": -65.37,
+            "y": -6.46,
+            "rotation": 0.518
+          },
+          {
+            "type": "MarketCounter",
+            "x": -70.92,
+            "y": 10.04,
+            "rotation": 2.944
+          },
+          {
+            "type": "MarketCounter",
+            "x": -67.42,
+            "y": 8.83,
+            "rotation": 2.82
+          },
+          {
+            "type": "MarketCounter",
+            "x": -77.28,
+            "y": 9.35,
+            "rotation": 3.678
+          },
+          {
+            "type": "MarketCounter",
+            "x": -72.29,
+            "y": -0.3,
+            "rotation": 0.684
+          },
+          {
+            "type": "SackPile",
+            "x": -78.94,
+            "y": 7.34,
+            "rotation": 0.559
+          },
+          {
+            "type": "SackPile",
+            "x": -80.36,
+            "y": -1.67,
+            "rotation": 5.436
+          },
+          {
+            "type": "SackPile",
+            "x": -64.02,
+            "y": -4.3,
+            "rotation": 0.442
+          },
+          {
+            "type": "Altar",
+            "x": -20.5,
+            "y": -0.8,
+            "rotation": 4.712
+          },
+          {
+            "type": "AngelStatue",
+            "x": -10.95,
+            "y": -2.66,
+            "rotation": 4.712
+          },
+          {
+            "type": "BellTower",
+            "x": -23.97,
+            "y": -8.3,
+            "rotation": 4.712
+          },
+          {
+            "type": "CandleStand",
+            "x": -20.5,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Mausoleum",
+            "x": -7.96,
+            "y": -3.86,
+            "rotation": 4.712
+          },
+          {
+            "type": "BandageTable",
+            "x": -73.14,
+            "y": 18.37,
+            "rotation": 0
+          },
+          {
+            "type": "Brazier",
+            "x": -72.8,
+            "y": 24.4,
+            "rotation": 0
+          },
+          {
+            "type": "Confessional",
+            "x": -33.2,
+            "y": -9.5,
+            "rotation": 4.712
+          },
+          {
+            "type": "Cot",
+            "x": -71.5,
+            "y": 19.21,
+            "rotation": 0
+          },
+          {
+            "type": "Cot",
+            "x": -70.31,
+            "y": 19.19,
+            "rotation": 0
+          },
+          {
+            "type": "Cottage",
+            "x": -74.3,
+            "y": -18.14,
+            "rotation": 0
+          },
+          {
+            "type": "Font",
+            "x": -48.3,
+            "y": -3.4,
+            "rotation": 0
+          },
+          {
+            "type": "GraveMound",
+            "x": -6.3,
+            "y": 1.2,
+            "rotation": 0
+          },
+          {
+            "type": "IronFence",
+            "x": -12.47,
+            "y": 2.91,
+            "rotation": 0
+          },
+          {
+            "type": "IronFence",
+            "x": -7.27,
+            "y": 2.98,
+            "rotation": 0
+          },
+          {
+            "type": "LampPost",
+            "x": -89.27,
+            "y": 4.53,
+            "rotation": 0
+          },
+          {
+            "type": "LazaretTent",
+            "x": -71.47,
+            "y": 19.13,
+            "rotation": 0
+          },
+          {
+            "type": "LeanTo",
+            "x": -57,
+            "y": 24.53,
+            "rotation": 0
+          },
+          {
+            "type": "OpenGrave",
+            "x": -8.24,
+            "y": 0.53,
+            "rotation": 0
+          },
+          {
+            "type": "Organ",
+            "x": -27.75,
+            "y": 8.5,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -46,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pillar",
+            "x": -33.7,
+            "y": -4.8,
+            "rotation": 0
+          },
+          {
+            "type": "RubbishHeap",
+            "x": -69.73,
+            "y": 25.2,
+            "rotation": 0
+          },
+          {
+            "type": "RubbishHeap",
+            "x": -62.07,
+            "y": 26,
+            "rotation": 0
+          },
+          {
+            "type": "RubbishHeap",
+            "x": -61,
+            "y": 16.33,
+            "rotation": 0
+          },
+          {
+            "type": "SackPile",
+            "x": -80.5,
+            "y": 11.4,
+            "rotation": 0
+          },
+          {
+            "type": "Screen",
+            "x": -70.9,
+            "y": 19.2,
+            "rotation": 1.571
+          },
+          {
+            "type": "Orrery",
+            "x": -26,
+            "y": 18.3,
+            "rotation": 0
+          },
+          {
+            "type": "CrystalPylon",
+            "x": -40.9,
+            "y": 15.97,
+            "rotation": 0
+          },
+          {
+            "type": "CrystalPylon",
+            "x": -40.87,
+            "y": 20.47,
+            "rotation": 0
+          },
+          {
+            "type": "ElvenPlanter",
+            "x": -38,
+            "y": 23.6,
+            "rotation": 0
+          },
+          {
+            "type": "ElvenPlanter",
+            "x": -34,
+            "y": 23.6,
+            "rotation": 0
+          },
+          {
+            "type": "ElvenPlanter",
+            "x": -25,
+            "y": 23.6,
+            "rotation": 0
+          },
+          {
+            "type": "ElvenPlanter",
+            "x": -21,
+            "y": 23.6,
+            "rotation": 0
+          },
+          {
+            "type": "MoonPool",
+            "x": -41.7,
+            "y": 28.77,
+            "rotation": 0
+          },
+          {
+            "type": "AlchemyTable",
+            "x": -33.87,
+            "y": 32.47,
+            "rotation": 0
+          },
+          {
+            "type": "ReadingDesk",
+            "x": -35.9,
+            "y": 18.3,
+            "rotation": 0
+          },
+          {
+            "type": "Lectern",
+            "x": -30,
+            "y": 17.2,
+            "rotation": 0
+          },
+          {
+            "type": "Bookshelf",
+            "x": -37.2,
+            "y": 15.8,
+            "rotation": 0
+          },
+          {
+            "type": "ScrollRack",
+            "x": -36.5,
+            "y": 20.25,
+            "rotation": 0
+          },
+          {
+            "type": "Bookshelf",
+            "x": -34.6,
+            "y": 15.8,
+            "rotation": 0
+          },
+          {
+            "type": "Bookshelf",
+            "x": -27.4,
+            "y": 15.8,
+            "rotation": 0
+          },
+          {
+            "type": "Bookshelf",
+            "x": -24.8,
+            "y": 15.8,
+            "rotation": 0
+          },
+          {
+            "type": "CandleStand",
+            "x": -20.5,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -46,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -44.8,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -44.8,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -43.6,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -43.6,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -42.4,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -42.4,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -41.2,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -41.2,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -40,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -40,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -38.8,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -38.8,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -37.6,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -37.6,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -36.4,
+            "y": -3,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pew",
+            "x": -36.4,
+            "y": 1.4,
+            "rotation": 4.712
+          },
+          {
+            "type": "Pillar",
+            "x": -33.7,
+            "y": 3.2,
+            "rotation": 0
+          },
+          {
+            "type": "Pillar",
+            "x": -27.7,
+            "y": -4.8,
+            "rotation": 0
+          },
+          {
+            "type": "Pillar",
+            "x": -27.7,
+            "y": 3.2,
+            "rotation": 0
+          },
+          {
+            "type": "ArmorStand",
+            "x": -35.32,
+            "y": -30.7,
+            "rotation": 0
+          },
+          {
+            "type": "ArmorStand",
+            "x": -35.32,
+            "y": -29.6,
+            "rotation": 0
+          },
+          {
+            "type": "ArmorStand",
+            "x": -35.32,
+            "y": -28.5,
+            "rotation": 0
+          },
+          {
+            "type": "ArmorStand",
+            "x": -35.32,
+            "y": -27.4,
+            "rotation": 0
+          },
+          {
+            "type": "Banner",
+            "x": -51.15,
+            "y": -19.12,
+            "rotation": 0
+          },
+          {
+            "type": "Banner",
+            "x": -52.95,
+            "y": -19.05,
+            "rotation": 0
+          },
+          {
+            "type": "Bunk",
+            "x": -41.3,
+            "y": -30.3,
+            "rotation": 0
+          },
+          {
+            "type": "WeaponRack",
+            "x": -41.62,
+            "y": -27.6,
+            "rotation": 1.57
+          },
+          {
+            "type": "GuardDesk",
+            "x": -39.6,
+            "y": -27.4,
+            "rotation": 0
+          },
+          {
+            "type": "TrainingDummy",
+            "x": -32.68,
+            "y": -28.68,
+            "rotation": 0
+          },
+          {
+            "type": "TrainingDummy",
+            "x": -31.72,
+            "y": -30.48,
+            "rotation": 0
+          },
+          {
+            "type": "TrainingDummy",
+            "x": -29.75,
+            "y": -30.45,
+            "rotation": 0
+          },
+          {
+            "type": "TrainingDummy",
+            "x": -29.48,
+            "y": -28.65,
+            "rotation": 0
+          },
+          {
+            "type": "Bunk",
+            "x": -40,
+            "y": -30.3,
+            "rotation": 0
+          },
+          {
+            "type": "Bunk",
+            "x": -38.7,
+            "y": -30.3,
+            "rotation": 0
+          },
+          {
+            "type": "Bunk",
+            "x": -37.4,
+            "y": -30.3,
+            "rotation": 0
           }
         ],
         "buildings": [
@@ -10345,39 +11229,177 @@
             "y": 3.42,
             "rotation": 4.712,
             "scale": 0.833
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -79.07,
+            "y": -3.8,
+            "rotation": 5.44
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -74.93,
+            "y": -7.26,
+            "rotation": 6.016
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -69.57,
+            "y": -7.4,
+            "rotation": 0.268
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -65.67,
+            "y": -6,
+            "rotation": 0.518
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -71,
+            "y": 9.5,
+            "rotation": 2.944
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -67.57,
+            "y": 8.3,
+            "rotation": 2.82
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -76.97,
+            "y": 8.9,
+            "rotation": 3.678
+          },
+          {
+            "type": "MarketStallRoof",
+            "x": -72.67,
+            "y": 0.1,
+            "rotation": 0.684
+          },
+          {
+            "type": "CathedralNaveRoof",
+            "x": -38.47,
+            "y": -0.8,
+            "rotation": 4.712
+          },
+          {
+            "type": "CathedralApseRoof",
+            "x": -21.47,
+            "y": -0.8,
+            "rotation": 4.712
+          },
+          {
+            "type": "CathedralTranseptRoof",
+            "x": -30.47,
+            "y": -0.8,
+            "rotation": 4.712
+          },
+          {
+            "type": "CemeteryGate",
+            "x": -9.9,
+            "y": 2.88,
+            "rotation": 0
+          },
+          {
+            "type": "SlumTent",
+            "x": -64.93,
+            "y": 13.8,
+            "rotation": 0
+          },
+          {
+            "type": "SlumTent",
+            "x": -75.13,
+            "y": 13.67,
+            "rotation": 0
+          },
+          {
+            "type": "SlumTent",
+            "x": -77.15,
+            "y": 26.87,
+            "rotation": 0
+          },
+          {
+            "type": "SlumTent",
+            "x": -70.57,
+            "y": 29.16,
+            "rotation": 0
+          },
+          {
+            "type": "SlumTent",
+            "x": -64.7,
+            "y": 29.03,
+            "rotation": 0
+          },
+          {
+            "type": "LibraryRoof",
+            "x": -35,
+            "y": 18,
+            "rotation": 0
+          },
+          {
+            "type": "LibraryRoof",
+            "x": -27,
+            "y": 18,
+            "rotation": 0
+          },
+          {
+            "type": "MageTowerRoof",
+            "x": -33.87,
+            "y": 29.87,
+            "rotation": 0
+          },
+          {
+            "type": "BarracksRoof",
+            "x": -38.37,
+            "y": -28.8,
+            "rotation": 0
+          },
+          {
+            "type": "Watchtower",
+            "x": -45.33,
+            "y": -33,
+            "rotation": 0
+          },
+          {
+            "type": "Watchtower",
+            "x": -22.87,
+            "y": -33.4,
+            "rotation": 0
           }
         ]
       },
       "spawns": [
         {
           "mob": "AscensionStone",
-          "x": -46.47,
-          "y": -1.99,
+          "x": -33.46,
+          "y": 1,
           "angle": 0
         }
       ],
       "exits": [
         {
-          "x": -65.64,
-          "y": 1.02,
+          "x": -61.94,
+          "y": -15.25,
           "anchor": "tunnel-east"
         }
       ],
       "bindPoints": [
         {
           "id": "spawnpoint-12",
-          "x": -61.63,
-          "y": 0.41
+          "x": -64.43,
+          "y": 0.48
         },
         {
           "id": "spawnpoint-13",
-          "x": -31.63,
-          "y": 0.41
+          "x": -30.06,
+          "y": -7.17
         }
       ],
       "regions": [
         {
-          "id": "brunnstedt",
+          "id": "city-hub",
           "profile": "City",
           "points": [
             {
@@ -10399,25 +11421,308 @@
           ]
         }
       ],
-      "atmospheres": [
+      "paths": [
         {
-          "profile": "Fog",
+          "profile": "Wall",
           "points": [
             {
-              "x": -78.65,
-              "y": -25.2
+              "x": -29,
+              "y": 20.75
             },
             {
-              "x": -78.65,
-              "y": 25.2
+              "x": -23.25,
+              "y": 20.75
             },
             {
-              "x": -16.35,
-              "y": 25.2
+              "x": -23.25,
+              "y": 15.25
             },
             {
-              "x": -16.35,
-              "y": -25.2
+              "x": -38.75,
+              "y": 15.25
+            },
+            {
+              "x": -38.75,
+              "y": 20.75
+            },
+            {
+              "x": -31,
+              "y": 20.75
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "corners": "sharp",
+          "ends": "flat"
+        },
+        {
+          "profile": "Wall",
+          "points": [
+            {
+              "x": -31.61,
+              "y": 27.07
+            },
+            {
+              "x": -30.73,
+              "y": 28.11
+            },
+            {
+              "x": -30.3,
+              "y": 29.41
+            },
+            {
+              "x": -30.39,
+              "y": 30.77
+            },
+            {
+              "x": -30.97,
+              "y": 32.01
+            },
+            {
+              "x": -31.98,
+              "y": 32.93
+            },
+            {
+              "x": -33.26,
+              "y": 33.42
+            },
+            {
+              "x": -34.62,
+              "y": 33.39
+            },
+            {
+              "x": -35.88,
+              "y": 32.86
+            },
+            {
+              "x": -36.85,
+              "y": 31.89
+            },
+            {
+              "x": -37.39,
+              "y": 30.64
+            },
+            {
+              "x": -37.42,
+              "y": 29.27
+            },
+            {
+              "x": -36.94,
+              "y": 27.99
+            },
+            {
+              "x": -36.02,
+              "y": 26.98
+            },
+            {
+              "x": -34.79,
+              "y": 26.39
+            },
+            {
+              "x": -33.43,
+              "y": 26.3
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "ends": "flat"
+        },
+        {
+          "profile": "Wall",
+          "points": [
+            {
+              "x": -50.22,
+              "y": -2.2
+            },
+            {
+              "x": -50.22,
+              "y": -5.55
+            },
+            {
+              "x": -34.22,
+              "y": -5.55
+            },
+            {
+              "x": -34.22,
+              "y": -12.55
+            },
+            {
+              "x": -31.47,
+              "y": -12.55
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "corners": "sharp",
+          "ends": "flat"
+        },
+        {
+          "profile": "Wall",
+          "points": [
+            {
+              "x": -29.47,
+              "y": -12.55
+            },
+            {
+              "x": -26.72,
+              "y": -12.55
+            },
+            {
+              "x": -26.72,
+              "y": -5.55
+            },
+            {
+              "x": -21.47,
+              "y": -5.55
+            },
+            {
+              "x": -20.24,
+              "y": -5.39
+            },
+            {
+              "x": -19.09,
+              "y": -4.91
+            },
+            {
+              "x": -18.11,
+              "y": -4.16
+            },
+            {
+              "x": -17.36,
+              "y": -3.17
+            },
+            {
+              "x": -16.88,
+              "y": -2.03
+            },
+            {
+              "x": -16.72,
+              "y": -0.8
+            },
+            {
+              "x": -16.88,
+              "y": 0.43
+            },
+            {
+              "x": -17.36,
+              "y": 1.57
+            },
+            {
+              "x": -18.11,
+              "y": 2.56
+            },
+            {
+              "x": -19.09,
+              "y": 3.31
+            },
+            {
+              "x": -20.24,
+              "y": 3.79
+            },
+            {
+              "x": -21.47,
+              "y": 3.95
+            },
+            {
+              "x": -26.72,
+              "y": 3.95
+            },
+            {
+              "x": -26.72,
+              "y": 10.95
+            },
+            {
+              "x": -29.47,
+              "y": 10.95
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "corners": "sharp",
+          "ends": "flat"
+        },
+        {
+          "profile": "Wall",
+          "points": [
+            {
+              "x": -31.47,
+              "y": 10.95
+            },
+            {
+              "x": -34.22,
+              "y": 10.95
+            },
+            {
+              "x": -34.22,
+              "y": 3.95
+            },
+            {
+              "x": -50.22,
+              "y": 3.95
+            },
+            {
+              "x": -50.22,
+              "y": 0.6
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "corners": "sharp",
+          "ends": "flat"
+        },
+        {
+          "profile": "Wall",
+          "points": [
+            {
+              "x": -36.2,
+              "y": -26.05
+            },
+            {
+              "x": -34.62,
+              "y": -26.05
+            },
+            {
+              "x": -34.62,
+              "y": -31.55
+            },
+            {
+              "x": -42.12,
+              "y": -31.55
+            },
+            {
+              "x": -42.12,
+              "y": -26.05
+            },
+            {
+              "x": -38.2,
+              "y": -26.05
+            }
+          ],
+          "width": 0.5,
+          "blocksMovement": true,
+          "corners": "sharp",
+          "ends": "flat"
+        }
+      ],
+      "atmospheres": [
+        {
+          "profile": "Gloom",
+          "points": [
+            {
+              "x": -44.5,
+              "y": 13
+            },
+            {
+              "x": -44.5,
+              "y": 35.5
+            },
+            {
+              "x": -20.5,
+              "y": 35.5
+            },
+            {
+              "x": -20.5,
+              "y": 13
             }
           ]
         }
@@ -10425,8 +11730,8 @@
       "anchors": [
         {
           "name": "surface-east2",
-          "x": -65.55,
-          "y": 1.77
+          "x": -61.85,
+          "y": -14.5
         }
       ]
     },

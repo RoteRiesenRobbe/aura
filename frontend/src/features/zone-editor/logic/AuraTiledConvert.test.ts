@@ -466,8 +466,10 @@ describe('AuraConvert — the generated object templates', () => {
     const dir = nodeRequire.resolve('../../../../../tools/tiled/palette/content.json')
         .replace(/content\.json$/, 'templates');
 
+    // Recursive: the prop templates sit in folders (tools/tiled/prop-groups.json).
     function templates(kind: 'props' | 'decals') {
-        return readdirSync(dir + '/' + kind).map(f => {
+        return (readdirSync(dir + '/' + kind, {recursive: true}) as string[])
+            .map(f => f.replace(/\\/g, '/')).filter(f => f.endsWith('.tx')).map(f => {
             const text = readFileSync(dir + '/' + kind + '/' + f, 'utf8');
             const obj = /<object name="([^"]*)" class="([^"]*)" gid="(\d+)" width="([\d.]+)" height="([\d.]+)"\/>/
                 .exec(text);

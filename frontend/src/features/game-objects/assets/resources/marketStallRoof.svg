@@ -1,0 +1,88 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 240" preserveAspectRatio="none">
+  <!-- Placeholder market-stall awning (plan-city-assets.md K1): TRUE top-down,
+       a ROOF prop. The viewBox is 300x240 to match the 3 x 2.4 rect body in
+       api/props/market-stall-roof.json (preserveAspectRatio=none, so the two
+       must stay in sync). It fades to its revealAlpha while you stand under
+       it, so the counter beneath (MarketCounter) shows through.
+
+       One pitch, high at the back (north, the pole) and dropping to the
+       customer's side (south), where the valance hangs in scallops. The
+       stripes run DOWN the slope, the way the cloth is sewn, and are what
+       says "market" from across the square: muted red and sun-bleached
+       cream, worn rather than festive. No ropes or poles outside the canvas:
+       a roof draws over everyone walking past. -->
+  <defs>
+    <clipPath id="stallCanvas">
+      <path d="M10,10 L290,10 L290,196
+               Q276,220 262,196 Q248,220 234,196 Q220,220 206,196 Q192,220 178,196
+               Q164,220 150,196 Q136,220 122,196 Q108,220 94,196 Q80,220 66,196
+               Q52,220 38,196 Q24,220 10,196 Z"/>
+    </clipPath>
+    <!-- light from the top-left: the back of the slope catches it -->
+    <linearGradient id="stallLight" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <path d="M18,18 L298,18 L298,204 L284,230 L18,230 Z" fill="#000000" opacity="0.22"/>
+
+  <g clip-path="url(#stallCanvas)">
+    <!-- the stripes, ten of them, 28 wide -->
+    <rect x="10" y="0" width="28" height="240" fill="#a8432f"/>
+    <rect x="38" y="0" width="28" height="240" fill="#dccba0"/>
+    <rect x="66" y="0" width="28" height="240" fill="#a8432f"/>
+    <rect x="94" y="0" width="28" height="240" fill="#dccba0"/>
+    <rect x="122" y="0" width="28" height="240" fill="#a8432f"/>
+    <rect x="150" y="0" width="28" height="240" fill="#dccba0"/>
+    <rect x="178" y="0" width="28" height="240" fill="#a8432f"/>
+    <rect x="206" y="0" width="28" height="240" fill="#dccba0"/>
+    <rect x="234" y="0" width="28" height="240" fill="#a8432f"/>
+    <rect x="262" y="0" width="28" height="240" fill="#dccba0"/>
+    <!-- the seams between them -->
+    <g stroke="#5a2e1e" stroke-width="1.6" opacity="0.4">
+      <line x1="38" y1="0" x2="38" y2="240"/>
+      <line x1="66" y1="0" x2="66" y2="240"/>
+      <line x1="94" y1="0" x2="94" y2="240"/>
+      <line x1="122" y1="0" x2="122" y2="240"/>
+      <line x1="150" y1="0" x2="150" y2="240"/>
+      <line x1="178" y1="0" x2="178" y2="240"/>
+      <line x1="206" y1="0" x2="206" y2="240"/>
+      <line x1="234" y1="0" x2="234" y2="240"/>
+      <line x1="262" y1="0" x2="262" y2="240"/>
+    </g>
+    <rect x="0" y="0" width="300" height="240" fill="url(#stallLight)"/>
+
+    <!-- the cloth sags between the poles: a soft shade across the middle -->
+    <ellipse cx="150" cy="112" rx="120" ry="34" fill="#000000" opacity="0.08"/>
+
+    <!-- the valance: hanging, so from above it is a dark band past the fold -->
+    <rect x="0" y="194" width="300" height="46" fill="#000000" opacity="0.22"/>
+
+    <!-- weather: a patch sewn over a tear, and rain stains under the pole -->
+    <rect x="186" y="58" width="34" height="26" fill="#b9a77a" stroke="#5a3f28" stroke-width="1.5"
+          stroke-dasharray="3 2" transform="rotate(-5 203 71)"/>
+    <ellipse cx="74" cy="34" rx="22" ry="7" fill="#3a2a14" opacity="0.14"/>
+    <ellipse cx="236" cy="30" rx="16" ry="5" fill="#3a2a14" opacity="0.12"/>
+  </g>
+
+  <!-- the fold where the valance drops -->
+  <line x1="10" y1="196" x2="290" y2="196" stroke="#4a2a1a" stroke-width="2" opacity="0.5"/>
+  <!-- the canvas edge -->
+  <path d="M10,10 L290,10 L290,196
+           Q276,220 262,196 Q248,220 234,196 Q220,220 206,196 Q192,220 178,196
+           Q164,220 150,196 Q136,220 122,196 Q108,220 94,196 Q80,220 66,196
+           Q52,220 38,196 Q24,220 10,196 Z"
+        fill="none" stroke="#4a2a1a" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- the back pole the awning is lashed to, its ends just past the cloth -->
+  <rect x="4" y="5" width="292" height="11" rx="5.5" fill="#7a5730" stroke="#402a13" stroke-width="3"/>
+  <rect x="8" y="6" width="284" height="3" fill="#a3763f" opacity="0.5"/>
+  <g stroke="#2b2014" stroke-width="2" stroke-linecap="round">
+    <line x1="52" y1="6" x2="52" y2="15"/>
+    <line x1="150" y1="6" x2="150" y2="15"/>
+    <line x1="248" y1="6" x2="248" y2="15"/>
+  </g>
+</svg>

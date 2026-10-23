@@ -1,0 +1,9 @@
+{
+  "name": "Doorway",
+  "entityType": "Doorway",
+  "sprite": "doorway.svg",
+  "body": { "width": 2.6, "height": 1 },
+  "blocksMovement": false,
+  "lightFraction": 0.15,
+  "lightColor": "#ffd890"
+}

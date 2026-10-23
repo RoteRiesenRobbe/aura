@@ -1,0 +1,6 @@
+{
+  "name": "Altar",
+  "entityType": "Altar",
+  "sprite": "altar.svg",
+  "body": { "width": 2.4, "height": 1.2 }
+}

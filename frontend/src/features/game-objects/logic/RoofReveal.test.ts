@@ -1,4 +1,9 @@
 import {describe, expect, it} from 'vitest';
+import {meter2px} from '../../../client-data/BasicConfig';
+import naveJson from '../../../../../api/props/cathedral-nave-roof.json';
+import transeptJson from '../../../../../api/props/cathedral-transept-roof.json';
+import apseJson from '../../../../../api/props/cathedral-apse-roof.json';
+import {PropBodyJSON, propFootprint} from './PropPlaceholderLayout';
 import {contains, FADE_MS, RoofShape, roofsToReveal, stepAlpha, touching} from './RoofReveal';
 
 // Pins for the roof reveal (plan-roof-props.md): which roofs open when the
@@ -73,6 +78,33 @@ describe('roofsToReveal', () => {
         ];
         expect([...roofsToReveal(roofs, {x: 0, y: 0})].sort()).toEqual([1, 2, 3]);
         expect([...roofsToReveal(roofs, {x: 1000, y: 0})]).toEqual([4]);
+    });
+
+    // plan-city-assets.md K2: the cathedral's three roof pieces, laid flush
+    // north to south (nave, transept across its south end, apse beyond),
+    // open as one building from any of them. Sizes come from the defs.
+    it('opens the cathedral whole when its three pieces sit flush', () => {
+        // The streamed size is PropBody.VisualRadius() in px: the max
+        // half-extent of a rect, the radius of a circle.
+        const piece = (id: number, body: PropBodyJSON, x: number, y: number): RoofShape => {
+            const size = meter2px(body.radius ?? Math.max(body.width, body.height) / 2);
+            return {id, x, y, rotation: 0, footprint: propFootprint(body, size)};
+        };
+        const naveHalf = meter2px(naveJson.body.height / 2);
+        const transeptHalf = meter2px(transeptJson.body.height / 2);
+        const transeptY = naveHalf + transeptHalf;
+        const apseY = transeptY + transeptHalf + meter2px(apseJson.body.radius);
+        const nave = piece(1, naveJson.body, 0, 0);
+        const transept = piece(2, transeptJson.body, 0, transeptY);
+        const apse = piece(3, apseJson.body, 0, apseY);
+        // A chapel a street (3 m) east of the transept stays shut.
+        const transeptEnd = meter2px(transeptJson.body.width / 2);
+        const chapel = piece(4, apseJson.body, transeptEnd + meter2px(3 + apseJson.body.radius), transeptY);
+        const roofs = [nave, transept, apse, chapel];
+
+        for (const standAt of [nave, transept, apse]) {
+            expect([...roofsToReveal(roofs, standAt)].sort()).toEqual([1, 2, 3]);
+        }
     });
 });
 

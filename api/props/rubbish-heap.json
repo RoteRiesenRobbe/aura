@@ -1,0 +1,7 @@
+{
+  "name": "RubbishHeap",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.8 },
+  "blocksMovement": false
+}

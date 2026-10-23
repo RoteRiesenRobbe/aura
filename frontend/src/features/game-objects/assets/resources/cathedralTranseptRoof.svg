@@ -1,0 +1,144 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" preserveAspectRatio="none">
+  <!-- Placeholder cathedral transept roof (plan-city-assets.md K2): TRUE
+       top-down, a ROOF prop. The viewBox is 480x160 to match the 24 x 8 rect
+       body in api/props/cathedral-transept-roof.json (preserveAspectRatio=none,
+       so the two must stay in sync); 20 units per metre, like the nave. It
+       bakes at 2880 x 960 px, under the 4096 cap (L6).
+
+       The crossbar of the cross: it sits flush across the nave's SOUTH end
+       (the nave spans x 140-340 here) and the apse sits flush below it. The
+       two arms carry an east-west ridge, the north pitch lit, the south one
+       in shade. In the middle the nave's north-south roof runs straight
+       through to the apse, so four valleys meet at the crossing, under a
+       slate fleche with a gold finial. Like the nave, the slate fills the
+       canvas edge to edge, so the pieces meet without a seam. -->
+  <defs>
+    <!-- slate courses on the arms, turned to their east-west ridge -->
+    <pattern id="transeptSlateV" width="12" height="14" patternUnits="userSpaceOnUse">
+      <path d="M6,0 V14 M12,0 V14 M0,7 H6 M6,0 H12 M6,14 H12" fill="none" stroke="#2f3338"
+            stroke-width="0.8" opacity="0.55"/>
+    </pattern>
+    <!-- slate courses where the nave's roof runs through, as on the nave -->
+    <pattern id="transeptSlateH" width="14" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0,6 H14 M0,12 H14 M7,0 V6 M0,6 V12 M14,6 V12" fill="none" stroke="#2f3338"
+            stroke-width="0.8" opacity="0.55"/>
+    </pattern>
+    <pattern id="transeptCrestingNS" width="6" height="24" patternUnits="userSpaceOnUse">
+      <path d="M3,8 L5.2,12 L3,16 L0.8,12 Z" fill="#c9a640" stroke="#6e5520" stroke-width="0.6"/>
+    </pattern>
+    <pattern id="transeptCrestingEW" width="24" height="6" patternUnits="userSpaceOnUse">
+      <path d="M8,3 L12,0.8 L16,3 L12,5.2 Z" fill="#c9a640" stroke="#6e5520" stroke-width="0.6"/>
+    </pattern>
+    <linearGradient id="transeptLight" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the arms: north pitch lit, south pitch in shade -->
+  <rect x="0" y="0" width="480" height="80" fill="#69707a"/>
+  <rect x="0" y="80" width="480" height="80" fill="#50565e"/>
+  <rect x="0" y="0" width="480" height="160" fill="url(#transeptSlateV)"/>
+
+  <!-- the nave's roof running through the crossing: west half lit, east half shaded -->
+  <path d="M140,0 L240,0 L240,80 Z M140,160 L240,160 L240,80 Z" fill="#6c737c"/>
+  <path d="M240,0 L340,0 L240,80 Z M240,160 L340,160 L240,80 Z" fill="#555b63"/>
+  <path d="M140,0 L340,0 L240,80 Z M140,160 L340,160 L240,80 Z" fill="url(#transeptSlateH)"/>
+
+  <rect x="0" y="0" width="480" height="160" fill="url(#transeptLight)"/>
+
+  <!-- weather: replaced slates, lichen -->
+  <g stroke="#2f3338" stroke-width="0.6">
+    <rect x="30" y="20" width="6" height="7" fill="#7b828b"/>
+    <rect x="102" y="118" width="6" height="7" fill="#454b52"/>
+    <rect x="378" y="34" width="6" height="7" fill="#7b828b"/>
+    <rect x="440" y="104" width="6" height="7" fill="#454b52"/>
+    <rect x="190" y="26" width="7" height="6" fill="#7b828b"/>
+    <rect x="276" y="128" width="7" height="6" fill="#4a5057"/>
+  </g>
+  <g fill="#8b9160" opacity="0.22">
+    <ellipse cx="118" cy="146" rx="12" ry="5"/>
+    <ellipse cx="410" cy="148" rx="10" ry="4"/>
+    <ellipse cx="22" cy="60" rx="6" ry="9"/>
+    <ellipse cx="300" cy="150" rx="8" ry="4"/>
+  </g>
+
+  <!-- dormers, one on each pitch of each arm, their ridges running out to the eaves -->
+  <g>
+    <path d="M52,22 H74 V50 H52 Z" fill="#000000" opacity="0.25" transform="translate(3 3)"/>
+    <path d="M52,22 H74 V50 H52 Z" fill="#646b73" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M52,22 H63 V50 H52 Z" fill="#ffffff" opacity="0.12"/>
+    <line x1="63" y1="22" x2="63" y2="50" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M406,22 H428 V50 H406 Z" fill="#000000" opacity="0.25" transform="translate(3 3)"/>
+    <path d="M406,22 H428 V50 H406 Z" fill="#646b73" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M406,22 H417 V50 H406 Z" fill="#ffffff" opacity="0.12"/>
+    <line x1="417" y1="22" x2="417" y2="50" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M52,110 H74 V138 H52 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M52,110 H74 V138 H52 Z" fill="#4f555c" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M63,110 H74 V138 H63 Z" fill="#000000" opacity="0.15"/>
+    <line x1="63" y1="110" x2="63" y2="138" stroke="#c9a640" stroke-width="1.4"/>
+
+    <path d="M406,110 H428 V138 H406 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M406,110 H428 V138 H406 Z" fill="#4f555c" stroke="#2f3338" stroke-width="1.6"/>
+    <path d="M417,110 H428 V138 H417 Z" fill="#000000" opacity="0.15"/>
+    <line x1="417" y1="110" x2="417" y2="138" stroke="#c9a640" stroke-width="1.4"/>
+  </g>
+
+  <!-- the four valleys meeting at the crossing -->
+  <g stroke="#2a2e33" stroke-width="3" stroke-linecap="round">
+    <line x1="140" y1="0" x2="240" y2="80"/>
+    <line x1="340" y1="0" x2="240" y2="80"/>
+    <line x1="140" y1="160" x2="240" y2="80"/>
+    <line x1="340" y1="160" x2="240" y2="80"/>
+  </g>
+  <g stroke="#9aa0a7" stroke-width="1" opacity="0.4">
+    <line x1="142" y1="0" x2="240" y2="78"/>
+    <line x1="142" y1="160" x2="240" y2="82"/>
+  </g>
+
+  <!-- the eaves on the arms only: where nave and apse join, there is no edge.
+       Lit lip west and north, the shadow baked inside the east and south. -->
+  <rect x="0" y="0" width="4" height="160" fill="#8a9097"/>
+  <rect x="476" y="0" width="4" height="160" fill="#2a2e33"/>
+  <rect x="467" y="0" width="9" height="160" fill="#000000" opacity="0.14"/>
+  <rect x="0" y="0" width="140" height="3" fill="#ffffff" opacity="0.18"/>
+  <rect x="340" y="0" width="140" height="3" fill="#ffffff" opacity="0.18"/>
+  <rect x="0" y="154" width="140" height="6" fill="#000000" opacity="0.22"/>
+  <rect x="340" y="154" width="140" height="6" fill="#000000" opacity="0.22"/>
+
+  <!-- the ridges: east-west over the arms, north-south carrying the nave's on -->
+  <rect x="0" y="74" width="480" height="12" fill="#3b4046"/>
+  <rect x="0" y="75" width="480" height="3" fill="#9aa0a7" opacity="0.5"/>
+  <rect x="0" y="83" width="480" height="3" fill="#000000" opacity="0.25"/>
+  <rect x="0" y="77" width="480" height="6" fill="url(#transeptCrestingEW)"/>
+  <rect x="234" y="0" width="12" height="160" fill="#3b4046"/>
+  <rect x="235" y="0" width="3" height="160" fill="#9aa0a7" opacity="0.5"/>
+  <rect x="243" y="0" width="3" height="160" fill="#000000" opacity="0.25"/>
+  <rect x="237" y="0" width="6" height="160" fill="url(#transeptCrestingNS)"/>
+
+  <!-- gold finials at the gable ends -->
+  <circle cx="10" cy="80" r="5" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+  <circle cx="10" cy="80" r="5" fill="#c9a640" stroke="#6e5520" stroke-width="1.2"/>
+  <circle cx="470" cy="80" r="5" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+  <circle cx="470" cy="80" r="5" fill="#c9a640" stroke="#6e5520" stroke-width="1.2"/>
+
+  <!-- the fleche over the crossing: an eight-sided slate spire, gold-tipped -->
+  <path d="M258.5,72.3 L258.5,87.7 L247.7,98.5 L232.3,98.5 L221.5,87.7 L221.5,72.3 L232.3,61.5 L247.7,61.5 Z"
+        fill="#000000" opacity="0.35" transform="translate(6 6)"/>
+  <g stroke="#2f3338" stroke-width="1" stroke-linejoin="round">
+    <path d="M240,80 L232.3,61.5 L247.7,61.5 Z" fill="#7e858e"/>
+    <path d="M240,80 L247.7,61.5 L258.5,72.3 Z" fill="#6a717a"/>
+    <path d="M240,80 L258.5,72.3 L258.5,87.7 Z" fill="#555b63"/>
+    <path d="M240,80 L258.5,87.7 L247.7,98.5 Z" fill="#454b52"/>
+    <path d="M240,80 L247.7,98.5 L232.3,98.5 Z" fill="#4c5259"/>
+    <path d="M240,80 L232.3,98.5 L221.5,87.7 Z" fill="#5a6068"/>
+    <path d="M240,80 L221.5,87.7 L221.5,72.3 Z" fill="#737a83"/>
+    <path d="M240,80 L221.5,72.3 L232.3,61.5 Z" fill="#848b94"/>
+  </g>
+  <path d="M258.5,72.3 L258.5,87.7 L247.7,98.5 L232.3,98.5 L221.5,87.7 L221.5,72.3 L232.3,61.5 L247.7,61.5 Z"
+        fill="none" stroke="#c9a640" stroke-width="2"/>
+  <circle cx="240" cy="80" r="4.5" fill="#c9a640" stroke="#6e5520" stroke-width="1.2"/>
+  <circle cx="239" cy="79" r="1.6" fill="#f0d98a" opacity="0.8"/>
+</svg>

@@ -1,0 +1,6 @@
+{
+  "name": "Organ",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 3, "height": 1.5 }
+}

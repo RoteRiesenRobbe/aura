@@ -1,0 +1,6 @@
+{
+  "name": "BandageTable",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1.6, "height": 0.8 }
+}

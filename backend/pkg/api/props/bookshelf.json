@@ -1,0 +1,6 @@
+{
+  "name": "Bookshelf",
+  "entityType": "Bookshelf",
+  "sprite": "bookshelf.svg",
+  "body": { "width": 2.4, "height": 0.6 }
+}

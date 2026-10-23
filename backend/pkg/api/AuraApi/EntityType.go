@@ -115,6 +115,28 @@ const (
 	EntityTypeSheep                 EntityType = 121
 	EntityTypePassage               EntityType = 122
 	EntityTypeSandClamper           EntityType = 123
+	EntityTypeMarketStallRoof       EntityType = 124
+	EntityTypeMarketCounter         EntityType = 125
+	EntityTypeCentralFountain       EntityType = 126
+	EntityTypeCathedralNaveRoof     EntityType = 127
+	EntityTypePew                   EntityType = 128
+	EntityTypeAltar                 EntityType = 129
+	EntityTypeMausoleum             EntityType = 130
+	EntityTypeCathedralTranseptRoof EntityType = 131
+	EntityTypeCathedralApseRoof     EntityType = 132
+	EntityTypeBellTower             EntityType = 133
+	EntityTypeLazaretTent           EntityType = 134
+	EntityTypeSlumTent              EntityType = 135
+	EntityTypeLeanTo                EntityType = 136
+	EntityTypeBookshelf             EntityType = 137
+	EntityTypeMageTowerRoof         EntityType = 138
+	EntityTypeCrystalPylon          EntityType = 139
+	EntityTypeLibraryRoof           EntityType = 140
+	EntityTypeTrainingDummy         EntityType = 141
+	EntityTypeJailBars              EntityType = 142
+	EntityTypeBarracksRoof          EntityType = 143
+	EntityTypeWatchtower            EntityType = 144
+	EntityTypeDoorway               EntityType = 145
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -226,6 +248,28 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeSheep:                 "Sheep",
 	EntityTypePassage:               "Passage",
 	EntityTypeSandClamper:           "SandClamper",
+	EntityTypeMarketStallRoof:       "MarketStallRoof",
+	EntityTypeMarketCounter:         "MarketCounter",
+	EntityTypeCentralFountain:       "CentralFountain",
+	EntityTypeCathedralNaveRoof:     "CathedralNaveRoof",
+	EntityTypePew:                   "Pew",
+	EntityTypeAltar:                 "Altar",
+	EntityTypeMausoleum:             "Mausoleum",
+	EntityTypeCathedralTranseptRoof: "CathedralTranseptRoof",
+	EntityTypeCathedralApseRoof:     "CathedralApseRoof",
+	EntityTypeBellTower:             "BellTower",
+	EntityTypeLazaretTent:           "LazaretTent",
+	EntityTypeSlumTent:              "SlumTent",
+	EntityTypeLeanTo:                "LeanTo",
+	EntityTypeBookshelf:             "Bookshelf",
+	EntityTypeMageTowerRoof:         "MageTowerRoof",
+	EntityTypeCrystalPylon:          "CrystalPylon",
+	EntityTypeLibraryRoof:           "LibraryRoof",
+	EntityTypeTrainingDummy:         "TrainingDummy",
+	EntityTypeJailBars:              "JailBars",
+	EntityTypeBarracksRoof:          "BarracksRoof",
+	EntityTypeWatchtower:            "Watchtower",
+	EntityTypeDoorway:               "Doorway",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -337,6 +381,28 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Sheep":                 EntityTypeSheep,
 	"Passage":               EntityTypePassage,
 	"SandClamper":           EntityTypeSandClamper,
+	"MarketStallRoof":       EntityTypeMarketStallRoof,
+	"MarketCounter":         EntityTypeMarketCounter,
+	"CentralFountain":       EntityTypeCentralFountain,
+	"CathedralNaveRoof":     EntityTypeCathedralNaveRoof,
+	"Pew":                   EntityTypePew,
+	"Altar":                 EntityTypeAltar,
+	"Mausoleum":             EntityTypeMausoleum,
+	"CathedralTranseptRoof": EntityTypeCathedralTranseptRoof,
+	"CathedralApseRoof":     EntityTypeCathedralApseRoof,
+	"BellTower":             EntityTypeBellTower,
+	"LazaretTent":           EntityTypeLazaretTent,
+	"SlumTent":              EntityTypeSlumTent,
+	"LeanTo":                EntityTypeLeanTo,
+	"Bookshelf":             EntityTypeBookshelf,
+	"MageTowerRoof":         EntityTypeMageTowerRoof,
+	"CrystalPylon":          EntityTypeCrystalPylon,
+	"LibraryRoof":           EntityTypeLibraryRoof,
+	"TrainingDummy":         EntityTypeTrainingDummy,
+	"JailBars":              EntityTypeJailBars,
+	"BarracksRoof":          EntityTypeBarracksRoof,
+	"Watchtower":            EntityTypeWatchtower,
+	"Doorway":               EntityTypeDoorway,
 }
 
 func (v EntityType) String() string {

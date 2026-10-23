@@ -1,0 +1,8 @@
+{
+  "name": "LazaretTent",
+  "entityType": "LazaretTent",
+  "sprite": "lazaretTent.svg",
+  "body": { "width": 6, "height": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.3 }
+}

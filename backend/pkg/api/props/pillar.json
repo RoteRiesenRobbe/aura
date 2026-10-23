@@ -1,0 +1,6 @@
+{
+  "name": "Pillar",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 0.5 }
+}

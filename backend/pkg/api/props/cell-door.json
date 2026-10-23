@@ -1,0 +1,6 @@
+{
+  "name": "CellDoor",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1.2, "height": 0.3 }
+}

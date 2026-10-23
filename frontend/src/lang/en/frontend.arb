@@ -601,7 +601,7 @@
   "@journal.objective.reach": {
     "description": "Fallback tracker line for a reach objective (content normally authors its own line).",
     "placeholders": {
-      "place": {"type": "String", "description": "Place name", "example": "Brunnstedt"}
+      "place": {"type": "String", "description": "Place name", "example": "Dionsburg"}
     }
   },
   "journal.objective.talk-to": "Talk to {name}",
@@ -747,6 +747,10 @@
   "player.level-up": "Level up!",
   "@player.level-up": {
     "description": "Floating text over the player on level up."
+  },
+  "ascension.refused": "The stone is silent. Nothing has changed.",
+  "@ascension.refused": {
+    "description": "Speech bubble over the player when an ascension did not go through; the character is untouched."
   },
   "save.failing": "⚠ Aura cannot save your progress right now. Recent progress may be lost.",
   "@save.failing": {

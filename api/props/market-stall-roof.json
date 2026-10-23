@@ -1,0 +1,8 @@
+{
+  "name": "MarketStallRoof",
+  "entityType": "MarketStallRoof",
+  "sprite": "marketStallRoof.svg",
+  "body": { "width": 3, "height": 2.4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.3 }
+}

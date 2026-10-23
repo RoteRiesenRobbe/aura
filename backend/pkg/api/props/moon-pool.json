@@ -1,0 +1,6 @@
+{
+  "name": "MoonPool",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "radius": 1.8 }
+}

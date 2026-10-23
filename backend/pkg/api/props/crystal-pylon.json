@@ -1,0 +1,8 @@
+{
+  "name": "CrystalPylon",
+  "entityType": "CrystalPylon",
+  "sprite": "crystalPylon.svg",
+  "body": { "radius": 0.5 },
+  "lightFraction": 0.35,
+  "lightColor": "#b7a6ff"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "SlumTent",
+  "entityType": "SlumTent",
+  "sprite": "slumTent.svg",
+  "body": { "width": 2.4, "height": 2 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.3 }
+}

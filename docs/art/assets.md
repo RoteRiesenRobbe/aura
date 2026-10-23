@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-03 from 240 rows.
+Rendered 2026-10-22 from 299 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-03 from 240 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 206 |
+| Art | 265 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-03 from 240 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 59 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 118 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-03 from 240 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 60 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 81 | normal — placed but not everywhere |
-| **P3** | 68 | low — unplaced, deferred, or already fine |
+| **P1** | 68 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 109 | normal — placed but not everywhere |
+| **P3** | 91 | low — unplaced, deferred, or already fine |
 
-**126 rows need work** (missing, shared, placeholder, stock or blocked),
+**185 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 43
+## Prop — 102
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -216,6 +216,65 @@ of which **11 are P0**:
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
 | 🟡 | **Cave mouth frame** | `caveMouth.svg` | P1 |  | 360 x 288 | Z2 |
+| 🟡 | **MarketStallRoof** | `marketStallRoof.svg` | P2 |  | 360 × 288 | Dionsburg — The market stall's awning, the city's first roof prop: one pitch, pole at the back (north), scalloped valance at the front. Sits over a MarketCounter and fades while you stand under it. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **MarketCounter** | `marketCounter.svg` | P2 |  | 312 × 96 | Dionsburg — The solid half of the stall: a plank counter with two produce baskets, a cloth bundle and scales. Goods stay small so it reads as one counter. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **CentralFountain** | `centralFountain.svg` | P1 |  | 720 | Dionsburg — Dionsburg's landmark at the market square, 6 m across: pale stone basin, wide water ring, an upper bowl on a pedestal. Must read from a distance on the water ring. |
+| 🟡 | **Barrel** | — | P3 |  | 96 | Dionsburg — Market clutter. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **SackPile** | — | P3 |  | 120 × 96 | Dionsburg — Grain sacks heaped by a stall. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **ProduceBasket** | — | P3 |  | 84 | Dionsburg — A basket of produce on the cobbles. PropPlaceholder box (procedural, labelled); no file yet. Market palette (R5): striped awnings, worn not festive. |
+| 🟡 | **Bench** | — | P3 |  | 216 × 60 | Dionsburg — A plank bench around the fountain or a stall. PropPlaceholder box (procedural, labelled); no file yet. |
+| 🟡 | **LampPost** | — | P2 |  | 48 | Dionsburg — A street lamp, the city's light source; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. |
+| 🟡 | **CathedralNaveRoof** | `cathedralNaveRoof.svg` | P1 |  | 1200 × 2880 | Dionsburg — The cathedral's long roof, north-south: slate courses, a lead ridge with gold cresting, three dormers a side, the gold cross over the west front (north). The transept sits flush across its south end, the apse beyond, and the three fade as one. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Pew** | `pew.svg` | P2 |  | 360 × 72 | Dionsburg — Dark oak bench, backrest on the north edge (it faces the altar at the nave's south end), carved end boards, a brass number plate, one hymnal. Plain so rows of them read as rows. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Altar** | `altar.svg` | P2 |  | 288 × 144 | Dionsburg — Stone block under a white cloth with a gold band falling toward the pews; gold cross, two candlesticks, an open book and a chalice. The cathedral's gold lives here. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Mausoleum** | `mausoleum.svg` | P2 |  | 480 × 360 | Dionsburg — A small stone tomb-house, mostly roof: slate pitches on an east-west ridge, a gold cross, stone urns at the corners, steps to a south door. Moss and a cracked slate. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CathedralTranseptRoof** | `cathedralTranseptRoof.svg` | P1 |  | 2880 × 960 | Dionsburg — The cross arm of the cathedral roof, east-west across the nave's south end: two slate arms on an east-west ridge, the nave's roof running through the crossing (four valleys), a slate fleche with a gold finial. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CathedralApseRoof** | `cathedralApseRoof.svg` | P1 |  | 1200 | Dionsburg — The round east end over the altar, below the transept: a square-cornered chancel carrying the nave's roof on, then a half-cone of slate on lead ribs with a gold boss. The bottom corners stay empty. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **BellTower** | `bellTower.svg` | P2 |  | 600 × 600 | Dionsburg — The cathedral's one bell tower (PO 2026-10-22), flush against the nave's north-west corner: an OPEN belfry seen from above: a crenellated stone parapet around the dark bell chamber, two oak frame beams, the bronze bell on its headstock and its ringing wheel edge-on (the bronze is its gold accent; no second cross, PO); the longest shadow in the city. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Pillar** | — | P3 |  | 120 | Dionsburg — A nave column, in rows under the roof. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CandleStand** | — | P2 |  | 72 | Dionsburg — A standing candelabrum; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Font** | — | P3 |  | 168 | Dionsburg — The stone baptismal font near the door. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Organ** | — | P3 |  | 360 × 180 | Dionsburg — The pipe organ against a wall, pipes seen from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **Confessional** | — | P3 |  | 240 × 180 | Dionsburg — A wooden confessional booth, roofed. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **GraveMound** | — | P2 |  | 120 × 240 | Dionsburg — A fresh earth mound, the cemetery's filler. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **OpenGrave** | — | P3 |  | 120 × 240 | Dionsburg — A dug grave, the spoil heaped beside it. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **IronFence** | — | P2 |  | 288 × 36 | Dionsburg — A wrought-iron cemetery railing section. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CemeteryGate** | — | P2 |  | 360 × 60 | Dionsburg — The cemetery's wrought-iron gate, standing open between IronFence runs. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **AngelStatue** | — | P2 |  | 144 | Dionsburg — A weathered stone angel over a grave, wings from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **LazaretTent** | `lazaretTent.svg` | P2 |  | 720 × 480 | Dionsburg — The lazaret's field-hospital marquee, 6 × 4 m: a HIPPED roof on two king poles (four planes on a short east-west ridge, told apart by the top-left light), a red band along the ridge and one down both slopes so the whole roof is the cross. Washed-out canvas, a fresh patch, a scorch mark. Cots stand beneath and show when it fades. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **SlumTent** | `slumTent.svg` | P2 |  | 288 × 240 | Dionsburg — A shelter nobody bought: a crooked branch for a north-south ridge, mismatched cloth thrown over it and patched brown on brown, a ragged sagging hem weighted with stones. A Bedroll lies beneath. Repeated across the slums, so it must not read as one hero tent. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Cot** | — | P2 |  | 96 × 228 | Dionsburg — A canvas camp bed, north-south, in rows under the lazaret tent. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **BandageTable** | — | P3 |  | 192 × 96 | Dionsburg — A trestle table of rolled bandages, basins and bottles. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **Screen** | — | P3 |  | 192 × 24 | Dionsburg — A folding cloth screen between cots, seen edge-on from above. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **LeanTo** | `leanTo.svg` | P2 |  | 288 × 192 | Dionsburg — One pitch propped against a wall: a beam along the wall (north), salvaged planks of mismatched widths running down the slope to a ragged south edge, one board missing, two nailed battens, a patched brown cloth over the east end weighted with stones. Drawn after K3 first shipped it as a box (PO 2026-10-22). Slums palette (R5): patched brown cloth. |
+| 🟡 | **RubbishHeap** | — | P3 |  | 192 | Dionsburg — Refuse, rags and broken crockery in a low heap. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Brazier** | — | P2 |  | 96 | Dionsburg — An iron fire basket the slum warms itself at; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
+| 🟡 | **Bookshelf** | `bookshelf.svg` | P2 |  | 288 × 72 | Dionsburg — A tall case of pale elven wood, 2.4 × 0.6 m, back board along the north edge so it stands against a north wall. From above it is its open top: a row of muted bindings between silver-capped uprights, one book leaning into the gap where another was taken. The library lines its walls with it. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **MageTowerRoof** | `mageTowerRoof.svg` | P1 |  | 960 | Dionsburg — The first circle roof built as a whole tower: a cone of sage-green weathered copper in fish scales, twelve facets lit from the top-left, silver ribs and two silver bands, three round dormers glowing violet, a violet crystal finial. It fills the circle and nothing else, because the fade tests the circle body. The mage district's landmark. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **CrystalPylon** | `crystalPylon.svg` | P2 |  | 120 | Dionsburg — The mage district's street light: an octagonal pale stone plinth, a silver collar, a violet crystal seen point-on as a six-faced prism, its glow spilling over the stone. The light shows only in dark areas. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **LibraryRoof** | `libraryRoof.svg` | P1 |  | 960 × 720 | Dionsburg — A roof PIECE, 8 × 6 m: pale sage slate on an east-west silver ridge with leaf cresting, two skylights on the lit north pitch showing violet lamplight, moss on the shaded south pitch. No eave on the east and west edges, so pieces laid flush east-west read as one long roof. Drawn at the PO's ask instead of a box (2026-10-22). Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ReadingDesk** | — | P3 |  | 216 × 120 | Dionsburg — A broad desk with open books, a lamp and a stool. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **Lectern** | — | P3 |  | 96 | Dionsburg — A slanted stand holding one great open book. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ScrollRack** | — | P3 |  | 192 × 60 | Dionsburg — A low lattice of pigeonholes, each holding a rolled scroll. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **BookPile** | — | P3 |  | 84 | Dionsburg — A low stack of books left on the floor. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ArcaneCircle** | — | P2 |  | 480 | Dionsburg — A ritual circle inlaid in the floor, runes glowing violet; the light shows only in dark areas. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **AlchemyTable** | — | P3 |  | 240 × 120 | Dionsburg — A long table of flasks, a burner and a mortar. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **Orrery** | — | P2 |  | 240 | Dionsburg — A great brass-and-silver model of the heavens on a round base. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **MoonPool** | — | P2 |  | 432 | Dionsburg — A round still pool in a pale stone rim that holds the moon. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **ElvenPlanter** | — | P3 |  | 240 × 96 | Dionsburg — A long carved stone trough of sage herbs and pale flowers. PropPlaceholder box (procedural, labelled); no file yet. Elven palette (R5): pale stone, silver, sage green, violet glow. |
+| 🟡 | **TrainingDummy** | `trainingDummy.svg` | P2 |  | 108 | Dionsburg — The yard's practice post: a round dark-stone base in an iron band, a straw-stuffed burlap body bound with rope, an oak crossbar for arms with iron caps, an old dented iron helm on top; straw spills from the blade cuts, a red rag round one arm. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **JailBars** | `jailBars.svg` | P2 |  | 288 × 36 | Dionsburg — A cell's wall of iron bars, 2.4 × 0.3 m, seen from above as the tops of the bars: a dark stone sill, the iron head rail, each bar's square head standing proud of it, heavier end posts, brass rivets at the rail's joints, rust. A CellDoor sits in the run. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **BarracksRoof** | `barracksRoof.svg` | P1 |  | 960 × 720 | Dionsburg — A roof PIECE, 8 × 6 m: heavy dark stone slabs on an east-west iron ridge cap studded with brass rivets, a squat soot-ringed chimney on the shaded south pitch, the clan's red banner with the brass anvil draped over the ridge (one per piece, a row down a long hall). No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Watchtower** | `watchtower.svg` | P1 |  | 480 × 480 | Dionsburg — The district's watch post seen from above, an OPEN fighting platform: a crenellated dark stone parapet with iron-capped corner turrets, an oak plank floor, the iron-strapped trapdoor, a bolt-thrower on its swivel aimed north-east, a rack of bolts, and the clan's red flag with the brass anvil flying from the south-east corner; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **WeaponRack** | — | P2 |  | 240 × 60 | Dionsburg — An iron-bound rack of axes, hammers and spears. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **ArmorStand** | — | P3 |  | 96 | Dionsburg — A post wearing a dwarven mail shirt and helm. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Bunk** | — | P3 |  | 120 × 240 | Dionsburg — A plain soldier's bunk, a grey blanket, a chest at the foot. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Banner** | — | P2 |  | 60 | Dionsburg — A standing pole carrying the clan's red banner with the brass anvil. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **CellDoor** | — | P3 |  | 144 × 36 | Dionsburg — A barred iron cell door set into a JailBars run. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
 
 ## Ground decal — 20
 
@@ -292,7 +351,7 @@ of which **11 are P0**:
 | ⚙️ | **Map markers** | — | P3 |  |  | Minimap/world map dots. Own player #00008B, others white, tree green circle, stone grey hex, campfire orange ring #E37313. Known bug: your own 3.5 px dot vanishes under the 9 px campfire marker at your bound fire. |
 | ✅ | **NpcPlaceholder** | `npcPlaceholder.svg` | P3 |  |  | The loud "unconfigured NPC" marker. Keep it ugly on purpose. Not used by any shipped mob. |
 | ❌ | **Ability icons** | — | P0 |  |  | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
-| ✅ | **Logo** | `logo.svg` | P3 |  |  | The favicon source: an aura icon (core + two rings, brand orange), replacing the inherited Berryhunter berry. |
+| ✅ | **Logo** | `logo.svg` | P3 |  |  | The favicon source: an aura icon (core + two rings + brand orange) replacing the inherited Berryhunter berry. |
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 

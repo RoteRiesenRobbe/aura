@@ -1,0 +1,8 @@
+{
+  "name": "LeanTo",
+  "entityType": "LeanTo",
+  "sprite": "leanTo.svg",
+  "body": { "width": 2.4, "height": 1.6 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.3 }
+}

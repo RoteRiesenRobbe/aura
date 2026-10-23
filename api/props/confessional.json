@@ -1,0 +1,6 @@
+{
+  "name": "Confessional",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 2, "height": 1.5 }
+}

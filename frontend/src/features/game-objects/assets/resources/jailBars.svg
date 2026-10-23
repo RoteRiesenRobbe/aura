@@ -1,0 +1,87 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 30" preserveAspectRatio="none">
+  <!-- Placeholder jail bars (plan-city-assets.md K5): TRUE top-down, a cell's
+       wall of iron bars seen from straight above. The viewBox is 240x30 to
+       match the 2.4 x 0.3 rect body in api/props/jail-bars.json
+       (preserveAspectRatio=none, so the two must stay in sync); 100 units
+       per metre. Rect bodies never rotate, so this is an east-west run of
+       bars; a north-south one would be its own definition. Solid. A CellDoor
+       box set into the run is the way in.
+
+       From above you see the tops of the bars, not their length: a dark
+       stone sill, the iron head rail they are let into, each bar's square
+       head standing proud of it, heavier posts at both ends where the run
+       meets the wall, brass rivets where the rail's lengths are joined, and
+       rust. Dwarven palette (R5): dark stone, iron; PO accent 2026-10-23:
+       brass rivets. -->
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="4" y="8" width="236" height="21" fill="#000000" opacity="0.28"/>
+
+  <!-- the stone sill the bars stand in, its joints -->
+  <rect x="1" y="5" width="234" height="19" fill="#4a4744" stroke="#24221f" stroke-width="1.5"/>
+  <rect x="2" y="6" width="232" height="2.5" fill="#6e6a64" opacity="0.6"/>
+  <g stroke="#24221f" stroke-width="1" opacity="0.7">
+    <line x1="58" y1="5" x2="58" y2="24"/><line x1="118" y1="5" x2="118" y2="24"/>
+    <line x1="178" y1="5" x2="178" y2="24"/>
+  </g>
+
+  <!-- the iron head rail -->
+  <rect x="3" y="11" width="230" height="8" fill="#2f3134" stroke="#1a1b1d" stroke-width="1"/>
+  <rect x="3" y="11.5" width="230" height="2" fill="#8a8f96" opacity="0.5"/>
+  <!-- rust down the rail -->
+  <g fill="#7a3e1c" opacity="0.45">
+    <rect x="40" y="13" width="9" height="5"/><rect x="146" y="14" width="12" height="4"/>
+    <rect x="204" y="13" width="6" height="5"/>
+  </g>
+
+  <!-- the bars' heads, standing proud of the rail, lit from the top-left -->
+  <g>
+    <g fill="#000000" opacity="0.35">
+      <rect x="23" y="11" width="6" height="8"/><rect x="39" y="11" width="6" height="8"/>
+      <rect x="55" y="11" width="6" height="8"/><rect x="71" y="11" width="6" height="8"/>
+      <rect x="87" y="11" width="6" height="8"/><rect x="103" y="11" width="6" height="8"/>
+      <rect x="119" y="11" width="6" height="8"/><rect x="135" y="11" width="6" height="8"/>
+      <rect x="151" y="11" width="6" height="8"/><rect x="167" y="11" width="6" height="8"/>
+      <rect x="183" y="11" width="6" height="8"/><rect x="199" y="11" width="6" height="8"/>
+      <rect x="215" y="11" width="6" height="8"/>
+    </g>
+    <g fill="#3a3c3f" stroke="#1a1b1d" stroke-width="0.8">
+      <rect x="21" y="9" width="6" height="8"/><rect x="37" y="9" width="6" height="8"/>
+      <rect x="53" y="9" width="6" height="8"/><rect x="69" y="9" width="6" height="8"/>
+      <rect x="85" y="9" width="6" height="8"/><rect x="101" y="9" width="6" height="8"/>
+      <rect x="117" y="9" width="6" height="8"/><rect x="133" y="9" width="6" height="8"/>
+      <rect x="149" y="9" width="6" height="8"/><rect x="165" y="9" width="6" height="8"/>
+      <rect x="181" y="9" width="6" height="8"/><rect x="197" y="9" width="6" height="8"/>
+      <rect x="213" y="9" width="6" height="8"/>
+    </g>
+    <g fill="#9aa0a7" opacity="0.55">
+      <rect x="22" y="10" width="2" height="3"/><rect x="38" y="10" width="2" height="3"/>
+      <rect x="54" y="10" width="2" height="3"/><rect x="70" y="10" width="2" height="3"/>
+      <rect x="86" y="10" width="2" height="3"/><rect x="102" y="10" width="2" height="3"/>
+      <rect x="118" y="10" width="2" height="3"/><rect x="134" y="10" width="2" height="3"/>
+      <rect x="150" y="10" width="2" height="3"/><rect x="166" y="10" width="2" height="3"/>
+      <rect x="182" y="10" width="2" height="3"/><rect x="198" y="10" width="2" height="3"/>
+      <rect x="214" y="10" width="2" height="3"/>
+    </g>
+  </g>
+
+  <!-- brass rivets where the rail's lengths are joined -->
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.5">
+    <circle cx="64" cy="15" r="1.6"/><circle cx="124" cy="15" r="1.6"/>
+    <circle cx="184" cy="15" r="1.6"/>
+  </g>
+
+  <!-- the end posts, heavier, where the run meets the wall -->
+  <g>
+    <rect x="3" y="5" width="12" height="20" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+    <rect x="3" y="5" width="12" height="20" fill="#2f3134" stroke="#1a1b1d" stroke-width="1"/>
+    <rect x="4" y="6" width="10" height="3" fill="#8a8f96" opacity="0.5"/>
+    <rect x="221" y="5" width="12" height="20" fill="#000000" opacity="0.35" transform="translate(2 2)"/>
+    <rect x="221" y="5" width="12" height="20" fill="#2f3134" stroke="#1a1b1d" stroke-width="1"/>
+    <rect x="222" y="6" width="10" height="3" fill="#8a8f96" opacity="0.5"/>
+    <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.5">
+      <circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
+      <circle cx="227" cy="12" r="1.5"/><circle cx="227" cy="19" r="1.5"/>
+    </g>
+  </g>
+</svg>
