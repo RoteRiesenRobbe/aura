@@ -59,7 +59,9 @@
       "CemeteryGate",
       "CentralFountain",
       "Chains",
+      "CityGatehouse",
       "Confessional",
+      "CornerTowerRoof",
       "Cot",
       "Cottage",
       "Crane",
@@ -714,9 +716,17 @@
       "w": 0.8,
       "h": 0.8
     },
+    "CityGatehouse": {
+      "w": 8,
+      "h": 4
+    },
     "Confessional": {
       "w": 2,
       "h": 1.5
+    },
+    "CornerTowerRoof": {
+      "w": 11,
+      "h": 11
     },
     "Cot": {
       "w": 0.8,

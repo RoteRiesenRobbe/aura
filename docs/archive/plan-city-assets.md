@@ -2,7 +2,9 @@
 
 **Status: COMPLETE, archived 2026-10-23. Designed 2026-10-22 (R1-R8 ruled, D1-D8 as built).
 K1-K4 built 2026-10-22, K5 + K6 2026-10-23 (§11); heavy checks after K6 (R8); the PO wrapped the
-plan 2026-10-23 after looking at the districts in the world (the workshop follow-ups in §11 K6).** No open PO calls (§7). Six chunks (§5).
+plan 2026-10-23 after looking at the districts in the world (the workshop follow-ups in §11 K6).
+K7 (city walls, gates and corner towers) followed the same day at the PO's ask, recorded in §11 K7;
+its PO look is owed.** No open PO calls (§7) beyond K7's three. Six chunks (§5) + K7.
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -811,3 +813,68 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
     routes stay raw (a spawn's rotation is its facing). Two vitest pins;
     `world.json` round-trip still byte-identical; `install.sh` re-run (Tiled
     runs an installed copy, so a restart picks it up).
+
+### K7 - BUILT 2026-10-23, PO look owed `[uncommitted]` (city walls, a follow-up after the archive)
+
+- **PO ask:** walls round `city-hub` with gates and large corner watchtowers
+  you enter from inside the city. **PO calls (asked up front, two prompts):**
+  the line runs inside the edge in a natural shape, not the region's
+  rectangle; gates WEST, north and south (east stays wall, behind the
+  cemetery); a new drawn stone gatehouse; round towers, r 5-6 m; the west
+  gate gets the gatehouse but stays SHUT (Deep Woods access closed); guard
+  post props inside; built now as one chunk.
+- **Wire:** `CityGatehouse` = 152, `CornerTowerRoof` = 153 (L1; TS via
+  `flatc_Windows_v24_3_25.exe --ts --gen-all`, only `entity-type.ts` moved;
+  Go via `go generate`); one `gameObjectClasses` line each.
+- **Art (scratch generator, static SVG, ids prefixed):** `cityGatehouse.svg`
+  (160×80 for 8 × 4 m, 20 units/m): two square crenellated towers of grey
+  wall stone, a 3 m cobbled passage open to the sky, the portcullis slot near
+  the OUTER (top) edge, the oak leaves swung open on the city side.
+  `cornerTowerRoof.svg` (220×220, the r 5.5 circle's square): crenellated
+  parapet (16 merlons), flagged wall walk, oak deck, stair head, brazier,
+  spear barrel, sling-stone crate, a blue-and-gold pennant [PLACEHOLDER
+  colours]. Rasterized for a look before placing.
+- **Content (+2, [PLACEHOLDER] sizes):** `CornerTowerRoof` r 5.5, roof
+  `revealAlpha` 0 (as the city roofs since `26515abd`), non-blocking;
+  `CityGatehouse` 8×4, non-blocking and NOT a roof: art in `props ›
+  underfoot` over a gap in the wall, its two towers blocked by width-4 `Wall`
+  paths under the art, rotated per gate (N 0, S π, W 3π/2; the top edge is
+  always the outside). ⭐ A shut gate is a SOLID prop across the passage, never
+  the art: the west one is the reused `JailBars` (scale 1.25, turned π/2) as a
+  portcullis; deleting that one placement opens the gate. Tiled folder
+  `City/Walls`.
+- **world.json (`city-hub`, by script, the rest of the map untouched):** the
+  old straight west wall (two top-level `Wall` paths at x -90.36) and the
+  Palisade in its gap are gone; one irregular loop of `Wall` paths 1.5 m wide
+  in seven runs, from tower to gate to tower, each ending 0.4 m inside a
+  gatehouse tower or at r 5.3 on a corner tower; it runs THROUGH the
+  barracks' two K5 Watchtowers (they read as wall towers). Gates: north
+  (-51.6, -34.6), south (-51.6, 34.6), west (-89, 3.42) on the river bank at
+  the existing Bridge. Corner towers NW (-85.2, -31.6), NE (-6.4, -32.4), SE
+  (-6.6, 31.6), SW (-85.2, 31.4): ring `Wall` path r 5.25 × 0.5 with a 2 m
+  door facing the city centre, a `Doorway` on the outer face, and a guard
+  room (Brazier, Bunk on the back wall, WeaponRack, 2 Barrels, SackPile). Two
+  `Cobblestone` roads (width 2) from the ring road out through the north and
+  south gates. The west LampPost moved to (-85.6, 5.9), out of the gatehouse.
+  ⚑ Found: a blocking 2 m `Water` path runs N-S at x -92 (the west moat; the
+  Bridge crosses it), invisible in a vertex-filtered map dump; the first
+  layout put both west towers in it, so they sit east of it now.
+- **Tracker:** 2 `assets.csv` rows ("Props — city: walls"), `assets.md`
+  regenerated (311 rows), `prop-worklist.md` §C7 + the roll-up (P1 28).
+- **Verified:** `go build ./...` · `aurad -validate -content ../api` (scratch
+  build) 0 findings, props 107 → 109 · `go test -count=1` `world` red only on
+  the known `TestPropContent_C1bMigration…`, `cmd/aurad` only on the known
+  `TestPassages_EveryDoorCarriesItsWords` · vitest 1905/0 · typecheck · webpack
+  cache cleared, `npm run build` · palette regenerated, `verify.sh` all green
+  (world.json round-trip byte-identical) · an overlap script: no solid prop in
+  a wall except by design (the wall through both Watchtowers, the portcullis
+  touching its gatehouse towers' flat ends) · headless shots at all three
+  gates and inside the towers (roof gone, guard room shows), 0 console
+  errors; `harnessdb -cleanup` afterwards (aurad stopped) removed 4 accounts.
+  ⚑ A short WARP (under a viewport) lets the camera ease and can leave the
+  player off-centre in a shot; warp from far away for screenshots.
+- **Open PO calls:** the north gatehouse abuts the first barracks Watchtower;
+  the pennant colours; the towers have no named floor regions.
+- **Schema:** DB none · wire +2 `EntityType` (152-153) · conf none · content
+  +2 props · zone: `city-hub` paths + placements, two top-level wall paths
+  removed · lang none.

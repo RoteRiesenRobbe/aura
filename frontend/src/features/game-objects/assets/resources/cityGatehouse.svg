@@ -1,0 +1,161 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" preserveAspectRatio="none">
+  <!-- Placeholder city gatehouse (city walls, docs/archive/plan-city-assets.md
+       K7): TRUE top-down. The viewBox is 160x80 to match the 8 x 4 rect body
+       in api/props/city-gatehouse.json (preserveAspectRatio=none, so the two
+       must stay in sync); 20 units per metre. The OUTSIDE of the city is the
+       TOP edge: a placement's rotation turns it to face out (north 0, south
+       pi, west 3pi/2).
+
+       NOT a roof and NOT solid: it is art laid over a gap in the city wall.
+       The two flanking towers are blocked by Wall paths in the zone, and the
+       3 m passage between them is open sky, so the art sits in props >
+       underfoot and a player walking through draws over the paving. A closed
+       gate is a solid prop across the passage (the west gate's JailBars
+       portcullis), never this art.
+
+       Two square towers of the city's grey wall stone, crenellated, with
+       flagged tops; between them a cobbled passage, the portcullis slot near
+       the outer face, and the two oak leaves swung open against the passage
+       walls on the city side, strapped in iron. Lit from the top-left; the
+       left tower's shadow falls across the passage. Nothing past the canvas. -->
+  <defs>
+    <linearGradient id="cityGateLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a6a299"/>
+      <stop offset="0.55" stop-color="#85817a"/>
+      <stop offset="1" stop-color="#5a5752"/>
+    </linearGradient>
+    <linearGradient id="cityGateMerlon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bdb9af"/>
+      <stop offset="1" stop-color="#7a7770"/>
+    </linearGradient>
+    <pattern id="cityGateSetts" width="10" height="8" patternUnits="userSpaceOnUse">
+      <rect width="10" height="8" fill="#5f5b54"/>
+      <rect x="0.6" y="0.6" width="8.8" height="3.2" rx="1.2" fill="#8a847a"/>
+      <rect x="-4.4" y="4.6" width="8.8" height="3.0" rx="1.2" fill="#7d776d"/>
+      <rect x="5.6" y="4.6" width="8.8" height="3.0" rx="1.2" fill="#7d776d"/>
+    </pattern>
+  </defs>
+
+  <!-- the passage: cobbled setts, worn paler down the middle -->
+  <rect x="50" y="0" width="60" height="80" fill="url(#cityGateSetts)"/>
+  <rect x="68" y="0" width="24" height="80" fill="#b5ae9f" opacity="0.12"/>
+  <!-- the portcullis slot across the passage, near the outer face -->
+  <rect x="50" y="16" width="60" height="3" fill="#1c1b19" opacity="0.85"/>
+  <g fill="#3a3c3f"><rect x="52" y="15" width="3" height="5"/><rect x="105" y="15" width="3" height="5"/></g>
+  <!-- the oak gate leaves, swung open flat against the passage walls on the city side -->
+  <g>
+    <rect x="53" y="31.5" width="5" height="30" fill="#000000" opacity="0.3"/>
+    <rect x="51.5" y="30" width="5" height="30" fill="#6a4a28" stroke="#2c1c0d" stroke-width="0.9"/>
+    <rect x="103.5" y="30" width="5" height="30" fill="#6a4a28" stroke="#2c1c0d" stroke-width="0.9"/>
+    <g fill="#2f3134"><rect x="51.5" y="34" width="5" height="2.2"/><rect x="51.5" y="53" width="5" height="2.2"/>
+      <rect x="103.5" y="34" width="5" height="2.2"/><rect x="103.5" y="53" width="5" height="2.2"/></g>
+    <rect x="52.5" y="31" width="1.2" height="28" fill="#9a7244" opacity="0.5"/>
+    <rect x="104.5" y="31" width="1.2" height="28" fill="#9a7244" opacity="0.5"/>
+  </g>
+  <!-- the left tower's shadow across the passage -->
+  <rect x="50" y="4" width="7" height="76" fill="#000000" opacity="0.28"/>
+
+  <!-- the left tower: a crenellated parapet round a flagged top -->
+  <rect x="0" y="0" width="50" height="80" fill="url(#cityGateLight)" stroke="#2a2824" stroke-width="1.6"/>
+  <g fill="url(#cityGateMerlon)" stroke="#2a2824" stroke-width="0.8">
+    <rect x="2" y="1.5" width="8" height="7"/>
+    <rect x="14.5" y="1.5" width="8" height="7"/>
+    <rect x="27" y="1.5" width="8" height="7"/>
+    <rect x="39.5" y="1.5" width="8" height="7"/>
+    <rect x="2" y="71.5" width="8" height="7"/>
+    <rect x="14.5" y="71.5" width="8" height="7"/>
+    <rect x="27" y="71.5" width="8" height="7"/>
+    <rect x="39.5" y="71.5" width="8" height="7"/>
+    <rect x="1.5" y="15.5" width="7" height="8"/>
+    <rect x="1.5" y="29" width="7" height="8"/>
+    <rect x="1.5" y="42.5" width="7" height="8"/>
+    <rect x="1.5" y="56" width="7" height="8"/>
+    <rect x="41.5" y="15.5" width="7" height="8"/>
+    <rect x="41.5" y="29" width="7" height="8"/>
+    <rect x="41.5" y="42.5" width="7" height="8"/>
+    <rect x="41.5" y="56" width="7" height="8"/>
+  </g>
+  <rect x="9" y="10" width="32" height="60" fill="#8e8a81" stroke="#2a2824" stroke-width="1"/>
+  <g stroke="#4d4a45" stroke-width="0.7" opacity="0.7">
+    <line x1="9" y1="19" x2="41" y2="19"/>
+    <line x1="9" y1="28" x2="41" y2="28"/>
+    <line x1="9" y1="37" x2="41" y2="37"/>
+    <line x1="9" y1="46" x2="41" y2="46"/>
+    <line x1="9" y1="55" x2="41" y2="55"/>
+    <line x1="9" y1="64" x2="41" y2="64"/>
+    <line x1="21" y1="10" x2="21" y2="19"/>
+    <line x1="33" y1="10" x2="33" y2="19"/>
+    <line x1="15" y1="19" x2="15" y2="28"/>
+    <line x1="27" y1="19" x2="27" y2="28"/>
+    <line x1="39" y1="19" x2="39" y2="28"/>
+    <line x1="21" y1="28" x2="21" y2="37"/>
+    <line x1="33" y1="28" x2="33" y2="37"/>
+    <line x1="15" y1="37" x2="15" y2="46"/>
+    <line x1="27" y1="37" x2="27" y2="46"/>
+    <line x1="39" y1="37" x2="39" y2="46"/>
+    <line x1="21" y1="46" x2="21" y2="55"/>
+    <line x1="33" y1="46" x2="33" y2="55"/>
+    <line x1="15" y1="55" x2="15" y2="64"/>
+    <line x1="27" y1="55" x2="27" y2="64"/>
+    <line x1="39" y1="55" x2="39" y2="64"/>
+    <line x1="21" y1="64" x2="21" y2="70"/>
+    <line x1="33" y1="64" x2="33" y2="70"/>
+  </g>
+  <path d="M9,10 H41 V14 H13 V70 H9 Z" fill="#000000" opacity="0.3"/>
+  <rect x="1" y="1" width="48" height="1.6" fill="#d2cec4" opacity="0.5"/>
+  <rect x="1" y="1" width="1.6" height="78" fill="#d2cec4" opacity="0.4"/>
+  <rect x="1" y="77.4" width="48" height="1.6" fill="#2a2824" opacity="0.55"/>
+  <rect x="47.4" y="1" width="1.6" height="78" fill="#2a2824" opacity="0.55"/>
+
+  <!-- the right tower: a crenellated parapet round a flagged top -->
+  <rect x="110" y="0" width="50" height="80" fill="url(#cityGateLight)" stroke="#2a2824" stroke-width="1.6"/>
+  <g fill="url(#cityGateMerlon)" stroke="#2a2824" stroke-width="0.8">
+    <rect x="112" y="1.5" width="8" height="7"/>
+    <rect x="124.5" y="1.5" width="8" height="7"/>
+    <rect x="137" y="1.5" width="8" height="7"/>
+    <rect x="149.5" y="1.5" width="8" height="7"/>
+    <rect x="112" y="71.5" width="8" height="7"/>
+    <rect x="124.5" y="71.5" width="8" height="7"/>
+    <rect x="137" y="71.5" width="8" height="7"/>
+    <rect x="149.5" y="71.5" width="8" height="7"/>
+    <rect x="111.5" y="15.5" width="7" height="8"/>
+    <rect x="111.5" y="29" width="7" height="8"/>
+    <rect x="111.5" y="42.5" width="7" height="8"/>
+    <rect x="111.5" y="56" width="7" height="8"/>
+    <rect x="151.5" y="15.5" width="7" height="8"/>
+    <rect x="151.5" y="29" width="7" height="8"/>
+    <rect x="151.5" y="42.5" width="7" height="8"/>
+    <rect x="151.5" y="56" width="7" height="8"/>
+  </g>
+  <rect x="119" y="10" width="32" height="60" fill="#8e8a81" stroke="#2a2824" stroke-width="1"/>
+  <g stroke="#4d4a45" stroke-width="0.7" opacity="0.7">
+    <line x1="119" y1="19" x2="151" y2="19"/>
+    <line x1="119" y1="28" x2="151" y2="28"/>
+    <line x1="119" y1="37" x2="151" y2="37"/>
+    <line x1="119" y1="46" x2="151" y2="46"/>
+    <line x1="119" y1="55" x2="151" y2="55"/>
+    <line x1="119" y1="64" x2="151" y2="64"/>
+    <line x1="131" y1="10" x2="131" y2="19"/>
+    <line x1="143" y1="10" x2="143" y2="19"/>
+    <line x1="125" y1="19" x2="125" y2="28"/>
+    <line x1="137" y1="19" x2="137" y2="28"/>
+    <line x1="149" y1="19" x2="149" y2="28"/>
+    <line x1="131" y1="28" x2="131" y2="37"/>
+    <line x1="143" y1="28" x2="143" y2="37"/>
+    <line x1="125" y1="37" x2="125" y2="46"/>
+    <line x1="137" y1="37" x2="137" y2="46"/>
+    <line x1="149" y1="37" x2="149" y2="46"/>
+    <line x1="131" y1="46" x2="131" y2="55"/>
+    <line x1="143" y1="46" x2="143" y2="55"/>
+    <line x1="125" y1="55" x2="125" y2="64"/>
+    <line x1="137" y1="55" x2="137" y2="64"/>
+    <line x1="149" y1="55" x2="149" y2="64"/>
+    <line x1="131" y1="64" x2="131" y2="70"/>
+    <line x1="143" y1="64" x2="143" y2="70"/>
+  </g>
+  <path d="M119,10 H151 V14 H123 V70 H119 Z" fill="#000000" opacity="0.3"/>
+  <rect x="111" y="1" width="48" height="1.6" fill="#d2cec4" opacity="0.5"/>
+  <rect x="111" y="1" width="1.6" height="78" fill="#d2cec4" opacity="0.4"/>
+  <rect x="111" y="77.4" width="48" height="1.6" fill="#2a2824" opacity="0.55"/>
+  <rect x="157.4" y="1" width="1.6" height="78" fill="#2a2824" opacity="0.55"/>
+</svg>

@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-23 from 309 rows.
+Rendered 2026-10-23 from 311 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-23 from 309 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 275 |
+| Art | 277 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-23 from 309 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 128 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 130 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-23 from 309 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 70 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P1** | 72 | high — shared art, or 20+ placements, or a named gameplay gap |
 | **P2** | 115 | normal — placed but not everywhere |
 | **P3** | 93 | low — unplaced, deferred, or already fine |
 
-**195 rows need work** (missing, shared, placeholder, stock or blocked),
+**197 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 111
+## Prop — 113
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -284,6 +284,8 @@ of which **11 are P0**:
 | 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
+| 🟡 | **CityGatehouse** | `cityGatehouse.svg` | P1 | 3 | 960 × 480 | Dionsburg — Dionsburg's city gate, 8 × 4 m: two square crenellated towers of the city's grey wall stone with flagged tops, between them a 3 m cobbled passage open to the sky, the portcullis slot near the outer face, the two oak leaves swung open flat against the passage walls on the city side, strapped in iron. Lit from the top-left; the left tower's shadow falls across the passage. Drawn at the PO's ask (2026-10-23). |
+| 🟡 | **CornerTowerRoof** | `cornerTowerRoof.svg` | P1 | 4 | 1320 | Dionsburg — The open top of a city-wall corner tower seen from straight above: a crenellated parapet of grey wall stone (16 merlons), a flagged wall walk, an oak deck, the head of the spiral stair, a brazier with embers, a barrel of spare spears, a crate of sling stones, a pennant in blue and gold [PLACEHOLDER colours]. The parapet's shadow falls inward. Drawn at the PO's ask (2026-10-23). |
 
 ## Ground decal — 20
 
