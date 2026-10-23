@@ -1257,7 +1257,7 @@ relog; a forged-catalog page's pick refused by the server; the first run died at
 the known join race, the second missed the queued toast at 20 s, fixed to 90 s) ·
 `hygiene-wire-prune` 0 console errors · harness rows cleaned (server stopped first) · `chunk2-accounts` **24/24**, 0 console errors (two earlier runs timed out at the first name fill, "element is not visible" for 30 s, while the screen was up when photographed; the third, unchanged, passed: a load-timing flake, not C5).
 
-### C5c - DONE 2026-10-23 `[uncommitted]`, PO look passed 2026-10-23 ("all good")
+### C5c - DONE 2026-10-23 `a343d038`, PO look passed 2026-10-23 ("all good")
 
 The unlock client (D8, D12, D13, D25). Ruled in the session (PO, 2026-10-23, prompt rounds;
 recorded in §7): the hint is a **tooltip only** (phones get none) and it is **the game's
