@@ -201,7 +201,7 @@ Shieldbearer- and MedicCompanion. All **P3, all drawn.**
 ## C. City props - Dionsburg
 
 Scenery like the A list (top-down, no frame, no portrait rule), added one
-district at a time by [`plan-city-assets.md`](../plan-city-assets.md). Each
+district at a time by [`plan-city-assets.md`](../archive/plan-city-assets.md). Each
 district has its own palette (R5 there). The SVG placeholders set the look; the
 rest are labelled `PropPlaceholder` boxes in game, i.e. **no file at all yet**.
 None is placed in the release map yet, so there are no placement counts.

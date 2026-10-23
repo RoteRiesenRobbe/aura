@@ -1,8 +1,8 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
-**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1-K4 BUILT 2026-10-22, K5 + K6 2026-10-23 (§11): all six chunks built. The heavy checks ran after K6 (R8);
-the PO look over all six districts is owed, then archive.** No open PO calls (§7). Six chunks (§5).
+**Status: COMPLETE, archived 2026-10-23. Designed 2026-10-22 (R1-R8 ruled, D1-D8 as built).
+K1-K4 built 2026-10-22, K5 + K6 2026-10-23 (§11); heavy checks after K6 (R8); the PO wrapped the
+plan 2026-10-23 after looking at the districts in the world (the workshop follow-ups in §11 K6).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
