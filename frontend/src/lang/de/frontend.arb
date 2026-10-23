@@ -49,6 +49,8 @@
   "api-error.username-taken": "Dieser Benutzername ist schon vergeben.",
   "appearance.close.title": "Schließen (C / Esc)",
   "appearance.label": "Aussehen",
+  "appearance.locked": "Gesperrt: {reasons}",
+  "appearance.locked-bare": "Gesperrt",
   "backend.connection-lost": "Verbindung verloren – neu laden, um dich wieder zu verbinden",
   "confirm-row.cancel": "Abbrechen",
   "confirm-row.confirm": "Bestätigen",

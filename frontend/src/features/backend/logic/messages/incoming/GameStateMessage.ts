@@ -1,12 +1,10 @@
 import {contentText} from '../../../../../client-data/LangBundle';
 import {exitHeader} from '../../../../exits/logic/ExitHeader';
 import * as GroundTextureManager from '../../../../ground-textures/logic/GroundTextureManager';
-import {formatList, formatText, t, tKey} from '../../../../localization/logic/Locale';
-import {mobName} from '../../../../localization/logic/WireText';
+import {formatText, tKey} from '../../../../localization/logic/Locale';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
-import {questDefinition} from '../../../../../client-data/Quests';
-import {decodeObjectives, objectiveLine} from '../../../../localization/logic/WireText';
+import {decodeLock, decodeObjectives, LockData, lockedText, mobName, objectiveLine} from '../../../../localization/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
@@ -143,6 +141,10 @@ export class GameStateMessage {
     // indices into /appearance. Rides the same change-only gate:
     // undefined = unchanged, [] = owns no locked item.
     appearanceOwned: number[] | undefined;
+    // the own player's locked appearance items with their progress
+    // (plan-appearance.md C5c). The same gate: undefined = unchanged,
+    // [] = nothing locked left.
+    appearanceLocks: AppearanceLockData[] | undefined;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -219,6 +221,7 @@ export class GameStateMessage {
             for (let i = 0; i < gameState.appearanceOwnedLength(); ++i) {
                 this.appearanceOwned.push(gameState.appearanceOwned(i));
             }
+            this.appearanceLocks = unmarshalAppearanceLocks(gameState);
         } else {
             this.spellbook = undefined;
             this.spellbookLevels = undefined;
@@ -233,6 +236,7 @@ export class GameStateMessage {
             this.ownEffects = undefined;
             this.questMarkers = undefined;
             this.appearanceOwned = undefined;
+            this.appearanceLocks = undefined;
         }
 
         // cooldown_remaining_ticks stays always-sent (L3): it changes every
@@ -450,11 +454,11 @@ function rowText(o: AuraApi.ConversationOption): string {
     if (!base) {
         return english;
     }
-    const reasons: string[] = [];
+    const locks: LockData[] = [];
     for (let i = 0; i < o.locksLength(); i++) {
-        reasons.push(lockReasonText(o.locks(i)));
+        locks.push(decodeLock(o.locks(i)));
     }
-    return t('conversation.locked-row', {label: base, reasons: formatList(reasons, o.locksAny() ? 'disjunction' : 'conjunction')});
+    return lockedText(base, locks, o.locksAny());
 }
 
 function rowReply(o: AuraApi.ConversationOption): string {
@@ -470,26 +474,24 @@ function rowReply(o: AuraApi.ConversationOption): string {
     return english;
 }
 
-function lockReasonText(l: AuraApi.ConversationLock): string {
-    const quest = questDefinition(l.quest() ?? '')?.title ?? (l.quest() ?? '');
-    switch (l.kind()) {
-        case AuraApi.ConversationLockKind.MinLevel:
-            return t('lock.min-level', {value: l.value(), have: l.have()});
-        case AuraApi.ConversationLockKind.Ascensions:
-            return t('lock.ascensions', {value: l.value(), have: l.have()});
-        case AuraApi.ConversationLockKind.QuestComplete:
-            return t('lock.quest-complete', {quest});
-        case AuraApi.ConversationLockKind.QuestAtStage:
-            return t('lock.quest-at-stage', {quest, stage: l.stage() ?? ''});
-        case AuraApi.ConversationLockKind.Kills:
-            return t('lock.kills', {value: l.value(), have: l.have(), mob: mobName(Number(l.species()))});
-        case AuraApi.ConversationLockKind.SkillLevel:
-            return t('lock.skill-level', {value: l.value(), have: l.have(), skill: skillDisplayName(l.skill())});
-        case AuraApi.ConversationLockKind.TravelClosed:
-            return t('lock.travel-closed');
-        default:
-            return t('lock.unknown');
+/** One locked appearance item: its flat index and its reasons (C5c). */
+export interface AppearanceLockData {
+    item: number;
+    locks: LockData[];
+}
+
+function unmarshalAppearanceLocks(gameState: AuraApi.GameState): AppearanceLockData[] {
+    const out: AppearanceLockData[] = [];
+    const entry = new AuraApi.AppearanceLock();
+    for (let i = 0; i < gameState.appearanceLocksLength(); i++) {
+        gameState.appearanceLocks(i, entry);
+        const locks: LockData[] = [];
+        for (let j = 0; j < entry.locksLength(); j++) {
+            locks.push(decodeLock(entry.locks(j)));
+        }
+        out.push({item: entry.item(), locks});
     }
+    return out;
 }
 
 function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree | undefined {

@@ -47,16 +47,27 @@ func (s *ConnectionStateSystem) grantAppearance() {
 // announced. It only ever adds (D16): a respec, or anything else that later
 // fails a condition, revokes nothing. The save persists the grant at its
 // scope (saveWatch watches the owned set's size).
+//
+// What stays locked is listed with this player's progress for the owner
+// block (C5c), through the conversation rows' lockReasons. The watch's
+// revisions are a subset of the owner block's gate, so the tick a progress
+// value moves is a tick the block is sent.
 func (s *ConnectionStateSystem) grantEarned(p model.PlayerEntity) {
 	owned := p.AppearanceOwned()
 	var earned []uint16
+	var locks []model.AppearanceLock
 	for _, it := range s.looks.Gated() {
 		flat := s.looks.Flat(it.ID)
-		if slices.Contains(owned, flat) || !conditionsPass(it.Gate, p) {
+		if slices.Contains(owned, flat) {
 			continue
 		}
-		earned = append(earned, flat)
+		if conditionsPass(it.Gate, p) {
+			earned = append(earned, flat)
+		} else {
+			locks = append(locks, model.AppearanceLock{Item: flat, Reasons: lockReasons(it.Gate, p)})
+		}
 	}
+	p.SetAppearanceLocks(locks)
 	if len(earned) == 0 {
 		return
 	}

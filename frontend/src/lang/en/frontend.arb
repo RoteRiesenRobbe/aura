@@ -199,6 +199,17 @@
   "@appearance.label": {
     "description": "The Appearance panel's title and its HUD buttons' label: where the player picks the portrait and ring their character wears (plan-appearance.md D10)."
   },
+  "appearance.locked": "Locked: {reasons}",
+  "@appearance.locked": {
+    "description": "Appearance panel: the tooltip line of a look the character does not own yet; {reasons} is the lock reasons with progress (lock.*) joined by and/or (plan-appearance.md C5c).",
+    "placeholders": {
+      "reasons": {"type": "String", "description": "The lock reasons, joined", "example": "level 3 (1/3)"}
+    }
+  },
+  "appearance.locked-bare": "Locked",
+  "@appearance.locked-bare": {
+    "description": "Appearance panel: the tooltip line of a locked look before the server's reasons have arrived (plan-appearance.md C5c)."
+  },
   "backend.connection-lost": "Connection lost — reload to reconnect",
   "@backend.connection-lost": {
     "description": "Banner: the game connection dropped."

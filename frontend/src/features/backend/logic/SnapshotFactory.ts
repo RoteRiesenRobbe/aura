@@ -4,7 +4,7 @@ import _clone = require('lodash/clone');
 import {ConversationTree} from '../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../journal/logic/JournalModel';
 import {SkillEventData} from './SkillEventNumbers';
-import {GameStateMessage} from './messages/incoming/GameStateMessage';
+import {AppearanceLockData, GameStateMessage} from './messages/incoming/GameStateMessage';
 import {MapFogData} from '../../map/logic/FogReveal';
 import {OwnEffectData} from '../../user-interface/HUD/logic/BuffTray';
 import {QuestMarkerData} from '../../../client-data/QuestMarkers';
@@ -64,6 +64,7 @@ export class Snapshot {
     // the spellbook: undefined = unchanged, [] = no giver has anything for you
     questMarkers: QuestMarkerData[] | undefined;
     appearanceOwned: number[] | undefined;
+    appearanceLocks: AppearanceLockData[] | undefined;
     // This tick's skill landings and casts (plan-skill-vfx.md C1); [] on a
     // quiet tick. Events, not state: nothing to carry forward, ever.
     skillEvents: SkillEventData[];
@@ -152,6 +153,7 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.questMarkers = gameState.questMarkers;
         // The owned appearance set (plan-appearance.md C5), the same gate.
         snapshot.appearanceOwned = gameState.appearanceOwned;
+        snapshot.appearanceLocks = gameState.appearanceLocks;
         // Always carried, and never diffed: an event that happened cannot be
         // "unchanged". An empty list is the honest reading of a quiet tick.
         snapshot.skillEvents = gameState.skillEvents;

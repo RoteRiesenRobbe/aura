@@ -66,12 +66,72 @@ describe('renderLookPicker', () => {
         setAppearanceCatalog(catalog);
         const root = fixture();
         setOwnedAppearance([]);
-        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, isWearable);
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, {shown: isWearable});
         expect(tiles(root, 'portrait').map(t => t.dataset.item)).toEqual(['default', 'green-hood']);
 
         setOwnedAppearance([1, 2]); // flat: default 0, green-hood 1, crown 2
-        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, isWearable);
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, {shown: isWearable});
         expect(tiles(root, 'portrait').map(t => t.dataset.item)).toEqual(['default', 'green-hood', 'crown']);
         setOwnedAppearance([]);
+    });
+
+    // plan-appearance.md C5c: the panel shows a locked item greyed, its
+    // conditions in the game's own tooltip (D8, D25), and a press on it
+    // picks nothing.
+    it('greys a locked item, names its conditions in the game tooltip, and a press picks nothing', () => {
+        setAppearanceCatalog(catalog);
+        const root = fixture();
+        const picks = [];
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, look => picks.push(look), {
+            shown: () => true,
+            locked: item => item.starter ? undefined : 'Locked: level 3 (1/3)',
+        });
+
+        const crown = tiles(root, 'portrait')[2];
+        expect(crown.dataset.item).toBe('crown');
+        expect(crown.classList.contains('locked')).toBe(true);
+        expect(crown.getAttribute('aria-disabled')).toBe('true');
+        expect(tiles(root, 'portrait')[0].classList.contains('locked')).toBe(false);
+
+        crown.dispatchEvent(new Event('pointerdown'));
+        expect(picks).toEqual([]);
+    });
+
+    // The game's tooltip, never the browser's: no title attribute anywhere.
+    it('shows the game tooltip on hover: name, slot, and the lock line', () => {
+        setAppearanceCatalog(catalog);
+        const root = fixture();
+        document.body.appendChild(root);
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, {
+            shown: () => true,
+            locked: item => item.starter ? undefined : 'Locked: level 3 (1/3)',
+        });
+        expect(root.querySelectorAll('[title]').length).toBe(0);
+
+        const tooltip = () => document.getElementById('skillTooltip');
+        const text = (sel: string) => [...tooltip().querySelectorAll(sel)].map(e => e.textContent);
+        tiles(root, 'portrait')[2].dispatchEvent(new Event('pointerover', {bubbles: true}));
+        expect(tooltip().classList.contains('hidden')).toBe(false);
+        expect(text('.tooltipTitle')).toEqual(['Crown']);
+        expect(text('.tooltipSubtitle')).toEqual(['Portrait']);
+        expect(text('.tooltipLine')).toEqual(['Locked: level 3 (1/3)']);
+
+        tiles(root, 'ring')[0].dispatchEvent(new Event('pointerover', {bubbles: true}));
+        expect(text('.tooltipTitle')).toEqual(['Leather Ring']);
+        expect(text('.tooltipSubtitle')).toEqual(['Ring']);
+        expect(text('.tooltipLine')).toEqual([]);
+        root.remove();
+    });
+
+    // D13: an item earned and not yet seen glows in the picker.
+    it('marks a fresh item', () => {
+        setAppearanceCatalog(catalog);
+        const root = fixture();
+        renderLookPicker(root, catalog, {portrait: 'default', ring: 'ring-plain'}, () => undefined, {
+            shown: () => true,
+            fresh: item => item.id === 'crown',
+        });
+        expect(tiles(root, 'portrait').filter(t => t.classList.contains('fresh')).map(t => t.dataset.item))
+            .toEqual(['crown']);
     });
 });

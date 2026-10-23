@@ -1,7 +1,7 @@
 import * as NameGenerator from '../../../player/logic/NameGenerator';
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
-import {appearanceCatalog, appearanceReady, defaultLook} from '../../../../client-data/Appearance';
+import {appearanceCatalog, appearanceReady, heirLook, heirWears, LookHeritage} from '../../../../client-data/Appearance';
 import {Look, renderLookPicker} from './LookPicker';
 
 /**
@@ -46,10 +46,17 @@ let chosenSlotIndex: number | undefined;
 
 /**
  * The picked look (plan-appearance.md C3), as appearance item ids; null until
- * the catalog has arrived. Every show() starts on the defaults (the D12
- * preselect for a successor is C5's).
+ * the catalog has arrived. Every show() starts on the predecessor's look where
+ * the new life may still wear it, the defaults otherwise (D12, C5c).
  */
 let chosenLook: Look | null = null;
+
+/**
+ * What this creation may offer beyond the starters (C5c): the account's and
+ * the slot's items, handed over by the slot card. The home mount has no list
+ * and offers the starters.
+ */
+let heritage: LookHeritage = {owned: []};
 
 export function setup(handlers: {
     onCreated: (character: Character, wasFirstCharacter: boolean) => void,
@@ -99,11 +106,11 @@ function renderLook(): void {
     if (!catalog) {
         return;
     }
-    chosenLook ??= defaultLook(catalog);
+    chosenLook ??= heirLook(catalog, heritage);
     renderLookPicker(AccountScreens.element('characterCreation'), catalog, chosenLook, look => {
         chosenLook = look;
         renderLook();
-    });
+    }, {shown: item => heirWears(heritage, item)});
 }
 
 /**
@@ -114,10 +121,14 @@ function renderLook(): void {
  * @param slotIndex      which slot to aim at, from the card that was clicked
  *                       (D15). Omitted from the home mount, where there is no
  *                       select screen and therefore no slot to have chosen.
+ * @param looks          what the new life may wear and whose look it
+ *                       continues (plan-appearance.md D12), from that card
  */
-export function show(mount: CreationMount, characterCount = 0, slotIndex?: number): void {
+export function show(mount: CreationMount, characterCount = 0, slotIndex?: number,
+                     looks: LookHeritage = {owned: []}): void {
     knownCharacterCount = characterCount;
     chosenSlotIndex = slotIndex;
+    heritage = looks;
 
     const panel = AccountScreens.element('characterCreation');
     AccountScreens.clearError(panel);

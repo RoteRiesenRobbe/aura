@@ -145,6 +145,11 @@ export interface SlotBloodline {
      * player-authored free text.
      */
     predecessorName?: string;
+    /** This slot's bloodline-scope appearance items, ids (plan-appearance.md C5). */
+    appearanceOwned?: string[];
+    /** The look of the life an heir here continues (D12), absent without one. */
+    predecessorPortrait?: string;
+    predecessorRing?: string;
 }
 
 /** What the caller owns. ⚑ Who the caller IS lives on SessionState. */
@@ -158,6 +163,8 @@ export interface CharacterList {
      * to, and character-select is the one screen with no way back out.
      */
     slots?: SlotBloodline[];
+    /** The account-scope appearance items, ids (plan-appearance.md C5). */
+    appearanceOwned?: string[];
 }
 
 /**

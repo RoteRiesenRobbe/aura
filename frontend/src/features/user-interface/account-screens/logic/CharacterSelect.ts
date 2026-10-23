@@ -6,6 +6,7 @@ import {skillDisplayNameFor} from '../../../../client-data/Skills';
 import * as AccountScreens from './AccountScreens';
 import * as DeleteDialog from './DeleteDialog';
 import {medallionElement} from './MedallionElement';
+import type {LookHeritage} from '../../../../client-data/Appearance';
 
 /**
  * Character-select (plan-accounts-frontend.md §5.3, §10b ruling 7).
@@ -17,7 +18,7 @@ import {medallionElement} from './MedallionElement';
  */
 
 let onPlay: (character: Character) => void = () => undefined;
-let onCreate: (characterCount: number, slotIndex: number) => void = () => undefined;
+let onCreate: (characterCount: number, slotIndex: number, heritage: LookHeritage) => void = () => undefined;
 let onLoggedOut: () => void = () => undefined;
 let onLoginRequested: () => void = () => undefined;
 let currentState: SessionState | null = null;
@@ -28,7 +29,7 @@ let logoutConfirmed = false;
 
 export function setup(handlers: {
     onPlay: (character: Character) => void,
-    onCreate: (characterCount: number, slotIndex: number) => void,
+    onCreate: (characterCount: number, slotIndex: number, heritage: LookHeritage) => void,
     onLoggedOut: () => void,
     onLoginRequested: () => void,
 }): void {
@@ -163,8 +164,20 @@ function render(list: CharacterList): void {
         // At the cap there is nothing to offer, and the card stays for layout.
         container.appendChild(atCap
             ? emptyCard()
-            : createCard(list.characters.length, slot, bloodline));
+            : createCard(list.characters.length, slot, bloodline, heritageOf(list, bloodline)));
     }
+}
+
+/**
+ * What a new life in this slot may wear and whose look it continues
+ * (plan-appearance.md D12): the account's items and the slot's own.
+ */
+function heritageOf(list: CharacterList, bloodline?: SlotBloodline): LookHeritage {
+    const heritage: LookHeritage = {owned: [...(list.appearanceOwned ?? []), ...(bloodline?.appearanceOwned ?? [])]};
+    if (bloodline?.predecessorPortrait || bloodline?.predecessorRing) {
+        heritage.predecessor = {portrait: bloodline.predecessorPortrait, ring: bloodline.predecessorRing};
+    }
+    return heritage;
 }
 
 /** Whether this slot has a past worth telling the player about. */
@@ -273,7 +286,8 @@ function characterCard(character: Character, bloodline?: SlotBloodline): HTMLEle
     return card;
 }
 
-function createCard(characterCount: number, slotIndex: number, bloodline?: SlotBloodline): HTMLElement {
+function createCard(characterCount: number, slotIndex: number, bloodline: SlotBloodline | undefined,
+                    heritage: LookHeritage): HTMLElement {
     const card = document.createElement('div');
     card.className = 'slotCard empty';
 
@@ -306,7 +320,7 @@ function createCard(characterCount: number, slotIndex: number, bloodline?: SlotB
     card.dataset.slotIndex = String(slotIndex);
     card.addEventListener('pointerdown', (event) => {
         event.preventDefault();
-        onCreate(characterCount, slotIndex);
+        onCreate(characterCount, slotIndex, heritage);
     });
 
     return card;

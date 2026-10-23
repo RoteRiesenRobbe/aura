@@ -1237,6 +1237,7 @@
 // absolute, #mobileMenuButton fixed): without a containing block the overlay
 // escapes to the nearest positioned ancestor and pulses the wrong box.
 .spellbookOpenButton,
+.appearanceOpenButton,
 #spellbookTabs > .spellbookTab,
 #spellbookPager > .spellbookPageStep,
 #spellbookList > li {
@@ -1262,11 +1263,13 @@
 // and it still holds where the reader is already looking. Numbers are
 // placeholders - the PO's eye at the next play sets them.
 .spellbookOpenButton.breadcrumb::after,
+.appearanceOpenButton.breadcrumb::after,
 #mobileMenuButton.breadcrumb::after {
 	animation-name: hud-breadcrumb-pulse-entry;
 }
 
-.spellbookOpenButton.breadcrumb::after {
+.spellbookOpenButton.breadcrumb::after,
+.appearanceOpenButton.breadcrumb::after {
 	inset: -2.5px; // the .hud-button-chrome border
 }
 
@@ -1295,6 +1298,7 @@
 // OUTSIDE the ink border - which is exactly where the trail's inset overlay
 // could not reach.
 .spellbookOpenButton.unlockPulse,
+.appearanceOpenButton.unlockPulse,
 #mobileMenuButton.unlockPulse {
 	animation: hud-button-unlock-flash 5s ease-out;
 }
@@ -2259,6 +2263,33 @@
 
 				&.selected {
 					border-color: @gold-levelup;
+				}
+
+				// Not owned yet (plan-appearance.md C5c, D8): greyed, the
+				// tooltip names what earns it, a press picks nothing.
+				&.locked {
+					filter: grayscale(1);
+					opacity: 0.45;
+					cursor: default;
+
+					&:hover {
+						border-color: transparent;
+					}
+				}
+
+				// Earned and not yet seen (D13): the breadcrumb's entry pulse
+				// for this visit, on the overlay like every trail spot.
+				&.fresh {
+					position: relative;
+
+					&::after {
+						content: '';
+						position: absolute;
+						inset: -2px;
+						border-radius: 50%;
+						pointer-events: none;
+						animation: hud-breadcrumb-pulse-entry 1.8s ease-in-out infinite;
+					}
 				}
 
 				> .medallion {

@@ -326,3 +326,58 @@ func TestBloodlineAndAccount_RideTheFourDoors(t *testing.T) {
 		carries(t, p, g.players[1])
 	})
 }
+
+// --- the locked items' progress (plan-appearance.md C5c) ---
+
+// lockOf is the reasons the player's lock list carries for one item, or nil
+// when the item is not listed.
+func lockOf(p model.PlayerEntity, flat uint16) []model.LockReason {
+	for _, l := range p.AppearanceLocks() {
+		if l.Item == flat {
+			return l.Reasons
+		}
+	}
+	return nil
+}
+
+// Every locked item the character does not own is listed with its reasons
+// and this character's progress, the conversation rows' lockReasons; a grant
+// drops the item from the list, and a raise moves the progress.
+func TestGrant_LocksCarryEveryUnownedItemWithProgress(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetAppearance(gatedLooks(t))
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	require.Len(t, p.AppearanceLocks(), 3, "the join lists every locked item")
+	assert.Equal(t, []model.LockReason{{Kind: model.LockMinLevel, Value: 3, Have: 1}}, lockOf(p, flatForest))
+	assert.Equal(t, []model.LockReason{{Kind: model.LockAscensions, Value: 1, Have: 0}}, lockOf(p, flatClaws))
+	assert.Equal(t, []model.LockReason{{Kind: model.LockSkillLevel, Value: 2, Have: 0, Skill: uint16(testThorns)}},
+		lockOf(p, flatCrown))
+
+	p.SkillComponent().Discover(testThorns)
+	s.Update(0)
+	require.NotNil(t, lockOf(p, flatCrown))
+	assert.Equal(t, uint32(1), lockOf(p, flatCrown)[0].Have, "learning the skill moves the progress")
+
+	p.AddExperience(100000)
+	s.Update(0)
+	assert.Nil(t, lockOf(p, flatForest), "a granted item leaves the list")
+	assert.Len(t, p.AppearanceLocks(), 2)
+}
+
+// The list is rebuilt at every door: a respawned player starts a fresh watch,
+// so the first tick lists its locks again.
+func TestGrant_LocksAreRebuiltAfterRespawn(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetAppearance(gatedLooks(t))
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	require.Len(t, p.AppearanceLocks(), 3)
+
+	kill(t, s, p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+	require.Len(t, g.players, 2)
+	assert.Len(t, g.players[1].AppearanceLocks(), 3)
+}

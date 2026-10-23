@@ -875,6 +875,14 @@ table ConversationLock {
   skill:ushort;
 }
 
+// One locked appearance item's reasons (plan-appearance.md C5c): item is its
+// flat index into /appearance (every portrait, then every ring), the way
+// appearance_owned counts.
+table AppearanceLock {
+  item:ushort;
+  locks:[ConversationLock];
+}
+
 table ConversationNode {
   id:string;
   lines:[string];
@@ -1335,6 +1343,16 @@ table GameState {
   // client diffs it for the new-item glow (the first send is a silent
   // baseline). Appended at the table end so existing field IDs stay stable.
   appearance_owned:[ushort];
+
+  // The own player's locked appearance items (plan-appearance.md C5c): one
+  // entry per locked item this character does NOT own yet, with its lock
+  // reasons and this character's progress (`have`), built by the same
+  // lockReasons the conversation rows use, so every condition kind words its
+  // progress without client code. Rides the owner block like
+  // appearance_owned: on an owner_state tick an absent vector means "nothing
+  // locked left", on a tick without it the client keeps what it has.
+  // Appended at the table end so existing field IDs stay stable.
+  appearance_locks:[AppearanceLock];
 }
 
 table Welcome {

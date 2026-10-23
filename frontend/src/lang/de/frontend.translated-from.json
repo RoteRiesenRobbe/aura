@@ -48,6 +48,8 @@
   "api-error.username-taken": "That username is already taken.",
   "appearance.close.title": "Close (C / Esc)",
   "appearance.label": "Appearance",
+  "appearance.locked": "Locked: {reasons}",
+  "appearance.locked-bare": "Locked",
   "backend.connection-lost": "Connection lost — reload to reconnect",
   "confirm-row.cancel": "Cancel",
   "confirm-row.confirm": "Confirm",

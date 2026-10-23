@@ -6,7 +6,9 @@
 > PO look passed). C2 DONE 2026-10-19 (D35-D36), C2b DONE 2026-10-19 (D37-D38, one `Medallion`
 component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion). C4 DONE 2026-10-21
 (the in-game picker; PO look passed 2026-10-22). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
-by the PO into C5 + C5c; PO look passed 2026-10-22). Next: C5c (the client).** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
+by the PO into C5 + C5c; PO look passed 2026-10-22). C5c DONE 2026-10-23 (the unlock client; PO look
+passed the same day). Next: C5b (the stone bonus only; the pick moved to `plan-ascension-ceremony.md` AC2),
+then C6.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → C6, C0b whenever the artist's pilot lands;
 > `plan-entity-presentation.md`'s design session follows C6. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -559,7 +561,20 @@ whenever the pilot lands.**
   `predecessorRing`); `chunk2-accounts` gains the preselect leg. ⚑ D25 survey: in game
   the client holds the level and the spellbook levels, NOT the slot's ascension count
   (only the `/characters` slot card has it): cache it client-side or add a value.
-  *Schema: none expected (client only).*
+  ⭐ **Ruled at the C5c start (PO, 2026-10-23, prompt rounds):** (1) the hint is a
+  **tooltip only** (hover; phones get no hint, amending D8 for the phone), and it is
+  **the game's tooltip, the skills' one** (`SkillTooltip.showTooltip`: name, slot,
+  "Locked: …"), never the browser's `title` (PO at the C5c look; both mounts, so
+  creation's tiles lost their `title` too); (2) creation
+  offers **wearable items only** (starters + account + that slot's bloodline items),
+  locked items show only in the in-game panel (amending D9's "same items" for creation);
+  (3) **the server sends the progress**: the owner block carries, per locked item the
+  character does not own, its lock reasons with `have` (the `lockReasons` path the
+  dialogue rows use), so every condition kind, now and later, gets its progress without
+  client code. (Before the first owner block a locked tile's tooltip is its name; the
+  catalog's static `locks` are not worded, which would need progress-less lang keys for
+  a state that lasts one tick.)
+  *Schema: wire `GameState` +1 vector, +1 table; DB none.*
 - **C5b, stone rewards** (D21b, D21c). ⚑ 2026-10-22: the `pick` half moved to
   `plan-ascension-ceremony.md` AC2; C5b keeps only the `bonus` (D21c). Appearance entries in a site's reward
   list, `pick` rows beside the skill rows and `bonus` grants on top, written in
@@ -1241,3 +1256,69 @@ legs: not offered at level 1, `XP` earns it with the toast, worn, kept through a
 relog; a forged-catalog page's pick refused by the server; the first run died at
 the known join race, the second missed the queued toast at 20 s, fixed to 90 s) ·
 `hygiene-wire-prune` 0 console errors · harness rows cleaned (server stopped first) · `chunk2-accounts` **24/24**, 0 console errors (two earlier runs timed out at the first name fill, "element is not visible" for 30 s, while the screen was up when photographed; the third, unchanged, passed: a load-timing flake, not C5).
+
+### C5c - DONE 2026-10-23 `[uncommitted]`, PO look passed 2026-10-23 ("all good")
+
+The unlock client (D8, D12, D13, D25). Ruled in the session (PO, 2026-10-23, prompt rounds;
+recorded in §7): the hint is a **tooltip only** (phones get none) and it is **the game's
+tooltip**, the skills' one, never the browser's `title` (ruled at the PO look); creation
+offers **wearable items only**; **the server sends the progress** ("why does the game even
+need the ascension count?": only for D25's progress, so the ideal is the server words none
+and computes all of it, the way dialogue rows already get theirs).
+
+- **Wire:** `GameState.appearance_locks:[AppearanceLock]` (appended) in the owner block;
+  `table AppearanceLock { item:ushort; locks:[ConversationLock]; }`, the item a flat index
+  like `appearance_owned`. `codec.AppearanceLocksMarshalFlatbuf` reuses
+  `lockReasonsFlatbuf`, so a locked look's reasons are a locked row's.
+- **Server:** the evaluator (`grantEarned`) lists every gated item the player does not own
+  and does not earn this pass, with `lockReasons` (the rows' `have`), on
+  `model.PlayerEntity.AppearanceLocks`. ⚑ No door carries it and no gate field watches it:
+  the grant watch's revisions (level, skill, the ledger's SAVE revision) are a subset of the
+  owner block's gate (level, skill, the DISPLAY revision, the owned size), the state system
+  runs before the net system, and every removal forgets the watch, so a respawn, reconnect
+  or revive relists on its first tick (pinned for respawn).
+- **Wording, one dialect:** `lockReasonText` moved from `GameStateMessage` to `WireText`
+  over plain `LockData` (`decodeLock` off the wire); rows use `lockedText`, the panel
+  `lockedReasonsLine` ("Locked: …", `appearance.locked`; `appearance.locked-bare` before the
+  first block, a state that lasts one tick, instead of wording the catalog's static locks).
+- **Picker (`LookPicker.ts`):** `TileRules {shown, locked, fresh}` replaces `offered`. A
+  locked tile is greyed (`.locked`, `aria-disabled`) and a press picks nothing; a fresh one
+  pulses (`.fresh::after`, the breadcrumb's entry keyframe). Every tile's hover is the game
+  tooltip (`SkillTooltip.attachTooltips`/`showTooltip`, one delegated listener per mount):
+  the name, the slot, the lock line. No `title` on any tile, in either mount.
+- **Panel (`AppearancePanel.ts`):** shows every item; `setLocks` from the owner block; D13 as
+  the spellbook's model: the first owned set is a silent baseline, a later item goes into
+  `unseen`, the open buttons and the ☰ pulse (`.breadcrumb`) while it is unseen and the panel
+  shut, a grant flashes the visible entry points (`unlockPulse`). ⚑ **Seen = the panel was
+  shut**, not the spellbook's 500 ms dwell: the panel shows every item at once, and a re-render
+  on the dwell would have cut the glow at half a second.
+- **☰ has two owners now:** `MenuBreadcrumb.ts` (`setMenuBreadcrumb(owner, on)`); Spellbook
+  and Appearance each set their own flag, so neither clears the other's pulse.
+- **Creation (D12):** `CharacterSelect` hands each create card's `LookHeritage` (the account's
+  `appearanceOwned` + the slot's, the predecessor's portrait/ring) through `AccountFlow` to
+  `CharacterCreation.show`; `heirWears` filters the offer, `heirLook` preselects each slot
+  separately where still wearable, else the default. The home mount has no list: starters.
+  `AccountsApi` types the list fields C5 shipped.
+- **Found (by the harness):** the open panel rebuilt its tiles on every owner-block HEARTBEAT
+  (`setLocks` bumped the render revision unconditionally), so a press landed on a detached
+  tile. `setLocks` now ignores an unchanged list (pinned).
+
+**Schema:** DB **none** · wire `GameState` +1 vector, +1 table · frontend lang +2 keys en + de
+(`appearance.locked`, `appearance.locked-bare`; the de record refreshed) · accounts API none
+(typed only) · content none · conf none.
+
+**Verified:** Go build + vet; `go test -count=1 -p 1 ./...` with `AURA_TEST_DB_URL` green bar the
+three reds red on HEAD (`TestPassages_EveryDoorCarriesItsWords`, the simharness placements
+battery, the `world` prop pin) · red first: the lock list with progress + a grant leaving it +
+the respawn relist, the owner-block round trip, `lockReasonText`/`lockedText`, the locked/fresh
+tiles, the game tooltip (no `title`), the panel's locks/baseline/glow/seen and the unchanged
+heartbeat, `heirLook`/`heirWears`, the select handover · typecheck · vitest 1898/0 · prod build ·
+`c1-medallions` **52/0/1** (the 1 INCONCLUSIVE: no campfire in view, unrelated; new C5c legs: the forest ring greyed, the game tooltip "Locked: level 3
+(1/3)", a forced press wears nothing, the earned ring lights the button and glows, shutting the
+panel counts it as seen; the first runs died at the known join race and at Playwright refusing an
+`aria-disabled` click, now forced) · `chunk2-accounts` **27/27** (new leg 8: a seeded spent life in
+slot 1 preselects villager + claws, the slot without a past starts on the defaults and is offered
+the account's look only; one earlier run's "confirm is disabled and counting down" read "Delete"
+after the 1 s countdown, green on the rerun, the dialog untouched) · a creation hover screenshot
+(the game tooltip above `#accountScreens`, both at z 100, the tooltip later in the body) · harness
+rows cleaned, server stopped first.

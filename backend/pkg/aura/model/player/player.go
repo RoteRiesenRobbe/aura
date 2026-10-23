@@ -222,6 +222,9 @@ type player struct {
 	// appearanceOwned is the owned set (plan-appearance.md C5), carried by
 	// every rebuild of the player struct like the look below.
 	appearanceOwned []uint16
+	// appearanceLocks is what the evaluator last listed as still locked
+	// (C5c); rebuilt on every fresh watch, so no door carries it.
+	appearanceLocks []model.AppearanceLock
 
 	// portrait and ring are the look this character wears, as wire values
 	// (appearance.Catalog.Wire; 0 = the slot's default), set at join from the
@@ -604,6 +607,11 @@ func (p *player) SetLook(portrait, ring uint16) { p.portrait, p.ring = portrait,
 func (p *player) AppearanceOwned() []uint16 { return p.appearanceOwned }
 
 func (p *player) SetAppearanceOwned(owned []uint16) { p.appearanceOwned = owned }
+
+// AppearanceLocks / SetAppearanceLocks carry the locked items' progress (C5c).
+func (p *player) AppearanceLocks() []model.AppearanceLock { return p.appearanceLocks }
+
+func (p *player) SetAppearanceLocks(locks []model.AppearanceLock) { p.appearanceLocks = locks }
 
 func (p *player) SetBloodlineAscensions(n int) { p.bloodlineAscensions = n }
 

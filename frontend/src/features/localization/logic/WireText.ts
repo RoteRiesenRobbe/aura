@@ -199,3 +199,72 @@ export function objectiveLine(questId: string, o: ObjectiveData): string {
     }
     return line;
 }
+
+/**
+ * One lock reason as plain data: a ConversationLock off the wire (a locked
+ * conversation row, or a locked appearance item's progress on the owner
+ * block, plan-appearance.md C5c). `have` is the player's own count.
+ */
+export interface LockData {
+    kind: number;
+    value?: number;
+    have?: number;
+    quest?: string;
+    stage?: string;
+    species?: number;
+    skill?: number;
+}
+
+export function decodeLock(l: AuraApi.ConversationLock): LockData {
+    return {
+        kind: l.kind(),
+        value: l.value(),
+        have: l.have(),
+        quest: l.quest() ?? '',
+        stage: l.stage() ?? '',
+        species: Number(l.species()),
+        skill: l.skill(),
+    };
+}
+
+/** One reason worded, with the player's progress on the numeric kinds. */
+export function lockReasonText(l: LockData): string {
+    const quest = questDefinition(l.quest ?? '')?.title ?? (l.quest ?? '');
+    const value = l.value ?? 0;
+    const have = l.have ?? 0;
+    switch (l.kind) {
+        case AuraApi.ConversationLockKind.MinLevel:
+            return t('lock.min-level', {value, have});
+        case AuraApi.ConversationLockKind.Ascensions:
+            return t('lock.ascensions', {value, have});
+        case AuraApi.ConversationLockKind.QuestComplete:
+            return t('lock.quest-complete', {quest});
+        case AuraApi.ConversationLockKind.QuestAtStage:
+            return t('lock.quest-at-stage', {quest, stage: l.stage ?? ''});
+        case AuraApi.ConversationLockKind.Kills:
+            return t('lock.kills', {value, have, mob: mobName(l.species ?? 0)});
+        case AuraApi.ConversationLockKind.SkillLevel:
+            return t('lock.skill-level', {value, have, skill: skillDisplayName(l.skill ?? 0)});
+        case AuraApi.ConversationLockKind.TravelClosed:
+            return t('lock.travel-closed');
+        default:
+            return t('lock.unknown');
+    }
+}
+
+function reasonsList(locks: LockData[], any: boolean): string {
+    return formatList(locks.map(lockReasonText), any ? 'disjunction' : 'conjunction');
+}
+
+/** "Locked: reasons", a locked appearance item's tooltip line (C5c). */
+export function lockedReasonsLine(locks: LockData[], any: boolean): string {
+    return t('appearance.locked', {reasons: reasonsList(locks, any)});
+}
+
+/** "label - locked: reasons", the reasons joined by the gate's mode. */
+export function lockedText(label: string, locks: LockData[], any: boolean): string {
+    return t('conversation.locked-row', {
+        label,
+        reasons: reasonsList(locks, any),
+    });
+}

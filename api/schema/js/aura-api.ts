@@ -7,6 +7,7 @@ export { AbandonQuest } from './aura-api/abandon-quest.js';
 export { Accept } from './aura-api/accept.js';
 export { ActivationRejection } from './aura-api/activation-rejection.js';
 export { AnyEntity } from './aura-api/any-entity.js';
+export { AppearanceLock } from './aura-api/appearance-lock.js';
 export { Character } from './aura-api/character.js';
 export { ChatMessage } from './aura-api/chat-message.js';
 export { Cheat } from './aura-api/cheat.js';
