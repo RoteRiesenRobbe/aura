@@ -693,7 +693,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
 - **Schema:** DB none · wire +4 `EntityType` (141-144) · conf none · content
   +12 props · zone format none · lang none.
 
-### K6 - BUILT 2026-10-23, PO look owed [uncommitted] (gnome craft district)
+### K6 - BUILT 2026-10-23, PO look owed `7402823c` (gnome craft district)
 
 - **PO calls (asked up front, one prompt):** `WorkshopRoof` is DRAWN, and so
   are `Forge`, `Crane` and `SteamBoiler` (wire +6 instead of +2; the prop
