@@ -782,3 +782,32 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   PO).
 - **Schema:** DB none · wire +6 `EntityType` (146-151) · conf none · content
   +9 props · zone format none · lang none.
+- **K6 follow-ups, 2026-10-23 (PO, after the wrap):**
+  - **The sigil is dropped** ("remove the gnome logo from the props"): no
+    plaque on the workshop roof, a plain boiler crown and contraption bed
+    plate, a brass pivot bolt on the crane's mast cap; the tracker notes
+    and §C6 say so. The gnome palette is R5 as written.
+  - **The PO's workshop in `world.json`** (`city-hub`, roof at -68.93,
+    -30.43): walls + props arranged by script, nothing else in the map
+    touched (diffed against the PO's copy). Then GROWN 33% at the PO's ask:
+    each side × 1.333 about the centre via the roof placement's `scale`
+    1.333 (8 × 6.67 m; the roof footprint is the streamed size, so the fade
+    follows). Wall `paths` 0.5 m set 0.25 m inside the roof, an EAST door
+    gap of 2 m with a Doorway (`underfoot`, rotation 4.71, step east);
+    inside: Forge in the north-west corner, a new Anvil in front of it,
+    ToolRack on the north wall, Workbench on the south wall; a yard east of
+    the door: SteamBoiler + GearContraption north, LumberStack + Crane
+    south, a 2.6 m lane between. Checked: an overlap script (no solid prop
+    in a wall or another prop), `-validate` 0 findings, the Tiled round
+    trip byte-identical, headless shots from the yard and inside (0
+    console errors). ⚑ A zone's walls draw only after `npm run build`: the
+    client bundles the zone (L3's twin for geometry).
+  - **Found + fixed: a rotated polygon or path lost its turn on a Tiled save**
+    (PO: the rotated workshop wall came back at 0). Tiled turns one by setting
+    the object's `rotation` and leaving its vertices alone; `aura-convert.js`
+    read `o.polygon` raw for everything but rects. Now one helper
+    (`objectPoints`/`turned`) bakes the turn into the points for paths,
+    structures, regions, atmospheres, clearings and touch exits; patrol
+    routes stay raw (a spawn's rotation is its facing). Two vitest pins;
+    `world.json` round-trip still byte-identical; `install.sh` re-run (Tiled
+    runs an installed copy, so a restart picks it up).

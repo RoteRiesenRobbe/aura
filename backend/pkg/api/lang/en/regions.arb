@@ -71,6 +71,24 @@
     "description": "Region banner title of the place \"cinder-conclave\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
+  "region.city-barracks.subtitle": "Dionsburg",
+  "@region.city-barracks.subtitle": {
+    "description": "Region banner subtitle under \"Anvilguard Barracks\"."
+  },
+  "region.city-barracks.title": "Anvilguard Barracks",
+  "@region.city-barracks.title": {
+    "description": "Region banner title of the place \"city-barracks\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.city-cathedral.subtitle": "Dionsburg",
+  "@region.city-cathedral.subtitle": {
+    "description": "Region banner subtitle under \"St. Dion's Cathedral\"."
+  },
+  "region.city-cathedral.title": "St. Dion's Cathedral",
+  "@region.city-cathedral.title": {
+    "description": "Region banner title of the place \"city-cathedral\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
   "region.city-hub.subtitle": "Walls and Wells",
   "@region.city-hub.subtitle": {
     "description": "Region banner subtitle under \"Dionsburg\"."
@@ -78,6 +96,33 @@
   "region.city-hub.title": "Dionsburg",
   "@region.city-hub.title": {
     "description": "Region banner title of the place \"city-hub\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.city-library.subtitle": "Dionsburg",
+  "@region.city-library.subtitle": {
+    "description": "Region banner subtitle under \"Silverleaf Library\"."
+  },
+  "region.city-library.title": "Silverleaf Library",
+  "@region.city-library.title": {
+    "description": "Region banner title of the place \"city-library\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.city-mage-tower.subtitle": "Dionsburg",
+  "@region.city-mage-tower.subtitle": {
+    "description": "Region banner subtitle under \"The Violet Spire\"."
+  },
+  "region.city-mage-tower.title": "The Violet Spire",
+  "@region.city-mage-tower.title": {
+    "description": "Region banner title of the place \"city-mage-tower\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.city-workshop.subtitle": "Dionsburg",
+  "@region.city-workshop.subtitle": {
+    "description": "Region banner subtitle under \"Brasscog Workshop\"."
+  },
+  "region.city-workshop.title": "Brasscog Workshop",
+  "@region.city-workshop.title": {
+    "description": "Region banner title of the place \"city-workshop\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
   "region.deep-woods.subtitle": "City Outskirts",

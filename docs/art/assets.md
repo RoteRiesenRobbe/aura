@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-23 from 308 rows.
+Rendered 2026-10-23 from 309 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-23 from 308 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 274 |
+| Art | 275 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-23 from 308 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 127 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 128 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-23 from 308 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 70 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 114 | normal — placed but not everywhere |
+| **P2** | 115 | normal — placed but not everywhere |
 | **P3** | 93 | low — unplaced, deferred, or already fine |
 
-**194 rows need work** (missing, shared, placeholder, stock or blocked),
+**195 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -274,15 +274,15 @@ of which **11 are P0**:
 | 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
-| 🟡 | **WorkshopRoof** | `workshopRoof.svg` | P1 |  | 720 × 600 | Dionsburg — A roof PIECE, 6 × 5 m: copper sheet with north-south standing seams every half metre (they repeat across the join), soot-streaked, a riveted brass ridge cap with a gear-shaped vent, a skylight with lamplight on the lit north pitch, a stovepipe under a brass cowl on the shaded south pitch, and the clan's sigil on a soot-black plaque (one per piece). No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **Crane** | `crane.svg` | P1 |  | 360 × 360 | Dionsburg — The yard crane seen from above: a cross-braced timber footing on a gravel pad with iron shoes at the corners, a brass turntable, a lattice iron jib reaching north-east to a brass hook block, a soot-black iron counterweight on the short arm, the winch drum and its copper gear, the sigil on the mast cap; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **Workbench** | `workbench.svg` | P2 |  | 264 × 120 | Dionsburg — A tinkerer's oak bench, scorched and oil-stained, brass corner plates: an iron vice on the west end with a copper part in its jaws, a blueprint pinned under an oil can, loose brass, copper and iron gears, a spring, a spanner, a magnifier on a jointed brass arm. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **GearContraption** | `gearContraption.svg` | P2 |  | 288 × 288 | Dionsburg — A machine of no obvious purpose: a soot-dark iron bed plate riveted in brass and stamped with the sigil, a train of meshing gears (a big spoked brass wheel, a copper pinion, a small brass and an iron gear), a copper cylinder and piston rod along the south edge, a soot-ringed stack in the south-east corner. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **Forge** | `forge.svg` | P2 |  | 240 × 192 | Dionsburg — The district's hearth: soot-blackened brick, an iron-rimmed fire pit riveted in brass with the coal bed glowing white-hot at its heart, a leather bellows on the west side with its brass nozzle in the fire, a round copper flue in the north-east corner, a coal scuttle, tongs across the south rim. The eighth prop that emits light (after the Doorway lantern). Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **SteamBoiler** | `steamBoiler.svg` | P2 |  | 240 | Dionsburg — An upright boiler from above: the round copper shell under a domed crown with the sigil cast into it, a brass band riveted round the shoulder, the iron stack off-centre with soot round its mouth, a brass safety valve and lever, a pressure gauge with its needle near the red, the steam main leaving south through a brass flange. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **Anvil** | — | P2 |  | 108 × 60 | Dionsburg — A gnome-sized iron anvil on an oak stump, a hammer resting on it. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
-| 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **WorkshopRoof** | `workshopRoof.svg` | P1 |  | 720 × 600 | Dionsburg — A roof PIECE, 6 × 5 m: copper sheet with north-south standing seams every half metre (they repeat across the join), soot-streaked, a riveted brass ridge cap with a gear-shaped vent, a skylight with lamplight on the lit north pitch, a stovepipe under a brass cowl on the shaded south pitch. No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **Crane** | `crane.svg` | P1 |  | 360 × 360 | Dionsburg — The yard crane seen from above: a cross-braced timber footing on a gravel pad with iron shoes at the corners, a brass turntable, a lattice iron jib reaching north-east to a brass hook block, a soot-black iron counterweight on the short arm, the winch drum and its copper gear, a brass pivot bolt in the mast cap; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **Workbench** | `workbench.svg` | P2 |  | 264 × 120 | Dionsburg — A tinkerer's oak bench, scorched and oil-stained, brass corner plates: an iron vice on the west end with a copper part in its jaws, a blueprint pinned under an oil can, loose brass, copper and iron gears, a spring, a spanner, a magnifier on a jointed brass arm. Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **GearContraption** | `gearContraption.svg` | P2 |  | 288 × 288 | Dionsburg — A machine of no obvious purpose: a soot-dark iron bed plate riveted in brass, a train of meshing gears (a big spoked brass wheel, a copper pinion, a small brass and an iron gear), a copper cylinder and piston rod along the south edge, a soot-ringed stack in the south-east corner. Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **Forge** | `forge.svg` | P2 |  | 240 × 192 | Dionsburg — The district's hearth: soot-blackened brick, an iron-rimmed fire pit riveted in brass with the coal bed glowing white-hot at its heart, a leather bellows on the west side with its brass nozzle in the fire, a round copper flue in the north-east corner, a coal scuttle, tongs across the south rim. The eighth prop that emits light (after the Doorway lantern). Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **SteamBoiler** | `steamBoiler.svg` | P2 |  | 240 | Dionsburg — An upright boiler from above: the round copper shell under a domed crown, a brass band riveted round the shoulder, the iron stack off-centre with soot round its mouth, a brass safety valve and lever, a pressure gauge with its needle near the red, the steam main leaving south through a brass flange. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **Anvil** | — | P2 |  | 108 × 60 | Dionsburg — A gnome-sized iron anvil on an oak stump, a hammer resting on it. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
+| 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
 
 ## Ground decal — 20
@@ -364,7 +364,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 29
+## Terrain profile — 30
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -394,6 +394,7 @@ of which **11 are P0**:
 | 🟡 | **Road** | `road-placeholder.png` | P0 |  | seamless tile 750² | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
 | 🟡 | **Stones** | `stones-placeholder.png` | P2 |  | seamless tile 750² | The first OVERLAY tile (docs/plan-ground-noise.md W2): Meant to be named by another profile's overlay to show as stony patches (none does yet: FieldsForestBlend, the first overlay content, uses Forest). GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fourth tile): the road's pebbles turned up until they are the material, about 45 % warm-grey stones over thin dark earth. Busier than a ground tile may be on purpose: a patch shows a piece of it and stops. Real art wanted. |
 | 🟡 | **Cobblestone** | `cobble-placeholder.png` | P1 |  | seamless tile 750² | The city street: Road paved. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fifth tile): rounded warm-grey cobbles (a Voronoi cut with soft-minned corners) in dark dirt joints, a step darker than the City ground so the street reads as laid into the plaza, and warm so it is not the Wall laid flat. Undirected, so a drop-in for Road on any meandering path (no alignTexture). Real art wanted. |
+| 🟡 | **Flagstone** | `flagstone-placeholder.png` | P2 |  | seamless tile 750² | A building floor, first laid in the cathedral: a REGION profile inside a building's walls. GENERATED placeholder (tools/make-cellular-tiles.mjs `flagstone`): the wall's courses laid flat, dressed pale-sandstone slabs in straight staggered rows with thin grout, a step lighter than the City ground so an interior reads as swept. Real art wanted. |
 | 🟡 | **Water** | `water-placeholder.png` | P1 |  | seamless tile, 512² suggested | Rivers and ponds. Placeholder PNG. Drift is authored; the tile is not. |
 | 🟡 | **Bog** | `bog-placeholder.png` | P2 |  | seamless tile, 512² suggested | Swamp water. Placeholder PNG. First area-effect consumer when that ships. |
 | 🟡 | **Lava** | `lava-placeholder.png` | P3 |  | seamless tile, 512² suggested | Placeholder PNG. No zone authors it yet. |

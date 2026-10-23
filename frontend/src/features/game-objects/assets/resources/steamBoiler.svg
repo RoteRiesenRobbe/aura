@@ -8,10 +8,8 @@
        riveted round the shoulder, the iron stack rising off-centre in the
        north-east with soot round its mouth, a brass safety valve and lever,
        a pressure gauge with its needle near the red, and the steam main
-       leaving south through a brass flange. The clan's sigil is cast into
-       the crown. Gnome palette (R5): brass, copper, gears, soot;
-       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
-       across it. -->
+       leaving south through a brass flange.
+       Gnome palette (R5): brass, copper, gears, soot. -->
   <defs>
     <radialGradient id="steamBoilerShell" cx="0.36" cy="0.34" r="0.75">
       <stop offset="0" stop-color="#e8a070"/>
@@ -63,17 +61,9 @@
   <!-- soot streaks down the shaded side -->
   <g fill="#1e1b19" opacity="0.25"><ellipse cx="78" cy="66" rx="5" ry="11"/><ellipse cx="66" cy="82" rx="7" ry="4"/></g>
 
-  <!-- the domed crown and the sigil cast into it -->
+  <!-- the domed crown -->
   <circle cx="50" cy="50" r="27" fill="#000000" opacity="0.25" transform="translate(2 2)"/>
   <circle cx="50" cy="50" r="27" fill="url(#steamBoilerCrown)" stroke="#5e2e14" stroke-width="1"/>
-    <path d="M44.3,46.2 L44.7,44.1 L47.3,44.1 L47.7,46.2 A8,8 0 0,1 50.3,47.3 L50.3,47.3 L52.1,46.1 L53.9,47.9 L52.7,49.7 A8,8 0 0,1 53.8,52.3 L53.8,52.3 L55.9,52.7 L55.9,55.3 L53.8,55.7 A8,8 0 0,1 52.7,58.3 L52.7,58.3 L53.9,60.1 L52.1,61.9 L50.3,60.7 A8,8 0 0,1 47.7,61.8 L47.7,61.8 L47.3,63.9 L44.7,63.9 L44.3,61.8 A8,8 0 0,1 41.7,60.7 L41.7,60.7 L39.9,61.9 L38.1,60.1 L39.3,58.3 A8,8 0 0,1 38.2,55.7 L38.2,55.7 L36.1,55.3 L36.1,52.7 L38.2,52.3 A8,8 0 0,1 39.3,49.7 L39.3,49.7 L38.1,47.9 L39.9,46.1 L41.7,47.3 A8,8 0 0,1 44.3,46.2 Z M50,54 A4,4 0 1,0 42,54 A4,4 0 1,0 50,54 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.5"/>
-    <g transform="rotate(-45 46 54)">
-      <rect x="35.5" y="52.7" width="21" height="2.6" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
-      <circle cx="34.8" cy="54" r="3" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
-      <rect x="31.4" y="52.9" width="3.4" height="2.2" fill="#a85a30"/>
-      <circle cx="57.2" cy="54" r="3" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
-      <rect x="57.2" y="52.9" width="3.4" height="2.2" fill="#a85a30"/>
-    </g>
 
   <!-- the stack in the north-east, soot round its mouth -->
   <circle cx="68" cy="30" r="16" fill="url(#steamBoilerSoot)"/>

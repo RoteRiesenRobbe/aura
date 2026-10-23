@@ -2,7 +2,7 @@
   "name": "CathedralApseRoof",
   "entityType": "CathedralApseRoof",
   "sprite": "cathedralApseRoof.svg",
-  "body": { "radius": 5 },
+  "body": { "width": 10, "height": 10 },
   "blocksMovement": false,
-  "roof": { "revealAlpha": 0.25 }
+  "roof": { "revealAlpha": 0 }
 }

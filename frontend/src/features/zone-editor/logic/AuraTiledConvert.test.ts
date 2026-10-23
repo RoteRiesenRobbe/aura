@@ -1863,6 +1863,29 @@ describe('AuraConvert — save-time validation (C4)', () => {
         ]);
     });
 
+    // ⭐ PO 2026-10-23: "i tried rotating the path of the workshop wall ... when
+    // saved and built it is again rotated to 0". Tiled turns a polygon or a
+    // polyline by setting the object's rotation and leaving its vertices alone,
+    // so a reader of o.polygon alone drops the turn. It turns about the object's
+    // origin, the first vertex as zoneToModel writes it.
+    it('a rotated POLYGON bakes its turn into its points', () => {
+        const back = C.modelToZone(withArea('paths', 'AuraStructure', 'Mountains', {
+            shape: 'polygon', rotation: 90,
+            polygon: [{x: 0, y: 0}, {x: 600, y: 0}, {x: 600, y: 360}],
+        }));
+        expect(back.structures[back.structures.length - 1].points).toEqual([
+            {x: 0, y: 0}, {x: 0, y: 5}, {x: -3, y: 5},
+        ]);
+    });
+
+    it('a rotated PATH (polyline) bakes its turn into its points', () => {
+        const model = C.zoneToModel(pathZone());
+        const o = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        o.rotation = 90;
+        // (0, 0) → (5, 2) turned a quarter turn clockwise about its start.
+        expect(C.modelToZone(model).paths[0].points).toEqual([{x: 0, y: 0}, {x: -2, y: 5}]);
+    });
+
     it('the shipped world.json has nothing to complain about', () => {
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
     });

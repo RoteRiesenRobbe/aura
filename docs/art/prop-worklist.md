@@ -343,9 +343,8 @@ light.
 | LumberStack | P3 | box only | 288 x 120 |
 | ToolRack | P3 | box only | 216 x 48 |
 
-⭐ PO accent (2026-10-23): the clan's **sigil**, a brass cog with a spanner laid
-across it, on the workshop roof's plaque, the boiler's crown, the contraption's
-bed plate and the crane's mast cap. The workshop roof is a piece like the
+⭐ No district sigil: a cog-and-spanner one was drawn and then dropped at the
+PO's ask (2026-10-23). The workshop roof is a piece like the
 library's: edge to edge, no east or west eave, its standing seams repeating
 across the join. The crane's jib stays inside its 3 x 3 canvas. Forge is the
 eighth prop that **emits light** (the Doorway lantern was the seventh), and the

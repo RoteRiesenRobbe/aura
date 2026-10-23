@@ -12,10 +12,8 @@
        edges carry no eave, only the south eave is darkened. Copper sheet,
        soot-streaked, with a riveted brass ridge cap, a skylight on the lit
        north pitch (lamplight in the glass), a gear-shaped vent on the ridge,
-       a stovepipe with a brass cowl on the shaded pitch, and the clan's
-       sigil on a soot-black plaque, one per piece. Gnome palette (R5): brass, copper, gears, soot;
-       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
-       across it. -->
+       a stovepipe with a brass cowl on the shaded pitch.
+       Gnome palette (R5): brass, copper, gears, soot. -->
   <defs>
     <linearGradient id="workshopRoofNorth" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/>
@@ -84,18 +82,6 @@
   <rect x="38" y="32" width="44" height="26" fill="url(#workshopRoofGlass)"/>
   <g stroke="#c9a24a" stroke-width="2"><line x1="60" y1="32" x2="60" y2="58"/><line x1="38" y1="45" x2="82" y2="45"/></g>
   <path d="M40,34 L52,34 L40,42 Z" fill="#ffffff" opacity="0.5"/>
-
-  <!-- the clan's sigil on its soot-black plaque, on the lit pitch -->
-  <circle cx="160" cy="46" r="19" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
-  <circle cx="160" cy="46" r="19" fill="#1e1b19" stroke="#c9a24a" stroke-width="2"/>
-    <path d="M158,36.6 L158.5,34.1 L161.5,34.1 L162,36.6 A9.6,9.6 0 0,1 165.2,37.9 L165.2,37.9 L167.4,36.5 L169.5,38.6 L168.1,40.8 A9.6,9.6 0 0,1 169.4,44 L169.4,44 L171.9,44.5 L171.9,47.5 L169.4,48 A9.6,9.6 0 0,1 168.1,51.2 L168.1,51.2 L169.5,53.4 L167.4,55.5 L165.2,54.1 A9.6,9.6 0 0,1 162,55.4 L162,55.4 L161.5,57.9 L158.5,57.9 L158,55.4 A9.6,9.6 0 0,1 154.8,54.1 L154.8,54.1 L152.6,55.5 L150.5,53.4 L151.9,51.2 A9.6,9.6 0 0,1 150.6,48 L150.6,48 L148.1,47.5 L148.1,44.5 L150.6,44 A9.6,9.6 0 0,1 151.9,40.8 L151.9,40.8 L150.5,38.6 L152.6,36.5 L154.8,37.9 A9.6,9.6 0 0,1 158,36.6 Z M164.8,46 A4.8,4.8 0 1,0 155.2,46 A4.8,4.8 0 1,0 164.8,46 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.6"/>
-    <g transform="rotate(-45 160 46)">
-      <rect x="147.4" y="44.4" width="25.2" height="3.1" fill="#d8b45c" stroke="#6e5520" stroke-width="0.5"/>
-      <circle cx="146.6" cy="46" r="3.6" fill="#d8b45c" stroke="#6e5520" stroke-width="0.5"/>
-      <rect x="142.5" y="44.7" width="4.1" height="2.6" fill="#1e1b19"/>
-      <circle cx="173.4" cy="46" r="3.6" fill="#d8b45c" stroke="#6e5520" stroke-width="0.5"/>
-      <rect x="173.4" y="44.7" width="4.1" height="2.6" fill="#1e1b19"/>
-    </g>
 
   <!-- the stovepipe on the shaded pitch, soot spread round it -->
   <circle cx="176" cy="150" r="38" fill="url(#workshopRoofSoot)"/>

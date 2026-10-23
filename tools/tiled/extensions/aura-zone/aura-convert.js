@@ -176,12 +176,29 @@ var AuraConvert = (function () {
     }
 
     function closedAreaPoints(o) {
-        if (o.shape !== 'rect') { return o.polygon || []; }
-        var t = deg2rad(o.rotation || 0), c = Math.cos(t), s2 = Math.sin(t);
+        if (o.shape !== 'rect') { return objectPoints(o); }
         var w = o.width || 0, h = o.height || 0;
-        var corners = [[0, 0], [w, 0], [w, h], [0, h]];
-        return corners.map(function (pt) {
-            return {x: pt[0] * c - pt[1] * s2, y: pt[0] * s2 + pt[1] * c};
+        return turned(o, [{x: 0, y: 0}, {x: w, y: 0}, {x: w, y: h}, {x: 0, y: h}]);
+    }
+
+    /* A polygon's or polyline's vertices, relative to o.x/o.y, WITH the
+     * object's turn. ⭐ Tiled rotates one of these by setting o.rotation and
+     * leaving its vertices alone, so reading o.polygon by itself dropped the
+     * turn on every save (PO 2026-10-23: a rotated workshop wall came back
+     * unrotated). The zone format has no rotation for points, so the turn is
+     * baked in, and the object reopens at rotation 0 with turned vertices. */
+    function objectPoints(o) {
+        return turned(o, o.polygon || []);
+    }
+
+    // Points relative to o.x/o.y, turned clockwise about that origin by
+    // o.rotation (degrees), as Tiled draws them.
+    function turned(o, pts) {
+        var t = deg2rad(o.rotation || 0);
+        if (t === 0) { return pts; }
+        var c = Math.cos(t), s2 = Math.sin(t);
+        return pts.map(function (v) {
+            return {x: v.x * c - v.y * s2, y: v.x * s2 + v.y * c};
         });
     }
 
@@ -1736,6 +1753,8 @@ var AuraConvert = (function () {
                         anchor: p.anchor,
                     };
                     if (o.shape === 'polyline' && o.polygon && o.polygon.length > 0) {
+                        // o.polygon raw, NOT objectPoints: a spawn's rotation is
+                        // the mob's facing (`angle`), not a turn of its route.
                         s.waypoints = o.polygon.map(function (v) {
                             return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                         });
@@ -1796,7 +1815,7 @@ var AuraConvert = (function () {
                     var w = get(o, 'width');
                     return {
                         profile: readRegionProfile(o),
-                        points: (o.polygon || []).map(function (v) {
+                        points: objectPoints(o).map(function (v) {
                             return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                         }),
                         width: typeof w === 'number' ? w : 0,

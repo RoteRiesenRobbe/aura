@@ -93,16 +93,21 @@ describe('roofsToReveal', () => {
         const naveHalf = meter2px(naveJson.body.height / 2);
         const transeptHalf = meter2px(transeptJson.body.height / 2);
         const transeptY = naveHalf + transeptHalf;
-        const apseY = transeptY + transeptHalf + meter2px(apseJson.body.radius);
+        const apseHalf = meter2px(apseJson.body.height / 2);
+        const apseY = transeptY + transeptHalf + apseHalf;
         const nave = piece(1, naveJson.body, 0, 0);
         const transept = piece(2, transeptJson.body, 0, transeptY);
         const apse = piece(3, apseJson.body, 0, apseY);
         // A chapel a street (3 m) east of the transept stays shut.
         const transeptEnd = meter2px(transeptJson.body.width / 2);
-        const chapel = piece(4, apseJson.body, transeptEnd + meter2px(3 + apseJson.body.radius), transeptY);
+        const chapel = piece(4, apseJson.body, transeptEnd + meter2px(3) + apseHalf, transeptY);
         const roofs = [nave, transept, apse, chapel];
+        // The apse art's square-cornered chancel meets the transept; a circle
+        // body left its two corners outside every piece, so standing there
+        // opened nothing (the apse is a square body since).
+        const chancelCorner = {x: apseHalf * 0.9, y: apseY - apseHalf * 0.9};
 
-        for (const standAt of [nave, transept, apse]) {
+        for (const standAt of [nave, transept, apse, chancelCorner]) {
             expect([...roofsToReveal(roofs, standAt)].sort()).toEqual([1, 2, 3]);
         }
     });

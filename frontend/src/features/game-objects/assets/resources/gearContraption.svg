@@ -9,10 +9,8 @@
        train of meshing gears (a big spoked brass wheel driving a copper
        pinion, a small brass gear and an iron one), a copper cylinder with its
        piston rod along the south edge, and a stubby stack in the south-east
-       corner, ringed with soot. Each gear's shadow falls down-right. The
-       clan's sigil is stamped on the bed plate. Gnome palette (R5): brass, copper, gears, soot;
-       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
-       across it. -->
+       corner, ringed with soot. Each gear's shadow falls down-right.
+       Gnome palette (R5): brass, copper, gears, soot. -->
   <defs>
     <radialGradient id="gearContraptionSoot" cx="0.5" cy="0.5" r="0.5">
       <stop offset="0" stop-color="#121110" stop-opacity="0.7"/>
@@ -42,15 +40,6 @@
     <circle cx="58" cy="7" r="1.1"/><circle cx="7" cy="58" r="1.1"/>
     <circle cx="109" cy="58" r="1.1"/><circle cx="58" cy="109" r="1.1"/>
   </g>
-  <!-- the sigil stamped in the north-west corner of the plate -->
-    <path d="M15.8,11.5 L16.1,10.1 L17.9,10.1 L18.2,11.5 A5.6,5.6 0 0,1 20,12.3 L20,12.3 L21.3,11.5 L22.5,12.7 L21.7,14 A5.6,5.6 0 0,1 22.5,15.8 L22.5,15.8 L23.9,16.1 L23.9,17.9 L22.5,18.2 A5.6,5.6 0 0,1 21.7,20 L21.7,20 L22.5,21.3 L21.3,22.5 L20,21.7 A5.6,5.6 0 0,1 18.2,22.5 L18.2,22.5 L17.9,23.9 L16.1,23.9 L15.8,22.5 A5.6,5.6 0 0,1 14,21.7 L14,21.7 L12.7,22.5 L11.5,21.3 L12.3,20 A5.6,5.6 0 0,1 11.5,18.2 L11.5,18.2 L10.1,17.9 L10.1,16.1 L11.5,15.8 A5.6,5.6 0 0,1 12.3,14 L12.3,14 L11.5,12.7 L12.7,11.5 L14,12.3 A5.6,5.6 0 0,1 15.8,11.5 Z M19.8,17 A2.8,2.8 0 1,0 14.2,17 A2.8,2.8 0 1,0 19.8,17 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.4"/>
-    <g transform="rotate(-45 17 17)">
-      <rect x="9.6" y="16.1" width="14.7" height="1.8" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
-      <circle cx="9.2" cy="17" r="2.1" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
-      <rect x="6.8" y="16.2" width="2.4" height="1.5" fill="#3a3a3a"/>
-      <circle cx="24.8" cy="17" r="2.1" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
-      <rect x="24.8" y="16.2" width="2.4" height="1.5" fill="#3a3a3a"/>
-    </g>
 
   <!-- the stack in the south-east corner, soot spread round it -->
   <circle cx="101" cy="101" r="18" fill="url(#gearContraptionSoot)"/>

@@ -10,9 +10,7 @@
        in brass, the coal bed glowing white-hot at its heart, a leather
        bellows on the west side with its brass nozzle in the fire, the round
        copper flue in the north-east corner, a coal scuttle in the south-east
-       and the tongs left across the south rim. Gnome palette (R5): brass, copper, gears, soot;
-       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
-       across it. -->
+       and the tongs left across the south rim. Gnome palette (R5): brass, copper, gears, soot. -->
   <defs>
     <pattern id="forgeBrick" width="20" height="10" patternUnits="userSpaceOnUse">
       <path d="M0,5 H20 M0,10 H20 M10,0 V5 M0,5 V10 M20,5 V10" fill="none" stroke="#1e1410"
