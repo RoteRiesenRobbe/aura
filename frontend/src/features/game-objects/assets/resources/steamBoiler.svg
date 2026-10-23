@@ -1,0 +1,98 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder steam boiler (plan-city-assets.md K6): TRUE top-down, an
+       upright boiler seen from straight above. The body is a circle (r 1,
+       api/props/steam-boiler.json), so the canvas is the 2 m square around
+       it; 50 units per metre. Solid.
+
+       From above: the round copper shell under its domed crown, a brass band
+       riveted round the shoulder, the iron stack rising off-centre in the
+       north-east with soot round its mouth, a brass safety valve and lever,
+       a pressure gauge with its needle near the red, and the steam main
+       leaving south through a brass flange. The clan's sigil is cast into
+       the crown. Gnome palette (R5): brass, copper, gears, soot;
+       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
+       across it. -->
+  <defs>
+    <radialGradient id="steamBoilerShell" cx="0.36" cy="0.34" r="0.75">
+      <stop offset="0" stop-color="#e8a070"/>
+      <stop offset="0.55" stop-color="#b4643a"/>
+      <stop offset="1" stop-color="#5e2e14"/>
+    </radialGradient>
+    <radialGradient id="steamBoilerCrown" cx="0.38" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#f0b080"/>
+      <stop offset="0.6" stop-color="#c0703f"/>
+      <stop offset="1" stop-color="#7a3a1a"/>
+    </radialGradient>
+    <radialGradient id="steamBoilerSoot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#121110" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#121110" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <circle cx="54" cy="54" r="45" fill="#000000" opacity="0.28"/>
+
+  <!-- the steam main leaving south, its brass flange at the shell -->
+  <rect x="45" y="80" width="10" height="18" fill="#000000" opacity="0.3" transform="translate(2 2)"/>
+  <rect x="45" y="80" width="10" height="18" fill="#b4643a" stroke="#5e2e14" stroke-width="0.8"/>
+  <rect x="46" y="80" width="3" height="18" fill="#e8a070" opacity="0.6"/>
+
+  <!-- the copper shell, the brass band round the shoulder -->
+  <circle cx="50" cy="50" r="44" fill="url(#steamBoilerShell)" stroke="#3e1c0a" stroke-width="1.6"/>
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#c9a24a" stroke-width="4"/>
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#6e5520" stroke-width="0.5" opacity="0.6"/>
+  <g fill="#e8c870" stroke="#6e5520" stroke-width="0.4">
+    <circle cx="88" cy="50" r="1.2"/>
+    <circle cx="85.1" cy="64.5" r="1.2"/>
+    <circle cx="76.9" cy="76.9" r="1.2"/>
+    <circle cx="64.5" cy="85.1" r="1.2"/>
+    <circle cx="50" cy="88" r="1.2"/>
+    <circle cx="35.5" cy="85.1" r="1.2"/>
+    <circle cx="23.1" cy="76.9" r="1.2"/>
+    <circle cx="14.9" cy="64.5" r="1.2"/>
+    <circle cx="12" cy="50" r="1.2"/>
+    <circle cx="14.9" cy="35.5" r="1.2"/>
+    <circle cx="23.1" cy="23.1" r="1.2"/>
+    <circle cx="35.5" cy="14.9" r="1.2"/>
+    <circle cx="50" cy="12" r="1.2"/>
+    <circle cx="64.5" cy="14.9" r="1.2"/>
+    <circle cx="76.9" cy="23.1" r="1.2"/>
+    <circle cx="85.1" cy="35.5" r="1.2"/>
+  </g>
+  <rect x="43" y="87" width="14" height="4" fill="#c9a24a" stroke="#6e5520" stroke-width="0.6"/>
+  <!-- soot streaks down the shaded side -->
+  <g fill="#1e1b19" opacity="0.25"><ellipse cx="78" cy="66" rx="5" ry="11"/><ellipse cx="66" cy="82" rx="7" ry="4"/></g>
+
+  <!-- the domed crown and the sigil cast into it -->
+  <circle cx="50" cy="50" r="27" fill="#000000" opacity="0.25" transform="translate(2 2)"/>
+  <circle cx="50" cy="50" r="27" fill="url(#steamBoilerCrown)" stroke="#5e2e14" stroke-width="1"/>
+    <path d="M44.3,46.2 L44.7,44.1 L47.3,44.1 L47.7,46.2 A8,8 0 0,1 50.3,47.3 L50.3,47.3 L52.1,46.1 L53.9,47.9 L52.7,49.7 A8,8 0 0,1 53.8,52.3 L53.8,52.3 L55.9,52.7 L55.9,55.3 L53.8,55.7 A8,8 0 0,1 52.7,58.3 L52.7,58.3 L53.9,60.1 L52.1,61.9 L50.3,60.7 A8,8 0 0,1 47.7,61.8 L47.7,61.8 L47.3,63.9 L44.7,63.9 L44.3,61.8 A8,8 0 0,1 41.7,60.7 L41.7,60.7 L39.9,61.9 L38.1,60.1 L39.3,58.3 A8,8 0 0,1 38.2,55.7 L38.2,55.7 L36.1,55.3 L36.1,52.7 L38.2,52.3 A8,8 0 0,1 39.3,49.7 L39.3,49.7 L38.1,47.9 L39.9,46.1 L41.7,47.3 A8,8 0 0,1 44.3,46.2 Z M50,54 A4,4 0 1,0 42,54 A4,4 0 1,0 50,54 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.5"/>
+    <g transform="rotate(-45 46 54)">
+      <rect x="35.5" y="52.7" width="21" height="2.6" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
+      <circle cx="34.8" cy="54" r="3" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
+      <rect x="31.4" y="52.9" width="3.4" height="2.2" fill="#a85a30"/>
+      <circle cx="57.2" cy="54" r="3" fill="#d8b45c" stroke="#6e5520" stroke-width="0.4"/>
+      <rect x="57.2" y="52.9" width="3.4" height="2.2" fill="#a85a30"/>
+    </g>
+
+  <!-- the stack in the north-east, soot round its mouth -->
+  <circle cx="68" cy="30" r="16" fill="url(#steamBoilerSoot)"/>
+  <circle cx="68" cy="30" r="8" fill="#000000" opacity="0.35" transform="translate(3 3)"/>
+  <circle cx="68" cy="30" r="8" fill="#2f3134" stroke="#141414" stroke-width="1"/>
+  <circle cx="68" cy="30" r="5" fill="#0d0c0b"/>
+  <path d="M61.5,27 A7,7 0 0,1 65,23.5" fill="none" stroke="#8a8f96" stroke-width="1" opacity="0.7"/>
+
+  <!-- the safety valve and its lever, brass, north-west -->
+  <line x1="34" y1="32" x2="46" y2="24" stroke="#000000" stroke-width="2.4" opacity="0.3" transform="translate(1.5 1.5)"/>
+  <line x1="34" y1="32" x2="46" y2="24" stroke="#c9a24a" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="34" cy="32" r="4" fill="#c9a24a" stroke="#6e5520" stroke-width="0.6"/>
+  <circle cx="33" cy="31" r="1.5" fill="#f0dc9a"/>
+  <circle cx="46" cy="24" r="2.4" fill="#2f3134"/>
+
+  <!-- the pressure gauge on the south-west shoulder, needle near the red -->
+  <circle cx="24" cy="66" r="7" fill="#000000" opacity="0.3" transform="translate(1.5 1.5)"/>
+  <circle cx="24" cy="66" r="7" fill="#efe6cf" stroke="#c9a24a" stroke-width="1.8"/>
+  <path d="M28.5,61.5 A6,6 0 0,1 30,66" fill="none" stroke="#b02a20" stroke-width="1.6"/>
+  <line x1="24" y1="66" x2="28" y2="62.5" stroke="#1e1b19" stroke-width="0.9"/>
+  <circle cx="24" cy="66" r="1" fill="#1e1b19"/>
+</svg>

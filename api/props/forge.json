@@ -1,0 +1,9 @@
+{
+  "name": "Forge",
+  "entityType": "Forge",
+  "sprite": "forge.svg",
+  "body": { "width": 2, "height": 1.6 },
+  "lightFraction": 0.35,
+  "lightColor": "#ff9040",
+  "lightFlicker": true
+}

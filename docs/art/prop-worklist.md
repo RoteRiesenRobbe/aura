@@ -145,7 +145,7 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
-⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, Brazier, C3, and CrystalPylon and ArcaneCircle, C4, are the others).
+⭐ Torch **emits light** (half a campfire radius, 3.5 u; the city's LampPost, C1, CandleStand, C2, Brazier, C3, CrystalPylon and ArcaneCircle, C4, the Doorway lantern, and Forge, C6, are the others).
 About a player wide. Tent is canvas, bandit camp - the only fabric outside the
 city (the city's tents and awning are C1 and C3).
 
@@ -329,6 +329,29 @@ JailBars is an east-west run (rect bodies never rotate); CellDoor sits in it
 and is set non-blocking per placement when it stands open. No K5 prop emits
 light.
 
+### C6. Gnome craft district - brass, copper, gears, soot
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| WorkshopRoof | P1 | placeholder (roof, fades to 0.25) | 720 x 600 |
+| Crane | P1 | placeholder | 360 x 360 |
+| Workbench | P2 | placeholder | 264 x 120 |
+| GearContraption | P2 | placeholder | 288 x 288 |
+| Forge | P2 | placeholder | 240 x 192 |
+| SteamBoiler | P2 | placeholder | 240 |
+| Anvil | P2 | box only | 108 x 60 |
+| LumberStack | P3 | box only | 288 x 120 |
+| ToolRack | P3 | box only | 216 x 48 |
+
+⭐ PO accent (2026-10-23): the clan's **sigil**, a brass cog with a spanner laid
+across it, on the workshop roof's plaque, the boiler's crown, the contraption's
+bed plate and the crane's mast cap. The workshop roof is a piece like the
+library's: edge to edge, no east or west eave, its standing seams repeating
+across the join. The crane's jib stays inside its 3 x 3 canvas. Forge is the
+eighth prop that **emits light** (the Doorway lantern was the seventh), and the
+only one in K6. Six are drawn: Workbench and GearContraption as planned, the
+roof, forge, crane and boiler at the PO's ask instead of boxes.
+
 ---
 
 ## Priority roll-up
@@ -336,24 +359,25 @@ light.
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (24):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (26):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
 CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
-MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower.
+MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower · WorkshopRoof · Crane.
 
-**P2 (37):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
+**P2 (42):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·
 Mausoleum · BellTower · CandleStand · GraveMound · IronFence · CemeteryGate ·
 AngelStatue · LazaretTent · SlumTent · LeanTo · Cot · Brazier · Bookshelf ·
 CrystalPylon · ArcaneCircle · Orrery · MoonPool · TrainingDummy · JailBars ·
-WeaponRack · Banner · Stocks · Doorway.
+WeaponRack · Banner · Stocks · Doorway · Workbench · GearContraption · Forge ·
+SteamBoiler · Anvil.
 
-**P3 (26):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
+**P3 (28):** Crate · Trough · Mushroom cluster · Barrel · SackPile ·
 ProduceBasket · Bench · Pillar · Font · Organ · Confessional · OpenGrave ·
 BandageTable · Screen · RubbishHeap · ReadingDesk · Lectern · ScrollRack ·
 BookPile · AlchemyTable · ElvenPlanter · ArmorStand · Bunk · CellDoor ·
-GuardDesk · Chains.
+GuardDesk · Chains · LumberStack · ToolRack.
 
 **Fastest path to a visibly different world:** A1 (a second and third tree
 silhouette - 573 placements ride on it), then A3 (two rock shapes, 168

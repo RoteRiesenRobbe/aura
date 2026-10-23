@@ -8,6 +8,7 @@
   "City/Elven": ["MageTowerRoof", "CrystalPylon", "ArcaneCircle", "AlchemyTable", "Orrery", "MoonPool", "ElvenPlanter"],
   "City/Military": ["BarracksRoof", "Watchtower", "TrainingDummy", "WeaponRack", "ArmorStand", "Bunk", "Banner", "GuardDesk"],
   "City/Jail": ["JailBars", "CellDoor", "Stocks", "Chains"],
+  "City/Gnome": ["WorkshopRoof", "Workbench", "GearContraption", "Forge", "Anvil", "Crane", "LumberStack", "SteamBoiler", "ToolRack"],
   "City/Walls": ["GateWall", "Doorway"],
   "Nature": ["Tree", "OakTree", "PineTree", "DeadTree", "Stump", "FallenLog", "Bush", "BerryBush", "Rock", "Boulder", "CaveMouth"],
   "Village": ["House", "Cottage", "Barn", "Mill", "Haystack", "Well", "Cart", "Crate", "FencePost", "Gate", "BrokenFence", "Bridge", "Tombstone"],

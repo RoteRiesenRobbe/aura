@@ -27,6 +27,7 @@
       "AlchemyTable",
       "Altar",
       "AngelStatue",
+      "Anvil",
       "ArcaneCircle",
       "ArmorStand",
       "BandageTable",
@@ -61,6 +62,7 @@
       "Confessional",
       "Cot",
       "Cottage",
+      "Crane",
       "Crate",
       "CrystalPylon",
       "DeadTree",
@@ -71,8 +73,10 @@
       "Fish",
       "FishingHut",
       "Font",
+      "Forge",
       "Gate",
       "GateWall",
+      "GearContraption",
       "GraveMound",
       "GuardDesk",
       "Haystack",
@@ -84,6 +88,7 @@
       "LeanTo",
       "Lectern",
       "LibraryRoof",
+      "LumberStack",
       "MageTowerRoof",
       "MarketCounter",
       "MarketStallRoof",
@@ -111,16 +116,20 @@
       "ScrollRack",
       "Shipwreck",
       "SlumTent",
+      "SteamBoiler",
       "Stocks",
       "Stump",
       "Tent",
       "Tombstone",
+      "ToolRack",
       "Torch",
       "TrainingDummy",
       "Tree",
       "Watchtower",
       "WeaponRack",
       "Well",
+      "Workbench",
+      "WorkshopRoof",
       "WreckDebris"
     ],
     "AuraPropBlocks": [
@@ -571,6 +580,10 @@
       "w": 1.2,
       "h": 1.2
     },
+    "Anvil": {
+      "w": 0.9,
+      "h": 0.5
+    },
     "ArcaneCircle": {
       "w": 4,
       "h": 4
@@ -707,6 +720,10 @@
       "w": 3,
       "h": 2.6
     },
+    "Crane": {
+      "w": 3,
+      "h": 3
+    },
     "Crate": {
       "w": 0.9,
       "h": 0.9
@@ -747,11 +764,19 @@
       "w": 1.4,
       "h": 1.4
     },
+    "Forge": {
+      "w": 2,
+      "h": 1.6
+    },
     "Gate": {
       "w": 4,
       "h": 1.6
     },
     "GateWall": {
+      "w": 2.4,
+      "h": 2.4
+    },
+    "GearContraption": {
       "w": 2.4,
       "h": 2.4
     },
@@ -798,6 +823,10 @@
     "LibraryRoof": {
       "w": 8,
       "h": 6
+    },
+    "LumberStack": {
+      "w": 2.4,
+      "h": 1
     },
     "MageTowerRoof": {
       "w": 8,
@@ -907,6 +936,10 @@
       "w": 2.4,
       "h": 2
     },
+    "SteamBoiler": {
+      "w": 2,
+      "h": 2
+    },
     "Stocks": {
       "w": 2,
       "h": 0.6
@@ -922,6 +955,10 @@
     "Tombstone": {
       "w": 0.8,
       "h": 0.8
+    },
+    "ToolRack": {
+      "w": 1.8,
+      "h": 0.4
     },
     "Torch": {
       "w": 0.52,
@@ -946,6 +983,14 @@
     "Well": {
       "w": 1.4,
       "h": 1.4
+    },
+    "Workbench": {
+      "w": 2.2,
+      "h": 1
+    },
+    "WorkshopRoof": {
+      "w": 6,
+      "h": 5
     },
     "WreckDebris": {
       "w": 2.4,

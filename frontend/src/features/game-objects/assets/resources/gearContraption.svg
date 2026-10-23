@@ -1,0 +1,115 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" preserveAspectRatio="none">
+  <!-- Placeholder gear contraption (plan-city-assets.md K6): TRUE top-down, a
+       gnome machine of no obvious purpose. The viewBox is 120x120 to match
+       the 2.4 x 2.4 rect body in api/props/gear-contraption.json
+       (preserveAspectRatio=none, so the two must stay in sync); 50 units per
+       metre. Solid.
+
+       From above: a soot-dark iron bed plate riveted in brass, carrying a
+       train of meshing gears (a big spoked brass wheel driving a copper
+       pinion, a small brass gear and an iron one), a copper cylinder with its
+       piston rod along the south edge, and a stubby stack in the south-east
+       corner, ringed with soot. Each gear's shadow falls down-right. The
+       clan's sigil is stamped on the bed plate. Gnome palette (R5): brass, copper, gears, soot;
+       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
+       across it. -->
+  <defs>
+    <radialGradient id="gearContraptionSoot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#121110" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#121110" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gearContraptionCylinder" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8a070"/>
+      <stop offset="0.45" stop-color="#b4643a"/>
+      <stop offset="1" stop-color="#5e2e14"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="7" y="7" width="113" height="113" fill="#000000" opacity="0.3"/>
+
+  <!-- the iron bed plate, lit from the top-left, soot-streaked -->
+  <rect x="2" y="2" width="112" height="112" rx="3" fill="#3a3a3a" stroke="#141414" stroke-width="1.6"/>
+  <rect x="3" y="3" width="110" height="2" fill="#8a8f96" opacity="0.5"/>
+  <rect x="3" y="3" width="2" height="110" fill="#8a8f96" opacity="0.4"/>
+  <rect x="3" y="111" width="110" height="2" fill="#000000" opacity="0.35"/>
+  <g stroke="#1e1b19" stroke-width="0.6" opacity="0.6">
+    <line x1="2" y1="58" x2="114" y2="58"/><line x1="58" y1="2" x2="58" y2="114"/>
+  </g>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.4">
+    <circle cx="7" cy="7" r="1.4"/><circle cx="109" cy="7" r="1.4"/>
+    <circle cx="7" cy="109" r="1.4"/><circle cx="109" cy="109" r="1.4"/>
+    <circle cx="58" cy="7" r="1.1"/><circle cx="7" cy="58" r="1.1"/>
+    <circle cx="109" cy="58" r="1.1"/><circle cx="58" cy="109" r="1.1"/>
+  </g>
+  <!-- the sigil stamped in the north-west corner of the plate -->
+    <path d="M15.8,11.5 L16.1,10.1 L17.9,10.1 L18.2,11.5 A5.6,5.6 0 0,1 20,12.3 L20,12.3 L21.3,11.5 L22.5,12.7 L21.7,14 A5.6,5.6 0 0,1 22.5,15.8 L22.5,15.8 L23.9,16.1 L23.9,17.9 L22.5,18.2 A5.6,5.6 0 0,1 21.7,20 L21.7,20 L22.5,21.3 L21.3,22.5 L20,21.7 A5.6,5.6 0 0,1 18.2,22.5 L18.2,22.5 L17.9,23.9 L16.1,23.9 L15.8,22.5 A5.6,5.6 0 0,1 14,21.7 L14,21.7 L12.7,22.5 L11.5,21.3 L12.3,20 A5.6,5.6 0 0,1 11.5,18.2 L11.5,18.2 L10.1,17.9 L10.1,16.1 L11.5,15.8 A5.6,5.6 0 0,1 12.3,14 L12.3,14 L11.5,12.7 L12.7,11.5 L14,12.3 A5.6,5.6 0 0,1 15.8,11.5 Z M19.8,17 A2.8,2.8 0 1,0 14.2,17 A2.8,2.8 0 1,0 19.8,17 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.4"/>
+    <g transform="rotate(-45 17 17)">
+      <rect x="9.6" y="16.1" width="14.7" height="1.8" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
+      <circle cx="9.2" cy="17" r="2.1" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
+      <rect x="6.8" y="16.2" width="2.4" height="1.5" fill="#3a3a3a"/>
+      <circle cx="24.8" cy="17" r="2.1" fill="#d8b45c" stroke="#6e5520" stroke-width="0.3"/>
+      <rect x="24.8" y="16.2" width="2.4" height="1.5" fill="#3a3a3a"/>
+    </g>
+
+  <!-- the stack in the south-east corner, soot spread round it -->
+  <circle cx="101" cy="101" r="18" fill="url(#gearContraptionSoot)"/>
+  <circle cx="101" cy="101" r="7" fill="#000000" opacity="0.35" transform="translate(2.5 2.5)"/>
+  <circle cx="101" cy="101" r="7" fill="#2f3134" stroke="#141414" stroke-width="1"/>
+  <circle cx="101" cy="101" r="4.4" fill="#0d0c0b"/>
+  <circle cx="101" cy="101" r="7" fill="none" stroke="#c9a24a" stroke-width="1.2"/>
+
+  <!-- the copper cylinder and its piston rod along the south edge -->
+  <rect x="24" y="96" width="44" height="13" rx="4" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+  <rect x="24" y="96" width="44" height="13" rx="4" fill="url(#gearContraptionCylinder)" stroke="#5e2e14" stroke-width="0.8"/>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.4">
+    <rect x="30" y="95.5" width="3" height="14"/><rect x="58" y="95.5" width="3" height="14"/>
+  </g>
+  <rect x="68" y="100.5" width="16" height="4" fill="#8a8f96" stroke="#2f3134" stroke-width="0.5"/>
+  <circle cx="85" cy="102.5" r="3" fill="#c9a24a" stroke="#6e5520" stroke-width="0.5"/>
+
+  <!-- the gear train: iron, small brass, copper pinion, then the big wheel
+       on top of them all -->
+    <path d="M17.5,64.1 L17.9,62.1 L20.1,62.1 L20.5,64.1 A9,9 0 0,1 23,64.9 L23,64.9 L24.5,63.5 L26.3,64.8 L25.4,66.7 A9,9 0 0,1 27,68.8 L27,68.8 L29.1,68.6 L29.7,70.7 L27.9,71.7 A9,9 0 0,1 27.9,74.3 L27.9,74.3 L29.7,75.3 L29.1,77.4 L27,77.2 A9,9 0 0,1 25.4,79.3 L25.4,79.3 L26.3,81.2 L24.5,82.5 L23,81.1 A9,9 0 0,1 20.5,81.9 L20.5,81.9 L20.1,83.9 L17.9,83.9 L17.5,81.9 A9,9 0 0,1 15,81.1 L15,81.1 L13.5,82.5 L11.7,81.2 L12.6,79.3 A9,9 0 0,1 11,77.2 L11,77.2 L8.9,77.4 L8.3,75.3 L10.1,74.3 A9,9 0 0,1 10.1,71.7 L10.1,71.7 L8.3,70.7 L8.9,68.6 L11,68.8 A9,9 0 0,1 12.6,66.7 L12.6,66.7 L11.7,64.8 L13.5,63.5 L15,64.9 A9,9 0 0,1 17.5,64.1 Z" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <path d="M17.5,64.1 L17.9,62.1 L20.1,62.1 L20.5,64.1 A9,9 0 0,1 23,64.9 L23,64.9 L24.5,63.5 L26.3,64.8 L25.4,66.7 A9,9 0 0,1 27,68.8 L27,68.8 L29.1,68.6 L29.7,70.7 L27.9,71.7 A9,9 0 0,1 27.9,74.3 L27.9,74.3 L29.7,75.3 L29.1,77.4 L27,77.2 A9,9 0 0,1 25.4,79.3 L25.4,79.3 L26.3,81.2 L24.5,82.5 L23,81.1 A9,9 0 0,1 20.5,81.9 L20.5,81.9 L20.1,83.9 L17.9,83.9 L17.5,81.9 A9,9 0 0,1 15,81.1 L15,81.1 L13.5,82.5 L11.7,81.2 L12.6,79.3 A9,9 0 0,1 11,77.2 L11,77.2 L8.9,77.4 L8.3,75.3 L10.1,74.3 A9,9 0 0,1 10.1,71.7 L10.1,71.7 L8.3,70.7 L8.9,68.6 L11,68.8 A9,9 0 0,1 12.6,66.7 L12.6,66.7 L11.7,64.8 L13.5,63.5 L15,64.9 A9,9 0 0,1 17.5,64.1 Z" fill="#55595e" fill-rule="evenodd" stroke="#1a1b1d" stroke-width="0.6"/>
+    <path d="M10.9,73 A8.1,8.1 0 0,1 19,64.9" fill="none" stroke="#a0a6ad" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="19" cy="73" r="2.9" fill="#55595e" stroke="#1a1b1d" stroke-width="0.5"/>
+    <circle cx="19" cy="73" r="1.4" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="18.5" cy="72.5" r="0.5" fill="#f0dc9a" opacity="0.8"/>
+    <path d="M80.3,66.2 L80.8,64.1 L83.2,64.1 L83.7,66.2 A10.9,10.9 0 0,1 86.4,67 L86.4,67 L88,65.5 L90,66.8 L89.2,68.8 A10.9,10.9 0 0,1 91.1,71 L91.1,71 L93.3,70.5 L94.3,72.7 L92.5,74 A10.9,10.9 0 0,1 92.9,76.9 L92.9,76.9 L95,77.7 L94.6,80 L92.4,80.2 A10.9,10.9 0 0,1 91.3,82.8 L91.3,82.8 L92.6,84.6 L91,86.4 L89.1,85.3 A10.9,10.9 0 0,1 86.6,86.9 L86.6,86.9 L86.8,89.1 L84.5,89.8 L83.4,87.8 A10.9,10.9 0 0,1 80.6,87.8 L80.6,87.8 L79.5,89.8 L77.2,89.1 L77.4,86.9 A10.9,10.9 0 0,1 74.9,85.3 L74.9,85.3 L73,86.4 L71.4,84.6 L72.7,82.8 A10.9,10.9 0 0,1 71.6,80.2 L71.6,80.2 L69.4,80 L69,77.7 L71.1,76.9 A10.9,10.9 0 0,1 71.5,74 L71.5,74 L69.7,72.7 L70.7,70.5 L72.9,71 A10.9,10.9 0 0,1 74.8,68.8 L74.8,68.8 L74,66.8 L76,65.5 L77.6,67 A10.9,10.9 0 0,1 80.3,66.2 Z" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <path d="M80.3,66.2 L80.8,64.1 L83.2,64.1 L83.7,66.2 A10.9,10.9 0 0,1 86.4,67 L86.4,67 L88,65.5 L90,66.8 L89.2,68.8 A10.9,10.9 0 0,1 91.1,71 L91.1,71 L93.3,70.5 L94.3,72.7 L92.5,74 A10.9,10.9 0 0,1 92.9,76.9 L92.9,76.9 L95,77.7 L94.6,80 L92.4,80.2 A10.9,10.9 0 0,1 91.3,82.8 L91.3,82.8 L92.6,84.6 L91,86.4 L89.1,85.3 A10.9,10.9 0 0,1 86.6,86.9 L86.6,86.9 L86.8,89.1 L84.5,89.8 L83.4,87.8 A10.9,10.9 0 0,1 80.6,87.8 L80.6,87.8 L79.5,89.8 L77.2,89.1 L77.4,86.9 A10.9,10.9 0 0,1 74.9,85.3 L74.9,85.3 L73,86.4 L71.4,84.6 L72.7,82.8 A10.9,10.9 0 0,1 71.6,80.2 L71.6,80.2 L69.4,80 L69,77.7 L71.1,76.9 A10.9,10.9 0 0,1 71.5,74 L71.5,74 L69.7,72.7 L70.7,70.5 L72.9,71 A10.9,10.9 0 0,1 74.8,68.8 L74.8,68.8 L74,66.8 L76,65.5 L77.6,67 A10.9,10.9 0 0,1 80.3,66.2 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.6"/>
+    <path d="M72.2,77 A9.8,9.8 0 0,1 82,67.2" fill="none" stroke="#f0dc9a" stroke-width="0.9" opacity="0.7"/>
+    <circle cx="82" cy="77" r="3.4" fill="#c9a24a" stroke="#6e5520" stroke-width="0.5"/>
+    <circle cx="82" cy="77" r="1.7" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="81.4" cy="76.4" r="0.6" fill="#f0dc9a" opacity="0.8"/>
+    <path d="M82.1,13.8 L82.7,11.1 L85.3,11.1 L85.9,13.8 A14.3,14.3 0 0,1 88.9,14.6 L88.9,14.6 L90.7,12.4 L93,13.6 L92.2,16.3 A14.3,14.3 0 0,1 94.6,18.4 L94.6,18.4 L97.2,17.3 L98.7,19.5 L96.7,21.5 A14.3,14.3 0 0,1 97.8,24.4 L97.8,24.4 L100.7,24.7 L101,27.3 L98.3,28.1 A14.3,14.3 0 0,1 97.9,31.3 L97.9,31.3 L100.3,32.8 L99.4,35.2 L96.6,34.8 A14.3,14.3 0 0,1 94.8,37.4 L94.8,37.4 L96.2,39.8 L94.3,41.6 L92,39.8 A14.3,14.3 0 0,1 89.2,41.3 L89.2,41.3 L89.3,44.1 L86.8,44.8 L85.6,42.2 A14.3,14.3 0 0,1 82.4,42.2 L82.4,42.2 L81.2,44.8 L78.7,44.1 L78.8,41.3 A14.3,14.3 0 0,1 76,39.8 L76,39.8 L73.7,41.6 L71.8,39.8 L73.2,37.4 A14.3,14.3 0 0,1 71.4,34.8 L71.4,34.8 L68.6,35.2 L67.7,32.8 L70.1,31.3 A14.3,14.3 0 0,1 69.7,28.1 L69.7,28.1 L67,27.3 L67.3,24.7 L70.2,24.4 A14.3,14.3 0 0,1 71.3,21.5 L71.3,21.5 L69.3,19.5 L70.8,17.3 L73.4,18.4 A14.3,14.3 0 0,1 75.8,16.3 L75.8,16.3 L75,13.6 L77.3,12.4 L79.1,14.6 A14.3,14.3 0 0,1 82.1,13.8 Z" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <path d="M82.1,13.8 L82.7,11.1 L85.3,11.1 L85.9,13.8 A14.3,14.3 0 0,1 88.9,14.6 L88.9,14.6 L90.7,12.4 L93,13.6 L92.2,16.3 A14.3,14.3 0 0,1 94.6,18.4 L94.6,18.4 L97.2,17.3 L98.7,19.5 L96.7,21.5 A14.3,14.3 0 0,1 97.8,24.4 L97.8,24.4 L100.7,24.7 L101,27.3 L98.3,28.1 A14.3,14.3 0 0,1 97.9,31.3 L97.9,31.3 L100.3,32.8 L99.4,35.2 L96.6,34.8 A14.3,14.3 0 0,1 94.8,37.4 L94.8,37.4 L96.2,39.8 L94.3,41.6 L92,39.8 A14.3,14.3 0 0,1 89.2,41.3 L89.2,41.3 L89.3,44.1 L86.8,44.8 L85.6,42.2 A14.3,14.3 0 0,1 82.4,42.2 L82.4,42.2 L81.2,44.8 L78.7,44.1 L78.8,41.3 A14.3,14.3 0 0,1 76,39.8 L76,39.8 L73.7,41.6 L71.8,39.8 L73.2,37.4 A14.3,14.3 0 0,1 71.4,34.8 L71.4,34.8 L68.6,35.2 L67.7,32.8 L70.1,31.3 A14.3,14.3 0 0,1 69.7,28.1 L69.7,28.1 L67,27.3 L67.3,24.7 L70.2,24.4 A14.3,14.3 0 0,1 71.3,21.5 L71.3,21.5 L69.3,19.5 L70.8,17.3 L73.4,18.4 A14.3,14.3 0 0,1 75.8,16.3 L75.8,16.3 L75,13.6 L77.3,12.4 L79.1,14.6 A14.3,14.3 0 0,1 82.1,13.8 Z M94.3,28 A10.3,10.3 0 1,0 73.7,28 A10.3,10.3 0 1,0 94.3,28 Z" fill="#b4643a" fill-rule="evenodd" stroke="#6a3418" stroke-width="0.7"/>
+    <path d="M71.1,28 A12.9,12.9 0 0,1 84,15.1" fill="none" stroke="#e8a070" stroke-width="1.2" opacity="0.7"/>
+    <line x1="84" y1="28" x2="91.6" y2="35.6" stroke="#b4643a" stroke-width="2.7"/>
+    <line x1="84" y1="28" x2="91.6" y2="35.6" stroke="#6a3418" stroke-width="2.7" opacity="0.25" stroke-dasharray="0 1.4 14.3"/>
+    <line x1="84" y1="28" x2="73.7" y2="30.8" stroke="#b4643a" stroke-width="2.7"/>
+    <line x1="84" y1="28" x2="73.7" y2="30.8" stroke="#6a3418" stroke-width="2.7" opacity="0.25" stroke-dasharray="0 1.4 14.3"/>
+    <line x1="84" y1="28" x2="86.8" y2="17.7" stroke="#b4643a" stroke-width="2.7"/>
+    <line x1="84" y1="28" x2="86.8" y2="17.7" stroke="#6a3418" stroke-width="2.7" opacity="0.25" stroke-dasharray="0 1.4 14.3"/>
+    <circle cx="84" cy="28" r="4.4" fill="#b4643a" stroke="#6a3418" stroke-width="0.5"/>
+    <circle cx="84" cy="28" r="2.2" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="83.2" cy="27.2" r="0.8" fill="#f0dc9a" opacity="0.8"/>
+    <path d="M48,26 L48.6,21 L51.4,21 L52,26 A26,26 0 0,1 55.4,26.5 L55.4,26.5 L57.4,21.9 L60.1,22.7 L59.2,27.7 A26,26 0 0,1 62.3,29.1 L62.3,29.1 L65.6,25.2 L67.9,26.7 L65.7,31.2 A26,26 0 0,1 68.3,33.5 L68.3,33.5 L72.5,30.7 L74.3,32.8 L70.9,36.5 A26,26 0 0,1 72.8,39.4 L72.8,39.4 L77.6,37.8 L78.8,40.4 L74.4,43 A26,26 0 0,1 75.4,46.3 L75.4,46.3 L80.5,46.2 L80.9,49 L76,50.3 A26,26 0 0,1 76,53.7 L76,53.7 L80.9,55 L80.5,57.8 L75.4,57.7 A26,26 0 0,1 74.4,61 L74.4,61 L78.8,63.6 L77.6,66.2 L72.8,64.6 A26,26 0 0,1 70.9,67.5 L70.9,67.5 L74.3,71.2 L72.5,73.3 L68.3,70.5 A26,26 0 0,1 65.7,72.8 L65.7,72.8 L67.9,77.3 L65.6,78.8 L62.3,74.9 A26,26 0 0,1 59.2,76.3 L59.2,76.3 L60.1,81.3 L57.4,82.1 L55.4,77.5 A26,26 0 0,1 52,78 L52,78 L51.4,83 L48.6,83 L48,78 A26,26 0 0,1 44.6,77.5 L44.6,77.5 L42.6,82.1 L39.9,81.3 L40.8,76.3 A26,26 0 0,1 37.7,74.9 L37.7,74.9 L34.4,78.8 L32.1,77.3 L34.3,72.8 A26,26 0 0,1 31.7,70.5 L31.7,70.5 L27.5,73.3 L25.7,71.2 L29.1,67.5 A26,26 0 0,1 27.2,64.6 L27.2,64.6 L22.4,66.2 L21.2,63.6 L25.6,61 A26,26 0 0,1 24.6,57.7 L24.6,57.7 L19.5,57.8 L19.1,55 L24,53.7 A26,26 0 0,1 24,50.3 L24,50.3 L19.1,49 L19.5,46.2 L24.6,46.3 A26,26 0 0,1 25.6,43 L25.6,43 L21.2,40.4 L22.4,37.8 L27.2,39.4 A26,26 0 0,1 29.1,36.5 L29.1,36.5 L25.7,32.8 L27.5,30.7 L31.7,33.5 A26,26 0 0,1 34.3,31.2 L34.3,31.2 L32.1,26.7 L34.4,25.2 L37.7,29.1 A26,26 0 0,1 40.8,27.7 L40.8,27.7 L39.9,22.7 L42.6,21.9 L44.6,26.5 A26,26 0 0,1 48,26 Z" fill="#000000" opacity="0.3" transform="translate(3.5 3.5)"/>
+    <path d="M48,26 L48.6,21 L51.4,21 L52,26 A26,26 0 0,1 55.4,26.5 L55.4,26.5 L57.4,21.9 L60.1,22.7 L59.2,27.7 A26,26 0 0,1 62.3,29.1 L62.3,29.1 L65.6,25.2 L67.9,26.7 L65.7,31.2 A26,26 0 0,1 68.3,33.5 L68.3,33.5 L72.5,30.7 L74.3,32.8 L70.9,36.5 A26,26 0 0,1 72.8,39.4 L72.8,39.4 L77.6,37.8 L78.8,40.4 L74.4,43 A26,26 0 0,1 75.4,46.3 L75.4,46.3 L80.5,46.2 L80.9,49 L76,50.3 A26,26 0 0,1 76,53.7 L76,53.7 L80.9,55 L80.5,57.8 L75.4,57.7 A26,26 0 0,1 74.4,61 L74.4,61 L78.8,63.6 L77.6,66.2 L72.8,64.6 A26,26 0 0,1 70.9,67.5 L70.9,67.5 L74.3,71.2 L72.5,73.3 L68.3,70.5 A26,26 0 0,1 65.7,72.8 L65.7,72.8 L67.9,77.3 L65.6,78.8 L62.3,74.9 A26,26 0 0,1 59.2,76.3 L59.2,76.3 L60.1,81.3 L57.4,82.1 L55.4,77.5 A26,26 0 0,1 52,78 L52,78 L51.4,83 L48.6,83 L48,78 A26,26 0 0,1 44.6,77.5 L44.6,77.5 L42.6,82.1 L39.9,81.3 L40.8,76.3 A26,26 0 0,1 37.7,74.9 L37.7,74.9 L34.4,78.8 L32.1,77.3 L34.3,72.8 A26,26 0 0,1 31.7,70.5 L31.7,70.5 L27.5,73.3 L25.7,71.2 L29.1,67.5 A26,26 0 0,1 27.2,64.6 L27.2,64.6 L22.4,66.2 L21.2,63.6 L25.6,61 A26,26 0 0,1 24.6,57.7 L24.6,57.7 L19.5,57.8 L19.1,55 L24,53.7 A26,26 0 0,1 24,50.3 L24,50.3 L19.1,49 L19.5,46.2 L24.6,46.3 A26,26 0 0,1 25.6,43 L25.6,43 L21.2,40.4 L22.4,37.8 L27.2,39.4 A26,26 0 0,1 29.1,36.5 L29.1,36.5 L25.7,32.8 L27.5,30.7 L31.7,33.5 A26,26 0 0,1 34.3,31.2 L34.3,31.2 L32.1,26.7 L34.4,25.2 L37.7,29.1 A26,26 0 0,1 40.8,27.7 L40.8,27.7 L39.9,22.7 L42.6,21.9 L44.6,26.5 A26,26 0 0,1 48,26 Z M68.7,52 A18.7,18.7 0 1,0 31.3,52 A18.7,18.7 0 1,0 68.7,52 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="1.2"/>
+    <path d="M26.6,52 A23.4,23.4 0 0,1 50,28.6" fill="none" stroke="#f0dc9a" stroke-width="2.2" opacity="0.7"/>
+    <line x1="50" y1="52" x2="63.8" y2="65.8" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="63.8" y2="65.8" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <line x1="50" y1="52" x2="44.9" y2="70.9" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="44.9" y2="70.9" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <line x1="50" y1="52" x2="31.1" y2="57.1" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="31.1" y2="57.1" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <line x1="50" y1="52" x2="36.2" y2="38.2" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="36.2" y2="38.2" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <line x1="50" y1="52" x2="55.1" y2="33.1" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="55.1" y2="33.1" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <line x1="50" y1="52" x2="68.9" y2="46.9" stroke="#c9a24a" stroke-width="5"/>
+    <line x1="50" y1="52" x2="68.9" y2="46.9" stroke="#6e5520" stroke-width="5" opacity="0.25" stroke-dasharray="0 2.5 26"/>
+    <circle cx="50" cy="52" r="8.1" fill="#c9a24a" stroke="#6e5520" stroke-width="0.9"/>
+    <circle cx="50" cy="52" r="4" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="48.5" cy="50.5" r="1.5" fill="#f0dc9a" opacity="0.8"/>
+</svg>

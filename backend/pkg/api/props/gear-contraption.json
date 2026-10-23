@@ -1,0 +1,6 @@
+{
+  "name": "GearContraption",
+  "entityType": "GearContraption",
+  "sprite": "gearContraption.svg",
+  "body": { "width": 2.4, "height": 2.4 }
+}

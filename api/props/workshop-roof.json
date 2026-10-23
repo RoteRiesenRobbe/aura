@@ -1,0 +1,8 @@
+{
+  "name": "WorkshopRoof",
+  "entityType": "WorkshopRoof",
+  "sprite": "workshopRoof.svg",
+  "body": { "width": 6, "height": 5 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0.25 }
+}

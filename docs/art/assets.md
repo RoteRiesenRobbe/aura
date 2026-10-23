@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-22 from 299 rows.
+Rendered 2026-10-23 from 308 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-22 from 299 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 265 |
+| Art | 274 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-22 from 299 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 118 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 127 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-22 from 299 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 68 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 109 | normal — placed but not everywhere |
-| **P3** | 91 | low — unplaced, deferred, or already fine |
+| **P1** | 70 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 114 | normal — placed but not everywhere |
+| **P3** | 93 | low — unplaced, deferred, or already fine |
 
-**185 rows need work** (missing, shared, placeholder, stock or blocked),
+**194 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 102
+## Prop — 111
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -274,6 +274,15 @@ of which **11 are P0**:
 | 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **WorkshopRoof** | `workshopRoof.svg` | P1 |  | 720 × 600 | Dionsburg — A roof PIECE, 6 × 5 m: copper sheet with north-south standing seams every half metre (they repeat across the join), soot-streaked, a riveted brass ridge cap with a gear-shaped vent, a skylight with lamplight on the lit north pitch, a stovepipe under a brass cowl on the shaded south pitch, and the clan's sigil on a soot-black plaque (one per piece). No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **Crane** | `crane.svg` | P1 |  | 360 × 360 | Dionsburg — The yard crane seen from above: a cross-braced timber footing on a gravel pad with iron shoes at the corners, a brass turntable, a lattice iron jib reaching north-east to a brass hook block, a soot-black iron counterweight on the short arm, the winch drum and its copper gear, the sigil on the mast cap; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **Workbench** | `workbench.svg` | P2 |  | 264 × 120 | Dionsburg — A tinkerer's oak bench, scorched and oil-stained, brass corner plates: an iron vice on the west end with a copper part in its jaws, a blueprint pinned under an oil can, loose brass, copper and iron gears, a spring, a spanner, a magnifier on a jointed brass arm. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **GearContraption** | `gearContraption.svg` | P2 |  | 288 × 288 | Dionsburg — A machine of no obvious purpose: a soot-dark iron bed plate riveted in brass and stamped with the sigil, a train of meshing gears (a big spoked brass wheel, a copper pinion, a small brass and an iron gear), a copper cylinder and piston rod along the south edge, a soot-ringed stack in the south-east corner. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **Forge** | `forge.svg` | P2 |  | 240 × 192 | Dionsburg — The district's hearth: soot-blackened brick, an iron-rimmed fire pit riveted in brass with the coal bed glowing white-hot at its heart, a leather bellows on the west side with its brass nozzle in the fire, a round copper flue in the north-east corner, a coal scuttle, tongs across the south rim. The eighth prop that emits light (after the Doorway lantern). Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **SteamBoiler** | `steamBoiler.svg` | P2 |  | 240 | Dionsburg — An upright boiler from above: the round copper shell under a domed crown with the sigil cast into it, a brass band riveted round the shoulder, the iron stack off-centre with soot round its mouth, a brass safety valve and lever, a pressure gauge with its needle near the red, the steam main leaving south through a brass flange. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **Anvil** | — | P2 |  | 108 × 60 | Dionsburg — A gnome-sized iron anvil on an oak stump, a hammer resting on it. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
+| 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot; the clan's sigil, a brass cog with a spanner across it (PO 2026-10-23). |
 | 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
 
 ## Ground decal — 20

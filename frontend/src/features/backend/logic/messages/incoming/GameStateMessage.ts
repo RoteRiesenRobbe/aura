@@ -978,6 +978,14 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Watchtower]: Props.genericPropClasses.Watchtower,
     // The door mark that sits above a roof (K4 follow-up); walkable by its definition.
     [AuraApi.EntityType.Doorway]: Props.genericPropClasses.Doorway,
+    // Dionsburg's gnome craft district (plan-city-assets.md K6).
+    // The workshop roof is a roof by its definition; the forge is the only light.
+    [AuraApi.EntityType.Workbench]: Props.genericPropClasses.Workbench,
+    [AuraApi.EntityType.GearContraption]: Props.genericPropClasses.GearContraption,
+    [AuraApi.EntityType.WorkshopRoof]: Props.genericPropClasses.WorkshopRoof,
+    [AuraApi.EntityType.Forge]: Props.genericPropClasses.Forge,
+    [AuraApi.EntityType.Crane]: Props.genericPropClasses.Crane,
+    [AuraApi.EntityType.SteamBoiler]: Props.genericPropClasses.SteamBoiler,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

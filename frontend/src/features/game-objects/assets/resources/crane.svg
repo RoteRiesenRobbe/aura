@@ -1,0 +1,91 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" preserveAspectRatio="none">
+  <!-- Placeholder crane (plan-city-assets.md K6): TRUE top-down, the craft
+       district's yard crane. The viewBox is 120x120 to match the 3 x 3 rect
+       body in api/props/crane.json (preserveAspectRatio=none, so the two must
+       stay in sync); 40 units per metre. Solid: the body is its timber
+       footing, and nothing is drawn past the canvas, so the jib stays inside
+       the square.
+
+       From above: a cross-braced timber footing with iron shoes at the
+       corners, a brass turntable, and on it a lattice jib of iron reaching
+       north-east to a brass hook block, a counterweight of soot-black iron
+       blocks on the short arm, and the winch drum with its gear beside the
+       mast. It is tall, so its shadow falls far down-right. Gnome palette (R5): brass, copper, gears, soot;
+       PO accent 2026-10-23: the clan's sigil, a brass cog with a spanner
+       across it. -->
+
+  <!-- ground shadow of the footing, offset down-right -->
+  <rect x="16" y="16" width="100" height="100" fill="#000000" opacity="0.26"/>
+
+  <!-- the packed gravel pad inside the footing -->
+  <rect x="10" y="10" width="96" height="96" fill="#4a4540"/>
+  <g fill="#5c5650" opacity="0.7"><circle cx="30" cy="80" r="2"/><circle cx="84" cy="36" r="1.6"/><circle cx="40" cy="30" r="1.4"/><circle cx="76" cy="90" r="1.8"/></g>
+
+  <!-- the timber footing, cross-braced, lit from the top-left -->
+  <rect x="10" y="10" width="96" height="96" fill="none" stroke="#2c1c0d" stroke-width="10"/>
+  <rect x="10" y="10" width="96" height="96" fill="none" stroke="#7a5a38" stroke-width="8"/>
+  <g stroke="#2c1c0d" stroke-width="7"><line x1="12" y1="12" x2="104" y2="104"/><line x1="104" y1="12" x2="12" y2="104"/></g>
+  <g stroke="#6b4e30" stroke-width="5"><line x1="12" y1="12" x2="104" y2="104"/><line x1="104" y1="12" x2="12" y2="104"/></g>
+  <g stroke="#a88058" stroke-width="1.2" opacity="0.55">
+    <line x1="7" y1="7" x2="109" y2="7"/><line x1="7" y1="7" x2="7" y2="109"/>
+  </g>
+  <!-- the iron shoes at the corners, brass-bolted -->
+  <g fill="#2f3134" stroke="#1a1b1d" stroke-width="0.8">
+    <rect x="3" y="3" width="14" height="14"/><rect x="99" y="3" width="14" height="14"/>
+    <rect x="3" y="99" width="14" height="14"/><rect x="99" y="99" width="14" height="14"/>
+  </g>
+  <g fill="#c9a24a"><circle cx="10" cy="10" r="1.8"/><circle cx="106" cy="10" r="1.8"/>
+    <circle cx="10" cy="106" r="1.8"/><circle cx="106" cy="106" r="1.8"/></g>
+
+  <!-- the jib's long shadow, cast down-right onto the ground -->
+  <g transform="translate(9 9) rotate(45 58 58)" fill="#000000" opacity="0.25">
+    <rect x="52" y="0" width="12" height="74"/>
+    <rect x="48" y="74" width="20" height="18"/>
+  </g>
+
+  <!-- the turntable -->
+  <circle cx="58" cy="58" r="20" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+  <circle cx="58" cy="58" r="20" fill="#c9a24a" stroke="#6e5520" stroke-width="1.4"/>
+  <circle cx="58" cy="58" r="16" fill="none" stroke="#6e5520" stroke-width="0.8" stroke-dasharray="2 2"/>
+  <path d="M42,52 A17,17 0 0,1 52,42" fill="none" stroke="#f0dc9a" stroke-width="1.6" opacity="0.8"/>
+
+  <!-- the jib and its counterweight arm, turned to reach north-east -->
+  <g transform="rotate(45 58 58)">
+    <!-- counterweight: soot-black iron blocks on the short arm -->
+    <rect x="47" y="72" width="22" height="20" fill="#1e1b19" stroke="#0d0c0b" stroke-width="1"/>
+    <g stroke="#3a3a3a" stroke-width="0.8"><line x1="47" y1="78.5" x2="69" y2="78.5"/><line x1="47" y1="85" x2="69" y2="85"/></g>
+    <rect x="48" y="73" width="20" height="1.6" fill="#6a6e72" opacity="0.6"/>
+    <!-- the lattice jib, two iron chords and their bracing -->
+    <rect x="52" y="1" width="12" height="70" fill="none" stroke="#2f3134" stroke-width="2"/>
+    <path d="M52,8 L64,16 L52,24 L64,32 L52,40 L64,48 L52,56 L64,64" fill="none" stroke="#3a3c3f" stroke-width="1.2"/>
+    <line x1="53" y1="1" x2="53" y2="71" stroke="#8a8f96" stroke-width="0.8" opacity="0.6"/>
+    <!-- the cable from the drum to the tip -->
+    <line x1="58" y1="58" x2="58" y2="6" stroke="#c8b98a" stroke-width="0.7"/>
+    <!-- the hook block at the tip, brass -->
+    <rect x="53" y="2" width="10" height="9" rx="1.5" fill="#c9a24a" stroke="#6e5520" stroke-width="0.8"/>
+    <path d="M58,7 a3,3 0 1,0 3,3" fill="none" stroke="#2f3134" stroke-width="1.4"/>
+  </g>
+
+  <!-- the winch drum and its gear beside the mast -->
+  <rect x="64" y="64" width="14" height="22" rx="3" fill="#000000" opacity="0.3" transform="translate(2 2)"/>
+  <rect x="64" y="64" width="14" height="22" rx="3" fill="#6a4a28" stroke="#2c1c0d" stroke-width="0.8"/>
+  <g stroke="#c8b98a" stroke-width="0.8"><line x1="64" y1="69" x2="78" y2="69"/><line x1="64" y1="73" x2="78" y2="73"/>
+    <line x1="64" y1="77" x2="78" y2="77"/><line x1="64" y1="81" x2="78" y2="81"/></g>
+    <path d="M82.9,80.1 L83.1,78 L84.9,78 L85.1,80.1 A6,6 0 0,1 86.9,80.8 L86.9,80.8 L88.4,79.3 L89.8,80.5 L88.6,82.2 A6,6 0 0,1 89.6,83.9 L89.6,83.9 L91.7,83.7 L92,85.5 L90,86.1 A6,6 0 0,1 89.7,88 L89.7,88 L91.3,89.2 L90.4,90.7 L88.5,89.9 A6,6 0 0,1 87.1,91.2 L87.1,91.2 L87.6,93.2 L85.9,93.8 L85,91.9 A6,6 0 0,1 83,91.9 L83,91.9 L82.1,93.8 L80.4,93.2 L80.9,91.2 A6,6 0 0,1 79.5,89.9 L79.5,89.9 L77.6,90.7 L76.7,89.2 L78.3,88 A6,6 0 0,1 78,86.1 L78,86.1 L76,85.5 L76.3,83.7 L78.4,83.9 A6,6 0 0,1 79.4,82.2 L79.4,82.2 L78.2,80.5 L79.6,79.3 L81.1,80.8 A6,6 0 0,1 82.9,80.1 Z" fill="#000000" opacity="0.3" transform="translate(2 2)"/>
+    <path d="M82.9,80.1 L83.1,78 L84.9,78 L85.1,80.1 A6,6 0 0,1 86.9,80.8 L86.9,80.8 L88.4,79.3 L89.8,80.5 L88.6,82.2 A6,6 0 0,1 89.6,83.9 L89.6,83.9 L91.7,83.7 L92,85.5 L90,86.1 A6,6 0 0,1 89.7,88 L89.7,88 L91.3,89.2 L90.4,90.7 L88.5,89.9 A6,6 0 0,1 87.1,91.2 L87.1,91.2 L87.6,93.2 L85.9,93.8 L85,91.9 A6,6 0 0,1 83,91.9 L83,91.9 L82.1,93.8 L80.4,93.2 L80.9,91.2 A6,6 0 0,1 79.5,89.9 L79.5,89.9 L77.6,90.7 L76.7,89.2 L78.3,88 A6,6 0 0,1 78,86.1 L78,86.1 L76,85.5 L76.3,83.7 L78.4,83.9 A6,6 0 0,1 79.4,82.2 L79.4,82.2 L78.2,80.5 L79.6,79.3 L81.1,80.8 A6,6 0 0,1 82.9,80.1 Z" fill="#b4643a" fill-rule="evenodd" stroke="#6a3418" stroke-width="0.6"/>
+    <path d="M78.6,86 A5.4,5.4 0 0,1 84,80.6" fill="none" stroke="#e8a070" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="84" cy="86" r="2.1" fill="#b4643a" stroke="#6a3418" stroke-width="0.5"/>
+    <circle cx="84" cy="86" r="1" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="83.6" cy="85.6" r="0.4" fill="#f0dc9a" opacity="0.8"/>
+
+  <!-- the mast's iron cap at the centre, the clan's sigil on it -->
+  <circle cx="58" cy="58" r="9" fill="#2f3134" stroke="#1a1b1d" stroke-width="1"/>
+    <path d="M57.2,54.1 L57.4,53 L58.6,53 L58.8,54.1 A4,4 0 0,1 60.2,54.6 L60.2,54.6 L61.1,54 L62,54.9 L61.4,55.8 A4,4 0 0,1 61.9,57.2 L61.9,57.2 L63,57.4 L63,58.6 L61.9,58.8 A4,4 0 0,1 61.4,60.2 L61.4,60.2 L62,61.1 L61.1,62 L60.2,61.4 A4,4 0 0,1 58.8,61.9 L58.8,61.9 L58.6,63 L57.4,63 L57.2,61.9 A4,4 0 0,1 55.8,61.4 L55.8,61.4 L54.9,62 L54,61.1 L54.6,60.2 A4,4 0 0,1 54.1,58.8 L54.1,58.8 L53,58.6 L53,57.4 L54.1,57.2 A4,4 0 0,1 54.6,55.8 L54.6,55.8 L54,54.9 L54.9,54 L55.8,54.6 A4,4 0 0,1 57.2,54.1 Z M60,58 A2,2 0 1,0 56,58 A2,2 0 1,0 60,58 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.3"/>
+    <g transform="rotate(-45 58 58)">
+      <rect x="52.8" y="57.4" width="10.5" height="1.3" fill="#d8b45c" stroke="#6e5520" stroke-width="0.2"/>
+      <circle cx="52.4" cy="58" r="1.5" fill="#d8b45c" stroke="#6e5520" stroke-width="0.2"/>
+      <rect x="50.7" y="57.5" width="1.7" height="1.1" fill="#2f3134"/>
+      <circle cx="63.6" cy="58" r="1.5" fill="#d8b45c" stroke="#6e5520" stroke-width="0.2"/>
+      <rect x="63.6" y="57.5" width="1.7" height="1.1" fill="#2f3134"/>
+    </g>
+</svg>
