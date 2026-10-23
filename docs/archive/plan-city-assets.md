@@ -814,7 +814,7 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
     `world.json` round-trip still byte-identical; `install.sh` re-run (Tiled
     runs an installed copy, so a restart picks it up).
 
-### K7 - BUILT 2026-10-23, PO look owed `[uncommitted]` (city walls, a follow-up after the archive)
+### K7 - BUILT 2026-10-23, PO look owed `b1169283` (city walls, a follow-up after the archive)
 
 - **PO ask:** walls round `city-hub` with gates and large corner watchtowers
   you enter from inside the city. **PO calls (asked up front, two prompts):**
