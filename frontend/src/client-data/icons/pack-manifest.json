@@ -10,6 +10,8 @@
     "bomb": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Bomb.png",
     "bound-feet": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_ReduceMoveSpeed.png",
     "burning-knight": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Burn.png",
+    "campfire-lit": "6000FantasyIcons/BuildingMaterials/Campfire_Withfire.png",
+    "campfire-unlit": "6000FantasyIcons/BuildingMaterials/Campfire_nofire.png",
     "charge": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Charge.png",
     "claws": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_ClawsAnimal.png",
     "cleaver": "6000FantasyIcons/MedievalIcons/SkillsMedieval/Skill_Cleave.png",

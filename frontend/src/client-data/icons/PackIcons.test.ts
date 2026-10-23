@@ -3,6 +3,7 @@ import {readdirSync, readFileSync} from 'fs';
 import {join} from 'path';
 import {hasPackIcon, packIconRegion, packIconStyle, setPackLookup} from './PackIcons';
 import {GraphicsConfig} from '../Graphics';
+import {CAMP_PACK_ICONS} from '../../features/utilities/logic/Utilities';
 
 const repoRoot = join(__dirname, '..', '..', '..', '..');
 
@@ -69,6 +70,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
             ...Object.entries(GraphicsConfig.npcs).map(([key, npc]) => ({key, packIcon: portraitOf(npc)})),
             ...Object.entries(GraphicsConfig.speciesPortraits).map(([key, entry]) => ({key, packIcon: entry.packIcon})),
             ...Object.entries(GraphicsConfig.playerPortraits).map(([key, entry]) => ({key, packIcon: entry.packIcon})),
+            ...Object.entries(CAMP_PACK_ICONS).map(([key, packIcon]) => ({key: `camp-${key}`, packIcon})),
         ];
         const unknown = entries
             .filter(({packIcon}) => packIcon !== undefined && !manifestNames.has(packIcon))
@@ -76,7 +78,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
         expect(unknown, 'add the portrait to pack-manifest.json').toEqual([]);
     });
 
-    it('every manifest entry is used by a skill or a portrait', () => {
+    it('every manifest entry is used by a skill, a portrait or a utility', () => {
         // The manifest is what the seat holder packs; an unused entry is dead
         // weight in the committed atlas and a stale pick nobody can see.
         const used = new Set<string>([
@@ -86,6 +88,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
             ...Object.values(GraphicsConfig.speciesPortraits).map((entry) => entry.packIcon),
             ...Object.values(GraphicsConfig.playerPortraits).map((entry) => entry.packIcon),
             GraphicsConfig.character.packIcon ?? '',
+            ...Object.values(CAMP_PACK_ICONS),
         ]);
         const unused = [...manifestNames].filter((name) => !used.has(name));
         expect(unused, 'remove the entry or name it somewhere').toEqual([]);

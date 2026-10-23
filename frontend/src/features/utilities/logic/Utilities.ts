@@ -57,6 +57,24 @@ export function utilityIcon(kind: number): string | null {
     return UTILITY_ICONS[kind] ?? null;
 }
 
+// Camp's pack icons (PO 2026-10-23): a lit fire while a charge is held, a cold
+// one at zero. They outrank the glyph above wherever the atlases loaded; a
+// build without them draws the glyph exactly as before.
+export const CAMP_PACK_ICONS = {lit: 'campfire-lit', unlit: 'campfire-unlit'};
+
+function utilityPackIcon(kind: number, lit: boolean): string | null {
+    if (kind !== AuraApi.UtilityKind.Camp) {
+        return null;
+    }
+    return lit ? CAMP_PACK_ICONS.lit : CAMP_PACK_ICONS.unlit;
+}
+
+function utilityToken(kind: number, lit: boolean): HTMLElement {
+    const token = createIconToken(utilityIcon(kind), utilityDisplayName(kind), utilityPackIcon(kind, lit));
+    token.dataset.lit = String(lit);
+    return token;
+}
+
 // Cast lengths, in seconds. A mirror of skills/utility.go's UtilityDef
 // literals — utilities are deliberately not catalog content (D1), so unlike a
 // skill there is no /skills entry to read these from and no wire field
@@ -165,6 +183,13 @@ export function updateCampCharges(charges: number, level: number) {
     }
     button.querySelector('.utilityCharges')!.textContent = `${charges}/${campChargeCap(level)}`;
     button.classList.toggle('outOfCharges', charges <= 0);
+    // Swap the fire only when lit/unlit flips: this runs every snapshot, and
+    // rebuilding the token each time would churn the DOM under a hover.
+    const lit = charges > 0;
+    const token = button.querySelector<HTMLElement>(':scope > .ink-token');
+    if (token && token.dataset.lit !== String(lit)) {
+        token.replaceWith(utilityToken(AuraApi.UtilityKind.Camp, lit));
+    }
 }
 
 export function setup() {
@@ -181,8 +206,7 @@ export function setup() {
             return;
         }
         const kind = Number(button.dataset.utility);
-        button.insertBefore(
-            createIconToken(utilityIcon(kind), utilityDisplayName(kind)), button.firstChild);
+        button.insertBefore(utilityToken(kind, campCharges > 0), button.firstChild);
     });
 
     // pointerdown, not click — MouseManager preventDefaults mousedown on the
