@@ -1335,7 +1335,7 @@ after the 1 s countdown, green on the rerun, the dialog untouched) · a creation
 (the game tooltip above `#accountScreens`, both at z 100, the tooltip later in the body) · harness
 rows cleaned, server stopped first.
 
-### C5b - DONE 2026-10-23 `[uncommitted]`, PO look passed 2026-10-23 ("works as described")
+### C5b - DONE 2026-10-23 `d7412d1c`, PO look passed 2026-10-23 ("works as described")
 
 The stone bonus (D21c): a look a stone grants on top of whatever was picked, the empty pick
 included. The pick half moved to `plan-ascension-ceremony.md` AC2 (2026-10-22); C5b builds the
