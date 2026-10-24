@@ -1,0 +1,6 @@
+{
+  "name": "ToolRack",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 1.8, "height": 0.4 }
+}

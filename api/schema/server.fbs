@@ -344,7 +344,17 @@ enum EntityType : ushort {
   Watchtower = 144,
   // A building's door mark (plan-city-assets.md K4 follow-up, PO 2026-10-23):
   // a roof hides the wall's door gap, so this sits above the roof on it.
-  Doorway = 145
+  Doorway = 145,
+
+  // ── Dionsburg's gnome craft district (plan-city-assets.md K6).
+  // The workshop roof is a piece, filled edge to edge like the library
+  // roof; the forge carries the district's one light.
+  Workbench = 146,
+  GearContraption = 147,
+  WorkshopRoof = 148,
+  Forge = 149,
+  Crane = 150,
+  SteamBoiler = 151
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

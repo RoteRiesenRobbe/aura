@@ -1,7 +1,8 @@
 # Plan: City Assets: a prop kit for Dionsburg, district by district
 
-**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R8 RULED, D1-D8 PROPOSED.
-K1-K4 BUILT 2026-10-22, K5 2026-10-23 (§11); next K6. Heavy checks + the PO look once after K6 (R8).** No open PO calls (§7). Six chunks (§5).
+**Status: COMPLETE, archived 2026-10-23. Designed 2026-10-22 (R1-R8 ruled, D1-D8 as built).
+K1-K4 built 2026-10-22, K5 + K6 2026-10-23 (§11); heavy checks after K6 (R8); the PO wrapped the
+plan 2026-10-23 after looking at the districts in the world (the workshop follow-ups in §11 K6).** No open PO calls (§7). Six chunks (§5).
 
 **Owns:** the city's prop definitions, their placeholder SVGs and the city's artist-tracker rows.
 **Builds on:** `plan-roof-props.md` (roof reveal, the `roof` key), `plan-prop-placeholders.md`
@@ -225,12 +226,12 @@ Flags column, R = roof, nb = non-blocking, L = light.
 |---|---|---|---|
 | Workbench | S | 2.2×1 | |
 | GearContraption | S | 2.4×2.4 | |
-| WorkshopRoof | P | 6×5 | R 0.25 (pieces) |
-| Forge | P | 2×1.6 | L 0.35 `#ff9040` flicker |
+| WorkshopRoof | S (drawn at K6, PO) | 6×5 | R 0.25 (pieces) |
+| Forge | S (drawn at K6, PO) | 2×1.6 | L 0.35 `#ff9040` flicker |
 | Anvil | P | 0.9×0.5 | |
-| Crane | P | 3×3 | |
+| Crane | S (drawn at K6, PO) | 3×3 | |
 | LumberStack | P | 2.4×1 | |
-| SteamBoiler | P | r 1 | |
+| SteamBoiler | S (drawn at K6, PO) | r 1 | |
 | ToolRack | P | 1.8×0.4 | |
 
 In total: 16 SVG heroes and 51 placeholders (67 prop files).
@@ -282,7 +283,7 @@ it.
 | K3 | Lazaret + slums | 2 SVG + 6 PH | S | wire +2 · content +8 |
 | K4 | Library + elven | 3 SVG + 10 PH (built: 4 + 9, LibraryRoof drawn). The first circle roof (MageTowerRoof). | M | wire +3 (built +4) · content +13 |
 | K5 | Dwarven military + jail | 2 SVG + 10 PH (built: 4 + 8, BarracksRoof + Watchtower drawn) | S | wire +2 (built +4) · content +12 |
-| K6 | Gnome craft | 2 SVG + 7 PH | S | wire +2 · content +9 |
+| K6 | Gnome craft | 2 SVG + 7 PH (built: 6 + 3, WorkshopRoof, Forge, Crane + SteamBoiler drawn) | S | wire +2 (built +6) · content +9 |
 
 **Per chunk (R8):** only the cheap tail in §6 (validate, `world` Go tests, vitest +
 typecheck, palette + `verify.sh`, cp-defs, `npm run build`). No in-game probe, harness,
@@ -691,3 +692,122 @@ Per R8, the first five bullets run every chunk; the last two run once, after K6.
   probe, harness, screenshots or full suite (R8).
 - **Schema:** DB none · wire +4 `EntityType` (141-144) · conf none · content
   +12 props · zone format none · lang none.
+
+### K6 - BUILT 2026-10-23, PO look owed `7402823c` (gnome craft district)
+
+- **PO calls (asked up front, one prompt):** `WorkshopRoof` is DRAWN, and so
+  are `Forge`, `Crane` and `SteamBoiler` (wire +6 instead of +2; the prop
+  count stays 9); the gnome palette (R5: brass, copper, gears, soot) gains
+  one accent, **the clan's sigil: a brass cog with a spanner laid across it**
+  (offered alongside "verdigris + steam", which was not picked).
+- **Wire:** the K4 follow-up's `Doorway` = 145 was committed (`f5e516a9`)
+  before this chunk started, so K6 appends `Workbench` = 146,
+  `GearContraption` = 147, `WorkshopRoof` = 148, `Forge` = 149, `Crane` = 150,
+  `SteamBoiler` = 151 (L1). TS binding via `flatc_Windows_v24_3_25.exe --ts
+  --gen-all -o <scratch> aura.fbs`, diffed: only `entity-type.ts` moves (CRLF
+  kept). Go via `go generate` in `backend/pkg/api`. One `gameObjectClasses`
+  line each, after Doorway.
+- **Art (R1, R5 gnome + the sigil):** the gears and the sigil are computed by
+  a scratch generator so their teeth are even; the files are static SVG with
+  prefixed ids. `workbench.svg` (220×100, 100 units/m): a scorched oak top
+  with brass corner plates, an iron vice on the west end holding a copper
+  part, a blueprint under an oil can, loose brass/copper/iron gears, a spring,
+  a spanner, a magnifier on a jointed brass arm. `gearContraption.svg`
+  (120×120 for 2.4 × 2.4): a soot-dark iron bed plate riveted in brass and
+  stamped with the sigil, a spoked brass wheel driving a copper pinion plus a
+  small brass and an iron gear, a copper cylinder and piston rod along the
+  south edge, a soot-ringed stack. `workshopRoof.svg` (240×200, 40 units/m):
+  a roof PIECE on the LibraryRoof rule (edge to edge, no east or west eave,
+  only the south eave darkened); copper sheet whose north-south standing
+  seams repeat every 20 units, so they continue across the join (two pieces
+  rendered side by side: no seam), a riveted brass ridge cap with a
+  gear-shaped vent, a skylight with lamplight on the lit pitch, a stovepipe
+  under a brass cowl with soot round it, the sigil on a soot-black plaque
+  (one per piece). `forge.svg` (200×160): soot-blackened brick, an
+  iron-rimmed fire pit riveted in brass, the coal bed glowing white-hot to
+  red at its edge (its own glow, as the pylon carries its own), a leather
+  bellows with a brass nozzle, a copper flue in the north-east corner, a
+  coal scuttle, tongs. `crane.svg` (120×120 for 3 × 3, 40 units/m): a
+  cross-braced timber footing on a gravel pad, iron corner shoes, a brass
+  turntable, a lattice iron jib reaching north-east to a brass hook block
+  INSIDE the canvas, a soot-black counterweight on the short arm, the winch
+  drum and its copper gear, the sigil on the mast cap, a long shadow.
+  `steamBoiler.svg` (100×100, the r 1 circle's square, no "none"): a copper
+  shell under a domed crown with the sigil cast in, a riveted brass band, the
+  iron stack off-centre with soot, a brass safety valve and lever, a pressure
+  gauge near the red, the steam main leaving south. Nothing past any canvas.
+  Rasterized at body × 120 with sharp and looked at (the first crane drew its
+  jib north-WEST and showed the ground through a hollow footing; both fixed
+  before the wrap).
+- **Content (+9, D7 numbers, all [PLACEHOLDER]):** the six heroes
+  (`Workbench` 2.2×1, `GearContraption` 2.4×2.4, `Crane` 3×3, `SteamBoiler`
+  r 1, all solid; `Forge` 2×1.6 solid, light 0.35 `#ff9040`, flicker;
+  `WorkshopRoof` 6×5 at `revealAlpha` 0.25, `blocksMovement: false`);
+  `PropPlaceholder` defs, all solid: `Anvil` 0.9×0.5, `LumberStack` 2.4×1,
+  `ToolRack` 1.8×0.4. Forge is the only K6 light (D5) and the EIGHTH prop
+  light overall: the K4 follow-up's Doorway lantern was the seventh. No
+  placements anywhere.
+- **Tiled folders:** `prop-groups.json` gains `City/Gnome` (all nine), ahead
+  of `City/Walls`. Palette regenerated once, Tiled closed (L4): 107 props, 16
+  folders; every prop template's `gid` shifts (expected). `verify.sh` all
+  green.
+- **cp-defs:** as at K3-K5, only the 9 new defs copied: the only api ↔
+  `pkg/api` gaps were those 9 (the `.debug` zone copies agree with each
+  other and carry another session's edits, left unstaged). No EOL churn.
+- **Tracker (D8):** 9 `assets.csv` rows after the K5 block (subcategory
+  "Props — city: gnome craft", zone Dionsburg, state `placeholder`; the 6
+  heroes SVG, the 3 boxes PNG without `current_file`), `assets.md`
+  regenerated (308 rows: 298 + Doorway + 9), `prop-worklist.md` §C6 + the
+  roll-up (P1 26 · P2 42 · P3 28; WorkshopRoof and Crane P1); the Torch note
+  in §A9 now names the Doorway lantern and the Forge.
+- **Verified, cheap tail:** `go build ./...` · `go test -count=1
+  ./pkg/aura/world/...` red ONLY on the known
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` (Tree, Boulder) ·
+  `aurad -validate -content F:/Projects/aura/api` (scratch build, L7) 0
+  findings, props 98 → 107 · vitest 1883/0 · typecheck clean · webpack cache
+  cleared, `npm run build` ok (the 2 usual size warnings) · the 6 SVGs parse
+  (jsdom) · `verify.sh` all green.
+- **Verified, the once-only heavy tail (R8, over all six districts):** the
+  full Go suite (`AURA_TEST_DB_URL` set, so `store`/`accounts` ran) red ONLY
+  on the three known: `TestPassages_EveryDoorCarriesItsWords` (cmd/aurad),
+  `TestRunPlacementsBattery_ReconcilesAgainstTheAuthoredWorld` (simharness),
+  the C1b migration (world). `hygiene-wire-prune.mjs` on a fresh
+  `dev-restart-windows.sh server` boot (props 107): 702 sprites rendered, 181
+  non-square, 0 WebGL context losses, 0 console errors; `harnessdb -cleanup`
+  afterwards (aurad stopped first) removed its 2 accounts. ⚑ No webpack dev
+  server was running, so no restart is owed for L2; one started before this
+  regen would need it.
+- **Owed:** the §5 PO look over all six districts, then archive this plan.
+  Not done here: the scratch placements in the debug world (offered to the
+  PO).
+- **Schema:** DB none · wire +6 `EntityType` (146-151) · conf none · content
+  +9 props · zone format none · lang none.
+- **K6 follow-ups, 2026-10-23 (PO, after the wrap):**
+  - **The sigil is dropped** ("remove the gnome logo from the props"): no
+    plaque on the workshop roof, a plain boiler crown and contraption bed
+    plate, a brass pivot bolt on the crane's mast cap; the tracker notes
+    and §C6 say so. The gnome palette is R5 as written.
+  - **The PO's workshop in `world.json`** (`city-hub`, roof at -68.93,
+    -30.43): walls + props arranged by script, nothing else in the map
+    touched (diffed against the PO's copy). Then GROWN 33% at the PO's ask:
+    each side × 1.333 about the centre via the roof placement's `scale`
+    1.333 (8 × 6.67 m; the roof footprint is the streamed size, so the fade
+    follows). Wall `paths` 0.5 m set 0.25 m inside the roof, an EAST door
+    gap of 2 m with a Doorway (`underfoot`, rotation 4.71, step east);
+    inside: Forge in the north-west corner, a new Anvil in front of it,
+    ToolRack on the north wall, Workbench on the south wall; a yard east of
+    the door: SteamBoiler + GearContraption north, LumberStack + Crane
+    south, a 2.6 m lane between. Checked: an overlap script (no solid prop
+    in a wall or another prop), `-validate` 0 findings, the Tiled round
+    trip byte-identical, headless shots from the yard and inside (0
+    console errors). ⚑ A zone's walls draw only after `npm run build`: the
+    client bundles the zone (L3's twin for geometry).
+  - **Found + fixed: a rotated polygon or path lost its turn on a Tiled save**
+    (PO: the rotated workshop wall came back at 0). Tiled turns one by setting
+    the object's `rotation` and leaving its vertices alone; `aura-convert.js`
+    read `o.polygon` raw for everything but rects. Now one helper
+    (`objectPoints`/`turned`) bakes the turn into the points for paths,
+    structures, regions, atmospheres, clearings and touch exits; patrol
+    routes stay raw (a spawn's rotation is its facing). Two vitest pins;
+    `world.json` round-trip still byte-identical; `install.sh` re-run (Tiled
+    runs an installed copy, so a restart picks it up).

@@ -4,5 +4,5 @@
   "sprite": "mageTowerRoof.svg",
   "body": { "radius": 4 },
   "blocksMovement": false,
-  "roof": { "revealAlpha": 0.25 }
+  "roof": { "revealAlpha": 0 }
 }

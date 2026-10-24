@@ -132,5 +132,11 @@ export enum EntityType {
   JailBars = 142,
   BarracksRoof = 143,
   Watchtower = 144,
-  Doorway = 145
+  Doorway = 145,
+  Workbench = 146,
+  GearContraption = 147,
+  WorkshopRoof = 148,
+  Forge = 149,
+  Crane = 150,
+  SteamBoiler = 151
 }

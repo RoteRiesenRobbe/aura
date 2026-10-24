@@ -1,0 +1,6 @@
+{
+  "name": "LumberStack",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 2.4, "height": 1 }
+}

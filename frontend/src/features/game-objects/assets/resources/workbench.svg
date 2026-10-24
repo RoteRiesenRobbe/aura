@@ -1,0 +1,133 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 100" preserveAspectRatio="none">
+  <!-- Placeholder workbench (plan-city-assets.md K6): TRUE top-down, a gnome
+       tinkerer's bench. The viewBox is 220x100 to match the 2.2 x 1 rect body
+       in api/props/workbench.json (preserveAspectRatio=none, so the two must
+       stay in sync); 100 units per metre. Solid.
+
+       From above: a thick oak top, planks running east-west, scorched and
+       oil-stained, brass corner plates. An iron vice is bolted to the west
+       end with a part still in its jaws; a blueprint is pinned in the middle
+       under a gear and an oil can; brass and copper gears, a spring and a
+       spanner lie where they were dropped; a magnifier on a jointed brass arm
+       leans over the work. Gnome palette (R5): brass, copper, gears, soot. -->
+  <defs>
+    <linearGradient id="workbenchPrint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f7398"/>
+      <stop offset="1" stop-color="#36536f"/>
+    </linearGradient>
+    <radialGradient id="workbenchLens" cx="0.35" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="0.5" stop-color="#cfe0e6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7f98a0" stop-opacity="0.5"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="6" y="7" width="214" height="93" fill="#000000" opacity="0.28"/>
+
+  <!-- the oak top, lit from the top-left, planks east-west -->
+  <rect x="1" y="1" width="212" height="91" fill="#7a5a38" stroke="#33220f" stroke-width="2"/>
+  <g stroke="#33220f" stroke-width="1" opacity="0.55">
+    <line x1="2" y1="24" x2="212" y2="24"/><line x1="2" y1="47" x2="212" y2="47"/>
+    <line x1="2" y1="70" x2="212" y2="70"/>
+  </g>
+  <rect x="2" y="2" width="210" height="3" fill="#a88058" opacity="0.6"/>
+  <rect x="2" y="2" width="3" height="89" fill="#a88058" opacity="0.45"/>
+  <rect x="2" y="87" width="210" height="4" fill="#000000" opacity="0.2"/>
+  <!-- scorch marks and oil stains -->
+  <g fill="#1e1b19">
+    <ellipse cx="150" cy="80" rx="12" ry="6" opacity="0.35"/>
+    <ellipse cx="62" cy="34" rx="7" ry="4" opacity="0.3"/>
+    <circle cx="186" cy="20" r="5" opacity="0.25"/>
+  </g>
+  <!-- brass corner plates -->
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.6">
+    <path d="M1,1 H13 V5 H5 V13 H1 Z"/><path d="M213,1 H201 V5 H209 V13 H213 Z"/>
+    <path d="M1,92 H13 V88 H5 V80 H1 Z"/><path d="M213,92 H201 V88 H209 V80 H213 Z"/>
+  </g>
+
+  <!-- the iron vice on the west end, a copper part in its jaws -->
+  <rect x="9" y="30" width="30" height="34" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+  <rect x="9" y="30" width="30" height="34" fill="#2f3134" stroke="#1a1b1d" stroke-width="1"/>
+  <rect x="10" y="31" width="28" height="3" fill="#8a8f96" opacity="0.5"/>
+  <rect x="13" y="44" width="22" height="6" fill="#1a1b1d"/>
+  <rect x="16" y="43" width="16" height="8" rx="1" fill="#b4643a" stroke="#6a3418" stroke-width="0.6"/>
+  <rect x="17" y="43.5" width="14" height="2" fill="#dc9060" opacity="0.7"/>
+  <line x1="24" y1="64" x2="24" y2="76" stroke="#3a3c3f" stroke-width="3"/>
+  <line x1="14" y1="76" x2="34" y2="76" stroke="#3a3c3f" stroke-width="2.4" stroke-linecap="round"/>
+  <g fill="#c9a24a"><circle cx="14" cy="76" r="2"/><circle cx="34" cy="76" r="2"/></g>
+  <g fill="#c9a24a" stroke="#6e5520" stroke-width="0.4">
+    <circle cx="12" cy="33" r="1.1"/><circle cx="36" cy="33" r="1.1"/>
+    <circle cx="12" cy="61" r="1.1"/><circle cx="36" cy="61" r="1.1"/>
+  </g>
+
+  <!-- the blueprint, pinned at the corners: a gear drawn in white lines -->
+  <g transform="rotate(-4 105 40)">
+    <rect x="72" y="14" width="66" height="50" fill="#000000" opacity="0.22" transform="translate(2 2)"/>
+    <rect x="72" y="14" width="66" height="50" fill="url(#workbenchPrint)" stroke="#2a3f55" stroke-width="0.8"/>
+    <g fill="none" stroke="#dfe9f2" stroke-width="0.7" opacity="0.85">
+      <path d="M96,27.2 L96.5,24.1 L99.5,24.1 L100,27.2 A12,12 0 0,1 103.3,28.2 L103.3,28.2 L105.6,26 L108,27.8 L106.6,30.6 A12,12 0 0,1 108.6,33.4 L108.6,33.4 L111.7,33 L112.7,35.8 L109.9,37.3 A12,12 0 0,1 109.9,40.7 L109.9,40.7 L112.7,42.2 L111.7,45 L108.6,44.6 A12,12 0 0,1 106.6,47.4 L106.6,47.4 L108,50.2 L105.6,52 L103.3,49.8 A12,12 0 0,1 100,50.8 L100,50.8 L99.5,53.9 L96.5,53.9 L96,50.8 A12,12 0 0,1 92.7,49.8 L92.7,49.8 L90.4,52 L88,50.2 L89.4,47.4 A12,12 0 0,1 87.4,44.6 L87.4,44.6 L84.3,45 L83.3,42.2 L86.1,40.7 A12,12 0 0,1 86.1,37.3 L86.1,37.3 L83.3,35.8 L84.3,33 L87.4,33.4 A12,12 0 0,1 89.4,30.6 L89.4,30.6 L88,27.8 L90.4,26 L92.7,28.2 A12,12 0 0,1 96,27.2 Z M103,39 A5,5 0 1,0 93,39 A5,5 0 1,0 103,39 Z"/>
+      <line x1="76" y1="39" x2="120" y2="39" stroke-dasharray="3 2"/>
+      <line x1="98" y1="18" x2="98" y2="60" stroke-dasharray="3 2"/>
+      <rect x="118" y="20" width="16" height="10"/>
+      <line x1="118" y1="50" x2="134" y2="50"/><line x1="118" y1="55" x2="130" y2="55"/>
+    </g>
+    <g fill="#c9a24a"><circle cx="75" cy="17" r="1.4"/><circle cx="135" cy="61" r="1.4"/></g>
+  </g>
+  <!-- an oil can weighing the print's corner: copper, a brass spout -->
+  <circle cx="139" cy="18" r="9" fill="#000000" opacity="0.3" transform="translate(2 2)"/>
+  <circle cx="139" cy="18" r="9" fill="#b4643a" stroke="#6a3418" stroke-width="1"/>
+  <circle cx="137" cy="16" r="4.5" fill="#dc9060" opacity="0.55"/>
+  <line x1="139" y1="18" x2="156" y2="8" stroke="#c9a24a" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="139" cy="18" r="2.6" fill="#c9a24a" stroke="#6e5520" stroke-width="0.5"/>
+
+  <!-- gears lying loose: brass, copper, a small one of iron -->
+    <path d="M170.3,34.4 L170.8,32 L173.2,32 L173.7,34.4 A11.8,11.8 0 0,1 176.4,35.1 L176.4,35.1 L178,33.3 L180,34.5 L179.3,36.7 A11.8,11.8 0 0,1 181.3,38.7 L181.3,38.7 L183.5,38 L184.7,40 L182.9,41.6 A11.8,11.8 0 0,1 183.6,44.3 L183.6,44.3 L186,44.8 L186,47.2 L183.6,47.7 A11.8,11.8 0 0,1 182.9,50.4 L182.9,50.4 L184.7,52 L183.5,54 L181.3,53.3 A11.8,11.8 0 0,1 179.3,55.3 L179.3,55.3 L180,57.5 L178,58.7 L176.4,56.9 A11.8,11.8 0 0,1 173.7,57.6 L173.7,57.6 L173.2,60 L170.8,60 L170.3,57.6 A11.8,11.8 0 0,1 167.6,56.9 L167.6,56.9 L166,58.7 L164,57.5 L164.7,55.3 A11.8,11.8 0 0,1 162.7,53.3 L162.7,53.3 L160.5,54 L159.3,52 L161.1,50.4 A11.8,11.8 0 0,1 160.4,47.7 L160.4,47.7 L158,47.2 L158,44.8 L160.4,44.3 A11.8,11.8 0 0,1 161.1,41.6 L161.1,41.6 L159.3,40 L160.5,38 L162.7,38.7 A11.8,11.8 0 0,1 164.7,36.7 L164.7,36.7 L164,34.5 L166,33.3 L167.6,35.1 A11.8,11.8 0 0,1 170.3,34.4 Z" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <path d="M170.3,34.4 L170.8,32 L173.2,32 L173.7,34.4 A11.8,11.8 0 0,1 176.4,35.1 L176.4,35.1 L178,33.3 L180,34.5 L179.3,36.7 A11.8,11.8 0 0,1 181.3,38.7 L181.3,38.7 L183.5,38 L184.7,40 L182.9,41.6 A11.8,11.8 0 0,1 183.6,44.3 L183.6,44.3 L186,44.8 L186,47.2 L183.6,47.7 A11.8,11.8 0 0,1 182.9,50.4 L182.9,50.4 L184.7,52 L183.5,54 L181.3,53.3 A11.8,11.8 0 0,1 179.3,55.3 L179.3,55.3 L180,57.5 L178,58.7 L176.4,56.9 A11.8,11.8 0 0,1 173.7,57.6 L173.7,57.6 L173.2,60 L170.8,60 L170.3,57.6 A11.8,11.8 0 0,1 167.6,56.9 L167.6,56.9 L166,58.7 L164,57.5 L164.7,55.3 A11.8,11.8 0 0,1 162.7,53.3 L162.7,53.3 L160.5,54 L159.3,52 L161.1,50.4 A11.8,11.8 0 0,1 160.4,47.7 L160.4,47.7 L158,47.2 L158,44.8 L160.4,44.3 A11.8,11.8 0 0,1 161.1,41.6 L161.1,41.6 L159.3,40 L160.5,38 L162.7,38.7 A11.8,11.8 0 0,1 164.7,36.7 L164.7,36.7 L164,34.5 L166,33.3 L167.6,35.1 A11.8,11.8 0 0,1 170.3,34.4 Z M180.5,46 A8.5,8.5 0 1,0 163.5,46 A8.5,8.5 0 1,0 180.5,46 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.6"/>
+    <path d="M161.4,46 A10.6,10.6 0 0,1 172,35.4" fill="none" stroke="#f0dc9a" stroke-width="1" opacity="0.7"/>
+    <line x1="172" y1="46" x2="178.2" y2="52.2" stroke="#c9a24a" stroke-width="2.2"/>
+    <line x1="172" y1="46" x2="178.2" y2="52.2" stroke="#6e5520" stroke-width="2.2" opacity="0.25" stroke-dasharray="0 1.1 11.8"/>
+    <line x1="172" y1="46" x2="165.8" y2="52.2" stroke="#c9a24a" stroke-width="2.2"/>
+    <line x1="172" y1="46" x2="165.8" y2="52.2" stroke="#6e5520" stroke-width="2.2" opacity="0.25" stroke-dasharray="0 1.1 11.8"/>
+    <line x1="172" y1="46" x2="165.8" y2="39.8" stroke="#c9a24a" stroke-width="2.2"/>
+    <line x1="172" y1="46" x2="165.8" y2="39.8" stroke="#6e5520" stroke-width="2.2" opacity="0.25" stroke-dasharray="0 1.1 11.8"/>
+    <line x1="172" y1="46" x2="178.2" y2="39.8" stroke="#c9a24a" stroke-width="2.2"/>
+    <line x1="172" y1="46" x2="178.2" y2="39.8" stroke="#6e5520" stroke-width="2.2" opacity="0.25" stroke-dasharray="0 1.1 11.8"/>
+    <circle cx="172" cy="46" r="3.6" fill="#c9a24a" stroke="#6e5520" stroke-width="0.5"/>
+    <circle cx="172" cy="46" r="1.8" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="171.3" cy="45.3" r="0.7" fill="#f0dc9a" opacity="0.8"/>
+    <path d="M194.7,63.1 L195,61.1 L197,61.1 L197.3,63.1 A7,7 0 0,1 199.4,63.9 L199.4,63.9 L201,62.5 L202.5,63.8 L201.4,65.6 A7,7 0 0,1 202.5,67.5 L202.5,67.5 L204.6,67.5 L205,69.4 L203,70.1 A7,7 0 0,1 202.6,72.3 L202.6,72.3 L204.2,73.6 L203.2,75.3 L201.3,74.6 A7,7 0 0,1 199.6,76 L199.6,76 L200,78.1 L198.1,78.7 L197.1,76.9 A7,7 0 0,1 194.9,76.9 L194.9,76.9 L193.9,78.7 L192,78.1 L192.4,76 A7,7 0 0,1 190.7,74.6 L190.7,74.6 L188.8,75.3 L187.8,73.6 L189.4,72.3 A7,7 0 0,1 189,70.1 L189,70.1 L187,69.4 L187.4,67.5 L189.5,67.5 A7,7 0 0,1 190.6,65.6 L190.6,65.6 L189.5,63.8 L191,62.5 L192.6,63.9 A7,7 0 0,1 194.7,63.1 Z" fill="#000000" opacity="0.3" transform="translate(2.5 2.5)"/>
+    <path d="M194.7,63.1 L195,61.1 L197,61.1 L197.3,63.1 A7,7 0 0,1 199.4,63.9 L199.4,63.9 L201,62.5 L202.5,63.8 L201.4,65.6 A7,7 0 0,1 202.5,67.5 L202.5,67.5 L204.6,67.5 L205,69.4 L203,70.1 A7,7 0 0,1 202.6,72.3 L202.6,72.3 L204.2,73.6 L203.2,75.3 L201.3,74.6 A7,7 0 0,1 199.6,76 L199.6,76 L200,78.1 L198.1,78.7 L197.1,76.9 A7,7 0 0,1 194.9,76.9 L194.9,76.9 L193.9,78.7 L192,78.1 L192.4,76 A7,7 0 0,1 190.7,74.6 L190.7,74.6 L188.8,75.3 L187.8,73.6 L189.4,72.3 A7,7 0 0,1 189,70.1 L189,70.1 L187,69.4 L187.4,67.5 L189.5,67.5 A7,7 0 0,1 190.6,65.6 L190.6,65.6 L189.5,63.8 L191,62.5 L192.6,63.9 A7,7 0 0,1 194.7,63.1 Z" fill="#b4643a" fill-rule="evenodd" stroke="#6a3418" stroke-width="0.6"/>
+    <path d="M189.7,70 A6.3,6.3 0 0,1 196,63.7" fill="none" stroke="#e8a070" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="196" cy="70" r="2.3" fill="#b4643a" stroke="#6a3418" stroke-width="0.5"/>
+    <circle cx="196" cy="70" r="1.2" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="195.6" cy="69.6" r="0.4" fill="#f0dc9a" opacity="0.8"/>
+    <path d="M124.2,72.1 L124.2,70 L125.8,70 L125.8,72.1 A4,4 0 0,1 127.2,72.6 L127.2,72.6 L128.7,71.3 L129.7,72.3 L128.4,73.8 A4,4 0 0,1 128.9,75.2 L128.9,75.2 L131,75.2 L131,76.8 L128.9,76.8 A4,4 0 0,1 128.4,78.2 L128.4,78.2 L129.7,79.7 L128.7,80.7 L127.2,79.4 A4,4 0 0,1 125.8,79.9 L125.8,79.9 L125.8,82 L124.2,82 L124.2,79.9 A4,4 0 0,1 122.8,79.4 L122.8,79.4 L121.3,80.7 L120.3,79.7 L121.6,78.2 A4,4 0 0,1 121.1,76.8 L121.1,76.8 L119,76.8 L119,75.2 L121.1,75.2 A4,4 0 0,1 121.6,73.8 L121.6,73.8 L120.3,72.3 L121.3,71.3 L122.8,72.6 A4,4 0 0,1 124.2,72.1 Z" fill="#000000" opacity="0.3" transform="translate(1.5 1.5)"/>
+    <path d="M124.2,72.1 L124.2,70 L125.8,70 L125.8,72.1 A4,4 0 0,1 127.2,72.6 L127.2,72.6 L128.7,71.3 L129.7,72.3 L128.4,73.8 A4,4 0 0,1 128.9,75.2 L128.9,75.2 L131,75.2 L131,76.8 L128.9,76.8 A4,4 0 0,1 128.4,78.2 L128.4,78.2 L129.7,79.7 L128.7,80.7 L127.2,79.4 A4,4 0 0,1 125.8,79.9 L125.8,79.9 L125.8,82 L124.2,82 L124.2,79.9 A4,4 0 0,1 122.8,79.4 L122.8,79.4 L121.3,80.7 L120.3,79.7 L121.6,78.2 A4,4 0 0,1 121.1,76.8 L121.1,76.8 L119,76.8 L119,75.2 L121.1,75.2 A4,4 0 0,1 121.6,73.8 L121.6,73.8 L120.3,72.3 L121.3,71.3 L122.8,72.6 A4,4 0 0,1 124.2,72.1 Z" fill="#55595e" fill-rule="evenodd" stroke="#1a1b1d" stroke-width="0.6"/>
+    <path d="M121.4,76 A3.6,3.6 0 0,1 125,72.4" fill="none" stroke="#a0a6ad" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="125" cy="76" r="2" fill="#55595e" stroke="#1a1b1d" stroke-width="0.5"/>
+    <circle cx="125" cy="76" r="1" fill="#c9a24a" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="124.6" cy="75.6" r="0.4" fill="#f0dc9a" opacity="0.8"/>
+
+  <!-- a coiled spring and a spanner -->
+  <path d="M152,74 q2,-4 4,0 q2,4 4,0 q2,-4 4,0 q2,4 4,0" fill="none" stroke="#8a8f96" stroke-width="1.4"/>
+  <g transform="rotate(8 82 78)">
+    <rect x="58" y="75" width="44" height="5" fill="#000000" opacity="0.3" transform="translate(1.5 1.5)"/>
+    <rect x="58" y="75" width="44" height="5" fill="#6e7378" stroke="#2f3134" stroke-width="0.6"/>
+    <circle cx="56" cy="77.5" r="5.5" fill="#6e7378" stroke="#2f3134" stroke-width="0.6"/>
+    <rect x="49" y="75.5" width="7" height="4" fill="#7a5a38"/>
+    <circle cx="104" cy="77.5" r="4" fill="#6e7378" stroke="#2f3134" stroke-width="0.6"/>
+    <rect x="59" y="75.5" width="42" height="1.4" fill="#b8bdc2" opacity="0.6"/>
+  </g>
+
+  <!-- the magnifier on its jointed brass arm, clamped to the north edge -->
+  <g fill="none" stroke="#000000" stroke-width="2.5" opacity="0.25" transform="translate(2 2)">
+    <path d="M52,4 L60,18 L54,30"/>
+  </g>
+  <rect x="47" y="1" width="10" height="6" fill="#2f3134" stroke="#1a1b1d" stroke-width="0.6"/>
+  <path d="M52,4 L60,18 L54,30" fill="none" stroke="#c9a24a" stroke-width="2.2" stroke-linejoin="round"/>
+  <circle cx="60" cy="18" r="1.8" fill="#e8c870" stroke="#6e5520" stroke-width="0.5"/>
+  <circle cx="52" cy="38" r="9" fill="#000000" opacity="0.18" transform="translate(2 2)"/>
+  <circle cx="52" cy="38" r="9" fill="url(#workbenchLens)" stroke="#c9a24a" stroke-width="2"/>
+  <path d="M46,34 A7,7 0 0,1 51,31" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+</svg>

@@ -4,5 +4,5 @@
   "sprite": "cathedralTranseptRoof.svg",
   "body": { "width": 24, "height": 8 },
   "blocksMovement": false,
-  "roof": { "revealAlpha": 0.25 }
+  "roof": { "revealAlpha": 0 }
 }

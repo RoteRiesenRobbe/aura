@@ -1,0 +1,6 @@
+{
+  "name": "SteamBoiler",
+  "entityType": "SteamBoiler",
+  "sprite": "steamBoiler.svg",
+  "body": { "radius": 1 }
+}

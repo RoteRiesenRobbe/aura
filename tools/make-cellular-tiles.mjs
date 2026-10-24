@@ -6,7 +6,7 @@
  * the same fix).
  *
  *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
- *     · cobble (the city street) · limestone + coast-grass (the clifftop,
+ *     · cobble (the city street) · flagstone (a building floor) · limestone + coast-grass (the clifftop,
  *     `Coastal Cliff` = limestone under a coast-grass overlay)
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
@@ -521,6 +521,32 @@ const TILES = [
         // wall's near-black line, and wide at the corners where three stones
         // meet, which is what rounds them off.
         joint: {width: 0.045, strength: 0.75, color: [0x42, 0x3a, 0x2f]},
+    },
+    {
+        // ⭐ AN INDOOR FLOOR (`Flagstone`, first laid in the cathedral): the
+        // wall's COURSES laid flat. Here the mason's rectangles are the brief,
+        // the opposite of the limestone's warning below: dressed slabs in
+        // straight rows with staggered joints are what reads as "inside a
+        // building" rather than a street or a plaza.
+        // ⚑ Fewer, bigger slabs than the wall and a calmer row height: a floor
+        // is laid level, so `rowVar` and the joint jitter are small. The joints
+        // are thin grout, not the wall's near-black mortar.
+        // ⭐ COLOUR: a pale warm sandstone, a clear step LIGHTER than `City`'s
+        // #847d6b, so a floor reads as swept and lit against the street outside.
+        file: 'flagstone-placeholder.png',
+        profileColor: [0x9e, 0x96, 0x84],
+        paint: 'masonry',
+        warp: {waves: STONE_WARP, strength: 3, offset: [0.29, 0.61]},
+        ramp: [[0x82, 0x7b, 0x6b], [0x9e, 0x96, 0x84], [0xb8, 0xb0, 0x9c]],
+        // ⚑ At the profile's `scale: 0.5` a tile spans 3.125 u, so 5 courses put
+        // a slab ~0.63 u deep and 2-3 columns ~1-1.5 u wide.
+        course: {rows: 5, cols: [2, 3], jitter: 0.12, rowVar: 0.15},
+        base: 0.16,
+        tintWeight: 0.5,
+        grit: {waves: STONE_GRIT, weight: 0.1},
+        dome: 0.03,
+        mortar: {width: 0.04, strength: 0.6, color: [0x5a, 0x53, 0x47]},
+        bevel: {width: 0.08, strength: 0.12},
     },
     {
         // ⭐ BURREN LIMESTONE, the base of `Coastal Cliff` (PO 2026-10-03:

@@ -1,0 +1,128 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="none">
+  <!-- Placeholder workshop roof (plan-city-assets.md K6): TRUE top-down, a
+       ROOF piece. The viewBox is 240x200 to match the 6 x 5 rect body in
+       api/props/workshop-roof.json (preserveAspectRatio=none, so the two must
+       stay in sync); 40 units per metre. It fades to its revealAlpha while
+       you stand under it, so the benches and the forge beneath show.
+
+       Built in PIECES (D7), on the library roof's rule: the ridge runs
+       east-west and the sheets fill the canvas edge to edge, so pieces laid
+       flush east-west read as one long workshop with no seam; the standing
+       seams repeat every 20 units across the join, and the east and west
+       edges carry no eave, only the south eave is darkened. Copper sheet,
+       soot-streaked, with a riveted brass ridge cap, a skylight on the lit
+       north pitch (lamplight in the glass), a gear-shaped vent on the ridge,
+       a stovepipe with a brass cowl on the shaded pitch.
+       Gnome palette (R5): brass, copper, gears, soot. -->
+  <defs>
+    <linearGradient id="workshopRoofNorth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="workshopRoofSouth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.3"/>
+    </linearGradient>
+    <radialGradient id="workshopRoofSoot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#121110" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#121110" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="workshopRoofGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff2c8"/>
+      <stop offset="0.5" stop-color="#f0b860"/>
+      <stop offset="1" stop-color="#b86a28"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the two pitches of copper sheet -->
+  <rect x="0" y="0" width="240" height="100" fill="#b06a40"/>
+  <rect x="0" y="100" width="240" height="100" fill="#8a4e2e"/>
+  <!-- standing seams, north-south, every 20 units so pieces join seamlessly -->
+  <g stroke="#5e2e14" stroke-width="1.6" opacity="0.7">
+    <line x1="10" y1="0" x2="10" y2="200"/>
+    <line x1="30" y1="0" x2="30" y2="200"/>
+    <line x1="50" y1="0" x2="50" y2="200"/>
+    <line x1="70" y1="0" x2="70" y2="200"/>
+    <line x1="90" y1="0" x2="90" y2="200"/>
+    <line x1="110" y1="0" x2="110" y2="200"/>
+    <line x1="130" y1="0" x2="130" y2="200"/>
+    <line x1="150" y1="0" x2="150" y2="200"/>
+    <line x1="170" y1="0" x2="170" y2="200"/>
+    <line x1="190" y1="0" x2="190" y2="200"/>
+    <line x1="210" y1="0" x2="210" y2="200"/>
+    <line x1="230" y1="0" x2="230" y2="200"/>
+  </g>
+  <g stroke="#e8a070" stroke-width="0.8" opacity="0.45">
+    <line x1="8.5" y1="0" x2="8.5" y2="100"/>
+    <line x1="28.5" y1="0" x2="28.5" y2="100"/>
+    <line x1="48.5" y1="0" x2="48.5" y2="100"/>
+    <line x1="68.5" y1="0" x2="68.5" y2="100"/>
+    <line x1="88.5" y1="0" x2="88.5" y2="100"/>
+    <line x1="108.5" y1="0" x2="108.5" y2="100"/>
+    <line x1="128.5" y1="0" x2="128.5" y2="100"/>
+    <line x1="148.5" y1="0" x2="148.5" y2="100"/>
+    <line x1="168.5" y1="0" x2="168.5" y2="100"/>
+    <line x1="188.5" y1="0" x2="188.5" y2="100"/>
+    <line x1="208.5" y1="0" x2="208.5" y2="100"/>
+    <line x1="228.5" y1="0" x2="228.5" y2="100"/>
+  </g>
+  <rect x="0" y="0" width="240" height="100" fill="url(#workshopRoofNorth)"/>
+  <rect x="0" y="100" width="240" height="100" fill="url(#workshopRoofSouth)"/>
+
+  <!-- weather: a newer sheet, soot streaks running down the shaded pitch -->
+  <rect x="190" y="8" width="20" height="40" fill="#d0844e" opacity="0.6"/>
+  <g fill="#1e1b19" opacity="0.22">
+    <rect x="132" y="120" width="8" height="70"/><rect x="214" y="118" width="6" height="60"/>
+    <rect x="24" y="30" width="6" height="40"/>
+  </g>
+
+  <!-- the skylight on the lit north pitch, lamplight in the glass -->
+  <rect x="34" y="28" width="52" height="34" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+  <rect x="34" y="28" width="52" height="34" fill="#c9a24a" stroke="#6e5520" stroke-width="1.2"/>
+  <rect x="38" y="32" width="44" height="26" fill="url(#workshopRoofGlass)"/>
+  <g stroke="#c9a24a" stroke-width="2"><line x1="60" y1="32" x2="60" y2="58"/><line x1="38" y1="45" x2="82" y2="45"/></g>
+  <path d="M40,34 L52,34 L40,42 Z" fill="#ffffff" opacity="0.5"/>
+
+  <!-- the stovepipe on the shaded pitch, soot spread round it -->
+  <circle cx="176" cy="150" r="38" fill="url(#workshopRoofSoot)"/>
+  <circle cx="176" cy="150" r="12" fill="#000000" opacity="0.35" transform="translate(5 5)"/>
+  <circle cx="176" cy="150" r="12" fill="#2f3134" stroke="#141414" stroke-width="1.4"/>
+  <circle cx="176" cy="150" r="8" fill="#0d0c0b"/>
+  <!-- the brass cowl over it on three stays -->
+  <g stroke="#6e5520" stroke-width="1.6">
+    <line x1="176" y1="150" x2="176" y2="139"/><line x1="176" y1="150" x2="185.5" y2="155.5"/>
+    <line x1="176" y1="150" x2="166.5" y2="155.5"/>
+  </g>
+  <circle cx="176" cy="150" r="6.5" fill="#c9a24a" stroke="#6e5520" stroke-width="0.8"/>
+  <circle cx="174" cy="148" r="2.5" fill="#f0dc9a" opacity="0.7"/>
+
+  <!-- the south eave, the shaded pitch's low edge -->
+  <rect x="0" y="190" width="240" height="10" fill="#3a1c0c" opacity="0.6"/>
+  <rect x="0" y="182" width="240" height="8" fill="#000000" opacity="0.14"/>
+
+  <!-- the brass ridge cap along the middle, riveted -->
+  <rect x="0" y="92" width="240" height="16" fill="#a8843a"/>
+  <rect x="0" y="93" width="240" height="4" fill="#f0dc9a" opacity="0.5"/>
+  <rect x="0" y="104" width="240" height="4" fill="#000000" opacity="0.25"/>
+  <g fill="#6e5520">
+    <circle cx="10" cy="100" r="1.4"/>
+    <circle cx="30" cy="100" r="1.4"/>
+    <circle cx="50" cy="100" r="1.4"/>
+    <circle cx="70" cy="100" r="1.4"/>
+    <circle cx="90" cy="100" r="1.4"/>
+    <circle cx="110" cy="100" r="1.4"/>
+    <circle cx="130" cy="100" r="1.4"/>
+    <circle cx="150" cy="100" r="1.4"/>
+    <circle cx="170" cy="100" r="1.4"/>
+    <circle cx="190" cy="100" r="1.4"/>
+    <circle cx="210" cy="100" r="1.4"/>
+    <circle cx="230" cy="100" r="1.4"/>
+  </g>
+  <!-- the gear-shaped vent on the ridge -->
+    <path d="M108.5,91.1 L108.9,89.1 L111.1,89.1 L111.5,91.1 A9,9 0 0,1 114,91.9 L114,91.9 L115.5,90.5 L117.3,91.8 L116.4,93.7 A9,9 0 0,1 118,95.8 L118,95.8 L120.1,95.6 L120.7,97.7 L118.9,98.7 A9,9 0 0,1 118.9,101.3 L118.9,101.3 L120.7,102.3 L120.1,104.4 L118,104.2 A9,9 0 0,1 116.4,106.3 L116.4,106.3 L117.3,108.2 L115.5,109.5 L114,108.1 A9,9 0 0,1 111.5,108.9 L111.5,108.9 L111.1,110.9 L108.9,110.9 L108.5,108.9 A9,9 0 0,1 106,108.1 L106,108.1 L104.5,109.5 L102.7,108.2 L103.6,106.3 A9,9 0 0,1 102,104.2 L102,104.2 L99.9,104.4 L99.3,102.3 L101.1,101.3 A9,9 0 0,1 101.1,98.7 L101.1,98.7 L99.3,97.7 L99.9,95.6 L102,95.8 A9,9 0 0,1 103.6,93.7 L103.6,93.7 L102.7,91.8 L104.5,90.5 L106,91.9 A9,9 0 0,1 108.5,91.1 Z" fill="#000000" opacity="0.3" transform="translate(3 3)"/>
+    <path d="M108.5,91.1 L108.9,89.1 L111.1,89.1 L111.5,91.1 A9,9 0 0,1 114,91.9 L114,91.9 L115.5,90.5 L117.3,91.8 L116.4,93.7 A9,9 0 0,1 118,95.8 L118,95.8 L120.1,95.6 L120.7,97.7 L118.9,98.7 A9,9 0 0,1 118.9,101.3 L118.9,101.3 L120.7,102.3 L120.1,104.4 L118,104.2 A9,9 0 0,1 116.4,106.3 L116.4,106.3 L117.3,108.2 L115.5,109.5 L114,108.1 A9,9 0 0,1 111.5,108.9 L111.5,108.9 L111.1,110.9 L108.9,110.9 L108.5,108.9 A9,9 0 0,1 106,108.1 L106,108.1 L104.5,109.5 L102.7,108.2 L103.6,106.3 A9,9 0 0,1 102,104.2 L102,104.2 L99.9,104.4 L99.3,102.3 L101.1,101.3 A9,9 0 0,1 101.1,98.7 L101.1,98.7 L99.3,97.7 L99.9,95.6 L102,95.8 A9,9 0 0,1 103.6,93.7 L103.6,93.7 L102.7,91.8 L104.5,90.5 L106,91.9 A9,9 0 0,1 108.5,91.1 Z" fill="#c9a24a" fill-rule="evenodd" stroke="#6e5520" stroke-width="0.6"/>
+    <path d="M101.9,100 A8.1,8.1 0 0,1 110,91.9" fill="none" stroke="#f0dc9a" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="110" cy="100" r="2.9" fill="#c9a24a" stroke="#6e5520" stroke-width="0.5"/>
+    <circle cx="110" cy="100" r="1.4" fill="#1e1b19" stroke="#6e5520" stroke-width="0.4"/>
+    <circle cx="109.5" cy="99.5" r="0.5" fill="#f0dc9a" opacity="0.8"/>
+</svg>

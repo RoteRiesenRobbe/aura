@@ -1,0 +1,6 @@
+{
+  "name": "Crane",
+  "entityType": "Crane",
+  "sprite": "crane.svg",
+  "body": { "width": 3, "height": 3 }
+}
