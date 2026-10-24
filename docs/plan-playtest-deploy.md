@@ -259,6 +259,16 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-10-24, `654fd239` (baseline `d9be8020`, 2026-10-22):** full
+  deploy carrying appearance C5b + C5c, EP1 (the state ring), the city-assets
+  prop kits K1-K7 (the city walls included), the trodden-earth town ground, the
+  PONETI Camp button and the localized speech-bubble fix. Wire changed
+  (`server.fbs`: new EntityTypes, `GameState` fields) → hard refresh required.
+  No migrations; no pre-deploy dump. No announcement (nobody online:
+  `💾 flushed 0 live character(s)`). Verified: content source `./api`, token
+  count 1, TLS boot, 46 campfires placed, no ERROR, one known WARN
+  (`the-strays`, cleanup.md #7), new client bundle `main.3eb64446…js` served,
+  `/skills` 200. PO smoke join on live passed.
 - **DEPLOYED 2026-10-22, `d9be8020` (baseline `59780288`, 2026-10-20):** full
   deploy carrying appearance C4 (the in-game picker) and C5 (ownership and
   unlocks), Short Spear + Spear Throw taught by Henrik, passives leaving the buff
