@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-23 from 309 rows.
+Rendered 2026-10-23 from 311 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-23 from 309 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 275 |
+| Art | 277 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,8 +48,8 @@ Rendered 2026-10-23 from 309 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 128 | a placeholder file ships; it is not the real thing |
-| 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
+| 🟡 placeholder | 131 | a placeholder file ships; it is not the real thing |
+| 🟡 stock | 9 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
@@ -58,11 +58,11 @@ Rendered 2026-10-23 from 309 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 70 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 115 | normal — placed but not everywhere |
-| **P3** | 93 | low — unplaced, deferred, or already fine |
+| **P1** | 72 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 116 | normal — placed but not everywhere |
+| **P3** | 92 | low — unplaced, deferred, or already fine |
 
-**195 rows need work** (missing, shared, placeholder, stock or blocked),
+**197 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 111
+## Prop — 113
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -284,6 +284,8 @@ of which **11 are P0**:
 | 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
+| 🟡 | **CityGatehouse** | `cityGatehouse.svg` | P1 | 3 | 960 × 480 | Dionsburg — Dionsburg's city gate, 8 × 4 m: two square crenellated towers of the city's grey wall stone with flagged tops, between them a 3 m cobbled passage open to the sky, the portcullis slot near the outer face, the two oak leaves swung open flat against the passage walls on the city side, strapped in iron. Lit from the top-left; the left tower's shadow falls across the passage. Drawn at the PO's ask (2026-10-23). |
+| 🟡 | **CornerTowerRoof** | `cornerTowerRoof.svg` | P1 | 4 | 1320 | Dionsburg — The open top of a city-wall corner tower seen from straight above: a crenellated parapet of grey wall stone (16 merlons), a flagged wall walk, an oak deck, the head of the spiral stair, a brazier with embers, a barrel of spare spears, a crate of sling stones, a pennant in blue and gold [PLACEHOLDER colours]. The parapet's shadow falls inward. Drawn at the PO's ask (2026-10-23). |
 
 ## Ground decal — 20
 
@@ -383,7 +385,7 @@ of which **11 are P0**:
 | 🟡 | **Dead Magic Forest** | `pd153.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #3b2d78. All numbers [PLACEHOLDER]. |
 | 🟡 | **Ashen Fields** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #8a2e1c. All numbers [PLACEHOLDER]. |
 | 🟡 | **Volcano** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #551a10. All numbers [PLACEHOLDER]. |
-| 🟡 | **City** | `pd141.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #7d7d80. All numbers [PLACEHOLDER]. |
+| 🟡 | **City** | `town-ground-placeholder.png` | P2 |  | seamless tile 750² | The town ground between the cobbled streets. GENERATED placeholder (tools/make-cellular-tiles.mjs `town-ground`): trodden brown earth with sparse straw and grit, darker than the cobbles so a street reads raised and lit. Replaced pd141 (grey stone) 2026-10-23: the cobbles were too similar to it. Real art wanted. |
 | 🟡 | **Derelict Fortress** | `pd143.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #4f4f53. All numbers [PLACEHOLDER]. |
 | 🟡 | **Desert** | `pd106.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #dd9a4e. All numbers [PLACEHOLDER]. |
 | 🟡 | **Wasteland** | `pd119.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #9a682f. All numbers [PLACEHOLDER]. |
@@ -393,7 +395,7 @@ of which **11 are P0**:
 | 🟡 | **Fence** | `fence-placeholder.png` | P2 |  | RGBA tile 750x96 | Z1 — ⭐ The FIRST directional tile: WRONG unless its path authors alignTexture true, which turns the tile along the path AND registers it across the path. Generated by tools/make-fence-tile.mjs, the fifth technique family. ⛔ The first cut was OPAQUE and read as a boardwalk (PO: not like a fence at all) - because registration did not exist yet, so nothing could sit at a known height across the ribbon, and A FENCE IS MOSTLY GAPS. It is now RGBA, alone among the ground tiles: a thin rail with posts standing proud of it and grass showing through. ⚑ The tile PIXEL HEIGHT is load-bearing - fence in the middle 48 of 96 rows, so width 0.40 reveals exactly the fence; safe to 0.80. Posts every 6.25 u (one per tile, on the wrap edge; a clean rail between). No baked shadow (the tile turns with its path). Author one path per straight leg. |
 | 🟡 | **Road** | `road-placeholder.png` | P0 |  | seamless tile 750² | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
 | 🟡 | **Stones** | `stones-placeholder.png` | P2 |  | seamless tile 750² | The first OVERLAY tile (docs/plan-ground-noise.md W2): Meant to be named by another profile's overlay to show as stony patches (none does yet: FieldsForestBlend, the first overlay content, uses Forest). GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fourth tile): the road's pebbles turned up until they are the material, about 45 % warm-grey stones over thin dark earth. Busier than a ground tile may be on purpose: a patch shows a piece of it and stops. Real art wanted. |
-| 🟡 | **Cobblestone** | `cobble-placeholder.png` | P1 |  | seamless tile 750² | The city street: Road paved. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fifth tile): rounded warm-grey cobbles (a Voronoi cut with soft-minned corners) in dark dirt joints, a step darker than the City ground so the street reads as laid into the plaza, and warm so it is not the Wall laid flat. Undirected, so a drop-in for Road on any meandering path (no alignTexture). Real art wanted. |
+| 🟡 | **Cobblestone** | `cobble-placeholder.png` | P1 |  | seamless tile 750² | The city street: Road paved. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fifth tile): rounded warm-grey cobbles (a Voronoi cut with soft-minned corners) in dark dirt joints, warm so it is not the Wall laid flat. Undirected, so a drop-in for Road on any meandering path (no alignTexture). Real art wanted. |
 | 🟡 | **Flagstone** | `flagstone-placeholder.png` | P2 |  | seamless tile 750² | A building floor, first laid in the cathedral: a REGION profile inside a building's walls. GENERATED placeholder (tools/make-cellular-tiles.mjs `flagstone`): the wall's courses laid flat, dressed pale-sandstone slabs in straight staggered rows with thin grout, a step lighter than the City ground so an interior reads as swept. Real art wanted. |
 | 🟡 | **Water** | `water-placeholder.png` | P1 |  | seamless tile, 512² suggested | Rivers and ponds. Placeholder PNG. Drift is authored; the tile is not. |
 | 🟡 | **Bog** | `bog-placeholder.png` | P2 |  | seamless tile, 512² suggested | Swamp water. Placeholder PNG. First area-effect consumer when that ships. |

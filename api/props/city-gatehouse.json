@@ -1,0 +1,7 @@
+{
+  "name": "CityGatehouse",
+  "entityType": "CityGatehouse",
+  "sprite": "cityGatehouse.svg",
+  "body": { "width": 8, "height": 4 },
+  "blocksMovement": false
+}

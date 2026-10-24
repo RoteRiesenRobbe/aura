@@ -988,6 +988,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Forge]: Props.genericPropClasses.Forge,
     [AuraApi.EntityType.Crane]: Props.genericPropClasses.Crane,
     [AuraApi.EntityType.SteamBoiler]: Props.genericPropClasses.SteamBoiler,
+    // Dionsburg's city walls (K7): the corner tower top is a roof by its definition.
+    [AuraApi.EntityType.CityGatehouse]: Props.genericPropClasses.CityGatehouse,
+    [AuraApi.EntityType.CornerTowerRoof]: Props.genericPropClasses.CornerTowerRoof,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

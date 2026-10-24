@@ -351,6 +351,20 @@ eighth prop that **emits light** (the Doorway lantern was the seventh), and the
 only one in K6. Six are drawn: Workbench and GearContraption as planned, the
 roof, forge, crane and boiler at the PO's ask instead of boxes.
 
+### C7. City walls - grey wall stone, oak, iron
+
+| Prop | Prio | State | px |
+|---|---|---|---|
+| CornerTowerRoof | P1 | placeholder (roof, fades to 0) | 1320 |
+| CityGatehouse | P1 | placeholder (underfoot art over a wall gap) | 960 x 480 |
+
+⭐ The PO's walls round Dionsburg (2026-10-23): open gates north and south, a
+shut one west (the reused JailBars is its portcullis), four round corner
+towers you enter from the city. The wall itself is a `Wall` path, not a prop.
+The gatehouse is neither roof nor solid: Wall paths under it block its towers,
+and it is turned per gate, so its top edge is always the outside. No K7 prop
+emits light; the guard rooms reuse the Brazier.
+
 ---
 
 ## Priority roll-up
@@ -358,11 +372,11 @@ roof, forge, crane and boiler at the PO's ask instead of boxes.
 **P0 (4):** Tree variant 2 · Boulder + Rock silhouettes · Campfire ·
 AscensionStone.
 
-**P1 (26):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
+**P1 (28):** Tree variant 3 · Bush · Dead tree · Broken fence · Palisade ·
 Haystack · Cart · Burnt cart · Well · Barn · Cottage variant · Bridge deck ·
 Cave mouth frame · Torch · Signpost · Camp + Memorial/FrontAscension stones ·
 CentralFountain · CathedralNaveRoof · CathedralTranseptRoof · CathedralApseRoof ·
-MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower · WorkshopRoof · Crane.
+MageTowerRoof · LibraryRoof · BarracksRoof · Watchtower · WorkshopRoof · Crane · CornerTowerRoof · CityGatehouse.
 
 **P2 (42):** Fern · Stump · Fallen log · Fence post · Gate · Mill · Plough ·
 Mossy rock · Tent · MarketStallRoof · MarketCounter · LampPost · Pew · Altar ·

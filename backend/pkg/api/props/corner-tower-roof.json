@@ -1,0 +1,8 @@
+{
+  "name": "CornerTowerRoof",
+  "entityType": "CornerTowerRoof",
+  "sprite": "cornerTowerRoof.svg",
+  "body": { "radius": 5.5 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0 }
+}

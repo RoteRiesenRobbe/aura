@@ -113,7 +113,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-` / `road-` / `stones-` / `cobble-` / `limestone-` / `coast-grass-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `wall-` / `road-` / `stones-` / `cobble-` / `flagstone-` / `town-ground-` / `limestone-` / `coast-grass-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -347,6 +347,8 @@ mortar, and a crisp six-cell Voronoi made a PAVED PLAZA in-game. Pavement is
 big slabs with soft, uneven cracks, so it is the cobble's cut with the
 rounding off, four cells, a heavy warp and a grey-green joint at reduced
 strength. It is meant to be seen in patches through the grass, never alone.
+
+⭐ **`town-ground-placeholder.png` replaced pd141 as the `City` ground** (2026-10-23): the road's recipe, darker, with straw wisps (`elong` 12) for pebbles. ⛔ **pd141 was a grey STONE tile and the cobbles were a step darker than it, so a street did not read as a street (PO).** Contrast between two neighbouring grounds needs a difference in KIND, not a step in tone: this one differs from the cobbles in hue (brown vs grey), value (darker) and detail (a smooth bed vs a surface of cells) at once.
 
 ### `shoreline-placeholder.png` — GENERATED, the third DIRECTIONAL tile
 

@@ -6,7 +6,8 @@
  * the same fix).
  *
  *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
- *     · cobble (the city street) · flagstone (a building floor) · limestone + coast-grass (the clifftop,
+ *     · cobble (the city street) · flagstone (a building floor) · town-ground (the city between
+ *     the streets) · limestone + coast-grass (the clifftop,
  *     `Coastal Cliff` = limestone under a coast-grass overlay)
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
@@ -493,12 +494,12 @@ const TILES = [
         // replacement for `Road` on any path.
         //
         // ⭐ COLOUR IS SET BY ITS NEIGHBOURS, not in the abstract (the ground
-        // README's tint rule): `City`'s tile (pd141) measures #847d6b, a warm
-        // grey-tan, and `Wall` is a NEUTRAL #7d7d80. So the cobbles are the
-        // city's own warm grey a step DARKER — the street reads as sunk into
-        // the plaza rather than painted on it — and stay warm, both so they
-        // are not the wall laid flat and because a neutral grey beside warm
-        // ground reads blue.
+        // README's tint rule): `Wall` is a NEUTRAL #7d7d80, so the cobbles
+        // stay a warm grey, both so they are not the wall laid flat and
+        // because a neutral grey beside warm ground reads blue. ⛔ They were
+        // first set a step darker than `City`'s old grey stone tile (pd141,
+        // #847d6b), and the street vanished into it; `town-ground` below is
+        // the fix, a ground that differs from the cobbles in kind.
         file: 'cobble-placeholder.png',
         profileColor: [0x76, 0x6f, 0x61],
         paint: 'cobble',
@@ -531,8 +532,8 @@ const TILES = [
         // ⚑ Fewer, bigger slabs than the wall and a calmer row height: a floor
         // is laid level, so `rowVar` and the joint jitter are small. The joints
         // are thin grout, not the wall's near-black mortar.
-        // ⭐ COLOUR: a pale warm sandstone, a clear step LIGHTER than `City`'s
-        // #847d6b, so a floor reads as swept and lit against the street outside.
+        // ⭐ COLOUR: a pale warm sandstone, lighter than both the cobbles and
+        // the `City` earth, so a floor reads as swept and lit against outside.
         file: 'flagstone-placeholder.png',
         profileColor: [0x9e, 0x96, 0x84],
         paint: 'masonry',
@@ -547,6 +548,49 @@ const TILES = [
         dome: 0.03,
         mortar: {width: 0.04, strength: 0.6, color: [0x5a, 0x53, 0x47]},
         bevel: {width: 0.08, strength: 0.12},
+    },
+    {
+        // ⭐ THE TOWN GROUND (`City`): the trodden earth between the streets,
+        // the road's recipe re-coloured. ⛔ IT REPLACED pd141, a grey STONE
+        // tile, because the PO found the cobbles too like it (2026-10-23): two
+        // warm greys a step apart, both stone, so a street did not read as a
+        // street. ⭐ So the contrast is carried THREE ways at once, and each
+        // alone was not enough in the mockups: HUE (brown earth vs grey
+        // stone), VALUE (darker than the cobbles, so a street reads raised and
+        // lit, and far darker than the `Flagstone` floors), and DETAIL (a
+        // smooth bed vs a surface made of cells).
+        // ⚑ STRAW, not more pebbles, is what makes it a town yard and not the
+        // `Road` lane leading into it. Long thin wisps (`elong` high, PLACED
+        // like the forest's leaves) and still sparse: the road's lesson, a
+        // ground is looked through.
+        file: 'town-ground-placeholder.png',
+        profileColor: [0x6e, 0x58, 0x3e],
+        paint: 'earth',
+        warp: {waves: EARTH_WARP, strength: 16, offset: [0.83, 0.47]},
+        bed: {
+            waves: BED,
+            ramp: [[0x5f, 0x4b, 0x34], [0x6e, 0x58, 0x3e], [0x7e, 0x66, 0x49]],
+            grit: 0.14,
+            gamma: 1.0,
+        },
+        cracks: {waves: CRACKS, sharpness: 44, strength: 0, color: [0x3a, 0x2c, 0x1d]},
+        layers: [
+            {
+                // Straw: pale, dry, long and thin.
+                n: 17, jitter: 0.5, elong: 12, radius: 0.45, sizeVar: 0.6,
+                fill: 0.16, salt: 610,
+                ramp: [[0x8c, 0x76, 0x4a], [0xb0, 0x98, 0x62]],
+                rim: 0.18, shadow: [2, 2], shadowStrength: 0.16,
+            },
+            {
+                // Grit: small dark stones trodden in, below and above the bed.
+                n: 41, jitter: 0.46, elong: 1.3, radius: 0.22, sizeVar: 0.7,
+                fill: 0.12, salt: 670,
+                ramp: [[0x5a, 0x46, 0x30], [0x82, 0x6c, 0x50]],
+                rim: 0.14, shadow: [2, 2], shadowStrength: 0.1,
+            },
+        ],
+        shadowColor: [0x34, 0x28, 0x1a],
     },
     {
         // ⭐ BURREN LIMESTONE, the base of `Coastal Cliff` (PO 2026-10-03:

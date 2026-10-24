@@ -354,7 +354,13 @@ enum EntityType : ushort {
   WorkshopRoof = 148,
   Forge = 149,
   Crane = 150,
-  SteamBoiler = 151
+  SteamBoiler = 151,
+
+  // ── Dionsburg's city walls (plan-city-assets.md K7). The gatehouse is
+  // art over a gap in the Wall path (neither roof nor solid); the corner
+  // tower top is a circle roof over a ring wall, like the mage tower.
+  CityGatehouse = 152,
+  CornerTowerRoof = 153
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
