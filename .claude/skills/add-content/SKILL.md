@@ -134,6 +134,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   besides the Go tables and the vocabulary golden; Go's
   `skills/shared_constants_test.go` and the frontend's
   `SharedConstants.test.ts` both pin that list.
+- **A new effect KIND that wants an indicator on the medallion takes a row in
+  `frontend/src/features/game-objects/logic/TokenState.ts`** (`STATE_ROWS`,
+  `plan-entity-presentation.md` §4): a new `applied_effects` bit, then an angle
+  from a spare slot on its side (harmful to the wearer right, helpful left),
+  and a glyph once one is picked (until then its colour disc stands in).
+  `TokenState.test.ts` fails a bit with no row. Never move an existing angle:
+  a position means one state for good (R5).
 - **Stuns diminish, for players and mobs** (manual §2, "Crowd control on
   players"): 100 %, 50 %, 25 %, then refused until 540 ticks after the last
   stun ended. A design that chains stuns (two sources, several players) will

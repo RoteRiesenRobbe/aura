@@ -164,6 +164,12 @@ Outside the token, unchanged and already in the mockup's position:
 `Token_HealthBar` (shipped), `Token_Status_Effects` pips (shipped),
 `Token_Name + Level` nameplate (shipped).
 
+⚑ Since `plan-entity-presentation.md` EP1 (2026-10-24) a seventh slot sits on
+top, inside the token: `indicators`, the state indicators on a circle just
+outside the ring, each state at a reserved angle (its D2-D4). It is a sibling
+of the portrait's `actualShape`, so neither the damage flash nor a corpse's
+grey reaches it. `Token_Status_Effects` pips retired into it.
+
 ⚑ Layer-order contract detail: ring, additions and decoration must sit
 **above the portrait** (horns tuck behind the ring but outside the portrait
 circle; webs sit on top of the ring). The rim sits **below everything**

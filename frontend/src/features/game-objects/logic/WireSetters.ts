@@ -18,6 +18,11 @@
 export interface OverheadVitals {   // Character, Mob
     setHealth(health: number, maxHealth: number): void;
     setShield(shieldHp: number, maxHealth: number): void;
+}
+
+// The wire applied_effects mask into the state table (plan-entity-presentation.md
+// D1, D7): indicators on the medallion, stealth's alpha on the entity.
+export interface TokenStateDisplay {    // Character, Mob
     setAppliedEffects(mask: number): void;
 }
 

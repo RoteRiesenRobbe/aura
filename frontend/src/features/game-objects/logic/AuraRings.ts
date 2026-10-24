@@ -25,9 +25,9 @@ export enum AuraCategoryBit {
 }
 
 /**
- * The category colour language, shared by the aura rings and the applied-effect
- * pips (EffectPips.ts) — a dot pip and a dot ring mean the same colour on
- * purpose. All colours [PLACEHOLDER] — tune in-game.
+ * The category colour language, shared by the aura rings and the state
+ * indicators (TokenState.ts): a dot indicator and a dot ring mean the same
+ * colour on purpose. All colours [PLACEHOLDER] — tune in-game.
  */
 export const AURA_CATEGORY_COLORS = {
     damage: 0xe04a3c,
@@ -37,8 +37,8 @@ export const AURA_CATEGORY_COLORS = {
     slow: 0x4a9ae0,
     light: 0xf0dfa0,
     resist: 0x5fbfb0,
-    // The speed pip's own green, moved here from EffectPips.ts rather than
-    // duplicated (PO ruling 2026-08-17): a haste RING and a hastened ally's PIP
+    // The speed indicator's green, kept here rather than duplicated (PO
+    // ruling 2026-08-17): a haste RING and a hastened ally's indicator
     // are the same colour because they are the same fact seen from two sides.
     speed: 0x6ee06e,
 } as const;

@@ -70,6 +70,13 @@ const STANCE_TINTS: { readonly [stance: number]: number } = {
     [Stance.Friendly]: 0x2e6fd8,
 };
 
+// A dead token (plan-entity-presentation.md D5, R2) greys its ring and disc
+// by these tints instead of tier and stance; the portrait greys by a filter.
+// The ring is greyscale art (above), so a grey tint keeps it grey (L9).
+// [PLACEHOLDER shades]
+export const GREY_RING = 0x8a8a8a;
+export const GREY_DISC = 0x4a4a4a;
+
 /** The ring's tint for a wire tier rank; an unknown rank reads as normal. */
 export function ringTint(rank: number): number {
     return RING_TINTS[rank] ?? RING_TINTS[TierRank.Normal];

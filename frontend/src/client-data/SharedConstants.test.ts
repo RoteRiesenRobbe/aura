@@ -1,7 +1,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {readFileSync} from 'fs';
 
-import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
+import {AppliedEffectBit} from '../features/game-objects/logic/TokenState';
 import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';

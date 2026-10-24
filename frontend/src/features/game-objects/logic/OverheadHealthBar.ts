@@ -1,5 +1,4 @@
 import {Container, Graphics} from 'pixi.js';
-import {EffectPips} from './EffectPips';
 import {shieldBarSegments} from './ShieldBarMath';
 import {
     OVERHEAD_BAR_BACKDROP,
@@ -16,11 +15,7 @@ import {
 // Mob adds it to `shape` so the bar inherits the night tint and corpse fade.
 //
 // The style constants live in client-data/Theme.ts since C6 (the leaf both
-// this module and EffectPips read; importing them from here was a cycle).
-
-// Gap between the bar's lower edge and the effect-pip strip, in px. Geometry,
-// not a color: stays with the bar rather than moving to Theme.
-export const OVERHEAD_BAR_PIP_GAP = 9;
+// this module and StateIndicators read; importing them from here was a cycle).
 
 export interface OverheadBarDimensions {
     barWidth: number;
@@ -41,7 +36,6 @@ export class OverheadHealthBar {
     private readonly healthFillGroup: Container;
     // Absorb segment on the bar (skill-vocab chunk 2, bare).
     private readonly shieldFillGroup: Container;
-    private readonly effectPips: EffectPips;
     private readonly barInnerX: number;
     private readonly barInnerWidth: number;
     // Raw wire values, kept so either setter can re-derive BOTH bar segments —
@@ -88,11 +82,6 @@ export class OverheadHealthBar {
         this.shieldFillGroup.visible = false;
         this.container.addChild(this.shieldFillGroup);
 
-        // Buff/debuff pips just under the bar.
-        this.effectPips = new EffectPips();
-        this.effectPips.container.y = barHeight / 2 + OVERHEAD_BAR_PIP_GAP;
-        this.container.addChild(this.effectPips.container);
-
         this.setHealth(1, 1); // full until the first snapshot
     }
 
@@ -116,12 +105,6 @@ export class OverheadHealthBar {
         this.lastShieldHp = shieldHp;
         this.lastMaxHealth = maxHealth;
         this.layoutBars();
-    }
-
-    // setAppliedEffects drives the buff/debuff pips from the wire
-    // applied_effects bitmask: the kinds currently applied TO this entity.
-    setAppliedEffects(mask: number) {
-        this.effectPips.setMask(mask);
     }
 
     private layoutBars() {

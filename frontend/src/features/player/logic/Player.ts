@@ -107,14 +107,13 @@ export class Player {
         if (isDefined(entity.auraCategory)) {
             this.character.setAuraCategories(entity.auraCategory);
         }
-        // No own pips (plan-buff-tray.md D10): the buff tray above the action
-        // bars draws the own player's effects from own_effects, so the own
-        // overhead bar's strip is never fed. applied_effects keeps feeding
-        // every OTHER entity's strip (EntityManager). It still sets the own
-        // token's stealth alpha (plan-effect-types-round-2.md C6, L12), or the
-        // stealthed player would be the one person who cannot see it.
+        // The own token's state (plan-entity-presentation.md R8, D7): the
+        // whole mask, so it shows the TYPES of its effects on the medallion
+        // and fades when stealthed, while the buff tray (plan-buff-tray.md
+        // D10) lists the spells. The second of the three input doors; the
+        // first, every other entity, is EntityManager's.
         if (isDefined(entity.appliedEffects)) {
-            this.character.setTokenAlpha(entity.appliedEffects);
+            this.character.setAppliedEffects(entity.appliedEffects);
         }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);

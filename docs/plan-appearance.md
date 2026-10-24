@@ -623,6 +623,10 @@ whenever the pilot lands.**
   (Summons onto the medallion moved to C2b.) Survey (2026-10-23): two spawn doors in
   `sys/state.go` (the death path and the dead reconnect), both already holding the look
   in `deadState` / the reconnect stash; `CorpseEntityFlatbufMarshal` writes it.
+  ⭐ **Designed 2026-10-23: C6 waits on that plan's EP1 and builds its D9** (cited EP-D#):
+  the corpse adopts the token slots + `Medallion`, the look-drawing moves from `Character`
+  into `Medallion`, `EntityManager` dispatches `setLook` for corpses, and the corpse sets
+  the `dead` row EP1 built unlit (everything grey but the red skull at 6 o'clock, R2 there).
   *Schema: DB none · wire `Resource` +2.*
 
 What waits on art, and what does not: all data plumbing (C3-C5) runs on

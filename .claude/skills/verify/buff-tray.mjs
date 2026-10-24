@@ -3,19 +3,20 @@
 // timed effects as icon circles above the action bars, at the game surface.
 //
 //   1  boot: the catalog carries icons on the mob skills C0 authored,
-//   2  an empty tray on a fresh character, and no pips under the own plate,
+//   2  an empty tray on a fresh character, and no indicators on the own token,
 //   3  Swift: a beneficial circle appears, its wedge grows (the elapsed share
 //      darkens), the hover tooltip reads Swift's tooltip plus a time line, and
 //      the circle leaves when the burst runs out,
 //   4  Recover while hurt (instant_hot, the one SELF hot: a hot aura skips its
-//      caster by design, applyHotAura): a hot circle, and still no pips under
-//      the own plate while it is up (D10),
+//      caster by design, applyHotAura): a hot circle, and the own token shows
+//      a `hot` state indicator while it is up (ruling R8: the token shows
+//      effect TYPES, the tray lists the spells),
 //   5  the giant spiders' venom: a HARMFUL circle keyed by the biting spider
 //      (caster != 0, D16), REFILLED by every re-bite while in the pack (D2),
 //      then draining out and leaving after the warp away,
 //   6  a spider under the player's Immolate (a 2 u dot aura; Blight's 1 u never
-//      reaches a spider biting from 1.6 u) still carries its own Dot pip: the
-//      pips retired for the own player only.
+//      reaches a spider biting from 1.6 u) carries a `dot` state indicator on its
+//      token (read off the mob shapes' stateIndicators children).
 //   C3 (plan-buff-tray.md §7 C3, the phone + always-on half):
 //   7  an equipped passive (Tough) is a PERMANENT beneficial circle: full, at
 //      the outer end, its tooltip ending in "permanent",
@@ -113,12 +114,11 @@ const tray = () => page.evaluate(() => {
   }));
   return { beneficial: read('beneficial'), harmful: read('harmful'), present: !!document.getElementById('buffTray') };
 });
-// The own plate's strip: DRAWN instructions, not `visible` (the standing
-// EffectPips gotcha); a never-fed strip has none.
-const ownPips = () => page.evaluate(() => {
-  const ob = window.game.character?.overheadBar;
-  const g = ob?.effectPips?.container?.children?.[0];
-  return { drawnMask: ob?.effectPips?.drawnMask ?? null, instructions: (g?.context?.instructions || []).length };
+// The own token's state indicators: the child labels (row ids) of the
+// `stateIndicators` container under the character's shape; empty when none live.
+const ownIndicators = () => page.evaluate(() => {
+  const c = window.game.character?.shape?.getChildByLabel('stateIndicators', true);
+  return (c?.children || []).map((k) => k.label);
 });
 const find = (t, side, name) => t[side].find((c) => c.name === name) || null;
 const waitFor = async (pred, ms, step = 150) => {
@@ -135,12 +135,12 @@ await cmd('PING');
 await cmd('GOD on');
 await cmd('WARP ' + (IDLE.x * 120) + ' ' + (IDLE.y * 120), 3000);
 
-// --- leg 2: empty tray, no own pips ----------------------------------------------
+// --- leg 2: empty tray, no own indicators ----------------------------------------------
 const t0 = await tray();
-const p0 = await ownPips();
-check('A fresh character: the tray is there and empty, the own plate draws no pips',
-  t0.present && t0.beneficial.length === 0 && t0.harmful.length === 0 && p0.instructions === 0,
-  `tray present ${t0.present}, beneficial ${t0.beneficial.length}, harmful ${t0.harmful.length}; own pips drawnMask ${p0.drawnMask}, instructions ${p0.instructions}`);
+const p0 = await ownIndicators();
+check('A fresh character: the tray is there and empty, the own token shows no indicators',
+  t0.present && t0.beneficial.length === 0 && t0.harmful.length === 0 && p0.length === 0,
+  `tray present ${t0.present}, beneficial ${t0.beneficial.length}, harmful ${t0.harmful.length}; own indicators ${JSON.stringify(p0)}`);
 
 // --- leg 3: Swift ------------------------------------------------------------------
 await cmd('SKILL Swift');
@@ -252,17 +252,17 @@ await cmd('DAMAGE 50');
 const recoverSlot = await equipCooldown(/Recover/, 1);
 if (recoverSlot) await fireKey('r');
 const hotUp = recoverSlot ? await waitFor(async () => find(await tray(), 'beneficial', 'Recover'), 6000) : null;
-let pipsUnderHot = null;
+let indicatorsUnderHot = null;
 if (hotUp) {
-  pipsUnderHot = await ownPips();
+  indicatorsUnderHot = await ownIndicators();
   await page.screenshot({ path: join(shotDir, `buff-tray-${label}-hot.png`) });
 }
 check('Recover: a hot circle appears when the self hot lands',
   recoverSlot ? !!hotUp && (hotUp.kinds & KIND.hot) !== 0 && !hotUp.harmfulClass : null,
   recoverSlot ? (hotUp ? `circle ${JSON.stringify(hotUp)}` : 'no Recover circle within 6 s of firing') : 'INCONCLUSIVE: Recover never reached cooldown slot 1');
-check('D10: the own plate draws no pips while the hot is up',
-  hotUp ? pipsUnderHot.instructions === 0 : null,
-  hotUp ? `own pips drawnMask ${pipsUnderHot.drawnMask}, instructions ${pipsUnderHot.instructions}` : 'INCONCLUSIVE: no hot circle');
+check('R8: the own token shows the hot indicator while the hot is up (the tray still has the circle)',
+  hotUp ? indicatorsUnderHot.includes('hot') : null,
+  hotUp ? `own indicators ${JSON.stringify(indicatorsUnderHot)}` : 'INCONCLUSIVE: no hot circle');
 
 // --- leg 7: a passive is a permanent beneficial circle (D9) --------------------------
 const tooltipText = () => page.evaluate(() => {
@@ -334,27 +334,22 @@ const venomUp = await waitFor(async () => {
   const t = await tray();
   return t.harmful.find((c) => (c.kinds & (KIND.dot | KIND.slow)) !== 0) || null;
 }, 25_000, 250);
-// A spider under Blight carries the Dot pip on ITS plate: the strip retired for the own player only.
+// A spider under Immolate carries the Dot indicator on ITS token: a mob's
+// medallion token hangs on its SHAPE (Mobs.ts, not on the mobPlate the nameplate
+// uses), so walk every mob layer's children and read the `stateIndicators`
+// container's child labels (row ids), never pixels.
 const mobPip = await waitFor(async () => page.evaluate(() => {
-  // A mob's overhead bar hangs on its SHAPE (Mobs.ts, not on the mobPlate the
-  // nameplate uses), so walk every mob layer's children. The pip strip is the
-  // one-Graphics container parked below the bar at x=0, y>0 (the old own-plate
-  // walker of swift-cooldown.mjs), and DRAWN instructions are the signal,
-  // never `visible`.
-  let drawn = 0; let strips = 0; let shapes = 0;
-  const walk = (c, onStrip) => {
-    if (!c) return;
-    const kids = c.children || [];
-    if (kids.length === 1 && kids[0] && kids[0].context && c.x === 0 && c.y > 0) { onStrip(kids[0]); return; }
-    kids.forEach((k) => walk(k, onStrip));
-  };
+  let dots = 0; let containers = 0; let shapes = 0;
   for (const layer of Object.values(window.game.layers.mobs || {})) {
     for (const shape of layer.children || []) {
       shapes++;
-      walk(shape, (g) => { strips++; if ((g.context.instructions || []).length > 0) drawn++; });
+      const c = shape.getChildByLabel?.('stateIndicators', true);
+      if (!c) continue;
+      containers++;
+      if ((c.children || []).some((k) => k.label === 'dot')) dots++;
     }
   }
-  return drawn > 0 ? { shapes, strips, drawn } : null;
+  return dots > 0 ? { shapes, containers, dots } : null;
 }), 12_000, 300);
 let venomShot = null; let refills = 0; const venomSamples = [];
 if (venomUp) {
@@ -396,9 +391,9 @@ check('In the pack: every re-bite REFILLS the venom circle (D2)',
 check('Away from the pack the venom circle drains out and leaves',
   venomUp ? (venomGoneAt !== null && (drained || venomGoneAt < 2000)) : null,
   venomUp ? `drained ${drained}, refreshed by a re-bite ${venomRefreshed}, gone after ${venomGoneAt === null ? '> 20 s' : venomGoneAt + ' ms'}` : 'INCONCLUSIVE: no harmful circle to watch');
-check('A spider under Immolate still carries its own Dot pip (the strip retired for the own player only)',
+check('A spider under Immolate shows a dot state indicator on its token',
   blight.ok ? !!mobPip : null,
-  blight.ok ? (mobPip ? `${mobPip.drawn} of ${mobPip.strips} mob pip strips drawn across ${mobPip.shapes} mob shapes` : 'no mob plate drew a Dot pip within 12 s of arriving with Immolate on') : `INCONCLUSIVE: ${blight.why}`);
+  blight.ok ? (mobPip ? `${mobPip.dots} of ${mobPip.containers} mob indicator containers hold a dot, across ${mobPip.shapes} mob shapes` : 'no mob token showed a dot indicator within 12 s of arriving with Immolate on') : `INCONCLUSIVE: ${blight.why}`);
 
 // --- legs 9 + 10: the phone (?mobile, 844x390) -------------------------------------
 // ⚑ Shut the desktop page first: two live pages leave one in the background,

@@ -14,9 +14,9 @@
 // is not CC, so GOD refuses none of it. Tri-state: a pack that never stands in
 // the shout's 3 u circle is INCONCLUSIVE, not red.
 //
-// The pip legs hook EffectPips.setMask through the OWN plate's instance: the
-// prototype is shared with every mob and other-player strip, so the hook sees
-// every mask the client is handed, which is what the wire carries.
+// The pip legs hook StateIndicators.setState through the OWN medallion's instance:
+// the prototype is shared with every other token, so the hook sees every mask
+// handed to OTHER entities (the own token is skipped), which is what the wire carries.
 //
 // Usage: node .claude/skills/verify/c1-stat-buffs.mjs [label] [url]
 // Boundary: the stacking rules, bounds and read sites are Go's; the tooltip's
@@ -61,9 +61,10 @@ const openClient = async (tag) => {
   // Record every pip mask the client is handed (see the header).
   await page.evaluate(() => {
     window.__masks = [];
-    const proto = Object.getPrototypeOf(window.game.character.overheadBar.effectPips);
-    const orig = proto.setMask;
-    proto.setMask = function (mask) { if (mask) window.__masks.push(mask); return orig.call(this, mask); };
+    const own = window.game.character.medallion.indicators;
+    const proto = Object.getPrototypeOf(own);
+    const orig = proto.setState;
+    proto.setState = function (state) { if (state.mask && this !== own) window.__masks.push(state.mask); return orig.call(this, state); };
   });
   const cmd = async (text, wait = 700) => {
     await page.evaluate((t) => {

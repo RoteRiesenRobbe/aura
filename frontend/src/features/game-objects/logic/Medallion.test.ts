@@ -1,9 +1,10 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {Container, Sprite, Texture} from 'pixi.js';
+import {ColorMatrixFilter, Container, Sprite, Texture} from 'pixi.js';
 import {createTokenSlots, TokenSlots} from './TokenSlots';
 import {registerGameObjectSVG} from '../../core/logic/Preloading';
 import {Medallion} from './Medallion';
-import {RING_FAMILY_FILES, ringTint, stanceTint} from '../../../client-data/Medallions';
+import {GREY_DISC, GREY_RING, RING_FAMILY_FILES, ringTint, stanceTint} from '../../../client-data/Medallions';
+import {AppliedEffectBit, tokenState} from './TokenState';
 import {TierRank} from '../../../client-data/Mobs';
 import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
@@ -111,5 +112,97 @@ describe('Medallion', () => {
         medallion.setPortraitTexture(new Texture());
         medallion.setPortraitTexture(null);
         expect(portrait.texture).toBe(Texture.WHITE);
+    });
+
+    // plan-entity-presentation.md D5, D6: the medallion owns its final tints,
+    // and a grey (dead) token greys disc and ring by tint, the portrait alone
+    // by a filter.
+    describe('state', () => {
+        const dead = tokenState(0, true);
+        const alive = tokenState(0, false);
+
+        it('greys disc and ring by tint, and brings tier and stance back on ungrey', () => {
+            ringHolder('grey').svg = ringTexture;
+            const medallion = build();
+            medallion.setRing('grey');
+            medallion.setTier(TierRank.Boss);
+            medallion.setStance(Stance.Friendly);
+
+            medallion.setState(dead);
+            expect(ring().tint).toBe(GREY_RING);
+            expect(disc().tint).toBe(GREY_DISC);
+
+            medallion.setState(alive);
+            expect(ring().tint).toBe(ringTint(TierRank.Boss));
+            expect(disc().tint).toBe(stanceTint(Stance.Friendly));
+        });
+
+        // L2: setRing recreates the sprite; a late ring on a corpse must not
+        // bring the tier colour back.
+        it('keeps grey on a ring drawn after the grey', () => {
+            const medallion = build();
+            medallion.setState(dead);
+            ringHolder('grey').svg = ringTexture;
+            medallion.setRing('grey');
+            expect(ring().tint).toBe(GREY_RING);
+        });
+
+        it('stays grey through a tier or stance change, and takes them on ungrey', () => {
+            ringHolder('grey').svg = ringTexture;
+            const medallion = build();
+            medallion.setRing('grey');
+            medallion.setState(dead);
+            medallion.setTier(TierRank.Elite);
+            medallion.setStance(Stance.Neutral);
+            expect(ring().tint).toBe(GREY_RING);
+            expect(disc().tint).toBe(GREY_DISC);
+
+            medallion.setState(alive);
+            expect(ring().tint).toBe(ringTint(TierRank.Elite));
+            expect(disc().tint).toBe(stanceTint(Stance.Neutral));
+        });
+
+        // L1: a filter covers every descendant, so the grey sits on the
+        // portrait's slot alone, never on the token or the frame.
+        it('greys the portrait through one filter on actualShape only', () => {
+            const medallion = build();
+            medallion.setState(dead);
+            const filters = slots.actualShape.filters as ColorMatrixFilter[];
+            expect(filters).toHaveLength(1);
+            expect(filters[0]).toBeInstanceOf(ColorMatrixFilter);
+            expect(filters[0].enabled).toBe(true);
+            expect(slots.token.filters ?? null).toBeNull();
+            expect(slots.frame.filters ?? null).toBeNull();
+            expect(slots.indicators.filters ?? null).toBeNull();
+
+            medallion.setState(alive);
+            expect((slots.actualShape.filters as ColorMatrixFilter[])[0].enabled).toBe(false);
+        });
+
+        it('builds no filter for a token that never greys', () => {
+            const medallion = build();
+            medallion.setState(tokenState(AppliedEffectBit.Dot | AppliedEffectBit.Stealth, false));
+            expect(slots.actualShape.filters ?? null).toBeNull();
+        });
+
+        // The damage flash appends its own filter (StatusEffect.ts); the grey
+        // joins it rather than replacing it.
+        it('appends the grey beside a filter already on the portrait', () => {
+            const flash = new ColorMatrixFilter();
+            slots.actualShape.filters = [flash];
+            const medallion = build();
+            medallion.setState(dead);
+            const filters = slots.actualShape.filters as ColorMatrixFilter[];
+            expect(filters).toHaveLength(2);
+            expect(filters[0]).toBe(flash);
+        });
+
+        it('draws the indicators into the indicators slot', () => {
+            const medallion = build();
+            medallion.setState(tokenState(AppliedEffectBit.Dot | AppliedEffectBit.Hot, false));
+            expect(slots.indicators.children).toHaveLength(1);
+            const drawn = slots.indicators.children[0] as Container;
+            expect(drawn.children.map(child => child.label).sort()).toEqual(['dot', 'hot']);
+        });
     });
 });

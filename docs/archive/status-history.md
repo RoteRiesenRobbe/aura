@@ -10,7 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
-*(2026-10-23, the City Walls (city-assets K7) wrap: the APPEARANCE C5c entry fell off the cap of three and moved here verbatim.)*
+*(2026-10-24, merging the City Walls (city-assets K7) wrap with Entity Presentation EP1: the APPEARANCE C5b entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: APPEARANCE C5b, the stone bonus** ✅ DONE 2026-10-23, PO look passed 2026-10-23 `d7412d1c` (ledger: `docs/plan-appearance.md` §12 C5b; rulings in §7): a stone's `catalog` node lists `bonusLooks`, granted on top of any pick (the empty one too) in the `AscendCharacter` transaction. Such a look is marked `"grantedBy": "stone"` (bloodline/account, no conditions) and shows greyed: "Locked: a gift of an ascension stone". Placeholder: the main stone gives `gold-amulet` (Human_12). ⚑ An EMPTY gate passes `conditionsPass`: both evaluators skip stone gifts by the marker (pinned). Choosing a look at the stone is the ceremony plan's AC1 + AC2, not this. **Schema: DB none · wire `ConversationLockKind` +1 · content +1 node key, +1 item · lang +1 key.** Verified: Go green bar the 3 known reds · vitest 1903/0 · `c2a-ascension-site` 35/35 · `c1-medallions` 53/0/1.
+
+*(2026-10-23/24, the City Walls (city-assets K7) wrap and the Entity Presentation EP1 merge each moved the APPEARANCE C5c entry: it fell off the cap of three and moved here verbatim.)*
 
 - **Prior: APPEARANCE C5c, the unlock client** ✅ DONE 2026-10-23, PO look passed 2026-10-23 `a343d038` (ledger: `docs/plan-appearance.md` §12 C5c; rulings in §7): the in-game panel shows every look, the ones not owned greyed, their hover the GAME tooltip (the skills' one, never a `title`, PO) with "Locked: level 3 (1/3)"; the SERVER sends each locked look's reasons with progress (owner block, the rows' `lockReasons`), so no condition kind needs client code. Earned looks light the buttons and ☰ (two owners now, `MenuBreadcrumb`) and glow until the panel shuts; creation offers wearable looks only and preselects the predecessor's per slot (D12). ⚑ Found: the open panel rebuilt on every owner-block heartbeat (a press hit a detached tile). **Schema: DB none · wire GameState +1 vector +1 table · lang +2 keys.** Verified: Go green bar the 3 known reds · vitest 1898/0 · `c1-medallions` 52/0/1 · `chunk2-accounts` 27/27.
 

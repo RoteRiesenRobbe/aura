@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import {aboveTokenY} from './PlateAnchors';
 
 /**
  * The interact prompt (plan-entity-model.md chunk 3b-i, D12): a small key cap
@@ -54,9 +55,13 @@ export class InteractBadge {
      * @param parent the container the cap is drawn into — the mob's plate,
      *               above every prop, fading and hiding with the mob
      * @param sprite the mob's art alone, the thing the cap is anchored above
+     * @param clearance px above the art the cap also stays clear of: the
+     *                  medallion's state indicators (plan-entity-presentation.md
+     *                  D8), 0 for a plain object
      */
     constructor(private readonly parent: PIXI.Container,
-                private readonly sprite: PIXI.Container) {
+                private readonly sprite: PIXI.Container,
+                private readonly clearance: number) {
     }
 
     /**
@@ -129,7 +134,7 @@ export class InteractBadge {
         this.container.addChild(cap);
         this.container.addChild(text);
         this.container.x = this.offsetX;
-        this.container.y = -(this.spriteTopOffset() + capHeight / 2 + GAP_ABOVE_SPRITE);
+        this.container.y = aboveTokenY(this.spriteTopOffset(), this.clearance) - capHeight / 2 - GAP_ABOVE_SPRITE;
 
         this.parent.addChild(this.container);
     }

@@ -8,26 +8,27 @@
 // aura still refuses the same target.
 //
 //   1. Rejuvenation equips as an active aura and lights
-//   2. an ally at FULL health receives the HoT — the pip lights (the ruling)
-//   3. the control (no healer in range) shows no pip — proves the pip is the
+//   2. an ally at FULL health receives the HoT — the hot indicator lights (the ruling)
+//   3. the control (no healer in range) shows no hot indicator - proves the indicator is the
 //      healer's doing and not an artefact of standing there
-//   4. Heal (heal_aura) on the same full-health ally lights NO pip — the
+//   4. Heal (heal_aura) on the same full-health ally lights NO hot indicator - the
 //      wounded-only gate survives where it is load-bearing (§33's split)
 //
-// ⚑ Why the pip and not the HP bar: a HoT on a full-HP ally is INERT by design
+// ⚑ Why the indicator and not the HP bar: a HoT on a full-HP ally is INERT by design
 // (tickHotEvents drops any tick healing <= 0 before XP, threat and combat
-// entry), so there is no HP movement to measure. The applied-effect pip is the
+// entry), so there is no HP movement to measure. The applied-effect state indicator is the
 // only observable, which is exactly the point of the ruling — the buff is
 // PLACED, ready for the damage that has not arrived yet.
 //
-// ⚑ The pip signal is DRAWN INSTRUCTIONS, not `visible`: EffectPips
-// early-returns when the mask is unchanged, so a never-pipped Graphics keeps
-// its constructed visible=true with nothing in it (2026-07-29, chunk3-charm).
+// ⚑ The signal is the CHILD LABELS of the own token's `stateIndicators`
+// container (one child per live indicator, labelled with the row id; `hot` is
+// the HoT). `visible` is honest now (the container hides when empty), but the
+// label is the signal, not pixels.
 //
 // ⚑ Both players run GOD so nothing wanders in and wounds the ally mid-run —
 // a wounded ally would pass leg 2 under the OLD behaviour too, which would
 // make this harness prove nothing. Leg 2 asserts the ally is at ratio 1.0 at
-// the moment the pip is read, and reports INCONCLUSIVE if it is not.
+// the moment the indicator is read, and reports INCONCLUSIVE if it is not.
 //
 // Usage: node .claude/skills/verify/backlog33-prehot.mjs [label] [url]
 import { createRequire } from 'node:module';
@@ -86,22 +87,12 @@ const cmd = async (page, text) => {
   await page.waitForTimeout(700);
 };
 
-// The pip strip on the player's own plate: a container at x=0, y>0 holding
-// exactly one Graphics, parked below the overhead bar (swift-cooldown).
+// The own token's state indicators: does the `stateIndicators` container under
+// the character's shape hold a child labelled `hot`?
 const pipOn = (page) => page.evaluate(`
   (() => {
-    let found = null;
-    const walk = (c) => {
-      if (found !== null || !c) return;
-      const kids = c.children || [];
-      if (kids.length === 1 && kids[0] && kids[0].context && c.x === 0 && c.y > 0) {
-        found = !!kids[0].visible && (kids[0].context.instructions || []).length > 0;
-        return;
-      }
-      kids.forEach(walk);
-    };
-    walk(window.game.character.plate);
-    return found;
+    const c = window.game.character.shape.getChildByLabel('stateIndicators', true);
+    return !!c && (c.children || []).some((k) => k.label === 'hot');
   })()
 `);
 
@@ -202,23 +193,23 @@ const controlPip = await pipOn(control);
 // --- 2. the ruling: a FULL-health ally gets the HoT ---
 if (allyRatio !== 1) {
   check('An ally at FULL health receives the HoT (the §33 ruling)', false,
-    `INCONCLUSIVE — the ally was not at full health when the pip was read (ratio ${allyRatio}); ` +
-    `a wounded ally would have been pipped under the OLD behaviour too, so this proves nothing. Re-run.`);
+    `INCONCLUSIVE — the ally was not at full health when the indicator was read (ratio ${allyRatio}); ` +
+    `a wounded ally would have been hotted under the OLD behaviour too, so this proves nothing. Re-run.`);
 } else {
   check('An ally at FULL health receives the HoT (the §33 ruling)', allyPip === true,
-    `ally at ratio 1.0, pip: ${allyPip} — pre-hotting works`);
+    `ally at ratio 1.0, hot indicator: ${allyPip} - pre-hotting works`);
 }
 
-// --- 3. the control: the pip is the healer's doing ---
-check('An out-of-range player shows no pip (control)', controlPip === false,
-  `control 12 units away, pip: ${controlPip}`);
+// --- 3. the control: the indicator is the healer's doing ---
+check('An out-of-range player shows no hot indicator (control)', controlPip === false,
+  `control 12 units away, hot indicator: ${controlPip}`);
 
 // --- 4. the other half of the split: heal_aura still refuses a full-HP ally ---
 // Swap the active aura to Heal and let it tick. The direct heal must NOT touch
 // a full-health ally — that gate is load-bearing (selfDamageHP + maxTargets 1)
 // and the ruling deliberately left it alone.
 const heal = await equipAndActivateAura(healer, /\bHeal\b/, 1);
-// ⚑ Wait out the RESIDUAL Rejuvenation HoT before reading the pip. The buff
+// ⚑ Wait out the RESIDUAL Rejuvenation HoT before reading the indicator. The buff
 // lives hotTicks 6 × hotTickInterval 60 = 360 ticks = 12 s, and the aura was
 // topping it up until the moment the loadout switched — so a 9 s wait reads
 // the leftover HoT and blames heal_aura for it.
@@ -227,8 +218,8 @@ const allyRatioAfter = await healthRatio(ally);
 const allyPipUnderHeal = await pipOn(ally);
 check('Direct heal (heal_aura) still ignores a full-health ally',
   heal.ok && allyRatioAfter === 1 && allyPipUnderHeal === false,
-  `heal active: ${heal.why}; ally ratio ${allyRatioAfter}, pip ${allyPipUnderHeal} ` +
-  `(a heal_aura draws no pip and must not fire at full HP)`);
+  `heal active: ${heal.why}; ally ratio ${allyRatioAfter}, hot indicator ${allyPipUnderHeal} ` +
+  `(a heal_aura shows no hot indicator and must not fire at full HP)`);
 
 const passed = results.filter((r) => r.pass).length;
 console.log(`label : ${label}`);

@@ -5,11 +5,10 @@
 // refactor. Run once at the pre-change tree ("before") and once after
 // ("after"); the samples must match.
 //
-// Scenes: (a) own plate with health bar (NO HoT pip any more: the own pip strip
-// is never fed since plan-buff-tray.md C2, D10, and Rejuvenation's hot aura
-// skips its caster on the server, so neither a pip nor a tray circle shows on
-// the own player; pipChildren/pipDrawn read the unfed strip and trayCircles the
-// tray, both expected empty), (c) shield segment visible,
+// Scenes: (a) own plate with health bar (NO HoT indicator: Rejuvenation's hot
+// aura skips its caster on the server, so neither a state indicator nor a tray
+// circle shows on the own player; `indicators` lists the own token's state
+// indicator ids and trayCircles the tray, both expected empty), (c) shield segment visible,
 // (b) mob plates/bars at the boar field (eyeball only — mobs wander, so pixels
 // are not comparable, but the geometry class is shared with (a)),
 // (d) cast bar mid-Recall with the indicator rect vs the shown fraction.
@@ -115,9 +114,7 @@ const sampleOverhead = () => page.evaluate(() => {
     shieldVisible: ob?.shieldFillGroup?.visible,
     shieldScale: r(ob?.shieldFillGroup?.scale.x),
     shieldX: r(ob?.shieldFillGroup?.position.x),
-    pipY: r(ob?.effectPips?.container?.y),
-    pipChildren: ob?.effectPips?.container?.children?.length,
-    pipDrawn: (ob?.effectPips?.container?.children?.[0]?.context?.instructions || []).length,
+    indicators: (ch?.shape?.getChildByLabel?.('stateIndicators', true)?.children || []).map((k) => k.label),
     trayCircles: [...document.querySelectorAll('#buffTray .buffCircle')].map((c) => c.dataset.skillName),
     hudShield: document.querySelector('#healthBar .shieldIndicator')?.style.display,
     focusText: document.querySelector('#healthBar .barText')?.textContent,
