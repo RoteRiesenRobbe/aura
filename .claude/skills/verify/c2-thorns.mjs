@@ -15,9 +15,9 @@
 // legs read the buff, not a hit (the bounce itself is Go's, sys/thorns_test.go
 // and model/mob/thorns_test.go). A press that never fires is INCONCLUSIVE.
 //
-// The pip leg hooks EffectPips.setMask through the OWN plate's instance: the
-// prototype is shared with every mob and other-player strip, so the hook sees
-// every mask the client is handed, which is what the wire carries.
+// The pip leg hooks StateIndicators.setState through the OWN medallion's instance:
+// the prototype is shared with every other token, so the hook sees every mask
+// handed to OTHER entities (the own token is skipped), which is what the wire carries.
 //
 // Usage: node .claude/skills/verify/c2-thorns.mjs [label] [url]
 
@@ -58,9 +58,10 @@ const openClient = async (tag) => {
   // Record every pip mask the client is handed (see the header).
   await page.evaluate(() => {
     window.__masks = [];
-    const proto = Object.getPrototypeOf(window.game.character.overheadBar.effectPips);
-    const orig = proto.setMask;
-    proto.setMask = function (mask) { if (mask) window.__masks.push(mask); return orig.call(this, mask); };
+    const own = window.game.character.medallion.indicators;
+    const proto = Object.getPrototypeOf(own);
+    const orig = proto.setState;
+    proto.setState = function (state) { if (state.mask && this !== own) window.__masks.push(state.mask); return orig.call(this, state); };
   });
   const cmd = async (text, wait = 700) => {
     await page.evaluate((t) => {

@@ -43,9 +43,11 @@ describe('OverheadHealthBar', () => {
         expect(bar.anchorY).toBe(66);
     });
 
-    it('builds the pixel-contract child order: backdrop, health, shield, pips', () => {
+    // The pip strip retired into the medallion's state indicators
+    // (plan-entity-presentation.md R5, D4).
+    it('builds the pixel-contract child order: backdrop, health, shield', () => {
         const bar = build();
-        expect(bar.container.children).toHaveLength(4);
+        expect(bar.container.children).toHaveLength(3);
     });
 
     it('starts full until the first snapshot', () => {
@@ -82,10 +84,4 @@ describe('OverheadHealthBar', () => {
         expect(shield.visible).toBe(false);
     });
 
-    it('parks the effect pips just under the bar', () => {
-        const bar = build();
-        const pips = bar.container.children[3];
-        // barHeight / 2 + the 9 px gap
-        expect(pips.y).toBe(11.5);
-    });
 });

@@ -17,7 +17,9 @@ import * as PIXI from 'pixi.js';
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
-import type {AuraDisplay, DwellRing, Interactable, LevelDisplay, MobPlate, OverheadVitals} from './WireSetters';
+import type {AuraDisplay, DwellRing, Interactable, LevelDisplay, MobPlate, OverheadVitals, TokenStateDisplay} from './WireSetters';
+import {indicatorBand, tokenState} from './TokenState';
+import {aboveTokenY, mobBarAnchorY} from './PlateAnchors';
 import {InteractBadge} from './InteractBadge';
 import {BeatDetector} from './AuraBeat';
 import {meter2px} from "../../../client-data/BasicConfig";
@@ -74,7 +76,7 @@ const QUEST_GLYPH_SIZE = 34;
 const QUEST_ROW_GAP = 4;
 
 export abstract class Mob extends GameObject
-    implements OverheadVitals, AuraDisplay, LevelDisplay, MobPlate, Interactable {
+    implements OverheadVitals, TokenStateDisplay, AuraDisplay, LevelDisplay, MobPlate, Interactable {
 
     protected actualShape: PIXI.Container;
     // The portrait and the ring as ONE node
@@ -99,7 +101,7 @@ export abstract class Mob extends GameObject
     // Created in the constructor body (after field initializers), so the
     // initializer here is safe.
     private auraRings: AuraRingStack = null;
-    // The overhead health/shield bar + effect pips (shared component since
+    // The overhead health/shield bar (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body,
     // after field initializers), so the initializer here is safe — unlike
     // fields assigned in initShape.
@@ -136,6 +138,8 @@ export abstract class Mob extends GameObject
     // How far the art's top edge sits above its origin, measured once (the
     // InteractBadge rule: the art's bounds, never the wire radius).
     private spriteTop: number = null;
+    // The last applied_effects mask shown (setAppliedEffects).
+    private appliedMask = 0;
 
     protected constructor(
         id: number,
@@ -310,7 +314,13 @@ export abstract class Mob extends GameObject
     }
 
     private barAnchorY(): number {
-        return Math.max(30, this.size * 1.08);
+        return mobBarAnchorY(this.size, this.indicatorBand());
+    }
+
+    // How far the state indicators stick out past the ring
+    // (plan-entity-presentation.md D8): 0 for a plain object, which wears none.
+    private indicatorBand(): number {
+        return this.medallion ? indicatorBand(this.size) : 0;
     }
 
     /**
@@ -321,7 +331,8 @@ export abstract class Mob extends GameObject
      * integer ops and only touches PixiJS when the band actually changes.
      *
      * The plate also mirrors the shape's alpha so it fades with the mob's
-     * corpse fade-out instead of hanging at full opacity over a vanishing mob,
+     * corpse fade-out and its stealth (plan-entity-presentation.md R3) instead
+     * of hanging at full opacity over a vanishing mob,
      * and hides outright while the mob stands in unlit darkness — the plate
      * renders on the overlay ABOVE the darkness layer, so without this it is
      * the one thing still legible in a fully black area (see isHidden()).
@@ -411,7 +422,7 @@ export abstract class Mob extends GameObject
         } else {
             this.questGlyph.x = 0;
         }
-        this.questGlyph.y = -(this.spriteTop + QUEST_GLYPH_GAP);
+        this.questGlyph.y = aboveTokenY(this.spriteTop, this.indicatorBand()) - QUEST_GLYPH_GAP;
         this.questGlyph.visible = true;
     }
 
@@ -429,7 +440,7 @@ export abstract class Mob extends GameObject
             // covers it (PO 2026-10-19); the plate fades with the mob and hides
             // in unlit darkness. Anchored off the art alone — the shape group
             // also carries the aura rings, the dwell ring and the health bar (R4).
-            this.interactBadge = new InteractBadge(this.plate, this.actualShape);
+            this.interactBadge = new InteractBadge(this.plate, this.actualShape, this.indicatorBand());
         }
         this.interactBadge.setVisible(interactable);
     }
@@ -477,11 +488,23 @@ export abstract class Mob extends GameObject
         SkillFx.setGlowRadius(this, ringRadius);
     }
 
-    // setAppliedEffects drives the buff/debuff pips from the wire
-    // applied_effects bitmask: the kinds currently applied TO this mob — your
-    // dot on it is visible between damage ticks, a slowed mob reads as slowed.
+    // setAppliedEffects shows the wire applied_effects bitmask, the kinds
+    // currently applied TO this mob, through the state table
+    // (plan-entity-presentation.md D1): your dot on it is visible between
+    // damage ticks, a slowed mob reads as slowed. Indicators on the
+    // medallion (a plain object has none, L5); stealth fades the whole entity
+    // and, through the plate's mirror, its plate (R3).
+    // ⚑ The death fade (EntityManager.fadeOutAndHide) also writes
+    // shape.alpha: it runs after the mob left the snapshot, so no state write
+    // follows it (R4, L3).
     setAppliedEffects(mask: number) {
-        this.overheadBar?.setAppliedEffects(mask);
+        if (mask === this.appliedMask) {
+            return;
+        }
+        this.appliedMask = mask;
+        const state = tokenState(mask, false);
+        this.shape.alpha = state.alpha;
+        this.medallion?.setState(state);
     }
 
     // setAuraCategories drives the ring colours from the wire Mob.aura_category
@@ -597,6 +620,8 @@ export abstract class Mob extends GameObject
         // their box, which hid that — the bar landed in their empty margin.
         // Medallion PNGs fill the box edge to edge, so the bar has to clear
         // 1.0 outright. The 0.08 overshoot is the gap the old art used to have.
+        // Since plan-entity-presentation.md D8 it also clears the state
+        // indicators' band (PlateAnchors.mobBarAnchorY).
         this.overheadBar = new OverheadHealthBar(this.size, this.barAnchorY());
         this.aboveArt.addChild(this.overheadBar.container);
     }

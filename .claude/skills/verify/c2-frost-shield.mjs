@@ -157,19 +157,10 @@ const nearestWildlife = () => page.evaluate(`
       if (d < bestD) { bestD = d; best = c; }
     }
     if (!best) return null;
-    // The pip strip: a container at x === 0, y > 0 holding one graphics child.
-    let pip = null;
-    const walk = (c) => {
-      if (pip !== null || !c) return;
-      const kids = c.children || [];
-      if (kids.length === 1 && kids[0] && kids[0].context && c.x === 0 && c.y > 0) {
-        const g = kids[0];
-        pip = !!g.visible && (g.context.instructions || []).length > 0;
-        return;
-      }
-      kids.forEach(walk);
-    };
-    walk(best);
+    // The slow indicator on its medallion (plan-entity-presentation.md EP1:
+    // the pip strip retired): a child labelled \`slow\` in its stateIndicators.
+    const box = best.getChildByLabel ? best.getChildByLabel('stateIndicators', true) : null;
+    const pip = box ? (box.children || []).some((k) => k.label === 'slow') : null;
     return { gap: +bestD.toFixed(2), pip };
   })()
 `);
@@ -197,7 +188,7 @@ if (engaged === null) {
   check('Something closed to melee range (mobs wander — INCONCLUSIVE, not red)', null,
     `nearest gap trace: ${JSON.stringify(trace)}`);
 } else {
-  check('A mob that hit you carries the slow pip', pipSeen,
+  check('A mob that hit you carries the slow indicator', pipSeen,
     `closed to ${engaged.toFixed(2)}u; pip seen: ${pipSeen}; trace ${JSON.stringify(trace)}`);
 }
 

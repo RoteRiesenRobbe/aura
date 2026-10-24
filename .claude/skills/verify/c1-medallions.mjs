@@ -251,7 +251,7 @@ for (const v of VENUES) {
     else {
       seen.push([ringFile, t.rings[0].uid, `${v.name}/${t.plate}`]);
       if (t.rings[0].tint !== TINTS[tier]) problems.push(`tint 0x${t.rings[0].tint.toString(16)}, want 0x${TINTS[tier].toString(16)} (${tier})`);
-      if (t.discOrder !== 'disc,actualShape,frame') problems.push(`token order ${t.discOrder}`);
+      if (t.discOrder !== 'disc,actualShape,frame,indicators') problems.push(`token order ${t.discOrder}`);
       if (t.discs.length !== 1) problems.push(`${t.discs.length} disc sprites`);
       else {
         if (t.discs[0].tint !== STANCE_TINTS[stance]) problems.push(`disc reads ${stanceOf(t.discs[0].tint)}, want ${stance}`);

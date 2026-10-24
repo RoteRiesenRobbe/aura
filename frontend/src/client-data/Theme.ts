@@ -4,7 +4,7 @@
 // once, and Theme.test.ts PINS the LESS side (variables.less) against these
 // values: cross-language color drift fails vitest instead of shipping.
 //
-// ⚑ A deliberate leaf module with no imports: OverheadHealthBar and EffectPips
+// ⚑ A deliberate leaf module with no imports: OverheadHealthBar and StateIndicators
 // both read it (importing the bar's constants from the bar was a module cycle,
 // C5 ledger), and it sits on the boot path.
 //
@@ -31,7 +31,7 @@ export const FOCUS_COLOR_CSS = 'crimson';
 export const LAND_COLOR = 0x006030;
 
 // The overhead health/shield bar family (moved from OverheadHealthBar.ts, C5's
-// recorded intent). The backdrop is also EffectPips' pip rim.
+// recorded intent). The backdrop is also the state indicators' disc rim (StateIndicators.ts).
 export const OVERHEAD_BAR_BACKDROP = {color: 0x000000, alpha: 0.6};
 export const OVERHEAD_BAR_BORDER = {width: 1, color: 0xffffff, alpha: 0.35};
 export const OVERHEAD_BAR_HEALTH_FILL = {color: 0xaa3b3b, alpha: 0.9};

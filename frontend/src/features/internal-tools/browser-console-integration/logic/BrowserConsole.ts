@@ -50,6 +50,7 @@ function setup() {
         skillFxStress: undefined,
         settings: undefined,
         bodyOffsets: undefined,
+        objectsInView: undefined,
     };
 
     consoleCommands.run = Console.run;
@@ -154,6 +155,10 @@ function setup() {
                 .map(object => ({id: object.id, ...object.bodyOffset()}))
                 .filter(offset => offset.x !== 0 || offset.y !== 0);
         };
+        // The entity objects in view (the own character is not among them),
+        // so a harness can feed one a state and read it back
+        // (plan-entity-presentation.md EP1, ep1-state-ring.mjs).
+        consoleCommands.objectsInView = () => [...(game.map?.getObjectsInView() ?? [])];
 
         return true;
     });

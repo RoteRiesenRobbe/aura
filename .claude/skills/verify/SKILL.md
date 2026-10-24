@@ -245,11 +245,12 @@ Run the harnesses whose "Re-run when" column matches what you changed BEFORE wri
 | `c3-memorial-catalog.mjs` | memorial and its two live-world gates |  | `api/mobs/memorial-stone.json` + its `world.json` spawn, `sys/memorial_rows.go`, ... |
 | `c1-front-stone.mjs` | second ascension site and its own price |  | `api/mobs/front-ascension-stone.json` + its `world.json` spawn, ... |
 | `c1-medallions.mjs` | medallion frame stack on mobs and NPCs |  | `client-data/Medallions.ts` (families, faction map), `Graphics.ts` `medallion` specs, ... |
+| `ep1-state-ring.mjs` | the medallion state ring: indicator angles, no pip strip, stealth fade |  | `TokenState.ts`, `StateIndicators.ts`, `PlateAnchors.ts`, `Medallion.setState`, ... |
 | `r4-badge.mjs` | badge anchor and its removal with the actor |  | any overlay hung on `Mob.shape`, or `EntityManager` removal |
 | `chunk2-roles.mjs` | authored role discriminator; structure always-on aura |  | `mobs.ParseRole`, `applyMode`, structure behaviour |
 | `chunk2-follower.mjs` | summon path: spellbook, slot, spawn, follow, engage |  | summoning, follower steering, owner/level plumbing |
 | `chunk2-calm.mjs` | calm: aggro drops, mob holds, damage ends it |  | the `calm` payload, the buff store, aggro release |
-| `chunk3-charm.mjs` | charm: allegiance flip, pip, follows, reverts |  | `Align`/`RevertFaction`/`EnlistUnder`, `CreditTo`, charm content |
+| `chunk3-charm.mjs` | charm: allegiance flip, charm indicator, follows, reverts |  | `Align`/`RevertFaction`/`EnlistUnder`, `CreditTo`, charm content |
 | `c1-aura-drawback.mjs` | while-active self modifier (aura drawback) at the game surface |  | `recomputeDerived`, `SetActiveAura`, `DerivedStats`' factor methods, ... |
 | `c2-player-cc.mjs` | crowd control landing on the player (spider) | DEBUG zones | `player.ApplySlow` / `ApplyStun`, `Buffs.ApplyStun` (the DR ladder), ... |
 | `swift-cooldown.mjs` | speed_burst and the movement axis (Swift) |  | `Buffs.MovementFactor()`, movement speed, slows, the tray's beneficial box |

@@ -4,12 +4,12 @@
 // What this proves in the live game (the Go tests cover the mechanism; this
 // covers what no unit test can see — that a wolf actually changes sides):
 //   1. CharmBeast is castable: granted, equipped, fired, cooldown consumed
-//   2. the charmed mob carries the charm pip (D13) — with an IN-PICTURE CONTROL,
+//   2. the charmed mob shows the charm state indicator (D13) — with an IN-PICTURE CONTROL,
 //      a second mob of the same species that does not
 //   3. it FOLLOWS the charmer across a walk while the control mob falls behind
 //   4. it FIGHTS for the charmer — XP rises with EVERY aura slot empty and the
 //      player in GOD, so the credit can only have come through CreditTo (D2)
-//   5. on expiry the pip goes out and the pet stops being a pet
+//   5. on expiry the charm indicator goes out and the pet stops being a pet
 //
 // ⚑ Three traps inherited from chunk2-calm.mjs, all of which faked a product
 // failure there: after the 20 s camera settle the tracked mob has usually
@@ -44,7 +44,7 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // it (D9/L-E, working exactly as designed). Cast inside the wolf pack the other
 // scripts use, the pet is dead in EIGHT SECONDS — three wolves focus it — and
 // every measurement after the cast silently rots: it cannot follow, it cannot
-// survive to expiry, and its unparented sprite keeps its last drawn pip forever,
+// survive to expiry, and its unparented sprite keeps its last drawn indicator forever,
 // so the timer looks broken too. Two runs were lost to exactly that.
 //
 // LONE is the most isolated prey spawn in the zone: the nearest thing hostile to
@@ -106,7 +106,7 @@ const wildlifeLayer = () => `
 // ⭐ Tag the two nearest wildlife sprites by OBJECT IDENTITY: the one we charm,
 // and a CONTROL of the same species. Tracking "nearest mob" alone would let a
 // second wolf wandering in read as a following pet — and the control is what
-// turns the pip check from "a dot appeared" into "a dot appeared on THIS one and
+// turns the indicator check from "a dot appeared" into "a dot appeared on THIS one and
 // not on that one, in the same frame".
 const tagPair = () => page.evaluate(`
   (() => {
@@ -133,34 +133,17 @@ const gaps = () => page.evaluate(`
   })()
 `);
 
-// The pip strip is a Container holding exactly one Graphics, parked BELOW the
-// overhead bar at x=0, y>0 (OverheadHealthBar: effectPips.container.y =
-// barHeight/2 + OVERHEAD_BAR_PIP_GAP). The bar's own fill groups are the other single-Graphics
-// containers in that subtree and both sit at a NEGATIVE-or-mirrored x, which is
-// what separates them; everything above the bar sits at y=0.
-//
-// ⚑ The signal is DRAWN INSTRUCTIONS, not `visible` — an earlier version of this
-// script read `visible` and reported every mob in the game as pipped. EffectPips
-// early-returns when the mask has not changed, so on a mob that has never
-// carried an effect the redraw never runs and the Graphics keeps its
-// constructed default of visible=true with nothing drawn in it. Empty
-// instructions is the honest "no pips".
+// The charm indicator: a mob's medallion token carries a `stateIndicators`
+// container (shape -> token -> indicators -> stateIndicators) with one child
+// per live indicator, labelled with the row id. The signal is the CHILD LABEL
+// `charm`, never pixels. The container hides itself when empty, but an absent
+// container (a mob without a medallion) is null, not false.
 const pipOn = () => page.evaluate(`
   (() => {
     const strip = (root) => {
-      let found = null;
-      const walk = (c) => {
-        if (found !== null || !c) return;
-        const kids = c.children || [];
-        if (kids.length === 1 && kids[0] && kids[0].context && c.x === 0 && c.y > 0) {
-          const g = kids[0];
-          found = !!g.visible && (g.context.instructions || []).length > 0;
-          return;
-        }
-        kids.forEach(walk);
-      };
-      walk(root);
-      return found;
+      const c = root.getChildByLabel ? root.getChildByLabel('stateIndicators', true) : null;
+      if (!c) return null;
+      return (c.children || []).some((k) => k.label === 'charm');
     };
     const live = (t) => t && !t.destroyed && t.parent;
     return {
@@ -172,7 +155,7 @@ const pipOn = () => page.evaluate(`
 
 // ⚑ A dead mob's sprite is UNPARENTED, not destroyed — and it keeps its last
 // drawn frame forever. Reading only `destroyed` made a pet that had been killed
-// five seconds in look like a live pet whose pip never expired, which is what
+// five seconds in look like a live pet whose charm indicator never expired, which is what
 // sent an earlier run of this script hunting a phantom bug in the charm timer.
 // Every reader below goes through live().
 const alive = () => page.evaluate(`
@@ -284,7 +267,7 @@ for (let i = 0; i < 8; i++) {
 const closed = approach.filter((d) => d !== null);
 // Prey do not chase, so the precondition is "inside charm's 4.0 radius", not
 // "engaged". The control is deliberately NOT required to be out of range: two
-// prey share this spawn point, and the pip check below then proves D3's cap —
+// prey share this spawn point, and the indicator check below then proves D3's cap —
 // two candidates inside the radius, exactly one charmed, the nearest.
 const inRange = closed.length > 0 && closed[closed.length - 1] < 4.0 && tagged && tagged.control !== null;
 check('Precondition: a wildlife mob is inside charm range, with a second one to compare against',
@@ -301,13 +284,13 @@ const cooldownAfterCast = await page.evaluate(() =>
 check('Firing Charm Beast consumes the cooldown', /\d/.test(cooldownAfterCast),
   `slot reads: ${JSON.stringify(cooldownAfterCast.slice(0, 40))}`);
 
-// --- the pip, against an in-picture control ---
+// --- the charm indicator, against an in-picture control ---
 const pipDuring = await pipOn();
-check('The charmed mob carries the charm pip and a same-species control does not',
+check('The charmed mob shows the charm indicator and a same-species control does not',
   pipDuring.pet === true && pipDuring.control === false,
   `pet ${pipDuring.pet} / control ${pipDuring.control} — control was ${tagged && tagged.control} units away`
   + ' (both null = the metric found nothing; both true = it cannot tell them apart;'
-  + ' a control INSIDE the 4.0 radius that stays unpipped is also D3\'s maxTargets-1 nearest-pick)');
+  + ' a control INSIDE the 4.0 radius that shows no charm indicator is also D3\'s maxTargets-1 nearest-pick)');
 
 await page.screenshot({ path: `/tmp/charm-${label}-cast.png` });
 
@@ -336,11 +319,11 @@ const beforeExpiry = { t: elapsed(), ...(await pipOn()) };
 while ((Date.now() - castAt) / 1000 < 66) await page.waitForTimeout(2000);
 const pipAfter = await pipOn();
 const liveAtEnd = await alive();
-check('The charm expires on its own and the pip goes out',
+check('The charm expires on its own and the charm indicator goes out',
   liveAtEnd.pet && pipAfter.pet === false,
   liveAtEnd.pet
-    ? `at t+${beforeExpiry.t}s the pip was ${beforeExpiry.pet}; at t+${elapsed()}s it is ${pipAfter.pet}`
-    : `INCONCLUSIVE — the pet died before its charm ran out (last pip ${beforeExpiry.pet} at t+${beforeExpiry.t}s)`);
+    ? `at t+${beforeExpiry.t}s the charm indicator was ${beforeExpiry.pet}; at t+${elapsed()}s it is ${pipAfter.pet}`
+    : `INCONCLUSIVE — the pet died before its charm ran out (last indicator ${beforeExpiry.pet} at t+${beforeExpiry.t}s)`);
 await page.screenshot({ path: `/tmp/charm-${label}-expiry.png` });
 
 // --- LEG B: does it FIGHT for its charmer? ---

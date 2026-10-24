@@ -1,11 +1,14 @@
-import {Sprite, Texture} from 'pixi.js';
+import {ColorMatrixFilter, Sprite, Texture} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {GraphicsConfig} from '../../../client-data/Graphics';
-import {RING_FAMILY_FILES, RingFamily, ringTint, stanceTint} from '../../../client-data/Medallions';
+import {GREY_DISC, GREY_RING, RING_FAMILY_FILES, RingFamily, ringTint, stanceTint} from '../../../client-data/Medallions';
 import {PORTRAIT_FILL, packIconTexture} from '../../../client-data/icons/PackIconFiles';
+import {lumaGreyscale} from '../../pixi-js/logic/ColorMatrixFilterExtensions';
 import type {TokenSlots} from './TokenSlots';
+import {StateIndicators} from './StateIndicators';
+import type {TokenState} from './TokenState';
 
 // One shared texture per ring family (client-data/Medallions.ts). The size is
 // the SVG raster size: the families' 256 px canvas at its own scale, which
@@ -54,6 +57,11 @@ function discTexture(): Texture {
  *
  * The ring stays in the frame slot, outside `actualShape`, so the damage flash
  * floods the portrait only (docs/art/pipeline.md §4).
+ *
+ * It owns its final tints (plan-entity-presentation.md D6): tier, stance and
+ * the state's grey all go through applyTints, so no write order can bring a
+ * tier colour back onto a dead token (L2). setState draws the state
+ * indicators and the grey; the entity applies the state's alpha itself.
  */
 export class Medallion {
     private readonly disc: Sprite;
@@ -67,6 +75,11 @@ export class Medallion {
     private tierRank = 0;
     // The stance toward the player side. 0 = hostile, the wire default.
     private stance = 0;
+    // The state's grey (dead, D5), and the portrait's grey filter, built on
+    // the first grey only: a living token never carries one.
+    private grey = false;
+    private greyFilter: ColorMatrixFilter = null;
+    private readonly indicators: StateIndicators;
 
     constructor(
         private readonly slots: TokenSlots,
@@ -78,8 +91,10 @@ export class Medallion {
         // Sized to the pack portrait's own disc, so it fills the ring's
         // window and its edge hides under the ring.
         this.disc = createInjectedSVG(disc, 0, 0, size * PORTRAIT_FILL, 0);
-        this.disc.tint = stanceTint(this.stance);
         slots.disc.addChild(this.disc);
+        this.indicators = new StateIndicators(size);
+        slots.indicators.addChild(this.indicators.container);
+        this.applyTints();
     }
 
     /**
@@ -95,8 +110,8 @@ export class Medallion {
         }
         this.ring?.destroy();
         this.ring = createInjectedSVG(texture, 0, 0, this.size, 0);
-        this.ring.tint = ringTint(this.tierRank);
         this.slots.frame.addChild(this.ring);
+        this.applyTints();
         return true;
     }
 
@@ -133,9 +148,7 @@ export class Medallion {
             return;
         }
         this.tierRank = rank;
-        if (this.ring) {
-            this.ring.tint = ringTint(rank);
-        }
+        this.applyTints();
     }
 
     /** Tints the disc by the stance toward the player side (C2): red, yellow, blue. */
@@ -144,6 +157,46 @@ export class Medallion {
             return;
         }
         this.stance = stance;
-        this.disc.tint = stanceTint(stance);
+        this.applyTints();
+    }
+
+    /**
+     * Shows a token state (plan-entity-presentation.md D4-D6): its indicators
+     * on the rim, and the grey. The alpha is the entity's (it covers the
+     * whole entity, R3).
+     */
+    setState(state: TokenState) {
+        this.indicators.setState(state);
+        if (state.grey === this.grey) {
+            return;
+        }
+        this.grey = state.grey;
+        this.applyTints();
+        this.applyGreyFilter();
+    }
+
+    // The one writer of the disc and ring tints (D6).
+    private applyTints() {
+        this.disc.tint = this.grey ? GREY_DISC : stanceTint(this.stance);
+        if (this.ring) {
+            this.ring.tint = this.grey ? GREY_RING : ringTint(this.tierRank);
+        }
+    }
+
+    // The portrait alone greys by a filter (D5, L1: never on the token, or the
+    // skull and every indicator grey with it). Appended beside the damage
+    // flash's filter, the StatusEffect pattern. One render pass per greyed
+    // token: only for a bounded population (corpses).
+    private applyGreyFilter() {
+        if (this.greyFilter === null) {
+            if (!this.grey) {
+                return;
+            }
+            this.greyFilter = new ColorMatrixFilter();
+            lumaGreyscale(this.greyFilter, 1, false);
+            const shape = this.slots.actualShape;
+            shape.filters = Array.isArray(shape.filters) ? [...shape.filters, this.greyFilter] : [this.greyFilter];
+        }
+        this.greyFilter.enabled = this.grey;
     }
 }

@@ -29,8 +29,9 @@ import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
-import {tokenAlpha} from './EffectPips';
-import type {AuraDisplay, CharacterLook, LevelDisplay, OverheadVitals} from './WireSetters';
+import {indicatorBand, tokenState} from './TokenState';
+import {characterBarAnchorY, characterNameY, levelNumberOffset} from './PlateAnchors';
+import type {AuraDisplay, CharacterLook, LevelDisplay, OverheadVitals, TokenStateDisplay} from './WireSetters';
 import {BeatDetector} from './AuraBeat';
 
 let Game: IGame = null;
@@ -39,7 +40,7 @@ GameSetupEvent.subscribe((game: IGame) => {
 });
 
 export class Character extends GameObject
-    implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay, CharacterLook {
+    implements ICharacterLike, IMiniMapRendered, OverheadVitals, TokenStateDisplay, AuraDisplay, LevelDisplay, CharacterLook {
     static avatar: ISvgContainer = {svg: undefined};
     /**
      * Portrait rule (triage item 16): avatars never rotate, so the held facing
@@ -78,8 +79,11 @@ export class Character extends GameObject
     // Never touched by initShape, so the initializers are safe.
     private portraitWire = 0;
     private ringWire = 0;
+    // The last applied_effects mask shown (setAppliedEffects). Never touched
+    // by initShape, so the initializer is safe.
+    private appliedMask = 0;
     private auraRings: AuraRingStack;
-    // The overhead health/shield bar + effect pips (shared component since
+    // The overhead health/shield bar (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
     // so an initializer here is safe — unlike fields assigned in initShape.
     private overheadBar: OverheadHealthBar = null;
@@ -120,9 +124,12 @@ export class Character extends GameObject
 
     // Per-frame: glue the plate to the (interpolated) character position.
     // Runs after the movement interpolation — GameObject.setup subscribed
-    // that before any Character exists.
+    // that before any Character exists. The plate mirrors the shape's alpha,
+    // so a stealthed player's bar, name and level fade with it, as a Mob's
+    // plate does (plan-entity-presentation.md R13).
     private updatePlate() {
         this.plate.position.copyFrom(this.shape.position);
+        this.plate.alpha = this.shape.alpha;
         this.drawLook();
     }
 
@@ -219,7 +226,8 @@ export class Character extends GameObject
         });
         text.anchor.set(0.5, 0.5);
         this.plate.addChild(text);
-        text.position.set(0, -1.3 * this.size);
+        // Clear of the state indicators' band, 12 o'clock (plan-entity-presentation.md D8).
+        text.position.set(0, characterNameY(this.size, indicatorBand(this.size), text.height / 2));
         this.nameElement = text;
     }
 
@@ -240,12 +248,25 @@ export class Character extends GameObject
             });
             text.anchor.set(0.5, 0.5);
             this.plate.addChild(text);
-            text.position.set(0.72 * this.size, 0.72 * this.size);
             this.levelElement = text;
+            this.placeLevel();
             return;
         }
 
-        this.levelElement.text = String(level);
+        const text = String(level);
+        if (this.levelElement.text !== text) {
+            this.levelElement.text = text;
+            this.placeLevel();
+        }
+    }
+
+    // Lower right of the token, clear of the state indicators' band: it used
+    // to sit on the ring at 135°, the charm slot (plan-entity-presentation.md
+    // D8). Re-placed when the text changes, since a second digit widens it.
+    private placeLevel() {
+        const text = this.levelElement;
+        const {x, y} = levelNumberOffset(this.size, indicatorBand(this.size), text.width / 2, text.height / 2);
+        text.position.set(x, y);
     }
 
     setHealth(health: number, maxHealth: number) {
@@ -256,20 +277,20 @@ export class Character extends GameObject
         this.overheadBar.setShield(shieldHp, maxHealth);
     }
 
-    // setAppliedEffects drives the buff/debuff pips from the wire
-    // applied_effects bitmask: the kinds currently applied TO this character
-    // (a dot no longer waits for its first damage tick to become visible).
+    // setAppliedEffects shows the wire applied_effects bitmask, the kinds
+    // currently applied TO this character, through the state table
+    // (plan-entity-presentation.md D1): their indicators on the medallion,
+    // and stealth as the whole entity's alpha (R3), which the plate mirrors
+    // (R13). The own player feeds this too (Player.ts, R8, D7): its token
+    // shows the types, the buff tray the spells.
     setAppliedEffects(mask: number) {
-        this.overheadBar?.setAppliedEffects(mask);
-        this.setTokenAlpha(mask);
-    }
-
-    // A stealthed character draws translucent (plan-effect-types-round-2.md
-    // C6, D24). The own player feeds this directly, since its pips are never
-    // fed (buff tray D10, L12). The nameplate is not on `shape`, so it stays
-    // readable.
-    setTokenAlpha(mask: number) {
-        this.shape.alpha = tokenAlpha(mask);
+        if (mask === this.appliedMask) {
+            return;
+        }
+        this.appliedMask = mask;
+        const state = tokenState(mask, false);
+        this.shape.alpha = state.alpha;
+        this.medallion.setState(state);
     }
 
     /**
@@ -373,9 +394,10 @@ export class Character extends GameObject
     private initHealthBar() {
         // Below the avatar (positive y is down); item-11 VFX pass moved the
         // overhead bar under. The HUD health bar (bottom-right) is separate.
-        // On the plate, the bar and its pips stay readable under the night
-        // tint (unlike the mob bar, which deliberately rides `shape`).
-        this.overheadBar = new OverheadHealthBar(this.size, Math.max(48, this.size * 1.7));
+        // On the plate, the bar stays readable under the night tint (unlike
+        // the mob bar, which deliberately rides `shape`). Clear of the state
+        // indicators' band (plan-entity-presentation.md D8).
+        this.overheadBar = new OverheadHealthBar(this.size, characterBarAnchorY(this.size, indicatorBand(this.size)));
         this.plate.addChild(this.overheadBar.container);
     }
 

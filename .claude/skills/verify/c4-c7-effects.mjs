@@ -8,11 +8,11 @@
 //   3  Vanish puts a beneficial Stealth circle on A's tray
 //   4  Vanish spent the empower: the NaturesSwiftness circle is gone
 //   5  A's own token is translucent (own applied_effects, L12)
-//   6  client B draws A's token translucent (the Stealth pip as alpha)
+//   6  client B draws A's token translucent (the Stealth state as alpha)
 //   C7 death triggers + C5 fear, client A at a boar:
 //   7  BurstingTotem's totem expires and its TotemBurst draws a `wave`
 //      (the dead totem lingers one snapshot so the client finds the caster)
-//   8  Terrify puts the Fear pip on a mob
+//   8  Terrify puts the Fear indicator on a mob
 //   C5 fear on a player, client B beside the BroodMother, GOD OFF (L10):
 //   9  the BroodScreech lands a harmful Fear circle on B's tray
 //   10 a press while feared floats "Feared", not "Stunned"
@@ -47,7 +47,7 @@ const KIND_EMPOWER = 16384;
 const KIND_FEAR = 32768;
 const KIND_STEALTH = 65536;
 const PIP_FEAR = 2048;
-const STEALTH_ALPHA = 0.4; // EffectPips.ts
+const STEALTH_ALPHA = 0.4; // TokenState.ts
 const IDLE = { x: 33, y: -27 };
 const BOAR_STAND = { x: 40, y: 15 }; // c3-charge.mjs: the boar at (36.35, 15.55)
 // 1 u south of the BroodMother's spawn (38.5, -31.5) in world_debug.json; 1 u
@@ -68,21 +68,23 @@ const openClient = async (tag) => {
   await joinAsNewCharacter(page, tag);
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
   await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
-  // Every pip mask the client is handed (the EffectPips prototype is shared
-  // with every mob and other-player strip), every token alpha set on ANOTHER
-  // character (Character.prototype is shared too), every own floating text.
+  // Every state mask handed to ANOTHER entity's indicators (the StateIndicators
+  // prototype is shared with every token; the own one is skipped), every token
+  // alpha set on ANOTHER character via setAppliedEffects (Character.prototype is
+  // shared too), every own floating text.
   await page.evaluate(() => {
     const p = document.getElementById('developPanel'); if (p) p.style.display = 'none';
     const ch = window.game.character;
     window.__masks = [];
-    const pips = Object.getPrototypeOf(ch.overheadBar.effectPips);
-    const setMask = pips.setMask;
-    pips.setMask = function (mask) { if (mask) window.__masks.push(mask); return setMask.call(this, mask); };
+    const own = ch.medallion.indicators;
+    const inds = Object.getPrototypeOf(own);
+    const setState = inds.setState;
+    inds.setState = function (state) { if (state.mask && this !== own) window.__masks.push(state.mask); return setState.call(this, state); };
     window.__otherAlphas = [];
     const proto = Object.getPrototypeOf(ch);
-    const setAlpha = proto.setTokenAlpha;
-    proto.setTokenAlpha = function (mask) {
-      const r = setAlpha.call(this, mask);
+    const setApplied = proto.setAppliedEffects;
+    proto.setAppliedEffects = function (mask) {
+      const r = setApplied.call(this, mask);
       if (this !== window.game.character) window.__otherAlphas.push(this.shape.alpha);
       return r;
     };
@@ -230,9 +232,9 @@ if (tSlotted) {
   refusal = await a.page.evaluate(() => window.__floats.slice());
 }
 const mobFear = feared ? await sawMask(a.page, PIP_FEAR) : false;
-check('Terrify puts the Fear pip on a mob',
+check('Terrify puts the Fear indicator on a mob',
   mobFear ? true : null,
-  mobFear ? 'Fear bit seen in a pip mask' : `INCONCLUSIVE: slotted ${tSlotted}, floats ${JSON.stringify(refusal)} (the boar wandered past 4 u, or the press was lost)`);
+  mobFear ? 'Fear bit seen in a state mask' : `INCONCLUSIVE: slotted ${tSlotted}, floats ${JSON.stringify(refusal)} (the boar wandered past 4 u, or the press was lost)`);
 
 // --- legs 9-10: fear on a player (GOD OFF) ----------------------------------------------
 const bvSlotted = await slotCooldown(b.page, /Vanish/);

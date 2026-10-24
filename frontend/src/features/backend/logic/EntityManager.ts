@@ -21,6 +21,7 @@ import type {
     LevelDisplay,
     MobPlate,
     OverheadVitals,
+    TokenStateDisplay,
 } from '../../game-objects/logic/WireSetters';
 import type {hasAABB} from '../../internal-tools/develop/logic/AABBs';
 
@@ -138,7 +139,7 @@ export class EntityManager {
         // implement none of these — while the dot access makes a rename a
         // compile error instead of a silently-dead feature.
         const go = gameObject as GameObject &
-            Partial<OverheadVitals & AuraDisplay & LevelDisplay & MobPlate & DwellRing>;
+            Partial<OverheadVitals & TokenStateDisplay & AuraDisplay & LevelDisplay & MobPlate & DwellRing>;
 
         if (entity.type === Character) {
             const character: Character = gameObject as Character;
@@ -193,8 +194,9 @@ export class EntityManager {
             }
         }
 
-        // Buff/debuff pips (applied_effects): the kinds currently applied TO
-        // the entity — characters and mobs alike; 0 hides the strip.
+        // The token state (applied_effects, plan-entity-presentation.md D7):
+        // the kinds currently applied TO the entity, as indicators on its
+        // medallion and stealth's alpha, characters and mobs alike.
         if (isDefined(entity.appliedEffects) && isFunction(go.setAppliedEffects)) {
             go.setAppliedEffects(entity.appliedEffects);
         }

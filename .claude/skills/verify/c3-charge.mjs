@@ -7,7 +7,7 @@
 //   2  next to a boar the press moves the player to contact with it
 //      (the gap to the TAGGED boar shrinks to touching)
 //   3  the stun authored after the charge lands from the landing spot
-//      (a Slow-bit pip on a mob: stun is wire-identical to slow on the pips)
+//      (a Slow-bit pip on a mob: stun is wire-identical to slow on the state indicators)
 //   4  the cooldown starts after a landed charge
 //   5  the charge's `rush` layer glides the token (non-zero body offsets
 //      written) and leaves it at exact zero
@@ -65,12 +65,13 @@ await page.evaluate(() => {
   let r = window.game.character.plate.parent;
   while (r.parent) r = r.parent;
   window.__auraRoot = r;
-  // Every pip mask the client is handed, and every floating text on the own
+  // Every state mask the client hands another entity's indicators, and every floating text on the own
   // character (the rejection's only surface).
   window.__masks = [];
-  const pips = Object.getPrototypeOf(window.game.character.overheadBar.effectPips);
-  const setMask = pips.setMask;
-  pips.setMask = function (mask) { if (mask) window.__masks.push(mask); return setMask.call(this, mask); };
+  const own = window.game.character.medallion.indicators;
+  const inds = Object.getPrototypeOf(own);
+  const setState = inds.setState;
+  inds.setState = function (state) { if (state.mask && this !== own) window.__masks.push(state.mask); return setState.call(this, state); };
   window.__floats = [];
   const ch = window.game.character;
   const show = ch.showFloatingText;

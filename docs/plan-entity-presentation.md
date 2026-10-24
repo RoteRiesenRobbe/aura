@@ -1,7 +1,8 @@
 # Plan: Entity presentation: every state an actor is in shows on its medallion, at a position reserved for it
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
-Q1-Q4 open, nothing built.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+Q1-Q4 open. EP1 BUILT 2026-10-24 `[uncommitted]`, PO look owed (§11); next `plan-appearance.md`
+C6, then EP2.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -353,4 +354,82 @@ backlog §39 (anchor), §40 (the lifesteal note).
 
 ## 11. Chunk ledgers
 
-(none yet)
+### EP1 - BUILT 2026-10-24 `[uncommitted]`, PO look owed (the §5 EP1 checklist)
+
+The state ring, D1-D8 as planned; no PO rulings were needed mid-chunk.
+
+- **The table** (`TokenState.ts`, D1/D2): `AppliedEffectBit` moved here verbatim (the
+  SharedConstants pin enumerates it); `STATE_ROWS`, every bit at its D2 angle with the old
+  `PIP_STYLES` colour; `dead` at 180° (grey + the skull glyph, unlit); stealth a treatment-only
+  row (`STEALTH_ALPHA` 0.4); `tokenState(mask, dead) -> {mask, dead, alpha, grey, indicators}`.
+  `tokenAlpha` is gone. The geometry lives here too: `indicatorDiameter`, `indicatorRadius`,
+  `indicatorBand` (the one D8 source), `indicatorOffset` (clockwise from 12, y down).
+  ⚑ The indicators' CENTRES sit at `size + GAP + d/2`, so the band's inner edge is GAP outside
+  the ring (D4's "a circle of radius ringRadius + GAP" read literally would put half of each
+  disc on the ring); D4's arc spacing is taken at `size + GAP` as written.
+- **The skull glyph** is named `red-skull` (manifest names are pictures) and is not in the pack
+  manifest yet: the entry, the packing and the committed placeholder `file` land with C6 (D9).
+  Until then the `dead` row draws as its red disc. The glyph path resolves the texture at draw
+  time; a pack that lands after a draw keeps the disc until the next state change (C6's corpse
+  draws once, so C6 should draw after `packIconsReady` or re-resolve).
+- **The slot + the drawer** (D3/D4): `TokenSlots` gains `indicators` (4th child of `token`, after
+  `frame`, outside `actualShape`); `StateIndicators` draws one child per live indicator, labelled
+  with the row id, a glyph sprite or a disc on the old pip rim, redrawn only on a state change.
+- **The medallion** (D5/D6): `applyTints()` is the one tint writer (constructor, `setRing`,
+  `setTier`, `setStance`, `setState`); grey tints `GREY_RING` 0x8a8a8a / `GREY_DISC` 0x4a4a4a
+  [PLACEHOLDER] in `client-data/Medallions.ts`; the portrait's `lumaGreyscale(1)` filter is built
+  on the first grey only, appended to `actualShape.filters`, toggled by `enabled` after.
+- **Pips retired** (R5): `EffectPips.ts` + `TokenAlpha.test.ts` deleted, `OverheadHealthBar`
+  lost the strip and `OVERHEAD_BAR_PIP_GAP`, `OverheadVitals` lost `setAppliedEffects`, which
+  moved to the new `TokenStateDisplay` (Character, Mob, EntityManager's typed dispatch).
+- **Entities** (R3, R8, R13, D7): Character and Mob keep the last mask, write `shape.alpha` and
+  `medallion.setState` on a change; the Character plate now mirrors `shape.alpha`; `Player.ts`
+  feeds the whole own mask (`setTokenAlpha` deleted). The death fade (R4) is untouched: no mob
+  authors stealth today (only `vanish.json`), so a stealthed mob popping opaque as it starts to
+  fade cannot happen yet; scale the fade from its start alpha if one ever does.
+- **Anchors** (D8, `PlateAnchors.ts`, pure): Mob bar (and so the nameplate), Character bar, the
+  Character NAME (⚑ not in D8's list, but it sat at 12 o'clock inside the band, stun's slot), the
+  level number (its box corner nearest the centre on the band's outer edge, re-placed when a
+  second digit widens it), the E cap (`InteractBadge` takes a clearance) and the quest glyph.
+  A plain object gets band 0 and keeps its place. ⚑ Found by the verify leg: the bar's border is
+  stroked on its edge, so its top sat 0.1 px inside the band on a 36 px wolf; both bars now clear
+  the band by half the border plus 1 px. Moved: every medallion Mob's bar + nameplate (by the
+  band, ~13-15 px), the player's name and level number; the player's bar stays at 51.
+- **L5 survey** (subagent, cited file:line): four medallion-less classes can carry a bit and so
+  lost their pips with nothing in their place: `Totem` + the summoned `FireTotem` (collision
+  layer 160: hostile dots/slows land, ally buffs land when player-aligned), `WarbannerTotem`
+  (layer 99: player dots/slows), `Rockfall` (layer 99, resists all damage, the application not
+  traced). The other eight (Campfire, Camp, PoisonPool, SpiderWeb, SpikeBarricade, Remains,
+  Signpost, Passage, plus the portal FireTotems) sit on layers no aura senses. **A PO call**:
+  give those four a medallion, or accept no state on them (D37: a plain object is not an actor).
+- **Docs:** the add-content skill's effect-type checklist gains the "new kind takes a row" line
+  (§4); `plan-entity-medallions.md` §3 notes the seventh slot.
+- **Dev surface:** `window.game.objectsInView()` (BrowserConsole, `?develop` only), so a harness
+  can feed an entity a state; `window.game` is a facade without the entity map.
+
+**Measured:** smallest medallion (maxSize 26): indicator 9.7 px, band 12.7 px; the player
+(30): 11.0 px, band 14.0 px; a 36 px wolf 12 px (the cap). Frame time with 30 mobs × 4
+indicators: NOT measured. Headless here is SwiftShader with a throttled rAF (~330 ms frames) and
+no venue put more than 10 medallion mobs in view; 5-10 mobs read 333-350 ms with and without,
+i.e. noise. Owed on a real GPU (the PO look, or `darkness-frametime.mjs`'s method).
+
+**Verified:** vitest red first (5 files: TokenState completeness + angles + sides + geometry,
+StateIndicators, PlateAnchors per anchor, Medallion tint composition incl. setRing after grey,
+TokenSlots) → 1936/0 · typecheck clean · `npm run build` · `go build ./...` (no Go change) ·
+new `ep1-state-ring.mjs` 9/0 (own speed at 315° r 38.5, a wolf's dot at 22.5° r 45.0, no strip,
+Vanish fades shape + plate to 0.4, a mob's client-path stealth, the wolf bar clears the band) ·
+`c1-medallions` 53/0/1 on one run of four: two runs lost the WebGL context (backlog §29, first
+page), one missed the live-stance boar (venue); HEAD's build ran 53/0/1 once. ⚑ Watch item:
+the context loss came 2 in 4 on EP1, 0 in 1 on HEAD, too few to call. Migrated harnesses (the
+pip strip retired under them; hooks now on `StateIndicators.prototype.setState`, own instance
+skipped): `backlog33-prehot` 4/4, `c2-frost-shield` 5/0/1, `c5-bars` clean, `c1-stat-buffs`
+3/0/1, `c2-thorns` 4/0/0, `c3-charge` 2/0/4 (venue), `c4-c7-effects` 8/0/2 (venue) ·
+`buff-tray` 15/5/2 and `chunk3-charm` 4/8, both IDENTICAL on HEAD's build. buff-tray's two
+FAILs: its boot check reads `/tmp/aura-dev/server.log`, which this session's hand-booted debug
+server did not write (an artefact of the run, not a red; boot through `dev-restart.sh server
+debug`), and its Tough passive circle never appears (pre-existing). chunk3-charm's LONE venue
+finds no wildlife on the current world (pre-existing). The EP1 legs inside
+them pass (own `hot` under R8, a spider's `dot`, StatUp/Reflect/Fear masks, the other client's
+stealth alpha).
+
+**Schema:** DB none · wire none · conf none · content none · catalog/lang none.
