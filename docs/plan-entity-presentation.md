@@ -1,8 +1,8 @@
 # Plan: Entity presentation: every state an actor is in shows on its medallion, at a position reserved for it
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
-Q1-Q4 open. EP1 BUILT 2026-10-24 `fb869fcc`, PO look owed (§11); next `plan-appearance.md`
-C6, then EP2.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+Q1-Q3 open, Q4 + L5 RULED 2026-10-24. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11); next
+`plan-appearance.md` C6, then EP2; EP3 (one token system) unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -94,6 +94,9 @@ sprite.** This plan meets it by construction: the indicators live inside the tok
   it draws as a disc in today's pip colour. Picking glyphs is a PO/art pass, not a blocker.
 - **R13. A stealthed player's plate fades too, like a Mob's** (Q5, at the approval): stealth
   reads the same on every actor; the Character plate mirrors `shape.alpha`.
+- **R14. One system for all tokens** (L5, at the EP1 look 2026-10-24): any spawned entity that
+  is not an in-world prop, or that does not show what it is through its own asset, wears a
+  medallion, totems included, so it shows state like every other token. EP3, unplanned.
 
 ---
 
@@ -247,6 +250,7 @@ skill's effect-type checklist gains that line in EP1.
 | **EP1** | The state ring | D1-D8: `TokenState.ts`, the `indicators` slot, `StateIndicators`, every existing bit at its angle (colour-disc fallback), pips retire, stealth as entity alpha on Character AND Mob, the own token fed, the tint composer, the grey treatment and the dead row built and pinned (unlit), anchors clear the band | M |
 | *(C6)* | *`plan-appearance.md` C6* | *D9: the corpse medallion lights the dead row* | *M, owned there* |
 | **EP2** | Stun's own bit | D10: Go bit + shared constant + TS bit + the 0° row + swirl glyph (or fallback disc) | S |
+| **EP3** | One token system | R14: every spawned actor that is not an in-world prop wears a medallion, so it shows state like every other token. Unplanned: needs a short design pass first (§7 Q6) | ? |
 
 ### EP1 - the state ring (M; needs: plan approved)
 
@@ -295,7 +299,14 @@ slowed mob shows both.
   with the colour discs standing in.
 - **Q3. Durations for others** (R10, parked): if it returns, the hover/tap tooltip with a
   change-only per-entity expiry list (modelled on `own_effects`) was the leading option.
-- **Q4. Indicator sizes and the greys** ([PLACEHOLDER]s in D4-D6): judged at the EP1 look.
+- ~~**Q4. Indicator sizes and the greys**~~: RULED 2026-10-24 at the EP1 look: keep today's
+  values (still placeholders, tunable later).
+- **Q6. Which spawned things are props** (EP3, R14): the medallion-less classes a skill spawns
+  are `Totem` (summon-totem, omni-strike, BurstTotem), `FireTotem` (fire-totem, and both
+  portals, PortalHome + PortalSummon, draw as it), and mob-made `SpiderWeb`, `PoisonPool`,
+  `SpikeBarricade`, `WarbannerTotem`, `Rockfall`. `ProjectileBomb` draws as `NpcPlaceholder` and
+  so already wears the placeholder NPC medallion. Which of these are in-world props (no
+  medallion) is the design pass's first question.
 - ~~**Q5. A stealthed player's plate**~~: RULED 2026-10-23, R13 (it fades, like a Mob's).
 - ~~Which sibling overlays merge into the frame~~: RULED 2026-10-23, R5 (pips into the
   medallion), the bar, nameplate, aura rings and badge stay anchored to it (D8).
@@ -354,9 +365,16 @@ backlog §39 (anchor), §40 (the lifesteal note).
 
 ## 11. Chunk ledgers
 
-### EP1 - BUILT 2026-10-24 `fb869fcc`, PO look owed (the §5 EP1 checklist)
+### EP1 - DONE 2026-10-24 `fb869fcc`, PO look passed 2026-10-24
 
 The state ring, D1-D8 as planned; no PO rulings were needed mid-chunk.
+
+**PO look (2026-10-24):** "all works as expected", with all twelve states forced onto the own
+token and onto every mob in view from the console (`setAppliedEffects` stubbed so the wire
+cannot clear it). Rulings at the look: **Q4** keep today's sizes and greys. **L5 → R14**: "One
+system for all tokens should be used": any spawned entity that is not an in-world prop (or that
+does not show what it is through its own asset) wears a medallion, totems included; that is
+EP3, unplanned (§7 Q6).
 
 - **The table** (`TokenState.ts`, D1/D2): `AppliedEffectBit` moved here verbatim (the
   SharedConstants pin enumerates it); `STATE_ROWS`, every bit at its D2 angle with the old
