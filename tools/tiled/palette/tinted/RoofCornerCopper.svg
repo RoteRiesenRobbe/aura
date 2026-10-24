@@ -1,0 +1,69 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" preserveAspectRatio="none">
+  <!-- Roof kit: L-CORNER, where a ridge turns 90 degrees. TRUE top-down, a ROOF
+       piece. viewBox 160x160 = the 4 x 4 rect body in api/props/roof-corner-*.json
+       (preserveAspectRatio=none); 40 units per metre. A run arrives from the WEST
+       (ridge at the west edge's middle) and leaves to the SOUTH (ridge at the
+       south edge's middle): a hip runs from the turn to the outer north-east
+       corner, a valley to the inner south-west corner. The other three turns are
+       this piece rotated. NEUTRAL light grey: tinted by the definition. Shading
+       falls toward each eave, so a turned piece stays lit the same. -->
+  <defs>
+    <pattern id="roofCornerShingle" width="40" height="20" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="20" height="10" fill="#5f9082"/>
+      <rect x="20" y="0" width="20" height="10" fill="#5a887b"/>
+      <rect x="-10" y="10" width="20" height="10" fill="#639687"/>
+      <rect x="10" y="10" width="20" height="10" fill="#5c8c7e"/>
+      <rect x="30" y="10" width="20" height="10" fill="#639687"/>
+      <path d="M0,10 H40 M0,20 H40 M0,0 V10 M20,0 V10 M10,10 V20 M30,10 V20" fill="none" stroke="#3d5c53" stroke-width="1"/>
+    </pattern>
+    <pattern id="roofCornerShingleV" href="#roofCornerShingle" patternTransform="rotate(90)"/>
+    <linearGradient id="roofCornerNorth" gradientUnits="userSpaceOnUse" x1="0" y1="80" x2="0" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="roofCornerEast" gradientUnits="userSpaceOnUse" x1="80" y1="0" x2="160" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="roofCornerSouth" gradientUnits="userSpaceOnUse" x1="0" y1="80" x2="0" y2="160">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="roofCornerWest" gradientUnits="userSpaceOnUse" x1="80" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- outer pitches: north (the west run's) and east (the south run's), split by the hip -->
+  <polygon points="0,0 160,0 80,80 0,80" fill="url(#roofCornerShingle)"/>
+  <polygon points="0,0 160,0 80,80 0,80" fill="url(#roofCornerNorth)"/>
+  <polygon points="160,0 160,160 80,160 80,80" fill="url(#roofCornerShingleV)"/>
+  <polygon points="160,0 160,160 80,160 80,80" fill="url(#roofCornerEast)"/>
+  <!-- inner pitches: the west run's south pitch and the south run's west pitch, split by the valley -->
+  <polygon points="0,80 80,80 0,160" fill="url(#roofCornerShingle)"/>
+  <polygon points="0,80 80,80 0,160" fill="url(#roofCornerSouth)"/>
+  <polygon points="80,80 80,160 0,160" fill="url(#roofCornerShingleV)"/>
+  <polygon points="80,80 80,160 0,160" fill="url(#roofCornerWest)"/>
+
+  <!-- eaves: the two outer edges, and the inner corner's short stretch -->
+  <rect x="0" y="0" width="160" height="2.5" fill="#000000" opacity="0.28"/>
+  <rect x="157.5" y="0" width="2.5" height="160" fill="#000000" opacity="0.28"/>
+
+  <!-- the valley: a dark gutter where the two inner pitches meet -->
+  <path d="M80,80 L0,160" stroke="#293f39" stroke-width="4"/>
+  <path d="M80,80 L0,160" stroke="#000000" stroke-width="1.2" opacity="0.4"/>
+
+  <!-- the hip cap to the outer corner -->
+  <path d="M80,80 L160,0" stroke="#355049" stroke-width="9"/>
+  <path d="M80,80 L160,0" stroke="#689d8e" stroke-width="6.5"/>
+  <path d="M80,80 L160,0" stroke="#6fa898" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- the ridge caps, west run and south run, meeting at the turn -->
+  <rect x="0" y="74" width="86" height="12" fill="#689d8e"/>
+  <rect x="74" y="74" width="12" height="86" fill="#689d8e"/>
+  <path d="M0,74 H86 V160 M0,86 H74 V160" fill="none" stroke="#355049" stroke-width="1.4"/>
+  <path d="M10,74 V86 M30,74 V86 M50,74 V86 M70,74 V86 M74,90 H86 M74,110 H86 M74,130 H86 M74,150 H86" stroke="#43655c" stroke-width="1"/>
+  <rect x="0" y="78.5" width="80" height="2" fill="#6fa898" opacity="0.6"/>
+  <rect x="78.5" y="80" width="2" height="80" fill="#6fa898" opacity="0.6"/>
+</svg>

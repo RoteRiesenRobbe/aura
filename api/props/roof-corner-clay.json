@@ -1,0 +1,9 @@
+{
+  "name": "RoofCornerClay",
+  "entityType": "RoofCorner",
+  "sprite": "roofCorner.svg",
+  "body": { "width": 4, "height": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0 },
+  "tint": "#c8644a"
+}

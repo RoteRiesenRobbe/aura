@@ -10,6 +10,7 @@
   "City/Jail": ["JailBars", "CellDoor", "Stocks", "Chains", "Gallows"],
   "City/Gnome": ["WorkshopRoof", "Workbench", "GearContraption", "Forge", "Anvil", "Crane", "LumberStack", "SteamBoiler", "ToolRack"],
   "City/Walls": ["GateWall", "Doorway", "CityGatehouse", "CornerTowerRoof"],
+  "City/Roofs": ["RoofSpanSlate", "RoofHipSlate", "RoofCornerSlate", "RoofSpanClay", "RoofHipClay", "RoofCornerClay", "RoofSpanStone", "RoofHipStone", "RoofCornerStone", "RoofSpanCopper", "RoofHipCopper", "RoofCornerCopper"],
   "Nature": ["Tree", "OakTree", "PineTree", "DeadTree", "Stump", "FallenLog", "Bush", "BerryBush", "Rock", "Boulder", "CaveMouth"],
   "Village": ["House", "Cottage", "Barn", "Mill", "Haystack", "Well", "Cart", "Crate", "FencePost", "Gate", "BrokenFence", "Bridge", "Tombstone", "Signpost"],
   "Ruins": ["RuinedHouse", "BurntCart", "BrokenCrate", "Remains"],

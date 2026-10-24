@@ -112,6 +112,18 @@
       "ReadingDesk",
       "Remains",
       "Rock",
+      "RoofCornerClay",
+      "RoofCornerCopper",
+      "RoofCornerSlate",
+      "RoofCornerStone",
+      "RoofHipClay",
+      "RoofHipCopper",
+      "RoofHipSlate",
+      "RoofHipStone",
+      "RoofSpanClay",
+      "RoofSpanCopper",
+      "RoofSpanSlate",
+      "RoofSpanStone",
       "Rowboat",
       "RubbishHeap",
       "RuinedHouse",
@@ -524,6 +536,9 @@
       "city-mage-tower",
       "city-barracks",
       "city-workshop",
+      "city-smithy",
+      "city-tavern",
+      "city-town-hall",
       "grimwatch",
       "ashen-fields",
       "cinder-conclave",
@@ -931,6 +946,54 @@
     "Rock": {
       "w": 1.07,
       "h": 1.07
+    },
+    "RoofCornerClay": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerCopper": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerSlate": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerStone": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofHipClay": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipCopper": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipSlate": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipStone": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanClay": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanCopper": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanSlate": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanStone": {
+      "w": 2,
+      "h": 4
     },
     "Rowboat": {
       "w": 2.6,
@@ -1521,6 +1584,9 @@
     "city-mage-tower",
     "city-barracks",
     "city-workshop",
+    "city-smithy",
+    "city-tavern",
+    "city-town-hall",
     "grimwatch",
     "ashen-fields",
     "cinder-conclave",

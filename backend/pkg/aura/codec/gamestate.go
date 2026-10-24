@@ -1025,6 +1025,10 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 		AuraApi.ResourceAddPropName(builder, propName)
 	}
 
+	// The definition's tint (the roof kit's material). Free when 0, which is
+	// every untinted prop: the last field, trimmed like rotation and underfoot.
+	AuraApi.ResourceAddTint(builder, e.Tint())
+
 	// Which client container the placement draws in (plan-prop-draw-order.md
 	// D4). ⚑ Free when false, which is every placement outside props.underfoot:
 	// the builder omits a default and trims the trailing slot, so

@@ -14,7 +14,7 @@
  * `gameObjectClasses` line. PropPlaceholder (plan-prop-placeholders.md C2) is
  * the one such class today.
  */
-import {Container, Graphics, Text, Texture} from 'pixi.js';
+import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {requireAll} from '../../common/logic/Utils';
@@ -270,13 +270,18 @@ defsByEntityType.forEach((defs, entityType) => {
         static svg: Texture;
         static bodyAspect = bodyAspect;
 
-        // The 6th and 7th arguments are EntityManager's one constructor seam
-        // (prop name, then the streamed `underfoot`); only the second is read
-        // here. The layer is resolved in the super() ARGUMENT: `this` does
-        // not exist yet.
+        // The 6th to 8th arguments are EntityManager's one constructor seam
+        // (prop name, the streamed `underfoot`, the definition's tint); the
+        // last two are read here. The layer is resolved in the super()
+        // ARGUMENT: `this` does not exist yet.
         constructor(id: number, x: number, y: number, size: number, rotation: number,
-                    _propName?: string, underfoot?: boolean) {
+                    _propName?: string, underfoot?: boolean, tint?: number) {
             super(id, propLayer(underfoot === true), x, y, size, rotation, GeneratedProp.svg);
+            // The roof kit's material: one neutral drawing multiplied by the
+            // definition's colour. 0 / absent = drawn as is.
+            if (tint) {
+                (this.shape as Sprite).tint = tint;
+            }
             // The footprint the sprite is drawn at (SimpleProp.initShape): the
             // aspect when rect-bodied, else a circle at the streamed size.
             this.makeRoof(roof, propFootprint(bodyAspect ?? {}, size));

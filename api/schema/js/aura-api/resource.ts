@@ -85,8 +85,13 @@ underfoot():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+tint():number {
+  const offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(9);
+  builder.startObject(10);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -135,6 +140,10 @@ static addPropName(builder:flatbuffers.Builder, propNameOffset:flatbuffers.Offse
 
 static addUnderfoot(builder:flatbuffers.Builder, underfoot:boolean) {
   builder.addFieldInt8(8, +underfoot, +false);
+}
+
+static addTint(builder:flatbuffers.Builder, tint:number) {
+  builder.addFieldInt32(9, tint, 0);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {

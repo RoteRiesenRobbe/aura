@@ -1,0 +1,9 @@
+{
+  "name": "RoofSpanClay",
+  "entityType": "RoofSpan",
+  "sprite": "roofSpan.svg",
+  "body": { "width": 2, "height": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0 },
+  "tint": "#c8644a"
+}

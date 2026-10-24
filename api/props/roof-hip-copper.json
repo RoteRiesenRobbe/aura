@@ -1,0 +1,9 @@
+{
+  "name": "RoofHipCopper",
+  "entityType": "RoofHip",
+  "sprite": "roofHip.svg",
+  "body": { "width": 2, "height": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0 },
+  "tint": "#6fa898"
+}

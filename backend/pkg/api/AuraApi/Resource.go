@@ -161,8 +161,20 @@ func (rcv *Resource) MutateUnderfoot(n bool) bool {
 	return rcv._tab.MutateBoolSlot(20, n)
 }
 
+func (rcv *Resource) Tint() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Resource) MutateTint(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(22, n)
+}
+
 func ResourceStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(10)
 }
 func ResourceAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -193,6 +205,9 @@ func ResourceAddPropName(builder *flatbuffers.Builder, propName flatbuffers.UOff
 }
 func ResourceAddUnderfoot(builder *flatbuffers.Builder, underfoot bool) {
 	builder.PrependBoolSlot(8, underfoot, false)
+}
+func ResourceAddTint(builder *flatbuffers.Builder, tint uint32) {
+	builder.PrependUint32Slot(9, tint, 0)
 }
 func ResourceEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -22,8 +22,9 @@
  * and silently — so this fails LOUDLY on anything it cannot resolve.
  *
  * ⚑ The tilesets reference the frontend's real asset files by relative path.
- * Nothing is copied and nothing is rasterised: Tiled ships Qt's SVG image
- * plugin, so the 14 SVG textures load as-is (measured in C0).
+ * Nothing is rasterised: Tiled ships Qt's SVG image plugin, so the 14 SVG
+ * textures load as-is (measured in C0). The one copy: a prop definition with a
+ * `tint` gets palette/tinted/<Name>.svg, its sprite with the colours baked in.
  */
 import {readFileSync, writeFileSync, mkdirSync, rmSync, existsSync} from 'node:fs';
 import {readdirSync} from 'node:fs';
@@ -111,7 +112,15 @@ function readProps() {
     return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => {
         const def = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
         const rel = 'frontend/src/features/game-objects/assets/resources/' + def.sprite;
-        const abs = path.resolve(ROOT, rel);
+        let abs = path.resolve(ROOT, rel);
+        // A tinted definition (the roof kit's materials) gets a tinted COPY of
+        // its sprite, so Tiled shows slate as slate: Qt's SVG renderer has no
+        // filters or blend modes to multiply with, so the colours are baked.
+        if (def.tint) {
+            abs = path.join(PALETTE, 'tinted', def.name + '.svg');
+            mkdirSync(path.dirname(abs), {recursive: true});
+            writeIfChanged(abs, tintSvg(readFileSync(path.resolve(ROOT, rel), 'utf8'), def.tint));
+        }
         const body = def.body || {};
         // Units, matching the physics body: a circle spans 2*radius, a rect its
         // own width/height. This is what makes a prop hit-test at true size.
@@ -330,6 +339,19 @@ const px = units => Number((units * C.PX).toFixed(4));
 // rewrite of ~65 files showed every one as modified under core.autocrlf=true
 // (same content, refreshed stat). CR is ignored in the comparison: a CRLF
 // checkout of an unchanged file is still unchanged.
+// Multiplies every hex colour in an SVG by a "#rrggbb" tint: what the game's
+// sprite.tint does to the rasterised pixels, done to the source instead.
+// Opacities are untouched, so a black shade stays a black shade.
+function tintSvg(svg, tint) {
+    const t = [1, 3, 5].map(i => parseInt(tint.slice(i, i + 2), 16));
+    const hex = v => v.toString(16).padStart(2, '0');
+    return svg.replace(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g, (_, c) => {
+        const full = c.length === 3 ? c.split('').map(ch => ch + ch).join('') : c;
+        const rgb = [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
+        return '#' + rgb.map((v, i) => hex(Math.round(v * t[i] / 255))).join('');
+    });
+}
+
 function writeIfChanged(file, content) {
     if (existsSync(file) && readFileSync(file, 'utf8').replace(/\r\n/g, '\n') === content) {
         return;
