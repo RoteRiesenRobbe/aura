@@ -60,6 +60,7 @@
       "CentralFountain",
       "Chains",
       "CityGatehouse",
+      "CityStairs",
       "Confessional",
       "CornerTowerRoof",
       "Cot",
@@ -308,6 +309,7 @@
       "Fence",
       "Cliff",
       "Cliff Smooth",
+      "Retaining Wall",
       "Shoreline",
       "Wall",
       "Road",
@@ -738,6 +740,10 @@
     "CityGatehouse": {
       "w": 8,
       "h": 4
+    },
+    "CityStairs": {
+      "w": 2.4,
+      "h": 2
     },
     "Confessional": {
       "w": 2,
@@ -1378,6 +1384,7 @@
     "Fence",
     "Cliff",
     "Cliff Smooth",
+    "Retaining Wall",
     "Shoreline",
     "Wall",
     "Road",
@@ -1405,7 +1412,8 @@
   ],
   "CAP_PROFILES": [
     "Cliff",
-    "Cliff Smooth"
+    "Cliff Smooth",
+    "Retaining Wall"
   ],
   "EFFECT_NAMES": [
     "Aegis",

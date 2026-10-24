@@ -999,6 +999,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.RoofSpan]: Props.genericPropClasses.RoofSpan,
     [AuraApi.EntityType.RoofHip]: Props.genericPropClasses.RoofHip,
     [AuraApi.EntityType.RoofCorner]: Props.genericPropClasses.RoofCorner,
+    [AuraApi.EntityType.CityStairs]: Props.genericPropClasses.CityStairs,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

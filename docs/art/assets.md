@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-24 from 318 rows.
+Rendered 2026-10-24 from 320 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-24 from 318 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 284 |
+| Art | 286 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-24 from 318 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 138 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 140 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 9 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -58,11 +58,11 @@ Rendered 2026-10-24 from 318 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 75 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 118 | normal — placed but not everywhere |
+| **P1** | 76 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 119 | normal — placed but not everywhere |
 | **P3** | 94 | low — unplaced, deferred, or already fine |
 
-**204 rows need work** (missing, shared, placeholder, stock or blocked),
+**206 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 120
+## Prop — 121
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -288,6 +288,7 @@ of which **11 are P0**:
 | 🟡 | **LumberStack** | — | P3 |  | 288 × 120 | Dionsburg — Sawn planks stacked on bearers, strapped with copper bands. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **ToolRack** | — | P3 |  | 216 × 48 | Dionsburg — A wall board of hanging spanners, saws and callipers in their painted outlines. PropPlaceholder box (procedural, labelled); no file yet. Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Doorway** | `doorway.svg` | P2 |  | 312 × 120 | Dionsburg — The mark that shows where a building's door is: a roof hides the gap in its walls, so from outside only this piece's step and its lantern's light clear the eave. Two stone jambs capping the wall ends over a 2 m dark opening, a worn threshold, a broad step out into the street, a lantern on the east jamb. Rotation turns its baked shadow with it, so the shadow is small. Plain stone and iron for any district; per-district variants are a later call. Drawn 2026-10-23 at the PO's ask (K4 follow-up). |
+| 🟡 | **CityStairs** | `cityStairs.svg` | P2 |  | 288 × 240 | Dionsburg — A flight of steps up a terrace: two cheek walls with a pale coping, seven steps each a lit tread over a shaded riser (the cliff tile's top-down cheat: vertical faces show on the low side), the treads worn paler down the middle. First placed on Cathedral Hill (town hall stair, grand stair). |
 | 🟡 | **CityGatehouse** | `cityGatehouse.svg` | P1 | 3 | 960 × 480 | Dionsburg — Dionsburg's city gate, 8 × 4 m: two square crenellated towers of the city's grey wall stone with flagged tops, between them a 3 m cobbled passage open to the sky, the portcullis slot near the outer face, the two oak leaves swung open flat against the passage walls on the city side, strapped in iron. Lit from the top-left; the left tower's shadow falls across the passage. Drawn at the PO's ask (2026-10-23). |
 | 🟡 | **CornerTowerRoof** | `cornerTowerRoof.svg` | P1 | 4 | 1320 | Dionsburg — The open top of a city-wall corner tower seen from straight above: a crenellated parapet of grey wall stone (16 merlons), a flagged wall walk, an oak deck, the head of the spiral stair, a brazier with embers, a barrel of spare spears, a crate of sling stones, a pennant in blue and gold [PLACEHOLDER colours]. The parapet's shadow falls inward. Drawn at the PO's ask (2026-10-23). |
 | 🟡 | **RoofSpan** | `roofSpan.svg` | P1 |  | 240 × 480 | Dionsburg — A straight gable segment 2 × 4 m, ridge east-west through the middle; a run that stops on a span is a gable end. Part of the modular roof kit (span, hip end, L-corner on a 2 x 4 module) that builds rectangle, L, U and Z roofs; depth comes from the placement scale (1 = 4 m, 1.5 = 6 m, 2 = 8 m). |
@@ -373,7 +374,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 30
+## Terrain profile — 31
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -388,6 +389,7 @@ of which **11 are P0**:
 | 🟡 | **Limestone** | `limestone-placeholder.png` | P1 |  | seamless tile 750² | Z3 — Pale pavement slabs (clints) cut by mossy cracks (grikes). Coastal Cliff's base; also a profile on its own. ⛔ Must not read as paving: big irregular slabs, soft uneven cracks. |
 | 🟡 | **Coast Grass** | `coast-grass-placeholder.png` | P1 |  | seamless tile 750² | Z3 — Short, pale, salt-bleached Atlantic sward; Coastal Cliff's overlay, also a profile on its own. Must read as a different place from the Farmlands' lush Fields green. |
 | 🟡 | **Shoreline** | `shoreline-placeholder.png` | P1 |  | 720 × 320 RGBA, band ≤ 180 px | Z1 Strand · Z3–4 — ⭐ The waterline as a path: wet sand fading in, the bright swash line, foam lace over the Water beneath, a fainter second line. Generated (tools/make-shoreline-tile.mjs). |
+| 🟡 | **Retaining Wall** | `retaining-wall-placeholder.png + retaining-wall-cap-placeholder.png` | P1 |  | 720 × 320 RGBA, band ≤ 180 px; cap 360 × 320 | Dionsburg — ⭐ The cliff, built: a masonry terrace wall holding up Cathedral Hill. Coursed ashlar along the path with staggered joints, a pale coping, a hard foot with the baked occlusion shadow; the cap steps the wall down to the ground. Generated (tools/make-retaining-wall-tile.mjs). |
 | 🟡 | **Magic Forest** | `pd184.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #6a52d4. All numbers [PLACEHOLDER]. |
 | 🟡 | **Dead Magic Forest** | `pd153.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #3b2d78. All numbers [PLACEHOLDER]. |
 | 🟡 | **Ashen Fields** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #8a2e1c. All numbers [PLACEHOLDER]. |

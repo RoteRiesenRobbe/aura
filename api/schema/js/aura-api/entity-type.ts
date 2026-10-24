@@ -143,5 +143,6 @@ export enum EntityType {
   CornerTowerRoof = 153,
   RoofSpan = 154,
   RoofHip = 155,
-  RoofCorner = 156
+  RoofCorner = 156,
+  CityStairs = 157
 }
