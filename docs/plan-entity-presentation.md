@@ -429,7 +429,9 @@ EP3, unplanned (§7 Q6).
 (30): 11.0 px, band 14.0 px; a 36 px wolf 12 px (the cap). Frame time with 30 mobs × 4
 indicators: NOT measured. Headless here is SwiftShader with a throttled rAF (~330 ms frames) and
 no venue put more than 10 medallion mobs in view; 5-10 mobs read 333-350 ms with and without,
-i.e. noise. Owed on a real GPU (the PO look, or `darkness-frametime.mjs`'s method).
+i.e. noise. On the PO's machine (2026-10-24) 9 mobs read 6.90 ms with and without, which is
+the 144 Hz refresh cap, so it says nothing about cost. DROPPED as an open item (PO 2026-10-24):
+revisit only if indicators ever seem to cost frames.
 
 **Verified:** vitest red first (5 files: TokenState completeness + angles + sides + geometry,
 StateIndicators, PlateAnchors per anchor, Medallion tint composition incl. setRing after grey,

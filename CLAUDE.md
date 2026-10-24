@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ ENTITY PRESENTATION: EP1 DONE 2026-10-24 (PO look passed), NEXT = appearance C6, then EP2; EP3 unplanned** (`docs/plan-entity-presentation.md`, R1-R13, ledger §11): states sit at reserved angles outside the medallion ring; `dead` (grey + skull at 180°) is built, unlit. Owed: a 30-mob frame time on a real GPU. EP2 = stun's own bit. EP3 = R14, one token system (a design pass first: which spawned things are props, §7 Q6). **Schema: EP2 wire +1 bit value.**
+- **⭐ ENTITY PRESENTATION: EP1 DONE 2026-10-24 (PO look passed), NEXT = appearance C6, then EP2; EP3 unplanned** (`docs/plan-entity-presentation.md`, R1-R13, ledger §11): states sit at reserved angles outside the medallion ring; `dead` (grey + skull at 180°) is built, unlit. EP2 = stun's own bit. EP3 = R14, one token system (a design pass first: which spawned things are props, §7 Q6). **Schema: EP2 wire +1 bit value.**
 
 - **⭐ APPEARANCE + MEDALLIONS: C0a-C5c + C5b DONE (C5b PO look passed 2026-10-23), C6 NEXT (EP1 built 2026-10-24; C6 lights its `dead` row)** (`docs/plan-appearance.md` §7 + §12, D1-D43): the corpse wears the player's portrait + ring (wire 0 = default look) and lights the plan's `dead` row (grey + PONETI skull at 6 o'clock, D42; EP-D9), so C6 runs on EP1; the skull's manifest entry + packing + placeholder `file` are C6's (EP1 named it `red-skull`). C0b when the pilot art lands. Choosing looks at the stone is `plan-ascension-ceremony.md` AC2 (reuses C5b's `grantedBy: "stone"` seams). ⚑ C1's real-phone check is possible now (live since `59780288`).
 
