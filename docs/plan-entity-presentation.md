@@ -1,7 +1,7 @@
 # Plan: Entity presentation: every state an actor is in shows on its medallion, at a position reserved for it
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
-Q1-Q4 open. EP1 BUILT 2026-10-24 `[uncommitted]`, PO look owed (§11); next `plan-appearance.md`
+Q1-Q4 open. EP1 BUILT 2026-10-24 `fb869fcc`, PO look owed (§11); next `plan-appearance.md`
 C6, then EP2.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
@@ -354,7 +354,7 @@ backlog §39 (anchor), §40 (the lifesteal note).
 
 ## 11. Chunk ledgers
 
-### EP1 - BUILT 2026-10-24 `[uncommitted]`, PO look owed (the §5 EP1 checklist)
+### EP1 - BUILT 2026-10-24 `fb869fcc`, PO look owed (the §5 EP1 checklist)
 
 The state ring, D1-D8 as planned; no PO rulings were needed mid-chunk.
 
