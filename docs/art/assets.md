@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-23 from 311 rows.
+Rendered 2026-10-24 from 315 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-23 from 311 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 277 |
+| Art | 281 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-23 from 311 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 131 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 135 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 9 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-23 from 311 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 72 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 116 | normal — placed but not everywhere |
-| **P3** | 92 | low — unplaced, deferred, or already fine |
+| **P2** | 118 | normal — placed but not everywhere |
+| **P3** | 94 | low — unplaced, deferred, or already fine |
 
-**197 rows need work** (missing, shared, placeholder, stock or blocked),
+**201 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -169,7 +169,7 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 113
+## Prop — 117
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -193,6 +193,7 @@ of which **11 are P0**:
 | 🟡 | **Burnt cart** | `burntCart.svg` | P1 |  | 264x156 | Z1 |
 | ❌ | **Plough** | — | P2 |  |  | Z1 — Farmland dressing. |
 | 🟡 | **Well** | `well.svg` | P1 |  | 168 | Z1 — Village centre landmark. Placeholder SVG (body r0.7): stone ring, open shaft, thin winding beam. No roof - it would hide the hole that identifies it. |
+| 🟡 | **Signpost** | — | P3 |  | 60 | Dionsburg — A wooden post with arrow boards at a street crossing; no lettering (the boards carry no text). PropPlaceholder box (procedural, labelled); no file yet. |
 | ❌ | **Trough** | — | P3 |  |  | Z1 — Farmyard dressing. |
 | 🟡 | **Barn** | `barn.svg` | P1 |  | 720x480 | Z1 |
 | 🟡 | **Cottage variant** | `cottage.svg` | P1 |  | 360 x 312 | Z1 — ⭐ The village's third building, so it stops being 12 copies of House. It separates from house.svg on MATERIAL first and shape second: the house is a TILED GABLE (two red rectangles either side of one long ridge, straight courses ruled across), this is a THATCHED HIP (four soft straw faces to a short ridge, pale gold, no straight line anywhere). Two buildings can share a footprint and still not be confusable if they are made of different stuff. ⭐ The RAGGED EAVE is the tell a tiled roof can never have - thatch frays rather than ends, drawn as a heavy DASHED stroke round the eave line so each dash is a bundle of straw ends. ⛑ Four separate gradients, one per face, dark at the eave and pale at the ridge: a hipped roof painted flat reads as an OPEN CRATE looked into from above, which is exactly what mill.svg had to be re-cut for. ⛑ Smaller and squarer than the house (3.0x2.6 vs 4x3) - hip a long rectangle and the ridge grows until it is a gable again. Stone chimney oversized on purpose: a thatched cottage needs its fire to be visibly non-flammable. Placeholder SVG. |
@@ -241,10 +242,12 @@ of which **11 are P0**:
 | 🟡 | **IronFence** | — | P2 |  | 288 × 36 | Dionsburg — A wrought-iron cemetery railing section. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 | 🟡 | **CemeteryGate** | — | P2 |  | 360 × 60 | Dionsburg — The cemetery's wrought-iron gate, standing open between IronFence runs. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 | 🟡 | **AngelStatue** | — | P2 |  | 144 | Dionsburg — A weathered stone angel over a grave, wings from above. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
+| 🟡 | **CryptEntrance** | — | P2 |  | 360 × 288 | Dionsburg — The sealed way down to the catacombs (a high-level dungeon, not built yet): a sunken stair under a stone lintel, its iron door chained shut. PropPlaceholder box (procedural, labelled); no file yet. Cathedral palette (R5): grey slate, gold accents. |
 | 🟡 | **LazaretTent** | `lazaretTent.svg` | P2 |  | 720 × 480 | Dionsburg — The lazaret's field-hospital marquee, 6 × 4 m: a HIPPED roof on two king poles (four planes on a short east-west ridge, told apart by the top-left light), a red band along the ridge and one down both slopes so the whole roof is the cross. Washed-out canvas, a fresh patch, a scorch mark. Cots stand beneath and show when it fades. Lazaret palette (R5): white with red cross bands. |
 | 🟡 | **SlumTent** | `slumTent.svg` | P2 |  | 288 × 240 | Dionsburg — A shelter nobody bought: a crooked branch for a north-south ridge, mismatched cloth thrown over it and patched brown on brown, a ragged sagging hem weighted with stones. A Bedroll lies beneath. Repeated across the slums, so it must not read as one hero tent. Slums palette (R5): patched brown cloth. |
 | 🟡 | **Cot** | — | P2 |  | 96 × 228 | Dionsburg — A canvas camp bed, north-south, in rows under the lazaret tent. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
 | 🟡 | **BandageTable** | — | P3 |  | 192 × 96 | Dionsburg — A trestle table of rolled bandages, basins and bottles. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
+| 🟡 | **Stretcher** | — | P3 |  | 84 × 228 | Dionsburg — Two poles and stained canvas: the wounded carried in from the south gate. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
 | 🟡 | **Screen** | — | P3 |  | 192 × 24 | Dionsburg — A folding cloth screen between cots, seen edge-on from above. PropPlaceholder box (procedural, labelled); no file yet. Lazaret palette (R5): white with red cross bands. |
 | 🟡 | **LeanTo** | `leanTo.svg` | P2 |  | 288 × 192 | Dionsburg — One pitch propped against a wall: a beam along the wall (north), salvaged planks of mismatched widths running down the slope to a ragged south edge, one board missing, two nailed battens, a patched brown cloth over the east end weighted with stones. Drawn after K3 first shipped it as a box (PO 2026-10-22). Slums palette (R5): patched brown cloth. |
 | 🟡 | **RubbishHeap** | — | P3 |  | 192 | Dionsburg — Refuse, rags and broken crockery in a low heap. PropPlaceholder box (procedural, labelled); no file yet. Slums palette (R5): patched brown cloth. |
@@ -274,6 +277,7 @@ of which **11 are P0**:
 | 🟡 | **Stocks** | — | P2 |  | 240 × 72 | Dionsburg — Wooden stocks on a low platform, iron hasps. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **GuardDesk** | — | P3 |  | 216 × 108 | Dionsburg — A heavy desk with a ledger, a ring of keys and a tankard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **Chains** | — | P3 |  | 96 | Dionsburg — Shackles and a coil of chain on the floor, bolted to a ring. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
+| 🟡 | **Gallows** | — | P2 |  | 360 × 240 | Dionsburg — A timber platform with a crossbeam and an empty noose, in the jail yard. PropPlaceholder box (procedural, labelled); no file yet. Dwarven palette (R5): dark stone, iron, red banners; brass rivets and the clan's anvil sigil (PO 2026-10-23). |
 | 🟡 | **WorkshopRoof** | `workshopRoof.svg` | P1 |  | 720 × 600 | Dionsburg — A roof PIECE, 6 × 5 m: copper sheet with north-south standing seams every half metre (they repeat across the join), soot-streaked, a riveted brass ridge cap with a gear-shaped vent, a skylight with lamplight on the lit north pitch, a stovepipe under a brass cowl on the shaded south pitch. No eave on the east and west edges. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Crane** | `crane.svg` | P1 |  | 360 × 360 | Dionsburg — The yard crane seen from above: a cross-braced timber footing on a gravel pad with iron shoes at the corners, a brass turntable, a lattice iron jib reaching north-east to a brass hook block, a soot-black iron counterweight on the short arm, the winch drum and its copper gear, a brass pivot bolt in the mast cap; a long shadow. Drawn at the PO's ask instead of a box (2026-10-23). Gnome palette (R5): brass, copper, gears, soot. |
 | 🟡 | **Workbench** | `workbench.svg` | P2 |  | 264 × 120 | Dionsburg — A tinkerer's oak bench, scorched and oil-stained, brass corner plates: an iron vice on the west end with a copper part in its jaws, a blueprint pinned under an oil can, loose brass, copper and iron gears, a spring, a spanner, a magnifier on a jointed brass arm. Gnome palette (R5): brass, copper, gears, soot. |

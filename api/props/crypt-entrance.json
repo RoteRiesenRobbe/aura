@@ -1,0 +1,6 @@
+{
+  "name": "CryptEntrance",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 3, "height": 2.4 }
+}

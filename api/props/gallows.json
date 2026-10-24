@@ -1,0 +1,6 @@
+{
+  "name": "Gallows",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 3, "height": 2 }
+}

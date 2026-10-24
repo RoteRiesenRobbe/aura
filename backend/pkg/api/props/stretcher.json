@@ -1,0 +1,7 @@
+{
+  "name": "Stretcher",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 0.7, "height": 1.9 },
+  "blocksMovement": false
+}

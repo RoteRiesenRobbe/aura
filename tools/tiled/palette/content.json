@@ -66,6 +66,7 @@
       "Cottage",
       "Crane",
       "Crate",
+      "CryptEntrance",
       "CrystalPylon",
       "DeadTree",
       "Doorway",
@@ -76,6 +77,7 @@
       "FishingHut",
       "Font",
       "Forge",
+      "Gallows",
       "Gate",
       "GateWall",
       "GearContraption",
@@ -117,9 +119,11 @@
       "Screen",
       "ScrollRack",
       "Shipwreck",
+      "Signpost",
       "SlumTent",
       "SteamBoiler",
       "Stocks",
+      "Stretcher",
       "Stump",
       "Tent",
       "Tombstone",
@@ -744,6 +748,10 @@
       "w": 0.9,
       "h": 0.9
     },
+    "CryptEntrance": {
+      "w": 3,
+      "h": 2.4
+    },
     "CrystalPylon": {
       "w": 1,
       "h": 1
@@ -783,6 +791,10 @@
     "Forge": {
       "w": 2,
       "h": 1.6
+    },
+    "Gallows": {
+      "w": 3,
+      "h": 2
     },
     "Gate": {
       "w": 4,
@@ -948,6 +960,10 @@
       "w": 8,
       "h": 3
     },
+    "Signpost": {
+      "w": 0.5,
+      "h": 0.5
+    },
     "SlumTent": {
       "w": 2.4,
       "h": 2
@@ -959,6 +975,10 @@
     "Stocks": {
       "w": 2,
       "h": 0.6
+    },
+    "Stretcher": {
+      "w": 0.7,
+      "h": 1.9
     },
     "Stump": {
       "w": 1.1,
