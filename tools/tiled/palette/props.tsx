@@ -66,7 +66,7 @@
   <properties>
    <property name="auraType" value="Barrel"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/propPlaceholder.svg" width="512" height="512"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/barrel.svg" width="100" height="100"/>
  </tile>
  <tile id="11" type="AuraProp">
   <properties>
@@ -84,7 +84,7 @@
   <properties>
    <property name="auraType" value="Bench"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/propPlaceholder.svg" width="512" height="512"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/bench.svg" width="166" height="41"/>
  </tile>
  <tile id="14" type="AuraProp">
   <properties>

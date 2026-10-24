@@ -1,6 +1,6 @@
 {
   "name": "Barrel",
-  "entityType": "PropPlaceholder",
-  "sprite": "propPlaceholder.svg",
+  "entityType": "Barrel",
+  "sprite": "barrel.svg",
   "body": { "radius": 0.4 }
 }

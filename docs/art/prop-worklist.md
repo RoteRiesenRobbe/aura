@@ -218,10 +218,10 @@ its canvas** (no ropes, no overhanging eaves outside the body).
 | MarketStallRoof | P2 | placeholder (roof, fades to 0.3) | 360 x 288 |
 | MarketCounter | P2 | placeholder | 312 x 96 |
 | LampPost | P2 | box only | 48 |
-| Barrel | P3 | box only | 96 |
+| Barrel | P3 | placeholder | 96 |
 | SackPile | P3 | box only | 120 x 96 |
 | ProduceBasket | P3 | box only | 84 |
-| Bench | P3 | box only | 216 x 60 |
+| Bench | P3 | placeholder | 216 x 60 |
 
 ⭐ The fountain is the city's landmark and must read from a distance on its
 water ring. The stall is two props: the awning (one pitch, pole at the back,

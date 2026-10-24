@@ -1,6 +1,6 @@
 {
   "name": "Bench",
-  "entityType": "PropPlaceholder",
-  "sprite": "propPlaceholder.svg",
+  "entityType": "Bench",
+  "sprite": "bench.svg",
   "body": { "width": 1.8, "height": 0.5 }
 }

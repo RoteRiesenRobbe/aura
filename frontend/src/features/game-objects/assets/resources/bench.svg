@@ -1,0 +1,55 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" preserveAspectRatio="none">
+  <!-- Placeholder bench (city market): TRUE top-down, a backless plank bench
+       seen from above. The viewBox is 180x50 to match the 1.8 x 0.5 rect body
+       in api/props/bench.json (preserveAspectRatio=none, so the two must stay
+       in sync). Backless and the same both ways round, because placements
+       turn it to any angle round the fountain; for the same reason the baked
+       shadow is kept small. Three seat planks on two trestles whose splayed
+       feet poke out past the seat. Market palette: weathered, worn, not
+       festive. -->
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="9" y="7" width="166" height="41" rx="3" fill="#000000" opacity="0.22"/>
+
+  <!-- the trestles' splayed feet, peeking out past both long edges -->
+  <g fill="#4e3d2a" stroke="#2a1f13" stroke-width="2">
+    <rect x="22" y="1" width="12" height="48" rx="2"/>
+    <rect x="146" y="1" width="12" height="48" rx="2"/>
+  </g>
+
+  <!-- the seat: three planks with dark gaps between them -->
+  <rect x="5" y="5" width="170" height="40" rx="2" fill="#7d6a52" stroke="#2a1f13" stroke-width="3"/>
+  <!-- the lit face of each plank, the top one brightest -->
+  <rect x="8" y="8" width="164" height="10" fill="#a08b6c" opacity="0.6"/>
+  <rect x="8" y="20" width="164" height="10" fill="#a08b6c" opacity="0.38"/>
+  <rect x="8" y="32" width="164" height="10" fill="#a08b6c" opacity="0.22"/>
+  <g stroke="#2a1f13" stroke-width="1.6" opacity="0.85">
+    <line x1="7" y1="18.5" x2="173" y2="18.5"/>
+    <line x1="7" y1="31" x2="173" y2="31"/>
+  </g>
+
+  <!-- worn pale down the middle where people sit -->
+  <g fill="#b3a083" opacity="0.3">
+    <ellipse cx="62" cy="25" rx="26" ry="12"/>
+    <ellipse cx="118" cy="25" rx="26" ry="12"/>
+  </g>
+
+  <!-- grain, a knot and a split plank end -->
+  <g fill="none" stroke="#3b2e20" stroke-width="0.8" opacity="0.45">
+    <path d="M14,12 Q50,10 86,13 T164,12"/>
+    <path d="M20,25 Q60,27 98,24 T160,25"/>
+    <path d="M12,38 Q48,36 90,39 T166,37"/>
+  </g>
+  <ellipse cx="96" cy="37" rx="3.5" ry="2" fill="#4e3d2a" opacity="0.7"/>
+  <path d="M172,22 L156,24" stroke="#2a1f13" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- nail heads where each plank is nailed down to a trestle -->
+  <g fill="#2f2e2b" opacity="0.8">
+    <circle cx="28" cy="12" r="1.4"/>
+    <circle cx="28" cy="24.5" r="1.4"/>
+    <circle cx="28" cy="37" r="1.4"/>
+    <circle cx="152" cy="12" r="1.4"/>
+    <circle cx="152" cy="24.5" r="1.4"/>
+    <circle cx="152" cy="37" r="1.4"/>
+  </g>
+</svg>

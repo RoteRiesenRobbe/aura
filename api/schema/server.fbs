@@ -372,7 +372,11 @@ enum EntityType : ushort {
 
   // A flight of steps through a gap in a cliff (Cathedral Hill): underfoot,
   // non-blocking, the low side at the bottom like the Doorway's street side.
-  CityStairs = 157
+  CityStairs = 157,
+
+  // Market clutter, drawn over their PropPlaceholder boxes.
+  Barrel = 158,
+  Bench = 159
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
