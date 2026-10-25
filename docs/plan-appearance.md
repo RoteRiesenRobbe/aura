@@ -1431,7 +1431,7 @@ of an ascension stone"; the first run's `live stance` leg failed for want of a b
 venue flake; a `timeout 900` wrapper killed one earlier attempt mid-join) · harness rows cleaned,
 server stopped first.
 
-### C6 - BUILT 2026-10-25 `[uncommitted]`, PO look owed
+### C6 - BUILT 2026-10-25 `e90bfee6`, PO look owed
 
 Player corpses (D40-D46, §3.8), built on `plan-entity-presentation.md` EP1 (its D9). The
 corpse is a medallion wearing the dead player's portrait and ring, at the player's token size,
