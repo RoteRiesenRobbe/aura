@@ -802,6 +802,11 @@ function unmarshalEntity(entity, eType) {
         result.underfoot = entity.underfoot();
         // 0 for every untinted prop: the server omits the default.
         result.tint = entity.tint();
+
+        // a player corpse's look (plan-appearance.md C6), 0 = the default and
+        // on every prop.
+        result.portrait = entity.portrait();
+        result.ring = entity.ring();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

@@ -390,7 +390,7 @@ for (const v of VENUES) {
       await p2.waitForFunction((want) => {
         const c = window.game.character;
         const items = window.__appearanceIds;
-        return c.portraitWire === items.indexOf(want) + 1;
+        return c.medallion.portraitWire === items.indexOf(want) + 1;
       }, id, { timeout: 15_000 });
       await p2.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 300)))));
       return ownPortrait();
@@ -402,7 +402,7 @@ for (const v of VENUES) {
     const worn = first.uid;
     const swapped = (await wearing('default')).uid;
     const back = (await wearing('green-hood')).uid;
-    const wires = await p2.evaluate(() => [window.game.character.portraitWire, window.game.character.ringWire]);
+    const wires = await p2.evaluate(() => [window.game.character.medallion.portraitWire, window.game.character.medallion.ringWire]);
     ok(first.pack && swapped !== worn && back === worn, `c3 ${when}: own portrait is the green-hood bust (tex#${worn} pack=${first.pack}; LOOK default -> tex#${swapped}, back -> tex#${back}; wire ${wires})`);
   };
   await enterWorld();
@@ -447,7 +447,7 @@ for (const v of VENUES) {
   const redHood = await p2.evaluate(() => window.__appearanceIds.indexOf('red-hood') + 1);
   await press('KeyC');
   await p2.click('#appearance .lookOption[data-item="red-hood"]');
-  const pickedRed = await p2.waitForFunction((w) => window.game.character.portraitWire === w, redHood, { timeout: 15_000 })
+  const pickedRed = await p2.waitForFunction((w) => window.game.character.medallion.portraitWire === w, redHood, { timeout: 15_000 })
     .then(() => true).catch(() => false);
   ok(pickedRed, `c4: picking the red hood sets the own portrait wire to ${redHood}`);
   await p2.waitForTimeout(500);
@@ -560,7 +560,7 @@ for (const v of VENUES) {
   const earned = await forestTile();
   ok(earned && !earned.locked && earned.fresh, `c5c: the panel offers the forest ring, glowing (${JSON.stringify(earned)})`);
   await p2.click('#appearance .lookOption[data-item="ring-forest"]');
-  const woreForest = await p2.waitForFunction((w) => window.game.character.ringWire === w, forestWire, { timeout: 15_000 })
+  const woreForest = await p2.waitForFunction((w) => window.game.character.medallion.ringWire === w, forestWire, { timeout: 15_000 })
     .then(() => true).catch(() => false);
   ok(woreForest, `c5: the earned forest ring is worn (own ring wire ${forestWire})`);
   await p2.screenshot({ path: join(shotDir, `c1-${label}-c5-earned.png`) });
@@ -603,10 +603,10 @@ for (const v of VENUES) {
   await fp.keyboard.press('KeyC');
   await fp.waitForTimeout(500);
   const forgedTile = await fp.locator('#appearance .lookOption[data-item="ring-forest"]').count();
-  const before = await fp.evaluate(() => window.game.character.ringWire);
+  const before = await fp.evaluate(() => window.game.character.medallion.ringWire);
   if (forgedTile === 1) await fp.click('#appearance .lookOption[data-item="ring-forest"]');
   await fp.waitForTimeout(3000);
-  const after = await fp.evaluate(() => window.game.character.ringWire);
+  const after = await fp.evaluate(() => window.game.character.medallion.ringWire);
   ok(forgedTile === 1 && after === before && after !== forestWire,
     `c5: the server refuses a locked ring (forged tile ${forgedTile}, ring wire ${before} -> ${after}, forest is ${forestWire})`);
   await fctx.close();

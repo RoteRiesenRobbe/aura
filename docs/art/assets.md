@@ -326,7 +326,7 @@ of which **11 are P0**:
 | --- | --- | --- | --- | ---: | --- | --- |
 | ✅ | **Player character** | `characters/player.svg` | P0 |  | 60 | ⭐ One drawing is every player on the server — there's no avatar system yet. A portrait; never rotates. Smallest important sprite in the game. |
 | ⚙️ | **Player hands** | — | P3 |  | tiny | Two circles drawn procedurally, skin #f2a586 + black outline. If the avatar's shape changes, these move or go. |
-| ✅ | **Corpse / gravestone** | `corpse.svg` | P3 |  | 100 | The marker at a death spot. Placeholder — death is a real beat in a game with a sacrifice loop. |
+| ✅ | **Death skull** | `red-skull.svg` | P3 |  | 32 | Since plan-appearance.md C6 the corpse is the dead player's own medallion, greyed, with this red skull at 6 o'clock (the gravestone retired). Placeholder for the PONETI `Rune_Death_nb` pack icon (`red-skull`), drawn where the pack is absent. |
 
 ## VFX — 29
 

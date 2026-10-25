@@ -612,12 +612,6 @@ export const GraphicsConfig = {
         Wisp: {packIcon: 'portrait-ghost'},
     },
 
-    // Player corpse (chunk 4): gravestone placeholder at the deathspot.
-    corpse: {
-        file: require('../features/game-objects/assets/corpse.svg'),
-        size: <number> 50,
-    },
-
     // No `resources` entry: trees and rocks draw through the generic prop path
     // (Props.ts), which reads each sprite from its api/props/*.json, and their
     // resource-spot decals were retired (plan-prop-draw-order.md P2, D8).

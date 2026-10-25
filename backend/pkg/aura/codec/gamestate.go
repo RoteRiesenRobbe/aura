@@ -1066,6 +1066,10 @@ func CorpseEntityFlatbufMarshal(e model.CorpseEntity, builder *flatbuffers.Build
 	AuraApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
 	AuraApi.ResourceAddEntityType(builder, AuraApi.EntityType(e.Type()))
 
+	portrait, ring := e.Look()
+	AuraApi.ResourceAddPortrait(builder, portrait)
+	AuraApi.ResourceAddRing(builder, ring)
+
 	return AuraApi.ResourceEnd(builder)
 }
 

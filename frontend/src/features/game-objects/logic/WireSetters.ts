@@ -48,7 +48,7 @@ export interface MobPlate {         // Mob
     setStance(stance: number): void;
 }
 
-export interface CharacterLook {    // Character
+export interface CharacterLook {    // Character, Corpse
     // The worn portrait and ring as wire values (plan-appearance.md C3):
     // 1 + the position in /appearance's arrays, 0 = the default.
     setLook(portrait: number, ring: number): void;

@@ -1,8 +1,8 @@
 # Plan: Entity presentation: every state an actor is in shows on its medallion, at a position reserved for it
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
-Q1-Q3 open, Q4 + L5 RULED 2026-10-24. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11); next
-`plan-appearance.md` C6, then EP2; EP3 (one token system) unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+Q1-Q3 open, Q4 + L5 RULED 2026-10-24. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
+`plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); next EP2; EP3 (one token system) unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
