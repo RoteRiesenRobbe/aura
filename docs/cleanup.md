@@ -191,6 +191,16 @@ C7/C8 plan its delivery).
 | **Trigger** | ⭐ **The PO deletes or restores it.** |
 | **Closes when** | The file is gone (delete this row), or a conversant offers it again. |
 
+### 8. `the-lost-lamp` ("The Lost Lamp") — loaded, offered by nobody
+
+| | |
+|---|---|
+| **Today** | `api/quests/the-lost-lamp.json` still loads, but its rows left the Lampless Traveller on 2026-10-25 (PO, `content-zone-2-woodland.md` §3.8). Boot warns "offered by no conversant"; `parkedQuests` exempts it. A character mid-quest keeps it in the journal and can only abandon it. |
+| **Successor** | `oil-for-the-lamps` (the Lamplighter teaches Lamp). |
+| **Cost** | As #7: the file, its `quest.the-lost-lamp.*` keys (en + de + record), the `parkedQuests` entry and its census line; a look at saved ledgers first. |
+| **Trigger** | ⭐ **The PO deletes it.** |
+| **Closes when** | The file is gone (delete this row). |
+
 ---
 
 

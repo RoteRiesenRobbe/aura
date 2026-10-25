@@ -191,6 +191,7 @@
             "storageType": "string",
             "values": [
                 "(pick a mob)",
+                "AlphaBear",
                 "AlphaBoar",
                 "AlphaWolf",
                 "ArmySoldier",
@@ -237,6 +238,7 @@
                 "FireTotem",
                 "Flora",
                 "ForestSign",
+                "Fritz",
                 "FrontAscensionStone",
                 "FrontCaptain",
                 "Ghoul",
@@ -244,6 +246,7 @@
                 "GiantScorpion",
                 "GiantSpider",
                 "GladeRoot",
+                "Gnome1",
                 "Governor",
                 "GrandfatherKnot",
                 "GreaterFireElemental",
@@ -251,6 +254,7 @@
                 "Henrik",
                 "Hermit",
                 "Kobold",
+                "KoboldChief",
                 "KoboldRanged",
                 "Lambert",
                 "LamplessTraveller",
@@ -302,6 +306,8 @@
                 "WarbannerTotem",
                 "Wisp",
                 "Wolf",
+                "Woodcutter2",
+                "Woodcutter3",
                 "Woolliam"
             ],
             "valuesAsFlags": false
@@ -478,6 +484,7 @@
                 "Hardy",
                 "Harvest",
                 "Haste",
+                "Hatchet",
                 "Heal",
                 "HealerAura",
                 "Hoarfrost",
@@ -1112,7 +1119,10 @@
                 "den-of-evil",
                 "homestead",
                 "farmreinhard",
-                "hans-pen"
+                "hans-pen",
+                "bear-cave",
+                "wolf-den",
+                "woodcutters-camp"
             ],
             "valuesAsFlags": false
         },

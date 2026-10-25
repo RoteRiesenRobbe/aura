@@ -1773,6 +1773,13 @@ conversation: no objective stage, accepted and turned in on the same node (the
 panel re-presents every tick, so the turn-in row appears as soon as the accept
 row is taken).
 
+**A second giver, one step in.** An `offer_quest` may carry `toStage` (no
+`fromStage`): the accept lands on that stage instead of the quest's first, for a
+giver who hands the quest over with its first step already done (Gnome 1's
+`oil-for-the-lamps`, `content-zone-2-woodland.md` §3.8). The landing stage must
+exist and must not be terminal (CrossValidate). Such a quest has a mid-quest
+step at another NPC, so it is exempt from the two-row turn-in walk by name.
+
 **Gating one quest behind another** is then a node condition, not a field on the
 quest file - a quest never knows who offers it (D11), and there is no
 "complete quest X" objective kind:

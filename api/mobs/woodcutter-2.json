@@ -1,0 +1,51 @@
+{
+  "_comment": "Woodcutter 2 (placeholder name), Fritz's captured woodcutter, a prisoner on the kobold plateau: the talk_to target of `the-captive`, and as thanks one of Hatchet's two teachers (content-zone-2-woodland.md §3.7). Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2), role creature + speed 0, xpFactor 0. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "id": 127,
+  "name": "Woodcutter2",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "you-came-the-kobolds-have"},
+          {"id": "fritz-is-alive-tell-him"}
+        ],
+        "options": [
+          { "stock": "ask-teach", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          {"id": "the-only-way-down"}
+        ],
+        "options": [
+          {
+            "grants": [
+              { "stock": "teach-skill", "kind": "teach_skill", "skill": "Hatchet" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

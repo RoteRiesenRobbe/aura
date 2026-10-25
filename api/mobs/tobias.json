@@ -1,5 +1,5 @@
 {
-  "_comment": "Tobias, Reinhard's farmhand, resting at the Wanderer's fire in the woods. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `a-lost-shipment` behind his progress row. His lines are drafted, the sheet has none. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Tobias, Reinhard's farmhand, resting at the Wanderer's fire in the woods. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `a-lost-shipment`, then offers `the-stolen-shipment` (content-zone-2-woodland.md §3.5), gated on the first being completed; the gnome turns that one in. His lines are drafted, the sheet has none. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
   "id": 121,
   "name": "Tobias",
   "type": "MOB",
@@ -8,38 +8,24 @@
   "role": "creature",
   "tier": "normal",
   "curveLevel": 1,
-  "factors": {
-    "baseMaxHealth": 200,
-    "xpFactor": 0,
-    "speed": 0
-  },
-  "body": {
-    "radius": 0.35,
-    "collisionLayer": 97,
-    "collisionMask": 16,
-    "aggroRadius": 1
-  },
+  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
+  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
   "skills": [],
   "interaction": {
     "range": 2,
     "nodes": [
       {
         "id": "root",
-        "lines": [
-          {"id": "stay-back-oh-youre-not"}
-        ],
+        "lines": [ { "id": "stay-back-oh-youre-not" } ],
         "options": [
-          {
-            "id": "reinhard-sent-me-to-look",
-            "next": "found"
-          }
+          { "id": "reinhard-sent-me-to-look", "next": "found" },
+          { "id": "can-i-help-you-get", "next": "shipment" },
+          { "id": "about-the-shipment", "next": "shipment_running" }
         ]
       },
       {
         "id": "found",
-        "lines": [
-          {"id": "reinhard-thank-the-light"}
-        ],
+        "lines": [ { "id": "reinhard-thank-the-light" } ],
         "options": [
           {
             "id": "are-you-all-right-what",
@@ -51,13 +37,48 @@
                 "fromStage": "search",
                 "toStage": "found"
               },
-              {
-                "kind": "grant_xp",
-                "xp": 311
-              }
+              { "kind": "grant_xp", "xp": 311 }
             ]
           }
         ]
+      },
+      {
+        "id": "shipment",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "a-lost-shipment", "stage": "completed" } ],
+        "lines": [
+          {"id": "the-bandits-burned-the-cart"},
+          {"id": "the-shipment-and-reinhards"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [ { "stock": "good", "kind": "offer_quest", "quest": "the-stolen-shipment" } ]
+          }
+        ]
+      },
+      {
+        "id": "shipment_running",
+        "lines": [ {"id": "the-shipment"} ],
+        "options": [
+          { "stock": "quest-progress", "next": "shipment_follow" },
+          { "id": "where-would-they-take-it", "next": "shipment_recover" },
+          { "id": "i-have-the-crates", "next": "shipment_deliver" }
+        ]
+      },
+      {
+        "id": "shipment_follow",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "follow" } ],
+        "lines": [ {"id": "follow-the-spilled-crates-north"} ]
+      },
+      {
+        "id": "shipment_recover",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "recover" } ],
+        "lines": [ {"id": "up-to-their-plateau-i"} ]
+      },
+      {
+        "id": "shipment_deliver",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "deliver" } ],
+        "lines": [ {"id": "then-take-it"} ]
       }
     ]
   }

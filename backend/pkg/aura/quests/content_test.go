@@ -125,9 +125,18 @@ var expectedQuests = map[string]string{
 	"clear-the-grove":    "Clear the Grove",
 	"the-sleeping-roots": "The Sleeping Roots",
 
-	// The Wanderer's lost friend (content-zone-2-woodland.md §3.5): a talk_to
-	// on a dead body (EntityType Remains) at the back of the kobold cave.
+	// Fritz's lost scout (content-zone-2-woodland.md §3.5): a talk_to on a
+	// dead body (EntityType Remains) at the dark forest's edge.
 	"the-lost-friend": "The Lost Friend",
+
+	// The Deep Woods (content-zone-2-woodland.md §3.5): Tobias's follow-up,
+	// which the gnome turns in; Fritz's captive, bear and wolf; and the
+	// Lamplighter's lamp oil, which the gnome also offers at its second stage.
+	"the-stolen-shipment": "The Stolen Shipment",
+	"the-captive":         "The Captive",
+	"the-alpha-bear":      "The Alpha Bear",
+	"the-wolf-den":        "The Wolf Den",
+	"oil-for-the-lamps":   "Oil for the Lamps",
 
 	// The opening arc's handoff and the first REACH quest
 	// (plan-region-identity.md R2): handed over by Flora, done on arriving at
@@ -141,7 +150,8 @@ var expectedQuests = map[string]string{
 // the "startable in play" and "every stage reachable" pins, never from the
 // census.
 var parkedQuests = map[string]string{
-	"the-strays": "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
+	"the-strays":    "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
+	"the-lost-lamp": "PO 2026-10-25 (content-zone-2-woodland.md §3.8): retired; the Lamplighter's oil-for-the-lamps took its place",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -257,21 +267,19 @@ func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing
 	}
 }
 
-// ⚑ L5b (conversation-journal Q4/R3): Lantern is QUEST-ONLY. The 5 % kobold
-// drops were deleted with Q4, so the traveller's turn-in row on the-lost-lamp
-// is the aura's SINGLE source — and Lantern is the light the zone-1/2 tunnel
-// is designed around. This is the reachability guarantee
-// content-skill-inventory.md states in prose and nothing else enforces: a
-// content edit that loses the row (or quietly re-adds a drop) changes an
-// authored decision, and this test is where it says so.
-func TestContent_LanternIsQuestOnlyAndHasASource(t *testing.T) {
+// The light skills (content-zone-2-woodland.md §3.8, PO 2026-10-25): the
+// Lamplighter's lamp-oil turn-in is the ONE row that teaches Lamp (the Torch
+// passive, its display name since that day), and no row teaches the active
+// light (Lantern, shown as Torch) any more: the-lost-lamp is retired and that
+// skill's role is a parked global call (roadmap.md). Neither drops from a kill.
+// A content edit that changes either source changes an authored decision.
+func TestContent_LightSkillSources(t *testing.T) {
 	mr, _ := contentRegistries(t)
 
-	var sources []string
+	var lamp, lantern []string
 	for _, def := range mr.Mobs() {
 		for _, u := range def.Unlocks {
-			assert.NotEqual(t, "Lantern", u.Skill.Name,
-				"%s: the Lantern kill-drop was deleted with Q4 (R3) — the quest is the only source", def.Name)
+			assert.NotContains(t, []string{"Lantern", "Torch"}, u.Skill.Name, "%s: the light skills never drop", def.Name)
 		}
 		if def.Interaction == nil {
 			continue
@@ -279,25 +287,21 @@ func TestContent_LanternIsQuestOnlyAndHasASource(t *testing.T) {
 		for _, node := range def.Interaction.Nodes {
 			for _, opt := range node.Options {
 				turnInOf := ""
-				teachesLantern := false
 				for _, g := range opt.Grants {
 					switch {
 					case g.Kind == mobs.GrantAdvanceQuest:
 						turnInOf = g.Quest
+					case g.Kind == mobs.GrantTeachSkill && g.Skill.Name == "Torch" && turnInOf == "oil-for-the-lamps":
+						lamp = append(lamp, def.Name)
 					case g.Kind == mobs.GrantTeachSkill && g.Skill.Name == "Lantern":
-						teachesLantern = true
+						lantern = append(lantern, def.Name)
 					}
-				}
-				if teachesLantern {
-					sources = append(sources, def.Name)
-					assert.Equal(t, "the-lost-lamp", turnInOf,
-						"Lantern rides the lamp quest's turn-in row — a guaranteed reward, not a re-teach")
 				}
 			}
 		}
 	}
-	assert.Equal(t, []string{"LamplessTraveller"}, sources,
-		"exactly one row in the world grants Lantern")
+	assert.Equal(t, []string{"Lamplighter"}, lamp, "the lamp-oil turn-in teaches Lamp")
+	assert.Empty(t, lantern, "no row teaches the active light while its role is parked")
 }
 
 // Every stage a quest defines can actually be walked into. An orphan stage is
@@ -386,7 +390,6 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"village-welcome":    150,
 		"turnip-chore":       150,
 		"wolves-on-the-road": 800, // 400 per leg, and a player can only ever walk one
-		"the-lost-lamp":      700,
 
 		// The generic kill quests (plan-generic-kill-quests.md C1 + C2): the L9
 		// half-level rule applied literally — ½ × 300 × 1.2^(targetLevel−1).
@@ -437,8 +440,15 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"clear-the-grove":    600,
 		"the-sleeping-roots": 1000,
 
-		// The Wanderer's lost friend, priced at the kobold cave's L5 kobolds.
+		// Fritz's lost scout, priced at the L5 small spiders round the body.
 		"the-lost-friend": 311, // L5, ½ × 300 × 1.2⁴
+
+		// The Deep Woods (content-zone-2-woodland.md §3.5), the same rule.
+		"the-stolen-shipment": 540, // L8, ½ × 300 × 1.2⁷ ≈ 537
+		"the-captive":         540, // L8, the plateau's band
+		"the-wolf-den":        540, // L8, the alpha wolf's placement
+		"the-alpha-bear":      645, // L9, ½ × 300 × 1.2⁸ ≈ 645
+		"oil-for-the-lamps":   450, // L7, ½ × 300 × 1.2⁶ ≈ 448, plus Lamp
 	}, total)
 }
 

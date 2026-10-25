@@ -1,0 +1,20 @@
+{
+  "_comment": "Fritz's second missing woodcutter (content-zone-2-woodland.md §3.5 quest 4): find Woodcutter 2, a prisoner on the kobold plateau, and bring Fritz the news. Woodcutter 2 teaches Hatchet on her own row, so the reward here is XP only. Priced at L8 by the L9 half-level rule (the plateau's band).",
+  "id": "the-captive",
+  "level": 8,
+  "stages": [
+    {
+      "id": "search",
+      "objectives": [
+        { "kind": "talk_to", "npc": "Woodcutter2" }
+      ],
+      "next": "return"
+    },
+    {
+      "id": "return"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

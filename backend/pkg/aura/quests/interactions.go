@@ -62,6 +62,10 @@ func CrossValidate(mr conversantSource, qr Registry) ([]string, error) {
 					switch g.Kind {
 					case mobs.GrantOfferQuest:
 						offered[q.ID] = true
+						if g.ToStage != "" && q.Stage(g.ToStage) == nil {
+							return nil, fmt.Errorf("%s: offer_quest lands on toStage %q, which quest %q does not define",
+								where, g.ToStage, q.ID)
+						}
 					case mobs.GrantAdvanceQuest:
 						if err := checkEdge(q, where, g); err != nil {
 							return nil, err
@@ -82,6 +86,9 @@ func CrossValidate(mr conversantSource, qr Registry) ([]string, error) {
 			node := &def.Interaction.Nodes[ni]
 			for oi := range node.Options {
 				if err := checkXPIsTerminal(qr, def.Name, node.ID, oi, &node.Options[oi]); err != nil {
+					return nil, err
+				}
+				if err := checkLandingWaits(qr, def.Name, node.ID, oi, &node.Options[oi]); err != nil {
 					return nil, err
 				}
 			}
@@ -129,6 +136,26 @@ func checkEdge(q *QuestDefinition, where string, g mobs.InteractionGrant) error 
 	if len(from.Objectives) > 0 {
 		return fmt.Errorf("%s: advance_quest leaves stage %q, but that is an objective stage — it advances off "+
 			"its counters, not off a row", where, g.FromStage)
+	}
+	return nil
+}
+
+// checkLandingWaits refuses an offer_quest whose toStage is terminal: the accept
+// would complete the quest on the spot, a reward-free shortcut through it.
+// Terminality is derived from every row, so it waits for phase 2 like L10.
+func checkLandingWaits(qr Registry, mob, nodeID string, oi int, opt *mobs.InteractionOption) error {
+	for _, g := range opt.Grants {
+		if g.Kind != mobs.GrantOfferQuest || g.ToStage == "" {
+			continue
+		}
+		q, err := qr.Get(g.Quest)
+		if err != nil {
+			return err
+		}
+		if q.IsTerminal(q.Stage(g.ToStage)) {
+			return fmt.Errorf("mob %q: interaction node %q option %d: offer_quest lands on toStage %q of quest %q, "+
+				"which is terminal: the accept would complete the quest", mob, nodeID, oi, g.ToStage, q.ID)
+		}
 	}
 	return nil
 }

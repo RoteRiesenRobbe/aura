@@ -154,13 +154,16 @@ func TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack(t *testing.T) {
 // (D18; its giver, the Town Crier, is walked by the offer half);
 // `he-who-cried-wolf` is carried from its giver Hans to the Town Crier and
 // turned in by the Governor, who did not give it (the same foreign shape; Hans
-// is walked by the offer half).
+// is walked by the offer half); `oil-for-the-lamps` has a mid-quest step at the
+// gnome (fetch → bring) besides the Lamplighter's turn-in, and two givers who
+// both walk the offer half (content-zone-2-woodland.md §3.8).
 var twoRowExempt = map[string]bool{
 	"clear-the-grove":    true,
 	"the-sleeping-roots": true,
 	"eliza-sends-me":     true,
 	"wolves-on-the-road": true,
 	"he-who-cried-wolf":  true,
+	"oil-for-the-lamps":  true,
 }
 
 // walkedByOfferHalf names the exempt quests whose giver still walks the offer
@@ -168,6 +171,7 @@ var twoRowExempt = map[string]bool{
 var walkedByOfferHalf = map[string]bool{
 	"wolves-on-the-road": true,
 	"he-who-cried-wolf":  true,
+	"oil-for-the-lamps":  true,
 }
 
 type questSite struct {
@@ -373,5 +377,52 @@ func TestContent_AFreshCharacterSeesOnlyOffers(t *testing.T) {
 			}
 		}
 		assert.True(t, offered[m.Level], "%s: level %d is one of its offers' levels %v", def.Name, m.Level, offered)
+	}
+}
+
+// The lamp oil's two ways in and its gate (content-zone-2-woodland.md §3.8):
+// the gnome offers oil-for-the-lamps only once the stolen shipment is done, and
+// that offer lands the quest on `bring` (an offer_quest with a toStage). A
+// player who took it from the Lamplighter instead gets the oil at the gnome if
+// they delivered the shipment OR are level 7, never otherwise.
+func TestContent_GnomeOilEntriesAndGate(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	gnome, err := mr.GetByName("Gnome1")
+	require.NoError(t, err)
+	in := gnome.Interaction
+	shipmentDone := quests.LedgerState{Quests: map[string]quests.Progress{
+		"the-stolen-shipment": {Path: []string{"done"}, Completed: true},
+	}}
+
+	// The gnome's own offer: hidden before the shipment, landing on bring after.
+	p := newLearner(1)
+	p.ledger = quests.NewLedger(qr)
+	assert.False(t, rowsInto(present(in, p, noRows, noTravel), "oil_offer"), "no offer before the shipment")
+	p.ledger.Restore(shipmentDone)
+	require.True(t, rowsInto(present(in, p, noRows, noTravel), "oil_offer"))
+	_, _, ok := applyGrant(in, p, noRows, noTravel, "oil_offer", 0, 0)
+	require.True(t, ok)
+	path, running, _ := p.ledger.Progress("oil-for-the-lamps")
+	assert.Equal(t, []string{"bring"}, path, "the gnome hands it over with the oil already fetched")
+	assert.True(t, running)
+
+	// From the Lamplighter: the oil row shows at fetch only past the gate.
+	for _, c := range []struct {
+		name     string
+		level    uint32
+		shipment bool
+		shows    bool
+	}{
+		{"level 1, no shipment", 1, false, false},
+		{"level 7, no shipment", 7, false, true},
+		{"level 1, shipment delivered", 1, true, true},
+	} {
+		p := newLearner(c.level)
+		p.ledger = quests.NewLedger(qr)
+		if c.shipment {
+			p.ledger.Restore(shipmentDone)
+		}
+		require.NoError(t, p.ledger.Accept("oil-for-the-lamps"))
+		assert.Equal(t, c.shows, rowsInto(present(in, p, noRows, noTravel), "oil_give"), c.name)
 	}
 }

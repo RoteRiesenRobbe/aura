@@ -505,6 +505,10 @@
         {
           "x": -143.59,
           "y": -35.96
+        },
+        {
+          "x": -141.1,
+          "y": -36
         }
       ],
       "width": 1.5,
@@ -760,8 +764,22 @@
           "y": -34.72
         },
         {
-          "x": -121.17,
-          "y": -34.48
+          "x": -124.25,
+          "y": -34.68
+        }
+      ],
+      "width": 1.5,
+      "blocksMovement": true,
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "fade"
+    },
+    {
+      "profile": "Cliff",
+      "points": [
+        {
+          "x": -121.98,
+          "y": -34.6
         },
         {
           "x": -116.25,
@@ -7435,6 +7453,136 @@
     },
     {
       "id": "deep-woods",
+      "decals": [
+        {
+          "type": "Leaves",
+          "x": -108.6,
+          "y": -22.4,
+          "size": 1.2,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -103.2,
+          "y": -19.4,
+          "size": 0.9,
+          "rotation": 1.4,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Rubble",
+          "x": -106.08,
+          "y": -25.22,
+          "size": 0.8,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -114.6,
+          "y": -18.4,
+          "size": 0.8,
+          "rotation": 2.2,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -133.4,
+          "y": -12.2,
+          "size": 0.9,
+          "rotation": 0.6,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -137.6,
+          "y": -21.4,
+          "size": 0.8,
+          "rotation": 2.8,
+          "flipped": "none"
+        },
+        {
+          "type": "Pebble",
+          "x": -157.2,
+          "y": -11.8,
+          "size": 0.7,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Pebble",
+          "x": -123.4,
+          "y": -32.2,
+          "size": 0.6,
+          "rotation": 1.1,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Puddle",
+          "x": -112.6,
+          "y": 18.4,
+          "size": 1,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Puddle",
+          "x": -102.4,
+          "y": 21.6,
+          "size": 0.8,
+          "rotation": 1.9,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Rubble",
+          "x": -117.6,
+          "y": 21.2,
+          "size": 0.9,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Pebble",
+          "x": -108.4,
+          "y": 12.6,
+          "size": 0.6,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -110.8,
+          "y": 8.2,
+          "size": 0.7,
+          "rotation": 0.4,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -146.4,
+          "y": 23.8,
+          "size": 0.9,
+          "rotation": 1.2,
+          "flipped": "none"
+        },
+        {
+          "type": "Dark Puddle",
+          "x": -163.2,
+          "y": 30.4,
+          "size": 0.8,
+          "rotation": 0,
+          "flipped": "none"
+        },
+        {
+          "type": "Leaves",
+          "x": -94.8,
+          "y": 5.6,
+          "size": 0.7,
+          "rotation": 2.4,
+          "flipped": "none"
+        }
+      ],
       "props": {
         "underfoot": [
           {
@@ -7443,6 +7591,22 @@
             "y": -14.56,
             "rotation": 6.229,
             "scale": 0.833
+          },
+          {
+            "type": "FallenLog",
+            "x": -139.7,
+            "y": 1.19,
+            "rotation": 0.527,
+            "blocksMovement": false,
+            "scale": 0.522
+          },
+          {
+            "type": "FallenLog",
+            "x": -139.16,
+            "y": 3.37,
+            "rotation": 5.425,
+            "blocksMovement": false,
+            "scale": 0.49
           }
         ],
         "default": [
@@ -7460,8 +7624,8 @@
           },
           {
             "type": "BurntCart",
-            "x": -145.43,
-            "y": -9.64,
+            "x": -131.82,
+            "y": -13.96,
             "rotation": 6.033
           },
           {
@@ -7508,12 +7672,6 @@
           },
           {
             "type": "FallenLog",
-            "x": -144.17,
-            "y": 5.15,
-            "rotation": 5.811
-          },
-          {
-            "type": "FallenLog",
             "x": -159.3,
             "y": 4.59,
             "rotation": 0.575
@@ -7527,8 +7685,8 @@
           },
           {
             "type": "Torch",
-            "x": -161.44,
-            "y": -19.07,
+            "x": -163.06,
+            "y": -25.29,
             "rotation": 0,
             "scale": 1.603
           },
@@ -7538,14 +7696,552 @@
             "y": 17.07,
             "rotation": 0,
             "scale": 1.994
+          },
+          {
+            "type": "WreckDebris",
+            "x": -93.6,
+            "y": 4.3,
+            "rotation": 0.4,
+            "scale": 0.55
+          },
+          {
+            "type": "FallenLog",
+            "x": -93.8,
+            "y": 1.9,
+            "rotation": 1.5,
+            "scale": 0.7
+          },
+          {
+            "type": "BurntCart",
+            "x": -112.61,
+            "y": -6.23,
+            "rotation": 2.4
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -112.51,
+            "y": -9.04,
+            "rotation": 0.3,
+            "scale": 0.8
+          },
+          {
+            "type": "Crate",
+            "x": -113.82,
+            "y": -13.7,
+            "rotation": 1.1,
+            "scale": 0.75
+          },
+          {
+            "type": "Barrel",
+            "x": -115.44,
+            "y": -20.17,
+            "rotation": 0,
+            "scale": 0.8
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -115.2,
+            "y": -25.4,
+            "rotation": 2.2,
+            "scale": 0.8
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -123.1,
+            "y": -25.53,
+            "rotation": 2.2,
+            "scale": 0.8
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -127.4,
+            "y": -18.86,
+            "rotation": 2.2,
+            "scale": 0.8
+          },
+          {
+            "type": "Crate",
+            "x": -118.22,
+            "y": -30.61,
+            "rotation": 0.6,
+            "scale": 0.75
+          },
+          {
+            "type": "Crate",
+            "x": -117.52,
+            "y": -30.91,
+            "rotation": 6.076,
+            "scale": 0.75
+          },
+          {
+            "type": "Tent",
+            "x": -108.51,
+            "y": -25.29,
+            "rotation": 1.511,
+            "scale": 1.471
+          },
+          {
+            "type": "Tent",
+            "x": -105.73,
+            "y": -23.2,
+            "rotation": 2.9
+          },
+          {
+            "type": "Tent",
+            "x": -105.58,
+            "y": -21.54,
+            "rotation": 3.241
+          },
+          {
+            "type": "FallenLog",
+            "x": -112.19,
+            "y": -19.53,
+            "rotation": 1.2
+          },
+          {
+            "type": "FallenLog",
+            "x": -105.41,
+            "y": -27.1,
+            "rotation": 0.1
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -110.57,
+            "y": -24.74,
+            "rotation": 1.7
+          },
+          {
+            "type": "Bedroll",
+            "x": -107.17,
+            "y": -21.68,
+            "rotation": 0.9
+          },
+          {
+            "type": "Stump",
+            "x": -112.08,
+            "y": -23.4,
+            "rotation": 0,
+            "scale": 1.505
+          },
+          {
+            "type": "Stump",
+            "x": -103.57,
+            "y": -24.25,
+            "rotation": 0,
+            "scale": 1.459
+          },
+          {
+            "type": "Stump",
+            "x": -105.09,
+            "y": -17.45,
+            "rotation": 0,
+            "scale": 1.413
+          },
+          {
+            "type": "Stump",
+            "x": -110.09,
+            "y": -16.24,
+            "rotation": 0,
+            "scale": 1.413
+          },
+          {
+            "type": "Stump",
+            "x": -117.17,
+            "y": -17.37,
+            "rotation": 0,
+            "scale": 1.413
+          },
+          {
+            "type": "Stump",
+            "x": -116.91,
+            "y": -23.38,
+            "rotation": 0,
+            "scale": 0.954
+          },
+          {
+            "type": "FallenLog",
+            "x": -105.27,
+            "y": -14.75,
+            "rotation": 0.7
+          },
+          {
+            "type": "BrokenFence",
+            "x": -103.28,
+            "y": -27.21,
+            "rotation": 0.895
+          },
+          {
+            "type": "Bush",
+            "x": -137.2,
+            "y": -6.4,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -118.4,
+            "y": -6.8,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -116.4,
+            "y": 9.2,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -98.2,
+            "y": -2.4,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -131.92,
+            "y": -16.98,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -139.2,
+            "y": -20.6,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -128.8,
+            "y": -26.4,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -150.2,
+            "y": 23.4,
+            "rotation": 0
+          },
+          {
+            "type": "Rock",
+            "x": -155.8,
+            "y": -12.6,
+            "rotation": 0.8,
+            "scale": 0.8
+          },
+          {
+            "type": "Rock",
+            "x": -126.6,
+            "y": -33.2,
+            "rotation": 2.1,
+            "scale": 0.7
+          },
+          {
+            "type": "Crate",
+            "x": -171.52,
+            "y": -30.26,
+            "rotation": 0.4,
+            "scale": 0.85
+          },
+          {
+            "type": "Crate",
+            "x": -171.56,
+            "y": -30.3,
+            "rotation": 0.037,
+            "scale": 0.85
+          },
+          {
+            "type": "Crate",
+            "x": -171.5,
+            "y": -30.31,
+            "rotation": 0.78,
+            "scale": 0.85
+          },
+          {
+            "type": "Crate",
+            "x": -170.83,
+            "y": -29.76,
+            "rotation": 0.225,
+            "scale": 0.85
+          },
+          {
+            "type": "Crate",
+            "x": -171.84,
+            "y": -29.56,
+            "rotation": 1.2,
+            "scale": 0.75
+          },
+          {
+            "type": "Barrel",
+            "x": -171.24,
+            "y": -28.81,
+            "rotation": 0,
+            "scale": 0.8
+          },
+          {
+            "type": "BrokenCrate",
+            "x": -173.2,
+            "y": -30.59,
+            "rotation": 2.1,
+            "scale": 0.8
+          },
+          {
+            "type": "Bedroll",
+            "x": -176.99,
+            "y": -30.53,
+            "rotation": 1.6
+          },
+          {
+            "type": "Torch",
+            "x": -175.2,
+            "y": -25.4,
+            "rotation": 0
+          },
+          {
+            "type": "Torch",
+            "x": -173.1,
+            "y": -28.78,
+            "rotation": 0
+          },
+          {
+            "type": "Bush",
+            "x": -135.78,
+            "y": -2.67,
+            "rotation": 0.16
+          },
+          {
+            "type": "Bush",
+            "x": -133.45,
+            "y": -3.83,
+            "rotation": 1.88
+          },
+          {
+            "type": "Bush",
+            "x": -131.13,
+            "y": -5,
+            "rotation": 3.4
+          },
+          {
+            "type": "Bush",
+            "x": -128.8,
+            "y": -6.16,
+            "rotation": 1.27
+          },
+          {
+            "type": "Bush",
+            "x": -127.36,
+            "y": -6.29,
+            "rotation": 4.54
+          },
+          {
+            "type": "Bush",
+            "x": -124.92,
+            "y": -5.38,
+            "rotation": 1.83
+          },
+          {
+            "type": "Bush",
+            "x": -122.49,
+            "y": -4.47,
+            "rotation": 1.48
+          },
+          {
+            "type": "Bush",
+            "x": -120.05,
+            "y": -3.55,
+            "rotation": 4.14
+          },
+          {
+            "type": "Bush",
+            "x": -119.44,
+            "y": -2.57,
+            "rotation": 2.7
+          },
+          {
+            "type": "Bush",
+            "x": -119.12,
+            "y": 0.01,
+            "rotation": 0.47
+          },
+          {
+            "type": "Bush",
+            "x": -118.8,
+            "y": 2.59,
+            "rotation": 4.85
+          },
+          {
+            "type": "Bush",
+            "x": -119.36,
+            "y": 5.61,
+            "rotation": 5.17
+          },
+          {
+            "type": "Bush",
+            "x": -121.89,
+            "y": 6.24,
+            "rotation": 5.75
+          },
+          {
+            "type": "Bush",
+            "x": -124.41,
+            "y": 6.87,
+            "rotation": 5.71
+          },
+          {
+            "type": "Bush",
+            "x": -127.61,
+            "y": 7.36,
+            "rotation": 4.28
+          },
+          {
+            "type": "Bush",
+            "x": -130.13,
+            "y": 6.73,
+            "rotation": 6.02
+          },
+          {
+            "type": "Bush",
+            "x": -135.68,
+            "y": 9.51,
+            "rotation": 0.16
+          },
+          {
+            "type": "Bush",
+            "x": -135.57,
+            "y": 4.58,
+            "rotation": 4.79
+          },
+          {
+            "type": "Bush",
+            "x": -135.93,
+            "y": 2,
+            "rotation": 3.77
+          },
+          {
+            "type": "Bush",
+            "x": -136.3,
+            "y": -0.57,
+            "rotation": 4.55
+          },
+          {
+            "type": "Bush",
+            "x": -111.47,
+            "y": -1.98,
+            "rotation": 0.73
+          },
+          {
+            "type": "Bush",
+            "x": -117.08,
+            "y": -2.38,
+            "rotation": 1.93
+          },
+          {
+            "type": "Bush",
+            "x": -103.67,
+            "y": -6.45,
+            "rotation": 5.78
+          },
+          {
+            "type": "Bush",
+            "x": -95.59,
+            "y": -1.35,
+            "rotation": 0.01
+          },
+          {
+            "type": "Bush",
+            "x": -102.77,
+            "y": -2.21,
+            "rotation": 0.83
+          },
+          {
+            "type": "Bush",
+            "x": -100.45,
+            "y": 0.84,
+            "rotation": 2.49
+          },
+          {
+            "type": "Bush",
+            "x": -98.9,
+            "y": 3.7,
+            "rotation": 0.14
+          },
+          {
+            "type": "Bush",
+            "x": -97.71,
+            "y": 6.11,
+            "rotation": 4.35
+          },
+          {
+            "type": "Bush",
+            "x": -101.54,
+            "y": 6.89,
+            "rotation": 5.64
+          },
+          {
+            "type": "Bush",
+            "x": -104.44,
+            "y": 9.04,
+            "rotation": 1.09
+          },
+          {
+            "type": "Bush",
+            "x": -107.7,
+            "y": 7.5,
+            "rotation": 1.33
+          },
+          {
+            "type": "Bush",
+            "x": -111.53,
+            "y": 7.17,
+            "rotation": 5.95
+          },
+          {
+            "type": "Bush",
+            "x": -114.16,
+            "y": 5.08,
+            "rotation": 4.39
+          },
+          {
+            "type": "Bush",
+            "x": -114.32,
+            "y": 4.37,
+            "rotation": 1.1
+          },
+          {
+            "type": "Bush",
+            "x": -101.14,
+            "y": 10.11,
+            "rotation": 0.73
+          },
+          {
+            "type": "Bush",
+            "x": -113.2,
+            "y": -1.78,
+            "rotation": 3.93
+          },
+          {
+            "type": "Bench",
+            "x": -110.3,
+            "y": -22.53,
+            "rotation": 4.75
           }
         ],
         "buildings": [
           {
             "type": "CaveMouth",
-            "x": -162.51,
-            "y": -21.89,
+            "x": -116,
+            "y": -33.2,
             "rotation": 0,
+            "blocksMovement": true
+          },
+          {
+            "type": "CaveMouth",
+            "x": -97,
+            "y": -32.4,
+            "rotation": 0,
+            "blocksMovement": true
+          },
+          {
+            "type": "CaveMouth",
+            "x": -167,
+            "y": 33.2,
+            "rotation": 3.14,
             "blocksMovement": true
           }
         ],
@@ -7622,6 +8318,13 @@
           },
           {
             "type": "Tree",
+            "x": -126.09,
+            "y": 23.93,
+            "rotation": 1.176,
+            "scale": 1.278
+          },
+          {
+            "type": "Tree",
             "x": -131.41,
             "y": 10.73,
             "rotation": 1.176,
@@ -7629,8 +8332,8 @@
           },
           {
             "type": "Tree",
-            "x": -138.54,
-            "y": -1.56,
+            "x": -144.73,
+            "y": -3.43,
             "rotation": 1.176,
             "scale": 1.278
           },
@@ -7693,14 +8396,44 @@
           },
           {
             "type": "Tree",
+            "x": -164.28,
+            "y": 12.51,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -157.38,
+            "y": 11.72,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -150.32,
+            "y": 17.02,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -160.7,
+            "y": 17.71,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
             "x": -168.53,
             "y": -1.56,
             "rotation": 0
           },
           {
             "type": "Tree",
-            "x": -130.45,
-            "y": -5.59,
+            "x": -166.68,
+            "y": 1.32,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -134.24,
+            "y": -3.24,
             "rotation": 0
           },
           {
@@ -7725,12 +8458,6 @@
             "type": "Tree",
             "x": -136.75,
             "y": 6.27,
-            "rotation": 0
-          },
-          {
-            "type": "Tree",
-            "x": -133.22,
-            "y": -1.8,
             "rotation": 0
           },
           {
@@ -7812,8 +8539,8 @@
           },
           {
             "type": "Tree",
-            "x": -153.4,
-            "y": -22.98,
+            "x": -155.58,
+            "y": -20.63,
             "rotation": 0,
             "scale": 1.682
           },
@@ -7847,9 +8574,10 @@
           },
           {
             "type": "PineTree",
-            "x": -170.24,
-            "y": 4.82,
-            "rotation": 0
+            "x": -170.16,
+            "y": 4.89,
+            "rotation": 0,
+            "scale": 1.389
           },
           {
             "type": "PineTree",
@@ -7875,6 +8603,13 @@
             "type": "PineTree",
             "x": -178.29,
             "y": 4.46,
+            "rotation": 0,
+            "scale": 1.889
+          },
+          {
+            "type": "PineTree",
+            "x": -160.58,
+            "y": -15.36,
             "rotation": 0,
             "scale": 1.889
           },
@@ -7921,6 +8656,12 @@
           },
           {
             "type": "OakTree",
+            "x": -156.31,
+            "y": 12.38,
+            "rotation": 0
+          },
+          {
+            "type": "OakTree",
             "x": -148.93,
             "y": -0.9,
             "rotation": 0
@@ -7948,8 +8689,8 @@
           },
           {
             "type": "OakTree",
-            "x": -140.02,
-            "y": -2.88,
+            "x": -143.25,
+            "y": -3.7,
             "rotation": 0,
             "scale": 1.4
           },
@@ -7976,10 +8717,17 @@
           },
           {
             "type": "OakTree",
-            "x": -151.63,
-            "y": -21.7,
+            "x": -154.1,
+            "y": -18.88,
             "rotation": 0,
             "scale": 2.1
+          },
+          {
+            "type": "OakTree",
+            "x": -167.02,
+            "y": -0.29,
+            "rotation": 0,
+            "scale": 1.958
           },
           {
             "type": "OakTree",
@@ -7987,6 +8735,661 @@
             "y": 15.27,
             "rotation": 0,
             "scale": 2.1
+          },
+          {
+            "type": "PineTree",
+            "x": -112.6,
+            "y": -30.2,
+            "rotation": 0,
+            "scale": 1.1
+          },
+          {
+            "type": "Tree",
+            "x": -98.6,
+            "y": -11.6,
+            "rotation": 0,
+            "scale": 1.2
+          },
+          {
+            "type": "OakTree",
+            "x": -93.6,
+            "y": -24.6,
+            "rotation": 0,
+            "scale": 1.1
+          },
+          {
+            "type": "DeadTree",
+            "x": -100.4,
+            "y": -30.8,
+            "rotation": 0
+          },
+          {
+            "type": "PineTree",
+            "x": -119.2,
+            "y": -24.8,
+            "rotation": 0
+          },
+          {
+            "type": "Tree",
+            "x": -145.6,
+            "y": 27.6,
+            "rotation": 0,
+            "scale": 1.15
+          },
+          {
+            "type": "PineTree",
+            "x": -158.4,
+            "y": 31.6,
+            "rotation": 0
+          },
+          {
+            "type": "OakTree",
+            "x": -137.2,
+            "y": 23.2,
+            "rotation": 0,
+            "scale": 1.1
+          },
+          {
+            "type": "OakTree",
+            "x": -134.65,
+            "y": -1.74,
+            "rotation": 3.22,
+            "scale": 1.47
+          },
+          {
+            "type": "PineTree",
+            "x": -132.86,
+            "y": -2.4,
+            "rotation": 5.73,
+            "scale": 1.47
+          },
+          {
+            "type": "OakTree",
+            "x": -132.01,
+            "y": -3.7,
+            "rotation": 2.09,
+            "scale": 1.634
+          },
+          {
+            "type": "Tree",
+            "x": -129.68,
+            "y": -3.87,
+            "rotation": 5.89,
+            "scale": 1.35
+          },
+          {
+            "type": "OakTree",
+            "x": -129.59,
+            "y": -3.35,
+            "rotation": 1.72,
+            "scale": 1.35
+          },
+          {
+            "type": "Tree",
+            "x": -134.57,
+            "y": 1.29,
+            "rotation": 4.17,
+            "scale": 1.47
+          },
+          {
+            "type": "PineTree",
+            "x": -134.83,
+            "y": -0.41,
+            "rotation": 1.78,
+            "scale": 1.28
+          },
+          {
+            "type": "PineTree",
+            "x": -130.52,
+            "y": -1.75,
+            "rotation": 3.86,
+            "scale": 2.059
+          },
+          {
+            "type": "OakTree",
+            "x": -132.41,
+            "y": -0.07,
+            "rotation": 3.99,
+            "scale": 2.149
+          },
+          {
+            "type": "Tree",
+            "x": -127.9,
+            "y": -3.09,
+            "rotation": 5.9,
+            "scale": 1.29
+          },
+          {
+            "type": "PineTree",
+            "x": -126.22,
+            "y": -2.18,
+            "rotation": 2.2,
+            "scale": 1.27
+          },
+          {
+            "type": "OakTree",
+            "x": -127.46,
+            "y": -4.09,
+            "rotation": 0.7,
+            "scale": 1.44
+          },
+          {
+            "type": "OakTree",
+            "x": -134.64,
+            "y": 2.98,
+            "rotation": 1.38,
+            "scale": 1.37
+          },
+          {
+            "type": "OakTree",
+            "x": -122.42,
+            "y": 4.75,
+            "rotation": 1.38,
+            "scale": 1.37
+          },
+          {
+            "type": "OakTree",
+            "x": -124.87,
+            "y": 9.04,
+            "rotation": 1.38,
+            "scale": 1.37
+          },
+          {
+            "type": "OakTree",
+            "x": -119.82,
+            "y": -1.13,
+            "rotation": 1.38,
+            "scale": 1.37
+          },
+          {
+            "type": "OakTree",
+            "x": -127.64,
+            "y": 8.29,
+            "rotation": 1.38,
+            "scale": 2.044
+          },
+          {
+            "type": "OakTree",
+            "x": -119.11,
+            "y": 3.59,
+            "rotation": 1.38,
+            "scale": 1.37
+          },
+          {
+            "type": "PineTree",
+            "x": -134.06,
+            "y": 4.35,
+            "rotation": 0.87,
+            "scale": 1.47
+          },
+          {
+            "type": "OakTree",
+            "x": -127.25,
+            "y": 1.31,
+            "rotation": 5.7,
+            "scale": 2.057
+          },
+          {
+            "type": "Tree",
+            "x": -130.44,
+            "y": 0.55,
+            "rotation": 0.48,
+            "scale": 1.609
+          },
+          {
+            "type": "Tree",
+            "x": -128.15,
+            "y": -1.1,
+            "rotation": 3.07,
+            "scale": 1.787
+          },
+          {
+            "type": "Tree",
+            "x": -121.51,
+            "y": 7.87,
+            "rotation": 3.07,
+            "scale": 1.787
+          },
+          {
+            "type": "Tree",
+            "x": -125.41,
+            "y": -3.41,
+            "rotation": 2.35,
+            "scale": 1.46
+          },
+          {
+            "type": "Tree",
+            "x": -124.15,
+            "y": 7.5,
+            "rotation": 2.35,
+            "scale": 1.46
+          },
+          {
+            "type": "Tree",
+            "x": -125.18,
+            "y": -0.51,
+            "rotation": 2.35,
+            "scale": 1.818
+          },
+          {
+            "type": "Tree",
+            "x": -122.88,
+            "y": 6.61,
+            "rotation": 2.35,
+            "scale": 1.818
+          },
+          {
+            "type": "Tree",
+            "x": -119.78,
+            "y": 1.34,
+            "rotation": 2.35,
+            "scale": 1.818
+          },
+          {
+            "type": "Tree",
+            "x": -129.98,
+            "y": 6.74,
+            "rotation": 2.35,
+            "scale": 1.818
+          },
+          {
+            "type": "Tree",
+            "x": -125.64,
+            "y": 6.72,
+            "rotation": 2.35,
+            "scale": 1.27
+          },
+          {
+            "type": "Tree",
+            "x": -125.84,
+            "y": 8.34,
+            "rotation": 2.35,
+            "scale": 1.27
+          },
+          {
+            "type": "OakTree",
+            "x": -122.61,
+            "y": -1.85,
+            "rotation": 5.73,
+            "scale": 2.453
+          },
+          {
+            "type": "OakTree",
+            "x": -133.41,
+            "y": 5.53,
+            "rotation": 3.55,
+            "scale": 1.39
+          },
+          {
+            "type": "Tree",
+            "x": -132.13,
+            "y": 5.48,
+            "rotation": 3.54,
+            "scale": 1.608
+          },
+          {
+            "type": "Tree",
+            "x": -128.88,
+            "y": 3.16,
+            "rotation": 3.13,
+            "scale": 1.16
+          },
+          {
+            "type": "OakTree",
+            "x": -127.31,
+            "y": 3.34,
+            "rotation": 4.32,
+            "scale": 1.46
+          },
+          {
+            "type": "Tree",
+            "x": -122.59,
+            "y": 2.94,
+            "rotation": 4.57,
+            "scale": 1.46
+          },
+          {
+            "type": "PineTree",
+            "x": -124.49,
+            "y": 1.62,
+            "rotation": 5.57,
+            "scale": 1.99
+          },
+          {
+            "type": "PineTree",
+            "x": -131.88,
+            "y": 3.23,
+            "rotation": 5.57,
+            "scale": 2.383
+          },
+          {
+            "type": "PineTree",
+            "x": -129.51,
+            "y": 1.92,
+            "rotation": 5.57,
+            "scale": 2.383
+          },
+          {
+            "type": "PineTree",
+            "x": -122.24,
+            "y": 0.96,
+            "rotation": 5.57,
+            "scale": 2.383
+          },
+          {
+            "type": "PineTree",
+            "x": -120.27,
+            "y": 5.7,
+            "rotation": 5.57,
+            "scale": 2.383
+          },
+          {
+            "type": "OakTree",
+            "x": -132.59,
+            "y": 7.31,
+            "rotation": 1.96,
+            "scale": 1.49
+          },
+          {
+            "type": "OakTree",
+            "x": -131.05,
+            "y": 8.24,
+            "rotation": 5.77,
+            "scale": 1.22
+          },
+          {
+            "type": "OakTree",
+            "x": -121,
+            "y": 3.49,
+            "rotation": 5.77,
+            "scale": 1.22
+          },
+          {
+            "type": "OakTree",
+            "x": -128.33,
+            "y": 5.5,
+            "rotation": 5.77,
+            "scale": 1.467
+          },
+          {
+            "type": "PineTree",
+            "x": -126.45,
+            "y": 5.52,
+            "rotation": 3.5,
+            "scale": 2.146
+          },
+          {
+            "type": "OakTree",
+            "x": -124.54,
+            "y": 5.09,
+            "rotation": 2.81,
+            "scale": 1.21
+          },
+          {
+            "type": "PineTree",
+            "x": -123.68,
+            "y": 4.21,
+            "rotation": 3.18,
+            "scale": 1.42
+          },
+          {
+            "type": "PineTree",
+            "x": -129.31,
+            "y": 8.68,
+            "rotation": 3.18,
+            "scale": 1.42
+          },
+          {
+            "type": "PineTree",
+            "x": -123.2,
+            "y": 9.16,
+            "rotation": 3.18,
+            "scale": 1.42
+          },
+          {
+            "type": "OakTree",
+            "x": -111.06,
+            "y": -1.04,
+            "rotation": 1.21,
+            "scale": 1.2
+          },
+          {
+            "type": "Tree",
+            "x": -107.54,
+            "y": -1.69,
+            "rotation": 2.87,
+            "scale": 1.5
+          },
+          {
+            "type": "OakTree",
+            "x": -112.15,
+            "y": 1.97,
+            "rotation": 0.96,
+            "scale": 1.47
+          },
+          {
+            "type": "Tree",
+            "x": -111.54,
+            "y": 0.38,
+            "rotation": 3.78,
+            "scale": 1.21
+          },
+          {
+            "type": "Tree",
+            "x": -105.66,
+            "y": 0.33,
+            "rotation": 3.78,
+            "scale": 1.21
+          },
+          {
+            "type": "Tree",
+            "x": -102.58,
+            "y": -0.15,
+            "rotation": 3.78,
+            "scale": 1.21
+          },
+          {
+            "type": "Tree",
+            "x": -103.13,
+            "y": 7.05,
+            "rotation": 3.78,
+            "scale": 1.21
+          },
+          {
+            "type": "Tree",
+            "x": -109.37,
+            "y": -1.65,
+            "rotation": 3.49,
+            "scale": 1.32
+          },
+          {
+            "type": "PineTree",
+            "x": -108.18,
+            "y": 0.11,
+            "rotation": 1.97,
+            "scale": 1.756
+          },
+          {
+            "type": "PineTree",
+            "x": -101.13,
+            "y": 3.67,
+            "rotation": 1.97,
+            "scale": 1.756
+          },
+          {
+            "type": "OakTree",
+            "x": -105.87,
+            "y": -2.18,
+            "rotation": 1.47,
+            "scale": 1.47
+          },
+          {
+            "type": "OakTree",
+            "x": -109.99,
+            "y": 0.55,
+            "rotation": 1.47,
+            "scale": 1.725
+          },
+          {
+            "type": "Tree",
+            "x": -110.43,
+            "y": 5.47,
+            "rotation": 3.59,
+            "scale": 1.27
+          },
+          {
+            "type": "PineTree",
+            "x": -110.02,
+            "y": 7.03,
+            "rotation": 3.56,
+            "scale": 1.4
+          },
+          {
+            "type": "Tree",
+            "x": -112.14,
+            "y": 4.01,
+            "rotation": 5.55,
+            "scale": 1.45
+          },
+          {
+            "type": "PineTree",
+            "x": -108.66,
+            "y": 5.87,
+            "rotation": 6.01,
+            "scale": 1.49
+          },
+          {
+            "type": "Tree",
+            "x": -104.09,
+            "y": -1.07,
+            "rotation": 5.54,
+            "scale": 1.4
+          },
+          {
+            "type": "Tree",
+            "x": -106.32,
+            "y": 7.62,
+            "rotation": 5.54,
+            "scale": 1.4
+          },
+          {
+            "type": "Tree",
+            "x": -104.8,
+            "y": 2.33,
+            "rotation": 5.54,
+            "scale": 1.681
+          },
+          {
+            "type": "Tree",
+            "x": -103.16,
+            "y": 4.01,
+            "rotation": 5.54,
+            "scale": 1.4
+          },
+          {
+            "type": "Tree",
+            "x": -109.62,
+            "y": 2.96,
+            "rotation": 5.54,
+            "scale": 2.01
+          },
+          {
+            "type": "OakTree",
+            "x": -111.35,
+            "y": 5.7,
+            "rotation": 3.99,
+            "scale": 1.4
+          },
+          {
+            "type": "OakTree",
+            "x": -107,
+            "y": 4.8,
+            "rotation": 3.54,
+            "scale": 1.46
+          },
+          {
+            "type": "OakTree",
+            "x": -101.82,
+            "y": 1.35,
+            "rotation": 3.54,
+            "scale": 1.913
+          },
+          {
+            "type": "OakTree",
+            "x": -94.32,
+            "y": -3.47,
+            "rotation": 3.54,
+            "scale": 1.913
+          },
+          {
+            "type": "OakTree",
+            "x": -108.24,
+            "y": 7.5,
+            "rotation": 3.54,
+            "scale": 1.46
+          },
+          {
+            "type": "PineTree",
+            "x": -105.04,
+            "y": 4.5,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -104.87,
+            "y": 7.46,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -105.8,
+            "y": 16.7,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -120.75,
+            "y": 21.4,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -125.68,
+            "y": 22.1,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -130.05,
+            "y": 25.27,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -138.3,
+            "y": 21.88,
+            "rotation": 2.48,
+            "scale": 1.767
+          },
+          {
+            "type": "PineTree",
+            "x": -107.35,
+            "y": 2.45,
+            "rotation": 2.48,
+            "scale": 2.394
+          },
+          {
+            "type": "OakTree",
+            "x": -102.52,
+            "y": 5.88,
+            "rotation": 5.16,
+            "scale": 1.782
           }
         ]
       },
@@ -8015,8 +9418,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -131.3,
-          "y": -4.66,
+          "x": -131.83,
+          "y": -6.96,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8037,8 +9440,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -110.76,
-          "y": -21.8,
+          "x": -114.36,
+          "y": -21.73,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8048,8 +9451,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -108.5,
-          "y": 1,
+          "x": -107.31,
+          "y": -10.64,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8070,8 +9473,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -126.43,
-          "y": -6.06,
+          "x": -126.1,
+          "y": -12.75,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8092,8 +9495,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -103.63,
-          "y": -0.4,
+          "x": -97.2,
+          "y": -8.2,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8103,8 +9506,19 @@
         },
         {
           "mob": "Wolf",
-          "x": -125.7,
-          "y": -18.73,
+          "x": -125.52,
+          "y": -20.45,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 1,
+          "level": 4
+        },
+        {
+          "mob": "Wolf",
+          "x": -125.98,
+          "y": -23.83,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8125,8 +9539,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -106.83,
-          "y": -2.4,
+          "x": -105.44,
+          "y": -4.09,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8136,8 +9550,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -125.23,
-          "y": 2.07,
+          "x": -130.88,
+          "y": 17.38,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8169,8 +9583,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -112.96,
-          "y": -2.8,
+          "x": -109,
+          "y": -3.86,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8180,8 +9594,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -128.14,
-          "y": 9.16,
+          "x": -132.16,
+          "y": 18.15,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8202,8 +9616,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -112.83,
-          "y": 1.47,
+          "x": -96.52,
+          "y": -6.11,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8224,8 +9638,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -110.16,
-          "y": -4.8,
+          "x": -110.44,
+          "y": -3.11,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8235,8 +9649,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -122.96,
-          "y": -22.2,
+          "x": -122.63,
+          "y": -22.37,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8246,19 +9660,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -106.56,
-          "y": -18.2,
-          "angle": 2.496,
-          "respawnTicks": 1800,
-          "respawnVariancePct": 0.2,
-          "wanderRadius": 2,
-          "idleSpeedFactor": 1,
-          "level": 45
-        },
-        {
-          "mob": "Wolf",
-          "x": -104.1,
-          "y": -5.86,
+          "x": -107.13,
+          "y": -17.77,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8268,8 +9671,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -122.5,
-          "y": -1.4,
+          "x": -105.03,
+          "y": -9.04,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8279,8 +9682,19 @@
         },
         {
           "mob": "Wolf",
-          "x": -122.96,
-          "y": -11.06,
+          "x": -117.78,
+          "y": -9.4,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 1,
+          "level": 4
+        },
+        {
+          "mob": "Wolf",
+          "x": -122.35,
+          "y": -12.85,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8301,8 +9715,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -100.16,
-          "y": -5.4,
+          "x": -101.04,
+          "y": -7.95,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8312,8 +9726,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -118.56,
-          "y": -0.93,
+          "x": -114.87,
+          "y": -6.13,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8323,8 +9737,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -120.56,
-          "y": -8.86,
+          "x": -120.21,
+          "y": -13.43,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8345,8 +9759,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -98.76,
-          "y": -2.2,
+          "x": -98.96,
+          "y": -5.18,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8356,8 +9770,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -117.16,
-          "y": 2.27,
+          "x": -120.09,
+          "y": -7.73,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8367,8 +9781,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -116.63,
-          "y": -7.93,
+          "x": -117.31,
+          "y": -10.91,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8619,13 +10033,10 @@
           "level": 30
         },
         {
-          "mob": "Wanderer",
+          "mob": "Fritz",
           "x": -144.06,
           "y": 2.77,
-          "angle": 0,
-          "wanderRadius": 5,
-          "idleSpeedFactor": 0.2,
-          "level": 30
+          "angle": 0
         },
         {
           "mob": "Tobias",
@@ -8635,8 +10046,8 @@
         },
         {
           "mob": "KoboldRanged",
-          "x": -160.1,
-          "y": -19.09,
+          "x": -161.72,
+          "y": -25.31,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8645,8 +10056,8 @@
         },
         {
           "mob": "KoboldRanged",
-          "x": -160.66,
-          "y": -18.68,
+          "x": -162.28,
+          "y": -24.9,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8695,8 +10106,28 @@
         },
         {
           "mob": "KoboldRanged",
-          "x": -164.22,
-          "y": -18.35,
+          "x": -175.97,
+          "y": -28.42,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "KoboldRanged",
+          "x": -173.9,
+          "y": -29.62,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "KoboldRanged",
+          "x": -165.84,
+          "y": -24.57,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8705,8 +10136,8 @@
         },
         {
           "mob": "Kobold",
-          "x": -160.05,
-          "y": -16.97,
+          "x": -161.67,
+          "y": -23.19,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8795,8 +10226,8 @@
         },
         {
           "mob": "Kobold",
-          "x": -166.33,
-          "y": -15.92,
+          "x": -166.73,
+          "y": -14.75,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8805,8 +10236,8 @@
         },
         {
           "mob": "Kobold",
-          "x": -158.46,
-          "y": -18.22,
+          "x": -173.33,
+          "y": -24.45,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8815,8 +10246,68 @@
         },
         {
           "mob": "Kobold",
-          "x": -159.04,
-          "y": -17.1,
+          "x": -175.56,
+          "y": -26.49,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -172.26,
+          "y": -27.52,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -168.76,
+          "y": -21.35,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -163.4,
+          "y": -17.22,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -160.08,
+          "y": -24.44,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -159.86,
+          "y": -23.15,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 7
+        },
+        {
+          "mob": "Kobold",
+          "x": -116.49,
+          "y": -30.02,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8825,8 +10316,8 @@
         },
         {
           "mob": "BanditRanged",
-          "x": -140.34,
-          "y": -31.49,
+          "x": -128.67,
+          "y": -33.36,
           "angle": 1.85,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8857,6 +10348,28 @@
         },
         {
           "mob": "Wolf",
+          "x": -144.31,
+          "y": -17.14,
+          "angle": 3.5,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1,
+          "idleSpeedFactor": 0.5,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -139.98,
+          "y": -14.87,
+          "angle": 3.5,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1,
+          "idleSpeedFactor": 0.5,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
           "x": -151.55,
           "y": -30.99,
           "angle": 3.5,
@@ -8867,9 +10380,20 @@
           "level": 6
         },
         {
+          "mob": "Wolf",
+          "x": -140.25,
+          "y": -24.99,
+          "angle": 3.5,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1,
+          "idleSpeedFactor": 0.5,
+          "level": 6
+        },
+        {
           "mob": "Bear",
-          "x": -117.29,
-          "y": -20.13,
+          "x": -101,
+          "y": -28,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8878,8 +10402,8 @@
         },
         {
           "mob": "Bear",
-          "x": -107.75,
-          "y": -12.86,
+          "x": -98,
+          "y": -24.5,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8888,8 +10412,8 @@
         },
         {
           "mob": "Bear",
-          "x": -109.09,
-          "y": -16.46,
+          "x": -103.67,
+          "y": -32,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8898,8 +10422,8 @@
         },
         {
           "mob": "Bear",
-          "x": -132.62,
-          "y": -20.86,
+          "x": -95,
+          "y": -21,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8908,8 +10432,18 @@
         },
         {
           "mob": "Bear",
-          "x": -109.82,
-          "y": -27.73,
+          "x": -99.5,
+          "y": -18,
+          "angle": 4.58,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 7
+        },
+        {
+          "mob": "Bear",
+          "x": -96.22,
+          "y": -28.63,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8918,8 +10452,8 @@
         },
         {
           "mob": "Bear",
-          "x": -103.55,
-          "y": -23.6,
+          "x": -103,
+          "y": -15.5,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8928,8 +10462,8 @@
         },
         {
           "mob": "Bear",
-          "x": -131.82,
-          "y": -31.86,
+          "x": -96,
+          "y": -15,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8938,8 +10472,8 @@
         },
         {
           "mob": "Bandit",
-          "x": -141.8,
-          "y": -24.36,
+          "x": -131.62,
+          "y": -31.71,
           "angle": 5.52,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8948,8 +10482,8 @@
         },
         {
           "mob": "Bandit",
-          "x": -143.6,
-          "y": -26.09,
+          "x": -130.77,
+          "y": -28.19,
           "angle": 5.52,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8958,8 +10492,8 @@
         },
         {
           "mob": "Bandit",
-          "x": -140.47,
-          "y": -25.56,
+          "x": -132.74,
+          "y": -17.19,
           "angle": 5.52,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8968,8 +10502,18 @@
         },
         {
           "mob": "Bandit",
-          "x": -143,
-          "y": -28.03,
+          "x": -125.17,
+          "y": -29.25,
+          "angle": 5.52,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 7
+        },
+        {
+          "mob": "Bandit",
+          "x": -133.45,
+          "y": -30.02,
           "angle": 5.52,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -8978,8 +10522,8 @@
         },
         {
           "mob": "BanditHealer",
-          "x": -141.54,
-          "y": -27.43,
+          "x": -127.68,
+          "y": -30.66,
           "angle": 0.37,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -9261,8 +10805,85 @@
         },
         {
           "mob": "Stag",
-          "x": -131.93,
-          "y": -17.41,
+          "x": -127.45,
+          "y": -21.46,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -122.25,
+          "y": -23.86,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -123.91,
+          "y": -12.86,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -127.3,
+          "y": -11.74,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -119.85,
+          "y": -14.93,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -139.11,
+          "y": -16.34,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -147.55,
+          "y": -10.61,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.5,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -144.61,
+          "y": -18.51,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -9283,8 +10904,8 @@
         },
         {
           "mob": "Stag",
-          "x": -129.36,
-          "y": 9.03,
+          "x": -134.44,
+          "y": 17.24,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -9294,8 +10915,8 @@
         },
         {
           "mob": "Stag",
-          "x": -117.27,
-          "y": 5.92,
+          "x": -114.67,
+          "y": 7.94,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -9305,29 +10926,163 @@
         },
         {
           "mob": "DeadCarter",
-          "x": -143.73,
-          "y": -10.83,
+          "x": -131.74,
+          "y": -15.63,
           "angle": 2.2
+        },
+        {
+          "mob": "Lamplighter",
+          "x": -125.65,
+          "y": 13.06,
+          "angle": 0
+        },
+        {
+          "mob": "FallenTraveller",
+          "x": -110.48,
+          "y": 10.56,
+          "angle": 0
+        },
+        {
+          "mob": "Spider",
+          "x": -112.6,
+          "y": 8.4,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 5
+        },
+        {
+          "mob": "Spider",
+          "x": -108.76,
+          "y": 10.1,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 6
+        },
+        {
+          "mob": "Spider",
+          "x": -105.67,
+          "y": 11.1,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 5
+        },
+        {
+          "mob": "Spider",
+          "x": -111.81,
+          "y": 11.81,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "level": 6
+        },
+        {
+          "mob": "KoboldChief",
+          "x": -174,
+          "y": -27.6,
+          "angle": 0,
+          "respawnTicks": 3600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "level": 9
+        },
+        {
+          "mob": "Woodcutter2",
+          "x": -176.6,
+          "y": -29.8,
+          "angle": 0
+        },
+        {
+          "mob": "Bramble",
+          "x": -158.49,
+          "y": -14.03,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
+        },
+        {
+          "mob": "Bramble",
+          "x": -157.34,
+          "y": -14.51,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
+        },
+        {
+          "mob": "Bramble",
+          "x": -155.94,
+          "y": -15.11,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
+        },
+        {
+          "mob": "Bramble",
+          "x": -124.47,
+          "y": -34.7,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
+        },
+        {
+          "mob": "Bramble",
+          "x": -123.03,
+          "y": -34.57,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
+        },
+        {
+          "mob": "Bramble",
+          "x": -121.89,
+          "y": -34.53,
+          "angle": 0,
+          "respawnTicks": 9000,
+          "respawnVariancePct": 0.1
         }
       ],
       "exits": [
         {
-          "x": -162.53,
-          "y": -21.15,
+          "x": -163.16,
+          "y": -28.17,
           "anchor": "koboldcave-inside",
+          "hidden": true
+        },
+        {
+          "x": -116,
+          "y": -32.46,
+          "anchor": "kobold-hub-inside",
+          "hidden": true
+        },
+        {
+          "x": -97,
+          "y": -31.66,
+          "anchor": "bearcave-inside",
+          "hidden": true
+        },
+        {
+          "x": -167,
+          "y": 32.46,
+          "anchor": "wolfden-inside",
           "hidden": true
         }
       ],
       "bindPoints": [
         {
           "id": "spawnpoint-2",
-          "x": -141.33,
-          "y": 2.13
+          "x": -140.26,
+          "y": 2.63
         },
         {
           "id": "spawnpoint-4",
-          "x": -96.53,
-          "y": 2.56
+          "x": -108.48,
+          "y": -22.34
         }
       ],
       "regions": [
@@ -9484,6 +11239,130 @@
               "y": -34.77
             }
           ]
+        },
+        {
+          "id": "woodcutters-camp",
+          "profile": "City",
+          "points": [
+            {
+              "x": -112.07,
+              "y": -28.13
+            },
+            {
+              "x": -109.41,
+              "y": -28.74
+            },
+            {
+              "x": -102.9,
+              "y": -28.27
+            },
+            {
+              "x": -100.5,
+              "y": -24.24
+            },
+            {
+              "x": -99.67,
+              "y": -16.3
+            },
+            {
+              "x": -103.45,
+              "y": -13.29
+            },
+            {
+              "x": -108.27,
+              "y": -13.87
+            },
+            {
+              "x": -117.67,
+              "y": -18.93
+            },
+            {
+              "x": -118.02,
+              "y": -22.41
+            },
+            {
+              "x": -116.73,
+              "y": -27.2
+            }
+          ]
+        },
+        {
+          "id": "woodcutters-camp",
+          "profile": "Derelict Fortress",
+          "points": [
+            {
+              "x": -175,
+              "y": -34.8
+            },
+            {
+              "x": -168.84,
+              "y": -34.3
+            },
+            {
+              "x": -161.8,
+              "y": -34.81
+            },
+            {
+              "x": -157.57,
+              "y": -34.55
+            },
+            {
+              "x": -155.71,
+              "y": -30.64
+            },
+            {
+              "x": -149.85,
+              "y": -20.82
+            },
+            {
+              "x": -150.39,
+              "y": -19.35
+            },
+            {
+              "x": -153.84,
+              "y": -16.61
+            },
+            {
+              "x": -160.22,
+              "y": -13.92
+            },
+            {
+              "x": -163.38,
+              "y": -13.49
+            },
+            {
+              "x": -168,
+              "y": -13.8
+            },
+            {
+              "x": -171.63,
+              "y": -15.01
+            },
+            {
+              "x": -175.68,
+              "y": -17.18
+            },
+            {
+              "x": -181.78,
+              "y": -17.56
+            },
+            {
+              "x": -182.25,
+              "y": -22.39
+            },
+            {
+              "x": -182.16,
+              "y": -26.96
+            },
+            {
+              "x": -182.4,
+              "y": -31.83
+            },
+            {
+              "x": -180.1,
+              "y": -35.61
+            }
+          ]
         }
       ],
       "paths": [
@@ -9539,47 +11418,20 @@
               "y": -13.27
             },
             {
-              "x": -158.5,
-              "y": -13.97
+              "x": -160.17,
+              "y": -13.64
             },
             {
-              "x": -155.92,
-              "y": -14.81
-            },
-            {
-              "x": -152.17,
-              "y": -16.93
-            },
-            {
-              "x": -149.03,
-              "y": -20.05
-            },
-            {
-              "x": -147.7,
-              "y": -22.28
-            },
-            {
-              "x": -145.3,
-              "y": -27.2
-            },
-            {
-              "x": -141.83,
-              "y": -31
-            },
-            {
-              "x": -139.01,
-              "y": -32.74
-            },
-            {
-              "x": -132.96,
-              "y": -35.09
+              "x": -158.21,
+              "y": -14.26
             }
           ],
           "width": 1.5,
           "blocksMovement": true,
           "alignTexture": true,
           "corners": "sharp",
-          "ends": "flat"
+          "ends": "flat",
+          "endsEnd": "fade"
         },
         {
           "profile": "Cliff",
@@ -9717,16 +11569,52 @@
           "profile": "Road",
           "points": [
             {
-              "x": -93.6,
-              "y": 3.47
+              "x": -121,
+              "y": 14
             },
             {
-              "x": -116.2,
-              "y": 0.87
+              "x": -117,
+              "y": 7
             },
             {
-              "x": -142.6,
-              "y": 3.07
+              "x": -115,
+              "y": -3
+            },
+            {
+              "x": -112.3,
+              "y": -4.96
+            },
+            {
+              "x": -110.18,
+              "y": -5.55
+            },
+            {
+              "x": -108.3,
+              "y": -6.06
+            },
+            {
+              "x": -105.5,
+              "y": -6.06
+            },
+            {
+              "x": -103.23,
+              "y": -5.26
+            },
+            {
+              "x": -101.33,
+              "y": -3.98
+            },
+            {
+              "x": -99.86,
+              "y": -1.29
+            },
+            {
+              "x": -97.45,
+              "y": 1.76
+            },
+            {
+              "x": -93.5,
+              "y": 3
             }
           ],
           "width": 1.5
@@ -9735,35 +11623,302 @@
           "profile": "Road",
           "points": [
             {
-              "x": -142.59,
-              "y": 3.05
+              "x": -142.62,
+              "y": 2.97
             },
             {
-              "x": -127.39,
-              "y": -10.25
+              "x": -142.31,
+              "y": 0.48
             },
             {
-              "x": -123.6,
-              "y": -15.65
+              "x": -141.93,
+              "y": -1.43
             },
             {
-              "x": -120.64,
-              "y": -21.61
+              "x": -140,
+              "y": -4
             },
             {
-              "x": -120.74,
-              "y": -26.2
+              "x": -134,
+              "y": -9
             },
             {
-              "x": -123.23,
-              "y": -29.56
+              "x": -130,
+              "y": -14
             },
             {
-              "x": -124.6,
-              "y": -34.63
+              "x": -129.63,
+              "y": -16.05
+            },
+            {
+              "x": -130.69,
+              "y": -17.76
+            },
+            {
+              "x": -134.47,
+              "y": -20.2
+            },
+            {
+              "x": -135.46,
+              "y": -21.88
+            },
+            {
+              "x": -135.1,
+              "y": -24.66
+            },
+            {
+              "x": -132.67,
+              "y": -28.58
+            },
+            {
+              "x": -130.38,
+              "y": -30.11
+            },
+            {
+              "x": -126.82,
+              "y": -30.95
+            },
+            {
+              "x": -125.01,
+              "y": -31.58
+            },
+            {
+              "x": -123.63,
+              "y": -32.82
+            },
+            {
+              "x": -123,
+              "y": -34.6
             }
           ],
           "width": 1.5
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -134,
+              "y": 12.5
+            },
+            {
+              "x": -140,
+              "y": 20
+            },
+            {
+              "x": -144,
+              "y": 22.67
+            },
+            {
+              "x": -150.2,
+              "y": 25.6
+            },
+            {
+              "x": -153.27,
+              "y": 26.9
+            }
+          ],
+          "width": 1
+        },
+        {
+          "profile": "Cliff",
+          "points": [
+            {
+              "x": -156.02,
+              "y": -15.08
+            },
+            {
+              "x": -152.17,
+              "y": -16.93
+            },
+            {
+              "x": -149.03,
+              "y": -20.05
+            },
+            {
+              "x": -147.7,
+              "y": -22.28
+            },
+            {
+              "x": -145.3,
+              "y": -27.2
+            },
+            {
+              "x": -141.83,
+              "y": -31
+            },
+            {
+              "x": -139.01,
+              "y": -32.74
+            },
+            {
+              "x": -132.96,
+              "y": -35.09
+            }
+          ],
+          "width": 1.5,
+          "blocksMovement": true,
+          "alignTexture": true,
+          "corners": "sharp",
+          "ends": "flat",
+          "endsStart": "fade"
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -108.23,
+              "y": -6.09
+            },
+            {
+              "x": -109.09,
+              "y": -8.51
+            },
+            {
+              "x": -109.17,
+              "y": -11.04
+            },
+            {
+              "x": -108.76,
+              "y": -12.8
+            },
+            {
+              "x": -108.26,
+              "y": -14.39
+            }
+          ],
+          "width": 1
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -129.57,
+              "y": -16.01
+            },
+            {
+              "x": -123.81,
+              "y": -17.02
+            },
+            {
+              "x": -120.73,
+              "y": -19.57
+            },
+            {
+              "x": -118.13,
+              "y": -21.09
+            },
+            {
+              "x": -115.48,
+              "y": -22.15
+            }
+          ],
+          "width": 1
+        }
+      ],
+      "structures": [
+        {
+          "profile": "Forest",
+          "points": [
+            {
+              "x": -135,
+              "y": -1
+            },
+            {
+              "x": -133.38,
+              "y": -3.22
+            },
+            {
+              "x": -127,
+              "y": -5
+            },
+            {
+              "x": -119,
+              "y": -2
+            },
+            {
+              "x": -118.29,
+              "y": 0.74
+            },
+            {
+              "x": -118.53,
+              "y": 5.87
+            },
+            {
+              "x": -119.92,
+              "y": 8.49
+            },
+            {
+              "x": -122.29,
+              "y": 9.91
+            },
+            {
+              "x": -127.97,
+              "y": 9.7
+            },
+            {
+              "x": -132.39,
+              "y": 8.85
+            },
+            {
+              "x": -134,
+              "y": 6
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Forest",
+          "points": [
+            {
+              "x": -112,
+              "y": -1
+            },
+            {
+              "x": -109.75,
+              "y": -2.29
+            },
+            {
+              "x": -105.85,
+              "y": -3.07
+            },
+            {
+              "x": -103,
+              "y": -1
+            },
+            {
+              "x": -101.44,
+              "y": 0.36
+            },
+            {
+              "x": -100.57,
+              "y": 3.45
+            },
+            {
+              "x": -102,
+              "y": 7
+            },
+            {
+              "x": -103.81,
+              "y": 8.14
+            },
+            {
+              "x": -108.38,
+              "y": 8.51
+            },
+            {
+              "x": -110.66,
+              "y": 7.33
+            },
+            {
+              "x": -112.99,
+              "y": 4.82
+            },
+            {
+              "x": -113.11,
+              "y": 2.28
+            }
+          ],
+          "blocksMovement": true
         }
       ],
       "atmospheres": [
@@ -10030,8 +12185,23 @@
       "anchors": [
         {
           "name": "koboldcave-surface",
-          "x": -162.53,
-          "y": -20.22
+          "x": -163.16,
+          "y": -27.24
+        },
+        {
+          "name": "koboldcave-ne-surface",
+          "x": -116,
+          "y": -31.53
+        },
+        {
+          "name": "bearcave-surface",
+          "x": -97,
+          "y": -30.73
+        },
+        {
+          "name": "wolfden-surface",
+          "x": -167,
+          "y": 31.53
         }
       ]
     },
@@ -11474,13 +13644,6 @@
       "props": {
         "underfoot": [
           {
-            "type": "Bridge",
-            "x": -91.81,
-            "y": 3.42,
-            "rotation": 6.27,
-            "scale": 0.833
-          },
-          {
             "type": "ArcaneCircle",
             "x": -26.8,
             "y": 28.96,
@@ -11577,13 +13740,6 @@
             "x": -89,
             "y": 3.42,
             "rotation": 4.71
-          },
-          {
-            "type": "JailBars",
-            "x": -89,
-            "y": 3.42,
-            "rotation": 1.57,
-            "scale": 1.25
           },
           {
             "type": "Doorway",
@@ -13443,6 +15599,13 @@
             "x": -18.6,
             "y": 18.4,
             "rotation": 0
+          },
+          {
+            "type": "Crate",
+            "x": -71.6,
+            "y": 3.9,
+            "rotation": 0.3,
+            "scale": 0.8
           }
         ],
         "buildings": [
@@ -14057,6 +16220,18 @@
           "x": -42.86,
           "y": -12.6,
           "angle": 0
+        },
+        {
+          "mob": "Gnome1",
+          "x": -68.6,
+          "y": -27.2,
+          "angle": 0
+        },
+        {
+          "mob": "Woodcutter3",
+          "x": -73,
+          "y": 3.6,
+          "angle": 0
         }
       ],
       "exits": [
@@ -14066,6 +16241,12 @@
           "anchor": "tunnel-east",
           "look": "stairs-down",
           "hidden": true
+        },
+        {
+          "x": -87.4,
+          "y": -31.8,
+          "anchor": "kobold-east-inside",
+          "look": "stairs-down"
         }
       ],
       "bindPoints": [
@@ -16849,6 +19030,11 @@
           "name": "surface-east2",
           "x": -7.6,
           "y": -5.2
+        },
+        {
+          "name": "koboldcave-city",
+          "x": -86,
+          "y": -30.2
         }
       ]
     },
@@ -18957,8 +21143,8 @@
       "spawns": [
         {
           "mob": "GiantScorpion",
-          "x": -259.27,
-          "y": 116.31,
+          "x": -235.27,
+          "y": 134.04,
           "angle": 4.33,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -18967,8 +21153,8 @@
         },
         {
           "mob": "GiantScorpion",
-          "x": -264.27,
-          "y": 116.31,
+          "x": -229.74,
+          "y": 140.31,
           "angle": 5.9,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -18987,8 +21173,8 @@
         },
         {
           "mob": "Marauder",
-          "x": -187.27,
-          "y": 116.31,
+          "x": -200.47,
+          "y": 129.38,
           "angle": 4.45,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -18997,8 +21183,8 @@
         },
         {
           "mob": "Marauder",
-          "x": -192.27,
-          "y": 116.31,
+          "x": -206.14,
+          "y": 132.18,
           "angle": 1.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,

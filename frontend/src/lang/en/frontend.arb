@@ -1195,7 +1195,11 @@
       "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
     }
   },
-  "tooltip.gate.harvest": "Harvests plants and brambles — nothing else",
+  "tooltip.gate.chop": "Cuts down brambles — nothing else",
+  "@tooltip.gate.chop": {
+    "description": "Skill tooltip. Tooltip line of a skill that only affects brambles."
+  },
+  "tooltip.gate.harvest": "Harvests plants — nothing else",
   "@tooltip.gate.harvest": {
     "description": "Skill tooltip. Tooltip line of a skill that only affects plants."
   },

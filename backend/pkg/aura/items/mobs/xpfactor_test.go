@@ -173,7 +173,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// + BurstTotem (plan-effect-types-round-2.md C7, a summoned totem): 53 -> 54.
 	// + Lionett, Tobias and the Governor (the quest sheet's newcomers): 54 -> 57.
 	// - CaveExit, retired by plan-passages.md P3b (an exit's look words it): 57 -> 56.
-	assert.Len(t, free, 56, "every xpFactor-0 species: %v", free)
+	// + Fritz, Woodcutter 2 and 3, Gnome 1 (content-zone-2-woodland.md §3.5): 56 -> 60.
+	assert.Len(t, free, 60, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
 	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —

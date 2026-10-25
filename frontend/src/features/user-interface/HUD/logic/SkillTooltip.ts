@@ -224,6 +224,7 @@ export const SELECTORS_PHRASED_ELSEWHERE: string[] = ['all'];
 export const GATE_KEY_LINES: { [key: string]: string } = {
     smash: t('tooltip.gate.smash'),
     harvest: t('tooltip.gate.harvest'),
+    chop: t('tooltip.gate.chop'),
 };
 
 function gatedLine(key: string): string {

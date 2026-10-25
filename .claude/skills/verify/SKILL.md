@@ -289,6 +289,7 @@ Run the harnesses whose "Re-run when" column matches what you changed BEFORE wri
 | `herd-h1.mjs` | herding at the game surface (sheep, pen) |  | `model/mob/herd.go`, the herd case in `Mob.Update`, `MobSystem.penned`, ... |
 | `herd-h2.mjs` | herding quest back-to-the-pen |  | `ObjectiveHerd`, `journal.objective.herd`, `objectiveLine`'s tick rule, ... |
 | `passages.mjs` | exits: talk exits (words, looks, bare door), touch exits (glow, name, dwell, curtain), the stones lose their bar |  | `world.Exit`/`ExitArea`, `sys.PassageSystem`, `ExitAreas.ts`, `ExitLooks.ts`, `regions.arb` `exit.*`, `api/zones/*.json` exits |
+| `woods-w123.mjs` | Deep Woods W1-W3: layout shots, the new NPCs answer E, all seven new cave-door legs |  | the Deep Woods' `world.json` area, `koboldCave.json`, `wolfDen.json`, Fritz / Gnome 1 / the woodcutters / the Lamplighter |
 | `map-props-bake.mjs` | map props baked from bundled zone data |  | `MapProps`, `MapTerrain`'s bake, `GraphicsConfig.miniMap.icons`, ... |
 | `region-banner.mjs` | region title banner | DEBUG zones | `RegionNames`, `RegionBanner`, `#regionBanner` styles, `Regions.toRegions`, ... |
 | `c4-region-texture.mjs` | region ground textures |  | `profiles.json` `texture`/`scale`, `RegionPaint.ts`, `Regions.regionPaintSpec`, ... |

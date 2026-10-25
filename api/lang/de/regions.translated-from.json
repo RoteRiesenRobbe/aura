@@ -12,6 +12,8 @@
   "exit-look.stairs-up.text": "Steps lead up.",
   "region.ashen-fields.subtitle": "Cinder and Bone",
   "region.ashen-fields.title": "The Ashen Fields",
+  "region.bear-cave.subtitle": "Deep Woods",
+  "region.bear-cave.title": "Bear Cave",
   "region.brackenfold.subtitle": "Plough and Bramble",
   "region.brackenfold.title": "Brackenfold Meadows",
   "region.cinder-conclave.subtitle": "Kindled Faith",
@@ -74,6 +76,10 @@
   "region.umberwood.title": "The Umberwood",
   "region.witherwood.subtitle": "Root to Rot",
   "region.witherwood.title": "The Witherwood",
+  "region.wolf-den.subtitle": "Deep Woods",
+  "region.wolf-den.title": "Wolf Den",
+  "region.woodcutters-camp.subtitle": "Deep Woods",
+  "region.woodcutters-camp.title": "Woodcutters' Camp",
   "region.wreckers-bluff.subtitle": "Wind and Wreckage",
   "region.wreckers-bluff.title": "Wrecker's Bluff",
   "region.wyrmhold.subtitle": "The Dragon's Throne",
@@ -82,5 +88,6 @@
   "zone.koboldCave.name": "Underworld",
   "zone.tunnel.name": "Tunnel",
   "zone.underworld.name": "Underworld",
+  "zone.wolfDen.name": "Wolf Den",
   "zone.world.name": "World"
 }

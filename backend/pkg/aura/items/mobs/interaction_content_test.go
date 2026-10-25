@@ -149,10 +149,18 @@ var expectedConversants = []string{
 	"StoneRoot",
 	"GladeRoot",
 	// Talkable remains (EntityType Remains): DeadCarter is lore at the
-	// farmland's burnt cart, FallenTraveller the talk_to target of the
-	// Wanderer's `the-lost-friend`.
+	// farmland's burnt cart, FallenTraveller (Woodcutter 1) the talk_to target of
+	// Fritz's `the-lost-friend`.
 	"DeadCarter",
 	"FallenTraveller",
+	// The Deep Woods (content-zone-2-woodland.md §3.5): Fritz, foreman of the
+	// woodcutters, gives most of its quests; Woodcutter 2 (the captive) and 3
+	// (the market) teach Hatchet; Gnome 1 takes the shipment and hands out the
+	// lamp oil.
+	"Fritz",
+	"Woodcutter2",
+	"Woodcutter3",
+	"Gnome1",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

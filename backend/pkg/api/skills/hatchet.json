@@ -1,0 +1,34 @@
+{
+  "_comment": "A gated utility aura: damage only to mobs that name 'chop' in their gateKeys, the thick brambles (content-zone-2-woodland.md §3.7); nothing to combat mobs. Numbers mirror Pickaxe's. The icon borrows Harvest's until an axe glyph is fetched. All values placeholder.",
+  "id": 174,
+  "name": "Hatchet",
+  "icon": "lorc/scythe",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "visual": {
+    "layers": [
+      {
+        "kind": "strike",
+        "on": "hit",
+        "curve": "swing",
+        "ms": 460
+      }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1,
+      "radiusPerLevel": 0,
+      "damageHP": 14,
+      "damageHPPerLevel": 3.2,
+      "gateKey": "chop",
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

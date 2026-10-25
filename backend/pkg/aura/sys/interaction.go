@@ -1440,7 +1440,7 @@ func applyQuestRow(opt *mobs.InteractionOption, p learner) (string, *skills.Skil
 
 	switch lead.Kind {
 	case mobs.GrantOfferQuest:
-		if err := ledger.Accept(lead.Quest); err != nil {
+		if err := ledger.AcceptAt(lead.Quest, lead.ToStage); err != nil {
 			return "", nil, false
 		}
 	case mobs.GrantAdvanceQuest:
@@ -1472,7 +1472,7 @@ func applyQuestRow(opt *mobs.InteractionOption, p learner) (string, *skills.Skil
 			// The next quest, handed over (plan-region-identity.md R2): a
 			// refusal (already running, or done) skips this reward alone, the
 			// way a skill already known is skipped above.
-			_ = ledger.Accept(g.Quest)
+			_ = ledger.AcceptAt(g.Quest, g.ToStage)
 		}
 	}
 	// The reply is the QUEST grant's line — the actor's answer to the row, which is

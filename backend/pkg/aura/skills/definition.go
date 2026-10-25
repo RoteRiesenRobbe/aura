@@ -259,6 +259,7 @@ var DamageTypes = map[string]bool{
 // `factors.gateKeys`. Nothing else can be damaged by that effect at all — which
 // is why the key is not a damage type and never touches resistance math.
 var GateKeys = map[string]bool{
+	"chop":    true,
 	"harvest": true,
 	"smash":   true,
 }

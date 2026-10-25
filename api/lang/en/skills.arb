@@ -327,6 +327,11 @@
     "description": "Name of the skill Haste: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.Hatchet.name": "Hatchet",
+  "@skill.Hatchet.name": {
+    "description": "Name of the skill Hatchet: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Heal.name": "Heal",
   "@skill.Heal.name": {
     "description": "Name of the skill Heal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -372,7 +377,7 @@
     "description": "Name of the skill KoboldVolley: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
-  "skill.Lantern.name": "Lantern",
+  "skill.Lantern.name": "Torch",
   "@skill.Lantern.name": {
     "description": "Name of the skill Lantern: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
@@ -657,7 +662,7 @@
     "description": "Name of the skill ThrowMine: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
-  "skill.Torch.name": "Torch",
+  "skill.Torch.name": "Lamp",
   "@skill.Torch.name": {
     "description": "Name of the skill Torch: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30

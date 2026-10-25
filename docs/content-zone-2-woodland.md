@@ -406,7 +406,7 @@ quest file and its id (the `the-strays` precedent, `cleanup.md` #7).
    not this plan's.** Parked in `roadmap.md` "Parked threads and watch items"
    with the Emberkeeper knock-on.
 
-### 3.10 Work this implies (not a chunk plan yet)
+### 3.10 Work this implies (built as W1-W3, §3.11)
 
 - **`world.json` (Tiled):** forest masses, the winding road, the broken bridge,
   the west gate opened, the long way round, the woodcutters' camp wreck (NE),
@@ -434,3 +434,58 @@ quest file and its id (the `the-strays` precedent, `cleanup.md` #7).
   own sprite, +1 per other new drawn sprite or prop · content as above · zone:
   +1 zone file (the wolf cave), edits otherwise (no new fields: `exits` and
   `anchors` exist).
+
+### 3.11 Build ledger: W1-W3 (2026-10-25)
+
+PO 2026-10-25: all three chunks in one session; Claude drafts the geometry,
+the PO polishes it in Tiled; the draft's numbers stand as placeholders.
+
+- **W1 content.** Fritz (`fritz.json`) took the Wanderer's spawn and
+  `kobolds-on-the-road` + `the-lost-friend`, and gives `the-captive`,
+  `the-alpha-bear`, `the-wolf-den`; the Wanderer keeps only road advice (debug
+  world). Tobias offers `the-stolen-shipment` once `a-lost-shipment` is done;
+  Gnome 1 turns it in and offers `oil-for-the-lamps` at `bring`; the
+  Lamplighter offers it at `fetch` and teaches Lamp on the turn-in; the gnome's
+  `fetch → bring` row is gated `any` of the shipment completed / level 7.
+  `the-lost-lamp` is parked (rows removed, `cleanup.md` #8), so no row teaches
+  the active light any more. New: `KoboldChief`, `AlphaBear` (elites,
+  placeholder art), `Woodcutter2`, `Woodcutter3`, `Gnome1`, `Hatchet` (key
+  `chop`; Bramble re-keyed). The wolf den's alpha is the existing `EliteWolf`.
+  Display names: Torch → Lamp, Lantern → Torch (en + de); FallenTraveller shows
+  as Woodcutter 1.
+- **Engine (TDD):** `offer_quest` may carry `toStage`, the stage the accept
+  lands on (`Ledger.AcceptAt`); CrossValidate refuses an unknown or terminal
+  landing stage; the content editor's validator follows.
+- **W2 `world.json`.** The winding road (forest masses as blocking `Forest`
+  structures under trees), the bridge and the JailBars gone, the cliff path
+  north (the old north road, winding) with brambles in a gap cut into the north
+  cliff, the plateau's bramble choke cut into its cliff, the plateau's north
+  gap to Wreckers Bluff CLOSED (one way down, as ruled), the camp wreck + crate
+  trail + the `woodcutters-camp` region (the shipment's `reach`), the bears
+  moved east, three new cave mouths (kobold NE, bear, wolf), the Lamplighter +
+  the body + four L5-6 spiders at the dark forest's north edge, the chief + the
+  captive + crates on the plateau, Gnome 1 in the workshop, Woodcutter 3 at the
+  market, the cave's city stairs in the NW corner tower, the L45 Wolf at L4,
+  props, trees and decals.
+- **W3 caves.** `koboldCave.json` 48×28 → 120×64: the hub keeps its rock, a
+  west branch ends at the plateau exit, a south tunnel runs east to the city
+  stairs, a neck opens the bear cave (own mouth, the alpha bear, region
+  `bear-cave`); kobolds L7. New `wolfDen.json` (origin 6000, 5000, 40×24,
+  region `wolf-den`).
+- **Choices made while building, for the PO's look:** the captive is a woman
+  (Holzfällerin); the Kobold Chief sits at curveLevel 7 (at the Kobold's 3 the
+  simharness elite ceiling refuses it); the city stairs moved off the tower's
+  brazier; placeholder props (SackPile, LumberStack, ToolRack) swapped for
+  drawn ones; the Lamplighter keeps `dire-wolves-in-the-forest` (one Dire Wolf
+  nearby).
+- **Not done:** Q2 (the long way round, open); `bears-at-the-walls` still asks
+  for L16 Bears; the new Torch's role (parked globally).
+- **Schema:** DB/conf none · wire none (placeholder art) · content +5 quests,
+  +5 mobs, +1 skill, +3 regions, +1 gate key (`chop`, `shared-constants.json`)
+  · zone +1 file (`wolfDen`), no new fields · engine: `offer_quest` gains an
+  optional `toStage`.
+- **Verified:** Go suite red only on the two known (Passages barn words, C1b);
+  vitest 1938/0; typecheck; `aurad -validate` 0 findings (main + debug zones);
+  `tools/tiled/verify.sh` exit 0; content-editor smoke (only the stale-binary
+  note); harness `woods-w123.mjs` 14/14, 0 console errors (seven talks, seven
+  door legs).

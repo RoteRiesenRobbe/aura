@@ -152,7 +152,7 @@
   "@conv.CityGuard.the-front-is": {
     "description": "City Guard speaks this in the conversation, node \"front\", line 1."
   },
-  "conv.CityGuard.the-gate-is-closed": "The gate is closed. The orcs are too close.",
+  "conv.CityGuard.the-gate-is-closed": "We broke the bridge ourselves. The orcs are too close.",
   "@conv.CityGuard.the-gate-is-closed": {
     "description": "City Guard speaks this in the conversation, node \"root\", line 1."
   },
@@ -272,11 +272,11 @@
   "@conv.Emberkeeper.you-can-rest-at-my": {
     "description": "Emberkeeper speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.FallenTraveller.a-dead-traveller": "A dead traveller in a grey cloak, deep in the kobold den.",
+  "conv.FallenTraveller.a-dead-traveller": "A dead woodcutter at the edge of the dark forest, his axe still in his hand.",
   "@conv.FallenTraveller.a-dead-traveller": {
     "description": "Fallen Traveller speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.FallenTraveller.his-pack-has-been-emptied": "His pack has been emptied. A broken walking staff lies beside him.",
+  "conv.FallenTraveller.his-pack-has-been-emptied": "His pack is torn open. Small spiders crawl over it.",
   "@conv.FallenTraveller.his-pack-has-been-emptied": {
     "description": "Fallen Traveller speaks this in the conversation, node \"root\", line 2."
   },
@@ -392,6 +392,190 @@
   "@conv.ForestSign.danger-stay-away": {
     "description": "Forest Sign speaks this in the conversation, node \"root\", line 1."
   },
+  "conv.Fritz.about-the-bear": "About the bear...",
+  "@conv.Fritz.about-the-bear": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.about-the-captive": "About the captive...",
+  "@conv.Fritz.about-the-captive": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.about-the-kobolds": "About the kobolds...",
+  "@conv.Fritz.about-the-kobolds": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.about-the-wolf": "About the wolf...",
+  "@conv.Fritz.about-the-wolf": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.about-your-scout": "About your scout...",
+  "@conv.Fritz.about-your-scout": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.alive-that-is-the-first": "Alive! That is the first good news in days.",
+  "@conv.Fritz.alive-that-is-the-first": {
+    "description": "Fritz answers this when the player picks \"she-is-alive-she-will\" (node \"captive_running\")."
+  },
+  "conv.Fritz.and-the-city-sends-no": "And the city sends no guards. Not one. The orcs matter more to them than a few woodcutters and these damn kobolds.",
+  "@conv.Fritz.and-the-city-sends-no": {
+    "description": "Fritz speaks this in the conversation, node \"camp\", line 3."
+  },
+  "conv.Fritz.and-your-other-missing": "And your other missing woodcutter?",
+  "@conv.Fritz.and-your-other-missing": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.anything-else-out-there": "Anything else out there?",
+  "@conv.Fritz.anything-else-out-there": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.are-all-your-people-here": "Are all your people here?",
+  "@conv.Fritz.are-all-your-people-here": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.bears-came-out": "Bears came out of the trees and tore it apart. While we fought them off, the kobolds fell on us.",
+  "@conv.Fritz.bears-came-out": {
+    "description": "Fritz speaks this in the conversation, node \"camp\", line 2."
+  },
+  "conv.Fritz.did-you-find-her": "Did you find her?",
+  "@conv.Fritz.did-you-find-her": {
+    "description": "Fritz speaks this in the conversation, node \"captive_running\", line 1."
+  },
+  "conv.Fritz.go-carefully-their-chief-keeps": "Go carefully. Their chief keeps the plateau.",
+  "@conv.Fritz.go-carefully-their-chief-keeps": {
+    "description": "Fritz answers this when the player picks \"ill-find-her\" (node \"captive\")."
+  },
+  "conv.Fritz.good-my-people-can-work": "Good. My people can work the south again.",
+  "@conv.Fritz.good-my-people-can-work": {
+    "description": "Fritz answers this when the player picks \"the-alpha-wolf-is-dead\" (node \"wolf_running\")."
+  },
+  "conv.Fritz.he-went-south-towards": "He went south, towards the dark part of the forest.",
+  "@conv.Fritz.he-went-south-towards": {
+    "description": "Fritz speaks this in the conversation, node \"friend_on_it\", line 1."
+  },
+  "conv.Fritz.i-feared-as-much-thank": "I feared as much. Thank you for telling me.",
+  "@conv.Fritz.i-feared-as-much-thank": {
+    "description": "Fritz answers this when the player picks \"i-found-him-he-is\" (node \"friend_running\")."
+  },
+  "conv.Fritz.i-found-him-he-is": "I found him. He is dead.",
+  "@conv.Fritz.i-found-him-he-is": {
+    "description": "A row the player picks when talking to Fritz (node \"friend_running\"), written as the player's own words."
+  },
+  "conv.Fritz.i-killed-the-8-kobolds": "I killed the 8 kobolds.",
+  "@conv.Fritz.i-killed-the-8-kobolds": {
+    "description": "A row the player picks when talking to Fritz (node \"kobolds_running\"), written as the player's own words."
+  },
+  "conv.Fritz.if-she-still-lives-bring": "If she still lives, bring her word that we are waiting.",
+  "@conv.Fritz.if-she-still-lives-bring": {
+    "description": "Fritz speaks this in the conversation, node \"captive\", line 2."
+  },
+  "conv.Fritz.ill-find-her": "I'll find her.",
+  "@conv.Fritz.ill-find-her": {
+    "description": "A row the player picks when talking to Fritz (node \"captive\"), written as the player's own words."
+  },
+  "conv.Fritz.ill-look-for-him": "I'll look for him.",
+  "@conv.Fritz.ill-look-for-him": {
+    "description": "A row the player picks when talking to Fritz (node \"friend\"), written as the player's own words."
+  },
+  "conv.Fritz.it-dens-in-a-cave": "It dens in a cave east of our camp, deep in bear country. Kill it, and the rest may scatter.",
+  "@conv.Fritz.it-dens-in-a-cave": {
+    "description": "Fritz speaks this in the conversation, node \"bear\", line 2."
+  },
+  "conv.Fritz.it-hunts-my-people-when": "It hunts my people when they go out to cut. Kill it.",
+  "@conv.Fritz.it-hunts-my-people-when": {
+    "description": "Fritz speaks this in the conversation, node \"wolf\", line 2."
+  },
+  "conv.Fritz.its-cave-is": "Its cave is to the south-west. Kill the alpha wolf, then come back to me.",
+  "@conv.Fritz.its-cave-is": {
+    "description": "Fritz speaks this in the conversation, node \"wolf_on_it\", line 1."
+  },
+  "conv.Fritz.its-cave-is-east": "Its cave is east of our camp. Kill the alpha bear, then come back to me.",
+  "@conv.Fritz.its-cave-is-east": {
+    "description": "Fritz speaks this in the conversation, node \"bear_on_it\", line 1."
+  },
+  "conv.Fritz.kill-8-kobolds-near": "Kill 8 kobolds near the road, then come back to me.",
+  "@conv.Fritz.kill-8-kobolds-near": {
+    "description": "Fritz speaks this in the conversation, node \"kobolds_on_it\", line 1."
+  },
+  "conv.Fritz.my-scout": "My scout?",
+  "@conv.Fritz.my-scout": {
+    "description": "Fritz speaks this in the conversation, node \"friend_running\", line 1."
+  },
+  "conv.Fritz.one-went-south-to-look": "One went south to look over the darker part of the forest for new timber. He has not come back.",
+  "@conv.Fritz.one-went-south-to-look": {
+    "description": "Fritz speaks this in the conversation, node \"friend\", line 2."
+  },
+  "conv.Fritz.she-is-alive-she-will": "She is alive. She will come down soon.",
+  "@conv.Fritz.she-is-alive-she-will": {
+    "description": "A row the player picks when talking to Fritz (node \"captive_running\"), written as the player's own words."
+  },
+  "conv.Fritz.sit-if-you-like-there": "Sit, if you like. There is not much left to offer.",
+  "@conv.Fritz.sit-if-you-like-there": {
+    "description": "Fritz speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Fritz.thank-you-watch-for-spiders": "Thank you. Watch for spiders down there.",
+  "@conv.Fritz.thank-you-watch-for-spiders": {
+    "description": "Fritz answers this when the player picks \"ill-look-for-him\" (node \"friend\")."
+  },
+  "conv.Fritz.the-alpha-bear-is-dead": "The alpha bear is dead.",
+  "@conv.Fritz.the-alpha-bear-is-dead": {
+    "description": "A row the player picks when talking to Fritz (node \"bear_running\"), written as the player's own words."
+  },
+  "conv.Fritz.the-alpha-wolf-is-dead": "The alpha wolf is dead.",
+  "@conv.Fritz.the-alpha-wolf-is-dead": {
+    "description": "A row the player picks when talking to Fritz (node \"wolf_running\"), written as the player's own words."
+  },
+  "conv.Fritz.the-bear": "The bear?",
+  "@conv.Fritz.the-bear": {
+    "description": "Fritz speaks this in the conversation, node \"bear_running\", line 1."
+  },
+  "conv.Fritz.the-bear-that-led-them": "The bear that led them is still out there. A great brute, bigger than any I have seen.",
+  "@conv.Fritz.the-bear-that-led-them": {
+    "description": "Fritz speaks this in the conversation, node \"bear\", line 1."
+  },
+  "conv.Fritz.the-kobold-plateau": "The kobold plateau, in the north-west. The way up is through their cave.",
+  "@conv.Fritz.the-kobold-plateau": {
+    "description": "Fritz speaks this in the conversation, node \"captive_on_it\", line 1."
+  },
+  "conv.Fritz.the-kobolds": "The kobolds?",
+  "@conv.Fritz.the-kobolds": {
+    "description": "Fritz speaks this in the conversation, node \"kobolds_running\", line 1."
+  },
+  "conv.Fritz.the-kobolds-are-all-over": "The kobolds are all over the road now. Kill 8 of them, then come back to me.",
+  "@conv.Fritz.the-kobolds-are-all-over": {
+    "description": "Fritz speaks this in the conversation, node \"kobolds\", line 1."
+  },
+  "conv.Fritz.the-other-one-they-took": "The other one they took alive. I saw the kobolds drag her up towards their plateau in the north-west.",
+  "@conv.Fritz.the-other-one-they-took": {
+    "description": "Fritz speaks this in the conversation, node \"captive\", line 1."
+  },
+  "conv.Fritz.the-wolf": "The wolf?",
+  "@conv.Fritz.the-wolf": {
+    "description": "Fritz speaks this in the conversation, node \"wolf_running\", line 1."
+  },
+  "conv.Fritz.then-we-can-go-back": "Then we can go back for our tools. Thank you.",
+  "@conv.Fritz.then-we-can-go-back": {
+    "description": "Fritz answers this when the player picks \"the-alpha-bear-is-dead\" (node \"bear_running\")."
+  },
+  "conv.Fritz.there-is-a-wolf": "There is a wolf. A mean old alpha with a den in a cave to the south-west.",
+  "@conv.Fritz.there-is-a-wolf": {
+    "description": "Fritz speaks this in the conversation, node \"wolf\", line 1."
+  },
+  "conv.Fritz.two-of-mine-are-missing": "Two of mine are missing.",
+  "@conv.Fritz.two-of-mine-are-missing": {
+    "description": "Fritz speaks this in the conversation, node \"friend\", line 1."
+  },
+  "conv.Fritz.we-are-woodcutters-our-camp": "We are woodcutters. Our camp is north-east of here, or it was.",
+  "@conv.Fritz.we-are-woodcutters-our-camp": {
+    "description": "Fritz speaks this in the conversation, node \"camp\", line 1."
+  },
+  "conv.Fritz.what-about-the-bears": "What about the bears?",
+  "@conv.Fritz.what-about-the-bears": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
+  "conv.Fritz.what-happened-here": "What happened here?",
+  "@conv.Fritz.what-happened-here": {
+    "description": "A row the player picks when talking to Fritz (node \"root\"), written as the player's own words."
+  },
   "conv.FrontAscensionStone.confirming-ends-this-character": "Confirming ends this character. Its name goes on the memorial.",
   "@conv.FrontAscensionStone.confirming-ends-this-character": {
     "description": "Front Ascension Stone speaks this in the conversation, node \"catalog\", line 2."
@@ -455,6 +639,54 @@
   "conv.GladeRoot.the-wisps-drift-around": "The wisps drift around a root that hums. Somewhere, an old tree smiles.",
   "@conv.GladeRoot.the-wisps-drift-around": {
     "description": "Glade Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Gnome1.about-tobiass-shipment": "About Tobias's shipment...",
+  "@conv.Gnome1.about-tobiass-shipment": {
+    "description": "A row the player picks when talking to Gnome1 (node \"root\"), written as the player's own words."
+  },
+  "conv.Gnome1.anything-i-can-do": "Anything I can do for you?",
+  "@conv.Gnome1.anything-i-can-do": {
+    "description": "A row the player picks when talking to Gnome1 (node \"root\"), written as the player's own words."
+  },
+  "conv.Gnome1.for-the-lamplighter-he-burns": "For the Lamplighter? He burns through it faster than we can brew it.",
+  "@conv.Gnome1.for-the-lamplighter-he-burns": {
+    "description": "Gnome1 speaks this in the conversation, node \"oil_give\", line 1."
+  },
+  "conv.Gnome1.here-one-flask-mind-you": "Here, one flask. Mind you do not spill it on the way.",
+  "@conv.Gnome1.here-one-flask-mind-you": {
+    "description": "Gnome1 answers this when the player picks \"may-i-have-a-flask\" (node \"oil_give\")."
+  },
+  "conv.Gnome1.i-brought-the-shipment": "I brought the shipment.",
+  "@conv.Gnome1.i-brought-the-shipment": {
+    "description": "A row the player picks when talking to Gnome1 (node \"shipment_running\"), written as the player's own words."
+  },
+  "conv.Gnome1.may-i-have-a-flask": "May I have a flask?",
+  "@conv.Gnome1.may-i-have-a-flask": {
+    "description": "A row the player picks when talking to Gnome1 (node \"oil_give\"), written as the player's own words."
+  },
+  "conv.Gnome1.the-lamplighter-at-the-edge": "The Lamplighter at the edge of the dark forest will be out of oil again. Take him a flask, will you?",
+  "@conv.Gnome1.the-lamplighter-at-the-edge": {
+    "description": "Gnome1 speaks this in the conversation, node \"oil_offer\", line 1."
+  },
+  "conv.Gnome1.the-lamplighter-sent-me": "The Lamplighter sent me for lamp oil.",
+  "@conv.Gnome1.the-lamplighter-sent-me": {
+    "description": "A row the player picks when talking to Gnome1 (node \"root\"), written as the player's own words."
+  },
+  "conv.Gnome1.the-shipment-from-reinhards-farm": "The shipment from Reinhard's farm? We have been waiting for it.",
+  "@conv.Gnome1.the-shipment-from-reinhards-farm": {
+    "description": "Gnome1 speaks this in the conversation, node \"shipment_running\", line 1."
+  },
+  "conv.Gnome1.tinkering-always-tinkering-what": "Tinkering, always tinkering. What do you need?",
+  "@conv.Gnome1.tinkering-always-tinkering-what": {
+    "description": "Gnome1 speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Gnome1.tobias-was-bringing-it-bring": "Tobias was bringing it. Bring it to me when you find it.",
+  "@conv.Gnome1.tobias-was-bringing-it-bring": {
+    "description": "Gnome1 speaks this in the conversation, node \"shipment_on_it\", line 1."
+  },
+  "conv.Gnome1.wonderful-and-reinhards-letter": "Wonderful! And Reinhard's letter too. Tell him the gnomes say thank you.",
+  "@conv.Gnome1.wonderful-and-reinhards-letter": {
+    "description": "Gnome1 answers this when the player picks \"i-brought-the-shipment\" (node \"shipment_running\")."
   },
   "conv.Governor.about-the-wolves": "About the wolves in the farmlands...",
   "@conv.Governor.about-the-wolves": {
@@ -752,51 +984,27 @@
   "@conv.Lambert.why-am-i-even-talking": {
     "description": "A row the player picks when talking to Lambert (node \"asked\"), written as the player's own words."
   },
-  "conv.LamplessTraveller.about-your-lamp": "About your lamp...",
-  "@conv.LamplessTraveller.about-your-lamp": {
-    "description": "A row the player picks when talking to Lampless Traveller (node \"root\"), written as the player's own words."
-  },
-  "conv.LamplessTraveller.kill-6-kobolds-north": "Kill 6 kobolds north of the tunnel, then come back to me.",
-  "@conv.LamplessTraveller.kill-6-kobolds-north": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"lamp\", line 1."
-  },
-  "conv.LamplessTraveller.kill-6-kobolds-north-2": "Kill 6 kobolds north of the tunnel, then come back to me.",
-  "@conv.LamplessTraveller.kill-6-kobolds-north-2": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_on_it\", line 1."
-  },
-  "conv.LamplessTraveller.my-lamp": "My lamp?",
-  "@conv.LamplessTraveller.my-lamp": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_running\", line 1."
-  },
-  "conv.LamplessTraveller.north-of-the-tunnel": "North of the tunnel.",
-  "@conv.LamplessTraveller.north-of-the-tunnel": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"lamp_where\", line 1."
-  },
-  "conv.LamplessTraveller.the-6-kobolds-are-dead": "The 6 kobolds are dead.",
-  "@conv.LamplessTraveller.the-6-kobolds-are-dead": {
-    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp_running\"), written as the player's own words."
-  },
   "conv.LamplessTraveller.what-are-you-doing-out": "What are you doing out here?",
   "@conv.LamplessTraveller.what-are-you-doing-out": {
     "description": "Lampless Traveller speaks this in the conversation, node \"root\", line 1."
-  },
-  "conv.LamplessTraveller.where-do-they-nest": "Where do they nest?",
-  "@conv.LamplessTraveller.where-do-they-nest": {
-    "description": "A row the player picks when talking to Lampless Traveller (node \"lamp_running\"), written as the player's own words."
-  },
-  "conv.LamplessTraveller.you-get-my-lamp-when": "You get my lamp when it is done.",
-  "@conv.LamplessTraveller.you-get-my-lamp-when": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"lamp\", line 2."
-  },
-  "conv.LamplessTraveller.you-have-the-lamp-now": "You have the lamp now.",
-  "@conv.LamplessTraveller.you-have-the-lamp-now": {
-    "description": "Lampless Traveller speaks this in the conversation, node \"root_lit\", line 1."
   },
   "conv.Lamplighter.about-the-dire-wolves": "About the dire wolves...",
   "@conv.Lamplighter.about-the-dire-wolves": {
     "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words."
   },
-  "conv.Lamplighter.i-can-teach-you": "I can teach you to make light.",
+  "conv.Lamplighter.about-the-lamp-oil": "About the lamp oil...",
+  "@conv.Lamplighter.about-the-lamp-oil": {
+    "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words."
+  },
+  "conv.Lamplighter.can-i-help-with-your": "Can I help with your lamps?",
+  "@conv.Lamplighter.can-i-help-with-your": {
+    "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words."
+  },
+  "conv.Lamplighter.here-is-your-lamp-oil": "Here is your lamp oil.",
+  "@conv.Lamplighter.here-is-your-lamp-oil": {
+    "description": "A row the player picks when talking to Lamplighter (node \"oil_running\"), written as the player's own words."
+  },
+  "conv.Lamplighter.i-can-teach-you": "Nobody gets through the dark forest without a light, and my lamps are dry.",
   "@conv.Lamplighter.i-can-teach-you": {
     "description": "Lamplighter speaks this in the conversation, node \"root\", line 1."
   },
@@ -812,9 +1020,29 @@
   "@conv.Lamplighter.kill-4-dire-wolves-2": {
     "description": "Lamplighter speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
+  "conv.Lamplighter.light-at-last-here-let": "Light at last. Here, let me show you how to carry a lamp of your own.",
+  "@conv.Lamplighter.light-at-last-here-let": {
+    "description": "Lamplighter answers this when the player picks \"here-is-your-lamp-oil\" (node \"oil_running\")."
+  },
   "conv.Lamplighter.the-dire-wolves": "The dire wolves?",
   "@conv.Lamplighter.the-dire-wolves": {
     "description": "Lamplighter speaks this in the conversation, node \"wolves_running\", line 1."
+  },
+  "conv.Lamplighter.the-gnomes-in-dionsburg-make": "The gnomes in Dionsburg make the only oil worth burning. Bring me a flask.",
+  "@conv.Lamplighter.the-gnomes-in-dionsburg-make": {
+    "description": "Lamplighter speaks this in the conversation, node \"oil\", line 1."
+  },
+  "conv.Lamplighter.the-gnomes-in-the-craftsmens": "The gnomes, in the craftsmen's quarter of Dionsburg. Bring me a flask of their oil.",
+  "@conv.Lamplighter.the-gnomes-in-the-craftsmens": {
+    "description": "Lamplighter speaks this in the conversation, node \"oil_on_it\", line 1."
+  },
+  "conv.Lamplighter.the-lamp-oil": "The lamp oil?",
+  "@conv.Lamplighter.the-lamp-oil": {
+    "description": "Lamplighter speaks this in the conversation, node \"oil_running\", line 1."
+  },
+  "conv.Lamplighter.they-dont-hand-it": "They don't hand it to just anyone. Help them out first, or come back when you are more seasoned.",
+  "@conv.Lamplighter.they-dont-hand-it": {
+    "description": "Lamplighter speaks this in the conversation, node \"oil\", line 2."
   },
   "conv.Lionett.about-the-seaweed": "About the seaweed...",
   "@conv.Lionett.about-the-seaweed": {
@@ -1176,6 +1404,10 @@
   "@conv.StreamRoot.a-cold-root-damp": {
     "description": "Stream Root speaks this in the conversation, node \"root\", line 1."
   },
+  "conv.Tobias.about-the-shipment": "About the shipment...",
+  "@conv.Tobias.about-the-shipment": {
+    "description": "A row the player picks when talking to Tobias (node \"root\"), written as the player's own words."
+  },
   "conv.Tobias.are-you-all-right-what": "Are you all right? What happened?",
   "@conv.Tobias.are-you-all-right-what": {
     "description": "A row the player picks when talking to Tobias (node \"found\"), written as the player's own words."
@@ -1183,6 +1415,18 @@
   "conv.Tobias.bandits-they-took-the-cart": "Bandits. They took the cart and burned it up the road. I barely got away, but I still have the letter.",
   "@conv.Tobias.bandits-they-took-the-cart": {
     "description": "Tobias answers this when the player picks \"Are you all right? What happened?\" (node \"found\")."
+  },
+  "conv.Tobias.can-i-help-you-get": "Can I help you get the shipment back?",
+  "@conv.Tobias.can-i-help-you-get": {
+    "description": "A row the player picks when talking to Tobias (node \"root\"), written as the player's own words."
+  },
+  "conv.Tobias.follow-the-spilled-crates-north": "Follow the spilled crates north-east, past the woodcutters' camp.",
+  "@conv.Tobias.follow-the-spilled-crates-north": {
+    "description": "Tobias speaks this in the conversation, node \"shipment_follow\", line 1."
+  },
+  "conv.Tobias.i-have-the-crates": "I have the crates.",
+  "@conv.Tobias.i-have-the-crates": {
+    "description": "A row the player picks when talking to Tobias (node \"shipment_running\"), written as the player's own words."
   },
   "conv.Tobias.reinhard-sent-me-to-look": "Reinhard sent me to look for you.",
   "@conv.Tobias.reinhard-sent-me-to-look": {
@@ -1195,6 +1439,30 @@
   "conv.Tobias.stay-back-oh-youre-not": "Stay back! ... Oh. You're not one of them.",
   "@conv.Tobias.stay-back-oh-youre-not": {
     "description": "Tobias speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Tobias.the-bandits-burned-the-cart": "The bandits burned the cart, but they left the crates. Kobolds came after and dragged them off into the trees to the north-east.",
+  "@conv.Tobias.the-bandits-burned-the-cart": {
+    "description": "Tobias speaks this in the conversation, node \"shipment\", line 1."
+  },
+  "conv.Tobias.the-shipment": "The shipment?",
+  "@conv.Tobias.the-shipment": {
+    "description": "Tobias speaks this in the conversation, node \"shipment_running\", line 1."
+  },
+  "conv.Tobias.the-shipment-and-reinhards": "The shipment and Reinhard's letter are for the gnomes in Dionsburg. If you get the crates back, take them there.",
+  "@conv.Tobias.the-shipment-and-reinhards": {
+    "description": "Tobias speaks this in the conversation, node \"shipment\", line 2."
+  },
+  "conv.Tobias.then-take-it": "Then take it to the gnomes in Dionsburg. Do not bring it back here.",
+  "@conv.Tobias.then-take-it": {
+    "description": "Tobias speaks this in the conversation, node \"shipment_deliver\", line 1."
+  },
+  "conv.Tobias.up-to-their-plateau-i": "Up to their plateau, I would guess. Their chief will be sitting on it.",
+  "@conv.Tobias.up-to-their-plateau-i": {
+    "description": "Tobias speaks this in the conversation, node \"shipment_recover\", line 1."
+  },
+  "conv.Tobias.where-would-they-take-it": "Where would they take it?",
+  "@conv.Tobias.where-would-they-take-it": {
+    "description": "A row the player picks when talking to Tobias (node \"shipment_running\"), written as the player's own words."
   },
   "conv.TownCrier.about-the-wolves": "About the wolves...",
   "@conv.TownCrier.about-the-wolves": {
@@ -1332,81 +1600,41 @@
   "@conv.VillageHealer.the-alpha-wolves": {
     "description": "Village Healer speaks this in the conversation, node \"alphawolves_running\", line 1."
   },
-  "conv.Wanderer.about-the-kobolds": "About the kobolds...",
-  "@conv.Wanderer.about-the-kobolds": {
-    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
-  },
-  "conv.Wanderer.about-your-friend": "About your friend...",
-  "@conv.Wanderer.about-your-friend": {
-    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
-  },
-  "conv.Wanderer.are-you-travelling-alone": "Are you travelling alone?",
-  "@conv.Wanderer.are-you-travelling-alone": {
-    "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
-  },
   "conv.Wanderer.east-is-dangerous-bandits-watch": "East is dangerous. Bandits watch that road.",
   "@conv.Wanderer.east-is-dangerous-bandits-watch": {
     "description": "Wanderer speaks this in the conversation, node \"roads\", line 2."
-  },
-  "conv.Wanderer.he-wears-a-grey-cloak": "He wears a grey cloak and carries a walking staff. Please find him.",
-  "@conv.Wanderer.he-wears-a-grey-cloak": {
-    "description": "Wanderer speaks this in the conversation, node \"friend\", line 2."
-  },
-  "conv.Wanderer.he-went-into-the-forest": "He went into the forest for berries. A grey cloak and a walking staff.",
-  "@conv.Wanderer.he-went-into-the-forest": {
-    "description": "Wanderer speaks this in the conversation, node \"friend_on_it\", line 1."
   },
   "conv.Wanderer.i-am-passing-through": "I am passing through.",
   "@conv.Wanderer.i-am-passing-through": {
     "description": "Wanderer speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Wanderer.i-feared-as-much-thank": "I feared as much. Thank you for telling me.",
-  "@conv.Wanderer.i-feared-as-much-thank": {
-    "description": "Wanderer answers this when the player picks \"I found him. He is dead.\" (node \"friend_running\")."
-  },
-  "conv.Wanderer.i-found-him-he-is": "I found him. He is dead.",
-  "@conv.Wanderer.i-found-him-he-is": {
-    "description": "A row the player picks when talking to Wanderer (node \"friend_running\"), written as the player's own words."
-  },
-  "conv.Wanderer.i-killed-the-8-kobolds": "I killed the 8 kobolds.",
-  "@conv.Wanderer.i-killed-the-8-kobolds": {
-    "description": "A row the player picks when talking to Wanderer (node \"kobolds_running\"), written as the player's own words."
-  },
-  "conv.Wanderer.ill-look-for-him": "I'll look for him.",
-  "@conv.Wanderer.ill-look-for-him": {
-    "description": "A row the player picks when talking to Wanderer (node \"friend\"), written as the player's own words."
-  },
-  "conv.Wanderer.kill-8-kobolds-near": "Kill 8 kobolds near the road, then come back to me.",
-  "@conv.Wanderer.kill-8-kobolds-near": {
-    "description": "Wanderer speaks this in the conversation, node \"kobolds\", line 1."
-  },
-  "conv.Wanderer.kill-8-kobolds-near-2": "Kill 8 kobolds near the road, then come back to me.",
-  "@conv.Wanderer.kill-8-kobolds-near-2": {
-    "description": "Wanderer speaks this in the conversation, node \"kobolds_on_it\", line 1."
-  },
-  "conv.Wanderer.my-friend": "My friend?",
-  "@conv.Wanderer.my-friend": {
-    "description": "Wanderer speaks this in the conversation, node \"friend_running\", line 1."
-  },
   "conv.Wanderer.north-through-the-tunnel-bring": "North, through the tunnel. Bring a light.",
   "@conv.Wanderer.north-through-the-tunnel-bring": {
     "description": "Wanderer speaks this in the conversation, node \"roads\", line 1."
   },
-  "conv.Wanderer.not-by-choice-my-friend": "Not by choice. My friend went into the forest to collect berries and did not come back.",
-  "@conv.Wanderer.not-by-choice-my-friend": {
-    "description": "Wanderer speaks this in the conversation, node \"friend\", line 1."
-  },
-  "conv.Wanderer.thank-you": "Thank you.",
-  "@conv.Wanderer.thank-you": {
-    "description": "Wanderer answers this when the player picks \"I'll look for him.\" (node \"friend\")."
-  },
-  "conv.Wanderer.the-kobolds": "The kobolds?",
-  "@conv.Wanderer.the-kobolds": {
-    "description": "Wanderer speaks this in the conversation, node \"kobolds_running\", line 1."
-  },
   "conv.Wanderer.which-way-is-safe": "Which way is safe?",
   "@conv.Wanderer.which-way-is-safe": {
     "description": "A row the player picks when talking to Wanderer (node \"root\"), written as the player's own words."
+  },
+  "conv.Woodcutter2.fritz-is-alive-tell-him": "Fritz is alive? Tell him I am coming down as soon as I can stand.",
+  "@conv.Woodcutter2.fritz-is-alive-tell-him": {
+    "description": "Woodcutter2 speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.Woodcutter2.the-only-way-down": "The only way down from here is through the brambles. Let me show you how we cut them.",
+  "@conv.Woodcutter2.the-only-way-down": {
+    "description": "Woodcutter2 speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.Woodcutter2.you-came-the-kobolds-have": "You came! The kobolds have kept me tied up here for days.",
+  "@conv.Woodcutter2.you-came-the-kobolds-have": {
+    "description": "Woodcutter2 speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Woodcutter3.brambles-in-your-way": "Brambles in your way? A hatchet makes short work of them.",
+  "@conv.Woodcutter3.brambles-in-your-way": {
+    "description": "Woodcutter3 speaks this in the conversation, node \"teachings\", line 1."
+  },
+  "conv.Woodcutter3.timber-kindling-lumber-fritzs": "Timber, kindling, lumber. Fritz's people cut it, I sell it.",
+  "@conv.Woodcutter3.timber-kindling-lumber-fritzs": {
+    "description": "Woodcutter3 speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Woolliam.are-you-woolliam": "Are you Woolliam?",
   "@conv.Woolliam.are-you-woolliam": {

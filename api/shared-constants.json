@@ -140,7 +140,7 @@
     "instant_stat", "charge", "empower", "fear", "stealth"
   ],
   "selectors": ["nearest", "lowest_health", "all"],
-  "gateKeys": ["harvest", "smash"],
+  "gateKeys": ["chop", "harvest", "smash"],
   "statNames": [
     "movementSpeed", "maxHealth", "damageReduction", "critChance",
     "damageDealt", "costReduction", "threat"

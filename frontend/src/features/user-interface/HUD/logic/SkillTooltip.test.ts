@@ -248,8 +248,18 @@ describe('character power scale', () => {
             })],
         });
 
-        expect(lines(harvest, 1, 1)).toContain('Harvests plants and brambles — nothing else');
+        expect(lines(harvest, 1, 1)).toContain('Harvests plants — nothing else');
         expect(lines(harvest, 1, 1).some(l => l.startsWith('Damage type'))).toBe(false);
+
+        // Brambles take Hatchet's chop key since content-zone-2-woodland.md §3.7.
+        const hatchet = skill({
+            maxLevel: 1,
+            effects: [effect({
+                type: 'damage_aura', radius: 1, tickInterval: 40,
+                damage: {...damageParams(14), tags: null as any, gateKey: 'chop'},
+            })],
+        });
+        expect(lines(hatchet, 1, 1)).toContain('Cuts down brambles — nothing else');
     });
 
     it('rounds HP the way the server does (vitals.HP: half up, min 1)', () => {

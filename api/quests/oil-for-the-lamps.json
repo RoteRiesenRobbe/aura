@@ -1,0 +1,16 @@
+{
+  "_comment": "The Lamplighter's lamp oil (content-zone-2-woodland.md §3.8): fetch a flask from Gnome 1 in Dionsburg, who hands it over to a player who delivered the stolen shipment or is level 7, and bring it to the Lamplighter, whose turn-in teaches Lamp. Two ways in: the Lamplighter offers it at fetch, the gnome after the shipment at bring. Priced at L7 by the L9 half-level rule.",
+  "id": "oil-for-the-lamps",
+  "level": 7,
+  "stages": [
+    {
+      "id": "fetch"
+    },
+    {
+      "id": "bring"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

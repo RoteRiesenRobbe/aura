@@ -1,0 +1,27 @@
+{
+  "_comment": "Tobias's follow-up to a-lost-shipment (content-zone-2-woodland.md §3.5 quest 2): follow the spilled crates to the woodcutters' camp (`reach`), kill the kobold chief on the plateau, who holds the shipment, and deliver it to Gnome 1 in Dionsburg, who turns it in. Priced at L8 by the L9 half-level rule (the plateau's L7 kobolds and L9 chief).",
+  "id": "the-stolen-shipment",
+  "level": 8,
+  "stages": [
+    {
+      "id": "follow",
+      "objectives": [
+        { "kind": "reach", "region": "woodcutters-camp" }
+      ],
+      "next": "recover"
+    },
+    {
+      "id": "recover",
+      "objectives": [
+        { "kind": "kill", "species": "KoboldChief", "count": 1 }
+      ],
+      "next": "deliver"
+    },
+    {
+      "id": "deliver"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

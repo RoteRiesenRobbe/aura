@@ -1373,6 +1373,21 @@ func (z *Zone) validate() error {
 			return err
 		}
 	}
+	// A spawn inside a blocking structure starts walled in and never walks out
+	// (four Deep Woods Wolves, PO 2026-10-25). Only the spawn POINT is checked:
+	// wanderRadius may still carry a mob to the edge, where the wall stops it.
+	for j := range z.Structures {
+		if !z.Structures[j].BlocksMovement {
+			continue
+		}
+		for i := range z.Spawns {
+			s := &z.Spawns[i]
+			if pointInPolygon(s.X, s.Y, z.Structures[j].Points) {
+				return fmt.Errorf("%s (%s) at (%g, %g) is inside blocking %s: it could never walk out",
+					objectRef("spawn", z.Spawns, i), s.Mob, s.X, s.Y, objectRef("structure", z.Structures, j))
+			}
+		}
+	}
 	// Atmospheres name the INDEX for the same reason every other shape array
 	// does. ⚑ THREE points, like a region and a polygon: an area has to enclose
 	// one. ⛔ There is deliberately nothing else to check — no width, no

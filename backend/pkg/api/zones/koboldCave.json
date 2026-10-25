@@ -1,8 +1,8 @@
 {
   "name": "Underworld",
   "bounds": {
-    "width": 48,
-    "height": 28
+    "width": 120,
+    "height": 64
   },
   "origin": {
     "x": 4000,
@@ -179,18 +179,54 @@
         "y": -4.65,
         "rotation": 0,
         "scale": 1.366
+      },
+      {
+        "type": "Torch",
+        "x": -47,
+        "y": -14,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": -46,
+        "y": 12,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": -20,
+        "y": 20.5,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 20,
+        "y": 20.5,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 46,
+        "y": -2,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 48,
+        "y": 18,
+        "rotation": 0,
+        "scale": 1.603
       }
     ],
     "buildings": [],
     "canopy": []
   },
   "spawns": [
-    {
-      "mob": "FallenTraveller",
-      "x": 18.4,
-      "y": -7.6,
-      "angle": 0.6
-    },
     {
       "mob": "Kobold",
       "x": -5.9,
@@ -200,7 +236,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -211,7 +247,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -222,7 +258,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -233,7 +269,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -244,7 +280,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -255,7 +291,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -266,7 +302,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -277,7 +313,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -288,7 +324,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -299,7 +335,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -310,7 +346,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -321,7 +357,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -332,7 +368,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -343,7 +379,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -354,7 +390,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -365,7 +401,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -376,7 +412,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -387,14 +423,152 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 5
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -33,
+      "y": -10.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -46.5,
+      "y": -10,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "KoboldRanged",
+      "x": -50,
+      "y": -6,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -47,
+      "y": 8,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -30,
+      "y": 21,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "KoboldRanged",
+      "x": -12,
+      "y": 20.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": 32,
+      "y": 20.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": 46,
+      "y": 12,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "KoboldRanged",
+      "x": 50,
+      "y": 4,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Bear",
+      "x": 8.5,
+      "y": 27.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "Bear",
+      "x": 16,
+      "y": 28.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 7
+    },
+    {
+      "mob": "AlphaBear",
+      "x": 12,
+      "y": 27,
+      "angle": 0,
+      "respawnTicks": 3600,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 9
     }
   ],
   "exits": [
     {
       "x": -9.43,
       "y": 12.37,
+      "anchor": "koboldcave-ne-surface",
+      "look": "cave-exit"
+    },
+    {
+      "x": -52,
+      "y": -16,
       "anchor": "koboldcave-surface",
+      "look": "cave-exit"
+    },
+    {
+      "x": 52,
+      "y": -3,
+      "anchor": "koboldcave-city",
+      "look": "stairs-up"
+    },
+    {
+      "x": 12,
+      "y": 30.4,
+      "anchor": "bearcave-surface",
       "look": "cave-exit"
     }
   ],
@@ -404,20 +578,41 @@
       "profile": "Derelict Fortress",
       "points": [
         {
-          "x": -42.53,
-          "y": -22.67
+          "x": -60,
+          "y": -32
         },
         {
-          "x": 42,
-          "y": -22.67
+          "x": 60,
+          "y": -32
         },
         {
-          "x": 42,
-          "y": 28.53
+          "x": 60,
+          "y": 32
         },
         {
-          "x": -42.53,
-          "y": 28.53
+          "x": -60,
+          "y": 32
+        }
+      ]
+    },
+    {
+      "id": "bear-cave",
+      "points": [
+        {
+          "x": 0,
+          "y": 23
+        },
+        {
+          "x": 24,
+          "y": 23
+        },
+        {
+          "x": 24,
+          "y": 32
+        },
+        {
+          "x": 0,
+          "y": 32
         }
       ]
     }
@@ -758,6 +953,314 @@
         }
       ],
       "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -60,
+          "y": -32
+        },
+        {
+          "x": 60,
+          "y": -32
+        },
+        {
+          "x": 60,
+          "y": -20
+        },
+        {
+          "x": -60,
+          "y": -20
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -60,
+          "y": -20
+        },
+        {
+          "x": -56,
+          "y": -20
+        },
+        {
+          "x": -56,
+          "y": 32
+        },
+        {
+          "x": -60,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -56,
+          "y": -2
+        },
+        {
+          "x": -50,
+          "y": -2
+        },
+        {
+          "x": -50,
+          "y": 32
+        },
+        {
+          "x": -56,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -40,
+          "y": -20
+        },
+        {
+          "x": -25,
+          "y": -20
+        },
+        {
+          "x": -25,
+          "y": -14
+        },
+        {
+          "x": -40,
+          "y": -14
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -44,
+          "y": -7
+        },
+        {
+          "x": -25,
+          "y": -7
+        },
+        {
+          "x": -25,
+          "y": 18.5
+        },
+        {
+          "x": -44,
+          "y": 18.5
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -25.5,
+          "y": -20
+        },
+        {
+          "x": 29.5,
+          "y": -20
+        },
+        {
+          "x": 29.5,
+          "y": -17
+        },
+        {
+          "x": -25.5,
+          "y": -17
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 29,
+          "y": -20
+        },
+        {
+          "x": 40,
+          "y": -20
+        },
+        {
+          "x": 40,
+          "y": 18.5
+        },
+        {
+          "x": 29,
+          "y": 18.5
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 40,
+          "y": -20
+        },
+        {
+          "x": 60,
+          "y": -20
+        },
+        {
+          "x": 60,
+          "y": -6
+        },
+        {
+          "x": 40,
+          "y": -6
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 56,
+          "y": -6
+        },
+        {
+          "x": 60,
+          "y": -6
+        },
+        {
+          "x": 60,
+          "y": 32
+        },
+        {
+          "x": 56,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -50,
+          "y": 23
+        },
+        {
+          "x": 2,
+          "y": 23
+        },
+        {
+          "x": 2,
+          "y": 32
+        },
+        {
+          "x": -50,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 22,
+          "y": 23
+        },
+        {
+          "x": 60,
+          "y": 23
+        },
+        {
+          "x": 60,
+          "y": 32
+        },
+        {
+          "x": 22,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 2,
+          "y": 23
+        },
+        {
+          "x": 10,
+          "y": 23
+        },
+        {
+          "x": 10,
+          "y": 25
+        },
+        {
+          "x": 2,
+          "y": 25
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 14,
+          "y": 23
+        },
+        {
+          "x": 22,
+          "y": 23
+        },
+        {
+          "x": 22,
+          "y": 25
+        },
+        {
+          "x": 14,
+          "y": 25
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": 2,
+          "y": 31
+        },
+        {
+          "x": 22,
+          "y": 31
+        },
+        {
+          "x": 22,
+          "y": 32
+        },
+        {
+          "x": 2,
+          "y": 32
+        }
+      ],
+      "blocksMovement": true
     }
   ],
   "atmospheres": [
@@ -765,29 +1268,44 @@
       "profile": "Gloom",
       "points": [
         {
-          "x": -29.73,
-          "y": -20.4
+          "x": -60,
+          "y": -32
         },
         {
-          "x": 32.13,
-          "y": -20.4
+          "x": 60,
+          "y": -32
         },
         {
-          "x": 32.13,
-          "y": 19.47
+          "x": 60,
+          "y": 32
         },
         {
-          "x": -29.73,
-          "y": 19.47
+          "x": -60,
+          "y": 32
         }
       ]
     }
   ],
   "anchors": [
     {
-      "name": "koboldcave-inside",
+      "name": "kobold-hub-inside",
       "x": -9.36,
       "y": 11.27
+    },
+    {
+      "name": "koboldcave-inside",
+      "x": -50.5,
+      "y": -14.8
+    },
+    {
+      "name": "kobold-east-inside",
+      "x": 50.5,
+      "y": -1.8
+    },
+    {
+      "name": "bearcave-inside",
+      "x": 12,
+      "y": 29
     }
   ]
 }
