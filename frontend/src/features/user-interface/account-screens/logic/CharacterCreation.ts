@@ -93,11 +93,27 @@ export function setup(handlers: {
                 onLoginRequested();
             });
 
+        // The look choices start folded away (the panel must fit one screen);
+        // the link and the medallion itself open them.
+        const toggleLook = (event: Event) => {
+            event.preventDefault();
+            setLookExpanded(panel.querySelector('.lookChoices').classList.contains('hidden'));
+        };
+        AccountScreens.element('creationLookToggle').addEventListener('pointerdown', toggleLook);
+        panel.querySelector('.lookPreview').addEventListener('pointerdown', toggleLook);
+
         AccountScreens.clearError(panel);
         // The catalog usually lands before the panel shows; if not, the
         // picker fills in when it does.
         void appearanceReady.then(renderLook);
     });
+}
+
+function setLookExpanded(expanded: boolean): void {
+    const panel = AccountScreens.element('characterCreation');
+    panel.classList.toggle('lookOpen', expanded);
+    panel.querySelector('.lookChoices').classList.toggle('hidden', !expanded);
+    AccountScreens.element('creationLookToggle').classList.toggle('expanded', expanded);
 }
 
 /** Draws the look picker on the creation form's own pick (LookPicker, D9). */
@@ -149,6 +165,7 @@ export function show(mount: CreationMount, characterCount = 0, slotIndex?: numbe
 
     chosenLook = null;
     renderLook();
+    setLookExpanded(false);
 
     AccountScreens.showPanel('characterCreation');
     input.focus();

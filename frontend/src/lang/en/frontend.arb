@@ -20,6 +20,10 @@
   "@account.create-character.login-button": {
     "description": "Account screens: text of the <a id=creationLoginButton> element in #characterCreation in #accountScreens."
   },
+  "account.create-character.change-look": "Change look",
+  "@account.create-character.change-look": {
+    "description": "Account screens: link under the character's medallion on character creation; opens (and closes) the portrait and ring choices."
+  },
   "account.create-character.portrait": "Portrait",
   "@account.create-character.portrait": {
     "description": "Account screens: heading over the row of portraits the new character can wear (plan-appearance.md C3)."
@@ -78,7 +82,11 @@
   },
   "account.fullscreen": "Fullscreen",
   "@account.fullscreen": {
-    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens."
+    "description": "Account screens: tooltip of the fullscreen icon button in the top-right corner, while not in fullscreen."
+  },
+  "account.fullscreen-leave": "Leave fullscreen",
+  "@account.fullscreen-leave": {
+    "description": "Account screens: tooltip of the fullscreen icon button in the top-right corner, while in fullscreen."
   },
   "account.have-account": "Already have an account?",
   "@account.have-account": {
@@ -95,10 +103,6 @@
   "account.login.submit": "Log in",
   "@account.login.submit": {
     "description": "Account screens: the value attribute of the <input> element in #loginForm in #loginPanel."
-  },
-  "account.mute-all": "Mute all",
-  "@account.mute-all": {
-    "description": "Account screens: text of the <label> element in #characterSelect in #accountScreens, beside the fullscreen switch. Same setting as the settings panel's mute switch."
   },
   "account.register.close-button": "Close",
   "@account.register.close-button": {
@@ -138,6 +142,18 @@
   "account.select.logout-button": "Log out",
   "@account.select.logout-button": {
     "description": "Account screens: text of the <a id=logoutButton> element in #characterSelect in #accountScreens."
+  },
+  "account.sound-off": "Sound off",
+  "@account.sound-off": {
+    "description": "Account screens: words beside the crossed-out speaker button in the top-right corner, shown only while the game is muted. Keep it short: it sits beside the settings gear."
+  },
+  "account.sound-off-hint": "Turn sound off",
+  "@account.sound-off-hint": {
+    "description": "Account screens: tooltip of the speaker button in the top-right corner, while sound is on."
+  },
+  "account.sound-on-hint": "Turn sound on",
+  "@account.sound-on-hint": {
+    "description": "Account screens: tooltip of the speaker button in the top-right corner, while the game is muted."
   },
   "api-error.already-logged-in": "This account is already logged in.",
   "@api-error.already-logged-in": {

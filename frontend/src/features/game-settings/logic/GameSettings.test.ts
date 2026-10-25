@@ -57,10 +57,19 @@ describe('vfx density', () => {
     // setting would read `undefined` for everyone who has ever opened settings.
     it('keeps the platform default when the stored blob predates the setting', () => {
         isMobile.mockReturnValue(true);
-        storeGameSettings({audio: {masterMuted: false, masterVolume: 0.3}});
+        storeGameSettings({audio: {masterMuted: false, masterVolume: 0.8}});
 
         const settings = GameSettings.get();
         expect(settings.vfx.density).toBe('low');
-        expect(settings.audio.masterVolume).toBe(0.3);
+        expect(settings.audio.masterVolume).toBe(0.8);
+    });
+});
+
+describe('audio defaults', () => {
+    // PO 2026-10-25: a first visit starts at 30 % volume, muted (plan-audio.md R1).
+    it('starts muted at 30 % master volume', () => {
+        const audio = GameSettings.get().audio;
+        expect(audio.masterMuted).toBe(true);
+        expect(audio.masterVolume).toBe(0.3);
     });
 });
