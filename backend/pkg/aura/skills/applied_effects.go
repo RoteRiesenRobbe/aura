@@ -33,6 +33,10 @@ const (
 	// A live stealth (C6, D24): the client draws it as the token's alpha, for
 	// every viewer and the stealthed player too, never as a pip.
 	AppliedEffectStealth AppliedEffect = 1 << 12
+	// A camouflaged mob at its spawn point (content-zone-7-swamp.md E2): not a
+	// buff but a mob state, set by Mob.AppliedEffects rather than the buff
+	// store; the client draws it faint. Visual only, unlike stealth.
+	AppliedEffectCamouflage AppliedEffect = 1 << 13
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 

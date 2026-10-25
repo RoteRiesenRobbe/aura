@@ -41,7 +41,7 @@ const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to', 'reach'];
 export const ROLES = ['creature', 'structure'];
 export const TIERS = ['normal', 'elite', 'boss'];
 const TIER_RANK = { normal: 0, elite: 1, boss: 2 };
-export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed'];
+export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed', 'miasma'];
 export const RESIST_WILDCARD = '*';
 export const GATE_KEYS = ['chop', 'harvest', 'smash'];
 // backend/pkg/aura/model/layers.go: CollisionLayer is `0x1 << iota` from

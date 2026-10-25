@@ -43,7 +43,7 @@ a soft teal-jade for an enchanted feel. A per-pixel change, so it tiles exactly 
 spans only ~24 luminance levels, so any contrast boost turns its soft blotches into
 a visible repeating pattern.
 
-### `water-` / `bog-` / `lava-` / `ice-` / `snow-ground-placeholder.png` — GENERATED, not from a pack
+### `water-` / `bog-` / `deep-bog-` / `lava-` / `ice-` / `snow-ground-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -71,6 +71,11 @@ lake with dark islands* rather than crust with veins. ⚑ Lava's gamma matters m
 than any other number here because at `scale: 0.35` roughly **nine** tile repeats
 cross a 20-unit screen, and a bright high-contrast field repeated nine times
 reads as noise and advertises the tiling.
+
+⭐ **`deep-bog-placeholder.png` is `Deep Bog`** (2026-10-25): the bog recoloured
+darker and nothing else, worn by the swamp's blocking deep-water walls, because
+blue `Water` read as a clean lake inside a rotting swamp (PO). Its own warp and
+fine offsets, so it never shows the bog's blotch beside the bog.
 
 ⭐ **Seamless by construction, not by eye.** Every wave in the generator has an
 INTEGER wave number, so the image is exactly periodic in both axes — see the
@@ -113,7 +118,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-` / `road-` / `stones-` / `cobble-` / `flagstone-` / `town-ground-` / `upper-ground-` / `limestone-` / `coast-grass-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `thicket-` / `wall-` / `road-` / `stones-` / `cobble-` / `flagstone-` / `town-ground-` / `upper-ground-` / `limestone-` / `coast-grass-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -349,6 +354,8 @@ rounding off, four cells, a heavy warp and a grey-green joint at reduced
 strength. It is meant to be seen in patches through the grass, never alone.
 
 ⭐ **`town-ground-placeholder.png` replaced pd141 as the `City` ground** (2026-10-23): the road's recipe, darker, with straw wisps (`elong` 12) for pebbles. ⛔ **pd141 was a grey STONE tile and the cobbles were a step darker than it, so a street did not read as a street (PO).** Contrast between two neighbouring grounds needs a difference in KIND, not a step in tone: this one differs from the cobbles in hue (brown vs grey), value (darker) and detail (a smooth bed vs a surface of cells) at once.
+
+⭐ **`thicket-placeholder.png` is the `Thicket` WALL** (2026-10-25, the swamp's walls): the forest recipe turned into something you cannot walk through, because `Forest` on a blocking polygon read as walkable floor. Dark brown throughout (PO: thicker, heavier, dark brown, spiky, unpassable): near-black duff, four layers piled to near-full cover (heavy limbs, bramble stems, long thorns, short spikes) with long shadows; the thorn layers use the generator's `thorn` shape (an L1 rhombus, pointed at both ends). Worn at `scale` 0.6 so the pieces read at game zoom. It differs from the `Bog` it borders in kind: pieces against a smooth ridged sheen.
 
 ⭐ **`upper-ground-placeholder.png` is the `Upper City` ground** (2026-10-25, PO: the upper districts should not wear the dirt): the town ground swept and gravelled, laid over `City` above the retaining wall. The same difference-in-KIND rule: paler and buffer than `City`, a fine even grain against the cobbles' cells, no courses and a step darker than the `Flagstone` floors. Pea gravel at ~26 % coverage (two layers) is past the road's "this becomes gravel" line on purpose, and still small and low-contrast because, unlike `stones`, it is seen as a whole surface.
 

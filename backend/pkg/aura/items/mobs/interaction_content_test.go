@@ -161,6 +161,14 @@ var expectedConversants = []string{
 	"Woodcutter2",
 	"Woodcutter3",
 	"Gnome1",
+	// Sorrowfen (content-zone-7-swamp.md §2.2): Hedda the picker and Fennick the
+	// gnome carry quests A and B, Captain Brack quest C with his deckhands for
+	// colour, and the SunkChest is quest C's talk_to target (a talking object).
+	"Hedda",
+	"Fennick",
+	"CaptainBrack",
+	"PirateDeckhand",
+	"SunkChest",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

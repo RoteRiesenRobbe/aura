@@ -1,0 +1,28 @@
+{
+  "_comment": "Bog snake, Sorrowfen's roamer (content-zone-7-swamp.md §2.2, C8): it swims the open bog on a waypoint patrol and comes to the planks, the mob that finds you. Immune to miasma. Borrows VenomSpit until it gets its own bite; entityType NpcPlaceholder until its art lands. All values [PLACEHOLDER].",
+  "id": 137,
+  "name": "BogSnake",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "tier": "normal",
+  "curveLevel": 10,
+  "factors": {
+    "resistances": {"poison": 0.25, "miasma": 0},
+    "baseMaxHealth": 80,
+    "maxHealthVariance": 0.1,
+    "speed": 0.7,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.5,
+    "idleDwellMinTicks": 60,
+    "idleDwellMaxTicks": 240
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 2.6
+  },
+  "skills": [
+    { "skillName": "VenomSpit", "level": 1 }
+  ]
+}

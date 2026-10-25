@@ -1,0 +1,92 @@
+{
+  "name": "Spider Den",
+  "bounds": {
+    "width": 60,
+    "height": 36
+  },
+  "origin": {
+    "x": 7000,
+    "y": 4000
+  },
+  "decals": [],
+  "props": {
+    "underfoot": [],
+    "default": [],
+    "buildings": [],
+    "canopy": []
+  },
+  "spawns": [
+    {
+      "mob": "SpiderQueen",
+      "x": 24,
+      "y": 0,
+      "angle": 3.14,
+      "respawnTicks": 7200,
+      "respawnVariancePct": 0.1,
+      "wanderRadius": 1.5,
+      "level": 12
+    }
+  ],
+  "exits": [
+    {
+      "x": -28,
+      "y": 0,
+      "anchor": "spiderden-surface",
+      "look": "cave-exit"
+    }
+  ],
+  "regions": [
+    {
+      "id": "spider-den",
+      "profile": "Derelict Fortress",
+      "points": [
+        {
+          "x": -30,
+          "y": -18
+        },
+        {
+          "x": 30,
+          "y": -18
+        },
+        {
+          "x": 30,
+          "y": 18
+        },
+        {
+          "x": -30,
+          "y": 18
+        }
+      ]
+    }
+  ],
+  "atmospheres": [
+    {
+      "profile": "Gloom",
+      "points": [
+        {
+          "x": -30,
+          "y": -18
+        },
+        {
+          "x": 30,
+          "y": -18
+        },
+        {
+          "x": 30,
+          "y": 18
+        },
+        {
+          "x": -30,
+          "y": 18
+        }
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "spiderden-inside",
+      "x": -26.5,
+      "y": 0
+    }
+  ]
+}

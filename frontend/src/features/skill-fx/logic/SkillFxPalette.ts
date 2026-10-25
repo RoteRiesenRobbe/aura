@@ -13,7 +13,7 @@
 import {SkillDefinition, SkillEffect} from '../../../client-data/Skills';
 
 /**
- * The six authored damage types (api/skill-vocabulary.json `damageTypes`),
+ * The seven authored damage types (api/skill-vocabulary.json `damageTypes`),
  * pinned against the fixture by SkillFxPalette.test.ts.
  */
 export const DAMAGE_TYPE_COLORS: Record<string, number> = {
@@ -22,6 +22,7 @@ export const DAMAGE_TYPE_COLORS: Record<string, number> = {
     nature: 0x8fe36b,
     poison: 0xa8e04a,
     bleed: 0xd14545,
+    miasma: 0x9aa63a,
     physical: 0xdfe4ea,
 };
 

@@ -16,6 +16,7 @@
   "skill.Bloodthirst.description": "Works with whichever aura you have on.",
   "skill.Bloodthirst.name": "Bloodthirst",
   "skill.BoarGore.name": "Boar Gore",
+  "skill.BogSickness.name": "Bog Sickness",
   "skill.BombBurst.name": "Bomb Burst",
   "skill.BroodScreech.name": "Brood Screech",
   "skill.BroodSplit.name": "Brood Split",
@@ -44,6 +45,8 @@
   "skill.EntanglingRoots.name": "Entangling Roots",
   "skill.Envenom.name": "Envenom",
   "skill.Fade.name": "Fade",
+  "skill.FenTonic.description": "The gnome's cure for the bog sickness. You take less damage from the swamp's miasma.",
+  "skill.FenTonic.name": "Fen Tonic",
   "skill.FieldMedics.name": "Field Medics",
   "skill.FireElementalAura.name": "Fire Elemental Aura",
   "skill.FireShield.description": "Being hit is enough - it fires even when the hit is fully absorbed.",
@@ -150,5 +153,6 @@
   "skill.WhirlingAxes.name": "Whirling Axes",
   "skill.Wild.name": "Wild",
   "skill.Wildfire.name": "Wildfire",
+  "skill.WispGlow.name": "Wisp Glow",
   "skill.WolfBite.name": "Wolf Bite"
 }

@@ -1,0 +1,27 @@
+{
+  "_comment": "Lake crab on Sorrowfen's beach (content-zone-7-swamp.md §2.2, C9): the SandClamper re-levelled for the swamp's band, same bite and a little more shell, its art recoloured blue (EntityType LakeCrab). All values [PLACEHOLDER].",
+  "id": 138,
+  "name": "LakeCrab",
+  "type": "MOB",
+  "entityType": "LakeCrab",
+  "tier": "normal",
+  "curveLevel": 9,
+  "factors": {
+    "baseMaxHealth": 85,
+    "maxHealthVariance": 0.1,
+    "speed": 0.5,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 1.5,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 180,
+    "idleDwellMaxTicks": 700
+  },
+  "body": {
+    "radius": 0.32,
+    "aggroRadius": 2.0
+  },
+  "skills": [
+    { "skillName": "RatBite", "level": 1 }
+  ]
+}

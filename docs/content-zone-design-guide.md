@@ -45,6 +45,22 @@ design changes, change the zone doc and its draft together and republish to
 the same URL. The draft is a proposal for the Tiled pass, **never** the
 placement truth: that stays `api/zones/*.json`.
 
+⭐ **The level-design process** (PO 2026-10-25, first run: the swamp,
+[`content-zone-7-swamp.md`](content-zone-7-swamp.md)). One zone doc carries
+every step as its own section, filled in order with the PO; ✋ marks a PO
+sign-off.
+
+| Step | Question it answers | Output |
+|---|---|---|
+| 0. Frame | Where is it, which band, which ways in and out, how big, which primitives and mechanics exist? | Facts from `world.json`, `content-world.md`, `plan-xp-progression.md`; the paper map if there is one |
+| 1. Vision | What does it feel like? Three adjectives, one sentence, **the one mechanic it teaches**, what it is not | A short section |
+| 2+3. Beats and cast (one loop) | What does the player meet, in which order, and who carries each beat? | A beat list on a calm → tension → peak → release curve; NPCs, mobs, quests ✋ |
+| 4+5. Layout in the draft | How does the space serve the beats? | The HTML draft (above), checked against §4's rules; missing art into `art/assets.csv` ✋ |
+| 6a. Map | | Tiled: geometry, spawns, placeholder props |
+| 6b. Content | | Mobs, NPCs, quests, strings (the `add-content` skill), German in the same change |
+| 7. Polish | | The PO, by hand in Tiled |
+| 8. Walk it | Does it play as planned? | Critical-path time, XP against the budget, the doc's "As built vs. this doc" table ✋ |
+
 ## Where each truth lives
 
 One source per thing. When this doc and one of these disagree about the thing

@@ -1,0 +1,16 @@
+{
+  "_comment": "The wisp's light (content-zone-7-swamp.md C11): a sickly green flicker, the only light in the swamp's dark besides the player's, and the lure that leads off the planks. light_aura is rendering only. All values [PLACEHOLDER].",
+  "id": 177,
+  "name": "WispGlow",
+  "category": "passive",
+  "maxLevel": 1,
+  "effects": [
+    {
+      "type": "light_aura",
+      "color": "#9be05a",
+      "flicker": true,
+      "radius": 1.6,
+      "radiusPerLevel": 0
+    }
+  ]
+}

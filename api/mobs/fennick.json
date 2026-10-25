@@ -1,0 +1,106 @@
+{
+  "_comment": "Fennick (placeholder name), the gnome from the wasteland at Sorrowfen's south camp (content-zone-7-swamp.md §2.2, C4): turns in mushrooms-for-the-gnome, then offers the-spider-queen and turns it in, teaching FenTonic (his cure for the bog sickness). Standing talkable-NPC shape (gnome-1.json); entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "id": 131,
+  "name": "Fennick",
+  "type": "MOB",
+  "entityType": "Hermit",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "someone-who-came-through"}
+        ],
+        "options": [
+          { "id": "hedda-sent-me-with-mushrooms", "next": "mushrooms_running" },
+          { "id": "what-are-you-brewing", "next": "queen" },
+          { "id": "about-the-spider-queen", "next": "queen_running" }
+        ]
+      },
+      {
+        "id": "mushrooms_running",
+        "lines": [
+          {"id": "heddas-mushrooms-let-me-see"}
+        ],
+        "options": [
+          {
+            "id": "here-are-six-blue-mushrooms",
+            "grants": [
+              { "id": "good-ones-and-fresh-thank", "kind": "advance_quest", "quest": "mushrooms-for-the-gnome", "fromStage": "bring", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 645 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "mushrooms_on_it" }
+        ]
+      },
+      {
+        "id": "mushrooms_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "mushrooms-for-the-gnome", "stage": "pick" }
+        ],
+        "lines": [
+          {"id": "six-blue-ones-from-beside"}
+        ]
+      },
+      {
+        "id": "queen",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "mushrooms-for-the-gnome", "stage": "completed" }
+        ],
+        "lines": [
+          {"id": "a-cure-for-the-bog"},
+          {"id": "the-mushrooms-are-half"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [ { "stock": "good", "kind": "offer_quest", "quest": "the-spider-queen" } ]
+          }
+        ]
+      },
+      {
+        "id": "queen_running",
+        "lines": [
+          {"id": "the-spider-queen"}
+        ],
+        "options": [
+          {
+            "id": "here-is-her-venom",
+            "grants": [
+              { "id": "now-i-can-brew", "kind": "advance_quest", "quest": "the-spider-queen", "fromStage": "bring", "toStage": "done" },
+              { "kind": "teach_skill", "skill": "FenTonic" },
+              { "kind": "grant_xp", "xp": 1115 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "queen_on_it" }
+        ]
+      },
+      {
+        "id": "queen_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-spider-queen", "stage": "hunt" }
+        ],
+        "lines": [
+          {"id": "her-den-is"}
+        ]
+      }
+    ]
+  }
+}

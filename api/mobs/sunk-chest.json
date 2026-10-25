@@ -1,0 +1,34 @@
+{
+  "_comment": "The pirates' chest, sunk in the bog past a wrong-way plank in Sorrowfen's core (content-zone-7-swamp.md §2.3 quest C, P4): the talk_to target of treasure-in-the-bog, a talking object in fallen-traveller.json's shape. Its line reads true without the quest. entityType NpcPlaceholder until the chest art lands (P4). All values [PLACEHOLDER].",
+  "id": 134,
+  "name": "SunkChest",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "a-chest-sunk-to-its"}
+        ]
+      }
+    ]
+  }
+}

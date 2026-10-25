@@ -146,5 +146,6 @@ export enum EntityType {
   RoofCorner = 156,
   CityStairs = 157,
   Barrel = 158,
-  Bench = 159
+  Bench = 159,
+  LakeCrab = 160
 }

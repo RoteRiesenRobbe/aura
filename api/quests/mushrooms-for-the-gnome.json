@@ -1,0 +1,18 @@
+{
+  "_comment": "Sorrowfen's critical path (content-zone-7-swamp.md §2.3 quest A): Hedda at the entry fire sends the player through the labyrinth to pick six blue mushrooms beside the planks in the dark core, then to the gnome Fennick at the south camp, who turns it in. Harvest needs a harvest aura; the light is the player's. Priced at L9 by the half-level rule, 0.5 x 300 x 1.2^8. All values [PLACEHOLDER].",
+  "id": "mushrooms-for-the-gnome",
+  "level": 9,
+  "stages": [
+    {
+      "id": "pick",
+      "objectives": [{ "kind": "harvest", "species": "BlueMushroom", "count": 6 }],
+      "next": "bring"
+    },
+    {
+      "id": "bring"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

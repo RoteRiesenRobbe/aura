@@ -202,6 +202,11 @@ type Factors struct {
 	// loader refuses one, because the whole recorded risk of D1 is a future
 	// elite shipping CC-able by omission.
 	CCImmune bool
+
+	// Camouflage draws this species faint while it sits at its spawn point out
+	// of combat (content-zone-7-swamp.md E2, the bog frog). Visual only: it
+	// changes no targeting, damage or threat, unlike a player's stealth.
+	Camouflage bool
 }
 
 type Body struct {
@@ -403,6 +408,8 @@ type mobDefinition struct {
 		// bool, so no test walking LOADED definitions could ever tell
 		// "deliberately CC-able" from "nobody thought about it".
 		CCImmune *bool `json:"ccImmune"`
+
+		Camouflage bool `json:"camouflage"`
 
 		// Experience is a TOMBSTONE for the pre-formula absolute XP value
 		// (plan-xp-formula.md L2, the jsonInteraction.Trigger precedent). It
@@ -659,6 +666,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			TurnRate:             m.Factors.TurnRate,
 			XPFactor:             xpFactor,
 			CCImmune:             ccImmune,
+			Camouflage:           m.Factors.Camouflage,
 		},
 		Body: Body{
 			Radius:         m.Body.Radius,

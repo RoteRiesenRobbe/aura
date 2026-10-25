@@ -7,7 +7,7 @@
   "tier": "normal",
   "curveLevel": 4,
   "factors": {
-    "resistances": {"poison": 0.25},
+    "resistances": {"poison": 0.25, "miasma": 0},
     "baseMaxHealth": 72,
     "maxHealthVariance": 0.1,
     "speed": 0.6,

@@ -112,6 +112,42 @@
   "@conv.Campfire.you-restock-at-the-fire": {
     "description": "Campfire answers this when the player picks \"Restock\" (node \"root\")."
   },
+  "conv.CaptainBrack.about-your-chest": "About your chest.",
+  "@conv.CaptainBrack.about-your-chest": {
+    "description": "A row the player picks when talking to Captain Brack (node \"root\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.i-found-your-chest": "I found your chest.",
+  "@conv.CaptainBrack.i-found-your-chest": {
+    "description": "A row the player picks when talking to Captain Brack (node \"treasure_running\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.it-lies-in-the-south": "It lies in the south of the swamp, past where the planks end. Bring it back and you get your share.",
+  "@conv.CaptainBrack.it-lies-in-the-south": {
+    "description": "Captain Brack speaks this in the conversation, node \"treasure\", line 2."
+  },
+  "conv.CaptainBrack.my-chest": "My chest.",
+  "@conv.CaptainBrack.my-chest": {
+    "description": "Captain Brack speaks this in the conversation, node \"treasure_running\", line 1."
+  },
+  "conv.CaptainBrack.south-past-where-the-planks": "South, past where the planks end. Mind the lights over the water.",
+  "@conv.CaptainBrack.south-past-where-the-planks": {
+    "description": "Captain Brack speaks this in the conversation, node \"treasure_on_it\", line 1."
+  },
+  "conv.CaptainBrack.still-shut-and-still-heavy": "Still shut, and still heavy. Here is your share.",
+  "@conv.CaptainBrack.still-shut-and-still-heavy": {
+    "description": "Captain Brack answers this when the player picks \"I found your chest.\" (node \"treasure_running\")."
+  },
+  "conv.CaptainBrack.we-hid-a-chest": "We hid a chest in the bog. Then the spiders came, and the bog swallowed the path we took.",
+  "@conv.CaptainBrack.we-hid-a-chest": {
+    "description": "Captain Brack speaks this in the conversation, node \"treasure\", line 1."
+  },
+  "conv.CaptainBrack.what-brings-pirates": "What brings pirates to a swamp?",
+  "@conv.CaptainBrack.what-brings-pirates": {
+    "description": "A row the player picks when talking to Captain Brack (node \"root\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.you-look-like-someone-who": "You look like someone who walks where others sink.",
+  "@conv.CaptainBrack.you-look-like-someone-who": {
+    "description": "Captain Brack speaks this in the conversation, node \"root\", line 1."
+  },
   "conv.CaveMouth.a-dark-opening": "A dark opening in the rock.",
   "@conv.CaveMouth.a-dark-opening": {
     "description": "Cave Mouth speaks this in the conversation, node \"root\", line 1."
@@ -287,6 +323,62 @@
   "conv.Farmhand.these-rats-they-were-bigger": "These rats ... They were bigger than my forearm. I'm not going back in there!",
   "@conv.Farmhand.these-rats-they-were-bigger": {
     "description": "Farmhand speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.Fennick.a-cure-for-the-bog": "A cure for the bog sickness. The rot gets into everyone who stays here. Hedda coughs, and so will you.",
+  "@conv.Fennick.a-cure-for-the-bog": {
+    "description": "Fennick speaks this in the conversation, node \"queen\", line 1."
+  },
+  "conv.Fennick.about-the-spider-queen": "About the Spider Queen.",
+  "@conv.Fennick.about-the-spider-queen": {
+    "description": "A row the player picks when talking to Fennick (node \"root\"), written as the player's own words."
+  },
+  "conv.Fennick.good-ones-and-fresh-thank": "Good ones, and fresh. Thank you.",
+  "@conv.Fennick.good-ones-and-fresh-thank": {
+    "description": "Fennick answers this when the player picks \"Here are six blue mushrooms.\" (node \"mushrooms_running\")."
+  },
+  "conv.Fennick.hedda-sent-me-with-mushrooms": "Hedda sent me with mushrooms.",
+  "@conv.Fennick.hedda-sent-me-with-mushrooms": {
+    "description": "A row the player picks when talking to Fennick (node \"root\"), written as the player's own words."
+  },
+  "conv.Fennick.heddas-mushrooms-let-me-see": "Hedda's mushrooms? Let me see.",
+  "@conv.Fennick.heddas-mushrooms-let-me-see": {
+    "description": "Fennick speaks this in the conversation, node \"mushrooms_running\", line 1."
+  },
+  "conv.Fennick.her-den-is": "Her den is in the west of the swamp, where the firm path ends. Do not go alone.",
+  "@conv.Fennick.her-den-is": {
+    "description": "Fennick speaks this in the conversation, node \"queen_on_it\", line 1."
+  },
+  "conv.Fennick.here-are-six-blue-mushrooms": "Here are six blue mushrooms.",
+  "@conv.Fennick.here-are-six-blue-mushrooms": {
+    "description": "A row the player picks when talking to Fennick (node \"mushrooms_running\"), written as the player's own words."
+  },
+  "conv.Fennick.here-is-her-venom": "Here is her venom.",
+  "@conv.Fennick.here-is-her-venom": {
+    "description": "A row the player picks when talking to Fennick (node \"queen_running\"), written as the player's own words."
+  },
+  "conv.Fennick.now-i-can-brew": "Now I can brew the cure. Drink this, it will keep the rot out of you.",
+  "@conv.Fennick.now-i-can-brew": {
+    "description": "Fennick answers this when the player picks \"Here is her venom.\" (node \"queen_running\")."
+  },
+  "conv.Fennick.six-blue-ones-from-beside": "Six blue ones, from beside the planks in the dark heart of the swamp. I will wait.",
+  "@conv.Fennick.six-blue-ones-from-beside": {
+    "description": "Fennick speaks this in the conversation, node \"mushrooms_on_it\", line 1."
+  },
+  "conv.Fennick.someone-who-came-through": "Someone who came through the bog alive! Sit by the fire.",
+  "@conv.Fennick.someone-who-came-through": {
+    "description": "Fennick speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Fennick.the-mushrooms-are-half": "The mushrooms are half of it. The other half is venom from the Spider Queen, in her den in the west of the swamp. Take friends, and a torch.",
+  "@conv.Fennick.the-mushrooms-are-half": {
+    "description": "Fennick speaks this in the conversation, node \"queen\", line 2."
+  },
+  "conv.Fennick.the-spider-queen": "The Spider Queen.",
+  "@conv.Fennick.the-spider-queen": {
+    "description": "Fennick speaks this in the conversation, node \"queen_running\", line 1."
+  },
+  "conv.Fennick.what-are-you-brewing": "What are you brewing?",
+  "@conv.Fennick.what-are-you-brewing": {
+    "description": "A row the player picks when talking to Fennick (node \"root\"), written as the player's own words."
   },
   "conv.Flora.5-of-them-would-replenish": "5 of them would replenish our meat supplies and give some substance to our stews.",
   "@conv.Flora.5-of-them-would-replenish": {
@@ -904,6 +996,30 @@
   "@conv.Hans.you-dont-carry-that-weapon": {
     "description": "Hans answers this when the player picks \"I've killed the wolves.\" (node \"wolves_running\")."
   },
+  "conv.Hedda.about-the-mushrooms": "About the mushrooms.",
+  "@conv.Hedda.about-the-mushrooms": {
+    "description": "A row the player picks when talking to Hedda (node \"root\"), written as the player's own words."
+  },
+  "conv.Hedda.i-pick-bog-mushrooms": "I pick bog mushrooms for a gnome who camps at the south end of the swamp. He brews something from them.",
+  "@conv.Hedda.i-pick-bog-mushrooms": {
+    "description": "Hedda speaks this in the conversation, node \"mushrooms\", line 1."
+  },
+  "conv.Hedda.mind-the-bog-stay": "Mind the bog. Stay on the planks and the firm ground, and bring a light.",
+  "@conv.Hedda.mind-the-bog-stay": {
+    "description": "Hedda speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Hedda.my-cough-is-too-bad": "My cough is too bad to go deeper. Pick six blue ones and take them to him.",
+  "@conv.Hedda.my-cough-is-too-bad": {
+    "description": "Hedda speaks this in the conversation, node \"mushrooms\", line 2."
+  },
+  "conv.Hedda.the-blue-ones-grow-beside": "The blue ones grow beside the planks in the dark heart of the swamp. You need a harvesting aura, and a light to see them by.",
+  "@conv.Hedda.the-blue-ones-grow-beside": {
+    "description": "Hedda speaks this in the conversation, node \"mushrooms_on_it\", line 1."
+  },
+  "conv.Hedda.what-are-you-doing-out": "What are you doing out here?",
+  "@conv.Hedda.what-are-you-doing-out": {
+    "description": "A row the player picks when talking to Hedda (node \"root\"), written as the player's own words."
+  },
   "conv.Henrik.a-stag-will-start": "A stag will start to run the moment you hurt it.",
   "@conv.Henrik.a-stag-will-start": {
     "description": "Henrik speaks this in the conversation, node \"stags\", line 1."
@@ -1123,6 +1239,10 @@
   "conv.Miner.what-happened-down-there": "What happened down there?",
   "@conv.Miner.what-happened-down-there": {
     "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words."
+  },
+  "conv.PirateDeckhand.the-captain-does-the-talking": "The captain does the talking. I only row.",
+  "@conv.PirateDeckhand.the-captain-does-the-talking": {
+    "description": "Pirate Deckhand speaks this in the conversation, node \"root\", line 1."
   },
   "conv.PortalHome.it-leads-to-the-campfire": "It leads to the campfire the caster is bound to.",
   "@conv.PortalHome.it-leads-to-the-campfire": {
@@ -1403,6 +1523,10 @@
   "conv.StreamRoot.a-cold-root-damp": "A cold root, damp from the stream. It stirs under your hand.",
   "@conv.StreamRoot.a-cold-root-damp": {
     "description": "Stream Root speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.SunkChest.a-chest-sunk-to-its": "A chest, sunk to its lid in the bog. Pirate marks are burned into the wood.",
+  "@conv.SunkChest.a-chest-sunk-to-its": {
+    "description": "Sunk Chest speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Tobias.about-the-shipment": "About the shipment...",
   "@conv.Tobias.about-the-shipment": {

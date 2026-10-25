@@ -1,0 +1,24 @@
+{
+  "_comment": "The poison bog's area effect in Sorrowfen (content-zone-7-swamp.md C1): miasma damage over time to whatever stands in a Bog polygon, refreshed while you stay. Miasma is dealt by nothing else, so the swamp's mobs resist it at 0 and no player build loses anything. Stacking and the slow are owed (E1: an area applies dot_aura and hot_aura only). All values [PLACEHOLDER].",
+  "id": 175,
+  "name": "BogSickness",
+  "icon": "lorc/vine-leaf",
+  "category": "active_aura",
+  "maxLevel": 1,
+  "effects": [
+    {
+      "type": "dot_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 24,
+      "damageHPPerLevel": 0,
+      "damageTags": ["miasma"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "all",
+      "tickInterval": 20
+    }
+  ]
+}

@@ -272,7 +272,8 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// FireStirerAura 170 and FireStirerKindle 171. 133 -> 136 (88 player + 48 mob).
 	// + ShortSpear 172 and SpearThrow 173, Henrik's two taught spear skills.
 	// 136 -> 138 (90 player + 48 mob).
-	assert.Len(t, r.All(), 139) // + Hatchet, the bramble key (content-zone-2-woodland.md §3.7)
+	// 139 -> 142: + FenTonic, BogSickness, WispGlow (content-zone-7-swamp.md 6b).
+	assert.Len(t, r.All(), 142)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

@@ -282,6 +282,10 @@
   "@damage-type.frost": {
     "description": "Name of the damage type \"frost\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
   },
+  "damage-type.miasma": "miasma",
+  "@damage-type.miasma": {
+    "description": "Name of the damage type \"miasma\" (a closed code list, skills.DamageTypes in Go): the swamp's rot, dealt only by the poison bog. Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."
+  },
   "damage-type.nature": "nature",
   "@damage-type.nature": {
     "description": "Name of the damage type \"nature\" (a closed code list, skills.DamageTypes in Go). Shown in skill tooltips after \"Damage type:\" and after \"Immune to\" / \"Resist\" / \"Vulnerable to\", alone or in a list the locale joins (\"fire and poison\"). A bare noun; it is never inflected."

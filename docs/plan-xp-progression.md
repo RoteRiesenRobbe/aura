@@ -91,7 +91,8 @@ The City is a hub with no band.
 | Zone | Band | Budget | Quests (80 %) | At 1.6 quests / level | Source |
 |---|---|---|---|---|---|
 | 1 Farmland & Village | 1 → 6 | 2,232 | 1,786 | 8 quests | old combined guide §2, [PLACEHOLDER] |
-| 2 Woodland | 6 → 12 | 7,413 | 5,930 | ~10 quests | old combined guide §3, [PLACEHOLDER] |
+| 2 Woodland | ~~6 → 12~~ **4 → 7** | owed | | | PO 2026-10-25 (`content-zone-7-swamp.md` §0.4), [PLACEHOLDER]; ⚑ overlaps Zone 1's 1 → 6 |
+| 7 Swamp | **8 → 12** | owed | | | PO 2026-10-25, [PLACEHOLDER]; the next band after the woods, no longer an overlap |
 | 3 onward | OPEN | | | | needs the region ↔ zone mapping `content-world.md` says is unconfirmed |
 | **Whole game** | **1 → 30** | **295,220** | | **~46 quests** on the critical path | |
 

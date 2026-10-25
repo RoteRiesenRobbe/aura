@@ -1,0 +1,429 @@
+<title>Sorrowfen Draft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a surveyor's sheet, the Deep Woods draft's format. One to-scale map (world units), keyed numbers, the routes, the den, who lives where. */
+:root {
+  --bg: #eceee6; --panel: #f7f8f2; --ink: #1f241c; --muted: #5f675a; --line: #c8cdbd;
+  --swamp: #cfd4bd; --swamp-edge: #7f8a63; --land: #e2e4d8; --water: #5f8f9e; --cliff: #6b5a48;
+  --bog: rgba(74,86,44,.30); --mass: #5d6b45; --plank: #8a5a2a; --lane: #b9b08a;
+  --road-old: #b9ab90; --draft: #c27a12; --draft-soft: rgba(194,122,18,.16);
+  --danger: #a33a2f; --poison: #a49a55; --deep: #3e6470; --dim: rgba(30,40,30,.18); --dark: rgba(14,20,12,.42); --wisp: #7fae3a; --snake: #4b6b8a; --under: #6a4e8c; --tree: #6f8f68;
+  --f-display: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+  --f-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121612; --panel: #181d17; --ink: #e2e6dc; --muted: #9aa392; --line: #2f382c;
+  --swamp: #232b1d; --swamp-edge: #5d6b45; --land: #1a1f18; --water: #3d7d8f; --cliff: #b59c80;
+  --bog: rgba(140,160,80,.16); --mass: #4a5838; --plank: #c8894a; --lane: #6d6750;
+  --road-old: #6d6452; --draft: #f0a33a; --draft-soft: rgba(240,163,58,.16);
+  --danger: #e2735f; --poison: #5e5a2e; --deep: #2a4f5b; --dim: rgba(0,0,0,.22); --dark: rgba(0,0,0,.5); --wisp: #b5e06a; --snake: #8fb4d6; --under: #b593e0; --tree: #4f7553; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121612; --panel: #181d17; --ink: #e2e6dc; --muted: #9aa392; --line: #2f382c;
+  --swamp: #232b1d; --swamp-edge: #5d6b45; --land: #1a1f18; --water: #3d7d8f; --cliff: #b59c80;
+  --bog: rgba(140,160,80,.16); --mass: #4a5838; --plank: #c8894a; --lane: #6d6750;
+  --road-old: #6d6452; --draft: #f0a33a; --draft-soft: rgba(240,163,58,.16);
+  --danger: #e2735f; --poison: #5e5a2e; --deep: #2a4f5b; --dim: rgba(0,0,0,.22); --dark: rgba(0,0,0,.5); --wisp: #b5e06a; --snake: #8fb4d6; --under: #b593e0; --tree: #4f7553; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 500; font-size: 19px; margin: 0 0 6px; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 17px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.controls input { accent-color: var(--draft); width: 16px; height: 16px; }
+.controls input:focus-visible { outline: 2px solid var(--draft); outline-offset: 2px; }
+.mapbox { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+.mapbox svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+ol.key { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.key li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.num { font-family: var(--f-mono); font-size: 13px; font-weight: 500; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--draft); color: var(--panel); }
+.key b { font-weight: 700; }
+.key small, .note { color: var(--muted); font-size: 14px; }
+.flow { display: grid; gap: 14px; }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 15px; }
+.chain span.step { border: 1px solid var(--line); background: var(--panel); border-radius: 4px; padding: 2px 8px; }
+.chain span.arrow { color: var(--muted); font-family: var(--f-mono); }
+.chain span.gate { border-color: var(--draft); background: var(--draft-soft); }
+.chain span.dark { border-color: var(--ink); background: var(--dark); color: var(--panel); }
+.caves { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.cave { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.cave svg { width: 100%; height: auto; display: block; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.lv { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablebox { overflow-x: auto; }
+ul.open { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 75ch; }
+code { font-family: var(--f-mono); font-size: .88em; }
+svg text { font-family: var(--f-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 3px solid; }
+.legend i.sw { height: 12px; border: 0; border-radius: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Zone 7 · Sorrowfen · draft after steps 0-3 · 2026-10-25</div>
+    <h1>Sorrowfen Draft</h1>
+    <p class="lede">The swamp as <code>content-zone-7-swamp.md</code> §0-§2 describes it once built, drawn over today's map at real coordinates (1 grid square = 10 world units). Amber is new; grey is what stands today. Positions are a proposal for the Tiled pass, not a layout.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Map layers">
+    <label><input type="checkbox" id="l-draft" checked> Draft (new)</label>
+    <label><input type="checkbox" id="l-light" checked> Light and dark</label>
+    <label><input type="checkbox" id="l-life" checked> Mobs (draft)</label>
+    <label><input type="checkbox" id="l-today"> Today's air, bog and fires</label>
+    <label><input type="checkbox" id="l-spawns"> Today's spawns</label>
+  </div>
+
+  <div class="mapbox"><svg id="map" viewBox="-190 16 110 98" role="img" aria-label="Draft map of Sorrowfen"></svg></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--poison)"></i>poison bog: walkable, slows + poisons, stacks to 3</span>
+    <span><i style="border-color:var(--lane);border-top-width:5px"></i>firm ground (safe)</span>
+    <span><i style="border-color:var(--plank)"></i>planks (safe)</span>
+    <span><i class="sw" style="background:var(--deep)"></i>deep water (blocks)</span>
+    <span><i class="sw" style="background:var(--mass)"></i>thicket (blocks)</span>
+    <span><i class="sw" style="background:var(--dim)"></i>darkness (all of the swamp)</span>
+    <span><i class="sw" style="background:var(--dark)"></i>dark core: darker, miasma</span>
+    <span><i style="border-color:var(--snake);border-top-style:dotted"></i>snake patrol</span>
+    <span><i style="border-color:var(--water)"></i>river / moat / lake</span>
+    <span><i style="border-color:var(--cliff)"></i>cliff</span>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>Map key</h2>
+      <ol class="key" id="key"></ol>
+    </section>
+    <section class="flow">
+      <h2>How a player moves through it</h2>
+      <div>
+        <h3>Main line</h3>
+        <div class="chain">
+          <span class="step gate">Lamp from the Lamplighter (woods)</span><span class="arrow">→</span>
+          <span class="step">down through the dark forest (1)</span><span class="arrow">→</span>
+          <span class="step">entry fire: the picker, quest A (2)</span><span class="arrow">→</span>
+          <span class="step">outer labyrinth, dim (3)</span><span class="arrow">→</span>
+          <span class="step">the last fire (5)</span><span class="arrow">→</span>
+          <span class="step dark">dark core: pick the mushrooms (6)</span><span class="arrow">→</span>
+          <span class="step">the gnome: A done, quest B (7)</span>
+        </div>
+      </div>
+      <div>
+        <h3>The peak</h3>
+        <div class="chain">
+          <span class="step">the gnome (7)</span><span class="arrow">→</span>
+          <span class="step dark">back into the core</span><span class="arrow">→</span>
+          <span class="step">webbed staging area, west mouth (9)</span><span class="arrow">→</span>
+          <span class="step gate">the den: group + a torch-bearer</span><span class="arrow">→</span>
+          <span class="step">Spider Queen: venom</span><span class="arrow">→</span>
+          <span class="step dark">back out through the den and the core</span><span class="arrow">→</span>
+          <span class="step">the gnome: the cure</span>
+        </div>
+      </div>
+      <div>
+        <h3>Side: the pirates</h3>
+        <div class="chain"><span class="step">frog loop (4)</span><span class="arrow">→</span><span class="step">beach + the pirates' fire (10), quest C</span><span class="arrow">→</span><span class="step dark">the treasure, deep in the core's open bog (11)</span><span class="arrow">→</span><span class="step">back to the captain</span></div>
+      </div>
+      <div>
+        <h3>Other ways in and out</h3>
+        <div class="chain"><span class="step">Southgate</span><span class="arrow">→</span><span class="step">climb down the east cliffs (12)</span><span class="arrow">→</span><span class="step">snake water, dim (13)</span><span class="arrow">→</span><span class="step dark">the core all the same</span></div>
+        <div class="chain"><span class="step">the gnome's camp (7)</span><span class="arrow">→</span><span class="step">south to Fallow Reach and the wasteland (8)</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>The den</h2>
+    <div class="caves">
+      <div class="cave">
+        <h3>Spiders' den (new interior file, one mouth)</h3>
+        <svg viewBox="0 0 400 210" role="img" aria-label="Spiders' den schematic">
+          <g id="den"></g>
+        </svg>
+        <p class="note">Dark all through, webs on the floor (SpiderWeb slows). The one mouth (9) is the way in from the core, with a webbed staging area outside it where a group can see the mouth before going in. The queen sits at the far end; the way out is back through the den and the core (the east mouth was removed, PO 2026-10-25). A group boss: one player carries the torch, the others fight. Base for the queen: <code>BroodMother</code> (fear screech, splits into spiders on death).</p>
+      </div>
+      <div class="cave">
+        <h3>How the light works here</h3>
+        <svg viewBox="0 0 400 210" role="img" aria-label="Light radius comparison">
+          <g id="lightcmp"></g>
+        </svg>
+        <p class="note">To scale against a 3 u lane. Lamp (passive, 2.5 u) shows the planks at your feet: walk slowly. Torch (active aura, 4 u) shows the next bend but costs the damage aura. Light is drawing only: a trap hurts whether you see it or not.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who lives where</h2>
+    <div class="tablebox"><table>
+      <thead><tr><th>Area</th><th>Mobs (draft)</th><th>Level [placeholder]</th><th>Today</th></tr></thead>
+      <tbody>
+        <tr><td>The way down (the woods' dark forest)</td><td>Spiders, the brood's northern edge</td><td class="lv">woods band, 6–7</td><td>18 spiders 12–14 (out of band since the woods became 4–7)</td></tr>
+        <tr><td>Outer labyrinth (NE, dim)</td><td>Spider; bog frogs beside the lanes; one snake route</td><td class="lv">8–9</td><td>2 GiantSpiders 14 at the entry fire's spot</td></tr>
+        <tr><td>Frog loop (NW)</td><td>Bog frogs, thickest here</td><td class="lv">9</td><td>Fog, the old Bog patch</td></tr>
+        <tr><td>Beach (W)</td><td>Lake crabs (SandClamper variant)</td><td class="lv">9–10</td><td>nothing</td></tr>
+        <tr><td>Dark core</td><td>Snakes on patrol, frogs, VenomSpider, wisps (the lure)</td><td class="lv">10–11</td><td>VenomSpider 13, Spiders 12</td></tr>
+        <tr><td>Snake water (SE, by the east exit)</td><td>Snakes, wisps</td><td class="lv">10–11</td><td>2 Wisps 13</td></tr>
+        <tr><td>The den</td><td>Spider, VenomSpider, GiantSpider; the Spider Queen (boss)</td><td class="lv">10–11 · 11–12 · queen 12</td><td>new</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:10px">Snakes, spiders, frogs and wisps take no damage from the bog or its traps (PO 2026-10-25). Frogs are camouflaged at their spawn point and revealed once they leave it or engage.</p>
+  </section>
+
+  <section>
+    <h2>What this draft could not settle</h2>
+    <ul class="open">
+      <li><b>Wall geometry.</b> The walls are where the bog ends: deep water as blocking polygons and thicket as blocking paths, kept chunky, never jagged (the collider budget, guide §1). The draft derives them from the paths with noise; the Tiled pass draws them by hand and has to measure the cost.</li>
+      <li><b>Stacking bog.</b> The bog slows and poisons and stacks up to 3 times (PO). Area effects today refresh rather than stack, so the stack count is engine work.</li>
+      <li><b>The east exit.</b> The moat runs down the east edge to y 82. The draft puts the exit south of it, a climb down new cliffs into the SE snake water, which is what makes it hard to reach. Southgate's mercenaries (11–12) stand on the other side.</li>
+      <li><b>The last fire (5).</b> Four fires: entry, the last one before the dark, the gnome's, the pirates'. Today's two (−150, 72) and (−120, 72) both sit where the core goes; the draft moves them. Keep the last fire, or make the core a longer walk without one?</li>
+      <li><b>Today's air.</b> The NE has a <code>Darkness</code> atmosphere today and the NW a <code>Fog</code>. The draft replaces both: Gloom over the outer labyrinth, full darkness plus a miasma haze over the core, clearings at every fire, the beach in daylight.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const GEO = __GEO__;
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("map");
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+const pts = a => a.map(p => p[0] + "," + p[1]).join(" ");
+const g = id => el("g", { id });
+const txt = (parent, x, y, s, attrs) => { const t = el("text", Object.assign({ x, y, "font-size": 1.6, fill: "var(--muted)" }, attrs || {}), parent); t.textContent = s; return t; };
+
+// ground + grid
+el("rect", { x: -190, y: 16, width: 110, height: 98, fill: "var(--land)" });
+const grid = g("grid");
+for (let x = -190; x <= -80; x += 10) el("line", { x1: x, y1: 16, x2: x, y2: 114, stroke: "var(--line)", "stroke-width": .12 }, grid);
+for (let y = 20; y <= 110; y += 10) el("line", { x1: -190, y1: y, x2: -80, y2: y, stroke: "var(--line)", "stroke-width": .12 }, grid);
+for (let x = -180; x <= -90; x += 20) txt(grid, x + .5, 113, x, { "font-size": 1.4, "font-family": "JetBrains Mono, monospace" });
+for (let y = 20; y <= 100; y += 20) txt(grid, -189.5, y - .5, y, { "font-size": 1.4, "font-family": "JetBrains Mono, monospace" });
+
+// regions
+const base = g("base");
+for (const r of GEO.regions) {
+  const me = r.area === "sorrowfen";
+  if (r.area === "farmlands" || (r.area === "city-hub" && r.id !== "city-hub")) continue;
+  el("polygon", { points: pts(r.pts), fill: me ? "var(--swamp)" : "none", stroke: me ? "var(--swamp-edge)" : "var(--line)", "stroke-width": me ? .35 : .25, "stroke-dasharray": me ? "" : "1 1" }, base);
+}
+for (const [name, x, y, rot, size] of [["Deep Woods", -172, 22], ["Southgate", -86, 52, 90], ["Fallow Reach", -150, 111.6], ["Brackenfold", -187.5, 96, -90], ["Dionsburg", -90.5, 20, 0, 1.8], ["Sorrowfen", -150, 41.6, 0, 2.8]]) {
+  txt(base, x, y, name, { "font-size": size || 2.2, "font-family": "Alegreya SC, Georgia, serif", "letter-spacing": .3, transform: rot ? `rotate(${rot} ${x} ${y})` : "" });
+}
+// the woods' dark forest: context, always shown
+for (const a of GEO.atm) if (a.profile === "Gloom" && a.pts[0][0] < -92) el("polygon", { points: pts(a.pts), fill: "var(--dark)" }, base);
+txt(base, -124, 19.5, "the woods' DARK FOREST (Lamplighter)", { fill: "var(--ink)", "font-style": "italic" });
+
+// water, cliffs, walls, trees (always)
+const terrain = g("terrain");
+for (const s of GEO.structs) if (s.profile === "Water") el("polygon", { points: pts(s.pts), fill: "var(--water)", opacity: .55 }, terrain);
+for (const p of GEO.paths) {
+  if (p.profile === "Water") el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--water)", "stroke-width": p.w, "stroke-linejoin": "round", "stroke-linecap": "round" }, terrain);
+  else if (/^Cliff/.test(p.profile)) el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--cliff)", "stroke-width": 1.1, "stroke-linejoin": "round", "stroke-linecap": "round" }, terrain);
+  else if (p.profile === "Wall" && p.w >= 2) el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--muted)", "stroke-width": p.w * .7 }, terrain);
+}
+txt(terrain, -188, 72, "the lake", { "font-style": "italic", fill: "var(--panel)" });
+for (const p of GEO.props) if (/Tree|Bush/.test(p[0]) && p[2] < 36) el("circle", { cx: p[1], cy: p[2], r: (p[0] === "Bush" ? .6 : 1) * (p[3] || 1), fill: "var(--tree)", opacity: .45 }, terrain);
+
+// today: air, the old bog patch, fires, the bridge
+const today = g("today");
+for (const a of GEO.atm) if ((a.profile === "Darkness" || a.profile === "Fog") && a.pts[0][1] > 20) {
+  el("polygon", { points: pts(a.pts), fill: "none", stroke: "var(--muted)", "stroke-width": .3, "stroke-dasharray": ".8 .6" }, today);
+  const xs = a.pts.map(p => p[0]), ys = a.pts.map(p => p[1]);
+  txt(today, Math.min(...xs) + 1, Math.max(...ys) - 1, "today: " + a.profile);
+}
+for (const s of GEO.structs) if (s.src === "sorrowfen") el("polygon", { points: pts(s.pts), fill: "var(--muted)", opacity: .35 }, today);
+for (const p of GEO.props) {
+  if (p[0] === "Campfire" && p[2] > 36) { el("circle", { cx: p[1], cy: p[2], r: 1, fill: "none", stroke: "var(--muted)", "stroke-width": .35 }, today); txt(today, p[1] + 1.4, p[2] + .5, "today's fire (moves)"); }
+  if (p[0] === "Bridge" && p[2] > 60) { el("rect", { x: p[1] - 2, y: p[2] - 1, width: 4, height: 2, fill: "var(--road-old)" }, today); txt(today, p[1] - 9, p[2] + 3, "bridge (goes)"); }
+}
+
+// today: spawns
+const spawns = g("spawns");
+const sc = m => /Spider/.test(m) ? "#5b5b5b" : /Wisp/.test(m) ? "var(--wisp)" : /Merc/.test(m) ? "var(--danger)" : /Scorpion/.test(m) ? "#a07a3a" : /Bear|Wolf|Boar|Stag/.test(m) ? "#7a6a52" : null;
+for (const s of GEO.spawns) { const c = sc(s[0]); if (c && s[2] > 18) el("circle", { cx: s[1], cy: s[2], r: .7, fill: c, stroke: "var(--panel)", "stroke-width": .15 }, spawns); }
+
+// ---- draft ----
+// The bog. Most of the swamp is poison bog: walkable, it slows and poisons and
+// stacks. Through it run the safe ways, firm ground and planks. Step off and you
+// are in the bog; keep going and you hit deep water or a thicket that blocks.
+// The walls are derived from the paths (the bog is a band round every way,
+// wider or narrower by noise), so the maze is the paths plus where the bog ends.
+const D = g("draft");
+const swampPoly = (GEO.regions.find(r => r.area === "sorrowfen") || { pts: [] }).pts;
+const inPoly = (x, y, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+const spline = p => {
+  const q = [p[0], ...p, p[p.length - 1]], out = [];
+  for (let i = 1; i < q.length - 2; i++) for (let s = 0; s < 10; s++) {
+    const t = s / 10, [a, b, c, d] = [q[i - 1], q[i], q[i + 1], q[i + 2]], t2 = t * t, t3 = t2 * t;
+    out.push([0, 1].map(k => .5 * (2 * b[k] + (-a[k] + c[k]) * t + (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t2 + (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t3)));
+  }
+  out.push(p[p.length - 1]);
+  return out;
+};
+// the true way: [kind, waypoints]; ground = firm ground, plank = boardwalk over the bog
+const TRUE = [
+  ["ground", [[-101, 29], [-103, 35], [-108, 42]]],
+  ["ground", [[-108, 42], [-114, 45], [-118, 43], [-124, 46]]],
+  ["plank", [[-124, 46], [-127, 52], [-124, 57]]],
+  ["ground", [[-124, 57], [-119, 60], [-121, 65]]],
+  ["ground", [[-121, 65], [-125, 70], [-131, 73]]],
+  ["plank", [[-131, 73], [-134, 79]]],
+  ["plank", [[-134, 79], [-140, 78], [-147, 81]]],
+  ["ground", [[-147, 81], [-153, 80], [-157, 83]]],
+  ["plank", [[-134, 79], [-132, 85], [-135, 91]]],
+  ["ground", [[-135, 91], [-137, 96], [-139, 101], [-139, 108]]],
+  ["plank", [[-135, 91], [-128, 93], [-121, 92], [-115, 95], [-108, 94], [-101, 96], [-96, 94], [-92.6, 95]]],
+  ["ground", [[-124, 46], [-131, 45], [-137, 48], [-143, 47], [-149, 51]]],
+  ["plank", [[-149, 51], [-155, 50], [-160, 46]]],
+  ["ground", [[-160, 46], [-165, 47], [-169, 46]]]
+];
+// wrong turns: ways that end in the bog
+const FALSE = [
+  ["ground", [[-108, 42], [-104, 49], [-101, 55], [-99, 61]]],
+  ["plank", [[-118, 43], [-122, 39], [-129, 39], [-135, 40]]],
+  ["ground", [[-121, 65], [-115, 69], [-110, 75], [-106, 80]]],
+  ["plank", [[-131, 73], [-137, 71], [-143, 69], [-149, 70]]],
+  ["ground", [[-147, 81], [-149, 87], [-154, 91], [-159, 94]]],
+  ["plank", [[-132, 85], [-126, 84], [-120, 81], [-117, 78]]],
+  ["ground", [[-149, 51], [-152, 57], [-156, 62], [-160, 67]]],
+  ["plank", [[-115, 95], [-117, 100], [-123, 104]]],
+  ["ground", [[-137, 48], [-138, 54], [-141, 59]]],
+  ["ground", [[-101, 96], [-99, 101], [-103, 106]]]
+];
+const WAYS = [...TRUE, ...FALSE].map(([kind, p], n) => ({ kind, s: spline(p), wrong: n >= TRUE.length }));
+const samples = WAYS.flatMap(w => w.s);
+const core = [[-166, 69], [-145, 69], [-130, 68], [-115, 70], [-111, 86], [-113, 100], [-128, 107.5], [-150, 107.5], [-166, 103], [-168, 88]];
+const noise = (x, y, o) => (Math.sin(x * .21 + 1.3 + o) + Math.sin(y * .17 + .4 + o * 2) + Math.sin((x + y) * .13 + 2.1) + Math.sin((x - y) * .29 + .7 + o)) / 4;
+// base: the whole swamp is poison bog
+el("polygon", { points: pts(swampPoly), fill: "var(--poison)" }, D);
+// walls: deep water and thicket, wherever the bog band round the ways runs out
+const STEP = 1.5, BEACH_X = -167.5;
+const wallG = el("g", {}, D);
+for (let x = -178; x <= -92; x += STEP) for (let y = 37; y <= 108; y += STEP) {
+  if (!inPoly(x, y, swampPoly) || x < BEACH_X) continue;
+  let d = 1e9; for (const [sx, sy] of samples) { const dd = (sx - x) ** 2 + (sy - y) ** 2; if (dd < d) d = dd; } d = Math.sqrt(d);
+  const band = 4.6 + 3 * noise(x, y, 0) + (inPoly(x, y, core) ? 1.2 : 0);
+  const lagoon = noise(x * 1.3, y * 1.3, 4) > .5;
+  const edge = x < BEACH_X + 2.5 && d > 2.2;
+  if ((d > band && !lagoon) || edge) el("circle", { cx: x, cy: y, r: STEP * .82, fill: noise(x * .8, y * .8, 9) > .05 ? "var(--deep)" : "var(--mass)" }, wallG);
+}
+// the beach: open daylight strip along the lake
+el("polygon", { points: pts([[-178, 44], [-168, 41], [-167.5, 48], [-168.5, 54], [-168.5, 66], [-169, 78], [-170, 92], [-178, 94]]), fill: "#d9c79a" }, D);
+txt(D, -175.5, 64, "beach", { fill: "var(--ink)", "font-style": "italic", transform: "rotate(-85 -175.5 64)" });
+// fire clearings: firm ground
+for (const [x, y, r] of [[-108, 42, 3.2], [-121, 65, 2.6], [-139, 101, 3.2]]) el("circle", { cx: x, cy: y, r, fill: "var(--lane)" }, D);
+// the ways
+for (const w of WAYS) {
+  if (w.kind === "ground") el("polyline", { points: pts(w.s), fill: "none", stroke: "var(--lane)", "stroke-width": 2.4, "stroke-linejoin": "round", "stroke-linecap": "round" }, D);
+  else el("polyline", { points: pts(w.s), fill: "none", stroke: "var(--plank)", "stroke-width": 1.5, "stroke-linejoin": "round", "stroke-dasharray": "1 .3" }, D);
+}
+// broken planks on the true way
+for (const [x, y] of [[-125.8, 49.5], [-132.6, 76], [-140.5, 78.4], [-133.6, 88.6], [-118, 93.4], [-104.6, 95.3]]) el("circle", { cx: x, cy: y, r: .85, fill: "var(--poison)", stroke: "var(--ink)", "stroke-width": .25 }, D);
+// east cliffs south of the moat, with the climb
+el("polyline", { points: pts([[-92.5, 82], [-93.2, 90], [-92.6, 93.5]]), fill: "none", stroke: "var(--cliff)", "stroke-width": 1.1, "stroke-linecap": "round" }, D);
+el("polyline", { points: pts([[-92.6, 96.5], [-93.2, 103], [-92.5, 108]]), fill: "none", stroke: "var(--cliff)", "stroke-width": 1.1, "stroke-linecap": "round" }, D);
+
+// light: darkness over the whole swamp, the core darker still; clearings at the fires
+const light = g("light");
+el("polygon", { points: pts([[-167.5, 40.5], [-110, 36], [-101, 29], [-92, 29], [-92, 108], [-167.5, 108]]), fill: "var(--dim)" }, light);
+el("polygon", { points: pts(core), fill: "var(--dark)", stroke: "var(--ink)", "stroke-width": .3 }, light);
+txt(light, -165, 105.8, "DARK CORE · darker + miasma", { fill: "var(--panel)", "font-weight": 700, "font-size": 1.6 });
+txt(light, -100, 37.5, "darkness", { fill: "var(--panel)", "font-style": "italic" });
+for (const [x, y, r] of [[-108, 42, 4.2], [-121, 65, 3.2], [-139, 101, 4.2], [-172, 46, 4.2]]) el("circle", { cx: x, cy: y, r, fill: "var(--land)", opacity: .7, stroke: "var(--draft)", "stroke-width": .25, "stroke-dasharray": ".8 .5" }, light);
+
+// life
+const L = g("life");
+const snake = p => el("polyline", { points: pts(spline(p)), fill: "none", stroke: "var(--snake)", "stroke-width": .5, "stroke-dasharray": ".5 .6", "stroke-linecap": "round" }, L);
+snake([[-120, 98], [-112, 99.5], [-104, 100], [-98, 98]]);
+snake([[-139, 84], [-136, 88], [-140, 92], [-144, 88]]);
+snake([[-145, 74], [-139, 75], [-133, 70]]);
+snake([[-113, 73], [-108, 70], [-104, 74]]);
+snake([[-152, 96], [-148, 100], [-152, 104]]);
+txt(L, -128, 105.5, "snakes swim the open bog", { fill: "var(--snake)", "font-style": "italic" });
+const wrongEnds = WAYS.filter(w => w.wrong).map(w => w.s[w.s.length - 1]);
+for (const [x, y] of wrongEnds) { const wx = x + 2.2, wy = y + 1.4; el("circle", { cx: wx, cy: wy, r: 1.6, fill: "var(--wisp)", opacity: .3 }, L); el("circle", { cx: wx, cy: wy, r: .4, fill: "var(--wisp)" }, L); }
+const dot = (x, y, c, r) => el("circle", { cx: x, cy: y, r: r || .55, fill: c, stroke: "var(--panel)", "stroke-width": .12 }, L);
+for (const [x, y] of [[-133, 44], [-140, 50.5], [-146, 46], [-152, 53], [-139, 56], [-157, 60], [-114, 47.5], [-128, 74.5]]) dot(x, y, "#9fc25a");
+for (const [x, y] of [[-104, 37], [-112, 42.5], [-155, 82], [-153, 78], [-136, 81], [-124, 92.5]]) dot(x, y, "#3d3d3d");
+for (const [x, y] of [[-175, 50], [-174, 56], [-174.5, 58.5], [-174, 44], [-175.5, 74], [-176, 85]]) dot(x, y, "#c0603a");
+for (const [x, y] of [[-129.5, 81.5], [-137.5, 75.5], [-124, 86], [-131, 95], [-119, 90], [-148, 84]]) el("rect", { x: x - .5, y: y - .5, width: 1, height: 1, fill: "var(--draft)", transform: `rotate(45 ${x} ${y})` }, L);
+const treasure = [-114.5, 75.5];
+txt(L, -141, 43.6, "frogs", { fill: "#9fc25a", "font-style": "italic" });
+txt(L, -176.5, 70, "crabs", { fill: "#c0603a", "font-style": "italic" });
+
+// numbered markers
+const KEY = [
+  [1, -101, 30, "The way down", "The gap between the woods' south cliff and the moat, out of the dark forest. The Lamplighter's Lamp is the light you bring."],
+  [2, -108, 42, "Entry fire", "The mushroom picker (quest A) and a campfire in a clearing, the one lit place in the north: stay on the ground and the planks. Moves today's fire from (−120, 72)."],
+  [3, -127, 52, "The outer bog", "Dark already. Firm ground and planks wind through poison bog; step off and you sink, keep going and you hit deep water or thicket. Wrong ways peter out into the bog. Spiders of the brood's edge."],
+  [4, -143, 47, "Frog banks", "The way west to the beach, frogs camouflaged along its banks."],
+  [5, -121, 65, "The last fire", "The threshold before the core: a campfire where a group forms up and picks its torch-bearer."],
+  [6, -134, 79, "Dark core", "Darker still, a miasma haze, the bog at its widest. The way is mostly planks here, broken in places. Most of quest A's mushrooms grow just off it."],
+  [7, -139, 101, "The gnome's camp", "The gnome from the wasteland and a campfire. Quest A ends, B starts; he brews the cure."],
+  [8, -139, 108, "South exit", "On to Fallow Reach and the wasteland/desert arm."],
+  [9, -157, 83, "The den", "The way into the spiders' den, with a webbed staging area outside it."],
+  [10, -172, 46, "Pirates' fire", "The pirates on the beach, where the river runs into the lake; quest C. A campfire. The beach runs down the lake shore to y 94."],
+  [11, treasure[0], treasure[1], "The sunk treasure", "Past the end of a wrong-way plank in the core, out in the open bog: wade in, grab it, get out before the stacks do. Worth carrying a torch for."],
+  [12, -92.6, 95, "East exit", "A climb down the east cliffs from Southgate, south of the moat's end. Open from the start."],
+  [13, -110, 94, "Snake water", "A long plank walk across open bog, broken in places, snakes all round. The east entrant skips the outer bog, never the core."]
+];
+const M = g("markers");
+for (const [n, x, y] of KEY) {
+  el("circle", { cx: x, cy: y, r: 1.55, fill: "var(--draft)", stroke: "var(--panel)", "stroke-width": .3 }, M);
+  const t = el("text", { x, y: y + .55, "font-size": 1.6, "text-anchor": "middle", fill: "var(--panel)", "font-family": "JetBrains Mono, monospace", "font-weight": 500 }, M); t.textContent = n;
+}
+const keyList = document.getElementById("key");
+for (const [n, , , title, text] of KEY) {
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="num">${n}</span><span><b>${title}</b><br><small>${text}</small></span>`;
+  keyList.appendChild(li);
+}
+
+// today's layers sit over the maze when switched on; the markers stay on top
+for (const id of ["today", "spawns", "markers"]) svg.appendChild(document.getElementById(id));
+
+// layer toggles
+const layers = { "l-draft": ["draft", "markers"], "l-light": ["light"], "l-life": ["life"], "l-today": ["today"], "l-spawns": ["spawns"] };
+const apply = () => { for (const id in layers) { const on = document.getElementById(id).checked; for (const gid of layers[id]) document.getElementById(gid).style.display = on ? "" : "none"; } };
+for (const id in layers) document.getElementById(id).addEventListener("change", apply);
+apply();
+
+// den schematic
+const sch = (gid, nodes, edges) => {
+  const G = document.getElementById(gid);
+  for (const [a, b] of edges) { const A = nodes[a], B = nodes[b]; el("line", { x1: A[0], y1: A[1], x2: B[0], y2: B[1], stroke: "var(--under)", "stroke-width": 6, "stroke-linecap": "round", opacity: .7 }, G); }
+  for (const k in nodes) {
+    const [x, y, label, kind] = nodes[k];
+    el("circle", { cx: x, cy: y, r: kind === "exit" ? 9 : 13, fill: kind === "boss" ? "var(--danger)" : kind === "exit" ? "var(--draft)" : "var(--panel)", stroke: "var(--under)", "stroke-width": 2 }, G);
+    label.split("\n").forEach((ln, i) => { const t = el("text", { x, y: y + (kind === "exit" ? 22 : 26) + i * 13, "font-size": 11.5, "text-anchor": "middle", fill: "var(--ink)" }, G); t.textContent = ln; });
+  }
+};
+sch("den", {
+  w: [40, 40, "mouth (9)", "exit"],
+  hall: [130, 90, "web halls\nspiders 10–11", ""],
+  eggs: [230, 60, "egg chamber\ngiant spiders", ""],
+  queen: [330, 120, "the queen\nboss 12", "boss"]
+}, [["w", "hall"], ["hall", "eggs"], ["eggs", "queen"]]);
+
+// light comparison, 1 u = 20 px
+const LC = document.getElementById("lightcmp");
+const lightDemo = (cx, r, label) => {
+  el("rect", { x: cx - 90, y: 90, width: 180, height: 60, fill: "var(--lane)", opacity: .7 }, LC);
+  el("circle", { cx, cy: 120, r: r * 20, fill: "var(--draft-soft)", stroke: "var(--draft)", "stroke-width": 1.2 }, LC);
+  el("circle", { cx, cy: 120, r: 5, fill: "var(--ink)" }, LC);
+  const t = el("text", { x: cx, y: 32, "font-size": 13, "text-anchor": "middle", fill: "var(--ink)" }, LC); t.textContent = label;
+};
+lightDemo(100, 2.5, "Lamp 2.5 u");
+lightDemo(300, 4, "Torch 4 u");
+const lt = el("text", { x: 200, y: 206, "font-size": 11, "text-anchor": "middle", fill: "var(--muted)" }, LC); lt.textContent = "lane 3 u wide, drawn to the same scale";
+</script>

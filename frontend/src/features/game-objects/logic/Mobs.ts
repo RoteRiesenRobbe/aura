@@ -898,6 +898,19 @@ export class SandClamper extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(SandClamper, file('sandClamper'), maxSize('sandClamper'));
 
+// Sorrowfen's lake crab: the beach crab recoloured blue.
+export class LakeCrab extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            size, LakeCrab.svg, medallion('lakeCrab'));
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(LakeCrab, file('lakeCrab'), maxSize('lakeCrab'));
+
 export class EliteWolf extends Mob {
     static svg: PIXI.Texture;
 

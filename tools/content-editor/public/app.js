@@ -775,6 +775,11 @@ function factorsSection(mob, onChange) {
       if (v === undefined) delete mob.factors.ccImmune; else mob.factors.ccImmune = v;
       onChange();
     })),
+    field('Camouflage (faint at its spawn point out of combat)', checkboxInput(!!factors.camouflage, (v) => {
+      mob.factors = mob.factors || {};
+      if (v) mob.factors.camouflage = true; else delete mob.factors.camouflage;
+      onChange();
+    })),
     field('Speed', numberInput(factors.speed ?? 0, setFactor('speed'))),
     field('Delta phi', numberInput(factors.deltaPhi ?? 0, setFactor('deltaPhi'))),
     field('Turn rate', numberInput(factors.turnRate ?? 0, setFactor('turnRate'))),

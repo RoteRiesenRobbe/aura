@@ -447,6 +447,35 @@
     "description": "Quest title of \"meat-for-dinner\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.mushrooms-for-the-gnome.bring.journal": "I have six blue mushrooms for the gnome at the south end of the swamp.",
+  "@quest.mushrooms-for-the-gnome.bring.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"bring\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.bring.tracker": "Bring the mushrooms to the gnome in the south",
+  "@quest.mushrooms-for-the-gnome.bring.tracker": {
+    "description": "Tracker line of quest \"mushrooms-for-the-gnome\", stage \"bring\": the one objective line shown under the quest title."
+  },
+  "quest.mushrooms-for-the-gnome.done.journal": "Done. The gnome Fennick has his mushrooms.",
+  "@quest.mushrooms-for-the-gnome.done.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.pick.journal": "Hedda picks bog mushrooms for a gnome at the south end of the swamp, but her cough keeps her by the fire. She asked me to pick six blue mushrooms beside the planks in the dark heart of the swamp.",
+  "@quest.mushrooms-for-the-gnome.pick.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"pick\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.pick.tracker": "{n, number}/{m, number} blue mushrooms picked",
+  "@quest.mushrooms-for-the-gnome.pick.tracker": {
+    "description": "Tracker line of quest \"mushrooms-for-the-gnome\", stage \"pick\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.mushrooms-for-the-gnome.title": "Mushrooms for the Gnome",
+  "@quest.mushrooms-for-the-gnome.title": {
+    "description": "Quest title of \"mushrooms-for-the-gnome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.oil-for-the-lamps.bring.journal": "I have a flask of gnome lamp oil for the Lamplighter at the edge of the dark forest.",
   "@quest.oil-for-the-lamps.bring.journal": {
     "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"bring\": written in the player's voice, first person."
@@ -741,6 +770,31 @@
     "description": "Quest title of \"the-sounder-at-the-mill\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.the-spider-queen.bring.journal": "The Spider Queen is dead and I have her venom.",
+  "@quest.the-spider-queen.bring.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"bring\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.bring.tracker": "Bring the venom to Fennick",
+  "@quest.the-spider-queen.bring.tracker": {
+    "description": "Tracker line of quest \"the-spider-queen\", stage \"bring\": the one objective line shown under the quest title."
+  },
+  "quest.the-spider-queen.done.journal": "Done. Fennick brewed his cure and gave me some.",
+  "@quest.the-spider-queen.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.hunt.journal": "Fennick brews a cure for the bog sickness. He needs venom from the Spider Queen, who lives in a den in the west of the swamp. He told me not to go alone.",
+  "@quest.the-spider-queen.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.hunt.tracker": "Kill the Spider Queen",
+  "@quest.the-spider-queen.hunt.tracker": {
+    "description": "Tracker line of quest \"the-spider-queen\", stage \"hunt\": the one objective line shown under the quest title."
+  },
+  "quest.the-spider-queen.title": "The Spider Queen",
+  "@quest.the-spider-queen.title": {
+    "description": "Quest title of \"the-spider-queen\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.the-stolen-shipment.deliver.journal": "I have the shipment and Reinhard's letter. They belong to the gnomes in Dionsburg.",
   "@quest.the-stolen-shipment.deliver.journal": {
     "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"deliver\": written in the player's voice, first person."
@@ -863,6 +917,31 @@
   "quest.thin-the-orc-line.title": "Thin the Orc Line",
   "@quest.thin-the-orc-line.title": {
     "description": "Quest title of \"thin-the-orc-line\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.treasure-in-the-bog.done.journal": "Done. Captain Brack has his chest, and I have my share.",
+  "@quest.treasure-in-the-bog.done.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.find.journal": "The pirates hid a chest in the bog before the spiders came. Captain Brack says it lies in the south of the swamp, past where the planks end.",
+  "@quest.treasure-in-the-bog.find.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"find\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.find.talk_to.SunkChest.tracker": "Find the pirates' chest in the bog",
+  "@quest.treasure-in-the-bog.find.talk_to.SunkChest.tracker": {
+    "description": "Tracker line of one talk_to objective (Sunk Chest) in quest \"treasure-in-the-bog\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.treasure-in-the-bog.return.journal": "I found the pirates' chest, sunk to its lid in the bog.",
+  "@quest.treasure-in-the-bog.return.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"return\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.return.tracker": "Tell Captain Brack",
+  "@quest.treasure-in-the-bog.return.tracker": {
+    "description": "Tracker line of quest \"treasure-in-the-bog\", stage \"return\": the one objective line shown under the quest title."
+  },
+  "quest.treasure-in-the-bog.title": "Treasure in the Bog",
+  "@quest.treasure-in-the-bog.title": {
+    "description": "Quest title of \"treasure-in-the-bog\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
   "quest.turnip-chore.handover.journal": "The turnips are gathered; the Farmer waits by his field.",

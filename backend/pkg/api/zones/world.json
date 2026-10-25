@@ -74,16 +74,24 @@
           "y": 30.77
         },
         {
-          "x": -177.68,
-          "y": 33.76
+          "x": -177.76,
+          "y": 35.6
         },
         {
-          "x": -178,
-          "y": 38
+          "x": -179.59,
+          "y": 39.46
         },
         {
-          "x": -178,
-          "y": 108
+          "x": -180.8,
+          "y": 41.64
+        },
+        {
+          "x": -181.7,
+          "y": 44.41
+        },
+        {
+          "x": -183.06,
+          "y": 49.32
         }
       ],
       "width": 3,
@@ -1351,8 +1359,24 @@
           "y": 37.27
         },
         {
-          "x": -234.83,
-          "y": 45.55
+          "x": -231.68,
+          "y": 42.52
+        },
+        {
+          "x": -233.13,
+          "y": 44.06
+        },
+        {
+          "x": -234.27,
+          "y": 45.05
+        },
+        {
+          "x": -235.45,
+          "y": 45.77
+        },
+        {
+          "x": -237,
+          "y": 45.89
         },
         {
           "x": -270.67,
@@ -1363,16 +1387,68 @@
           "y": 64.94
         },
         {
-          "x": -271.07,
-          "y": 72.27
+          "x": -271.2,
+          "y": 93.13
         },
         {
-          "x": -177.94,
-          "y": 73.54
+          "x": -186.27,
+          "y": 94.27
         },
         {
-          "x": -177.73,
-          "y": 49.07
+          "x": -181.28,
+          "y": 94.04
+        },
+        {
+          "x": -178.5,
+          "y": 93.35
+        },
+        {
+          "x": -177.61,
+          "y": 89.93
+        },
+        {
+          "x": -178.18,
+          "y": 60
+        },
+        {
+          "x": -177.12,
+          "y": 54.53
+        },
+        {
+          "x": -176.44,
+          "y": 51.17
+        },
+        {
+          "x": -176.96,
+          "y": 49.27
+        },
+        {
+          "x": -178.09,
+          "y": 48.26
+        },
+        {
+          "x": -180.28,
+          "y": 47.98
+        },
+        {
+          "x": -187.79,
+          "y": 47.57
+        },
+        {
+          "x": -192.49,
+          "y": 47.53
+        },
+        {
+          "x": -198.06,
+          "y": 47.62
+        },
+        {
+          "x": -202.99,
+          "y": 47.34
+        },
+        {
+          "x": -206.97,
+          "y": 47.05
         },
         {
           "x": -209.31,
@@ -1680,124 +1756,6 @@
     }
   ],
   "atmospheres": [
-    {
-      "profile": "Fog",
-      "points": [
-        {
-          "x": -172.93,
-          "y": 46.23
-        },
-        {
-          "x": -166.84,
-          "y": 42.62
-        },
-        {
-          "x": -156.46,
-          "y": 40.67
-        },
-        {
-          "x": -150.67,
-          "y": 44.94
-        },
-        {
-          "x": -147.87,
-          "y": 50
-        },
-        {
-          "x": -149.54,
-          "y": 56.54
-        },
-        {
-          "x": -153.68,
-          "y": 58.55
-        },
-        {
-          "x": -159.85,
-          "y": 59.76
-        },
-        {
-          "x": -167.34,
-          "y": 61.76
-        },
-        {
-          "x": -173.67,
-          "y": 60.4
-        },
-        {
-          "x": -174.81,
-          "y": 56.95
-        },
-        {
-          "x": -174.8,
-          "y": 51.24
-        }
-      ]
-    },
-    {
-      "profile": "Darkness",
-      "points": [
-        {
-          "x": -125.69,
-          "y": 29.53
-        },
-        {
-          "x": -117.87,
-          "y": 25.42
-        },
-        {
-          "x": -107.26,
-          "y": 25.27
-        },
-        {
-          "x": -101.64,
-          "y": 26.41
-        },
-        {
-          "x": -96.11,
-          "y": 29.45
-        },
-        {
-          "x": -92.2,
-          "y": 29.33
-        },
-        {
-          "x": -92.48,
-          "y": 42.94
-        },
-        {
-          "x": -101.04,
-          "y": 46.55
-        },
-        {
-          "x": -112.88,
-          "y": 48.13
-        },
-        {
-          "x": -121.3,
-          "y": 46.56
-        },
-        {
-          "x": -124.7,
-          "y": 43.2
-        },
-        {
-          "x": -142.71,
-          "y": 45.81
-        },
-        {
-          "x": -142.43,
-          "y": 36.37
-        },
-        {
-          "x": -139.48,
-          "y": 31.55
-        },
-        {
-          "x": -132.46,
-          "y": 29.58
-        }
-      ]
-    },
     {
       "profile": "Rain",
       "points": [
@@ -2735,9 +2693,22 @@
           },
           {
             "type": "Rock",
-            "x": -239.6,
-            "y": 44.6,
+            "x": -239.53,
+            "y": 43.67,
             "rotation": 0
+          },
+          {
+            "type": "Rock",
+            "x": -260.77,
+            "y": 15.17,
+            "rotation": 0
+          },
+          {
+            "type": "Rock",
+            "x": -246.38,
+            "y": -0.02,
+            "rotation": 0,
+            "scale": 1.592
           },
           {
             "type": "Rock",
@@ -2747,8 +2718,8 @@
           },
           {
             "type": "Rock",
-            "x": -243.8,
-            "y": 49.23,
+            "x": -243.73,
+            "y": 48.9,
             "rotation": 0
           },
           {
@@ -3994,11 +3965,12 @@
         },
         {
           "mob": "Lambert",
-          "x": -255,
-          "y": -14,
+          "x": -255.4,
+          "y": -13.53,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
+          "wanderRadius": 1,
           "idleSpeedFactor": 0.3,
           "level": 5
         },
@@ -4150,6 +4122,17 @@
           "mob": "Boar",
           "x": -194.83,
           "y": -10.88,
+          "angle": 2.496,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 4
+        },
+        {
+          "mob": "Boar",
+          "x": -196.8,
+          "y": -12.08,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -5173,11 +5156,6 @@
           "x": -260.87,
           "y": -18.21,
           "anchor": "under-west"
-        },
-        {
-          "x": -196.23,
-          "y": -12.64,
-          "anchor": "under-east"
         }
       ],
       "bindPoints": [
@@ -6427,32 +6405,40 @@
               "y": -5.83
             },
             {
-              "x": -241.27,
-              "y": -5.53
+              "x": -241.67,
+              "y": -5.73
             },
             {
-              "x": -239.3,
-              "y": -6.13
+              "x": -239.85,
+              "y": -6.02
             },
             {
-              "x": -236,
-              "y": -7
+              "x": -238.22,
+              "y": -6.61
+            },
+            {
+              "x": -235.8,
+              "y": -6.87
             },
             {
               "x": -232.4,
               "y": -6.57
             },
             {
-              "x": -228.4,
-              "y": -5.83
+              "x": -229.05,
+              "y": -6.31
             },
             {
               "x": -225.47,
               "y": -6.7
             },
             {
-              "x": -221.03,
-              "y": -7.2
+              "x": -222.4,
+              "y": -7.13
+            },
+            {
+              "x": -220,
+              "y": -7.71
             },
             {
               "x": -217.47,
@@ -7186,18 +7172,13 @@
       "anchors": [
         {
           "name": "surface-west",
-          "x": -260.82,
-          "y": -17.68
+          "x": -260.85,
+          "y": -17.1
         },
         {
           "name": "barn-surface",
           "x": -197.35,
           "y": 14.01
-        },
-        {
-          "name": "surface-east",
-          "x": -196.23,
-          "y": -11.14
         },
         {
           "name": "default-spawn",
@@ -7607,6 +7588,13 @@
             "rotation": 5.425,
             "blocksMovement": false,
             "scale": 0.49
+          },
+          {
+            "type": "Bridge",
+            "x": -91.37,
+            "y": 3.4,
+            "rotation": 0.004,
+            "scale": 0.833
           }
         ],
         "default": [
@@ -7696,20 +7684,6 @@
             "y": 17.07,
             "rotation": 0,
             "scale": 1.994
-          },
-          {
-            "type": "WreckDebris",
-            "x": -93.6,
-            "y": 4.3,
-            "rotation": 0.4,
-            "scale": 0.55
-          },
-          {
-            "type": "FallenLog",
-            "x": -93.8,
-            "y": 1.9,
-            "rotation": 1.5,
-            "scale": 0.7
           },
           {
             "type": "BurntCart",
@@ -7920,10 +7894,10 @@
           },
           {
             "type": "Rock",
-            "x": -155.8,
-            "y": -12.6,
+            "x": -152.85,
+            "y": -14.04,
             "rotation": 0.8,
-            "scale": 0.8
+            "scale": 1.569
           },
           {
             "type": "Rock",
@@ -8339,8 +8313,8 @@
           },
           {
             "type": "Tree",
-            "x": -134.47,
-            "y": -7.16,
+            "x": -132.17,
+            "y": -7.46,
             "rotation": 3.165,
             "scale": 1.278
           },
@@ -8544,8 +8518,8 @@
           },
           {
             "type": "Tree",
-            "x": -153.36,
-            "y": -12.4,
+            "x": -150.43,
+            "y": -14.33,
             "rotation": 0.972,
             "scale": 1.535
           },
@@ -8648,8 +8622,8 @@
           },
           {
             "type": "PineTree",
-            "x": -135.3,
-            "y": -8.84,
+            "x": -148.43,
+            "y": -15.11,
             "rotation": 2.461,
             "scale": 1.889
           },
@@ -8725,8 +8699,8 @@
           },
           {
             "type": "OakTree",
-            "x": -155.33,
-            "y": -11.3,
+            "x": -153.46,
+            "y": -11.23,
             "rotation": 5.363,
             "scale": 1.375
           },
@@ -9311,10 +9285,10 @@
           },
           {
             "type": "Tree",
-            "x": -109.62,
-            "y": 2.96,
+            "x": -109.59,
+            "y": 2.5,
             "rotation": 1.054,
-            "scale": 1.159
+            "scale": 1.65
           },
           {
             "type": "OakTree",
@@ -9367,7 +9341,7 @@
           },
           {
             "type": "PineTree",
-            "x": -105.8,
+            "x": -102.63,
             "y": 16.7,
             "rotation": 2.723,
             "scale": 1.22
@@ -9528,8 +9502,8 @@
           },
           {
             "type": "PineTree",
-            "x": -101.36,
-            "y": 21.32,
+            "x": -100.49,
+            "y": 21.05,
             "rotation": 4.163,
             "scale": 1.126
           },
@@ -9570,8 +9544,8 @@
           },
           {
             "type": "PineTree",
-            "x": -102.28,
-            "y": 16.93,
+            "x": -96.63,
+            "y": 15.66,
             "rotation": 3.824,
             "scale": 2.057
           },
@@ -9829,8 +9803,8 @@
           },
           {
             "type": "Tree",
-            "x": -105.26,
-            "y": -11.12,
+            "x": -106.65,
+            "y": -9.1,
             "rotation": 4.208,
             "scale": 1.365
           },
@@ -9990,8 +9964,8 @@
           },
           {
             "type": "DeadTree",
-            "x": -103.62,
-            "y": 22.61,
+            "x": -104.89,
+            "y": 23.56,
             "rotation": 1.827,
             "scale": 1.079
           },
@@ -10599,8 +10573,8 @@
           },
           {
             "type": "DeadTree",
-            "x": -115.87,
-            "y": 18.97,
+            "x": -116.38,
+            "y": 19.53,
             "rotation": 4.242,
             "scale": 1.31
           },
@@ -10883,8 +10857,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -131.83,
-          "y": -6.96,
+          "x": -143.8,
+          "y": -14.28,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10894,8 +10868,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -110.96,
-          "y": -11.33,
+          "x": -112.98,
+          "y": -11.18,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10905,8 +10879,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -114.36,
-          "y": -21.73,
+          "x": -116.71,
+          "y": -20.11,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10916,8 +10890,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -107.31,
-          "y": -10.64,
+          "x": -104.86,
+          "y": -11.73,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10938,8 +10912,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -126.1,
-          "y": -12.75,
+          "x": -117.08,
+          "y": -14.29,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10971,8 +10945,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -125.52,
-          "y": -20.45,
+          "x": -126.82,
+          "y": -22.42,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10982,8 +10956,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -125.98,
-          "y": -23.83,
+          "x": -126.28,
+          "y": -25.1,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -10993,8 +10967,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -129.63,
-          "y": -8.06,
+          "x": -146.09,
+          "y": -13.99,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11004,8 +10978,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -105.44,
-          "y": -4.09,
+          "x": -105.24,
+          "y": -4.47,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11037,8 +11011,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -115.23,
-          "y": -25.6,
+          "x": -117,
+          "y": -25.98,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11048,8 +11022,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -109,
-          "y": -3.86,
+          "x": -108.72,
+          "y": -4.44,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11092,8 +11066,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -129.03,
-          "y": -21.13,
+          "x": -129,
+          "y": -22.76,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11103,8 +11077,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -110.44,
-          "y": -3.11,
+          "x": -110.74,
+          "y": -3.87,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11125,8 +11099,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -107.13,
-          "y": -17.77,
+          "x": -109.05,
+          "y": -17.57,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11136,8 +11110,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -105.03,
-          "y": -9.04,
+          "x": -102.96,
+          "y": -11.57,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11169,8 +11143,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -102.63,
-          "y": -17.73,
+          "x": -102.4,
+          "y": -18.16,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11202,8 +11176,8 @@
         },
         {
           "mob": "Wolf",
-          "x": -120.21,
-          "y": -13.43,
+          "x": -118.62,
+          "y": -15.15,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11447,8 +11421,8 @@
         },
         {
           "mob": "RedMushroom",
-          "x": -100.93,
-          "y": 24.24,
+          "x": -101.26,
+          "y": 24.04,
           "angle": 0,
           "respawnTicks": 600,
           "respawnVariancePct": 0.2,
@@ -11867,8 +11841,8 @@
         },
         {
           "mob": "Bear",
-          "x": -98,
-          "y": -24.5,
+          "x": -98.93,
+          "y": -24.58,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11887,8 +11861,8 @@
         },
         {
           "mob": "Bear",
-          "x": -95,
-          "y": -21,
+          "x": -96.21,
+          "y": -22.21,
           "angle": 4.58,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11947,8 +11921,8 @@
         },
         {
           "mob": "Bandit",
-          "x": -130.77,
-          "y": -28.19,
+          "x": -130.24,
+          "y": -28.49,
           "angle": 5.52,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -11997,8 +11971,8 @@
         },
         {
           "mob": "Spider",
-          "x": -120.5,
-          "y": 17.98,
+          "x": -112.47,
+          "y": 23.86,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12019,8 +11993,8 @@
         },
         {
           "mob": "Spider",
-          "x": -117.77,
-          "y": 15.11,
+          "x": -118.94,
+          "y": 22.19,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12030,8 +12004,8 @@
         },
         {
           "mob": "Spider",
-          "x": -119.54,
-          "y": 16.14,
+          "x": -104.97,
+          "y": 16.74,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12096,8 +12070,8 @@
         },
         {
           "mob": "Spider",
-          "x": -106.74,
-          "y": 19.74,
+          "x": -105.74,
+          "y": 18.19,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12107,8 +12081,8 @@
         },
         {
           "mob": "Spider",
-          "x": -107.34,
-          "y": 21.94,
+          "x": -106.01,
+          "y": 21.36,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12162,8 +12136,8 @@
         },
         {
           "mob": "Spider",
-          "x": -104.34,
-          "y": 21.34,
+          "x": -101.64,
+          "y": 22.34,
           "angle": 2.88,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12270,8 +12244,8 @@
         },
         {
           "mob": "Stag",
-          "x": -127.45,
-          "y": -21.46,
+          "x": -127.65,
+          "y": -22.93,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12292,8 +12266,8 @@
         },
         {
           "mob": "Stag",
-          "x": -123.91,
-          "y": -12.86,
+          "x": -112.45,
+          "y": -14.85,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12303,8 +12277,8 @@
         },
         {
           "mob": "Stag",
-          "x": -127.3,
-          "y": -11.74,
+          "x": -128.26,
+          "y": -25.02,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12314,8 +12288,8 @@
         },
         {
           "mob": "Stag",
-          "x": -119.85,
-          "y": -14.93,
+          "x": -118.13,
+          "y": -13.92,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12403,8 +12377,8 @@
         },
         {
           "mob": "FallenTraveller",
-          "x": -110.48,
-          "y": 10.56,
+          "x": -111.35,
+          "y": 11.04,
           "angle": 0
         },
         {
@@ -12419,8 +12393,8 @@
         },
         {
           "mob": "Spider",
-          "x": -108.76,
-          "y": 10.1,
+          "x": -110.86,
+          "y": 12.83,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -12439,8 +12413,8 @@
         },
         {
           "mob": "Spider",
-          "x": -111.81,
-          "y": 11.81,
+          "x": -112.59,
+          "y": 12.59,
           "angle": 0,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -13074,12 +13048,16 @@
               "y": -1.29
             },
             {
-              "x": -97.45,
-              "y": 1.76
+              "x": -97.62,
+              "y": 1.77
             },
             {
-              "x": -93.5,
-              "y": 3
+              "x": -95.57,
+              "y": 3.17
+            },
+            {
+              "x": -93.37,
+              "y": 3.34
             }
           ],
           "width": 1.5
@@ -13162,8 +13140,8 @@
           "profile": "Road",
           "points": [
             {
-              "x": -134,
-              "y": 12.5
+              "x": -134.67,
+              "y": 13.33
             },
             {
               "x": -140,
@@ -17492,8 +17470,8 @@
           },
           {
             "type": "Tree",
-            "x": -33,
-            "y": -14.5,
+            "x": -36.18,
+            "y": -15.98,
             "rotation": 0,
             "scale": 1.25
           },
@@ -17586,8 +17564,8 @@
       "spawns": [
         {
           "mob": "AscensionStone",
-          "x": -33.46,
-          "y": 1,
+          "x": -24.59,
+          "y": -0.77,
           "angle": 0
         },
         {
@@ -17722,8 +17700,8 @@
         },
         {
           "id": "spawnpoint-13",
-          "x": -30.06,
-          "y": -7.17
+          "x": -30.46,
+          "y": -0.94
         }
       ],
       "regions": [
@@ -20255,24 +20233,48 @@
           "profile": "Cobblestone",
           "points": [
             {
-              "x": -50.5,
-              "y": -6.6
+              "x": -52.24,
+              "y": -6.7
             },
             {
               "x": -36.5,
-              "y": -6.6
+              "y": -6.68
             },
             {
-              "x": -35.4,
-              "y": -8.5
+              "x": -35.76,
+              "y": -7.37
             },
             {
-              "x": -35.4,
-              "y": -12
+              "x": -35.51,
+              "y": -8.53
             },
             {
-              "x": -31.8,
-              "y": -13.9
+              "x": -35.56,
+              "y": -12.13
+            },
+            {
+              "x": -35.58,
+              "y": -12.97
+            },
+            {
+              "x": -35.13,
+              "y": -13.87
+            },
+            {
+              "x": -34.29,
+              "y": -14.29
+            },
+            {
+              "x": -33.24,
+              "y": -14.28
+            },
+            {
+              "x": -31.58,
+              "y": -14.34
+            },
+            {
+              "x": -30.48,
+              "y": -14.62
             }
           ],
           "width": 1.2
@@ -20518,6 +20520,13 @@
             "x": 21.1,
             "y": -13.9,
             "rotation": 0
+          },
+          {
+            "type": "CaveMouth",
+            "x": 25.17,
+            "y": -18.81,
+            "rotation": 0,
+            "blocksMovement": true
           }
         ]
       },
@@ -20591,6 +20600,14 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 18
+        }
+      ],
+      "exits": [
+        {
+          "x": 25.22,
+          "y": -18.7,
+          "anchor": "tunnel-west",
+          "hidden": true
         }
       ],
       "bindPoints": [
@@ -20686,6 +20703,13 @@
               "y": -25.2
             }
           ]
+        }
+      ],
+      "anchors": [
+        {
+          "name": "surface-west2",
+          "x": 25.2,
+          "y": -16.88
         }
       ]
     },
@@ -21256,13 +21280,6 @@
         ],
         "buildings": [
           {
-            "type": "CaveMouth",
-            "x": -113.63,
-            "y": -53.21,
-            "rotation": 0,
-            "blocksMovement": true
-          },
-          {
             "type": "Tent",
             "x": -125.19,
             "y": -51.97,
@@ -21352,14 +21369,6 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 6
-        }
-      ],
-      "exits": [
-        {
-          "x": -113.63,
-          "y": -52.54,
-          "anchor": "tunnel-west",
-          "hidden": true
         }
       ],
       "bindPoints": [
@@ -21905,11 +21914,19 @@
               "y": -60.4
             },
             {
-              "x": -151.2,
-              "y": -56.53
+              "x": -152.36,
+              "y": -58.44
             },
             {
-              "x": -142.14,
+              "x": -149.87,
+              "y": -57.2
+            },
+            {
+              "x": -145.23,
+              "y": -57.06
+            },
+            {
+              "x": -141.34,
               "y": -58.8
             },
             {
@@ -21924,13 +21941,6 @@
           "blocksMovement": true,
           "outlineProfile": "Cliff Smooth",
           "outlineWidth": 0.5
-        }
-      ],
-      "anchors": [
-        {
-          "name": "surface-west2",
-          "x": -113.68,
-          "y": -51.89
         }
       ]
     },
@@ -22382,140 +22392,835 @@
     {
       "id": "sorrowfen",
       "props": {
-        "underfoot": [
+        "buildings": [
           {
-            "type": "Bridge",
-            "x": -177.92,
-            "y": 72.17,
-            "rotation": 0,
-            "scale": 0.833
-          }
-        ],
-        "default": [
-          {
-            "type": "BurntCart",
-            "x": -151.3,
-            "y": 55.09,
-            "rotation": 0
-          },
-          {
-            "type": "Stump",
-            "x": -172.83,
-            "y": 46.03,
-            "rotation": 0
-          },
-          {
-            "type": "Stump",
-            "x": -166.43,
-            "y": 46.63,
-            "rotation": 0
-          },
-          {
-            "type": "Stump",
-            "x": -173.9,
-            "y": 51.5,
-            "rotation": 0
+            "type": "CaveMouth",
+            "x": -158.18,
+            "y": 84.08,
+            "rotation": -2.32,
+            "blocksMovement": true
           }
         ],
         "canopy": [
           {
-            "type": "Tree",
-            "x": -154.13,
-            "y": 47.93,
-            "rotation": 0
+            "type": "DeadTree",
+            "x": -166.71,
+            "y": 40.58,
+            "rotation": 0.08,
+            "scale": 0.91
           },
           {
-            "type": "Tree",
-            "x": -160.24,
-            "y": 45.64,
-            "rotation": 0
+            "type": "DeadTree",
+            "x": -143.68,
+            "y": 38.83,
+            "rotation": 0.3,
+            "scale": 0.93
+          },
+          {
+            "type": "DeadTree",
+            "x": -96.94,
+            "y": 75.55,
+            "rotation": 3.41,
+            "scale": 1.38
+          },
+          {
+            "type": "DeadTree",
+            "x": -100.79,
+            "y": 88.63,
+            "rotation": 2.83,
+            "scale": 0.92
+          },
+          {
+            "type": "DeadTree",
+            "x": -104.87,
+            "y": 60.23,
+            "rotation": 4.78,
+            "scale": 1.17
+          },
+          {
+            "type": "DeadTree",
+            "x": -98.04,
+            "y": 83.65,
+            "rotation": 4.2,
+            "scale": 1.12
+          },
+          {
+            "type": "DeadTree",
+            "x": -109.31,
+            "y": 67.92,
+            "rotation": 6.01,
+            "scale": 2.093
+          },
+          {
+            "type": "DeadTree",
+            "x": -107.87,
+            "y": 88.49,
+            "rotation": 5.43,
+            "scale": 1.1
+          },
+          {
+            "type": "DeadTree",
+            "x": -165.22,
+            "y": 79.35,
+            "rotation": 5.03,
+            "scale": 1.13
+          },
+          {
+            "type": "DeadTree",
+            "x": -167.56,
+            "y": 105.87,
+            "rotation": 4.06,
+            "scale": 1.07
+          },
+          {
+            "type": "DeadTree",
+            "x": -165.63,
+            "y": 73.59,
+            "rotation": 0.6,
+            "scale": 1.22
+          },
+          {
+            "type": "DeadTree",
+            "x": -147.4,
+            "y": 98.86,
+            "rotation": 0.01,
+            "scale": 0.9
+          },
+          {
+            "type": "DeadTree",
+            "x": -169.76,
+            "y": 101.2,
+            "rotation": 4.03,
+            "scale": 1.22
+          },
+          {
+            "type": "DeadTree",
+            "x": -174.33,
+            "y": 96.42,
+            "rotation": 0.48,
+            "scale": 1.33
+          },
+          {
+            "type": "DeadTree",
+            "x": -147.17,
+            "y": 60.32,
+            "rotation": 6.05,
+            "scale": 1.29
+          },
+          {
+            "type": "DeadTree",
+            "x": -147.52,
+            "y": 61.63,
+            "rotation": 2.76,
+            "scale": 1.24
+          },
+          {
+            "type": "DeadTree",
+            "x": -145.54,
+            "y": 61.48,
+            "rotation": 3.06,
+            "scale": 0.92
+          },
+          {
+            "type": "DeadTree",
+            "x": -132.45,
+            "y": 104.85,
+            "rotation": 0.27,
+            "scale": 1.4
+          },
+          {
+            "type": "DeadTree",
+            "x": -133.47,
+            "y": 105.99,
+            "rotation": 5.17,
+            "scale": 1.09
+          },
+          {
+            "type": "DeadTree",
+            "x": -132.95,
+            "y": 102.55,
+            "rotation": 5.79,
+            "scale": 1.29
+          },
+          {
+            "type": "DeadTree",
+            "x": -109.22,
+            "y": 102.81,
+            "rotation": 4.61,
+            "scale": 1.04
           }
         ]
       },
       "spawns": [
         {
           "mob": "Spider",
-          "x": -169.27,
-          "y": 100.31,
-          "angle": 2.88,
+          "x": -104.5,
+          "y": 38,
+          "angle": -2.06,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
-          "wanderRadius": 3,
+          "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 8
         },
         {
           "mob": "Spider",
-          "x": -173.02,
-          "y": 102.48,
-          "angle": 5.42,
+          "x": -112,
+          "y": 43.5,
+          "angle": -0.38,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
-          "wanderRadius": 3,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 8
+        },
+        {
+          "mob": "Spider",
+          "x": -118,
+          "y": 44.5,
+          "angle": -1.7,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Spider",
+          "x": -133,
+          "y": 45.5,
+          "angle": -3.22,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Spider",
+          "x": -146,
+          "y": 48,
+          "angle": -5.08,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Spider",
+          "x": -126,
+          "y": 72,
+          "angle": -0.32,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "VenomSpider",
+          "x": -137,
+          "y": 79.5,
+          "angle": -4.58,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "VenomSpider",
+          "x": -124,
+          "y": 92.5,
+          "angle": -0.18,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "VenomSpider",
+          "x": -131.5,
+          "y": 94,
+          "angle": -4.22,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 11
+        },
+        {
+          "mob": "GiantSpider",
+          "x": -154,
+          "y": 80.5,
+          "angle": -1.26,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 11
+        },
+        {
+          "mob": "GiantSpider",
+          "x": -153,
+          "y": 83,
+          "angle": -5.6,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
           "level": 12
         },
         {
-          "mob": "VenomSpider",
-          "x": -165.02,
-          "y": 86.67,
-          "angle": 3.99,
+          "mob": "Wisp",
+          "x": -99,
+          "y": 61,
+          "angle": -1.32,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
-          "wanderRadius": 2,
-          "level": 13
-        },
-        {
-          "mob": "GiantSpider",
-          "x": -99.27,
-          "y": 44.31,
-          "angle": 3.99,
-          "respawnTicks": 1800,
-          "respawnVariancePct": 0.2,
-          "wanderRadius": 0,
-          "level": 14
-        },
-        {
-          "mob": "GiantSpider",
-          "x": -113.77,
-          "y": 46.48,
-          "angle": 3.99,
-          "respawnTicks": 1800,
-          "respawnVariancePct": 0.2,
-          "wanderRadius": 0,
-          "level": 14
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 9
         },
         {
           "mob": "Wisp",
-          "x": -97.27,
-          "y": 100.31,
-          "angle": 3.24,
+          "x": -135,
+          "y": 40,
+          "angle": -2.32,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
-          "wanderRadius": 2,
-          "level": 13
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 10
         },
         {
           "mob": "Wisp",
-          "x": -102.27,
-          "y": 100.31,
-          "angle": 3.17,
+          "x": -106,
+          "y": 80,
+          "angle": -5.88,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Wisp",
+          "x": -149,
+          "y": 70,
+          "angle": -4.04,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "Wisp",
+          "x": -159,
+          "y": 94,
+          "angle": -2.04,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Wisp",
+          "x": -117,
+          "y": 78,
+          "angle": -0.96,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "Wisp",
+          "x": -160,
+          "y": 67,
+          "angle": -2.12,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Wisp",
+          "x": -123,
+          "y": 104,
+          "angle": -2.64,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "Wisp",
+          "x": -141,
+          "y": 59,
+          "angle": -6.16,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "Wisp",
+          "x": -103,
+          "y": 106,
+          "angle": -1.08,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -175,
+          "y": 50,
+          "angle": -1.12,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 13
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -174,
+          "y": 56,
+          "angle": -1.24,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -174.5,
+          "y": 62,
+          "angle": -5.58,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -175.5,
+          "y": 74,
+          "angle": -1.7,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -176,
+          "y": 85,
+          "angle": -3.6,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -173.5,
+          "y": 90,
+          "angle": -2.5,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "Hedda",
+          "x": -106.4,
+          "y": 43.2,
+          "angle": 3.9,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "Fennick",
+          "x": -137.4,
+          "y": 101.8,
+          "angle": 4.2,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "CaptainBrack",
+          "x": -173.4,
+          "y": 47.2,
+          "angle": 0.8,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "PirateDeckhand",
+          "x": -170.4,
+          "y": 44.8,
+          "angle": 3.6,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "PirateDeckhand",
+          "x": -173.6,
+          "y": 44.6,
+          "angle": 2.2,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "SunkChest",
+          "x": -124.37,
+          "y": 104.83,
+          "angle": 0,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -130.23,
+          "y": 74.83,
+          "angle": -2.6,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -119.33,
+          "y": 90.96,
+          "angle": -3.51,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -117.7,
+          "y": 81.02,
+          "angle": -3.08,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -133.32,
+          "y": 93.16,
+          "angle": -0.64,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -130.8,
+          "y": 86.37,
+          "angle": -3.37,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -137.38,
+          "y": 76.63,
+          "angle": -3.29,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -112.1,
+          "y": 93.15,
+          "angle": -2.85,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BlueMushroom",
+          "x": -118.58,
+          "y": 77.54,
+          "angle": -0.84,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 1
+        },
+        {
+          "mob": "BogFrog",
+          "x": -122.69,
+          "y": 47.3,
+          "angle": -1.01,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 8
+        },
+        {
+          "mob": "BogFrog",
+          "x": -123.23,
+          "y": 80.81,
+          "angle": -4.74,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "BogFrog",
+          "x": -148.25,
+          "y": 71.67,
+          "angle": -0.06,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "BogFrog",
+          "x": -145.39,
+          "y": 67.38,
+          "angle": -5.47,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 8
+        },
+        {
+          "mob": "BogFrog",
+          "x": -141.92,
+          "y": 71.07,
+          "angle": -1.51,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 9
+        },
+        {
+          "mob": "BogFrog",
+          "x": -137.13,
+          "y": 69.02,
+          "angle": -5.53,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 10
+        },
+        {
+          "mob": "BogSnake",
+          "x": -154.4,
+          "y": 54,
+          "angle": -1.92,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 9,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -117.4,
+          "y": 72,
+          "angle": -2.92,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 10,
+          "waypoints": [
+            {
+              "x": -117.4,
+              "y": 72
+            },
+            {
+              "x": -118.7,
+              "y": 74.25
+            },
+            {
+              "x": -121.3,
+              "y": 74.25
+            },
+            {
+              "x": -122.6,
+              "y": 72
+            },
+            {
+              "x": -121.3,
+              "y": 69.75
+            },
+            {
+              "x": -118.7,
+              "y": 69.75
+            },
+            {
+              "x": -117.4,
+              "y": 72
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -147.4,
+          "y": 74,
+          "angle": -5.96,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 11,
+          "waypoints": [
+            {
+              "x": -147.4,
+              "y": 74
+            },
+            {
+              "x": -148.7,
+              "y": 76.25
+            },
+            {
+              "x": -151.3,
+              "y": 76.25
+            },
+            {
+              "x": -152.6,
+              "y": 74
+            },
+            {
+              "x": -151.3,
+              "y": 71.75
+            },
+            {
+              "x": -148.7,
+              "y": 71.75
+            },
+            {
+              "x": -147.4,
+              "y": 74
+            }
+          ]
+        }
+      ],
+      "exits": [
+        {
+          "x": -157.59,
+          "y": 83.54,
+          "anchor": "spiderden-inside",
+          "hidden": true
         }
       ],
       "bindPoints": [
         {
-          "id": "spawnpoint-27",
-          "x": -149.63,
-          "y": 72.41
+          "id": "spawnpoint-28",
+          "x": -108,
+          "y": 42
         },
         {
-          "id": "spawnpoint-28",
-          "x": -119.63,
-          "y": 72.41
+          "id": "spawnpoint-51",
+          "x": -121,
+          "y": 65
+        },
+        {
+          "id": "spawnpoint-27",
+          "x": -139,
+          "y": 101
+        },
+        {
+          "id": "spawnpoint-52",
+          "x": -172,
+          "y": 46
         }
       ],
       "regions": [
@@ -22564,6 +23269,1237 @@
               "y": 41.99
             }
           ]
+        },
+        {
+          "profile": "Coast",
+          "points": [
+            {
+              "x": -177.6,
+              "y": 94.2
+            },
+            {
+              "x": -170.4,
+              "y": 92.07
+            },
+            {
+              "x": -169.87,
+              "y": 90.8
+            },
+            {
+              "x": -168.33,
+              "y": 55
+            },
+            {
+              "x": -168.2,
+              "y": 52.13
+            },
+            {
+              "x": -167.53,
+              "y": 42.27
+            },
+            {
+              "x": -168.87,
+              "y": 41.13
+            },
+            {
+              "x": -177.13,
+              "y": 43.73
+            },
+            {
+              "x": -176.87,
+              "y": 49.2
+            },
+            {
+              "x": -176.33,
+              "y": 51.47
+            },
+            {
+              "x": -178.2,
+              "y": 60.13
+            },
+            {
+              "x": -177.6,
+              "y": 90.07
+            },
+            {
+              "x": -178.67,
+              "y": 93.47
+            }
+          ]
+        }
+      ],
+      "paths": [
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -101,
+              "y": 29
+            },
+            {
+              "x": -101.36,
+              "y": 30.33
+            },
+            {
+              "x": -101.89,
+              "y": 32.24
+            },
+            {
+              "x": -102.67,
+              "y": 34.33
+            },
+            {
+              "x": -103.89,
+              "y": 36.45
+            },
+            {
+              "x": -105.62,
+              "y": 38.88
+            },
+            {
+              "x": -107.27,
+              "y": 41.03
+            },
+            {
+              "x": -108,
+              "y": 42
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -108,
+              "y": 42
+            },
+            {
+              "x": -109.42,
+              "y": 42.84
+            },
+            {
+              "x": -111.46,
+              "y": 44.02
+            },
+            {
+              "x": -113.45,
+              "y": 44.89
+            },
+            {
+              "x": -114.9,
+              "y": 44.84
+            },
+            {
+              "x": -116,
+              "y": 44
+            },
+            {
+              "x": -117.1,
+              "y": 43.16
+            },
+            {
+              "x": -118.55,
+              "y": 43.11
+            },
+            {
+              "x": -120.54,
+              "y": 43.98
+            },
+            {
+              "x": -122.58,
+              "y": 45.16
+            },
+            {
+              "x": -124,
+              "y": 46
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -124,
+              "y": 46
+            },
+            {
+              "x": -124.87,
+              "y": 47.39
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -126.93,
+              "y": 51.41
+            },
+            {
+              "x": -126.74,
+              "y": 53.14
+            },
+            {
+              "x": -125.69,
+              "y": 54.88
+            },
+            {
+              "x": -124.5,
+              "y": 56.34
+            },
+            {
+              "x": -124,
+              "y": 57
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -124,
+              "y": 57
+            },
+            {
+              "x": -122.65,
+              "y": 57.62
+            },
+            {
+              "x": -120.74,
+              "y": 58.51
+            },
+            {
+              "x": -119.24,
+              "y": 59.61
+            },
+            {
+              "x": -118.98,
+              "y": 60.95
+            },
+            {
+              "x": -119.69,
+              "y": 62.69
+            },
+            {
+              "x": -120.62,
+              "y": 64.29
+            },
+            {
+              "x": -121,
+              "y": 65
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -121,
+              "y": 65
+            },
+            {
+              "x": -121.84,
+              "y": 66.2
+            },
+            {
+              "x": -123.06,
+              "y": 67.9
+            },
+            {
+              "x": -124.5,
+              "y": 69.56
+            },
+            {
+              "x": -126.17,
+              "y": 70.78
+            },
+            {
+              "x": -128.25,
+              "y": 71.81
+            },
+            {
+              "x": -130.15,
+              "y": 72.62
+            },
+            {
+              "x": -131,
+              "y": 73
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -131,
+              "y": 73
+            },
+            {
+              "x": -131.77,
+              "y": 74.55
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -133.54,
+              "y": 78.09
+            },
+            {
+              "x": -134,
+              "y": 79
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -134,
+              "y": 79
+            },
+            {
+              "x": -135.33,
+              "y": 78.65
+            },
+            {
+              "x": -137.24,
+              "y": 78.16
+            },
+            {
+              "x": -138.64,
+              "y": 77.96
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -142.25,
+              "y": 78.7
+            },
+            {
+              "x": -144.66,
+              "y": 79.82
+            },
+            {
+              "x": -146.58,
+              "y": 80.8
+            },
+            {
+              "x": -147,
+              "y": 81
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -147,
+              "y": 81
+            },
+            {
+              "x": -148.42,
+              "y": 80.65
+            },
+            {
+              "x": -150.46,
+              "y": 80.16
+            },
+            {
+              "x": -152.45,
+              "y": 79.94
+            },
+            {
+              "x": -153.99,
+              "y": 80.39
+            },
+            {
+              "x": -155.37,
+              "y": 81.44
+            },
+            {
+              "x": -156.49,
+              "y": 82.53
+            },
+            {
+              "x": -157,
+              "y": 83
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -134,
+              "y": 79
+            },
+            {
+              "x": -133.39,
+              "y": 80.36
+            },
+            {
+              "x": -132.54,
+              "y": 82.31
+            },
+            {
+              "x": -132.01,
+              "y": 84.37
+            },
+            {
+              "x": -132.33,
+              "y": 86.3
+            },
+            {
+              "x": -132.63,
+              "y": 86.99
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -134.51,
+              "y": 90.18
+            },
+            {
+              "x": -135,
+              "y": 91
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -135,
+              "y": 91
+            },
+            {
+              "x": -135.45,
+              "y": 92.13
+            },
+            {
+              "x": -136.1,
+              "y": 93.76
+            },
+            {
+              "x": -136.79,
+              "y": 95.48
+            },
+            {
+              "x": -137.43,
+              "y": 96.96
+            },
+            {
+              "x": -138.12,
+              "y": 98.34
+            },
+            {
+              "x": -138.73,
+              "y": 99.84
+            },
+            {
+              "x": -139.08,
+              "y": 101.68
+            },
+            {
+              "x": -139.14,
+              "y": 104.18
+            },
+            {
+              "x": -139.06,
+              "y": 106.72
+            },
+            {
+              "x": -139,
+              "y": 108.5
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -135,
+              "y": 91
+            },
+            {
+              "x": -133.41,
+              "y": 91.55
+            },
+            {
+              "x": -131.14,
+              "y": 92.32
+            },
+            {
+              "x": -128.73,
+              "y": 92.91
+            },
+            {
+              "x": -126.58,
+              "y": 92.93
+            },
+            {
+              "x": -124.44,
+              "y": 92.44
+            },
+            {
+              "x": -122.34,
+              "y": 91.99
+            },
+            {
+              "x": -120.36,
+              "y": 92.16
+            },
+            {
+              "x": -119.75,
+              "y": 92.41
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -116.25,
+              "y": 94.59
+            },
+            {
+              "x": -114.34,
+              "y": 95.05
+            },
+            {
+              "x": -112.27,
+              "y": 94.74
+            },
+            {
+              "x": -110.13,
+              "y": 94.21
+            },
+            {
+              "x": -108,
+              "y": 94
+            },
+            {
+              "x": -106.57,
+              "y": 94.27
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -102.95,
+              "y": 95.6
+            },
+            {
+              "x": -101,
+              "y": 96
+            },
+            {
+              "x": -99.34,
+              "y": 95.6
+            },
+            {
+              "x": -97.87,
+              "y": 94.78
+            },
+            {
+              "x": -96.47,
+              "y": 94.1
+            },
+            {
+              "x": -95,
+              "y": 94.02
+            },
+            {
+              "x": -93.44,
+              "y": 94.38
+            },
+            {
+              "x": -92.1,
+              "y": 94.82
+            },
+            {
+              "x": -91.5,
+              "y": 95
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -124,
+              "y": 46
+            },
+            {
+              "x": -125.62,
+              "y": 45.65
+            },
+            {
+              "x": -127.94,
+              "y": 45.16
+            },
+            {
+              "x": -130.31,
+              "y": 44.94
+            },
+            {
+              "x": -132.26,
+              "y": 45.41
+            },
+            {
+              "x": -134.06,
+              "y": 46.5
+            },
+            {
+              "x": -135.82,
+              "y": 47.59
+            },
+            {
+              "x": -137.6,
+              "y": 48.04
+            },
+            {
+              "x": -139.4,
+              "y": 47.65
+            },
+            {
+              "x": -141.2,
+              "y": 47.06
+            },
+            {
+              "x": -143,
+              "y": 47
+            },
+            {
+              "x": -144.99,
+              "y": 47.96
+            },
+            {
+              "x": -147.03,
+              "y": 49.45
+            },
+            {
+              "x": -148.64,
+              "y": 50.74
+            },
+            {
+              "x": -149,
+              "y": 51
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -149,
+              "y": 51
+            },
+            {
+              "x": -150.39,
+              "y": 50.87
+            },
+            {
+              "x": -152.38,
+              "y": 50.66
+            },
+            {
+              "x": -154.18,
+              "y": 50
+            },
+            {
+              "x": -154.91,
+              "y": 48.4
+            },
+            {
+              "x": -155.57,
+              "y": 47.37
+            },
+            {
+              "x": -157.11,
+              "y": 46.02
+            },
+            {
+              "x": -161.2,
+              "y": 45.43
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -153.93,
+              "y": 59.33
+            },
+            {
+              "x": -155.32,
+              "y": 59.2
+            },
+            {
+              "x": -158.05,
+              "y": 58.13
+            },
+            {
+              "x": -159.64,
+              "y": 57.6
+            },
+            {
+              "x": -160.81,
+              "y": 56.66
+            },
+            {
+              "x": -161.84,
+              "y": 55.41
+            },
+            {
+              "x": -164.44,
+              "y": 54.22
+            },
+            {
+              "x": -168.6,
+              "y": 53.73
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -108,
+              "y": 42
+            },
+            {
+              "x": -107.06,
+              "y": 43.62
+            },
+            {
+              "x": -105.72,
+              "y": 45.94
+            },
+            {
+              "x": -104.38,
+              "y": 48.31
+            },
+            {
+              "x": -103.32,
+              "y": 50.26
+            },
+            {
+              "x": -102.37,
+              "y": 52.06
+            },
+            {
+              "x": -101.52,
+              "y": 53.82
+            },
+            {
+              "x": -100.75,
+              "y": 55.63
+            },
+            {
+              "x": -100.03,
+              "y": 57.69
+            },
+            {
+              "x": -99.42,
+              "y": 59.64
+            },
+            {
+              "x": -99,
+              "y": 61
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -118,
+              "y": 43
+            },
+            {
+              "x": -118.81,
+              "y": 41.97
+            },
+            {
+              "x": -119.99,
+              "y": 40.5
+            },
+            {
+              "x": -121.46,
+              "y": 39.26
+            },
+            {
+              "x": -123.22,
+              "y": 38.73
+            },
+            {
+              "x": -125.37,
+              "y": 38.69
+            },
+            {
+              "x": -127.62,
+              "y": 38.87
+            },
+            {
+              "x": -129.67,
+              "y": 39.06
+            },
+            {
+              "x": -131.76,
+              "y": 39.38
+            },
+            {
+              "x": -133.67,
+              "y": 39.74
+            },
+            {
+              "x": -135,
+              "y": 40
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -121,
+              "y": 65
+            },
+            {
+              "x": -119.61,
+              "y": 65.84
+            },
+            {
+              "x": -117.62,
+              "y": 67.06
+            },
+            {
+              "x": -115.59,
+              "y": 68.5
+            },
+            {
+              "x": -113.92,
+              "y": 70.09
+            },
+            {
+              "x": -112.37,
+              "y": 71.94
+            },
+            {
+              "x": -110.92,
+              "y": 73.83
+            },
+            {
+              "x": -109.54,
+              "y": 75.56
+            },
+            {
+              "x": -108.14,
+              "y": 77.31
+            },
+            {
+              "x": -106.87,
+              "y": 78.9
+            },
+            {
+              "x": -106,
+              "y": 80
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -131,
+              "y": 73
+            },
+            {
+              "x": -132.36,
+              "y": 72.55
+            },
+            {
+              "x": -134.31,
+              "y": 71.9
+            },
+            {
+              "x": -136.37,
+              "y": 71.21
+            },
+            {
+              "x": -138.2,
+              "y": 70.55
+            },
+            {
+              "x": -140,
+              "y": 69.81
+            },
+            {
+              "x": -141.8,
+              "y": 69.21
+            },
+            {
+              "x": -143.63,
+              "y": 68.98
+            },
+            {
+              "x": -145.69,
+              "y": 69.23
+            },
+            {
+              "x": -147.64,
+              "y": 69.68
+            },
+            {
+              "x": -149,
+              "y": 70
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -147,
+              "y": 81
+            },
+            {
+              "x": -147.36,
+              "y": 82.42
+            },
+            {
+              "x": -147.89,
+              "y": 84.46
+            },
+            {
+              "x": -148.67,
+              "y": 86.45
+            },
+            {
+              "x": -149.81,
+              "y": 87.94
+            },
+            {
+              "x": -151.31,
+              "y": 89.19
+            },
+            {
+              "x": -152.95,
+              "y": 90.3
+            },
+            {
+              "x": -154.52,
+              "y": 91.35
+            },
+            {
+              "x": -156.24,
+              "y": 92.42
+            },
+            {
+              "x": -157.87,
+              "y": 93.35
+            },
+            {
+              "x": -159,
+              "y": 94
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -132,
+              "y": 85
+            },
+            {
+              "x": -130.64,
+              "y": 84.84
+            },
+            {
+              "x": -128.69,
+              "y": 84.59
+            },
+            {
+              "x": -126.63,
+              "y": 84.19
+            },
+            {
+              "x": -124.75,
+              "y": 83.53
+            },
+            {
+              "x": -122.81,
+              "y": 82.63
+            },
+            {
+              "x": -121.01,
+              "y": 81.63
+            },
+            {
+              "x": -119.56,
+              "y": 80.69
+            },
+            {
+              "x": -118.44,
+              "y": 79.66
+            },
+            {
+              "x": -117.58,
+              "y": 78.68
+            },
+            {
+              "x": -117,
+              "y": 78
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -149,
+              "y": 51
+            },
+            {
+              "x": -149.65,
+              "y": 52.39
+            },
+            {
+              "x": -150.58,
+              "y": 54.38
+            },
+            {
+              "x": -151.65,
+              "y": 56.41
+            },
+            {
+              "x": -152.74,
+              "y": 58.06
+            },
+            {
+              "x": -153.94,
+              "y": 59.56
+            },
+            {
+              "x": -155.18,
+              "y": 61.02
+            },
+            {
+              "x": -156.42,
+              "y": 62.52
+            },
+            {
+              "x": -157.79,
+              "y": 64.24
+            },
+            {
+              "x": -159.09,
+              "y": 65.87
+            },
+            {
+              "x": -160,
+              "y": 67
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -115,
+              "y": 95
+            },
+            {
+              "x": -115.33,
+              "y": 96.16
+            },
+            {
+              "x": -115.82,
+              "y": 97.83
+            },
+            {
+              "x": -116.63,
+              "y": 99.52
+            },
+            {
+              "x": -118.04,
+              "y": 100.93
+            },
+            {
+              "x": -120.12,
+              "y": 102.31
+            },
+            {
+              "x": -122.12,
+              "y": 103.47
+            },
+            {
+              "x": -123,
+              "y": 104
+            }
+          ],
+          "width": 1.6
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -137,
+              "y": 48
+            },
+            {
+              "x": -137.16,
+              "y": 49.39
+            },
+            {
+              "x": -137.41,
+              "y": 51.38
+            },
+            {
+              "x": -137.81,
+              "y": 53.41
+            },
+            {
+              "x": -138.52,
+              "y": 55.14
+            },
+            {
+              "x": -139.56,
+              "y": 56.88
+            },
+            {
+              "x": -140.56,
+              "y": 58.34
+            },
+            {
+              "x": -141,
+              "y": 59
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Road",
+          "points": [
+            {
+              "x": -101,
+              "y": 96
+            },
+            {
+              "x": -100.36,
+              "y": 97.13
+            },
+            {
+              "x": -99.46,
+              "y": 98.76
+            },
+            {
+              "x": -98.97,
+              "y": 100.48
+            },
+            {
+              "x": -99.48,
+              "y": 102.08
+            },
+            {
+              "x": -100.87,
+              "y": 103.81
+            },
+            {
+              "x": -102.36,
+              "y": 105.32
+            },
+            {
+              "x": -103,
+              "y": 106
+            }
+          ],
+          "width": 2.4
+        },
+        {
+          "profile": "Cliff",
+          "points": [
+            {
+              "x": -92.5,
+              "y": 82
+            },
+            {
+              "x": -93.2,
+              "y": 90
+            },
+            {
+              "x": -92.6,
+              "y": 93.3
+            }
+          ],
+          "width": 1.5,
+          "blocksMovement": true,
+          "alignTexture": true,
+          "corners": "sharp",
+          "ends": "flat"
+        },
+        {
+          "profile": "Cliff",
+          "points": [
+            {
+              "x": -92.6,
+              "y": 96.7
+            },
+            {
+              "x": -93.2,
+              "y": 103
+            },
+            {
+              "x": -92.5,
+              "y": 108
+            }
+          ],
+          "width": 1.5,
+          "blocksMovement": true,
+          "alignTexture": true,
+          "corners": "sharp",
+          "ends": "flat"
         }
       ],
       "structures": [
@@ -22571,35 +24507,3487 @@
           "profile": "Bog",
           "points": [
             {
-              "x": -162.27,
-              "y": 48.14
+              "x": -101.45,
+              "y": 36.05
             },
             {
-              "x": -167.87,
-              "y": 50
+              "x": -99.75,
+              "y": 35.75
             },
             {
-              "x": -170.14,
-              "y": 53.87
+              "x": -98.95,
+              "y": 36.25
             },
             {
-              "x": -167.6,
-              "y": 57.74
+              "x": -99.95,
+              "y": 38.05
             },
             {
-              "x": -158.54,
-              "y": 55.47
+              "x": -101.15,
+              "y": 42.15
             },
             {
-              "x": -157.34,
-              "y": 51.74
+              "x": -97.55,
+              "y": 47.55
             },
             {
-              "x": -159.2,
-              "y": 48.54
+              "x": -96.05,
+              "y": 50.55
+            },
+            {
+              "x": -95.25,
+              "y": 53.75
+            },
+            {
+              "x": -95.25,
+              "y": 57.25
+            },
+            {
+              "x": -95.95,
+              "y": 62.05
+            },
+            {
+              "x": -97.95,
+              "y": 64.05
+            },
+            {
+              "x": -99.25,
+              "y": 64.25
+            },
+            {
+              "x": -100.65,
+              "y": 63.65
+            },
+            {
+              "x": -102.05,
+              "y": 62.05
+            },
+            {
+              "x": -103.35,
+              "y": 59.35
+            },
+            {
+              "x": -105.95,
+              "y": 56.45
+            },
+            {
+              "x": -107.45,
+              "y": 51.95
+            },
+            {
+              "x": -109.95,
+              "y": 48.95
+            },
+            {
+              "x": -110.95,
+              "y": 49.05
+            },
+            {
+              "x": -113.05,
+              "y": 50.45
+            },
+            {
+              "x": -115.05,
+              "y": 50.95
+            },
+            {
+              "x": -118.35,
+              "y": 50.35
+            },
+            {
+              "x": -119.65,
+              "y": 50.85
+            },
+            {
+              "x": -119.95,
+              "y": 51.95
+            },
+            {
+              "x": -117.45,
+              "y": 52.95
+            },
+            {
+              "x": -115.35,
+              "y": 54.35
+            },
+            {
+              "x": -114.05,
+              "y": 56.05
+            },
+            {
+              "x": -113.25,
+              "y": 58.25
+            },
+            {
+              "x": -113.25,
+              "y": 60.25
+            },
+            {
+              "x": -114.05,
+              "y": 63.05
+            },
+            {
+              "x": -111.35,
+              "y": 66.35
+            },
+            {
+              "x": -107.65,
+              "y": 72.65
+            },
+            {
+              "x": -103.35,
+              "y": 77.85
+            },
+            {
+              "x": -102.25,
+              "y": 80.25
+            },
+            {
+              "x": -102.55,
+              "y": 82.45
+            },
+            {
+              "x": -103.35,
+              "y": 83.65
+            },
+            {
+              "x": -105.05,
+              "y": 84.95
+            },
+            {
+              "x": -106.25,
+              "y": 85.25
+            },
+            {
+              "x": -107.85,
+              "y": 84.85
+            },
+            {
+              "x": -111.95,
+              "y": 82.05
+            },
+            {
+              "x": -112.05,
+              "y": 82.95
+            },
+            {
+              "x": -117.55,
+              "y": 86.75
+            },
+            {
+              "x": -114.45,
+              "y": 89.45
+            },
+            {
+              "x": -112.15,
+              "y": 89.55
+            },
+            {
+              "x": -111.25,
+              "y": 90.55
+            },
+            {
+              "x": -108.25,
+              "y": 89.75
+            },
+            {
+              "x": -104.25,
+              "y": 89.75
+            },
+            {
+              "x": -101.75,
+              "y": 90.25
+            },
+            {
+              "x": -97.25,
+              "y": 88.75
+            },
+            {
+              "x": -94.25,
+              "y": 88.75
+            },
+            {
+              "x": -93.35,
+              "y": 89.35
+            },
+            {
+              "x": -92.35,
+              "y": 92.65
+            },
+            {
+              "x": -93.25,
+              "y": 93.25
+            },
+            {
+              "x": -96.15,
+              "y": 92.85
+            },
+            {
+              "x": -98.05,
+              "y": 93.45
+            },
+            {
+              "x": -99.55,
+              "y": 94.45
+            },
+            {
+              "x": -102.45,
+              "y": 94.45
+            },
+            {
+              "x": -107.75,
+              "y": 92.75
+            },
+            {
+              "x": -114.75,
+              "y": 93.75
+            },
+            {
+              "x": -115.95,
+              "y": 93.45
+            },
+            {
+              "x": -118.95,
+              "y": 91.45
+            },
+            {
+              "x": -121.25,
+              "y": 90.75
+            },
+            {
+              "x": -122.75,
+              "y": 90.75
+            },
+            {
+              "x": -126.75,
+              "y": 91.75
+            },
+            {
+              "x": -128.75,
+              "y": 91.75
+            },
+            {
+              "x": -132.55,
+              "y": 90.55
+            },
+            {
+              "x": -132.95,
+              "y": 89.85
+            },
+            {
+              "x": -130.75,
+              "y": 86.25
+            },
+            {
+              "x": -126.15,
+              "y": 85.35
+            },
+            {
+              "x": -121.55,
+              "y": 83.45
+            },
+            {
+              "x": -118.85,
+              "y": 81.65
+            },
+            {
+              "x": -115.95,
+              "y": 78.55
+            },
+            {
+              "x": -116.15,
+              "y": 77.15
+            },
+            {
+              "x": -117.55,
+              "y": 76.95
+            },
+            {
+              "x": -120.85,
+              "y": 80.15
+            },
+            {
+              "x": -125.05,
+              "y": 82.45
+            },
+            {
+              "x": -129.95,
+              "y": 83.55
+            },
+            {
+              "x": -131.05,
+              "y": 83.05
+            },
+            {
+              "x": -132.45,
+              "y": 79.45
+            },
+            {
+              "x": -132.45,
+              "y": 78.55
+            },
+            {
+              "x": -130.35,
+              "y": 74.65
+            },
+            {
+              "x": -124.35,
+              "y": 71.65
+            },
+            {
+              "x": -120.65,
+              "y": 67.85
+            },
+            {
+              "x": -119.45,
+              "y": 67.95
+            },
+            {
+              "x": -115.85,
+              "y": 70.35
+            },
+            {
+              "x": -107.15,
+              "y": 81.15
+            },
+            {
+              "x": -105.85,
+              "y": 81.65
+            },
+            {
+              "x": -104.45,
+              "y": 80.55
+            },
+            {
+              "x": -104.45,
+              "y": 79.45
+            },
+            {
+              "x": -105.85,
+              "y": 77.35
+            },
+            {
+              "x": -111.35,
+              "y": 70.35
+            },
+            {
+              "x": -114.85,
+              "y": 66.85
+            },
+            {
+              "x": -118.05,
+              "y": 64.55
+            },
+            {
+              "x": -117.25,
+              "y": 60.25
+            },
+            {
+              "x": -118.15,
+              "y": 58.15
+            },
+            {
+              "x": -123.75,
+              "y": 55.25
+            },
+            {
+              "x": -125.45,
+              "y": 52.95
+            },
+            {
+              "x": -125.75,
+              "y": 51.75
+            },
+            {
+              "x": -124.95,
+              "y": 49.55
+            },
+            {
+              "x": -123.65,
+              "y": 47.85
+            },
+            {
+              "x": -118.95,
+              "y": 45.05
+            },
+            {
+              "x": -117.45,
+              "y": 44.95
+            },
+            {
+              "x": -115.45,
+              "y": 46.45
+            },
+            {
+              "x": -114.25,
+              "y": 46.75
+            },
+            {
+              "x": -112.55,
+              "y": 46.45
+            },
+            {
+              "x": -109.95,
+              "y": 45.05
+            },
+            {
+              "x": -108.65,
+              "y": 45.15
+            },
+            {
+              "x": -107.75,
+              "y": 45.75
+            },
+            {
+              "x": -106.05,
+              "y": 48.55
+            },
+            {
+              "x": -102.55,
+              "y": 55.55
+            },
+            {
+              "x": -100.55,
+              "y": 61.55
+            },
+            {
+              "x": -99.55,
+              "y": 62.55
+            },
+            {
+              "x": -98.45,
+              "y": 62.55
+            },
+            {
+              "x": -97.35,
+              "y": 61.15
+            },
+            {
+              "x": -98.15,
+              "y": 57.65
+            },
+            {
+              "x": -99.55,
+              "y": 54.05
+            },
+            {
+              "x": -104.95,
+              "y": 43.95
+            },
+            {
+              "x": -104.45,
+              "y": 40.05
             }
           ],
-          "effect": "Blight"
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -139.55,
+              "y": 37.45
+            },
+            {
+              "x": -126.75,
+              "y": 37.25
+            },
+            {
+              "x": -126.15,
+              "y": 37.55
+            },
+            {
+              "x": -129.75,
+              "y": 37.75
+            },
+            {
+              "x": -135.55,
+              "y": 38.95
+            },
+            {
+              "x": -136.05,
+              "y": 39.45
+            },
+            {
+              "x": -136.05,
+              "y": 40.55
+            },
+            {
+              "x": -134.75,
+              "y": 41.25
+            },
+            {
+              "x": -130.25,
+              "y": 40.25
+            },
+            {
+              "x": -123.75,
+              "y": 39.75
+            },
+            {
+              "x": -122.55,
+              "y": 40.05
+            },
+            {
+              "x": -120.55,
+              "y": 41.85
+            },
+            {
+              "x": -121.05,
+              "y": 42.45
+            },
+            {
+              "x": -124.35,
+              "y": 44.15
+            },
+            {
+              "x": -128.75,
+              "y": 43.25
+            },
+            {
+              "x": -132.45,
+              "y": 43.55
+            },
+            {
+              "x": -137.25,
+              "y": 46.25
+            },
+            {
+              "x": -141.75,
+              "y": 45.25
+            },
+            {
+              "x": -144.35,
+              "y": 45.65
+            },
+            {
+              "x": -147.02,
+              "y": 46.98
+            },
+            {
+              "x": -149.72,
+              "y": 49.45
+            },
+            {
+              "x": -152.32,
+              "y": 47.15
+            },
+            {
+              "x": -154.95,
+              "y": 44.98
+            },
+            {
+              "x": -156.9,
+              "y": 44.83
+            },
+            {
+              "x": -160.19,
+              "y": 43.94
+            },
+            {
+              "x": -161.82,
+              "y": 44.52
+            },
+            {
+              "x": -162.46,
+              "y": 46.05
+            },
+            {
+              "x": -161.47,
+              "y": 46.97
+            },
+            {
+              "x": -158.9,
+              "y": 47.5
+            },
+            {
+              "x": -155.55,
+              "y": 51.02
+            },
+            {
+              "x": -164.95,
+              "y": 49.45
+            },
+            {
+              "x": -165.23,
+              "y": 48.89
+            },
+            {
+              "x": -165.52,
+              "y": 48.02
+            },
+            {
+              "x": -165.65,
+              "y": 47.32
+            },
+            {
+              "x": -166.15,
+              "y": 46.12
+            },
+            {
+              "x": -166.02,
+              "y": 44.88
+            },
+            {
+              "x": -165.65,
+              "y": 43.95
+            },
+            {
+              "x": -164.65,
+              "y": 42.85
+            },
+            {
+              "x": -158.95,
+              "y": 42.05
+            },
+            {
+              "x": -156.75,
+              "y": 42.25
+            },
+            {
+              "x": -151.85,
+              "y": 43.65
+            },
+            {
+              "x": -148.95,
+              "y": 41.55
+            },
+            {
+              "x": -146.25,
+              "y": 40.75
+            },
+            {
+              "x": -143.25,
+              "y": 40.75
+            },
+            {
+              "x": -140.65,
+              "y": 41.45
+            },
+            {
+              "x": -140.25,
+              "y": 40.75
+            },
+            {
+              "x": -140.05,
+              "y": 37.95
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -123.35,
+              "y": 37.45
+            },
+            {
+              "x": -116.25,
+              "y": 37.25
+            },
+            {
+              "x": -113.65,
+              "y": 38.65
+            },
+            {
+              "x": -110.25,
+              "y": 37.25
+            },
+            {
+              "x": -107.75,
+              "y": 37.25
+            },
+            {
+              "x": -107.15,
+              "y": 37.45
+            },
+            {
+              "x": -107.05,
+              "y": 37.95
+            },
+            {
+              "x": -109.65,
+              "y": 39.35
+            },
+            {
+              "x": -111.75,
+              "y": 42.25
+            },
+            {
+              "x": -114.15,
+              "y": 43.15
+            },
+            {
+              "x": -118.25,
+              "y": 40.75
+            },
+            {
+              "x": -119.85,
+              "y": 38.85
+            },
+            {
+              "x": -121.05,
+              "y": 38.05
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -156.75,
+              "y": 59.88
+            },
+            {
+              "x": -156.6,
+              "y": 60.86
+            },
+            {
+              "x": -157.27,
+              "y": 61.71
+            },
+            {
+              "x": -161.55,
+              "y": 66.45
+            },
+            {
+              "x": -161.65,
+              "y": 67.15
+            },
+            {
+              "x": -161.15,
+              "y": 68.15
+            },
+            {
+              "x": -159.85,
+              "y": 68.65
+            },
+            {
+              "x": -157.85,
+              "y": 67.15
+            },
+            {
+              "x": -151.35,
+              "y": 59.15
+            },
+            {
+              "x": -149.05,
+              "y": 55.45
+            },
+            {
+              "x": -147.95,
+              "y": 52.55
+            },
+            {
+              "x": -145.65,
+              "y": 50.35
+            },
+            {
+              "x": -142.25,
+              "y": 48.75
+            },
+            {
+              "x": -140.15,
+              "y": 49.15
+            },
+            {
+              "x": -139.05,
+              "y": 49.85
+            },
+            {
+              "x": -139.55,
+              "y": 53.45
+            },
+            {
+              "x": -142.65,
+              "y": 58.85
+            },
+            {
+              "x": -142.15,
+              "y": 60.15
+            },
+            {
+              "x": -140.85,
+              "y": 60.65
+            },
+            {
+              "x": -139.35,
+              "y": 59.65
+            },
+            {
+              "x": -137.55,
+              "y": 56.95
+            },
+            {
+              "x": -136.15,
+              "y": 53.85
+            },
+            {
+              "x": -135.75,
+              "y": 50.75
+            },
+            {
+              "x": -135.15,
+              "y": 49.35
+            },
+            {
+              "x": -131.55,
+              "y": 46.95
+            },
+            {
+              "x": -128.25,
+              "y": 46.75
+            },
+            {
+              "x": -126.75,
+              "y": 47.25
+            },
+            {
+              "x": -126.55,
+              "y": 47.95
+            },
+            {
+              "x": -128.25,
+              "y": 51.75
+            },
+            {
+              "x": -127.95,
+              "y": 53.45
+            },
+            {
+              "x": -125.15,
+              "y": 58.15
+            },
+            {
+              "x": -121.25,
+              "y": 60.25
+            },
+            {
+              "x": -120.85,
+              "y": 60.85
+            },
+            {
+              "x": -120.95,
+              "y": 61.55
+            },
+            {
+              "x": -123.45,
+              "y": 64.05
+            },
+            {
+              "x": -123.95,
+              "y": 66.05
+            },
+            {
+              "x": -125.35,
+              "y": 68.15
+            },
+            {
+              "x": -130.15,
+              "y": 70.85
+            },
+            {
+              "x": -132.25,
+              "y": 71.25
+            },
+            {
+              "x": -142.75,
+              "y": 67.75
+            },
+            {
+              "x": -144.25,
+              "y": 67.75
+            },
+            {
+              "x": -149.85,
+              "y": 69.15
+            },
+            {
+              "x": -150.15,
+              "y": 70.15
+            },
+            {
+              "x": -149.55,
+              "y": 71.05
+            },
+            {
+              "x": -148.75,
+              "y": 71.25
+            },
+            {
+              "x": -144.75,
+              "y": 70.25
+            },
+            {
+              "x": -142.75,
+              "y": 70.25
+            },
+            {
+              "x": -133.45,
+              "y": 73.45
+            },
+            {
+              "x": -133.05,
+              "y": 74.45
+            },
+            {
+              "x": -134.25,
+              "y": 76.75
+            },
+            {
+              "x": -135.25,
+              "y": 77.25
+            },
+            {
+              "x": -140.25,
+              "y": 76.75
+            },
+            {
+              "x": -146.75,
+              "y": 79.25
+            },
+            {
+              "x": -152.75,
+              "y": 78.25
+            },
+            {
+              "x": -156.15,
+              "y": 79.85
+            },
+            {
+              "x": -158.55,
+              "y": 82.45
+            },
+            {
+              "x": -158.65,
+              "y": 83.15
+            },
+            {
+              "x": -158.15,
+              "y": 84.15
+            },
+            {
+              "x": -157.15,
+              "y": 84.65
+            },
+            {
+              "x": -156.45,
+              "y": 84.55
+            },
+            {
+              "x": -153.45,
+              "y": 82.05
+            },
+            {
+              "x": -150.75,
+              "y": 81.75
+            },
+            {
+              "x": -149.45,
+              "y": 82.45
+            },
+            {
+              "x": -149.65,
+              "y": 84.35
+            },
+            {
+              "x": -151.35,
+              "y": 87.15
+            },
+            {
+              "x": -160.15,
+              "y": 92.85
+            },
+            {
+              "x": -160.65,
+              "y": 93.85
+            },
+            {
+              "x": -160.55,
+              "y": 94.55
+            },
+            {
+              "x": -159.55,
+              "y": 95.55
+            },
+            {
+              "x": -158.05,
+              "y": 95.45
+            },
+            {
+              "x": -150.35,
+              "y": 90.65
+            },
+            {
+              "x": -148.25,
+              "y": 88.75
+            },
+            {
+              "x": -147.05,
+              "y": 86.95
+            },
+            {
+              "x": -145.55,
+              "y": 81.95
+            },
+            {
+              "x": -144.45,
+              "y": 81.05
+            },
+            {
+              "x": -139.75,
+              "y": 79.25
+            },
+            {
+              "x": -137.75,
+              "y": 79.25
+            },
+            {
+              "x": -134.75,
+              "y": 80.25
+            },
+            {
+              "x": -133.25,
+              "y": 84.25
+            },
+            {
+              "x": -133.55,
+              "y": 86.45
+            },
+            {
+              "x": -136.95,
+              "y": 91.05
+            },
+            {
+              "x": -139.05,
+              "y": 96.45
+            },
+            {
+              "x": -142.05,
+              "y": 99.95
+            },
+            {
+              "x": -142.05,
+              "y": 102.05
+            },
+            {
+              "x": -140.75,
+              "y": 104.25
+            },
+            {
+              "x": -140.85,
+              "y": 107.15
+            },
+            {
+              "x": -141.75,
+              "y": 107.75
+            },
+            {
+              "x": -143.35,
+              "y": 106.85
+            },
+            {
+              "x": -145.45,
+              "y": 106.35
+            },
+            {
+              "x": -144.75,
+              "y": 103.75
+            },
+            {
+              "x": -144.75,
+              "y": 98.75
+            },
+            {
+              "x": -144.25,
+              "y": 96.75
+            },
+            {
+              "x": -144.25,
+              "y": 94.25
+            },
+            {
+              "x": -144.65,
+              "y": 93.55
+            },
+            {
+              "x": -150.45,
+              "y": 96.05
+            },
+            {
+              "x": -155.95,
+              "y": 100.05
+            },
+            {
+              "x": -158.25,
+              "y": 100.25
+            },
+            {
+              "x": -159.45,
+              "y": 99.95
+            },
+            {
+              "x": -162.15,
+              "y": 98.15
+            },
+            {
+              "x": -163.85,
+              "y": 95.35
+            },
+            {
+              "x": -164.25,
+              "y": 93.75
+            },
+            {
+              "x": -163.85,
+              "y": 92.15
+            },
+            {
+              "x": -163.15,
+              "y": 90.85
+            },
+            {
+              "x": -160.45,
+              "y": 89.55
+            },
+            {
+              "x": -158.45,
+              "y": 88.05
+            },
+            {
+              "x": -158.75,
+              "y": 87.25
+            },
+            {
+              "x": -160.65,
+              "y": 85.65
+            },
+            {
+              "x": -161.35,
+              "y": 84.35
+            },
+            {
+              "x": -161.75,
+              "y": 82.75
+            },
+            {
+              "x": -161.35,
+              "y": 79.65
+            },
+            {
+              "x": -160.15,
+              "y": 77.35
+            },
+            {
+              "x": -158.65,
+              "y": 75.85
+            },
+            {
+              "x": -157.45,
+              "y": 75.05
+            },
+            {
+              "x": -154.25,
+              "y": 74.25
+            },
+            {
+              "x": -153.75,
+              "y": 73.25
+            },
+            {
+              "x": -153.95,
+              "y": 69.55
+            },
+            {
+              "x": -151.65,
+              "y": 65.85
+            },
+            {
+              "x": -150.55,
+              "y": 64.95
+            },
+            {
+              "x": -147.25,
+              "y": 64.25
+            },
+            {
+              "x": -143.15,
+              "y": 65.15
+            },
+            {
+              "x": -134.75,
+              "y": 68.25
+            },
+            {
+              "x": -130.75,
+              "y": 68.25
+            },
+            {
+              "x": -129.35,
+              "y": 67.65
+            },
+            {
+              "x": -127.85,
+              "y": 66.15
+            },
+            {
+              "x": -124.95,
+              "y": 62.55
+            },
+            {
+              "x": -124.95,
+              "y": 61.45
+            },
+            {
+              "x": -126.25,
+              "y": 60.25
+            },
+            {
+              "x": -128.85,
+              "y": 56.05
+            },
+            {
+              "x": -129.25,
+              "y": 57.25
+            },
+            {
+              "x": -128.75,
+              "y": 59.25
+            },
+            {
+              "x": -129.05,
+              "y": 60.45
+            },
+            {
+              "x": -130.05,
+              "y": 61.45
+            },
+            {
+              "x": -132.45,
+              "y": 60.95
+            },
+            {
+              "x": -135.35,
+              "y": 58.35
+            },
+            {
+              "x": -136.15,
+              "y": 58.05
+            },
+            {
+              "x": -139.95,
+              "y": 62.05
+            },
+            {
+              "x": -141.25,
+              "y": 62.25
+            },
+            {
+              "x": -142.45,
+              "y": 61.95
+            },
+            {
+              "x": -144.55,
+              "y": 60.05
+            },
+            {
+              "x": -144.75,
+              "y": 57.25
+            },
+            {
+              "x": -144.25,
+              "y": 55.25
+            },
+            {
+              "x": -144.75,
+              "y": 54.45
+            },
+            {
+              "x": -146.95,
+              "y": 57.05
+            },
+            {
+              "x": -148.05,
+              "y": 59.95
+            },
+            {
+              "x": -149.85,
+              "y": 63.15
+            },
+            {
+              "x": -151.35,
+              "y": 64.65
+            },
+            {
+              "x": -156.15,
+              "y": 67.85
+            },
+            {
+              "x": -156.45,
+              "y": 68.35
+            },
+            {
+              "x": -155.55,
+              "y": 69.15
+            },
+            {
+              "x": -156.85,
+              "y": 71.15
+            },
+            {
+              "x": -159.05,
+              "y": 72.95
+            },
+            {
+              "x": -160.25,
+              "y": 73.25
+            },
+            {
+              "x": -162.45,
+              "y": 72.95
+            },
+            {
+              "x": -165.05,
+              "y": 71.05
+            },
+            {
+              "x": -165.25,
+              "y": 69.75
+            },
+            {
+              "x": -164.75,
+              "y": 67.25
+            },
+            {
+              "x": -164.15,
+              "y": 65.85
+            },
+            {
+              "x": -159.92,
+              "y": 61.68
+            },
+            {
+              "x": -159.83,
+              "y": 60.84
+            },
+            {
+              "x": -160.95,
+              "y": 59.74
+            },
+            {
+              "x": -165.01,
+              "y": 58.86
+            },
+            {
+              "x": -165.02,
+              "y": 55.83
+            },
+            {
+              "x": -158.96,
+              "y": 59.36
+            },
+            {
+              "x": -157.95,
+              "y": 59.39
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -158.43,
+              "y": 56.77
+            },
+            {
+              "x": -161,
+              "y": 52
+            },
+            {
+              "x": -164.95,
+              "y": 51.45
+            },
+            {
+              "x": -165.25,
+              "y": 49.75
+            },
+            {
+              "x": -165,
+              "y": 49
+            },
+            {
+              "x": -160.35,
+              "y": 47.85
+            },
+            {
+              "x": -158.95,
+              "y": 48.45
+            },
+            {
+              "x": -155.55,
+              "y": 51.05
+            },
+            {
+              "x": -151.55,
+              "y": 52.15
+            },
+            {
+              "x": -153.05,
+              "y": 55.45
+            },
+            {
+              "x": -155.28,
+              "y": 58.22
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -133.55,
+              "y": 92.95
+            },
+            {
+              "x": -128.25,
+              "y": 94.25
+            },
+            {
+              "x": -121.25,
+              "y": 93.25
+            },
+            {
+              "x": -120.05,
+              "y": 93.55
+            },
+            {
+              "x": -117.35,
+              "y": 95.35
+            },
+            {
+              "x": -116.75,
+              "y": 96.75
+            },
+            {
+              "x": -117.85,
+              "y": 99.15
+            },
+            {
+              "x": -118.85,
+              "y": 100.15
+            },
+            {
+              "x": -124.05,
+              "y": 103.45
+            },
+            {
+              "x": -124.05,
+              "y": 104.55
+            },
+            {
+              "x": -123.15,
+              "y": 105.15
+            },
+            {
+              "x": -120.55,
+              "y": 103.95
+            },
+            {
+              "x": -116.35,
+              "y": 101.15
+            },
+            {
+              "x": -114.95,
+              "y": 99.05
+            },
+            {
+              "x": -113.95,
+              "y": 96.55
+            },
+            {
+              "x": -109.25,
+              "y": 95.25
+            },
+            {
+              "x": -107.75,
+              "y": 95.25
+            },
+            {
+              "x": -103.15,
+              "y": 96.65
+            },
+            {
+              "x": -102.05,
+              "y": 97.55
+            },
+            {
+              "x": -100.75,
+              "y": 100.25
+            },
+            {
+              "x": -102.35,
+              "y": 103.15
+            },
+            {
+              "x": -104.15,
+              "y": 104.85
+            },
+            {
+              "x": -105.05,
+              "y": 106.45
+            },
+            {
+              "x": -105.75,
+              "y": 106.75
+            },
+            {
+              "x": -107.75,
+              "y": 106.75
+            },
+            {
+              "x": -108.65,
+              "y": 106.15
+            },
+            {
+              "x": -108.55,
+              "y": 104.95
+            },
+            {
+              "x": -107.95,
+              "y": 104.05
+            },
+            {
+              "x": -108.05,
+              "y": 101.45
+            },
+            {
+              "x": -107.05,
+              "y": 100.45
+            },
+            {
+              "x": -103.55,
+              "y": 101.45
+            },
+            {
+              "x": -102.75,
+              "y": 100.25
+            },
+            {
+              "x": -103.45,
+              "y": 98.95
+            },
+            {
+              "x": -107.75,
+              "y": 97.75
+            },
+            {
+              "x": -110.65,
+              "y": 99.35
+            },
+            {
+              "x": -112.65,
+              "y": 103.85
+            },
+            {
+              "x": -117.05,
+              "y": 106.45
+            },
+            {
+              "x": -118.25,
+              "y": 106.75
+            },
+            {
+              "x": -127.25,
+              "y": 106.75
+            },
+            {
+              "x": -127.95,
+              "y": 106.45
+            },
+            {
+              "x": -128.25,
+              "y": 105.75
+            },
+            {
+              "x": -127.95,
+              "y": 103.55
+            },
+            {
+              "x": -125.65,
+              "y": 100.85
+            },
+            {
+              "x": -122.85,
+              "y": 98.65
+            },
+            {
+              "x": -122.45,
+              "y": 97.75
+            },
+            {
+              "x": -125.25,
+              "y": 96.75
+            },
+            {
+              "x": -131.75,
+              "y": 96.25
+            },
+            {
+              "x": -132.85,
+              "y": 97.15
+            },
+            {
+              "x": -133.85,
+              "y": 100.15
+            },
+            {
+              "x": -134.95,
+              "y": 106.55
+            },
+            {
+              "x": -135.95,
+              "y": 107.55
+            },
+            {
+              "x": -136.65,
+              "y": 107.65
+            },
+            {
+              "x": -137.25,
+              "y": 106.75
+            },
+            {
+              "x": -137.25,
+              "y": 104.25
+            },
+            {
+              "x": -135.75,
+              "y": 101.25
+            },
+            {
+              "x": -136.45,
+              "y": 98.55
+            },
+            {
+              "x": -134.45,
+              "y": 94.05
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -96.55,
+              "y": 95.45
+            },
+            {
+              "x": -94.75,
+              "y": 95.25
+            },
+            {
+              "x": -93.15,
+              "y": 95.65
+            },
+            {
+              "x": -92.35,
+              "y": 96.35
+            },
+            {
+              "x": -92.35,
+              "y": 98.15
+            },
+            {
+              "x": -93.45,
+              "y": 99.55
+            },
+            {
+              "x": -94.85,
+              "y": 102.65
+            },
+            {
+              "x": -98.25,
+              "y": 106.25
+            },
+            {
+              "x": -99.25,
+              "y": 106.75
+            },
+            {
+              "x": -100.65,
+              "y": 106.65
+            },
+            {
+              "x": -100.85,
+              "y": 106.15
+            },
+            {
+              "x": -98.85,
+              "y": 104.15
+            },
+            {
+              "x": -97.25,
+              "y": 100.75
+            },
+            {
+              "x": -98.45,
+              "y": 96.65
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -153.55,
+              "y": 104.45
+            },
+            {
+              "x": -151.75,
+              "y": 104.25
+            },
+            {
+              "x": -150.55,
+              "y": 104.55
+            },
+            {
+              "x": -148.05,
+              "y": 106.35
+            },
+            {
+              "x": -148.75,
+              "y": 106.75
+            },
+            {
+              "x": -154.15,
+              "y": 106.65
+            },
+            {
+              "x": -154.35,
+              "y": 105.65
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -124.3,
+              "y": 49.5
+            },
+            {
+              "x": -124.59,
+              "y": 50.38
+            },
+            {
+              "x": -125.34,
+              "y": 50.93
+            },
+            {
+              "x": -126.26,
+              "y": 50.93
+            },
+            {
+              "x": -127.01,
+              "y": 50.38
+            },
+            {
+              "x": -127.3,
+              "y": 49.5
+            },
+            {
+              "x": -127.01,
+              "y": 48.62
+            },
+            {
+              "x": -126.26,
+              "y": 48.07
+            },
+            {
+              "x": -125.34,
+              "y": 48.07
+            },
+            {
+              "x": -124.59,
+              "y": 48.62
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -131.1,
+              "y": 76
+            },
+            {
+              "x": -131.39,
+              "y": 76.88
+            },
+            {
+              "x": -132.14,
+              "y": 77.43
+            },
+            {
+              "x": -133.06,
+              "y": 77.43
+            },
+            {
+              "x": -133.81,
+              "y": 76.88
+            },
+            {
+              "x": -134.1,
+              "y": 76
+            },
+            {
+              "x": -133.81,
+              "y": 75.12
+            },
+            {
+              "x": -133.06,
+              "y": 74.57
+            },
+            {
+              "x": -132.14,
+              "y": 74.57
+            },
+            {
+              "x": -131.39,
+              "y": 75.12
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -139,
+              "y": 78.4
+            },
+            {
+              "x": -139.29,
+              "y": 79.28
+            },
+            {
+              "x": -140.04,
+              "y": 79.83
+            },
+            {
+              "x": -140.96,
+              "y": 79.83
+            },
+            {
+              "x": -141.71,
+              "y": 79.28
+            },
+            {
+              "x": -142,
+              "y": 78.4
+            },
+            {
+              "x": -141.71,
+              "y": 77.52
+            },
+            {
+              "x": -140.96,
+              "y": 76.97
+            },
+            {
+              "x": -140.04,
+              "y": 76.97
+            },
+            {
+              "x": -139.29,
+              "y": 77.52
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -132.1,
+              "y": 88.6
+            },
+            {
+              "x": -132.39,
+              "y": 89.48
+            },
+            {
+              "x": -133.14,
+              "y": 90.03
+            },
+            {
+              "x": -134.06,
+              "y": 90.03
+            },
+            {
+              "x": -134.81,
+              "y": 89.48
+            },
+            {
+              "x": -135.1,
+              "y": 88.6
+            },
+            {
+              "x": -134.81,
+              "y": 87.72
+            },
+            {
+              "x": -134.06,
+              "y": 87.17
+            },
+            {
+              "x": -133.14,
+              "y": 87.17
+            },
+            {
+              "x": -132.39,
+              "y": 87.72
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -116.5,
+              "y": 93.4
+            },
+            {
+              "x": -116.79,
+              "y": 94.28
+            },
+            {
+              "x": -117.54,
+              "y": 94.83
+            },
+            {
+              "x": -118.46,
+              "y": 94.83
+            },
+            {
+              "x": -119.21,
+              "y": 94.28
+            },
+            {
+              "x": -119.5,
+              "y": 93.4
+            },
+            {
+              "x": -119.21,
+              "y": 92.52
+            },
+            {
+              "x": -118.46,
+              "y": 91.97
+            },
+            {
+              "x": -117.54,
+              "y": 91.97
+            },
+            {
+              "x": -116.79,
+              "y": 92.52
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Bog",
+          "points": [
+            {
+              "x": -103.1,
+              "y": 95.3
+            },
+            {
+              "x": -103.39,
+              "y": 96.18
+            },
+            {
+              "x": -104.14,
+              "y": 96.73
+            },
+            {
+              "x": -105.06,
+              "y": 96.73
+            },
+            {
+              "x": -105.81,
+              "y": 96.18
+            },
+            {
+              "x": -106.1,
+              "y": 95.3
+            },
+            {
+              "x": -105.81,
+              "y": 94.42
+            },
+            {
+              "x": -105.06,
+              "y": 93.87
+            },
+            {
+              "x": -104.14,
+              "y": 93.87
+            },
+            {
+              "x": -103.39,
+              "y": 94.42
+            }
+          ],
+          "effect": "BogSickness"
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -100.05,
+              "y": 39.15
+            },
+            {
+              "x": -96.85,
+              "y": 40.85
+            },
+            {
+              "x": -93.45,
+              "y": 43.95
+            },
+            {
+              "x": -93.45,
+              "y": 58.85
+            },
+            {
+              "x": -94.95,
+              "y": 56.45
+            },
+            {
+              "x": -96.05,
+              "y": 50.55
+            },
+            {
+              "x": -101.05,
+              "y": 42.55
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -164.95,
+              "y": 40.55
+            },
+            {
+              "x": -155.75,
+              "y": 40.25
+            },
+            {
+              "x": -154.75,
+              "y": 40.75
+            },
+            {
+              "x": -154.35,
+              "y": 42.15
+            },
+            {
+              "x": -154.85,
+              "y": 42.65
+            },
+            {
+              "x": -158.95,
+              "y": 42.05
+            },
+            {
+              "x": -164.25,
+              "y": 42.75
+            },
+            {
+              "x": -165.15,
+              "y": 42.15
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -130.38,
+              "y": 49.43
+            },
+            {
+              "x": -129.78,
+              "y": 53.13
+            },
+            {
+              "x": -132.62,
+              "y": 53
+            },
+            {
+              "x": -130.95,
+              "y": 51.58
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -119.05,
+              "y": 50.45
+            },
+            {
+              "x": -112.85,
+              "y": 50.55
+            },
+            {
+              "x": -111.35,
+              "y": 51.85
+            },
+            {
+              "x": -106.05,
+              "y": 60.55
+            },
+            {
+              "x": -105.65,
+              "y": 63.85
+            },
+            {
+              "x": -109.25,
+              "y": 64.25
+            },
+            {
+              "x": -113.85,
+              "y": 63.35
+            },
+            {
+              "x": -113.25,
+              "y": 60.25
+            },
+            {
+              "x": -113.55,
+              "y": 57.05
+            },
+            {
+              "x": -115.35,
+              "y": 54.35
+            },
+            {
+              "x": -119.95,
+              "y": 51.95
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -164.97,
+              "y": 58.7
+            },
+            {
+              "x": -160.97,
+              "y": 59.7
+            },
+            {
+              "x": -159.88,
+              "y": 60.95
+            },
+            {
+              "x": -159.83,
+              "y": 61.7
+            },
+            {
+              "x": -163.08,
+              "y": 64.68
+            },
+            {
+              "x": -164.05,
+              "y": 65.92
+            },
+            {
+              "x": -164.95,
+              "y": 67.92
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -129.05,
+              "y": 56.15
+            },
+            {
+              "x": -124.85,
+              "y": 62.15
+            },
+            {
+              "x": -129.35,
+              "y": 67.65
+            },
+            {
+              "x": -134.75,
+              "y": 68.25
+            },
+            {
+              "x": -140.75,
+              "y": 65.75
+            },
+            {
+              "x": -141.85,
+              "y": 62.45
+            },
+            {
+              "x": -139.35,
+              "y": 61.65
+            },
+            {
+              "x": -136.15,
+              "y": 58.05
+            },
+            {
+              "x": -132.45,
+              "y": 60.95
+            },
+            {
+              "x": -129.75,
+              "y": 61.25
+            },
+            {
+              "x": -128.75,
+              "y": 59.25
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -153.65,
+              "y": 66.05
+            },
+            {
+              "x": -152.75,
+              "y": 67.75
+            },
+            {
+              "x": -153.95,
+              "y": 69.55
+            },
+            {
+              "x": -153.85,
+              "y": 73.65
+            },
+            {
+              "x": -155.15,
+              "y": 74.45
+            },
+            {
+              "x": -157.95,
+              "y": 72.35
+            },
+            {
+              "x": -155.55,
+              "y": 69.15
+            },
+            {
+              "x": -156.45,
+              "y": 68.35
+            },
+            {
+              "x": -156.15,
+              "y": 67.85
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -99.55,
+              "y": 66.95
+            },
+            {
+              "x": -94.25,
+              "y": 67.25
+            },
+            {
+              "x": -93.35,
+              "y": 67.85
+            },
+            {
+              "x": -93.45,
+              "y": 85.85
+            },
+            {
+              "x": -100.35,
+              "y": 70.35
+            },
+            {
+              "x": -100.75,
+              "y": 68.25
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -164.95,
+              "y": 82.05
+            },
+            {
+              "x": -161.85,
+              "y": 83.35
+            },
+            {
+              "x": -160.65,
+              "y": 85.65
+            },
+            {
+              "x": -158.45,
+              "y": 87.75
+            },
+            {
+              "x": -163.15,
+              "y": 90.85
+            },
+            {
+              "x": -163.85,
+              "y": 92.15
+            },
+            {
+              "x": -163.85,
+              "y": 95.35
+            },
+            {
+              "x": -162.15,
+              "y": 98.15
+            },
+            {
+              "x": -159.45,
+              "y": 99.95
+            },
+            {
+              "x": -156.75,
+              "y": 100.25
+            },
+            {
+              "x": -150.75,
+              "y": 96.45
+            },
+            {
+              "x": -148.05,
+              "y": 100.55
+            },
+            {
+              "x": -146.75,
+              "y": 104.25
+            },
+            {
+              "x": -147.15,
+              "y": 105.35
+            },
+            {
+              "x": -148.15,
+              "y": 105.65
+            },
+            {
+              "x": -152.75,
+              "y": 104.25
+            },
+            {
+              "x": -153.85,
+              "y": 104.65
+            },
+            {
+              "x": -154.75,
+              "y": 106.25
+            },
+            {
+              "x": -156.25,
+              "y": 106.75
+            },
+            {
+              "x": -164.95,
+              "y": 106.45
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -132.35,
+              "y": 96.45
+            },
+            {
+              "x": -125.25,
+              "y": 96.75
+            },
+            {
+              "x": -122.45,
+              "y": 97.75
+            },
+            {
+              "x": -127.15,
+              "y": 102.35
+            },
+            {
+              "x": -128.85,
+              "y": 106.65
+            },
+            {
+              "x": -131.45,
+              "y": 106.35
+            },
+            {
+              "x": -131.25,
+              "y": 102.25
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -105.95,
+              "y": 98.55
+            },
+            {
+              "x": -103.15,
+              "y": 99.15
+            },
+            {
+              "x": -102.75,
+              "y": 100.25
+            },
+            {
+              "x": -103.25,
+              "y": 101.25
+            },
+            {
+              "x": -104.45,
+              "y": 101.45
+            },
+            {
+              "x": -105.65,
+              "y": 100.65
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -93.55,
+              "y": 100.15
+            },
+            {
+              "x": -93.35,
+              "y": 106.15
+            },
+            {
+              "x": -94.25,
+              "y": 106.75
+            },
+            {
+              "x": -97.65,
+              "y": 106.65
+            },
+            {
+              "x": -98.05,
+              "y": 105.95
+            },
+            {
+              "x": -94.85,
+              "y": 102.65
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Deep Bog",
+          "points": [
+            {
+              "x": -111.95,
+              "y": 103.05
+            },
+            {
+              "x": -109.35,
+              "y": 104.85
+            },
+            {
+              "x": -109.05,
+              "y": 106.45
+            },
+            {
+              "x": -116.85,
+              "y": 106.55
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -144.05,
+              "y": 35.95
+            },
+            {
+              "x": -107.75,
+              "y": 35.75
+            },
+            {
+              "x": -106.85,
+              "y": 36.65
+            },
+            {
+              "x": -111.05,
+              "y": 37.45
+            },
+            {
+              "x": -113.35,
+              "y": 38.65
+            },
+            {
+              "x": -116.25,
+              "y": 37.25
+            },
+            {
+              "x": -138.75,
+              "y": 37.25
+            },
+            {
+              "x": -140.05,
+              "y": 37.95
+            },
+            {
+              "x": -140.65,
+              "y": 41.45
+            },
+            {
+              "x": -146.25,
+              "y": 40.75
+            },
+            {
+              "x": -148.95,
+              "y": 41.55
+            },
+            {
+              "x": -151.85,
+              "y": 43.65
+            },
+            {
+              "x": -153.95,
+              "y": 42.95
+            },
+            {
+              "x": -154.75,
+              "y": 40.75
+            },
+            {
+              "x": -155.75,
+              "y": 40.25
+            },
+            {
+              "x": -164.65,
+              "y": 40.35
+            },
+            {
+              "x": -165.65,
+              "y": 43.95
+            },
+            {
+              "x": -168.75,
+              "y": 41.25
+            },
+            {
+              "x": -177.35,
+              "y": 43.65
+            },
+            {
+              "x": -178.15,
+              "y": 43.15
+            },
+            {
+              "x": -176.95,
+              "y": 41.55
+            },
+            {
+              "x": -168.75,
+              "y": 39.25
+            },
+            {
+              "x": -153.75,
+              "y": 38.75
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -98.45,
+              "y": 36.05
+            },
+            {
+              "x": -93.25,
+              "y": 35.75
+            },
+            {
+              "x": -92.25,
+              "y": 36.75
+            },
+            {
+              "x": -92.25,
+              "y": 90.25
+            },
+            {
+              "x": -92.75,
+              "y": 91.05
+            },
+            {
+              "x": -93.85,
+              "y": 88.85
+            },
+            {
+              "x": -97.25,
+              "y": 88.75
+            },
+            {
+              "x": -101.75,
+              "y": 90.25
+            },
+            {
+              "x": -108.25,
+              "y": 89.75
+            },
+            {
+              "x": -111.25,
+              "y": 90.55
+            },
+            {
+              "x": -112.15,
+              "y": 89.55
+            },
+            {
+              "x": -114.45,
+              "y": 89.45
+            },
+            {
+              "x": -115.65,
+              "y": 88.65
+            },
+            {
+              "x": -117.45,
+              "y": 86.95
+            },
+            {
+              "x": -117.25,
+              "y": 86.25
+            },
+            {
+              "x": -111.35,
+              "y": 82.55
+            },
+            {
+              "x": -107.85,
+              "y": 84.85
+            },
+            {
+              "x": -105.05,
+              "y": 84.95
+            },
+            {
+              "x": -102.55,
+              "y": 82.45
+            },
+            {
+              "x": -102.25,
+              "y": 80.25
+            },
+            {
+              "x": -112.95,
+              "y": 64.15
+            },
+            {
+              "x": -106.75,
+              "y": 64.25
+            },
+            {
+              "x": -105.35,
+              "y": 63.15
+            },
+            {
+              "x": -107.55,
+              "y": 57.55
+            },
+            {
+              "x": -112.45,
+              "y": 50.35
+            },
+            {
+              "x": -110.95,
+              "y": 49.05
+            },
+            {
+              "x": -109.35,
+              "y": 49.35
+            },
+            {
+              "x": -107.45,
+              "y": 51.95
+            },
+            {
+              "x": -105.95,
+              "y": 56.45
+            },
+            {
+              "x": -100.65,
+              "y": 63.65
+            },
+            {
+              "x": -98.75,
+              "y": 64.25
+            },
+            {
+              "x": -96.35,
+              "y": 62.65
+            },
+            {
+              "x": -95.05,
+              "y": 56.65
+            },
+            {
+              "x": -93.75,
+              "y": 58.75
+            },
+            {
+              "x": -93.25,
+              "y": 58.25
+            },
+            {
+              "x": -93.25,
+              "y": 44.75
+            },
+            {
+              "x": -93.65,
+              "y": 43.65
+            },
+            {
+              "x": -99.85,
+              "y": 38.85
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -165.08,
+              "y": 55.63
+            },
+            {
+              "x": -165.05,
+              "y": 71.05
+            },
+            {
+              "x": -162.45,
+              "y": 72.95
+            },
+            {
+              "x": -158.25,
+              "y": 72.75
+            },
+            {
+              "x": -155.55,
+              "y": 74.35
+            },
+            {
+              "x": -157.45,
+              "y": 75.05
+            },
+            {
+              "x": -160.15,
+              "y": 77.35
+            },
+            {
+              "x": -161.95,
+              "y": 82.85
+            },
+            {
+              "x": -164.45,
+              "y": 81.95
+            },
+            {
+              "x": -165.15,
+              "y": 82.35
+            },
+            {
+              "x": -165.15,
+              "y": 106.15
+            },
+            {
+              "x": -164.25,
+              "y": 106.75
+            },
+            {
+              "x": -148.15,
+              "y": 106.55
+            },
+            {
+              "x": -146.75,
+              "y": 104.25
+            },
+            {
+              "x": -150.15,
+              "y": 96.35
+            },
+            {
+              "x": -144.65,
+              "y": 93.55
+            },
+            {
+              "x": -144.25,
+              "y": 96.75
+            },
+            {
+              "x": -145.45,
+              "y": 106.35
+            },
+            {
+              "x": -143.35,
+              "y": 106.85
+            },
+            {
+              "x": -143.35,
+              "y": 107.65
+            },
+            {
+              "x": -180,
+              "y": 108
+            },
+            {
+              "x": -181,
+              "y": 108
+            },
+            {
+              "x": -180.29,
+              "y": 93.75
+            },
+            {
+              "x": -178.75,
+              "y": 93.25
+            },
+            {
+              "x": -177.75,
+              "y": 94.25
+            },
+            {
+              "x": -170.45,
+              "y": 92.05
+            },
+            {
+              "x": -169.75,
+              "y": 90.75
+            },
+            {
+              "x": -168.75,
+              "y": 76.75
+            },
+            {
+              "x": -168.38,
+              "y": 55.92
+            },
+            {
+              "x": -168.45,
+              "y": 55.25
+            },
+            {
+              "x": -167.91,
+              "y": 54.68
+            },
+            {
+              "x": -166.63,
+              "y": 54.9
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -167.98,
+              "y": 51.98
+            },
+            {
+              "x": -167.68,
+              "y": 42.42
+            },
+            {
+              "x": -165.78,
+              "y": 42.28
+            },
+            {
+              "x": -164.37,
+              "y": 42.5
+            },
+            {
+              "x": -165.14,
+              "y": 49.8
+            },
+            {
+              "x": -164.29,
+              "y": 51.53
+            },
+            {
+              "x": -165,
+              "y": 52.6
+            },
+            {
+              "x": -166.31,
+              "y": 52.69
+            },
+            {
+              "x": -167.33,
+              "y": 52.55
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -131.55,
+              "y": 48.95
+            },
+            {
+              "x": -130.35,
+              "y": 49.35
+            },
+            {
+              "x": -130.95,
+              "y": 51.55
+            },
+            {
+              "x": -132.55,
+              "y": 52.95
+            },
+            {
+              "x": -133.85,
+              "y": 53.05
+            },
+            {
+              "x": -133.55,
+              "y": 50.45
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -144.95,
+              "y": 54.55
+            },
+            {
+              "x": -144.25,
+              "y": 55.25
+            },
+            {
+              "x": -144.55,
+              "y": 60.05
+            },
+            {
+              "x": -142.05,
+              "y": 62.55
+            },
+            {
+              "x": -141.15,
+              "y": 65.55
+            },
+            {
+              "x": -147.75,
+              "y": 64.25
+            },
+            {
+              "x": -150.55,
+              "y": 64.95
+            },
+            {
+              "x": -152.75,
+              "y": 66.75
+            },
+            {
+              "x": -152.85,
+              "y": 65.65
+            },
+            {
+              "x": -149.85,
+              "y": 63.15
+            },
+            {
+              "x": -146.95,
+              "y": 57.05
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -137.68,
+              "y": 83.95
+            },
+            {
+              "x": -138.52,
+              "y": 85.88
+            },
+            {
+              "x": -139.2,
+              "y": 87.78
+            },
+            {
+              "x": -140.19,
+              "y": 90.18
+            },
+            {
+              "x": -141.77,
+              "y": 90.84
+            },
+            {
+              "x": -143.28,
+              "y": 90.05
+            },
+            {
+              "x": -143.87,
+              "y": 88.6
+            },
+            {
+              "x": -143.04,
+              "y": 85.69
+            },
+            {
+              "x": -141.81,
+              "y": 83.57
+            },
+            {
+              "x": -139.78,
+              "y": 82.98
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -132.55,
+              "y": 97.15
+            },
+            {
+              "x": -131.25,
+              "y": 102.25
+            },
+            {
+              "x": -131.15,
+              "y": 106.65
+            },
+            {
+              "x": -105.25,
+              "y": 106.75
+            },
+            {
+              "x": -104.05,
+              "y": 107.35
+            },
+            {
+              "x": -135.15,
+              "y": 107.65
+            },
+            {
+              "x": -134.25,
+              "y": 101.75
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -108.55,
+              "y": 97.95
+            },
+            {
+              "x": -106.95,
+              "y": 97.95
+            },
+            {
+              "x": -106.25,
+              "y": 99.25
+            },
+            {
+              "x": -108.05,
+              "y": 101.45
+            },
+            {
+              "x": -107.95,
+              "y": 104.05
+            },
+            {
+              "x": -109.15,
+              "y": 104.95
+            },
+            {
+              "x": -111.55,
+              "y": 101.95
+            },
+            {
+              "x": -110.65,
+              "y": 99.35
+            }
+          ],
+          "blocksMovement": true
+        },
+        {
+          "profile": "Thicket",
+          "points": [
+            {
+              "x": -92.95,
+              "y": 99.05
+            },
+            {
+              "x": -92.25,
+              "y": 99.75
+            },
+            {
+              "x": -92.55,
+              "y": 107.45
+            },
+            {
+              "x": -101.85,
+              "y": 107.55
+            },
+            {
+              "x": -100.75,
+              "y": 106.75
+            },
+            {
+              "x": -93.55,
+              "y": 106.45
+            }
+          ],
+          "blocksMovement": true
+        }
+      ],
+      "atmospheres": [
+        {
+          "profile": "Darkness",
+          "points": [
+            {
+              "x": -167.5,
+              "y": 39.8
+            },
+            {
+              "x": -153,
+              "y": 38.3
+            },
+            {
+              "x": -144,
+              "y": 35.8
+            },
+            {
+              "x": -111,
+              "y": 35.3
+            },
+            {
+              "x": -111,
+              "y": 28
+            },
+            {
+              "x": -92,
+              "y": 28
+            },
+            {
+              "x": -92,
+              "y": 108.3
+            },
+            {
+              "x": -167.5,
+              "y": 108.3
+            }
+          ]
+        },
+        {
+          "profile": "Miasma",
+          "points": [
+            {
+              "x": -166,
+              "y": 69
+            },
+            {
+              "x": -145,
+              "y": 69
+            },
+            {
+              "x": -130,
+              "y": 68
+            },
+            {
+              "x": -115,
+              "y": 70
+            },
+            {
+              "x": -111,
+              "y": 86
+            },
+            {
+              "x": -113,
+              "y": 100
+            },
+            {
+              "x": -128,
+              "y": 107.5
+            },
+            {
+              "x": -150,
+              "y": 107.5
+            },
+            {
+              "x": -166,
+              "y": 103
+            },
+            {
+              "x": -168,
+              "y": 88
+            }
+          ]
+        }
+      ],
+      "clearings": [
+        {
+          "clears": "both",
+          "points": [
+            {
+              "x": -103.6,
+              "y": 42
+            },
+            {
+              "x": -104.04,
+              "y": 43.91
+            },
+            {
+              "x": -105.26,
+              "y": 45.44
+            },
+            {
+              "x": -107.02,
+              "y": 46.29
+            },
+            {
+              "x": -108.98,
+              "y": 46.29
+            },
+            {
+              "x": -110.74,
+              "y": 45.44
+            },
+            {
+              "x": -111.96,
+              "y": 43.91
+            },
+            {
+              "x": -112.4,
+              "y": 42
+            },
+            {
+              "x": -111.96,
+              "y": 40.09
+            },
+            {
+              "x": -110.74,
+              "y": 38.56
+            },
+            {
+              "x": -108.98,
+              "y": 37.71
+            },
+            {
+              "x": -107.02,
+              "y": 37.71
+            },
+            {
+              "x": -105.26,
+              "y": 38.56
+            },
+            {
+              "x": -104.04,
+              "y": 40.09
+            }
+          ]
+        },
+        {
+          "clears": "both",
+          "points": [
+            {
+              "x": -117.2,
+              "y": 65
+            },
+            {
+              "x": -117.58,
+              "y": 66.65
+            },
+            {
+              "x": -118.63,
+              "y": 67.97
+            },
+            {
+              "x": -120.15,
+              "y": 68.7
+            },
+            {
+              "x": -121.85,
+              "y": 68.7
+            },
+            {
+              "x": -123.37,
+              "y": 67.97
+            },
+            {
+              "x": -124.42,
+              "y": 66.65
+            },
+            {
+              "x": -124.8,
+              "y": 65
+            },
+            {
+              "x": -124.42,
+              "y": 63.35
+            },
+            {
+              "x": -123.37,
+              "y": 62.03
+            },
+            {
+              "x": -121.85,
+              "y": 61.3
+            },
+            {
+              "x": -120.15,
+              "y": 61.3
+            },
+            {
+              "x": -118.63,
+              "y": 62.03
+            },
+            {
+              "x": -117.58,
+              "y": 63.35
+            }
+          ]
+        },
+        {
+          "clears": "both",
+          "points": [
+            {
+              "x": -134.6,
+              "y": 101
+            },
+            {
+              "x": -135.04,
+              "y": 102.91
+            },
+            {
+              "x": -136.26,
+              "y": 104.44
+            },
+            {
+              "x": -138.02,
+              "y": 105.29
+            },
+            {
+              "x": -139.98,
+              "y": 105.29
+            },
+            {
+              "x": -141.74,
+              "y": 104.44
+            },
+            {
+              "x": -142.96,
+              "y": 102.91
+            },
+            {
+              "x": -143.4,
+              "y": 101
+            },
+            {
+              "x": -142.96,
+              "y": 99.09
+            },
+            {
+              "x": -141.74,
+              "y": 97.56
+            },
+            {
+              "x": -139.98,
+              "y": 96.71
+            },
+            {
+              "x": -138.02,
+              "y": 96.71
+            },
+            {
+              "x": -136.26,
+              "y": 97.56
+            },
+            {
+              "x": -135.04,
+              "y": 99.09
+            }
+          ]
+        }
+      ],
+      "anchors": [
+        {
+          "name": "spiderden-surface",
+          "x": -156.34,
+          "y": 82.39
         }
       ]
     },

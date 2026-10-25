@@ -1,0 +1,35 @@
+{
+  "_comment": "The Spider Queen at the end of the spiders' den under Sorrowfen (content-zone-7-swamp.md §2.2, C6): a group boss for 2-3 players, built on BroodMother (venom, a fear screech, splits into Spiders on death) plus the giant spider's web. The kill target of the-spider-queen. Immune to miasma like the swamp's other spiders. Wears the GiantSpider sprite at a larger body until her own art lands. All values [PLACEHOLDER].",
+  "id": 135,
+  "name": "SpiderQueen",
+  "type": "MOB",
+  "entityType": "GiantSpider",
+  "faction": "spider",
+  "tier": "boss",
+  "curveLevel": 12,
+  "factors": {
+    "resistances": {"poison": 0.25, "miasma": 0},
+    "baseMaxHealth": 700,
+    "maxHealthVariance": 0.0,
+    "speed": 0.8,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 1.5,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.7,
+    "aggroRadius": 4
+  },
+  "skills": [
+    { "skillName": "GiantVenomSpit", "level": 1 },
+    { "skillName": "SpinWeb", "level": 1 },
+    { "skillName": "BroodScreech", "level": 1 }
+  ],
+  "onDeath": [
+    { "skillName": "BroodSplit", "level": 1 }
+  ]
+}

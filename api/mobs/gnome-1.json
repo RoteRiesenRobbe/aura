@@ -1,5 +1,5 @@
 {
-  "_comment": "Gnome 1 (placeholder name), the tinker in Dionsburg's gnome craft district (content-zone-2-woodland.md §3.8): turns in `the-stolen-shipment` (the shipment and Reinhard's letter are for the gnomes), then offers `oil-for-the-lamps` already at its bring stage; to a player who came from the Lamplighter it hands the oil over if they delivered the shipment or are level 7 (PO 2026-10-25). Teaches nothing. Standing talkable-NPC shape (miller.json). entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Pim Sprocketwhistle (placeholder name; the id Gnome1 stays), the tinker in Dionsburg's gnome craft district (content-zone-2-woodland.md §3.8): turns in `the-stolen-shipment` (the shipment and Reinhard's letter are for the gnomes), then offers `oil-for-the-lamps` already at its bring stage; to a player who came from the Lamplighter it hands the oil over if they delivered the shipment or are level 7 (PO 2026-10-25). Teaches nothing. Standing talkable-NPC shape (miller.json). entityType Hermit is placeholder art. All values [PLACEHOLDER].",
   "id": 129,
   "name": "Gnome1",
   "type": "MOB",

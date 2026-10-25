@@ -315,6 +315,15 @@
     "description": "Region banner title of the place \"southgate\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
+  "region.spider-den.subtitle": "Sorrowfen",
+  "@region.spider-den.subtitle": {
+    "description": "Region banner subtitle under \"Spider Den\"."
+  },
+  "region.spider-den.title": "Spider Den",
+  "@region.spider-den.title": {
+    "description": "Region banner title of the place \"spider-den\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
   "region.sunscar.subtitle": "Road's End",
   "@region.sunscar.subtitle": {
     "description": "Region banner subtitle under \"The Sunscar\"."
@@ -385,6 +394,10 @@
   "zone.koboldCave.name": "Underworld",
   "@zone.koboldCave.name": {
     "description": "Name of the zone \"koboldCave\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.spiderDen.name": "Spider Den",
+  "@zone.spiderDen.name": {
+    "description": "Name of the zone \"spiderDen\", shown on the crossing curtain when no region names the arrival point."
   },
   "zone.tunnel.name": "Tunnel",
   "@zone.tunnel.name": {

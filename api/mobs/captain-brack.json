@@ -1,0 +1,76 @@
+{
+  "_comment": "Captain Brack (placeholder name), the pirate captain at the fire on Sorrowfen's lake shore (content-zone-7-swamp.md §2.2, C5): offers and turns in treasure-in-the-bog, whose chest (SunkChest) lies past a wrong-way plank in the swamp's core. Standing talkable-NPC shape; entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "id": 132,
+  "name": "CaptainBrack",
+  "type": "MOB",
+  "entityType": "Wanderer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "you-look-like-someone-who"}
+        ],
+        "options": [
+          { "id": "what-brings-pirates", "next": "treasure" },
+          { "id": "about-your-chest", "next": "treasure_running" }
+        ]
+      },
+      {
+        "id": "treasure",
+        "lines": [
+          {"id": "we-hid-a-chest"},
+          {"id": "it-lies-in-the-south"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [ { "stock": "good", "kind": "offer_quest", "quest": "treasure-in-the-bog" } ]
+          }
+        ]
+      },
+      {
+        "id": "treasure_running",
+        "lines": [
+          {"id": "my-chest"}
+        ],
+        "options": [
+          {
+            "id": "i-found-your-chest",
+            "grants": [
+              { "id": "still-shut-and-still-heavy", "kind": "advance_quest", "quest": "treasure-in-the-bog", "fromStage": "return", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 774 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "treasure_on_it" }
+        ]
+      },
+      {
+        "id": "treasure_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "treasure-in-the-bog", "stage": "find" }
+        ],
+        "lines": [
+          {"id": "south-past-where-the-planks"}
+        ]
+      }
+    ]
+  }
+}

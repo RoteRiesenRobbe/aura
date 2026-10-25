@@ -138,6 +138,12 @@ var expectedQuests = map[string]string{
 	"the-wolf-den":        "The Wolf Den",
 	"oil-for-the-lamps":   "Oil for the Lamps",
 
+	// Sorrowfen (content-zone-7-swamp.md §2.3): Hedda's mushrooms (turned in
+	// by the gnome), the gnome's Spider Queen, the pirates' chest.
+	"mushrooms-for-the-gnome": "Mushrooms for the Gnome",
+	"the-spider-queen":        "The Spider Queen",
+	"treasure-in-the-bog":     "Treasure in the Bog",
+
 	// The opening arc's handoff and the first REACH quest
 	// (plan-region-identity.md R2): handed over by Flora, done on arriving at
 	// Reinhard's farm, turned in on his 'Flora sends me.' row.
@@ -449,6 +455,11 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"the-wolf-den":        540, // L8, the alpha wolf's placement
 		"the-alpha-bear":      645, // L9, ½ × 300 × 1.2⁸ ≈ 645
 		"oil-for-the-lamps":   450, // L7, ½ × 300 × 1.2⁶ ≈ 448, plus Lamp
+
+		// Sorrowfen (content-zone-7-swamp.md §2.3), the same rule.
+		"mushrooms-for-the-gnome": 645,  // L9, ½ × 300 × 1.2⁸ ≈ 645
+		"the-spider-queen":        1115, // L12, ½ × 300 × 1.2¹¹ ≈ 1115, plus FenTonic
+		"treasure-in-the-bog":     774,  // L10, ½ × 300 × 1.2⁹ ≈ 774
 	}, total)
 }
 

@@ -1,0 +1,18 @@
+{
+  "_comment": "Sorrowfen's side quest (content-zone-7-swamp.md §2.3 quest C): Captain Brack on the lake shore wants the pirates' chest back, sunk past a wrong-way plank in the dark core (SunkChest, a talk_to target) where a wisp lures you off the wood. Priced at L10 by the half-level rule, 0.5 x 300 x 1.2^9. All values [PLACEHOLDER].",
+  "id": "treasure-in-the-bog",
+  "level": 10,
+  "stages": [
+    {
+      "id": "find",
+      "objectives": [{ "kind": "talk_to", "npc": "SunkChest" }],
+      "next": "return"
+    },
+    {
+      "id": "return"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

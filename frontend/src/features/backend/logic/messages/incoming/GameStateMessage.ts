@@ -842,6 +842,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Stag]: Mobs.Stag,
     [AuraApi.EntityType.Sheep]: Mobs.Sheep,
     [AuraApi.EntityType.SandClamper]: Mobs.SandClamper,
+    [AuraApi.EntityType.LakeCrab]: Mobs.LakeCrab,
     [AuraApi.EntityType.EliteWolf]: Mobs.EliteWolf,
     [AuraApi.EntityType.Bramble]: Mobs.Bramble,
     [AuraApi.EntityType.Signpost]: Mobs.Signpost,

@@ -60,7 +60,9 @@ from `areas[deep-woods]`. The script needs fixing before it is trusted again.
 
 ## 3. Zone 2 — Woodland
 
-**Level range** 6–12 [PLACEHOLDER]. **Theme**: dark, dense, disorienting, few
+**Level range** 4–7 [PLACEHOLDER] (PO 2026-10-25, was 6–12; the swamp south
+of the woods takes 8–12, `content-zone-7-swamp.md` §0.4). ⚑ The dark forest's
+spiders (12–14 today) and the "As built" levels above are now out of band. **Theme**: dark, dense, disorienting, few
 people. The zone whose job is to make the player *want* the city.
 
 ### 3.1 The design problem Woodland actually poses
@@ -178,7 +180,7 @@ Existing and reusable: `Wolf`, `DireWolf`, `EliteWolf`, `AlphaWolf`, `Bear`,
 - **Alpha wolf**, the mean one (§3.5 quest 5): a named elite on the wolf line.
   `AlphaWolf` exists as a normal mob; this is a named elite above it.
 - **The captive woodcutter** (**Woodcutter 2**) on the plateau: alive, teaches the cutting aura.
-- **The gnome tinker** (**Gnome 1**) in Dionsburg's gnome craft district: receives the
+- **The gnome tinker** (**Pim Sprocketwhistle**, id `Gnome1`; named 2026-10-25) in Dionsburg's gnome craft district: receives the
   shipment, hands out lamp oil as a quest step (§3.8). Teaches nothing.
 - **The woodcutters' associate** (**Woodcutter 3**) in Dionsburg's market district: also teaches
   the cutting aura.

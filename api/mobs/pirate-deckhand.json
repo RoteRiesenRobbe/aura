@@ -1,0 +1,34 @@
+{
+  "_comment": "A pirate deckhand at the fire on Sorrowfen's lake shore (content-zone-7-swamp.md §2.2, C5): Captain Brack's crew, one lore line, placed more than once. Standing talkable-NPC shape; entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "id": 133,
+  "name": "PirateDeckhand",
+  "type": "MOB",
+  "entityType": "Wanderer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "the-captain-does-the-talking"}
+        ]
+      }
+    ]
+  }
+}
