@@ -14,6 +14,37 @@ of this guide from 2026-09-30, when it replaced the archived
 now pointers. How a zone's XP is budgeted, and how a zone splits into quest
 areas: [`plan-xp-progression.md`](plan-xp-progression.md).
 
+⭐ **Every zone plan has a draft map** (PO 2026-10-25). A zone doc, or any plan
+that changes a zone's layout, comes with an HTML draft of the area as it will
+look once built, published as an Artifact and linked at the top of the doc.
+The reference is the Deep Woods draft
+([`level-drafts/deep-woods.html`](level-drafts/deep-woods.html), published at
+<https://claude.ai/artifact/He29j6zUaCwhqfqgqhY222>). Each draft has:
+
+1. **A map to scale in world units**, drawn over today's geometry cut from the
+   zone file (regions, river and water, cliffs, walls, trees, roads, spawns),
+   with a grid and coordinates.
+2. **New things in one accent colour, today's in grey,** and layer switches
+   for the draft, today's roads, today's spawns and trees.
+3. **Numbered markers** keyed to a list beside the map: what each place is and
+   who stands there.
+4. **The player's route:** the main quest line, the side quests, the
+   shortcuts that open later and what gates them.
+5. **Interiors as schematics** (cave branches, exits, dens).
+6. **Who lives where:** mobs by area with [PLACEHOLDER] levels, against what
+   stands today.
+7. **What the draft could not settle:** the open calls, including anything it
+   had to guess from the map.
+
+How to make one: copy `level-drafts/deep-woods.html` to
+`level-drafts/<zone>.html` and redraw its draft section, then run
+`node tools/level-draft/extract-geo.mjs --frame x0,y0,x1,y1 --out <geo.json>`
+and `node tools/level-draft/build.mjs level-drafts/<zone>.html <geo.json>
+<out.html>` (paths from the repo root) and publish the built file. When the
+design changes, change the zone doc and its draft together and republish to
+the same URL. The draft is a proposal for the Tiled pass, **never** the
+placement truth: that stays `api/zones/*.json`.
+
 ## Where each truth lives
 
 One source per thing. When this doc and one of these disagree about the thing
@@ -23,6 +54,7 @@ that source owns, **the source wins** and this doc is the one to fix.
 |---|---|
 | What a zone is *for*: flow, POIs, cast, quests, its XP budget | its zone doc: [`content-zone-1-farmland.md`](content-zone-1-farmland.md), [`content-zone-2-woodland.md`](content-zone-2-woodland.md) |
 | How to build any zone, and the rules every zone follows | **this doc** |
+| What a zone will look like once its plan is built | its draft map: [`level-drafts/`](level-drafts/) (source), the published Artifact linked from its zone doc |
 | Level bands per zone, quest areas, the quest / kill XP split | [`plan-xp-progression.md`](plan-xp-progression.md) |
 | Where anything actually stands | [`api/zones/world.json`](../api/zones/world.json) (authored in Tiled), plus the interiors [`tunnel.json`](../api/zones/tunnel.json) and [`barn.json`](../api/zones/barn.json). Read it with `node scripts/zone-census.mjs` (per-region census + placement warnings) |
 | The zone list, its order, and which region is which zone | [`content-world.md`](content-world.md) |

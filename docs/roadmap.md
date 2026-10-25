@@ -1299,6 +1299,8 @@ system ships blind.
 
 Moved out of `CLAUDE.md ## Status` on 2026-10-18 to keep the always-loaded file small; the entries are verbatim as of that date. `CLAUDE.md` keeps only the live "Next" work and the standing rules. When an item here becomes current, move it back into `CLAUDE.md` Status "Next".
 
+- **THE NEW TORCH HAS NO ROLE YET** (PO 2026-10-25, a global call, moved out of `content-zone-2-woodland.md` §3.9 Q8): the light skills swap display names (passive `Torch` 46 shows as **Lamp**, active `Lantern` 6 shows as **Torch**). Open: what the active Torch is for and who teaches it (today only the ascension stone offers it), and whether the Emberkeeper's fire line, which starts with the passive, keeps starting with "Lamp".
+
 - **PALETTE TILE SIZES READ THE WRONG ELEMENT** (found 2026-10-22 at `plan-city-assets.md` K2, unfixed): `tools/tiled/generate-palette.mjs` `imageSize` matches the first numeric `width`/`height` in an SVG's head, so a root `width="100%"` falls to a child: 21 prop tiles carry a wrong image size (the nave 14×12, `house.svg` 384×284). Templates are body-sized, so placements are right; what Tiled draws for the tile is unchecked. Fix = read the root `<svg>` tag, then `viewBox`; regen dirties every tile.
 
 - **REVIVE DROPS THE QUEST LEDGER** (found 2026-10-21 at `plan-appearance.md` C4, unfixed): `ConnectionStateSystem.ReviveAtCorpse` rebuilds the player without `SetQuestLedger(dead.quests)`, unlike respawn and reconnect, so a revived player plays on a fresh ledger (unverified whether a save in between writes it over the stored one). Needs a red-first pin beside `TestRespawn_CarriesQuestLedger`, then the one line.

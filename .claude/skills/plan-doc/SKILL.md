@@ -25,7 +25,10 @@ finished plan session is `chunk-wrap`'s DOCS-ONLY tier; this skill covers the de
    wants. Do not manufacture a second round. Record each answer as `R#` with its date.
 4. **Numbers are placeholders.** Every value gets `[PLACEHOLDER]`; propose concrete starting
    values, never adopt them silently.
-5. **Write the doc**, then **index it**, then the **handoff prompt** (below).
+5. **Write the doc**, then **index it**, then the **handoff prompt** (below). A plan that
+   designs or changes a zone's layout also ships its **draft map** and links it at the top
+   (`docs/content-zone-design-guide.md`, "Every zone plan has a draft map"; reference:
+   `docs/level-drafts/deep-woods.html`).
 
 ## Skeleton (as plan-passages, plan-herding, plan-cliffs, plan-road-pace, plan-appearance use it)
 

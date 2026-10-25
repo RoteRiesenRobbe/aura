@@ -1,0 +1,355 @@
+<title>Deep Woods Draft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a surveyor's sheet. One big to-scale map (world units), keyed numbers, then the routes and caves below. */
+:root {
+  --bg: #eef1ec; --panel: #f8faf6; --ink: #1d2721; --muted: #5d6b62; --line: #c9d1c8;
+  --woods: #d3dfcd; --woods-edge: #8fa58a; --land: #e3e6dc; --water: #5f97ad; --cliff: #6b5a48;
+  --road-old: #b9ab90; --road: #9c6a12; --draft: #c27a12; --draft-soft: rgba(194,122,18,.16);
+  --danger: #a33a2f; --dark: rgba(30,40,34,.42); --tree: #6f8f68; --wall: #6c6f73; --under: #6a4e8c;
+  --f-display: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+  --f-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --panel: #18201c; --ink: #e2e8e2; --muted: #96a59b; --line: #2e3a33;
+  --woods: #1f2d25; --woods-edge: #4d6a55; --land: #1a211d; --water: #3d7d96; --cliff: #b59c80;
+  --road-old: #6d6452; --road: #e3a446; --draft: #f0a33a; --draft-soft: rgba(240,163,58,.16);
+  --danger: #e2735f; --dark: rgba(0,0,0,.45); --tree: #4f7553; --wall: #8b9096; --under: #b593e0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121815; --panel: #18201c; --ink: #e2e8e2; --muted: #96a59b; --line: #2e3a33;
+  --woods: #1f2d25; --woods-edge: #4d6a55; --land: #1a211d; --water: #3d7d96; --cliff: #b59c80;
+  --road-old: #6d6452; --road: #e3a446; --draft: #f0a33a; --draft-soft: rgba(240,163,58,.16);
+  --danger: #e2735f; --dark: rgba(0,0,0,.45); --tree: #4f7553; --wall: #8b9096; --under: #b593e0; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 500; font-size: 19px; margin: 0 0 6px; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 17px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.controls input { accent-color: var(--draft); width: 16px; height: 16px; }
+.controls input:focus-visible { outline: 2px solid var(--draft); outline-offset: 2px; }
+.mapbox { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+.mapbox svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+ol.key { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.key li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.num { font-family: var(--f-mono); font-size: 13px; font-weight: 500; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--draft); color: var(--panel); }
+.num.old { background: var(--muted); }
+.key b { font-weight: 700; }
+.key small, .note { color: var(--muted); font-size: 14px; }
+.flow { display: grid; gap: 14px; }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 15px; }
+.chain span.step { border: 1px solid var(--line); background: var(--panel); border-radius: 4px; padding: 2px 8px; }
+.chain span.arrow { color: var(--muted); font-family: var(--f-mono); }
+.chain span.gate { border-color: var(--draft); background: var(--draft-soft); }
+.caves { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.cave { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.cave svg { width: 100%; height: auto; display: block; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.lv { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablebox { overflow-x: auto; }
+ul.open { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 75ch; }
+code { font-family: var(--f-mono); font-size: .88em; }
+svg text { font-family: var(--f-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 3px solid; }
+@media (prefers-reduced-motion: no-preference) { .layer { transition: opacity .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Zone 2 · Deep Woods · draft after the plan · 2026-10-25</div>
+    <h1>Deep Woods Draft</h1>
+    <p class="lede">The woods as <code>content-zone-2-woodland.md</code> §3 describes them once built, drawn over today's map at real coordinates (1 grid square = 10 world units). Amber is new; grey is what stands today. Positions are a proposal for the Tiled pass, not a layout.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Map layers">
+    <label><input type="checkbox" id="l-draft" checked> Draft (new)</label>
+    <label><input type="checkbox" id="l-today" checked> Today's roads and cave mouth</label>
+    <label><input type="checkbox" id="l-spawns"> Today's spawns</label>
+    <label><input type="checkbox" id="l-trees" checked> Trees</label>
+  </div>
+
+  <div class="mapbox"><svg id="map" viewBox="-197 -63 140 110" role="img" aria-label="Draft map of the Deep Woods"></svg></div>
+  <div class="legend">
+    <span><i style="border-color:var(--road)"></i>new road</span>
+    <span><i style="border-color:var(--draft);border-top-style:dashed"></i>lane</span>
+    <span><i style="border-color:var(--under);border-top-style:dotted"></i>underground (kobold cave)</span>
+    <span><i style="border-color:var(--road-old)"></i>today's road</span>
+    <span><i style="border-color:var(--cliff)"></i>cliff</span>
+    <span><i style="border-color:var(--water)"></i>river / moat</span>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>Map key</h2>
+      <ol class="key" id="key"></ol>
+    </section>
+    <section class="flow">
+      <h2>How a player moves through it</h2>
+      <div>
+        <h3>Main line</h3>
+        <div class="chain">
+          <span class="step">Reinhard: A Lost Shipment</span><span class="arrow">→</span>
+          <span class="step">Tobias at Fritz's fire (2)</span><span class="arrow">→</span>
+          <span class="step">crate trail (3)</span><span class="arrow">→</span>
+          <span class="step">cave mouth (6)</span><span class="arrow">→</span>
+          <span class="step">west branch up to the plateau (7)</span><span class="arrow">→</span>
+          <span class="step">kill the leader, take the shipment (8)</span><span class="arrow">→</span>
+          <span class="step">back through the cave, east branch (17)</span><span class="arrow">→</span>
+          <span class="step">Gnome 1 (18): deliver</span><span class="arrow">→</span>
+          <span class="step gate">lamp oil: shipment or level 7</span><span class="arrow">→</span>
+          <span class="step">Lamplighter (12): Lamp</span><span class="arrow">→</span>
+          <span class="step">dark forest (13)</span>
+        </div>
+      </div>
+      <div>
+        <h3>Fritz's quests</h3>
+        <div class="chain"><span class="step">the captive (8): Woodcutter 2 teaches Hatchet</span><span class="arrow">→</span><span class="step gate">cut down from the plateau (9)</span></div>
+        <div class="chain"><span class="step">the lost friend: Woodcutter 1's body in the dark forest (13)</span></div>
+        <div class="chain"><span class="step">the alpha bear: the bear cave (20), east of the camp</span></div>
+        <div class="chain"><span class="step">the alpha wolf: the wolf cave (14)</span></div>
+        <div class="chain"><span class="step">kobolds on the road: 8 kobolds</span></div>
+      </div>
+      <div>
+        <h3>Shortcuts that open later</h3>
+        <div class="chain"><span class="step gate">Hatchet (Woodcutter 2, or Woodcutter 3 at the market)</span><span class="arrow">→</span><span class="step">bramble choke (9) straight onto the plateau</span></div>
+        <div class="chain"><span class="step gate">Hatchet + beat the bandits (10)</span><span class="arrow">→</span><span class="step">north brambles (11) to Wreckers Bluff</span></div>
+        <div class="chain"><span class="step">Lamplighter first (12)</span><span class="arrow">→</span><span class="step gate">Gnome 1: oil at level 7 even without the shipment</span><span class="arrow">→</span><span class="step">back to the Lamplighter</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>The two caves</h2>
+    <div class="caves">
+      <div class="cave">
+        <h3>Kobold cave and bear cave (grown from <code>koboldCave.json</code>)</h3>
+        <svg viewBox="0 0 380 210" role="img" aria-label="Kobold cave schematic">
+          <g id="kc"></g>
+        </svg>
+        <p class="note">Dark (Gloom) all through. Kobolds 7 along both branches. The bear cave has its own mouth (20) and joins the kobold cave inside; one interior file with two surface mouths is the recommendation. The old single exit was the NW mouth; that spot becomes the west branch's way out onto the plateau. The east exit's spot is open; the draft proposes the NW corner tower's guard room.</p>
+      </div>
+      <div class="cave">
+        <h3>Wolf cave (new interior file)</h3>
+        <svg viewBox="0 0 360 200" role="img" aria-label="Wolf cave schematic">
+          <g id="wc"></g>
+        </svg>
+        <p class="note">A small dead-end den behind the SW mouth. A few wolves on the way in, the alpha wolf at the back: one named fight, Fritz's quest. Separate from <code>tunnel.json</code>, which stays the Farmlands' Dire Wolf cave.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who lives where</h2>
+    <div class="tablebox"><table>
+      <thead><tr><th>Area</th><th>Mobs (draft)</th><th>Level [placeholder]</th><th>Today</th></tr></thead>
+      <tbody>
+        <tr><td>Along the road</td><td>Wolves, Stags</td><td class="lv">3–5</td><td>51 Wolves 3–6 (one at 45, a typo)</td></tr>
+        <tr><td>Woodcutters' camp (NE)</td><td>Bears</td><td class="lv">6–7</td><td>7 Bears, already there</td></tr>
+        <tr><td>Kobold cave + plateau</td><td>Kobolds, KoboldRanged; the leader (elite, placeholder art)</td><td class="lv">7 · leader 9</td><td>19 Kobolds on the plateau, 18 in the cave</td></tr>
+        <tr><td>Bear cave (NE, east of the camp)</td><td>The alpha bear (elite)</td><td class="lv">9</td><td>new</td></tr>
+        <tr><td>Bandit camp</td><td>Bandit, BanditRanged, BanditHealer</td><td class="lv">5–7</td><td>6, already there</td></tr>
+        <tr><td>Around Woodcutter 1</td><td>Spider, placed small and low</td><td class="lv">5–6</td><td>new placements</td></tr>
+        <tr><td>Dark forest (SE)</td><td>Spider, VenomSpider, GiantSpider</td><td class="lv">12–14</td><td>18, already there</td></tr>
+        <tr><td>Wolf cave (SW)</td><td>Wolves; the alpha wolf (elite)</td><td class="lv">5 · alpha 8</td><td>1 Dire Wolf 8 nearby</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>What this draft could not settle</h2>
+    <ul class="open">
+      <li><b>The long way to the west gate (Q2).</b> With the bridge broken, the moat cuts the woods off from the city along their whole east side; its only other crossing today is the bridge at its far north end (y −104). Which overland way should a player without the cave walk? Drawn as one candidate: north through the bandit path and Wreckers Bluff to that bridge. A new crossing to the south is the other.</li>
+      <li><b>Where the cave's east branch comes up.</b> The strip between the moat and the city wall is about 1.5 u wide. The draft puts the exit in the NW corner tower, which is already enterable.</li>
+      <li><b>The cliff lines.</b> The cliff paths do not say which side is high, so the plateau outline and the bandit path north are read from the line positions. Today's north cliff is unbroken where the old north road ends, so the north brambles need a gap cut into it.</li>
+      <li><b>Tobias's cart.</b> The burnt cart beside the fire belongs to the Dead Carter (the bandit breadcrumb). The draft gives Tobias a second burnt cart on the road's north bend, where the crate trail starts.</li>
+
+    </ul>
+  </section>
+</div>
+
+<script>
+const GEO = __GEO__;
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("map");
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+const pts = a => a.map(p => p[0] + "," + p[1]).join(" ");
+const g = id => el("g", { id, class: "layer" });
+
+// ground
+el("rect", { x: -197, y: -63, width: 140, height: 110, fill: "var(--land)" });
+const grid = g("grid");
+for (let x = -190; x <= -60; x += 10) el("line", { x1: x, y1: -63, x2: x, y2: 47, stroke: "var(--line)", "stroke-width": .12 }, grid);
+for (let y = -60; y <= 40; y += 10) el("line", { x1: -197, y1: y, x2: -57, y2: y, stroke: "var(--line)", "stroke-width": .12 }, grid);
+for (let x = -180; x <= -60; x += 20) { const t = el("text", { x: x + .5, y: 45.8, "font-size": 1.5, fill: "var(--muted)", "font-family": "JetBrains Mono, monospace" }, grid); t.textContent = x; }
+for (let y = -60; y <= 40; y += 20) { const t = el("text", { x: -196.5, y: y - .5, "font-size": 1.5, fill: "var(--muted)", "font-family": "JetBrains Mono, monospace" }, grid); t.textContent = y; }
+
+// regions
+const base = g("base");
+for (const r of GEO.regions) {
+  const woods = r.id === "deep-woods";
+  if (r.area === "city-hub" && r.id) continue;
+  el("polygon", { points: pts(r.pts), fill: woods ? "var(--woods)" : "none", stroke: woods ? "var(--woods-edge)" : "var(--line)", "stroke-width": woods ? .35 : .25, "stroke-dasharray": woods ? "" : "1 1" }, base);
+}
+const regionLabels = [["Farmlands", -191, 26, 90], ["Wreckers Bluff", -160, -52], ["Northgate", -78, -48], ["Dionsburg", -76, 14], ["Sorrowfen", -145, 43.5], ["Deep Woods", -170, -2]];
+for (const [name, x, y, rot] of regionLabels) {
+  const t = el("text", { x, y, "font-size": name === "Deep Woods" ? 3.2 : 2.4, fill: "var(--muted)", "font-family": "Alegreya SC, Georgia, serif", "letter-spacing": .3, transform: rot ? `rotate(${rot} ${x} ${y})` : "" }, base);
+  t.textContent = name;
+}
+// atmospheres: dark forest (Gloom) only, drawn as shade
+for (const a of GEO.atm) if (a.profile === "Gloom" && a.pts[0][0] < -92) el("polygon", { points: pts(a.pts), fill: "var(--dark)" }, base);
+
+// water, cliffs, walls (always)
+const terrain = g("terrain");
+for (const s of GEO.structs) if (s.profile === "Water") el("polygon", { points: pts(s.pts), fill: "var(--water)", opacity: .55 }, terrain);
+for (const p of GEO.paths) {
+  if (p.profile === "Water") el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--water)", "stroke-width": p.w, "stroke-linejoin": "round", "stroke-linecap": "round" }, terrain);
+  else if (p.profile === "Cliff" || p.profile === "Cliff Smooth") el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--cliff)", "stroke-width": 1.1, "stroke-linejoin": "round", "stroke-linecap": "round" }, terrain);
+  else if (p.profile === "Wall" && p.src === "city-hub" && p.w >= 2) el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--wall)", "stroke-width": p.w * .7, "stroke-linecap": "butt" }, terrain);
+  else if (p.profile === "Shoreline") el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--water)", "stroke-width": .6, opacity: .7 }, terrain);
+}
+for (const p of GEO.props) if (p[0] === "Bridge" && p[1] < -150) el("rect", { x: p[1] - 2, y: p[2] - 1, width: 4, height: 2, fill: "var(--road-old)", stroke: "var(--cliff)", "stroke-width": .2 }, terrain);
+
+// trees
+const trees = g("trees");
+for (const p of GEO.props) if (/Tree|Bush/.test(p[0]) && p[1] > -184 && p[1] < -92) el("circle", { cx: p[1], cy: p[2], r: (p[0] === "Bush" ? .6 : 1) * (p[3] || 1), fill: "var(--tree)", opacity: .55 }, trees);
+
+// today: roads in the woods, old cave mouth, shut gate
+const today = g("today");
+for (const p of GEO.paths) if (p.profile === "Road" && p.src === "deep-woods") el("polyline", { points: pts(p.pts), fill: "none", stroke: "var(--road-old)", "stroke-width": 1.1, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": "2 1" }, today);
+el("rect", { x: -93.8, y: 2.2, width: 4, height: 2.4, fill: "var(--road-old)" }, today);
+const oldGate = el("text", { x: -88, y: 9.5, "font-size": 1.6, fill: "var(--muted)" }, today); oldGate.textContent = "gate shut today";
+
+// today: spawns
+const spawns = g("spawns");
+const sc = m => /Kobold/.test(m) ? "#7a5bb0" : /Spider/.test(m) ? "#5b5b5b" : /Bear/.test(m) ? "#8a5a2b" : /Bandit/.test(m) ? "var(--danger)" : /Wolf/.test(m) ? "#4d6e8a" : /Stag/.test(m) ? "#8f9b4a" : null;
+for (const s of GEO.spawns) { const c = sc(s[0]); if (c && s[1] > -184 && s[1] < -92) el("circle", { cx: s[1], cy: s[2], r: .7, fill: c, stroke: "var(--panel)", "stroke-width": .15 }, spawns); }
+
+// draft
+const D = g("draft");
+const zone = (poly, label, lx, ly) => { el("polygon", { points: pts(poly), fill: "var(--draft-soft)", stroke: "var(--draft)", "stroke-width": .3, "stroke-dasharray": "1.2 .8" }, D); if (label) { const t = el("text", { x: lx, y: ly, "font-size": 1.9, fill: "var(--ink)", "font-weight": 700 }, D); t.textContent = label; } };
+const plateau = [[-182, -31], [-182, -17], [-176, -17], [-172, -15], [-168, -13], [-163, -13], [-156, -15], [-152, -17], [-149, -20], [-145, -27], [-142, -31], [-139, -33], [-133, -35], [-144, -36], [-165, -34], [-181, -36]];
+zone(plateau, "KOBOLD PLATEAU (raised)", -180, -32.2);
+const massA = [[-136, -2], [-128, -6], [-120, -3], [-119, 5], [-127, 7], [-135, 5]];
+const massB = [[-113, -1], [-104, -1], [-100, 3], [-103, 7], [-111, 7], [-115, 3]];
+for (const m of [massA, massB]) el("polygon", { points: pts(m), fill: "var(--tree)", opacity: .75, stroke: "var(--woods-edge)", "stroke-width": .3 }, D);
+const mlab = (x, y, s) => { const t = el("text", { x, y, "font-size": 1.5, fill: "var(--panel)", "text-anchor": "middle", "font-weight": 700 }, D); t.textContent = s; };
+mlab(-127.5, 1.2, "forest mass"); mlab(-107, 3.6, "forest mass");
+zone([[-104, -35.5], [-92, -35.5], [-92, -12], [-99, -12], [-103, -17]], "", 0, 0);
+el("circle", { cx: -106, cy: -22, r: 5.5, fill: "var(--draft-soft)", stroke: "var(--draft)", "stroke-width": .3, "stroke-dasharray": "1.2 .8" }, D);
+
+const road = [[-181, 9], [-172, 7], [-163, 10], [-152, 7], [-143, 3], [-138, 9], [-130, 13], [-122, 11], [-117, 4], [-115, -4], [-108, -8], [-101, -5], [-97, 1], [-93.5, 3]];
+el("polyline", { points: pts(road), fill: "none", stroke: "var(--road)", "stroke-width": 1.6, "stroke-linejoin": "round", "stroke-linecap": "round" }, D);
+const lane = p => el("polyline", { points: pts(p), fill: "none", stroke: "var(--draft)", "stroke-width": .6, "stroke-dasharray": "1.4 .9", "stroke-linecap": "round" }, D);
+lane([[-157, 8], [-158, -2], [-157, -13.5]]);
+// the cliff path north: along today's north road, winding like the main road
+el("polyline", { points: pts([[-143, 3], [-140, -4], [-134, -9], [-128, -13], [-132, -19], [-137, -23], [-133, -29], [-127, -32], [-125, -35.3]]), fill: "none", stroke: "var(--road)", "stroke-width": 1.1, "stroke-linejoin": "round", "stroke-linecap": "round" }, D);
+lane([[-117, 5], [-111.5, 9]]);
+lane([[-126, 12], [-122, 16], [-116, 20], [-111, 24]]);
+lane([[-134, 11.5], [-140, 20], [-152, 26], [-162, 30], [-165.5, 31]]);
+// crate trail
+const trail = [[-114, -11], [-115, -16], [-114, -21], [-115, -26], [-116, -30]];
+for (const [x, y] of trail) el("rect", { x: x - .55, y: y - .55, width: 1.1, height: 1.1, fill: "var(--draft)", transform: `rotate(20 ${x} ${y})` }, D);
+// long way north (Q2 candidate)
+el("polyline", { points: pts([[-125, -37], [-124, -50], [-120, -61]]), fill: "none", stroke: "var(--draft)", "stroke-width": .5, "stroke-dasharray": ".6 .9" }, D);
+const lw = el("text", { x: -118.5, y: -58.5, "font-size": 1.6, fill: "var(--muted)" }, D); lw.textContent = "long way? (Q2): to the moat's north bridge, y −104";
+// underground
+const ug = d => el("path", { d, fill: "none", stroke: "var(--under)", "stroke-width": .55, "stroke-dasharray": ".3 1", "stroke-linecap": "round" }, D);
+ug("M -116 -33.5 C -128 -44, -152 -42, -163 -22");
+ug("M -116 -33.5 C -110 -43, -92 -43, -85.2 -31.6");
+ug("M -116 -33.5 C -110 -38, -100 -37, -96 -30");
+const ul = el("text", { x: -146, y: -41.6, "font-size": 1.5, fill: "var(--under)" }, D); ul.textContent = "underground: west branch";
+const ul2 = el("text", { x: -102, y: -42.4, "font-size": 1.5, fill: "var(--under)" }, D); ul2.textContent = "east branch";
+// broken bridge + open gate
+el("line", { x1: -94, y1: 1.6, x2: -90, y2: 5.2, stroke: "var(--danger)", "stroke-width": .5 }, D);
+el("line", { x1: -94, y1: 5.2, x2: -90, y2: 1.6, stroke: "var(--danger)", "stroke-width": .5 }, D);
+// brambles
+const bramble = (x, y) => { for (let i = -1; i <= 1; i++) el("path", { d: `M ${x + i * 1.1 - .6} ${y + .6} l .6 -1.2 l .6 1.2`, fill: "none", stroke: "#3f7a3a", "stroke-width": .35 }, D); };
+bramble(-157, -14.5); bramble(-125, -35.5);
+for (const [x, y] of [[-112.5, 8.6], [-108, 10.3], [-106.5, 8.4], [-111, 10.6]]) el("circle", { cx: x, cy: y, r: .45, fill: "#5b5b5b" }, D);
+// zone labels
+const zl = (x, y, s, c) => { const t = el("text", { x, y, "font-size": 1.6, fill: c || "var(--muted)", "font-style": "italic" }, D); t.textContent = s; };
+zl(-178, -24.5, "kobolds 7 · leader 9"); zl(-103, -10.6, "deep bear territory · bears 6–7"); zl(-139, -24, "bandits 5–7"); zl(-121, 30.8, "DARK FOREST · spiders 12–14", "var(--ink)"); zl(-105.5, 9.6, "small spiders 5–6"); zl(-172, 16, "wolves 3–5 along the road");
+
+// numbered markers
+const KEY = [
+  [1, -181, 9, "West entrance", "The river bridge from the Farmlands (today's). Reinhard: \"cross the bridge that leads to the forest\"."],
+  [2, -143, 3, "Fritz's fire", "Fritz (was the Wanderer) and Tobias at <code>spawnpoint-2</code>. Gives most of the zone's quests."],
+  [3, -114, -6.5, "Tobias's burnt cart", "On the road's north bend, where the crate trail starts."],
+  [4, -110, -16.5, "Crate trail", "Crate, BrokenCrate, SackPile, each in sight of the next."],
+  [5, -106, -22, "Woodcutters' camp (wrecked)", "Torn tents, lumber stacks. The bears came from the east."],
+  [6, -116, -33.5, "Kobold cave mouth", "Against the north cliff just west of the camp, with a lit staging area."],
+  [7, -162.5, -21.9, "Plateau exit", "Today's cave mouth, reused: the west branch comes up here."],
+  [8, -174, -28, "Leader, shipment, captive", "The kobold leader holds the shipment; Woodcutter 2 is the prisoner."],
+  [9, -157, -14.5, "Bramble choke", "The plateau's one way down. Needs Hatchet (key <code>chop</code>)."],
+  [10, -142, -27, "Bandit camp", "Stays where it is, on the path beside the plateau, guarding the way north."],
+  [11, -125, -35.5, "North brambles", "Top of the cliff path, which winds north from the fire past the bandits along today's north road. A gap cut into the north cliff; Hatchet again."],
+  [12, -124, 14, "Lamplighter", "At the dark forest's edge: dry lamps, sends you to the gnomes. Teaches Lamp."],
+  [13, -110, 9.5, "Woodcutter 1", "Fritz's scout, dead at the dark forest's northern edge, outside the dark, among small spiders 5–6 (the lost friend)."],
+  [14, -167, 31, "Wolf cave mouth", "Against the south cliff. Its lane leaves the road in the centre of the woods, east of the fire. The alpha wolf inside."],
+  [15, -96, 3, "Broken bridge", "The road's dead end. City Guard and <code>spawnpoint-4</code> on the woods side."],
+  [16, -89, 3.4, "West gate", "Open now (JailBars removed), but out of reach across the broken bridge."],
+  [17, -85.2, -31.6, "Cave east exit", "Proposed: the NW corner tower's guard room, inside the wall."],
+  [18, -68.5, -28, "Gnome 1", "Gnome craft district: takes the shipment, hands out the lamp oil (shipment or level 7)."],
+  [19, -74, 0, "Woodcutter 3", "Market: teaches Hatchet to anyone."],
+  [20, -96, -30, "Bear cave mouth", "Deep bear territory, east of the camp. The alpha bear's den; joins the kobold cave inside."]
+];
+const M = g("markers");
+for (const [n, x, y] of KEY) {
+  el("circle", { cx: x, cy: y, r: 1.55, fill: "var(--draft)", stroke: "var(--panel)", "stroke-width": .3 }, M);
+  const t = el("text", { x, y: y + .55, "font-size": 1.6, "text-anchor": "middle", fill: "var(--panel)", "font-family": "JetBrains Mono, monospace", "font-weight": 500 }, M); t.textContent = n;
+}
+const keyList = document.getElementById("key");
+for (const [n, , , title, text] of KEY) {
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="num">${n}</span><span><b>${title}</b><br><small>${text}</small></span>`;
+  keyList.appendChild(li);
+}
+
+// layer toggles
+const layers = { "l-draft": ["draft", "markers"], "l-today": ["today"], "l-spawns": ["spawns"], "l-trees": ["trees"] };
+const apply = () => { for (const id in layers) { const on = document.getElementById(id).checked; for (const gid of layers[id]) document.getElementById(gid).style.display = on ? "" : "none"; } };
+for (const id in layers) document.getElementById(id).addEventListener("change", apply);
+apply();
+
+// cave schematics
+const sch = (gid, nodes, edges) => {
+  const G = document.getElementById(gid);
+  for (const [a, b, dashed] of edges) { const A = nodes[a], B = nodes[b]; el("line", { x1: A[0], y1: A[1], x2: B[0], y2: B[1], stroke: "var(--under)", "stroke-width": 6, "stroke-linecap": "round", opacity: dashed ? .35 : .7 }, G); }
+  for (const k in nodes) {
+    const [x, y, label, kind] = nodes[k];
+    el("circle", { cx: x, cy: y, r: kind === "exit" ? 9 : 13, fill: kind === "boss" ? "var(--danger)" : kind === "exit" ? "var(--draft)" : "var(--panel)", stroke: "var(--under)", "stroke-width": 2 }, G);
+    const lines = label.split("\n");
+    lines.forEach((ln, i) => { const t = el("text", { x, y: y + (kind === "exit" ? 22 : 26) + i * 13, "font-size": 11.5, "text-anchor": "middle", fill: "var(--ink)" }, G); t.textContent = ln; });
+  }
+};
+sch("kc", {
+  mouth: [165, 30, "kobold mouth (6)", "exit"],
+  hub: [165, 110, "hub chamber\nkobolds", ""],
+  west: [60, 110, "west branch\nclimbs", ""],
+  plat: [60, 30, "plateau exit (7)", "exit"],
+  east: [265, 70, "east branch", ""],
+  city: [335, 30, "city side (17)", "exit"],
+  bear: [255, 165, "bear cave\nalpha bear", "boss"],
+  bmouth: [335, 165, "bear mouth (20)", "exit"]
+}, [["mouth", "hub"], ["hub", "west"], ["west", "plat"], ["hub", "east"], ["east", "city"], ["hub", "bear"], ["bear", "bmouth"]]);
+sch("wc", {
+  mouth: [40, 50, "SW mouth (14)", "exit"],
+  a: [140, 70, "wolves", ""],
+  b: [230, 110, "wolves", ""],
+  den: [310, 150, "alpha wolf", "boss"]
+}, [["mouth", "a"], ["a", "b"], ["b", "den"]]);
+</script>
