@@ -57,29 +57,57 @@ const taperLengthPerWidth = 2
 // plan-cliffs.md D2), as a multiple of the path's width. [PLACEHOLDER].
 //
 // ⚑ The client holds the SAME number (frontend Paths.ts CAP_LENGTH_PER_WIDTH):
-// it stretches the cap art over this length, and the wall below stops inside
+// it stretches the cap art over this length, and the wall below narrows with
 // it. Each side pins it with a test.
 const capLengthPerWidth = 2
 
-// fadeWallFraction is how far into a faded end's cap the wall reaches: 0 stops
-// it where the cap starts (the slope is walkable, a ramp), 1 runs it to the
-// tip. [PLACEHOLDER] — plan-cliffs.md Q1, tried at 0, 0.5 and 1 in the look.
-// Server-only: the client draws the cap whole either way.
-const fadeWallFraction = 0.5
+// faceBand is the strip across a path its wall covers, in world units from the
+// centreline: top < bottom, positive toward the FACE side, which is the right
+// hand walking the path (the client's `v > 0.5`, PathRibbon's segmentNormal).
+type faceBand struct{ top, bottom float32 }
 
-// taper is a pointed or faded path's profile along its arc: the factor, 1 down
-// to 0, the width is multiplied by at arc position s, and the stretch a faded
-// end leaves unwalled. The zero value changes nothing, which is every path
-// that authors neither "point" nor "fade".
+// drawnFaces is the band each CLIFF profile's art really draws, so its wall
+// covers what the eye sees and no more (PO 2026-10-25: the cliff "height"
+// blocked more than was visible). It is asymmetric because the art is: the lip
+// or coping sits further from the centreline than the foot, and the baked
+// shadow past the foot is walkable ground.
+//
+// ⚑ The one place the server names a terrain profile; everywhere else Profile
+// is client-only (D5). These are measurements of the tiles, not tuning:
+// TestDrawnFacesMatchTheirTiles re-measures every PNG (rows at least half
+// opaque) and requires an entry for every profile that draws a `cap`. Every
+// other blocking path walls its full width.
+var drawnFaces = map[string]faceBand{
+	"Cliff":          {-0.617, 0.575},
+	"Cliff Smooth":   {-0.625, 0.517},
+	"Retaining Wall": {-0.617, 0.442},
+}
+
+// pathBand is the band a path's wall covers away from its ends: its drawn face
+// when it has one, cropped to the path's width (a narrower path crops the art).
+func pathBand(p *Path) faceBand {
+	half := p.Width / 2
+	b := faceBand{-half, half}
+	if face, ok := drawnFaces[p.Profile]; ok {
+		b = faceBand{max(b.top, face.top), min(b.bottom, face.bottom)}
+	}
+	return b
+}
+
+// taper is a pointed or faded path's profile along its arc. The zero value
+// changes nothing, which is every path that authors neither "point" nor
+// "fade".
 type taper struct {
 	length, total float32
 	// start and end say which ends narrow (plan-cliffs.md D1: each end has
 	// its own shape).
 	start, end bool
-	// openStart and openEnd are how much arc a faded end leaves unwalled:
-	// the part of its cap past fadeWallFraction. The wall stops there at full
-	// width; it never narrows (plan-cliffs.md D2).
-	openStart, openEnd float32
+	// capStart and capEnd are the arc each faded end's cap covers, 0 when the
+	// end is not faded. Across a cap the band's top SINKS to its foot, the way
+	// the cap art steps down: walled to the tip, never wider than the art (PO
+	// 2026-10-25, re-ruling plan-cliffs.md Q1 and D2's "never narrows": an
+	// open stretch read as a bug, a full-width one blocked thin air).
+	capStart, capEnd float32
 }
 
 // pathTaper measures the taper an open path's "point" ends get: 2 × width at
@@ -88,8 +116,7 @@ type taper struct {
 // drawn length (PO-ruled) — the endpoint is the tip.
 //
 // A "fade" end is measured the same way: a cap of capLengthPerWidth × width,
-// clamped to half the path, of which the last (1 − fadeWallFraction) is left
-// unwalled.
+// clamped to half the path.
 func pathTaper(p *Path) taper {
 	start, end := p.endOf(true) == "point", p.endOf(false) == "point"
 	fadeStart, fadeEnd := p.endOf(true) == "fade", p.endOf(false) == "fade"
@@ -105,34 +132,37 @@ func pathTaper(p *Path) taper {
 	if start || end {
 		tp.length = min(taperLengthPerWidth*p.Width, total/2)
 	}
-	open := min(capLengthPerWidth*p.Width, total/2) * (1 - fadeWallFraction)
+	capLength := min(capLengthPerWidth*p.Width, total/2)
 	if fadeStart {
-		tp.openStart = open
+		tp.capStart = capLength
 	}
 	if fadeEnd {
-		tp.openEnd = open
+		tp.capEnd = capLength
 	}
 	return tp
 }
 
-// walled reports whether arc position s is inside the wall, i.e. not in the
-// open part of a faded end's cap.
-func (tp taper) walled(s float32) bool {
-	return s >= tp.openStart && s <= tp.total-tp.openEnd || tp.openStart == 0 && tp.openEnd == 0
+// sunk is how far a faded end's band has sunk toward its foot at arc s: 0
+// outside the caps, 1 at a tip.
+func (tp taper) sunk(s float32) float32 {
+	q := float32(0)
+	if tp.capStart > 0 {
+		q = max(q, 1-s/tp.capStart)
+	}
+	if tp.capEnd > 0 {
+		q = max(q, 1-(tp.total-s)/tp.capEnd)
+	}
+	return min(1, q)
 }
 
-// wallSpan is the part of a segment [along, along+length) the wall covers, in
-// segment-local arc: [lo, hi), empty when hi <= lo. Rects are clipped to it so
-// a faded wall stops exactly where it should, not at the nearest sample.
-func (tp taper) wallSpan(along, length float32) (lo, hi float32) {
-	lo, hi = 0, length
-	if tp.openStart > 0 {
-		lo = max(lo, tp.openStart-along)
-	}
-	if tp.openEnd > 0 {
-		hi = min(hi, tp.total-tp.openEnd-along)
-	}
-	return lo, hi
+// bandAt is the wall's band at arc s: the path's band, cropped about the
+// centreline by a pointed end (the ribbon narrows symmetrically) and sunk
+// toward the foot by a faded one.
+func (tp taper) bandAt(band faceBand, half, s float32) faceBand {
+	f := tp.at(s)
+	b := faceBand{max(band.top, -half*f), min(band.bottom, half*f)}
+	b.top += (b.bottom - b.top) * tp.sunk(s)
+	return b
 }
 
 func (tp taper) at(s float32) float32 {
@@ -193,6 +223,7 @@ func crossingProps(z *Zone) []*Prop {
 
 func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 	half := p.Width / 2
+	base := pathBand(p)
 	n := len(p.Points)
 
 	// A CLOSED path walks one segment MORE than it has gaps: the wraparound
@@ -236,35 +267,27 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// rects — the sampling exists to find the bridge gaps, not to set the
 		// body count. An unbridged 40-unit segment comes out of here as one run.
 		//
-		// ⭐ Inside a pointed end's taper every sample is its OWN rect, at the
-		// width the drawing has at that sample's middle: the wall narrows with
-		// the cliff instead of standing full width round a tip the eye sees as
-		// nothing. Only full-width samples merge.
-		//
-		// ⭐ A faded end's open stretch is simply not blocked, and every rect
-		// is clipped to the walled span, so the wall ends exactly at the cut.
-		lo, hi := tp.wallSpan(along, length)
-		clip := func(from, to float32) (float32, float32) { return max(from, lo), min(to, hi) }
+		// ⭐ Inside a pointed end's taper or a faded end's cap every sample is
+		// its OWN rect, on the band the drawing has at that sample's middle:
+		// the wall narrows with the cliff instead of standing full width round
+		// a tip the eye sees as nothing. Only full-band samples merge.
 		runStart := -1
 		for s := 0; s <= steps; s++ {
 			blocked := false
-			f := float32(1)
+			band := base
 			if s < steps {
 				t := (float32(s) + 0.5) * step
-				blocked = !coveredByBridge(a.X+ux*t, a.Y+uy*t, bridges) &&
-					float32(s+1)*step > lo && float32(s)*step < hi
-				f = tp.at(along + t)
+				band = tp.bandAt(base, half, along+t)
+				blocked = !coveredByBridge(a.X+ux*t, a.Y+uy*t, bridges) && band.bottom > band.top
 			}
-			tapered := blocked && f < 1
+			tapered := blocked && band != base
 			if runStart >= 0 && (!blocked || tapered) {
-				from, to := clip(float32(runStart)*step, float32(s)*step)
-				out = emitRun(out, a.X, a.Y, ux, uy, from, to, p.Width, angle)
+				out = emitRun(out, a.X, a.Y, ux, uy, float32(runStart)*step, float32(s)*step, base, angle)
 				runStart = -1
 			}
 			switch {
 			case tapered:
-				from, to := clip(float32(s)*step, float32(s+1)*step)
-				out = emitRun(out, a.X, a.Y, ux, uy, from, to, p.Width*f, angle)
+				out = emitRun(out, a.X, a.Y, ux, uy, float32(s)*step, float32(s+1)*step, band, angle)
 			case blocked && runStart < 0:
 				runStart = s
 			}
@@ -281,28 +304,53 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// included — which is why this asks "is there a next SEGMENT" rather
 		// than "is there a next point".
 		//
-		// ⚑ A joint inside a taper shrinks with it (along is now this joint's
-		// arc position): a full-width circle at a vertex the drawing has
-		// already narrowed would be an invisible wall.
+		// ⚑ A joint sits on the band, not the centreline: half its width, at
+		// its middle, pushed out along the MITRE so it lands where the two
+		// offset rects' centrelines meet. Inside a taper or a cap it shrinks
+		// with the band (along is now this joint's arc position): a full-width
+		// circle at a vertex the drawing has already narrowed would be an
+		// invisible wall.
 		//
 		// ⚑ And it shrinks to its clearance from any bridge: a vertex just past
 		// a deck edge would otherwise stamp a half-width disc back over the
 		// walkable deck. A vertex UNDER a deck has no clearance and no joint.
 		// What that gives up is a sliver of the outer wedge beside the deck — a
 		// notch in the bank, never a way across.
-		//
-		// ⚑ And a vertex in a faded end's open stretch gets none at all.
-		hasNextSegment := (i+1 < segments || p.Closed) && tp.walled(along)
-		if r := min(half*tp.at(along), bridgeClearance(b.X, b.Y, bridges)); hasNextSegment && r > 0 {
-			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: r})
+		if i+1 < segments || p.Closed {
+			band := tp.bandAt(base, half, along)
+			mx, my := jointMitre(-uy, ux, b, p.Points[(i+2)%n])
+			c := (band.top + band.bottom) / 2
+			x, y := b.X+mx*c, b.Y+my*c
+			if r := min((band.bottom-band.top)/2, bridgeClearance(x, y, bridges)); r > 0 {
+				out = append(out, Corridor{X: x, Y: y, Radius: r})
+			}
 		}
 	}
 	return out
 }
 
+// jointMitre is the vector a band offset is scaled by at a bend: the sum of the
+// two segments' face normals over 1 + their dot, so an offset of c along it
+// lies c from BOTH segments' centrelines. A hairpin (or a duplicated vertex
+// after the bend) falls back to the incoming normal rather than reaching
+// towards infinity; the offset there is a fraction of a unit either way.
+func jointMitre(nx, ny float32, b, next Point) (float32, float32) {
+	dx, dy := next.X-b.X, next.Y-b.Y
+	l := float32(math.Hypot(float64(dx), float64(dy)))
+	if l == 0 {
+		return nx, ny
+	}
+	mx, my := nx-dy/l, ny+dx/l
+	d := 1 + nx*(-dy/l) + ny*(dx/l)
+	if d < 0.25 {
+		return nx, ny
+	}
+	return mx / d, my / d
+}
+
 // emitRun turns one blocked interval [from, to) along a segment into rects, each
-// no longer than maxCorridorSegment.
-func emitRun(out []Corridor, ax, ay, ux, uy, from, to, width, angle float32) []Corridor {
+// no longer than maxCorridorSegment, laid on the band across it.
+func emitRun(out []Corridor, ax, ay, ux, uy, from, to float32, band faceBand, angle float32) []Corridor {
 	total := to - from
 	if total <= 0 {
 		return out
@@ -314,11 +362,13 @@ func emitRun(out []Corridor, ax, ay, ux, uy, from, to, width, angle float32) []C
 	pieceLen := total / float32(pieces)
 	for k := 0; k < pieces; k++ {
 		mid := from + pieceLen*(float32(k)+0.5)
+		// (−uy, ux) is the face normal, the side `bottom` counts toward.
+		c := (band.top + band.bottom) / 2
 		out = append(out, Corridor{
-			X:      ax + ux*mid,
-			Y:      ay + uy*mid,
+			X:      ax + ux*mid - uy*c,
+			Y:      ay + uy*mid + ux*c,
 			Length: pieceLen,
-			Width:  width,
+			Width:  band.bottom - band.top,
 			Angle:  angle,
 		})
 	}

@@ -260,6 +260,14 @@ rebuild before restarting (`dev-restart-windows.sh` does).
   sloped end is walkable, like a ramp), halfway into the cap, or at the tip. Proposal:
   a constant `FADE_WALL_FRACTION` [PLACEHOLDER], tried at 0, 0.5 and 1 in C2's look
   session, then fixed.
+  ✅ **RULED (PO 2026-10-25), and it reverses §5's "does NOT narrow":** the wall runs
+  to the tip AND narrows with the cap art. At 0.5 the last half of each cap (1.5 u on
+  a `Retaining Wall`) could be walked through ("feels like a bug"); walled to the tip
+  at full width it blocked thin air. Now the band's top sinks to the foot across the
+  cap (`taper.sunk`), and `fadeWallFraction` is gone. Same day: every cliff profile
+  walls only its DRAWN face, not the path width (`drawnFaces` in
+  `paths_collision.go`, offset toward the face; `TestDrawnFacesMatchTheirTiles`
+  re-measures the PNGs and requires a face for every profile with a `cap`).
 - **Q2 — key names.** `endsStart` / `endsEnd` sort together in Tiled's property list;
   alternatives welcome.
 - **Q3 — snap distance** for welds [PLACEHOLDER 0.5 u].

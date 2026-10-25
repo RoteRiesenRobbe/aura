@@ -251,7 +251,7 @@ func appendPolygonBoundary(out []Corridor, pts []Point, bridges []*Prop, thickne
 			case !blocked && runStart >= 0:
 				out = emitRun(out, ax, ay, ux, uy,
 					float32(runStart)*step, float32(s)*step,
-					thickness, float32(math.Atan2(float64(dy), float64(dx))))
+					faceBand{-thickness / 2, thickness / 2}, float32(math.Atan2(float64(dy), float64(dx))))
 				runStart = -1
 			}
 		}

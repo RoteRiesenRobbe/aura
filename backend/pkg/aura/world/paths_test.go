@@ -1,8 +1,11 @@
 package world
 
 import (
-	"fmt"
+	"encoding/json"
+	"image/png"
 	"math"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -618,15 +621,10 @@ func TestOnePointedEndTapersOnlyThatEnd(t *testing.T) {
 // ---- fade ends (plan-cliffs.md D2) ------------------------------------------
 
 // ⚑ Pinned, because the CLIENT holds the same number (Paths.ts
-// CAP_LENGTH_PER_WIDTH): it draws the cap this length, and the wall stops
+// CAP_LENGTH_PER_WIDTH): it draws the cap this length, and the wall narrows
 // inside it.
 func TestCapLengthIsTwoWidths(t *testing.T) {
 	assert.EqualValues(t, 2, capLengthPerWidth)
-}
-
-func TestFadeWallFractionIsAFraction(t *testing.T) {
-	assert.GreaterOrEqual(t, float32(fadeWallFraction), float32(0))
-	assert.LessOrEqual(t, float32(fadeWallFraction), float32(1))
 }
 
 func TestFadeIsAnEndsValue(t *testing.T) {
@@ -637,84 +635,192 @@ func TestFadeIsAnEndsValue(t *testing.T) {
 	}
 }
 
-// wallExtent is the arc span a straight path along +x is walled over, and
-// whether every rect in it is the given width.
-func wallExtent(t *testing.T, cs []Corridor, width float32) (from, to, covered float32) {
+// wallExtent is the arc span a straight path along +x is walled over.
+func wallExtent(t *testing.T, cs []Corridor) (from, to float32) {
 	t.Helper()
 	from, to = float32(math.Inf(1)), float32(math.Inf(-1))
 	for _, c := range cs {
 		require.False(t, c.IsCircle(), "a straight path has no joints")
-		assert.EqualValues(t, width, c.Width, "a faded end never narrows the wall")
 		from = min32(from, c.X-c.Length/2)
 		to = max32(to, c.X+c.Length/2)
-		covered += c.Length
 	}
-	return from, to, covered
+	return from, to
 }
 
-// A 20-unit wall, width 2, faded at both ends: each cap is 4 units, and the
-// wall reaches fadeWallFraction of the way into each one, at full width.
-func TestFadeEndsStopTheWallInsideTheCap(t *testing.T) {
-	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"ends":"fade",
+// fadeRect checks one rect of a width-2 path along +x against a faded end that
+// has SUNK by q: the face side (+y) stays put and the top comes down to it,
+// the way the cap art's courses step down to the foot.
+func fadeRect(t *testing.T, c Corridor, q float32, msg string) {
+	t.Helper()
+	assert.InDelta(t, 2*(1-q), c.Width, 1e-3, msg)
+	assert.InDelta(t, q, c.Y, 1e-3, msg+": the foot side stays where it is")
+}
+
+// Q1 re-ruled (PO 2026-10-25): an open stretch of cap read as a bug ("the cap
+// of the wall cliffs can be walked through"), and a full-width wall to the
+// tip blocked more than the art shows. So a faded end is walled to its tip and
+// NARROWS with the art, its top sinking to the foot across the cap.
+func TestFadedEndsNarrowToTheFootAcrossTheCap(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"ends":"fade",
 		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
-	cut := float32(4 * (1 - fadeWallFraction))
-	from, to, covered := wallExtent(t, PathCorridors(z), 2)
-	assert.InDelta(t, cut, from, 1e-3)
-	assert.InDelta(t, 20-cut, to, 1e-3)
-	assert.InDelta(t, 20-2*cut, covered, 1e-3, "no gaps in between")
+	cs := PathCorridors(z)
+	from, to := wallExtent(t, cs)
+	assert.InDelta(t, 0, from, 1e-3, "walled to the start tip")
+	assert.InDelta(t, 20, to, 1e-3, "walled to the end tip")
+	for _, c := range cs {
+		switch {
+		case c.X < 4:
+			fadeRect(t, c, 1-c.X/4, "start cap")
+		case c.X > 16:
+			fadeRect(t, c, 1-(20-c.X)/4, "end cap")
+		default:
+			fadeRect(t, c, 0, "between the caps")
+		}
+	}
 }
 
-func TestOneFadedEndLeavesTheOtherAtTheEndpoint(t *testing.T) {
+func TestOneFadedEndLeavesTheOtherFullWidth(t *testing.T) {
 	for _, keys := range []string{`"endsEnd":"fade"`, `"ends":"fade","endsStart":"flat"`} {
-		z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,`+keys+`,
+		z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,`+keys+`,
 			"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
-		from, to, _ := wallExtent(t, PathCorridors(z), 2)
-		assert.InDelta(t, 0, from, 1e-3, keys)
-		assert.InDelta(t, 20-4*(1-fadeWallFraction), to, 1e-3, keys)
+		for _, c := range PathCorridors(z) {
+			if c.X <= 16 {
+				fadeRect(t, c, 0, keys)
+			} else {
+				fadeRect(t, c, 1-(20-c.X)/4, keys)
+			}
+		}
 	}
 }
 
 // Shorter than two caps: each is clamped to half the path, like the taper.
 func TestShortFadedPathClampsItsCaps(t *testing.T) {
-	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"ends":"fade",
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"ends":"fade",
 		"points":[{"x":0,"y":0},{"x":4,"y":0}]}`)
-	cs := PathCorridors(z)
-	if fadeWallFraction == 0 {
-		assert.Empty(t, cs, "two caps meeting in the middle leave no wall")
-		return
-	}
-	cut := float32(2 * (1 - fadeWallFraction))
-	from, to, _ := wallExtent(t, cs, 2)
-	assert.InDelta(t, cut, from, 1e-3)
-	assert.InDelta(t, 4-cut, to, 1e-3)
-}
-
-// A bend inside the unwalled part of a cap gets no joint: a circle there would
-// be an invisible wall where the cliff has sloped away.
-func TestFadeDropsAJointOutsideTheWall(t *testing.T) {
-	cut := float32(4 * (1 - fadeWallFraction))
-	if cut <= 0 {
-		t.Skip("fadeWallFraction 1 walls the whole cap")
-	}
-	bend := cut / 2
-	z := blockingZone(t, fmt.Sprintf(`{"profile":"Cliff","width":2,"blocksMovement":true,"endsStart":"fade",
-		"points":[{"x":0,"y":0},{"x":%g,"y":0},{"x":%g,"y":20}]}`, bend, bend))
-	assert.Empty(t, circlesIn(PathCorridors(z)))
-}
-
-// One end pointed and one faded: the pointed end still narrows, the faded one
-// still stops short at full width.
-func TestPointAndFadeEndsMix(t *testing.T) {
-	z := blockingZone(t, `{"profile":"Cliff","width":2,"blocksMovement":true,"endsStart":"point","endsEnd":"fade",
-		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
-	var to float32
 	for _, c := range PathCorridors(z) {
-		to = max32(to, c.X+c.Length/2)
-		if c.X < 4 {
-			assert.InDelta(t, 2*c.X/4, c.Width, 1e-3, "the pointed start tapers")
+		if c.X < 2 {
+			fadeRect(t, c, 1-c.X/2, "start cap")
 		} else {
-			assert.EqualValues(t, 2, c.Width)
+			fadeRect(t, c, 1-(4-c.X)/2, "end cap")
 		}
 	}
-	assert.InDelta(t, 20-4*(1-fadeWallFraction), to, 1e-3)
+}
+
+// A bend inside a cap gets a joint as narrow as the wall there, sitting on the
+// sunk band rather than on the centreline.
+func TestFadeJointSitsOnTheSunkBand(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"endsStart":"fade",
+		"points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":20}]}`)
+	circles := circlesIn(PathCorridors(z))
+	require.Len(t, circles, 1)
+	// At arc 1 of a 4-unit cap the band has sunk 0.75: [0.5, 1] across, so a
+	// 0.25 circle centred 0.75 toward the face, along the mitre of an east leg
+	// (face +y) turning south (face −x).
+	assert.InDelta(t, 0.25, circles[0].Radius, 1e-3)
+	assert.InDelta(t, 0.25, circles[0].X, 1e-3)
+	assert.InDelta(t, 0.75, circles[0].Y, 1e-3)
+}
+
+// One end pointed and one faded: the pointed end narrows about the
+// centreline, the faded one toward the foot.
+func TestPointAndFadeEndsMix(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"endsStart":"point","endsEnd":"fade",
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	cs := PathCorridors(z)
+	_, to := wallExtent(t, cs)
+	assert.InDelta(t, 20, to, 1e-3)
+	for _, c := range cs {
+		switch {
+		case c.X < 4:
+			assert.InDelta(t, 2*c.X/4, c.Width, 1e-3, "the pointed start tapers")
+			assert.InDelta(t, 0, c.Y, 1e-3, "about the centreline")
+		case c.X > 16:
+			fadeRect(t, c, 1-(20-c.X)/4, "the faded end sinks")
+		default:
+			fadeRect(t, c, 0, "full width")
+		}
+	}
+}
+
+// ---- drawn faces (PO 2026-10-25: the cliff blocks more than is visible) ------
+
+// A cliff profile walls only the band its art draws, offset toward the face.
+func TestCliffWallsOnlyItsDrawnFace(t *testing.T) {
+	face, ok := drawnFaces["Retaining Wall"]
+	require.True(t, ok)
+	z := blockingZone(t, `{"profile":"Retaining Wall","width":1.5,"blocksMovement":true,
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	cs := PathCorridors(z)
+	require.NotEmpty(t, cs)
+	for _, c := range cs {
+		assert.InDelta(t, face.bottom-face.top, c.Width, 1e-3)
+		assert.InDelta(t, (face.top+face.bottom)/2, c.Y, 1e-3, "+y is the face side walking east")
+	}
+}
+
+// A path narrower than the art crops it, so the wall never outgrows the path.
+func TestNarrowCliffPathClipsItsFace(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Cliff","width":0.8,"blocksMovement":true,
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	for _, c := range PathCorridors(z) {
+		assert.InDelta(t, 0.8, c.Width, 1e-3)
+		assert.InDelta(t, 0, c.Y, 1e-3)
+	}
+}
+
+// ⭐ The table is the ART's, so it is measured from the art: every profile
+// that draws a `cap` (the cliff family, plan-cliffs.md D4) has a face here,
+// and each face matches the rows of its tile that are at least half opaque.
+// Re-cut a tile and this goes red until the numbers follow.
+func TestDrawnFacesMatchTheirTiles(t *testing.T) {
+	root := "../../../../frontend/src"
+	raw, err := os.ReadFile(root + "/client-data/terrain-profiles.json")
+	if err != nil {
+		t.Skip("no frontend checkout beside the backend")
+	}
+	var table map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(raw, &table))
+	for name, entry := range table {
+		if strings.HasPrefix(name, "_") {
+			continue
+		}
+		var p struct {
+			Texture *string `json:"texture"`
+			Scale   float32 `json:"scale"`
+			Cap     string  `json:"cap"`
+		}
+		require.NoError(t, json.Unmarshal(entry, &p), name)
+		face, ok := drawnFaces[name]
+		if p.Cap == "" {
+			assert.False(t, ok, "%s draws no cap but has a drawn face", name)
+			continue
+		}
+		require.True(t, ok, "%s is a cliff (it draws a cap) but has no drawn face", name)
+		require.NotNil(t, p.Texture, name)
+		f, err := os.Open(root + "/features/regions/assets/ground/" + *p.Texture + ".png")
+		require.NoError(t, err, name)
+		img, err := png.Decode(f)
+		f.Close()
+		require.NoError(t, err, name)
+		b := img.Bounds()
+		first, last := -1, -1
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			var sum uint64
+			for x := b.Min.X; x < b.Max.X; x++ {
+				_, _, _, a := img.At(x, y).RGBA()
+				sum += uint64(a >> 8)
+			}
+			if sum >= 128*uint64(b.Dx()) {
+				if first < 0 {
+					first = y
+				}
+				last = y
+			}
+		}
+		require.GreaterOrEqual(t, first, 0, name)
+		perUnit := 120 / p.Scale
+		mid := float32(b.Dy()) / 2
+		assert.InDelta(t, (float32(first)-mid)/perUnit, face.top, 0.01, "%s top", name)
+		assert.InDelta(t, (float32(last+1)-mid)/perUnit, face.bottom, 0.01, "%s bottom", name)
+	}
 }
