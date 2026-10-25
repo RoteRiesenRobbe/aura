@@ -137,6 +137,11 @@ type PropDefinition struct {
 	// keeps the flag so zone.go can refuse a placement that would re-wall a roof
 	// or draw it under the characters.
 	Roof bool
+	// Tint is the colour (0xRRGGBB) the client multiplies the sprite by; 0 =
+	// drawn as is. It is how one neutral roof-kit drawing becomes slate, clay,
+	// stone or copper: each material is its own definition. Rides
+	// Resource.tint, so it costs nothing on an untinted prop.
+	Tint uint32
 }
 
 // Blocks reports whether placements of this type block movement unless the
@@ -278,6 +283,9 @@ type propDefinitionDoc struct {
 	// Roof: see PropDefinition. Present = a roof. DisallowUnknownFields again,
 	// and it reaches into the object too, so a typo inside refuses by name.
 	Roof *propRoofDoc `json:"roof"`
+	// Tint: see PropDefinition. "#rrggbb", never black. DisallowUnknownFields
+	// again.
+	Tint string `json:"tint"`
 }
 
 // propRoofDoc is the roof object. RevealAlpha is the opacity the roof eases to
@@ -359,6 +367,12 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 				"walk under never reveals (an absent blocksMovement means true)")
 		}
 	}
+	// The light colour's rule fits a tint exactly: "#rrggbb", and black is
+	// refused (a black tint draws the prop as a silhouette).
+	tint, err := skills.ParseLightColor(doc.Tint)
+	if err != nil {
+		return nil, fmt.Errorf("tint: %w", err)
+	}
 	return &PropDefinition{
 		Name:           doc.Name,
 		EntityType:     entityType,
@@ -367,5 +381,6 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		BlocksMovement: doc.BlocksMovement,
 		LightFraction:  doc.LightFraction,
 		Roof:           doc.Roof != nil,
+		Tint:           tint,
 	}, nil
 }

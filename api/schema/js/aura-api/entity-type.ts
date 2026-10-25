@@ -140,5 +140,11 @@ export enum EntityType {
   Crane = 150,
   SteamBoiler = 151,
   CityGatehouse = 152,
-  CornerTowerRoof = 153
+  CornerTowerRoof = 153,
+  RoofSpan = 154,
+  RoofHip = 155,
+  RoofCorner = 156,
+  CityStairs = 157,
+  Barrel = 158,
+  Bench = 159
 }

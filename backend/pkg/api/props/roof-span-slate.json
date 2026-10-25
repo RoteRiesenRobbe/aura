@@ -1,0 +1,9 @@
+{
+  "name": "RoofSpanSlate",
+  "entityType": "RoofSpan",
+  "sprite": "roofSpan.svg",
+  "body": { "width": 2, "height": 4 },
+  "blocksMovement": false,
+  "roof": { "revealAlpha": 0 },
+  "tint": "#7d8a9e"
+}

@@ -60,12 +60,14 @@
       "CentralFountain",
       "Chains",
       "CityGatehouse",
+      "CityStairs",
       "Confessional",
       "CornerTowerRoof",
       "Cot",
       "Cottage",
       "Crane",
       "Crate",
+      "CryptEntrance",
       "CrystalPylon",
       "DeadTree",
       "Doorway",
@@ -76,6 +78,7 @@
       "FishingHut",
       "Font",
       "Forge",
+      "Gallows",
       "Gate",
       "GateWall",
       "GearContraption",
@@ -110,6 +113,18 @@
       "ReadingDesk",
       "Remains",
       "Rock",
+      "RoofCornerClay",
+      "RoofCornerCopper",
+      "RoofCornerSlate",
+      "RoofCornerStone",
+      "RoofHipClay",
+      "RoofHipCopper",
+      "RoofHipSlate",
+      "RoofHipStone",
+      "RoofSpanClay",
+      "RoofSpanCopper",
+      "RoofSpanSlate",
+      "RoofSpanStone",
       "Rowboat",
       "RubbishHeap",
       "RuinedHouse",
@@ -117,9 +132,11 @@
       "Screen",
       "ScrollRack",
       "Shipwreck",
+      "Signpost",
       "SlumTent",
       "SteamBoiler",
       "Stocks",
+      "Stretcher",
       "Stump",
       "Tent",
       "Tombstone",
@@ -283,6 +300,7 @@
       "Ashen Fields",
       "Volcano",
       "City",
+      "Upper City",
       "Derelict Fortress",
       "Desert",
       "Wasteland",
@@ -292,6 +310,7 @@
       "Fence",
       "Cliff",
       "Cliff Smooth",
+      "Retaining Wall",
       "Shoreline",
       "Wall",
       "Road",
@@ -520,6 +539,9 @@
       "city-mage-tower",
       "city-barracks",
       "city-workshop",
+      "city-smithy",
+      "city-tavern",
+      "city-town-hall",
       "grimwatch",
       "ashen-fields",
       "cinder-conclave",
@@ -720,6 +742,10 @@
       "w": 8,
       "h": 4
     },
+    "CityStairs": {
+      "w": 2.4,
+      "h": 2
+    },
     "Confessional": {
       "w": 2,
       "h": 1.5
@@ -743,6 +769,10 @@
     "Crate": {
       "w": 0.9,
       "h": 0.9
+    },
+    "CryptEntrance": {
+      "w": 3,
+      "h": 2.4
     },
     "CrystalPylon": {
       "w": 1,
@@ -783,6 +813,10 @@
     "Forge": {
       "w": 2,
       "h": 1.6
+    },
+    "Gallows": {
+      "w": 3,
+      "h": 2
     },
     "Gate": {
       "w": 4,
@@ -920,6 +954,54 @@
       "w": 1.07,
       "h": 1.07
     },
+    "RoofCornerClay": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerCopper": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerSlate": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofCornerStone": {
+      "w": 4,
+      "h": 4
+    },
+    "RoofHipClay": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipCopper": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipSlate": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofHipStone": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanClay": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanCopper": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanSlate": {
+      "w": 2,
+      "h": 4
+    },
+    "RoofSpanStone": {
+      "w": 2,
+      "h": 4
+    },
     "Rowboat": {
       "w": 2.6,
       "h": 1.1
@@ -948,6 +1030,10 @@
       "w": 8,
       "h": 3
     },
+    "Signpost": {
+      "w": 0.5,
+      "h": 0.5
+    },
     "SlumTent": {
       "w": 2.4,
       "h": 2
@@ -959,6 +1045,10 @@
     "Stocks": {
       "w": 2,
       "h": 0.6
+    },
+    "Stretcher": {
+      "w": 0.7,
+      "h": 1.9
     },
     "Stump": {
       "w": 1.1,
@@ -1286,6 +1376,7 @@
     "Ashen Fields",
     "Volcano",
     "City",
+    "Upper City",
     "Derelict Fortress",
     "Desert",
     "Wasteland",
@@ -1295,6 +1386,7 @@
     "Fence",
     "Cliff",
     "Cliff Smooth",
+    "Retaining Wall",
     "Shoreline",
     "Wall",
     "Road",
@@ -1322,7 +1414,8 @@
   ],
   "CAP_PROFILES": [
     "Cliff",
-    "Cliff Smooth"
+    "Cliff Smooth",
+    "Retaining Wall"
   ],
   "EFFECT_NAMES": [
     "Aegis",
@@ -1501,6 +1594,9 @@
     "city-mage-tower",
     "city-barracks",
     "city-workshop",
+    "city-smithy",
+    "city-tavern",
+    "city-town-hall",
     "grimwatch",
     "ashen-fields",
     "cinder-conclave",

@@ -51,6 +51,7 @@ func FromZone(p *world.Prop) *Prop {
 	// The draw container is a PLACEMENT fact (plan-prop-draw-order.md D4): the
 	// array of the zone file's `props` this one was authored in.
 	e.underfoot = p.Layer == world.PropLayerUnderfoot
+	e.tint = p.Def.Tint
 	return e
 }
 
@@ -98,6 +99,10 @@ type Prop struct {
 	// props.underfoot, so the client draws it under characters and mobs (D4).
 	// Draw order only: collision is the body's business, never this flag's.
 	underfoot bool
+
+	// tint is the definition's sprite tint, 0xRRGGBB, 0 = none (the roof kit's
+	// materials). A type fact copied here so the codec needs no definition.
+	tint uint32
 }
 
 var _ = model.PropEntity(&Prop{})
@@ -194,6 +199,11 @@ func (p *Prop) PropName() string {
 // Prop.underfoot.
 func (p *Prop) Underfoot() bool {
 	return p.underfoot
+}
+
+// Tint is the definition's sprite tint — see Prop.tint.
+func (p *Prop) Tint() uint32 {
+	return p.tint
 }
 
 // Angle is the authored orientation in radians. BaseEntity returns a constant

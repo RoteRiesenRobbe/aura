@@ -646,6 +646,9 @@ function unmarshalEntity(entity, eType) {
         // which picks its container under the characters
         // (plan-prop-draw-order.md D4). Props only.
         underfoot: undefined,
+        // the PROP definition's sprite tint, 0xRRGGBB, 0 = none: how the roof
+        // kit's neutral pieces get their material. Props only.
+        tint: undefined,
         // effective combat level of a MOB instance (plan-mob-levels.md C2).
         // Deliberately NOT the `level` slot above: that one is character-only,
         // and reusing it would make isDefined(entity.level) newly true for
@@ -797,6 +800,8 @@ function unmarshalEntity(entity, eType) {
         // false for every placement outside props.underfoot: the server omits
         // the default, and an absent bool reads as its default.
         result.underfoot = entity.underfoot();
+        // 0 for every untinted prop: the server omits the default.
+        result.tint = entity.tint();
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -991,6 +996,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // Dionsburg's city walls (K7): the corner tower top is a roof by its definition.
     [AuraApi.EntityType.CityGatehouse]: Props.genericPropClasses.CityGatehouse,
     [AuraApi.EntityType.CornerTowerRoof]: Props.genericPropClasses.CornerTowerRoof,
+    [AuraApi.EntityType.RoofSpan]: Props.genericPropClasses.RoofSpan,
+    [AuraApi.EntityType.RoofHip]: Props.genericPropClasses.RoofHip,
+    [AuraApi.EntityType.RoofCorner]: Props.genericPropClasses.RoofCorner,
+    [AuraApi.EntityType.CityStairs]: Props.genericPropClasses.CityStairs,
+    [AuraApi.EntityType.Barrel]: Props.genericPropClasses.Barrel,
+    [AuraApi.EntityType.Bench]: Props.genericPropClasses.Bench,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

@@ -118,9 +118,12 @@ export class EntityManager {
                     // (plan-prop-draw-order.md D4), read by every prop class
                     // to pick its container, and ignored by everything else
                     // by the same rule.
+                    //
+                    // ⚑ The 8th is the prop definition's TINT (0 = none), read
+                    // by the generic prop class only: the roof kit's material.
                     gameObject = new entity.type(
                         entity.id, entity.position.x, entity.position.y, entity.radius, entity.rotation,
-                        entity.propName, entity.underfoot);
+                        entity.propName, entity.underfoot, entity.tint);
             }
 
             this.objects[entity.id] = gameObject;

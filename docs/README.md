@@ -134,6 +134,7 @@ go to `backlog.md`; this section is content only.
 - **content-zone-design-guide.md** — the **shared level-design guide**: building a zone with the shipped primitives (§1), the cross-zone rules (§4), assets (§5), seamless adjacency (§7). Its header names where every other truth lives (placement = `api/zones/world.json`, zone list + region names = `content-world.md`, definitions = `api/`). Held Zones 1 + 2's intent as §2/§3 from 2026-09-30 (replacing the archived `content-zone1.md` / `content-zone2.md`) until the 2026-10-02 split below; §2/§3 are now pointers
 - **content-zone-1-farmland.md** — ⭐ **Zone 1 design intent** (Farmlands + Saltgrass Strand; Brackenfold Meadows is leaving, PO 2026-10-02): the opening arc, POIs, cast, quests, and ⭐ the first **XP budget** (§2.7) and **progression by quest area** (§2.8, DRAFT). Section numbers kept from the combined guide so `guide §2.x` citations resolve
 - **content-zone-2-woodland.md** — **Zone 2 design intent** (Deep Woods), §3.x numbers kept; its XP budget is owed after Zone 1's is ruled
+- **content-city-dionsburg.md** — **the city hub's layout intent** (Dionsburg, area `city-hub`): districts as built (no re-layout, PO 2026-10-24), the building pattern + roof kit, the four kit buildings, ⭐ Cathedral Hill (one retaining wall facing the square, two stairs, one road up), the layout rules, open items
 
 ## Art (`docs/art/` — the brief, the tracker, the pipeline)
 

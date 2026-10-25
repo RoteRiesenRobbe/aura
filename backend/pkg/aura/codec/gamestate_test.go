@@ -641,6 +641,40 @@ func TestPropEntityFlatbufMarshal_CarriesRotation(t *testing.T) {
 	assert.Equal(t, float32(2.03), res.Rotation())
 }
 
+// The roof kit's material: a definition's tint rides the wire, and an untinted
+// prop writes nothing (Resource.tint is last and defaults to 0, so the builder
+// trims it the way it trims rotation and underfoot).
+func TestPropEntityFlatbufMarshal_CarriesTint(t *testing.T) {
+	encode := func(tint uint32) *AuraApi.Resource {
+		def := &world.PropDefinition{Body: world.PropBody{Radius: 1}, Tint: tint}
+		p := prop.FromZone(&world.Prop{X: 1, Y: 2, Def: def})
+		b := flatbuffers.NewBuilder(256)
+		b.Finish(PropEntityFlatbufMarshal(p, b))
+		var res AuraApi.Resource
+		res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+		return &res
+	}
+	assert.Equal(t, uint32(0xc8644a), encode(0xc8644a).Tint())
+	assert.Zero(t, encode(0).Tint())
+}
+
+// Writing tint=0 must add zero bytes, or every untinted prop in every snapshot
+// just got bigger (the UnrotatedCostsNothing rule, for the field after it).
+func TestPropEntityFlatbufMarshal_UntintedCostsNothing(t *testing.T) {
+	encode := func(withTint bool) int {
+		b := flatbuffers.NewBuilder(256)
+		AuraApi.ResourceStart(b)
+		AuraApi.ResourceAddId(b, 1)
+		AuraApi.ResourceAddEntityType(b, AuraApi.EntityType(2))
+		if withTint {
+			AuraApi.ResourceAddTint(b, 0)
+		}
+		b.Finish(AuraApi.ResourceEnd(b))
+		return len(b.FinishedBytes())
+	}
+	assert.Equal(t, encode(false), encode(true))
+}
+
 // ⭐ The performance property, pinned structurally rather than as a byte count.
 //
 // rotation is the LAST field in table Resource, and 0 is its default. The

@@ -66,6 +66,10 @@ type PropEntity interface {
 	// props.underfoot (plan-prop-draw-order.md D4): the client then draws it
 	// under characters and mobs. Draw order only, never collision.
 	Underfoot() bool
+
+	// Tint is the definition's sprite tint, 0xRRGGBB, 0 = none: the roof
+	// kit's material.
+	Tint() uint32
 }
 
 // CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a

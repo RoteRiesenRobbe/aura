@@ -1,0 +1,101 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="none">
+  <!-- Placeholder stairs (Cathedral Hill): a flight of steps through a gap in
+       a Cliff path, TRUE top-down with the same cheat the cliff tile makes:
+       the vertical faces (risers) show on the LOW side. The viewBox is
+       240x200 to match the 2.4 x 2 rect body in api/props/city-stairs.json
+       (preserveAspectRatio=none); 100 units per metre. NON-BLOCKING: you
+       walk up it.
+
+       Orientation at rotation 0: the TOP edge is the high ground and the
+       steps go DOWN to the BOTTOM edge, like the Doorway's street side.
+       Place it centred on the cliff line in the gap and rotate it so the
+       bottom points at the low side (1.5708 for a cliff whose low side is
+       west). Scale it with the placement `scale` for a wider gap (the
+       cheeks then cover the cliff's flat ends).
+
+       Two cheek walls with a pale coping run down either side; between them
+       seven steps, each a lit tread and a darker riser below it, the treads
+       worn paler down the middle where people climb. Plain dressed stone, so it sits
+       in any district. -->
+  <defs>
+    <linearGradient id="cityStairsTread" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9c1af"/>
+      <stop offset="1" stop-color="#b3ab98"/>
+    </linearGradient>
+    <linearGradient id="cityStairsRiser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d574d"/>
+      <stop offset="1" stop-color="#77705f"/>
+    </linearGradient>
+    <linearGradient id="cityStairsWear" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cityStairsCheek" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f8778"/>
+      <stop offset="1" stop-color="#6e675a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the landing at the top, flush with the hill -->
+  <rect x="0" y="0" width="240" height="18" fill="#b9b19e"/>
+  <line x1="80" y1="0" x2="80" y2="18" stroke="#8d8676" stroke-width="2"/>
+  <line x1="160" y1="0" x2="160" y2="18" stroke="#8d8676" stroke-width="2"/>
+
+  <!-- seven steps: tread (lit, 18 deep) then riser (shaded, 8 deep) -->
+  <g>
+    <rect x="22" y="18" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="36" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="44" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="62" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="70" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="88" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="96" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="114" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="122" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="140" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="148" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="166" width="196" height="8" fill="url(#cityStairsRiser)"/>
+    <rect x="22" y="174" width="196" height="18" fill="url(#cityStairsTread)"/>
+    <rect x="22" y="192" width="196" height="8" fill="url(#cityStairsRiser)"/>
+  </g>
+  <!-- the nosing: a thin bright edge where each tread meets the riser below -->
+  <g stroke="#ddd6c6" stroke-width="2" opacity="0.8">
+    <line x1="22" y1="35" x2="218" y2="35"/>
+    <line x1="22" y1="61" x2="218" y2="61"/>
+    <line x1="22" y1="87" x2="218" y2="87"/>
+    <line x1="22" y1="113" x2="218" y2="113"/>
+    <line x1="22" y1="139" x2="218" y2="139"/>
+    <line x1="22" y1="165" x2="218" y2="165"/>
+    <line x1="22" y1="191" x2="218" y2="191"/>
+  </g>
+  <!-- slab joints on the treads, staggered -->
+  <g stroke="#9a927f" stroke-width="1.5">
+    <line x1="88" y1="18" x2="88" y2="36"/><line x1="156" y1="18" x2="156" y2="36"/>
+    <line x1="64" y1="44" x2="64" y2="62"/><line x1="132" y1="44" x2="132" y2="62"/><line x1="190" y1="44" x2="190" y2="62"/>
+    <line x1="96" y1="70" x2="96" y2="88"/><line x1="164" y1="70" x2="164" y2="88"/>
+    <line x1="58" y1="96" x2="58" y2="114"/><line x1="124" y1="96" x2="124" y2="114"/><line x1="186" y1="96" x2="186" y2="114"/>
+    <line x1="90" y1="122" x2="90" y2="140"/><line x1="160" y1="122" x2="160" y2="140"/>
+    <line x1="70" y1="148" x2="70" y2="166"/><line x1="140" y1="148" x2="140" y2="166"/><line x1="196" y1="148" x2="196" y2="166"/>
+    <line x1="100" y1="174" x2="100" y2="192"/><line x1="168" y1="174" x2="168" y2="192"/>
+  </g>
+  <!-- worn paler down the middle (treads only: over a riser it reads as a smear) -->
+  <g fill="url(#cityStairsWear)">
+    <rect x="60" y="18" width="120" height="17"/><rect x="60" y="44" width="120" height="17"/>
+    <rect x="60" y="70" width="120" height="17"/><rect x="60" y="96" width="120" height="17"/>
+    <rect x="60" y="122" width="120" height="17"/><rect x="60" y="148" width="120" height="17"/>
+    <rect x="60" y="174" width="120" height="17"/>
+  </g>
+
+  <!-- the cheek walls, a pale coping on top and a shadow cast onto the steps -->
+  <rect x="0" y="0" width="22" height="200" fill="url(#cityStairsCheek)"/>
+  <rect x="218" y="0" width="22" height="200" fill="url(#cityStairsCheek)"/>
+  <rect x="2" y="0" width="16" height="200" fill="#a79f8e"/>
+  <rect x="222" y="0" width="16" height="200" fill="#a79f8e"/>
+  <g stroke="#7f786a" stroke-width="1.5">
+    <line x1="2" y1="50" x2="18" y2="50"/><line x1="2" y1="100" x2="18" y2="100"/><line x1="2" y1="150" x2="18" y2="150"/>
+    <line x1="222" y1="50" x2="238" y2="50"/><line x1="222" y1="100" x2="238" y2="100"/><line x1="222" y1="150" x2="238" y2="150"/>
+  </g>
+  <rect x="22" y="18" width="7" height="182" fill="#000000" opacity="0.18"/>
+  <rect x="211" y="18" width="7" height="182" fill="#000000" opacity="0.12"/>
+</svg>

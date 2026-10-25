@@ -145,6 +145,12 @@ const (
 	EntityTypeSteamBoiler           EntityType = 151
 	EntityTypeCityGatehouse         EntityType = 152
 	EntityTypeCornerTowerRoof       EntityType = 153
+	EntityTypeRoofSpan              EntityType = 154
+	EntityTypeRoofHip               EntityType = 155
+	EntityTypeRoofCorner            EntityType = 156
+	EntityTypeCityStairs            EntityType = 157
+	EntityTypeBarrel                EntityType = 158
+	EntityTypeBench                 EntityType = 159
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -286,6 +292,12 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeSteamBoiler:           "SteamBoiler",
 	EntityTypeCityGatehouse:         "CityGatehouse",
 	EntityTypeCornerTowerRoof:       "CornerTowerRoof",
+	EntityTypeRoofSpan:              "RoofSpan",
+	EntityTypeRoofHip:               "RoofHip",
+	EntityTypeRoofCorner:            "RoofCorner",
+	EntityTypeCityStairs:            "CityStairs",
+	EntityTypeBarrel:                "Barrel",
+	EntityTypeBench:                 "Bench",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -427,6 +439,12 @@ var EnumValuesEntityType = map[string]EntityType{
 	"SteamBoiler":           EntityTypeSteamBoiler,
 	"CityGatehouse":         EntityTypeCityGatehouse,
 	"CornerTowerRoof":       EntityTypeCornerTowerRoof,
+	"RoofSpan":              EntityTypeRoofSpan,
+	"RoofHip":               EntityTypeRoofHip,
+	"RoofCorner":            EntityTypeRoofCorner,
+	"CityStairs":            EntityTypeCityStairs,
+	"Barrel":                EntityTypeBarrel,
+	"Bench":                 EntityTypeBench,
 }
 
 func (v EntityType) String() string {

@@ -1,0 +1,7 @@
+{
+  "name": "CityStairs",
+  "entityType": "CityStairs",
+  "sprite": "cityStairs.svg",
+  "body": { "width": 2.4, "height": 2 },
+  "blocksMovement": false
+}
