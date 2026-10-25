@@ -7607,6 +7607,13 @@
             "rotation": 5.425,
             "blocksMovement": false,
             "scale": 0.49
+          },
+          {
+            "type": "Bridge",
+            "x": -91.37,
+            "y": 3.4,
+            "rotation": 0.004,
+            "scale": 0.833
           }
         ],
         "default": [
@@ -7696,20 +7703,6 @@
             "y": 17.07,
             "rotation": 0,
             "scale": 1.994
-          },
-          {
-            "type": "WreckDebris",
-            "x": -93.6,
-            "y": 4.3,
-            "rotation": 0.4,
-            "scale": 0.55
-          },
-          {
-            "type": "FallenLog",
-            "x": -93.8,
-            "y": 1.9,
-            "rotation": 1.5,
-            "scale": 0.7
           },
           {
             "type": "BurntCart",
@@ -13074,12 +13067,16 @@
               "y": -1.29
             },
             {
-              "x": -97.45,
-              "y": 1.76
+              "x": -97.62,
+              "y": 1.77
             },
             {
-              "x": -93.5,
-              "y": 3
+              "x": -95.57,
+              "y": 3.17
+            },
+            {
+              "x": -93.37,
+              "y": 3.34
             }
           ],
           "width": 1.5

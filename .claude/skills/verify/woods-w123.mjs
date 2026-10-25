@@ -131,7 +131,7 @@ const shots = [
   ['camp', { x: -108, y: -24 }],
   ['plateau', spawnOf('KoboldChief')],
   ['dark-forest-edge', spawnOf('FallenTraveller')],
-  ['broken-bridge', { x: -95, y: 3 }],
+  ['moat-bridge', spawnOf('CityGuard')],
   // the two forest masses, seen from the road beside them (never warp INTO one)
   ['forest-mass-west', { x: -128.5, y: 8.5 }],
   ['forest-mass-east', { x: -107.5, y: -6.5 }],
@@ -155,16 +155,18 @@ const talk = [
   ['Woodcutter 1', spawnOf('FallenTraveller'), { dx: 0, dy: -1.1 }, null],
   ['Woodcutter 2', spawnOf('Woodcutter2'), { dx: 0, dy: 1.1 }, null],
   ['Woodcutter 3', spawnOf('Woodcutter3'), { dx: 0, dy: 1.1 }, null],
+  // the bridge is back (PO 2026-10-25): his greeting says the gate is open
+  ['City Guard', spawnOf('CityGuard'), { dx: -1.1, dy: 0 }, null, /The gate is open./],
 ];
-for (const [actor, at, off, row] of talk) {
+for (const [actor, at, off, row, line] of talk) {
   await warp({ x: at.x + off.dx, y: at.y + off.dy });
   await page.waitForTimeout(1500);
   await pressInteract();
   const p = await panel();
   if (!p) { fail(`talk ${actor}`, 'no panel opened'); continue; }
-  const rowOk = !row || p.rows.some(r => row.test(r));
+  const rowOk = (!row || p.rows.some(r => row.test(r))) && (!line || line.test(p.lines));
   if (p.actor === actor && rowOk) pass(`talk ${actor}`, `"${p.lines.slice(0, 60)}…" rows: ${p.rows.length}`);
-  else fail(`talk ${actor}`, `actor "${p.actor}", rows ${JSON.stringify(p.rows)}`);
+  else fail(`talk ${actor}`, `actor "${p.actor}", lines "${p.lines.slice(0, 60)}", rows ${JSON.stringify(p.rows)}`);
   await page.screenshot({ path: `${outdir}/talk-${actor.replace(/ /g, '-')}.png` });
   await closePanel();
 }

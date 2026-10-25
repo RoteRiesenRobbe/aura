@@ -46,7 +46,7 @@ Zone 1 (PO 2026-10-02); whether it joins Zone 2 is a map call, not yet made.
 | Content | §3.3's places | 51 Wolves (3–6), 7 Bears (6–7, the NE quarter), 19 Kobolds (7, a surface camp at the NW farmland edge beside the cave mouth), a bandit group of 6 (5–7, north of the fire), 18 Spiders (12–14, SE), 11 Stags, 1 Dire Wolf (8). NPCs: Wanderer, Tobias, City Guard, Dead Carter. ⚑ One Wolf is level **45**, almost certainly a typo |
 | Kobold cave | Big, mouth in the NE, two branches (§3.7) | Mouth in the **NW**, beside the north river bridge. Interior `koboldCave.json` (48×28): 13 Kobolds, 5 KoboldRanged, the Fallen Traveller, one exit |
 | Kobold plateau | One bramble choke (§3.7) | ✅ Exists: the raised NW section above the upper river bridge (the bridge runs below it and does not connect the plateau to the Farmlands). The bandit group stands on the path beside it, not on it |
-| Road to the city | Winding, broken bridge, open gate the long way round (§3.6) | One straight road: river bridge → the fire → moat bridge → the west gate, which is **shut** (JailBars) |
+| Road to the city | Winding, over the moat bridge to the open west gate (§3.6) | One straight road: river bridge → the fire → moat bridge → the west gate, which is **shut** (JailBars) |
 | Dark forest | The SE, light needed (§3.8) | `Gloom` over the spider corner |
 | Campfires | Never beside danger (guide §4 rule 7) | `spawnpoint-2` (the Wanderer's fire) and `spawnpoint-4` (beside the City Guard) |
 | Levels | 6–12 [PLACEHOLDER] | 3–8 on the road side, 12–14 in the spider corner |
@@ -70,8 +70,8 @@ the art and the walls**, and a player who cannot see cannot navigate. Three
 rules make it work:
 
 1. **The kingsroad is always findable.** It is wide, it is a distinct profile,
-   and it runs unbroken from the west entrance to the broken bridge in the
-   east (§3.6). It may bend; it never breaks. Every time the player is lost,
+   and it runs unbroken from the west entrance to the moat bridge and the
+   west gate in the east (§3.6). It may bend; it never breaks. Every time the player is lost,
    the recovery is "walk until you hit the road".
 2. **Darkness is authored in bands, not blobs.** A corridor of `Canopy`
    atmosphere along a lane reads as *deep woods*; a circle of darkness in the
@@ -94,7 +94,7 @@ rules make it work:
   W -----+==\               FRITZ'S FIRE                       |  a
  entrance    \               (Fritz, Tobias)                    |  t    DIONSBURG
               \===+=============\                              |       west gate
-   WOLF CAVE        \              \=========> BROKEN BRIDGE   |       (OPEN)
+   WOLF CAVE        \              \=========> MOAT BRIDGE ====|=====> (OPEN)
    mouth (SW)        \                                          |
                       '== dark lane ==> DARK FOREST (SE)        |
                                        spiders, corpse,         |
@@ -110,8 +110,8 @@ Tiled work.
 
 - **Region**: `Forest` over the whole zone.
 - **Kingsroad**: one `Road` path, width 3 u, W→E, **non-blocking**, winding
-  between forest masses past Fritz's fire, dead-ending at the broken bridge
-  (§3.6). Wide enough to be unmistakable.
+  between forest masses past Fritz's fire, over the moat bridge to the open
+  west gate (§3.6). Wide enough to be unmistakable.
 - **The forest mass**: blocking `structures` — big, chunky, *not* jagged (collider
   budget) — with Tree props scattered densely on top of and around them. The
   polygons are the navigation; the props are the look. Never rely on prop
@@ -139,7 +139,7 @@ Tiled work.
 | **The dark forest** (SE) | Light gate (§3.8) | Spiders 12–14, the Lamplighter (the light quest, §3.8); the dead woodcutter and small spiders just outside its northern edge |
 | **Wolf cave** (SW) | A named fight | Cave mouth on the surface, an interior with the alpha wolf (§3.5 quest 5) |
 | **Bandit camp** | The zone's group content | Melee/ranged/healer/leader (the shipped horde pattern), palisade = blocking closed path. Stays where it is, on the path beside the plateau, and **guards the way north to the north cliffs (Wreckers Bluff), which is also blocked by brambles** (PO 2026-10-25) |
-| **The broken bridge** | The direct way, cut | Bridge ruins at the moat, the City Guard, the road's dead end |
+| **The moat bridge** | The direct way in | The bridge over the moat, the City Guard, the open west gate beyond |
 
 ### 3.4 Cast (zone 2)
 
@@ -258,7 +258,7 @@ wolf's (PO 2026-10-25).
 
 ### 3.6 The road to Dionsburg
 
-**Today** the road runs straight from the river bridge past the fire to the
+**Before W1-W3** the road ran straight from the river bridge past the fire to the
 moat bridge and the west gate (shut, JailBars; the City Guard: *"The gate is
 closed. The orcs are too close."*).
 
@@ -266,13 +266,12 @@ closed. The orcs are too close."*).
 
 1. **The road winds.** Forest masses sit on the straight line; the road bends
    between them. It stays unbroken (§3.1 rule 1).
-2. **The bridge is broken.** The road dead-ends at the moat. The City Guard
-   stands on the woods side; his line changes to say the guards broke the
-   bridge themselves to keep the orcs out. Content: bridge ruins in place of
-   the `Bridge` prop.
-3. **The west gate is open**, but the overland way to it is long: the player
-   has to go round to cross the moat (which way: §3.9 Q2). The JailBars go.
-4. **The short way is underground:** the kobold cave's east branch (§3.7) comes
+2. **The bridge stays** (PO 2026-10-25, reversing the earlier "the bridge is
+   broken" call): the road crosses the moat on the `Bridge` prop. The City
+   Guard stands on the woods side and greets: *"The gate is open. Stay sharp,
+   the orcs are not far."*
+3. **The west gate is open**, straight ahead over the bridge. The JailBars go.
+4. **A second way in, underground:** the kobold cave's east branch (§3.7) comes
    up on the city side of the moat, near the gate.
 
 ### 3.7 The kobold cave and the plateau
@@ -285,7 +284,7 @@ parts:
 - **The west branch** climbs to the **kobold plateau** and comes out on it
   (a cave exit up on the plateau).
 - **The east branch** comes out on the city side of the moat, near the open
-  west gate: the short way to the city (§3.6).
+  west gate: a second way to the city (§3.6).
 - **A passage into the bear cave.** The **bear cave** is its own cave with its
   own mouth east of the camp, in deep bear territory, and the alpha bear's den
   at the back; it joins the kobold cave inside (PO 2026-10-25). The bears that
@@ -383,7 +382,8 @@ quest file and its id (the `the-strays` precedent, `cleanup.md` #7).
 1. ~~Where does the bandit camp go?~~ **Ruled 2026-10-25:** it stays on the
    path beside the plateau and guards the bramble-blocked way north. The
    bears stay in the NE as the ones that wrecked the camp.
-2. **The long way to the west gate:** the gate is open but "a longer way to
+2. ~~The long way to the west gate~~ **Moot (PO 2026-10-25):** the bridge is
+   back, so the road reaches the open gate directly. Was: the gate is open but "a longer way to
    reach" (PO). With the bridge broken, the moat cuts the woods off from the
    city along their whole east side, and its only other crossing today is the
    bridge at its far north end. So which overland way does a player who skips
@@ -408,8 +408,8 @@ quest file and its id (the `the-strays` precedent, `cleanup.md` #7).
 
 ### 3.10 Work this implies (built as W1-W3, §3.11)
 
-- **`world.json` (Tiled):** forest masses, the winding road, the broken bridge,
-  the west gate opened, the long way round, the woodcutters' camp wreck (NE),
+- **`world.json` (Tiled):** forest masses, the winding road, the moat bridge
+  kept, the west gate opened, the woodcutters' camp wreck (NE),
   the kobold cave mouth moved NE (west of the camp), the bear cave mouth (east
   of the camp, the Bears moved east into it), the crate trail, the plateau's bramble choke, the
   bramble-blocked path north past the bandit camp, the dark
@@ -457,7 +457,8 @@ the PO polishes it in Tiled; the draft's numbers stand as placeholders.
   lands on (`Ledger.AcceptAt`); CrossValidate refuses an unknown or terminal
   landing stage; the content editor's validator follows.
 - **W2 `world.json`.** The winding road (forest masses as blocking `Forest`
-  structures under trees), the bridge and the JailBars gone, the cliff path
+  structures under trees), the bridge and the JailBars gone (the PO put the
+  bridge back after, 2026-10-25), the cliff path
   north (the old north road, winding) with brambles in a gap cut into the north
   cliff, the plateau's bramble choke cut into its cliff, the plateau's north
   gap to Wreckers Bluff CLOSED (one way down, as ruled), the camp wreck + crate
@@ -478,7 +479,7 @@ the PO polishes it in Tiled; the draft's numbers stand as placeholders.
   brazier; placeholder props (SackPile, LumberStack, ToolRack) swapped for
   drawn ones; the Lamplighter keeps `dire-wolves-in-the-forest` (one Dire Wolf
   nearby).
-- **Not done:** Q2 (the long way round, open); `bears-at-the-walls` still asks
+- **Not done:** Q2 is moot (the bridge is back); `bears-at-the-walls` still asks
   for L16 Bears; the new Torch's role (parked globally).
 - **Schema:** DB/conf none · wire none (placeholder art) · content +5 quests,
   +5 mobs, +1 skill, +3 regions, +1 gate key (`chop`, `shared-constants.json`)

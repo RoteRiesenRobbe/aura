@@ -152,8 +152,8 @@
   "@conv.CityGuard.the-front-is": {
     "description": "City Guard speaks this in the conversation, node \"front\", line 1."
   },
-  "conv.CityGuard.the-gate-is-closed": "We broke the bridge ourselves. The orcs are too close.",
-  "@conv.CityGuard.the-gate-is-closed": {
+  "conv.CityGuard.the-gate-is-open": "The gate is open. Stay sharp, the orcs are not far.",
+  "@conv.CityGuard.the-gate-is-open": {
     "description": "City Guard speaks this in the conversation, node \"root\", line 1."
   },
   "conv.CityGuard.where-can-i-make-myself": "Where can I make myself useful?",
