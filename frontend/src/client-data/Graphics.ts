@@ -224,11 +224,13 @@ export const GraphicsConfig = {
             maxSize: <number> 64,
         },
 
+        // maxSize is the 0.9 u body's radius (108 px): any smaller and the
+        // medallion draws an upscaled, pixelated bake of the SVG.
         bramble: {
             file: require('../features/game-objects/assets/mobs/bramble.svg'),
             packIcon: 'portrait-carnivorous-plant',
             medallion: <MedallionSpec> {},
-            maxSize: <number> 66,
+            maxSize: <number> 108,
         },
 
         // C3 kobold hideout + Dark Tunnel (content pass C3).
