@@ -68,7 +68,7 @@
       "angle": 0,
       "respawnTicks": 3600,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5,
+      "wanderRadius": 2,
       "level": 8
     }
   ],

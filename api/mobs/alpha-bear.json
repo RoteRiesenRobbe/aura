@@ -16,8 +16,8 @@
     "turnRate": 0.1,
     "wanderRadius": 2,
     "idleSpeedFactor": 0.3,
-    "idleDwellMinTicks": 240,
-    "idleDwellMaxTicks": 900,
+    "idleDwellMinTicks": 90,
+    "idleDwellMaxTicks": 270,
     "ccImmune": true
   },
   "body": {

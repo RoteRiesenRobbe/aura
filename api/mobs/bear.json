@@ -15,8 +15,8 @@
     "turnRate": 0.1,
     "wanderRadius": 3,
     "idleSpeedFactor": 0.25,
-    "idleDwellMinTicks": 300,
-    "idleDwellMaxTicks": 1200
+    "idleDwellMinTicks": 90,
+    "idleDwellMaxTicks": 270
   },
   "body": {
     "radius": 0.6,
