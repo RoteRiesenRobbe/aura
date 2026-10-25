@@ -57,7 +57,7 @@ type LoadoutSlot struct {
 // What is deliberately absent — HP, position, charges, DerivedStats, cooldowns,
 // buffs, status effects — is listed in plan-accounts-schema.md §"What is and
 // isn't stored". A character returns at full health with charges reset, because
-// a respawn happens at a campfire and campfires reset charges anyway.
+// arriving at the bound campfire refills them anyway (spawnAtHome).
 type CharacterState struct {
 	CharacterID int64 `json:"characterId"`
 

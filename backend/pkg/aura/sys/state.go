@@ -877,7 +877,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p.SetLook(dead.portrait, dead.ring)
 	p.SetAppearanceOwned(dead.owned)
 	dead.lineage.applyTo(p)
-	p.SetPosition(s.respawnPosition(client.UUID()))
+	s.spawnAtHome(p, s.anchors[client.UUID()])
 	// Re-stamp full health AFTER progression/skills (triage item 14): the
 	// constructor stamped the base pool before +maxHealth passives were back.
 	p.VitalSigns().Health = p.MaxHealth()
@@ -1105,11 +1105,8 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	if home == "" {
 		home = ticket.State.HomeCampfireID
 	}
-	if fire, ok := s.campfireFor(home); ok {
+	if fire, ok := s.spawnAtHome(p, home); ok {
 		s.anchors[client.UUID()] = fire.ID
-		p.SetPosition(JitterAround(fire.Pos, respawnJitterRadius))
-	} else {
-		p.SetPosition(s.defaultSpawnPosition())
 	}
 
 	// The discovered set is seeded the same way and for the same reason: it is
@@ -1320,12 +1317,23 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 // anchor so simultaneous respawns don't stack on one point. [PLACEHOLDER]
 const respawnJitterRadius = 1.0
 
-func (s *ConnectionStateSystem) respawnPosition(id uuid.UUID) phy.Vec2f {
-	fire, ok := s.campfireFor(s.anchors[id])
+// spawnAtHome places an arriving player (a respawn or a join) at the fire
+// `home` names and refills its Camp charges there, or at the default spawn
+// when `home` does not resolve. Reports the fire it resolved.
+//
+// ⚑ The refill is what the deleted 1.7 s standing dwell used to do (2026-10-20):
+// charges are never persisted and a respawn zeroes them by construction, so
+// without it every death and every login left the player empty at their fire.
+// Call it AFTER the progression is back: the cap is level-derived.
+func (s *ConnectionStateSystem) spawnAtHome(p model.PlayerEntity, home string) (CampfireAnchor, bool) {
+	fire, ok := s.campfireFor(home)
 	if !ok {
-		return s.defaultSpawnPosition()
+		p.SetPosition(s.defaultSpawnPosition())
+		return fire, false
 	}
-	return JitterAround(fire.Pos, respawnJitterRadius)
+	p.SetPosition(JitterAround(fire.Pos, respawnJitterRadius))
+	p.RefillCampCharges()
+	return fire, true
 }
 
 // JitterAround spreads positions in a small disc around pos so simultaneous
