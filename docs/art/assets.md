@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-24 from 320 rows.
+Rendered 2026-10-25 from 321 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-10-24 from 320 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 286 |
+| Art | 287 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,7 +48,7 @@ Rendered 2026-10-24 from 320 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 140 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 141 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 9 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-24 from 320 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 76 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 119 | normal — placed but not everywhere |
+| **P2** | 120 | normal — placed but not everywhere |
 | **P3** | 94 | low — unplaced, deferred, or already fine |
 
-**206 rows need work** (missing, shared, placeholder, stock or blocked),
+**207 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -374,7 +374,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 31
+## Terrain profile — 32
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -395,6 +395,7 @@ of which **11 are P0**:
 | 🟡 | **Ashen Fields** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #8a2e1c. All numbers [PLACEHOLDER]. |
 | 🟡 | **Volcano** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #551a10. All numbers [PLACEHOLDER]. |
 | 🟡 | **City** | `town-ground-placeholder.png` | P2 |  | seamless tile 750² | The town ground between the cobbled streets. GENERATED placeholder (tools/make-cellular-tiles.mjs `town-ground`): trodden brown earth with sparse straw and grit, darker than the cobbles so a street reads raised and lit. Replaced pd141 (grey stone) 2026-10-23: the cobbles were too similar to it. Real art wanted. |
+| 🟡 | **Upper City** | `upper-ground-placeholder.png` | P2 |  | seamless tile 750² | The upper town above the retaining wall (Cathedral Hill): the City ground swept and gravelled. GENERATED placeholder (tools/make-cellular-tiles.mjs `upper-ground`): pale buff bed with fine pea gravel and no straw. Added 2026-10-25 (PO: the upper districts should not wear the dirt). Real art wanted. |
 | 🟡 | **Derelict Fortress** | `pd143.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #4f4f53. All numbers [PLACEHOLDER]. |
 | 🟡 | **Desert** | `pd106.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #dd9a4e. All numbers [PLACEHOLDER]. |
 | 🟡 | **Wasteland** | `pd119.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #9a682f. All numbers [PLACEHOLDER]. |

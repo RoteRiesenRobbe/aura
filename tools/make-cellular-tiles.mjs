@@ -593,6 +593,48 @@ const TILES = [
         shadowColor: [0x34, 0x28, 0x1a],
     },
     {
+        // ⭐ THE UPPER TOWN (`Upper City`, Cathedral Hill first): the town
+        // ground swept and gravelled, the rich quarter above the retaining
+        // wall. The road comment's warning read the other way round again,
+        // as `stones` does: past ~20 % coverage this "becomes gravel", and
+        // gravel is the brief. ⭐ It differs from its neighbours in KIND (the
+        // pd141 lesson): from `City` in value and hue (pale buff, not dark
+        // brown, and no straw: nobody stables a horse up here), from the
+        // `Cobblestone` streets in detail (a fine even grain, not a surface
+        // of cells), and from the `Flagstone` floors in both (no courses, and
+        // a step darker, so an interior still reads as swept indoors).
+        // ⚑ Small pieces and low contrast: unlike `stones` this IS seen as a
+        // whole surface, repeated across the screen, so it must stay calm.
+        file: 'upper-ground-placeholder.png',
+        profileColor: [0x8c, 0x7f, 0x68],
+        paint: 'earth',
+        warp: {waves: EARTH_WARP, strength: 10, offset: [0.37, 0.71]},
+        bed: {
+            waves: BED,
+            ramp: [[0x82, 0x75, 0x5f], [0x8c, 0x7f, 0x68], [0x96, 0x89, 0x72]],
+            grit: 0.12,
+            gamma: 1.0,
+        },
+        cracks: {waves: CRACKS, sharpness: 44, strength: 0, color: [0x4a, 0x3e, 0x2e]},
+        layers: [
+            {
+                // Pea gravel: a slightly cooler grey than the bed.
+                n: 31, jitter: 0.46, elong: 1.3, radius: 0.34, sizeVar: 0.6,
+                fill: 0.6, salt: 710,
+                ramp: [[0x7e, 0x76, 0x66], [0xa4, 0x9b, 0x88]],
+                rim: 0.22, shadow: [2, 2], shadowStrength: 0.16,
+            },
+            {
+                // Grit: the fines between them, the bed's own colour.
+                n: 59, jitter: 0.46, elong: 1.2, radius: 0.3, sizeVar: 0.7,
+                fill: 0.55, salt: 760,
+                ramp: [[0x84, 0x77, 0x61], [0x9c, 0x8f, 0x78]],
+                rim: 0.14, shadow: [1, 1], shadowStrength: 0.1,
+            },
+        ],
+        shadowColor: [0x4a, 0x40, 0x32],
+    },
+    {
         // ⭐ BURREN LIMESTONE, the base of `Coastal Cliff` (PO 2026-10-03:
         // "a pale irish coast grass texture … blended over a limestone rock, a
         // cliff feel should exist"). Limestone pavement is SLABS (clints) cut
