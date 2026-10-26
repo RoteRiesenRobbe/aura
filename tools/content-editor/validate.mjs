@@ -576,6 +576,8 @@ export function validateMob(mob, idx) {
   const dwellMax = factors.idleDwellMaxTicks ?? 0;
   if (dwellMin < 0 || dwellMax < 0) err(`${who}: idle dwell ticks must not be negative`);
   if (dwellMax > 0 && dwellMin > dwellMax) err(`${who}: idleDwellMinTicks ${dwellMin} exceeds idleDwellMaxTicks ${dwellMax}`);
+  const patrolStopChance = factors.patrolStopChance ?? 0;
+  if (patrolStopChance < 0 || patrolStopChance > 1) err(`${who}: factors.patrolStopChance ${patrolStopChance} must be in [0, 1]`);
 
   for (const [tag, multiplier] of Object.entries(factors.resistances || {})) {
     if (!tag) { err(`${who}: resistances: empty tag`); continue; }

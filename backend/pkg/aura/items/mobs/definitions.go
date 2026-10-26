@@ -131,6 +131,9 @@ type MobID uint64
 // 0/absent = the global default at mob construction, valid (0, 1].
 // IdleDwellMin/MaxTicks is the stand time rolled between wander legs;
 // 0/absent = global defaults.
+// PatrolStopChance is the chance a route patroller stops at each waypoint it
+// reaches, for one roll of the same dwell band (the bored deckhand); 0/absent
+// = never stops, valid [0, 1].
 //
 // SupportThreshold is the role-as-loadout knob (playtest round 3): the ally
 // health ratio at or below which a mob carrying a heal/shield aura breaks off to
@@ -147,6 +150,7 @@ type Factors struct {
 	IdleSpeedFactor      float32
 	IdleDwellMinTicks    int
 	IdleDwellMaxTicks    int
+	PatrolStopChance     float32
 	Resistances          map[string]float32
 	// GateKeys are the lock-and-key tags this mob opts into (D4): a gated hit
 	// damages it only if its key is named here. Separate from Resistances so a
@@ -390,6 +394,7 @@ type mobDefinition struct {
 		IdleSpeedFactor      float32            `json:"idleSpeedFactor"`
 		IdleDwellMinTicks    int                `json:"idleDwellMinTicks"`
 		IdleDwellMaxTicks    int                `json:"idleDwellMaxTicks"`
+		PatrolStopChance     float32            `json:"patrolStopChance"`
 		Resistances          map[string]float32 `json:"resistances"`
 		GateKeys             []string           `json:"gateKeys"`
 		Speed                float32            `json:"speed"`
@@ -565,6 +570,9 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	if m.Factors.IdleDwellMaxTicks > 0 && m.Factors.IdleDwellMinTicks > m.Factors.IdleDwellMaxTicks {
 		return nil, fmt.Errorf("mob %q: idleDwellMinTicks %d exceeds idleDwellMaxTicks %d", m.Name, m.Factors.IdleDwellMinTicks, m.Factors.IdleDwellMaxTicks)
 	}
+	if f := m.Factors.PatrolStopChance; f < 0 || f > 1 {
+		return nil, fmt.Errorf("mob %q: factors.patrolStopChance %v must be in [0, 1]", m.Name, f)
+	}
 
 	// Resistances: 0 = immune is valid, negative would heal on hit. Keys are
 	// DAMAGE TYPES from the closed vocabulary, or the "*" wildcard — a gate key
@@ -659,6 +667,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			IdleSpeedFactor:      m.Factors.IdleSpeedFactor,
 			IdleDwellMinTicks:    m.Factors.IdleDwellMinTicks,
 			IdleDwellMaxTicks:    m.Factors.IdleDwellMaxTicks,
+			PatrolStopChance:     m.Factors.PatrolStopChance,
 			Resistances:          m.Factors.Resistances,
 			GateKeys:             m.Factors.GateKeys,
 			Speed:                m.Factors.Speed,

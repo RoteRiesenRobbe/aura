@@ -430,7 +430,8 @@ func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40, "speed": 0.4, "wanderRadius": 2.5,
 	              "idleSpeedFactor": 0.25,
-	              "idleDwellMinTicks": 240, "idleDwellMaxTicks": 900},
+	              "idleDwellMinTicks": 240, "idleDwellMaxTicks": 900,
+	              "patrolStopChance": 0.4},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
 	require.NoError(t, err)
@@ -441,6 +442,7 @@ func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 	assert.InDelta(t, 0.25, def.Factors.IdleSpeedFactor, 1e-6)
 	assert.Equal(t, 240, def.Factors.IdleDwellMinTicks)
 	assert.Equal(t, 900, def.Factors.IdleDwellMaxTicks)
+	assert.InDelta(t, 0.4, def.Factors.PatrolStopChance, 1e-6)
 }
 
 func TestMapMobDefinition_IdleFieldsDefaultToZero(t *testing.T) {
@@ -457,6 +459,7 @@ func TestMapMobDefinition_IdleFieldsDefaultToZero(t *testing.T) {
 	assert.Zero(t, def.Factors.IdleSpeedFactor, "absent = global default at mob construction")
 	assert.Zero(t, def.Factors.IdleDwellMinTicks)
 	assert.Zero(t, def.Factors.IdleDwellMaxTicks)
+	assert.Zero(t, def.Factors.PatrolStopChance, "absent = a patroller never stops")
 }
 
 func TestMapMobDefinition_InvalidIdleFieldsFail(t *testing.T) {
@@ -467,6 +470,8 @@ func TestMapMobDefinition_InvalidIdleFieldsFail(t *testing.T) {
 		`{"baseMaxHealth": 40, "speed": 0.4, "idleDwellMinTicks": -1}`,
 		`{"baseMaxHealth": 40, "speed": 0.4, "idleDwellMinTicks": 300, "idleDwellMaxTicks": 90}`,
 		`{"baseMaxHealth": 40, "speed": 0, "wanderRadius": 2}`,
+		`{"baseMaxHealth": 40, "speed": 0.4, "patrolStopChance": -0.1}`,
+		`{"baseMaxHealth": 40, "speed": 0.4, "patrolStopChance": 1.5}`,
 	} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 1, "name": "Wolf", "type": "MOB",

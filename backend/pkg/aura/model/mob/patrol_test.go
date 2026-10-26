@@ -173,6 +173,54 @@ func TestMob_DwellBandFromDefinition(t *testing.T) {
 	assert.LessOrEqual(t, newTestMob().rollDwell(), defaultIdleDwellMaxTicks)
 }
 
+// stillTicksOnRoute ticks the mob along its route for n ticks and returns the
+// longest run of ticks it stood still, and whether it reached target.
+func stillTicksOnRoute(m *Mob, target phy.Vec2f, n int) (longest int, reached bool) {
+	run := 0
+	for i := 0; i < n; i++ {
+		before := m.Position()
+		m.Update(0)
+		if m.Position() == before {
+			run++
+			if run > longest {
+				longest = run
+			}
+		} else {
+			run = 0
+		}
+		if m.arrivedAt(target) {
+			reached = true
+		}
+	}
+	return longest, reached
+}
+
+func TestMob_PatrolNeverStopsByDefault(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	b := phy.Vec2f{X: 2, Y: 0}
+	m.SetWaypoints([]phy.Vec2f{{X: 1, Y: 0}, b}, false)
+
+	longest, reached := stillTicksOnRoute(m, b, 400)
+	assert.True(t, reached)
+	assert.Equal(t, 0, longest, "without patrolStopChance a patroller marches without pause")
+}
+
+func TestMob_PatrolStopChanceStandsAtWaypointsForADwell(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.PatrolStopChance = 1
+	def.Factors.IdleDwellMinTicks = 7
+	def.Factors.IdleDwellMaxTicks = 7
+	m := NewMob(def, 0, nil)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	b := phy.Vec2f{X: 2, Y: 0}
+	m.SetWaypoints([]phy.Vec2f{{X: 1, Y: 0}, b}, false)
+
+	longest, reached := stillTicksOnRoute(m, b, 400)
+	assert.True(t, reached, "the stops must not end the route")
+	assert.Equal(t, 1+7, longest, "each stop is the arrival tick plus one roll of the dwell band, as in wander")
+}
+
 func TestMob_WaypointsLoopModeWrapsForward(t *testing.T) {
 	m := newTestMob()
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
