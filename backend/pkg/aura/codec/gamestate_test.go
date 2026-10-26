@@ -931,7 +931,7 @@ func TestPropEntityFlatbufMarshal_UnderfootRidesTheWire(t *testing.T) {
 // (`Corpse.ts`, `GraphicsConfig.corpse`, `layers.corpses`, and an entry in the
 // compile-checked `gameObjectClasses` table) — only the server case was missing.
 func TestEntitiesMarshalFlatbuf_CorpseStreamsAsResource(t *testing.T) {
-	c := corpse.New(phy.Vec2f{X: 7, Y: 11})
+	c := corpse.New(phy.Vec2f{X: 7, Y: 11}, 2, 1)
 
 	b := flatbuffers.NewBuilder(256)
 	vec := EntitiesMarshalFlatbuf([]model.Entity{c}, b)
@@ -964,6 +964,10 @@ func TestEntitiesMarshalFlatbuf_CorpseStreamsAsResource(t *testing.T) {
 	// ⚑ Wire positions are px, not world units — Vec2fMarshalFlatbuf scales.
 	assert.Equal(t, f32ToPx(7), pos.X())
 	assert.Equal(t, f32ToPx(11), pos.Y())
+
+	// plan-appearance.md C6 (D40, D41): the corpse wears the dead player's look.
+	assert.Equal(t, uint16(2), res.Portrait())
+	assert.Equal(t, uint16(1), res.Ring())
 }
 
 // The guard against the NEXT one. `core.AddEntity` carries a standing comment
@@ -978,7 +982,7 @@ func TestEntitiesMarshalFlatbuf_EveryStreamedEntityTypeHasACase(t *testing.T) {
 	// layer and stream as the GameState's `player` field, never as an entity.
 	streamed := map[string]model.Entity{
 		"prop":   prop.New(model.EntityType(AuraApi.EntityTypeStone), phy.Vec2f{X: 1, Y: 2}, 0.5, 0.5, false),
-		"corpse": corpse.New(phy.Vec2f{X: 3, Y: 4}),
+		"corpse": corpse.New(phy.Vec2f{X: 3, Y: 4}, 0, 0),
 	}
 
 	for name, e := range streamed {

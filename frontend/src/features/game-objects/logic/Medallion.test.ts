@@ -8,6 +8,7 @@ import {AppliedEffectBit, tokenState} from './TokenState';
 import {TierRank} from '../../../client-data/Mobs';
 import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
+import {setAppearanceCatalog} from '../../../client-data/Appearance';
 
 // The ring preloads register at import; record their holders instead of
 // loading anything, so a test decides which ring texture has "loaded".
@@ -112,6 +113,50 @@ describe('Medallion', () => {
         medallion.setPortraitTexture(new Texture());
         medallion.setPortraitTexture(null);
         expect(portrait.texture).toBe(Texture.WHITE);
+    });
+
+    // plan-appearance.md C6 (EP D9): the worn look is drawn by the medallion,
+    // so the Character and the Corpse share it, catalog race included (L8).
+    describe('look', () => {
+        const forest = new Texture();
+
+        beforeEach(() => {
+            setAppearanceCatalog(null);
+            ringHolder('grey').svg = ringTexture;
+            ringHolder('forest').svg = forest;
+        });
+
+        it('draws the default ring until the catalog lands, then the worn one', () => {
+            const medallion = build();
+            medallion.setLook(0, 1);
+            medallion.refresh();
+            expect(ring().texture).toBe(ringTexture);
+
+            setAppearanceCatalog({
+                portraits: [],
+                rings: [{id: 'leafy', name: 'x', family: 'forest', starter: true}],
+            });
+            medallion.refresh();
+            expect(ring().texture).toBe(forest);
+        });
+
+        // A Mob wears no look: refresh must leave its species ring alone, so
+        // any token may call it for the glyph upgrade (the C6 review).
+        it('leaves the ring of a token wearing no look alone', () => {
+            const medallion = build();
+            medallion.setRing('forest');
+            medallion.refresh();
+            expect(ring().texture).toBe(forest);
+        });
+
+        it('keeps the ring sprite while the look stays the same', () => {
+            const medallion = build();
+            medallion.setLook(0, 0);
+            medallion.refresh();
+            const drawn = ring();
+            medallion.refresh();
+            expect(ring()).toBe(drawn);
+        });
     });
 
     // plan-entity-presentation.md D5, D6: the medallion owns its final tints,

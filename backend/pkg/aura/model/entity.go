@@ -80,6 +80,9 @@ type PropEntity interface {
 type CorpseEntity interface {
 	Entity
 	IsCorpse()
+	// Look is the dead player's portrait and ring as wire values
+	// (plan-appearance.md C6), 0 = the default.
+	Look() (portrait, ring uint16)
 }
 
 // MobEnity is a mob that usually comes with a mob definition

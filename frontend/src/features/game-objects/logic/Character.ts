@@ -1,10 +1,6 @@
 import {GameObject, readTokenOffset, writeTokenOffset} from './_GameObject';
 import {createTokenSlots} from './TokenSlots';
 import {Medallion} from './Medallion';
-import {RingFamily} from '../../../client-data/Medallions';
-import {lookArt} from '../../../client-data/Appearance';
-import {packIconTexture} from '../../../client-data/icons/PackIconFiles';
-import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {isDefined} from '../../common/logic/Utils';
 import * as Preloading from '../../core/logic/Preloading';
@@ -69,16 +65,10 @@ export class Character extends GameObject
     // aboveArt likewise (createTokenSlots, plan-appearance.md C0a).
     private token: Container;
     private aboveArt: Container;
-    // The medallion (plan-appearance.md C2b, D37), the one every token wears,
-    // and the ring family drawn in it so far (null until the ring texture has
-    // loaded, see updatePlate). Both set in initShape, so declared WITHOUT an
-    // initializer, like token.
+    // The medallion (plan-appearance.md C2b, D37), the one every token wears;
+    // it draws the worn look too (C6). Set in initShape, so declared WITHOUT
+    // an initializer, like token.
     private medallion: Medallion;
-    private ringDrawn: RingFamily | null;
-    // The worn look as wire values (plan-appearance.md C3), 0 = the default.
-    // Never touched by initShape, so the initializers are safe.
-    private portraitWire = 0;
-    private ringWire = 0;
     // The last applied_effects mask shown (setAppliedEffects). Never touched
     // by initShape, so the initializer is safe.
     private appliedMask = 0;
@@ -130,26 +120,11 @@ export class Character extends GameObject
     private updatePlate() {
         this.plate.position.copyFrom(this.shape.position);
         this.plate.alpha = this.shape.alpha;
-        this.drawLook();
-    }
-
-    /**
-     * Draws the worn look, every frame until it is all there: the /appearance
-     * catalog, the pack atlases and the ring texture each arrive on their own
-     * time (the catalog race, plan-appearance.md §5), and setLook sees only
-     * wire values. Both lookups are cached, so a settled look costs a compare.
-     */
-    private drawLook() {
-        const {packIcon, family} = lookArt(this.portraitWire, this.ringWire);
-        if (family !== this.ringDrawn && this.medallion.setRing(family)) {
-            this.ringDrawn = family;
-        }
-        this.medallion.setPortraitTexture(packIconTexture(packIcon));
+        this.medallion.refresh();
     }
 
     setLook(portrait: number, ring: number) {
-        this.portraitWire = portrait;
-        this.ringWire = ring;
+        this.medallion.setLook(portrait, ring);
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
@@ -168,12 +143,8 @@ export class Character extends GameObject
         this.auraRings = new AuraRingStack();
         slots.belowArt.addChild(this.auraRings.container);
 
-        // The player side is friendly to itself, so the disc is set here and
-        // not sent (D4); the tier stays normal. The worn ring and portrait
-        // follow on the first frame (drawLook).
-        this.medallion = new Medallion(slots, portrait, size);
-        this.medallion.setStance(Stance.Friendly);
-        this.ringDrawn = null;
+        // The worn ring and portrait follow on the first frame (Medallion.refresh).
+        this.medallion = Medallion.forPlayer(slots, portrait, size);
 
         return group;
     }

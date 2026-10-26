@@ -63,10 +63,11 @@ type deadState struct {
 	// player struct is rebuilt on respawn, so like the skill component the
 	// ledger pointer must ride the stash or every death wipes quest progress.
 	quests *quests.Ledger
-	// portrait and ring are the worn look as wire values (plan-appearance.md
-	// C4): the rebuilt player struct starts on the defaults, and the next save
-	// would write those over the character's choice.
-	portrait, ring uint16
+	// The worn look (plan-appearance.md C4) is not kept here: the corpse
+	// wears it (C6) and is the one source a rebuilt player reads it from, as
+	// the position is; the rebuilt player struct starts on the defaults, and
+	// the next save would write those over the character's choice.
+	//
 	// owned is the appearance owned set (plan-appearance.md C5), carried for
 	// the look's reason: a rebuilt player would otherwise own only starters.
 	owned []uint16
@@ -874,7 +875,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
 	p.SetQuestLedger(dead.quests)
-	p.SetLook(dead.portrait, dead.ring)
+	p.SetLook(dead.corpse.Look())
 	p.SetAppearanceOwned(dead.owned)
 	dead.lineage.applyTo(p)
 	s.spawnAtHome(p, s.anchors[client.UUID()])
@@ -1179,7 +1180,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 		// on the death overlay (Accept hides the start screen, Obituary shows
 		// the end screen) and the normal Respawn path takes over.
 		sendObituaryMessage(client)
-		c := corpse.New(stash.position)
+		c := corpse.New(stash.position, stash.portrait, stash.ring)
 		s.game.AddEntity(c)
 		s.deadByClient[client.UUID()] = deadState{
 			name:        stash.name,
@@ -1187,8 +1188,6 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 			progression: stash.progression,
 			skills:      stash.skills,
 			quests:      stash.quests,
-			portrait:    stash.portrait,
-			ring:        stash.ring,
 			owned:       stash.owned,
 			lineage:     stash.lineage,
 		}
@@ -1285,17 +1284,15 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 		s.characterByClient[client.UUID()] = character
 	}
 
-	c := corpse.New(deathspot)
-	s.game.AddEntity(c)
 	portrait, ring := p.Look()
+	c := corpse.New(deathspot, portrait, ring)
+	s.game.AddEntity(c)
 	s.deadByClient[client.UUID()] = deadState{
 		name:        name,
 		corpse:      c,
 		progression: p.Progression(),
 		skills:      p.SkillComponent(),
 		quests:      p.QuestLedger(),
-		portrait:    portrait,
-		ring:        ring,
 		owned:       p.AppearanceOwned(),
 		lineage:     lineageOf(p),
 	}
@@ -1431,7 +1428,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
-	p.SetLook(dead.portrait, dead.ring)
+	p.SetLook(dead.corpse.Look())
 	p.SetAppearanceOwned(dead.owned)
 	dead.lineage.applyTo(p)
 	p.SetPosition(corpsePos)
@@ -1549,13 +1546,14 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 	client := sp.Client().UUID()
 	if dead, ok := s.deadByClient[client]; ok {
 		if token, hasToken := s.tokenByClient[client]; hasToken {
+			portrait, ring := dead.corpse.Look()
 			s.stashByToken[token] = reconnectStash{
 				name:           dead.name,
 				progression:    dead.progression,
 				skills:         dead.skills,
 				quests:         dead.quests,
-				portrait:       dead.portrait,
-				ring:           dead.ring,
+				portrait:       portrait,
+				ring:           ring,
 				owned:          dead.owned,
 				lineage:        dead.lineage,
 				position:       dead.corpse.Position(),

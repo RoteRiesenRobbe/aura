@@ -16,6 +16,7 @@ import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {wireLightRadius} from '../../darkness/logic/LightColor';
 import type {
     AuraDisplay,
+    CharacterLook,
     DwellRing,
     Interactable,
     LevelDisplay,
@@ -138,21 +139,23 @@ export class EntityManager {
         }
 
         // The wire-setter surface, typed (WireSetters.ts): the isFunction
-        // guards are load-bearing at runtime — props/corpses/DebugCircle
-        // implement none of these — while the dot access makes a rename a
+        // guards are load-bearing at runtime (props and DebugCircle implement
+        // none of these, a corpse only setLook) while the dot access makes a rename a
         // compile error instead of a silently-dead feature.
         const go = gameObject as GameObject &
-            Partial<OverheadVitals & TokenStateDisplay & AuraDisplay & LevelDisplay & MobPlate & DwellRing>;
+            Partial<OverheadVitals & TokenStateDisplay & AuraDisplay & LevelDisplay & MobPlate & DwellRing & CharacterLook>;
+
+        // The worn portrait and ring (plan-appearance.md C3), on a player and
+        // on a player's corpse (C6).
+        if (isDefined(entity.portrait) && isFunction(go.setLook)) {
+            go.setLook(entity.portrait, entity.ring);
+        }
 
         if (entity.type === Character) {
             const character: Character = gameObject as Character;
 
             if (isDefined(entity.level) && isFunction(character.setLevel)) {
                 character.setLevel(entity.level);
-            }
-            // The worn portrait and ring (plan-appearance.md C3).
-            if (isDefined(entity.portrait) && isFunction(character.setLook)) {
-                character.setLook(entity.portrait, entity.ring);
             }
             // Ring colours come from the server-resolved effect-category
             // bitmask (0 = no aura → no rings); triage item 7 replaced the

@@ -4230,7 +4230,7 @@ func TestRevive_NoCorpseRejectsActivation(t *testing.T) {
 }
 
 func TestRevive_FiresReviveAtNearestCorpse(t *testing.T) {
-	c := corpse.New(phy.VEC2F_ZERO)
+	c := corpse.New(phy.VEC2F_ZERO, 0, 0)
 	space := spaceWithBurstTarget(int(model.LayerViewportCollision), c)
 	caster, sk := cooldownCaster(space)
 	caster.sc.EquipCooldown(0, reviveTestDef(), 1)

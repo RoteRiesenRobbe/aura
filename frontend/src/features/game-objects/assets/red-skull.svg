@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder for the PONETI Rune_Death_nb skull (plan-appearance.md D42, D46):
+     drawn where the icon pack is not on this machine. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path fill="#c0392b" stroke="#3a0d08" stroke-width="2.5" stroke-linejoin="round"
+        d="M32 5C18 5 9 15 9 28c0 8 4 14 9 17v8c0 3 2 5 5 5h18c3 0 5-2 5-5v-8c5-3 9-9 9-17C55 15 46 5 32 5z"/>
+  <ellipse cx="22.5" cy="30" rx="6.5" ry="7" fill="#3a0d08"/>
+  <ellipse cx="41.5" cy="30" rx="6.5" ry="7" fill="#3a0d08"/>
+  <path fill="#3a0d08" d="M32 38l-4 7h8z"/>
+  <path stroke="#3a0d08" stroke-width="2" d="M26 50v8M32 50v8M38 50v8"/>
+</svg>

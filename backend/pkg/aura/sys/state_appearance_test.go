@@ -145,6 +145,39 @@ func TestReviveAtCorpse_CarriesTheLook(t *testing.T) {
 	assertWears(t, g.players[1], 2, 1)
 }
 
+// plan-appearance.md C6 (D40): the corpse wears the dead player's look, from
+// both doors that leave one: the death itself and a reconnect while dead.
+func TestDeath_CorpseWearsTheLook(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetLook(2, 1)
+
+	kill(t, s, p)
+
+	require.Len(t, g.livingCorpses(), 1)
+	portrait, ring := g.livingCorpses()[0].Look()
+	assert.Equal(t, uint16(2), portrait, "portrait")
+	assert.Equal(t, uint16(1), ring, "ring")
+}
+
+func TestReconnectWhileDead_CorpseWearsTheLook(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetLook(2, 1)
+	token := s.tokenByClient[c.UUID()]
+
+	kill(t, s, p)
+	g.RemoveEntity(g.livingSpectators()[0].Basic()) // disconnect while dead
+	reconnect(t, s, g, newFakeClient(), "ignored-name", token)
+
+	require.Len(t, g.livingCorpses(), 1)
+	portrait, ring := g.livingCorpses()[0].Look()
+	assert.Equal(t, uint16(2), portrait, "portrait")
+	assert.Equal(t, uint16(1), ring, "ring")
+}
+
 // plan-appearance.md C4, D11: the in-game picker's pick is worn on the next
 // snapshot, free and at any time.
 func TestSelectAppearance_WearsAWearableLook(t *testing.T) {

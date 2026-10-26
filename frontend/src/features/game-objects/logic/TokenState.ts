@@ -45,9 +45,13 @@ export const STEALTH_ALPHA = 0.4;
 /** A camouflaged mob's alpha: much harder to spot, never invisible. [PLACEHOLDER] */
 export const CAMOUFLAGE_ALPHA = 0.2;
 
-/** A state's glyph (R12). The committed `file` fallback arrives with the first row that needs one (C6). */
+/**
+ * A state's glyph (R12): the pack icon, and the committed `file` drawn where
+ * the pack is not on this machine (plan-appearance.md D42).
+ */
 export interface StateGlyph {
     packIcon: string;
+    file: string;
 }
 
 /**
@@ -94,11 +98,11 @@ export const STATE_ROWS: readonly StateRow[] = [
     {id: 'charm', source: AppliedEffectBit.Charm, angle: 135, colour: 0xc98ae0},
     // 6 o'clock: dead, lit by the corpse (plan-appearance.md C6), never by
     // the wire. Grey everything but the red skull (R2, D42): PONETI
-    // `Rune_Death_nb`, whose pack-manifest entry lands with C6 (D9); until
-    // then the name resolves to nothing and the red disc stands in.
+    // `Rune_Death_nb`, with a committed placeholder for clones without it.
     {
         id: 'dead', source: 'dead', angle: 180, colour: 0xc0392b,
-        glyph: {packIcon: 'red-skull'}, treatment: {grey: true},
+        glyph: {packIcon: 'red-skull', file: require('../assets/red-skull.svg')},
+        treatment: {grey: true},
     },
     // Left half: helpful.
     // A thorn rose, apart from the damage ring's red.
@@ -155,7 +159,7 @@ export function tokenState(mask: number, dead: boolean): TokenState {
 // The indicator ring's geometry (D4). The medallion ring spans ±size, so the
 // band starts INDICATOR_GAP outside it. [PLACEHOLDER] px, judged at the EP1 look.
 export const INDICATOR_GAP = 3;
-const INDICATOR_MAX = 12;
+export const INDICATOR_MAX = 12;
 const INDICATOR_MIN = 6;
 // A share of the arc between two grid positions, so neighbours never touch.
 const ARC_SHARE = 0.85;

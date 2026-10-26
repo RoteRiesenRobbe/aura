@@ -173,8 +173,32 @@ func (rcv *Resource) MutateTint(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(22, n)
 }
 
+func (rcv *Resource) Portrait() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Resource) MutatePortrait(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(24, n)
+}
+
+func (rcv *Resource) Ring() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Resource) MutateRing(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(26, n)
+}
+
 func ResourceStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(12)
 }
 func ResourceAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -208,6 +232,12 @@ func ResourceAddUnderfoot(builder *flatbuffers.Builder, underfoot bool) {
 }
 func ResourceAddTint(builder *flatbuffers.Builder, tint uint32) {
 	builder.PrependUint32Slot(9, tint, 0)
+}
+func ResourceAddPortrait(builder *flatbuffers.Builder, portrait uint16) {
+	builder.PrependUint16Slot(10, portrait, 0)
+}
+func ResourceAddRing(builder *flatbuffers.Builder, ring uint16) {
+	builder.PrependUint16Slot(11, ring, 0)
 }
 func ResourceEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

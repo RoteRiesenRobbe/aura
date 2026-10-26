@@ -8,9 +8,9 @@ component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion
 (the in-game picker; PO look passed 2026-10-22). C5 DONE 2026-10-21 (ownership and unlocks, server + wire; split
 by the PO into C5 + C5c; PO look passed 2026-10-22). C5c DONE 2026-10-23 (the unlock client; PO look
 passed the same day). C5b DONE 2026-10-23 (the stone bonus only, D21c; the pick moved to
-`plan-ascension-ceremony.md` AC2; PO look passed the same day). C6 PAUSED 2026-10-23 (PO) behind
-`plan-entity-presentation.md`'s design session: the death marker is that plan's state layer
-(D40-D43, §7 C6). Next: that design session, then C6 whole.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → [entity-presentation design] → C6, C0b whenever the artist's pilot lands. One plan for two things the PO ruled must be built
+`plan-ascension-ceremony.md` AC2; PO look passed the same day). C6 BUILT 2026-10-25 (player
+corpses as medallions, D40-D46, on `plan-entity-presentation.md` EP1; PO look owed). Left: C0b
+whenever the artist's pilot lands.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → [entity-presentation design] → C6, C0b whenever the artist's pilot lands. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
 > ring, a starter set plus unlocks, owned per character, bloodline or account).
@@ -370,6 +370,16 @@ plan proposes on top (marked *proposed*).
   its design session and then lands whole; the identity half alone was declined,
   since a corpse wearing a look with no marker reads as a living player standing
   still.
+- **D44. The corpse is the player's size** (PO 2026-10-24, the C6 build session): the
+  client draws the corpse token at the player's token size (`GraphicsConfig.character.size`).
+  The server's corpse body stays 0.5 m: the client never read its radius, and shrinking
+  it would cut Revive's reach (a query overlap) from 3.5 m to 3.25 m with no balance
+  ruling (found by the C6 review, PO chose this 2026-10-24).
+- **D45. The corpse carries no name** (PO 2026-10-24): the portrait and ring are its
+  identity; the wire change stays `Resource` +2.
+- **D46. C6 ships on the placeholder skull** (PO 2026-10-24): `red-skull` enters the pack
+  manifest, the committed placeholder SVG draws until the seat holder repacks the
+  atlases (no `AURA_ICON_PACK_DIR` on the build box); the real skull then needs no code.
 
 ---
 
@@ -615,8 +625,8 @@ whenever the pilot lands.**
   node beside `rewards` (where its price lives), `bonusLooks: [ids]` [PLACEHOLDER key];
   it is granted on every ascension there, the empty pick included; no toast (the heir's
   first owned set is a silent baseline, creation offers it).
-- **C6, player corpses. ⏸ PAUSED 2026-10-23 (PO) behind `plan-entity-presentation.md`'s
-  design session**, which owns how a dead actor shows it is dead (D43). Built in one
+- **C6, player corpses. ✅ BUILT 2026-10-25 (§12).** Was paused 2026-10-23 (PO) behind `plan-entity-presentation.md`'s
+  design session, which owns how a dead actor shows it is dead (D43). Built in one
   piece afterwards (D43: a corpse wearing a look with no marker reads as a living player
   standing still). The corpse is a medallion wearing the dead player's portrait AND ring
   (D14, D40), wire 0 = the default look (D41), with the death marker that plan rules.
@@ -1420,3 +1430,36 @@ DB holds `gold-amulet` at `bloodline` on the spent slot, the heir's creation off
 of an ascension stone"; the first run's `live stance` leg failed for want of a boar in reach, a
 venue flake; a `timeout 900` wrapper killed one earlier attempt mid-join) · harness rows cleaned,
 server stopped first.
+
+### C6 - BUILT 2026-10-25 `e90bfee6`, PO look owed
+
+Player corpses (D40-D46, §3.8), built on `plan-entity-presentation.md` EP1 (its D9). The
+corpse is a medallion wearing the dead player's portrait and ring, at the player's token size,
+lit with the `dead` state: everything grey but the red skull at 6 o'clock. The gravestone
+(`corpse.svg`, `GraphicsConfig.corpse`) is gone. Rulings in the build session (PO 2026-10-24):
+D44 (player size on the client, server body stays 0.5 m for Revive's reach), D45 (no name),
+D46 (ships on the placeholder skull).
+
+- **Server:** `corpse.New(pos, portrait, ring)` + `CorpseEntity.Look()`; both spawn doors
+  (`handleDeath`, the dead reconnect in `reattach`) pass the look. ⭐ The corpse is now the one
+  source of the dead player's look: `deadState` lost its `portrait`/`ring`, and respawn, revive
+  and the reconnect stash read `dead.corpse.Look()` (L7's four doors, still pinned).
+- **Wire:** `Resource` +2 (`portrait`, `ring`, ushort, 0 = the default look), written only by
+  `CorpseEntityFlatbufMarshal`; a prop encodes the same bytes as before. ⚑ Merged 2026-10-25
+  behind origin's `tint` (the roof kit), so the slots are `tint`, `portrait`, `ring`; bindings
+  regenerated, not hand-merged.
+- **Client:** `Corpse` builds the token slots + `Medallion.forPlayer` like `Character`; the
+  look-drawing moved from `Character` into `Medallion` (`setLook`/`refresh`), so both share one
+  path (D37). `EntityManager` dispatches `setLook` to any game object that has it.
+  `StateGlyph` gained a `file` fallback; `red-skull` is in `pack-manifest.json` with the
+  committed placeholder `red-skull.svg` until a repack (D46).
+
+**Schema:** DB **none** · wire `Resource` +2 fields · content none · conf none · manifest +1 entry.
+
+**Verified (2026-10-25, after the merge with origin):** Go build + vet; `go test -count=1 -p 1
+./...` with `AURA_TEST_DB_URL` green bar the three known reds (`TestPassages_EveryDoorCarriesItsWords`,
+the simharness placements battery, the `world` C1b prop pin) · new pins: `corpse_test.go`, `TestDeath_CorpseWearsTheLook`, `TestReconnectWhileDead_CorpseWearsTheLook`,
+the codec corpse look, `Medallion` + `StateIndicators` + `PackIcons` pins · typecheck · vitest
+1945/0 · prod build · new `corpse-medallion` **4/0/0** (the first run lost its WebGL context, the
+known headless flake; green on the rerun) · `ep1-state-ring` **9/0** · `c1-medallions`
+**53/0/1** (campfire not in view) · harness rows cleaned, server stopped first.

@@ -29,13 +29,18 @@
 		  The look picker (plan-appearance.md C3): the chosen medallion, then
 		  the starter portraits and rings, each drawn as the medallion it would
 		  make. Filled by CharacterCreation.ts once /appearance has arrived.
+		  The choices start folded away behind "Change look" (the medallion
+		  opens them too), so the panel fits one screen without scrolling.
 		-->
 		<div class="lookPicker">
-			<div class="lookPreview"></div>
-			<p class="lookLabel" data-i18n="account.create-character.portrait">Portrait</p>
-			<div class="lookOptions" data-slot="portrait"></div>
-			<p class="lookLabel" data-i18n="account.create-character.ring">Ring</p>
-			<div class="lookOptions" data-slot="ring"></div>
+			<div class="lookPreview" role="button"></div>
+			<a data-i18n="account.create-character.change-look" href="#" class="lookToggle" id="creationLookToggle">Change look</a>
+			<div class="lookChoices hidden">
+				<p class="lookLabel" data-i18n="account.create-character.portrait">Portrait</p>
+				<div class="lookOptions" data-slot="portrait"></div>
+				<p class="lookLabel" data-i18n="account.create-character.ring">Ring</p>
+				<div class="lookOptions" data-slot="ring"></div>
+			</div>
 		</div>
 
 		<form id="characterCreationForm" class="accountForm layout-column">
@@ -51,30 +56,6 @@
 				<a data-i18n="account.create-character.login-button" href="#" class="button secondary" id="creationLoginButton">Log in</a>
 			</div>
 			<a data-i18n="account.create-character.close-button" href="#" class="button secondary hidden" id="creationBackButton">Close</a>
-		</div>
-
-		<!--
-		  The same device preference the start screen carries, on the screens a
-		  returning player actually lands on. Registered by AccountScreens.ts, so
-		  all three switches show one value.
-		-->
-		<div class="accountPanelOptions">
-			<div class="accountOption">
-				<div class="switch">
-					<input type="checkbox" id="creationFullscreenToggle">
-					<label><i></i></label>
-					<span></span>
-				</div>
-				<label data-i18n="account.fullscreen" for="creationFullscreenToggle">Fullscreen</label>
-			</div>
-			<div class="accountOption">
-				<div class="switch">
-					<input type="checkbox" id="creationMuteToggle">
-					<label><i></i></label>
-					<span></span>
-				</div>
-				<label data-i18n="account.mute-all" for="creationMuteToggle">Mute all</label>
-			</div>
 		</div>
 	</div>
 
@@ -107,25 +88,6 @@
 			<div id="selectLoginPrompt" class="hidden">
 				<p data-i18n="account.have-account">Already have an account?</p>
 				<a data-i18n="account.select.login-button" href="#" class="button secondary" id="selectLoginButton">Log in</a>
-			</div>
-		</div>
-
-		<div class="accountPanelOptions">
-			<div class="accountOption">
-				<div class="switch">
-					<input type="checkbox" id="selectFullscreenToggle">
-					<label><i></i></label>
-					<span></span>
-				</div>
-				<label data-i18n="account.fullscreen" for="selectFullscreenToggle">Fullscreen</label>
-			</div>
-			<div class="accountOption">
-				<div class="switch">
-					<input type="checkbox" id="selectMuteToggle">
-					<label><i></i></label>
-					<span></span>
-				</div>
-				<label data-i18n="account.mute-all" for="selectMuteToggle">Mute all</label>
 			</div>
 		</div>
 	</div>
@@ -188,6 +150,35 @@
 		<div class="accountPanelFooter">
 			<a data-i18n="account.register.close-button" href="#" class="button secondary" id="registerBackButton">Close</a>
 		</div>
+	</div>
+
+	<!--
+	  The device options, centred under whichever panel is showing, so every
+	  account screen carries them in the same place. Sound is muted by default
+	  (plan-audio.md R1), so the sound button carries words and a pulse while
+	  muted: the point is that players see it and turn sound on.
+
+	  Each is a checkbox inside its label: Audio and FullScreen keep these in
+	  step with the settings panel's switches exactly as they do any checkbox.
+	  Checked = muted / fullscreen, the same meaning as those switches.
+	-->
+	<div class="accountDeviceBar">
+		<label class="deviceToggle soundToggle">
+			<input type="checkbox" id="accountMuteToggle">
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path class="speaker" d="M3 9h4l5-4v14l-5-4H3z"/>
+				<path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>
+				<path class="cross" d="M16 9l6 6M22 9l-6 6"/>
+			</svg>
+			<span class="deviceLabel" data-i18n="account.sound-off">Sound off</span>
+		</label>
+		<label class="deviceToggle fullscreenToggle">
+			<input type="checkbox" id="accountFullscreenToggle">
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path class="enter" d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>
+				<path class="leave" d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>
+			</svg>
+		</label>
 	</div>
 
 	<!-- Players online, under the visible panel (PlayerCount.ts fills it). -->

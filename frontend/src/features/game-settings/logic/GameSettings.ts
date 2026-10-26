@@ -43,7 +43,7 @@ export class GameSettings {
 
 export class AudioSettings {
     public masterMuted: boolean = true;
-    public masterVolume: number = 0.7;
+    public masterVolume: number = 0.3;
     public enableBackgroundAudio: boolean = false;
     public musicVolume: number = 0.5;
 }

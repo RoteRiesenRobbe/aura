@@ -5,6 +5,8 @@ import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {GREY_DISC, GREY_RING, RING_FAMILY_FILES, RingFamily, ringTint, stanceTint} from '../../../client-data/Medallions';
 import {PORTRAIT_FILL, packIconTexture} from '../../../client-data/icons/PackIconFiles';
+import {lookArt} from '../../../client-data/Appearance';
+import {Stance} from '../../../../../api/schema/js/aura-api/stance';
 import {lumaGreyscale} from '../../pixi-js/logic/ColorMatrixFilterExtensions';
 import type {TokenSlots} from './TokenSlots';
 import {StateIndicators} from './StateIndicators';
@@ -62,6 +64,10 @@ function discTexture(): Texture {
  * the state's grey all go through applyTints, so no write order can bring a
  * tier colour back onto a dead token (L2). setState draws the state
  * indicators and the grey; the entity applies the state's alpha itself.
+ *
+ * A player's worn look (setLook) is drawn here too, so the Character and the
+ * Corpse share it (plan-appearance.md C6, plan-entity-presentation.md D9):
+ * both build theirs with `Medallion.forPlayer`.
  */
 export class Medallion {
     private readonly disc: Sprite;
@@ -80,6 +86,26 @@ export class Medallion {
     private grey = false;
     private greyFilter: ColorMatrixFilter = null;
     private readonly indicators: StateIndicators;
+    // The worn look as wire values (plan-appearance.md C3), 0 = the default,
+    // and the ring family drawn for it so far (null until its texture loads).
+    // Only a token that wears a look (setLook) draws one: a Mob's ring and
+    // portrait come from its species (setRing, setPortrait) instead.
+    private wearsLook = false;
+    private portraitWire = 0;
+    private ringWire = 0;
+    private ringDrawn: RingFamily | null = null;
+
+    /**
+     * A player's token (Character, and since C6 the Corpse): friendly to the
+     * player side, so the disc is set here and not sent (D4); the tier stays
+     * normal; it wears the default look until the wire names one.
+     */
+    static forPlayer(slots: TokenSlots, portrait: Sprite, size: number): Medallion {
+        const medallion = new Medallion(slots, portrait, size);
+        medallion.setStance(Stance.Friendly);
+        medallion.setLook(0, 0);
+        return medallion;
+    }
 
     constructor(
         private readonly slots: TokenSlots,
@@ -95,6 +121,32 @@ export class Medallion {
         this.indicators = new StateIndicators(size);
         slots.indicators.addChild(this.indicators.container);
         this.applyTints();
+    }
+
+    /** Wears a player's look (plan-appearance.md C3); refresh draws it. */
+    setLook(portrait: number, ring: number) {
+        this.wearsLook = true;
+        this.portraitWire = portrait;
+        this.ringWire = ring;
+    }
+
+    /**
+     * Draws what arrived late, for a token that calls it every frame: the
+     * worn look (the /appearance catalog, the pack atlases and the ring
+     * texture each land on their own time, the catalog race,
+     * plan-appearance.md §5) and a state glyph. Every lookup is cached, so a
+     * settled token costs a compare. Safe on any token: one wearing no look
+     * only re-resolves its glyphs.
+     */
+    refresh() {
+        if (this.wearsLook) {
+            const {packIcon, family} = lookArt(this.portraitWire, this.ringWire);
+            if (family !== this.ringDrawn && this.setRing(family)) {
+                this.ringDrawn = family;
+            }
+            this.setPortraitTexture(packIconTexture(packIcon));
+        }
+        this.indicators.refresh();
     }
 
     /**

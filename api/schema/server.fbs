@@ -496,6 +496,14 @@ table Resource {
   // ⚑ Appended last for underfoot's reason: every untinted prop still encodes
   // exactly the bytes it did before this field existed.
   tint:uint32 = 0;
+
+  // A player corpse's look (plan-appearance.md C6, D40, D41): the dead
+  // player's portrait and ring as catalog wire values, 0 = the default look,
+  // as on Character. Written only by corpses, appended last for prop_name's
+  // reason: a prop leaves both at 0 and encodes exactly the bytes it did
+  // before these fields existed.
+  portrait:ushort;
+  ring:ushort;
 }
 
 // A mob's stance toward the player side (plan-appearance.md C2); mirrors

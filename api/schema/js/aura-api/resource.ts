@@ -90,8 +90,18 @@ tint():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+portrait():number {
+  const offset = this.bb!.__offset(this.bb_pos, 24);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+ring():number {
+  const offset = this.bb!.__offset(this.bb_pos, 26);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(10);
+  builder.startObject(12);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -144,6 +154,14 @@ static addUnderfoot(builder:flatbuffers.Builder, underfoot:boolean) {
 
 static addTint(builder:flatbuffers.Builder, tint:number) {
   builder.addFieldInt32(9, tint, 0);
+}
+
+static addPortrait(builder:flatbuffers.Builder, portrait:number) {
+  builder.addFieldInt16(10, portrait, 0);
+}
+
+static addRing(builder:flatbuffers.Builder, ring:number) {
+  builder.addFieldInt16(11, ring, 0);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {
