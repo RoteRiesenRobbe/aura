@@ -259,6 +259,21 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-10-28, `891dc7aa` (baseline `654fd239`, 2026-10-24):** full
+  deploy carrying appearance C6 (player corpses as medallions, placeholder skull,
+  PO look owed), the Deep Woods W1-W3 and Sorrowfen (zone 7) content with frog
+  camouflage and patrol stops, the widened kobold cave, the city-hub layout and
+  roof kit, the one-screen account creation, the early-game dialogue pass and the
+  spellbook/journal sounds. Wire changed (`server.fbs`: EntityTypes 154-160,
+  `Resource` +`tint` +`portrait` +`ring`, the Camouflage applied-effects bit) →
+  hard refresh required. No migrations; no pre-deploy dump. No announcement
+  (nobody online: `💾 flushed 0 live character(s)`). Shipped with one new Go red
+  besides the known Passages + C1b pins: `TestGuardrails_ArchetypeTrade` on the
+  SpiderQueen (12.73× HP, pays on no axis), from `a1c443a2`; PO chose to deploy.
+  Verified: content source `./api`, token count 1, TLS boot, 48 campfires in 7
+  zones, no ERROR, two WARNs (unreachable quests `the-strays`, cleanup.md #7, and
+  `the-lost-lamp`, same locally), new client bundle `main.75fde802…js` served,
+  `/skills` 200. PO smoke join on live owed.
 - **DEPLOYED 2026-10-24, `654fd239` (baseline `d9be8020`, 2026-10-22):** full
   deploy carrying appearance C5b + C5c, EP1 (the state ring), the city-assets
   prop kits K1-K7 (the city walls included), the trodden-earth town ground, the
