@@ -613,34 +613,3 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 	assert.True(t, l.MatchesStage("wolves-on-the-road", mobs.QuestStageCompleted))
 }
 
-// D3's accepted consequence, on the quest deliberately built to meet it first: a
-// character who has already done the deed completes the objective stage the
-// instant they accept. Every player will have spoken to the crier (he teaches the
-// base damage aura), so this is the normal path through village-welcome, not a
-// corner case.
-func TestContent_VillageWelcomeRequiresFreshTalksForAVeteran(t *testing.T) {
-	// N4/D4 reversed D3 here: a veteran who has already met both villagers no
-	// longer auto-advances at accept — every objective means "since this stage
-	// started", and a talk target must be spoken to again.
-	mr, qr := contentRegistries(t)
-
-	farmer, err := mr.GetByName("Reinhard")
-	require.NoError(t, err)
-	crier, err := mr.GetByName("TownCrier")
-	require.NoError(t, err)
-
-	l := NewLedger(qr)
-	l.NoteTalkedTo(farmer.ID)
-	l.NoteTalkedTo(crier.ID)
-
-	require.NoError(t, l.Accept("village-welcome"))
-	path, running, _ := l.Progress("village-welcome")
-	assert.Equal(t, []string{"meet"}, path, "the old talks do not satisfy the fresh stage")
-	assert.True(t, running)
-
-	l.NoteTalkedTo(farmer.ID)
-	l.NoteTalkedTo(crier.ID)
-	path, running, _ = l.Progress("village-welcome")
-	assert.Equal(t, []string{"meet", "back"}, path, "fresh talks advance to the turn-in stage")
-	assert.True(t, running, "the reward still has to be collected")
-}

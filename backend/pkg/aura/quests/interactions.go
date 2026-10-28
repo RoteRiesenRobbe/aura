@@ -41,13 +41,22 @@ func CrossValidate(mr conversantSource, qr Registry) ([]string, error) {
 		}
 		for ni := range def.Interaction.Nodes {
 			node := &def.Interaction.Nodes[ni]
-			for _, cond := range node.Gate.Conditions {
-				if cond.Kind != mobs.ConditionQuestAtStage {
-					continue
+			err := node.EachGate(func(where string, gate *mobs.Gate) error {
+				for _, cond := range gate.Conditions {
+					if cond.Kind != mobs.ConditionQuestAtStage {
+						continue
+					}
+					if err := checkStageRef(qr, def.Name, node.ID, cond.Quest, cond.Stage); err != nil {
+						if where != "" {
+							return fmt.Errorf("%s: %w", where, err)
+						}
+						return err
+					}
 				}
-				if err := checkStageRef(qr, def.Name, node.ID, cond.Quest, cond.Stage); err != nil {
-					return nil, err
-				}
+				return nil
+			})
+			if err != nil {
+				return nil, err
 			}
 			for oi := range node.Options {
 				for _, g := range node.Options[oi].Grants {
@@ -169,10 +178,10 @@ func checkXPIsTerminal(qr Registry, mob, nodeID string, oi int, opt *mobs.Intera
 }
 
 // checkStageRef validates a quest_at_stage condition: the quest must exist and
-// Stage must name a real stage or one of the two sentinels.
+// Stage must name a real stage or one of the sentinels.
 // CheckStageRef validates one quest_at_stage reference against the quest graph:
 // the quest must exist, and the stage must be one that quest defines or one of
-// the two sentinels.
+// the sentinels.
 //
 // ⭐ EXPORTED because a dialogue node is no longer the only surface carrying
 // these conditions: an ascension catalog entry carries the same list
@@ -190,12 +199,12 @@ func CheckStageRef(qr Registry, questID, stage string) error {
 		return fmt.Errorf("quest_at_stage names quest %q, which no quest file defines", questID)
 	}
 	switch stage {
-	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning:
+	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning, mobs.QuestStageNotCompleted:
 		return nil
 	}
 	if q.Stage(stage) == nil {
-		return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define (or use %q / %q / %q)",
-			stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning)
+		return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define (or use %q / %q / %q / %q)",
+			stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning, mobs.QuestStageNotCompleted)
 	}
 	return nil
 }

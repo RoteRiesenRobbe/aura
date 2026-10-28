@@ -26,7 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "ohh-a-new-face-around"}
+          {"id": "ohh-a-new-face-around", "conditions": [{"kind": "quest_at_stage", "quest": "a-healthy-brew", "stage": "not_completed"}]},
+          {"id": "ohh-its-you-nice", "conditions": [{"kind": "quest_at_stage", "quest": "a-healthy-brew", "stage": "completed"}]}
         ],
         "options": [
           {

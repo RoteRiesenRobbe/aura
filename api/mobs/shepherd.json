@@ -26,7 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "ho-stranger"},
+          {"id": "ho-stranger", "conditions": [{"kind": "quest_at_stage", "quest": "back-to-the-pen", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "he-who-cried-wolf", "stage": "not_completed"}]},
+          {"id": "ho-its-you-again", "conditionsMode": "any", "conditions": [{"kind": "quest_at_stage", "quest": "back-to-the-pen", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "he-who-cried-wolf", "stage": "completed"}]},
           {"id": "can-you-help-me-i"}
         ],
         "options": [

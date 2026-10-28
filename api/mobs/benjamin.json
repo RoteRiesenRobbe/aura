@@ -67,21 +67,28 @@
         ],
         "options": [
           {
-            "stock": "ask-teach",
-            "next": "teachings"
+            "id": "yes-teach-me-how",
+            "grants": [
+              {
+                "id": "harvesting-is-done-standing",
+                "kind": "teach_skill",
+                "skill": "Harvest",
+                "requiredLevel": 1
+              }
+            ]
           }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          {"id": "harvesting-is-done-standing"}
+          {"stock": "offer-teach"}
         ],
         "options": [
           {
             "grants": [
               {
-                "id": "ill-teach-you-harvest-make",
+                "stock": "teach-skill",
                 "kind": "teach_skill",
                 "skill": "Harvest",
                 "requiredLevel": 1

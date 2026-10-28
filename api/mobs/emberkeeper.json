@@ -26,6 +26,7 @@
       {
         "id": "root",
         "lines": [
+          {"id": "welcome-back-traveller", "conditions": [{"kind": "quest_at_stage", "quest": "bandits-at-the-shrine", "stage": "completed"}]},
           {"id": "you-can-rest-at-my"}
         ],
         "options": [
@@ -46,7 +47,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-counting",
                 "kind": "offer_quest",
                 "quest": "bandits-at-the-shrine"
               }
@@ -64,7 +65,7 @@
             "id": "i-killed-the-6-bandits",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-weight-off",
                 "kind": "advance_quest",
                 "quest": "bandits-at-the-shrine",
                 "fromStage": "report",

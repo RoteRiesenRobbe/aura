@@ -39,7 +39,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "ah-a-little-walker-you"}
+          {"id": "ah-a-little-walker-you", "conditions": [{"kind": "quest_at_stage", "quest": "clear-the-grove", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "the-sleeping-roots", "stage": "not_completed"}]},
+          {"id": "ah-the-quick-little-walker", "conditionsMode": "any", "conditions": [{"kind": "quest_at_stage", "quest": "clear-the-grove", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "the-sleeping-roots", "stage": "completed"}]}
         ],
         "options": [
           {

@@ -1005,14 +1005,34 @@ func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) 
 		if !visible[node.ID] {
 			continue
 		}
+		lines, lineIDs := spokenLines(node, p)
 		c.Nodes = append(c.Nodes, model.ConversationNode{
 			ID:      node.ID,
-			Lines:   node.Lines,
-			LineIDs: node.LineIDs,
+			Lines:   lines,
+			LineIDs: lineIDs,
 			Options: byNode[node.ID],
 		})
 	}
 	return c
+}
+
+// spokenLines is the node's lines this player hears: all of them when none is
+// gated (the authored slices, shared, nothing allocated), else a filtered copy
+// with the ids kept parallel.
+func spokenLines(node *mobs.InteractionNode, p learner) (lines, ids []string) {
+	if node.LineGates == nil {
+		return node.Lines, node.LineIDs
+	}
+	for i, line := range node.Lines {
+		if !conditionsPass(node.LineGates[i], p) {
+			continue
+		}
+		lines = append(lines, line)
+		if i < len(node.LineIDs) {
+			ids = append(ids, node.LineIDs[i])
+		}
+	}
+	return lines, ids
 }
 
 // pruneEmptyDestinations drops every pure-navigation row whose target node has

@@ -25,7 +25,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "this-is-the-southern-front"}
+          {"id": "this-is-the-southern-front", "conditions": [{"kind": "quest_at_stage", "quest": "thin-the-orc-line", "stage": "not_completed"}]},
+          {"id": "back-at-the-front-i", "conditions": [{"kind": "quest_at_stage", "quest": "thin-the-orc-line", "stage": "completed"}]}
         ],
         "options": [
           { "stock": "ask-task", "next": "orcs" },
@@ -44,7 +45,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-off-you-go",
                 "kind": "offer_quest",
                 "quest": "thin-the-orc-line"
               }
@@ -62,7 +63,7 @@
             "id": "i-killed-the-5-orcs",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-well-done",
                 "kind": "advance_quest",
                 "quest": "thin-the-orc-line",
                 "fromStage": "report",

@@ -54,12 +54,6 @@
         ],
         "lines": [
           {"id": "with-that-tiny-knife-you"}
-        ],
-        "options": [
-          {
-            "stock": "ask-teach",
-            "next": "teachings"
-          }
         ]
       },
       {

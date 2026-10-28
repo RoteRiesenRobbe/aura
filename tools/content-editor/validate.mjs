@@ -13,7 +13,7 @@
 
 import { mobNameForms, SLUG_PATTERN } from './content-text.mjs';
 
-const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
+const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running', 'not_completed'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const CONDITIONS_MODES = ['all', 'any']; // mobs.ConditionModeAll/Any, hand-synced (plan-quest-dialogue.md L2)
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to', 'bind_restock', 'restock', 'fly'];
@@ -281,6 +281,11 @@ export function validateInteraction(mob, idx) {
   const who = `mob "${mob.name}"`;
 
   if (inter.trigger) err(`${who}: interaction.trigger was retired — use interaction.ambient`);
+  (inter.ambient || []).forEach((l, i) => {
+    if (l && typeof l === 'object' && ('conditions' in l || 'conditionsMode' in l)) {
+      err(`${who}: ambient line ${i} cannot be gated, it is said to whoever stands near`);
+    }
+  });
   if (inter.range != null && inter.range < 0) err(`${who}: interaction.range must not be negative`);
   const nodes = inter.nodes || [];
   if (nodes.length === 0) { err(`${who}: interaction.nodes must not be empty`); return errors; }
@@ -335,38 +340,46 @@ export function validateInteraction(mob, idx) {
       }
     }
 
-    // conditionsMode (plan-quest-dialogue.md D5/D7): a hand-synced port of
-    // mobs.ParseConditionMode. Absent is "all"; a mode on no conditions is refused.
-    if ('conditionsMode' in node) {
-      if (!CONDITIONS_MODES.includes(node.conditionsMode)) {
-        err(`${nWho}: conditionsMode "${node.conditionsMode}" must be ${CONDITIONS_MODES.join(' or ')}`);
-      } else if (!(node.conditions || []).length) {
-        err(`${nWho}: conditionsMode "${node.conditionsMode}" combines no conditions`);
-      }
-    }
-    for (const [ci, c] of (node.conditions || []).entries()) {
-      const cWho = `${nWho} condition ${ci}`;
-      if (!CONDITION_KINDS.includes(c.kind)) {
-        err(`${cWho}: kind "${c.kind}" must be one of ${CONDITION_KINDS.join('/')}`);
-        continue;
-      }
-      if (c.kind === 'quest_at_stage') {
-        if (!c.quest || !c.stage) {
-          err(`${cWho}: quest_at_stage needs a quest and a stage`);
-        } else if (!idx.questsById.has(c.quest)) {
-          err(`${cWho}: quest_at_stage names unknown quest "${c.quest}"`);
-        } else if (!QUEST_STAGE_SENTINELS.includes(c.stage) && !stageById(idx.questsById.get(c.quest), c.stage)) {
-          err(`${cWho}: quest_at_stage names stage "${c.stage}", which quest "${c.quest}" does not define`);
+    // A gate: the node's own, or one line's (a greeting that changes once the
+    // player has finished the NPC's quest). Ports mobs.parseGate.
+    const checkGate = (holder, who) => {
+      // conditionsMode (plan-quest-dialogue.md D5/D7): a hand-synced port of
+      // mobs.ParseConditionMode. Absent is "all"; a mode on no conditions is refused.
+      if ('conditionsMode' in holder) {
+        if (!CONDITIONS_MODES.includes(holder.conditionsMode)) {
+          err(`${who}: conditionsMode "${holder.conditionsMode}" must be ${CONDITIONS_MODES.join(' or ')}`);
+        } else if (!(holder.conditions || []).length) {
+          err(`${who}: conditionsMode "${holder.conditionsMode}" combines no conditions`);
         }
       }
-      if (c.kind === 'kills_this_life') {
-        if (!c.species?.trim()) err(`${cWho}: kills_this_life needs a species`);
-        if (!(c.value > 0)) err(`${cWho}: kills_this_life needs a positive count`);
+      for (const [ci, c] of (holder.conditions || []).entries()) {
+        const cWho = `${who} condition ${ci}`;
+        if (!CONDITION_KINDS.includes(c.kind)) {
+          err(`${cWho}: kind "${c.kind}" must be one of ${CONDITION_KINDS.join('/')}`);
+          continue;
+        }
+        if (c.kind === 'quest_at_stage') {
+          if (!c.quest || !c.stage) {
+            err(`${cWho}: quest_at_stage needs a quest and a stage`);
+          } else if (!idx.questsById.has(c.quest)) {
+            err(`${cWho}: quest_at_stage names unknown quest "${c.quest}"`);
+          } else if (!QUEST_STAGE_SENTINELS.includes(c.stage) && !stageById(idx.questsById.get(c.quest), c.stage)) {
+            err(`${cWho}: quest_at_stage names stage "${c.stage}", which quest "${c.quest}" does not define`);
+          }
+        }
+        if (c.kind === 'kills_this_life') {
+          if (!c.species?.trim()) err(`${cWho}: kills_this_life needs a species`);
+          if (!(c.value > 0)) err(`${cWho}: kills_this_life needs a positive count`);
+        }
+        if (c.kind === 'bloodline_ascensions' && !(c.value > 0)) {
+          err(`${cWho}: bloodline_ascensions needs a positive count`);
+        }
       }
-      if (c.kind === 'bloodline_ascensions' && !(c.value > 0)) {
-        err(`${cWho}: bloodline_ascensions needs a positive count`);
-      }
-    }
+    };
+    checkGate(node, nWho);
+    (node.lines || []).forEach((l, li) => {
+      if (l && typeof l === 'object') checkGate(l, `${nWho} line ${li}`);
+    });
 
     let grantsInNode = 0;
     for (const [oi, opt] of (node.options || []).entries()) {

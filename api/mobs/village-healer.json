@@ -25,6 +25,7 @@
       {
         "id": "root",
         "lines": [
+          {"id": "welcome-back-you-look-like", "conditions": [{"kind": "quest_at_stage", "quest": "alpha-wolves-at-the-village", "stage": "completed"}]},
           {"id": "rest-by-the-fire"}
         ],
         "options": [
@@ -43,7 +44,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-careful",
                 "kind": "offer_quest",
                 "quest": "alpha-wolves-at-the-village"
               }
@@ -61,7 +62,7 @@
             "id": "i-killed-the-5-alpha",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-weight-off",
                 "kind": "advance_quest",
                 "quest": "alpha-wolves-at-the-village",
                 "fromStage": "report",

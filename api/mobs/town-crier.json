@@ -28,7 +28,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "hail-adventurer-2"}
+          {"id": "hail-adventurer-2", "conditions": [{"kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "not_completed"}]},
+          {"id": "hail-again-adventurer-back-so", "conditions": [{"kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "completed"}]}
         ],
         "options": [
           {
@@ -103,7 +104,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-good-luck",
                 "kind": "offer_quest",
                 "quest": "wolves-on-the-road"
               }

@@ -586,7 +586,8 @@ export const GraphicsConfig = {
     // Per-SPECIES portraits for species that share one sprite class, keyed by
     // the catalog name (api/mobs `name`), so each one draws its own pack bust
     // (plan-appearance.md D33). Today: the species drawing the NpcPlaceholder
-    // marker, which otherwise all wear the same purple face. Resolved in
+    // marker, which otherwise all wear the same purple face, and Flora, who
+    // borrows the village healer's sprite. Resolved in
     // Mob.resolvePortrait once the /mobs catalog names the species; without
     // the pack the class's `file` stays. A `packTint` recolours a bust that a
     // kin species shares (D33, D34) [PLACEHOLDER shades].
@@ -599,6 +600,7 @@ export const GraphicsConfig = {
         Dragon: {packIcon: 'portrait-war-dragon'},
         DragonkinWarrior: {packIcon: 'portrait-dragon-warrior'},
         Drakeling: {packIcon: 'portrait-purple-drake'},
+        Flora: {packIcon: 'portrait-old-woman'},
         Ghoul: {packIcon: 'portrait-zombie'},
         GiantRat: {packIcon: 'portrait-rat'},
         GiantScorpion: {packIcon: 'portrait-scorpion'},

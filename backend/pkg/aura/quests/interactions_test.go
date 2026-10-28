@@ -190,6 +190,7 @@ func conditionalConversant(name string, cond mobs.InteractionCondition) *mobs.Mo
 func TestCrossValidate_AcceptsQuestConditions(t *testing.T) {
 	for _, stage := range []string{
 		"turn-in", mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning,
+		mobs.QuestStageNotCompleted,
 	} {
 		_, err := crossValidate(t, []*QuestDefinition{threeStage()},
 			conditionalConversant("Farmer", mobs.InteractionCondition{
@@ -209,6 +210,24 @@ func TestCrossValidate_RejectsAConditionOnAnUnknownQuestOrStage(t *testing.T) {
 			conditionalConversant("Farmer", cond))
 		require.Error(t, err, "%+v", cond)
 	}
+}
+
+// A LINE's condition is checked like a node's: a greeting gated on a stage the
+// quest does not define is a boot failure, not a line that never speaks.
+func TestCrossValidate_RejectsALineConditionOnAnUnknownStage(t *testing.T) {
+	def := &mobs.MobDefinition{
+		Name: "Farmer",
+		Interaction: &mobs.Interaction{Nodes: []mobs.InteractionNode{{
+			ID:    "root",
+			Lines: []string{"hello", "back again?"},
+			LineGates: []mobs.Gate{{}, {Conditions: []mobs.InteractionCondition{
+				{Kind: mobs.ConditionQuestAtStage, Quest: "pelts", Stage: "no-such-stage"},
+			}}},
+		}}},
+	}
+	_, err := crossValidate(t, []*QuestDefinition{threeStage()}, def)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "line 1")
 }
 
 // A minLevel condition is none of this pass's business, and must not be dragged

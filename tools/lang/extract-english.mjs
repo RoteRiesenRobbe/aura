@@ -128,9 +128,10 @@ export function extractFile(source, domain, arbs, arbName) {
       }
       if (ref.id) write(keys.conversation(d.npc, ref.id), field.text, field);
       const [refKey, refValue] = ref.id ? ['id', ref.id] : ['stock', ref.stock];
-      if (d.kind === 'line') {
+      if (d.kind === 'line' && !span.props?.some((p) => p.key !== 'text')) {
+        // A bare string or {text}: the whole line becomes its reference.
         edits.replaceValue(span, `{${JSON.stringify(refKey)}: ${JSON.stringify(refValue)}}`);
-      } else {
+      } else { // anything else the item carries (a line's conditions) stays
         if (ref.added) edits.insertFirst(span, refKey, JSON.stringify(refValue));
         edits.removeProperty(span, field.field);
       }

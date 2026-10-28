@@ -25,6 +25,7 @@
       {
         "id": "root",
         "lines": [
+          {"id": "you-again-the-walls-are", "conditions": [{"kind": "quest_at_stage", "quest": "bears-at-the-walls", "stage": "completed"}]},
           {"id": "the-gate-is-closed"}
         ],
         "options": [
@@ -32,7 +33,7 @@
             "id": "the-8-wolves",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-well-done",
                 "kind": "advance_quest",
                 "quest": "wolves-on-the-road",
                 "fromStage": "carry-word",
@@ -64,7 +65,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-careful",
                 "kind": "offer_quest",
                 "quest": "bears-at-the-walls"
               }
@@ -82,7 +83,7 @@
             "id": "i-killed-the-5-bears",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-fine-work",
                 "kind": "advance_quest",
                 "quest": "bears-at-the-walls",
                 "fromStage": "report",

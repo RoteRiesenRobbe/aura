@@ -154,6 +154,8 @@ func TestContent_ReinhardsRatsQuestAbandonBringsTheOfferBack(t *testing.T) {
 // (D18; its giver, the Town Crier, is walked by the offer half);
 // `he-who-cried-wolf` is carried from its giver Hans to the Town Crier and
 // turned in by the Governor, who did not give it (the same foreign shape; Hans
+// is walked by the offer half); `village-welcome` is the Hermit's handoff to
+// Flora, turned in on her root like `eliza-sends-me` (PO 2026-10-25; the Hermit
 // is walked by the offer half).
 var twoRowExempt = map[string]bool{
 	"clear-the-grove":    true,
@@ -161,6 +163,7 @@ var twoRowExempt = map[string]bool{
 	"eliza-sends-me":     true,
 	"wolves-on-the-road": true,
 	"he-who-cried-wolf":  true,
+	"village-welcome":    true,
 }
 
 // walkedByOfferHalf names the exempt quests whose giver still walks the offer
@@ -168,6 +171,7 @@ var twoRowExempt = map[string]bool{
 var walkedByOfferHalf = map[string]bool{
 	"wolves-on-the-road": true,
 	"he-who-cried-wolf":  true,
+	"village-welcome":    true,
 }
 
 type questSite struct {

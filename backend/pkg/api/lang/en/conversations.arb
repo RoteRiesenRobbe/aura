@@ -62,7 +62,7 @@
   },
   "conv.Benjamin.harvesting-is-done-standing": "Harvesting is done standing, close to the plant.",
   "@conv.Benjamin.harvesting-is-done-standing": {
-    "description": "Benjamin speaks this in the conversation, node \"teachings\", line 1."
+    "description": "Benjamin answers this when the player picks \"Yes, teach me how to harvest.\" (node \"pull\"); he teaches Harvest with it."
   },
   "conv.Benjamin.hello-stranger-what-can-i": "Hello, stranger. What can I do for you?",
   "@conv.Benjamin.hello-stranger-what-can-i": {
@@ -72,13 +72,13 @@
   "@conv.Benjamin.i-can-teach-you": {
     "description": "Benjamin speaks this in the conversation, node \"pull\", line 3."
   },
-  "conv.Benjamin.ill-teach-you-harvest-make": "I'll teach you Harvest. Make it your active aura and stand close to the beets.",
-  "@conv.Benjamin.ill-teach-you-harvest-make": {
-    "description": "Benjamin answers this when the player picks \"Harvest\" (node \"teachings\")."
-  },
   "conv.Benjamin.that-wont-work-you-need": "That won't work. You need to have the Harvest aura active.",
   "@conv.Benjamin.that-wont-work-you-need": {
     "description": "Benjamin speaks this in the conversation, node \"pull\", line 1."
+  },
+  "conv.Benjamin.yes-teach-me-how": "Yes, teach me how to harvest.",
+  "@conv.Benjamin.yes-teach-me-how": {
+    "description": "A row the player picks when talking to Benjamin (node \"pull\"), written as the player's own words."
   },
   "conv.Benjamin.you-can-only-have-one": "You can only have one active aura at a time. The new auras you learn, you'll find in your spellbook.",
   "@conv.Benjamin.you-can-only-have-one": {
@@ -144,7 +144,7 @@
   "@conv.CityGuard.the-8-wolves": {
     "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
   },
-  "conv.CityGuard.the-bears": "The bears?",
+  "conv.CityGuard.the-bears": "Have you dealt with the bears?",
   "@conv.CityGuard.the-bears": {
     "description": "City Guard speaks this in the conversation, node \"bears_running\", line 1."
   },
@@ -159,6 +159,10 @@
   "conv.CityGuard.where-can-i-make-myself": "Where can I make myself useful?",
   "@conv.CityGuard.where-can-i-make-myself": {
     "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
+  },
+  "conv.CityGuard.you-again-the-walls-are": "You again. The walls are a little safer thanks to you.",
+  "@conv.CityGuard.you-again-the-walls-are": {
+    "description": "City Guard speaks this in the conversation, node \"root\", line 1."
   },
   "conv.DeadCarter.a-dead-carter-lies-face": "A dead carter lies face down beside his burnt cart.",
   "@conv.DeadCarter.a-dead-carter-lies-face": {
@@ -248,7 +252,7 @@
   "@conv.Emberkeeper.other-fires-like-yours": {
     "description": "A row the player picks when talking to Emberkeeper (node \"directions\"), written as the player's own words."
   },
-  "conv.Emberkeeper.the-bandits": "The bandits?",
+  "conv.Emberkeeper.the-bandits": "Are the bandits gone from the shrine?",
   "@conv.Emberkeeper.the-bandits": {
     "description": "Emberkeeper speaks this in the conversation, node \"bandits_running\", line 1."
   },
@@ -263,6 +267,10 @@
   "conv.Emberkeeper.the-tunnel-north": "The tunnel north.",
   "@conv.Emberkeeper.the-tunnel-north": {
     "description": "A row the player picks when talking to Emberkeeper (node \"directions\"), written as the player's own words."
+  },
+  "conv.Emberkeeper.welcome-back-traveller": "Welcome back, traveller.",
+  "@conv.Emberkeeper.welcome-back-traveller": {
+    "description": "Emberkeeper speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Emberkeeper.where-can-i-find": "Where can I find...",
   "@conv.Emberkeeper.where-can-i-find": {
@@ -300,6 +308,10 @@
   "@conv.Flora.about-the-deer": {
     "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
   },
+  "conv.Flora.ah-youre-back-already-what": "Ah, you're back already. What can I do for you?",
+  "@conv.Flora.ah-youre-back-already-what": {
+    "description": "Flora speaks this in the conversation, node \"root\", line 2."
+  },
   "conv.Flora.ahh-what-a-sight": "Ahh ... what a sight for sore eyes. I'll prepare them right away.",
   "@conv.Flora.ahh-what-a-sight": {
     "description": "Flora answers this when the player picks \"Here you go! The meat of 5 deer.\" (node \"meat_running\")."
@@ -315,6 +327,10 @@
   "conv.Flora.come-back-here-when-youre": "Come back here when you're done.",
   "@conv.Flora.come-back-here-when-youre": {
     "description": "Flora answers this when the player picks \"I'll do it.\" (node \"harvest\")."
+  },
+  "conv.Flora.did-he-now-well-im": "Did he now? Well, I'm sure I can find something for you.",
+  "@conv.Flora.did-he-now-well-im": {
+    "description": "Flora answers this when the player picks \"The Hermit sent me.\" (node \"root\")."
   },
   "conv.Flora.do-you-have-anything-else": "Do you have anything else to do?",
   "@conv.Flora.do-you-have-anything-else": {
@@ -368,15 +384,19 @@
   "@conv.Flora.thanks-the-old-bones-wont": {
     "description": "Flora answers this when the player picks \"I've harvested the beets.\" (node \"harvest_running\")."
   },
-  "conv.Flora.the-beets": "The beets?",
+  "conv.Flora.the-beets": "Did you bring in the beets?",
   "@conv.Flora.the-beets": {
     "description": "Flora speaks this in the conversation, node \"harvest_running\", line 1."
   },
-  "conv.Flora.the-deer": "The deer?",
+  "conv.Flora.the-deer": "Got the deer yet?",
   "@conv.Flora.the-deer": {
     "description": "Flora speaks this in the conversation, node \"meat_running\", line 1."
   },
-  "conv.Flora.what-do-you-want-stranger": "What do you want, stranger?",
+  "conv.Flora.the-hermit-sent-me": "The Hermit sent me.",
+  "@conv.Flora.the-hermit-sent-me": {
+    "description": "A row the player picks when talking to Flora (node \"root\"), written as the player's own words."
+  },
+  "conv.Flora.what-do-you-want-stranger": "Oh, a new face. We see lots of your kind coming through from the West. What do you want, stranger?",
   "@conv.Flora.what-do-you-want-stranger": {
     "description": "Flora speaks this in the conversation, node \"root\", line 1."
   },
@@ -420,6 +440,10 @@
   "@conv.FrontCaptain.about-the-orcs": {
     "description": "A row the player picks when talking to Front Captain (node \"root\"), written as the player's own words."
   },
+  "conv.FrontCaptain.back-at-the-front-i": "Back at the front, I see.",
+  "@conv.FrontCaptain.back-at-the-front-i": {
+    "description": "Front Captain speaks this in the conversation, node \"root\", line 2."
+  },
   "conv.FrontCaptain.break-the-banners-in-his": "Break the banners in his camp west of here, then kill him.",
   "@conv.FrontCaptain.break-the-banners-in-his": {
     "description": "Front Captain speaks this in the conversation, node \"commander\", line 2."
@@ -444,7 +468,7 @@
   "@conv.FrontCaptain.kill-5-orcs-2": {
     "description": "Front Captain speaks this in the conversation, node \"orcs_on_it\", line 1."
   },
-  "conv.FrontCaptain.the-orcs": "The orcs?",
+  "conv.FrontCaptain.the-orcs": "How goes it with the orcs?",
   "@conv.FrontCaptain.the-orcs": {
     "description": "Front Captain speaks this in the conversation, node \"orcs_running\", line 1."
   },
@@ -487,6 +511,10 @@
   "conv.GrandfatherKnot.ah-i-can-breathe-again": "Ah. I can breathe again.",
   "@conv.GrandfatherKnot.ah-i-can-breathe-again": {
     "description": "Grandfather Knot answers this when the player picks \"The grove is clear.\" (node \"root\")."
+  },
+  "conv.GrandfatherKnot.ah-the-quick-little-walker": "Ah. The quick little walker, back again.",
+  "@conv.GrandfatherKnot.ah-the-quick-little-walker": {
+    "description": "Grandfather Knot speaks this in the conversation, node \"root\", line 2."
   },
   "conv.GrandfatherKnot.come-back-in-about": "Come back in about a century, little walker. Tell me how your journey went.",
   "@conv.GrandfatherKnot.come-back-in-about": {
@@ -604,6 +632,10 @@
   "@conv.Hans.he-who-cried-wolf": {
     "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
+  "conv.Hans.ho-its-you-again": "Ho, it's you again!",
+  "@conv.Hans.ho-its-you-again": {
+    "description": "Hans speaks this in the conversation, node \"root\", line 2."
+  },
   "conv.Hans.ho-stranger": "Ho, stranger!",
   "@conv.Hans.ho-stranger": {
     "description": "Hans speaks this in the conversation, node \"root\", line 1."
@@ -644,7 +676,7 @@
   "@conv.Hans.the-governor-of-dionsburg-then": {
     "description": "Hans speaks this in the conversation, node \"wolves_governor\", line 1."
   },
-  "conv.Hans.the-wolves": "The wolves?",
+  "conv.Hans.the-wolves": "Are the wolves gone?",
   "@conv.Hans.the-wolves": {
     "description": "Hans speaks this in the conversation, node \"wolves_running\", line 1."
   },
@@ -704,33 +736,25 @@
   "@conv.Henrik.you-wont-win-by-hitting": {
     "description": "Henrik speaks this in the conversation, node \"stags\", line 2."
   },
-  "conv.Hermit.about-the-village": "About the village...",
-  "@conv.Hermit.about-the-village": {
+  "conv.Hermit.about-flora": "About Flora...",
+  "@conv.Hermit.about-flora": {
     "description": "A row the player picks when talking to Hermit (node \"root\"), written as the player's own words."
   },
-  "conv.Hermit.hello-stranger-another-traveler": "Hello Stranger! Another traveler looking for work I assume? There's more coming through here every day. Talk to Flora, her Farm is just up ahead. I'm sure she has some work and a warm place to rest for you.",
-  "@conv.Hermit.hello-stranger-another-traveler": {
+  "conv.Hermit.ah-you-again-did-flora": "Ah, you again. Did Flora treat you well?",
+  "@conv.Hermit.ah-you-again-did-flora": {
+    "description": "Hermit speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.Hermit.hello-stranger-what-brings-you": "Hello stranger. What brings you here?",
+  "@conv.Hermit.hello-stranger-what-brings-you": {
     "description": "Hermit speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Hermit.i-talked-to-reinhard": "I talked to Reinhard and the Town Crier.",
-  "@conv.Hermit.i-talked-to-reinhard": {
-    "description": "A row the player picks when talking to Hermit (node \"welcome_running\"), written as the player's own words."
-  },
-  "conv.Hermit.talk-to-reinhard": "Talk to Reinhard and the Town Crier, then come back to me.",
-  "@conv.Hermit.talk-to-reinhard": {
-    "description": "Hermit speaks this in the conversation, node \"welcome\", line 1."
-  },
-  "conv.Hermit.talk-to-reinhard-2": "Talk to Reinhard and the Town Crier, then come back to me.",
-  "@conv.Hermit.talk-to-reinhard-2": {
-    "description": "Hermit speaks this in the conversation, node \"welcome_on_it\", line 1."
-  },
-  "conv.Hermit.the-village": "The village?",
-  "@conv.Hermit.the-village": {
+  "conv.Hermit.just-follow-the-path-east": "Just follow the path east. Flora's farm is the first one you'll come to.",
+  "@conv.Hermit.just-follow-the-path-east": {
     "description": "Hermit speaks this in the conversation, node \"welcome_running\", line 1."
   },
-  "conv.Hermit.what-do-you-need": "What do you need?",
-  "@conv.Hermit.what-do-you-need": {
-    "description": "Hermit speaks this in the conversation, node \"root\", line 1."
+  "conv.Hermit.looking-for-work-more-people": "Looking for work? More people come through here every day. Talk to Flora, her farm is just up ahead. I'm sure she has some work and a warm place to rest for you.",
+  "@conv.Hermit.looking-for-work-more-people": {
+    "description": "Hermit speaks this in the conversation, node \"welcome\", line 1."
   },
   "conv.Lambert.are-you-lambert": "Are you Lambert?",
   "@conv.Lambert.are-you-lambert": {
@@ -796,6 +820,10 @@
   "@conv.Lamplighter.about-the-dire-wolves": {
     "description": "A row the player picks when talking to Lamplighter (node \"root\"), written as the player's own words."
   },
+  "conv.Lamplighter.back-from-the-dark-i": "Back from the dark, I see.",
+  "@conv.Lamplighter.back-from-the-dark-i": {
+    "description": "Lamplighter speaks this in the conversation, node \"root\", line 1."
+  },
   "conv.Lamplighter.i-can-teach-you": "I can teach you to make light.",
   "@conv.Lamplighter.i-can-teach-you": {
     "description": "Lamplighter speaks this in the conversation, node \"root\", line 1."
@@ -812,7 +840,7 @@
   "@conv.Lamplighter.kill-4-dire-wolves-2": {
     "description": "Lamplighter speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
-  "conv.Lamplighter.the-dire-wolves": "The dire wolves?",
+  "conv.Lamplighter.the-dire-wolves": "Did you thin out the dire wolves?",
   "@conv.Lamplighter.the-dire-wolves": {
     "description": "Lamplighter speaks this in the conversation, node \"wolves_running\", line 1."
   },
@@ -848,7 +876,11 @@
   "@conv.Lionett.ohh-a-new-face-around": {
     "description": "Lionett speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Lionett.the-seaweed": "The seaweed?",
+  "conv.Lionett.ohh-its-you-nice": "Ohh, it's you. Nice to see you again.",
+  "@conv.Lionett.ohh-its-you-nice": {
+    "description": "Lionett speaks this in the conversation, node \"root\", line 2."
+  },
+  "conv.Lionett.the-seaweed": "Did you find the seaweed?",
   "@conv.Lionett.the-seaweed": {
     "description": "Lionett speaks this in the conversation, node \"brew_running\", line 1."
   },
@@ -884,13 +916,17 @@
   "@conv.Miner.kill-6-spiders-2": {
     "description": "Miner speaks this in the conversation, node \"spiders_on_it\", line 1."
   },
-  "conv.Miner.the-spiders": "The spiders?",
+  "conv.Miner.the-spiders": "Are the spiders cleared out?",
   "@conv.Miner.the-spiders": {
     "description": "Miner speaks this in the conversation, node \"spiders_running\", line 1."
   },
   "conv.Miner.the-tunnel-is-overrun": "The tunnel is overrun.",
   "@conv.Miner.the-tunnel-is-overrun": {
     "description": "Miner speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.Miner.the-tunnels-quieter-since-you": "The tunnel's quieter since you came through.",
+  "@conv.Miner.the-tunnels-quieter-since-you": {
+    "description": "Miner speaks this in the conversation, node \"root\", line 2."
   },
   "conv.Miner.what-happened-down-there": "What happened down there?",
   "@conv.Miner.what-happened-down-there": {
@@ -943,6 +979,10 @@
   "conv.Reinhard.and-youre-still-in-one": "And you're still in one piece? You're sturdier than you look. Good job.",
   "@conv.Reinhard.and-youre-still-in-one": {
     "description": "Reinhard answers this when the player picks \"I've killed the rats.\" (node \"rats_running\")."
+  },
+  "conv.Reinhard.back-for-more-work-theres": "Back for more work? There's always plenty around here.",
+  "@conv.Reinhard.back-for-more-work-theres": {
+    "description": "Reinhard speaks this in the conversation, node \"root\", line 2."
   },
   "conv.Reinhard.be-careful-its-dark": "Be careful! It's dark in there and the rats are nasty beasts. Don't attract too many at once.",
   "@conv.Reinhard.be-careful-its-dark": {
@@ -1056,7 +1096,7 @@
   "@conv.Reinhard.thank-you-i-knew-i": {
     "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"shipment\")."
   },
-  "conv.Reinhard.the-beast": "The beast?",
+  "conv.Reinhard.the-beast": "Is the beast dead?",
   "@conv.Reinhard.the-beast": {
     "description": "Reinhard speaks this in the conversation, node \"beast_running\", line 1."
   },
@@ -1064,7 +1104,7 @@
   "@conv.Reinhard.the-beast-of-the-farmlands": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.the-boars": "The boars?",
+  "conv.Reinhard.the-boars": "How are things with the boars?",
   "@conv.Reinhard.the-boars": {
     "description": "Reinhard speaks this in the conversation, node \"boars_running\", line 1."
   },
@@ -1092,11 +1132,11 @@
   "@conv.Reinhard.the-problematic-boars": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.the-rats": "The rats?",
+  "conv.Reinhard.the-rats": "Any luck with the rats?",
   "@conv.Reinhard.the-rats": {
     "description": "Reinhard speaks this in the conversation, node \"rats_running\", line 1."
   },
-  "conv.Reinhard.the-turnips": "The turnips?",
+  "conv.Reinhard.the-turnips": "Got my turnips?",
   "@conv.Reinhard.the-turnips": {
     "description": "Reinhard speaks this in the conversation, node \"turnips_running\", line 1."
   },
@@ -1164,9 +1204,13 @@
   "@conv.Shaman.the-8-wolves": {
     "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words."
   },
-  "conv.Shaman.the-dire-wolves": "The dire wolves?",
+  "conv.Shaman.the-dire-wolves": "Have the dire wolves fallen?",
   "@conv.Shaman.the-dire-wolves": {
     "description": "Shaman speaks this in the conversation, node \"direwolves_running\", line 1."
+  },
+  "conv.Shaman.you-return-friend": "You return, friend.",
+  "@conv.Shaman.you-return-friend": {
+    "description": "Shaman speaks this in the conversation, node \"root\", line 1."
   },
   "conv.StoneRoot.a-root-clenched-around": "A root clenched around the stones like a fist. It loosens under your hand.",
   "@conv.StoneRoot.a-root-clenched-around": {
@@ -1215,6 +1259,10 @@
   "conv.TownCrier.hail-adventurer-2": "Hail, adventurer!",
   "@conv.TownCrier.hail-adventurer-2": {
     "description": "Town Crier speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.TownCrier.hail-again-adventurer-back-so": "Hail again, adventurer! Back so soon?",
+  "@conv.TownCrier.hail-again-adventurer-back-so": {
+    "description": "Town Crier speaks this in the conversation, node \"root\", line 2."
   },
   "conv.TownCrier.hans-sends-me-there-are": "Hans sends me. There are a lot of wolves recently.",
   "@conv.TownCrier.hans-sends-me-there-are": {
@@ -1288,7 +1336,7 @@
   "@conv.TownCrier.tell-me-more-about-papath": {
     "description": "A row the player picks when talking to Town Crier (node \"order\"), written as the player's own words."
   },
-  "conv.TownCrier.the-wolves": "The wolves?",
+  "conv.TownCrier.the-wolves": "Any news about the wolves?",
   "@conv.TownCrier.the-wolves": {
     "description": "Town Crier speaks this in the conversation, node \"wolves_running\", line 1."
   },
@@ -1328,9 +1376,13 @@
   "@conv.VillageHealer.rest-by-the-fire": {
     "description": "Village Healer speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.VillageHealer.the-alpha-wolves": "The alpha wolves?",
+  "conv.VillageHealer.the-alpha-wolves": "Are the alpha wolves dealt with?",
   "@conv.VillageHealer.the-alpha-wolves": {
     "description": "Village Healer speaks this in the conversation, node \"alphawolves_running\", line 1."
+  },
+  "conv.VillageHealer.welcome-back-you-look-like": "Welcome back. You look like you could use a rest.",
+  "@conv.VillageHealer.welcome-back-you-look-like": {
+    "description": "Village Healer speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Wanderer.about-the-kobolds": "About the kobolds...",
   "@conv.Wanderer.about-the-kobolds": {
@@ -1400,9 +1452,13 @@
   "@conv.Wanderer.thank-you": {
     "description": "Wanderer answers this when the player picks \"I'll look for him.\" (node \"friend\")."
   },
-  "conv.Wanderer.the-kobolds": "The kobolds?",
+  "conv.Wanderer.the-kobolds": "Is the road clear of kobolds?",
   "@conv.Wanderer.the-kobolds": {
     "description": "Wanderer speaks this in the conversation, node \"kobolds_running\", line 1."
+  },
+  "conv.Wanderer.we-meet-again": "We meet again.",
+  "@conv.Wanderer.we-meet-again": {
+    "description": "Wanderer speaks this in the conversation, node \"root\", line 2."
   },
   "conv.Wanderer.which-way-is-safe": "Which way is safe?",
   "@conv.Wanderer.which-way-is-safe": {
@@ -1428,6 +1484,34 @@
   "@conv.Woolliam.keeps-grazing": {
     "description": "Woolliam speaks this in the conversation, node \"quip\", line 1."
   },
+  "stock.accept-careful": "Be careful out there.",
+  "@stock.accept-careful": {
+    "description": "Shared phrase \"accept-careful\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-come-back": "Come back when you're done.",
+  "@stock.accept-come-back": {
+    "description": "Shared phrase \"accept-come-back\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-counting": "I'm counting on you.",
+  "@stock.accept-counting": {
+    "description": "Shared phrase \"accept-counting\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-good-luck": "Good luck, stranger.",
+  "@stock.accept-good-luck": {
+    "description": "Shared phrase \"accept-good-luck\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-off-you-go": "Off you go, then.",
+  "@stock.accept-off-you-go": {
+    "description": "Shared phrase \"accept-off-you-go\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-thank-you": "Thank you, stranger.",
+  "@stock.accept-thank-you": {
+    "description": "Shared phrase \"accept-thank-you\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
+  "stock.accept-well-met": "Well met.",
+  "@stock.accept-well-met": {
+    "description": "Shared phrase \"accept-well-met\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
+  },
   "stock.ask-assistance": "Any assistance for the task?",
   "@stock.ask-assistance": {
     "description": "Shared phrase \"ask-assistance\": every dialogue line that names it says this, so one edit changes all of them (D28)."
@@ -1439,10 +1523,6 @@
   "stock.ask-teach": "Teach me something.",
   "@stock.ask-teach": {
     "description": "Shared phrase \"ask_teach\": every dialogue line that names it says this, so one edit changes all of them (D28)."
-  },
-  "stock.good": "Good.",
-  "@stock.good": {
-    "description": "Shared phrase \"good\": every dialogue line that names it says this, so one edit changes all of them (D28)."
   },
   "stock.offer-teach": "What do you want to learn?",
   "@stock.offer-teach": {
@@ -1474,6 +1554,22 @@
     "placeholders": {
       "skill": {"type": "String", "description": "The skill being taught, its name as the spellbook shows it (nominative, never inflected)", "example": "Torch"}
     }
+  },
+  "stock.thanks-fine-work": "Fine work, stranger.",
+  "@stock.thanks-fine-work": {
+    "description": "Shared phrase \"thanks-fine-work\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it when the player turns in a finished task; NPCs pick the one that fits their voice."
+  },
+  "stock.thanks-knew-it": "I knew I could count on you.",
+  "@stock.thanks-knew-it": {
+    "description": "Shared phrase \"thanks-knew-it\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it when the player turns in a finished task; NPCs pick the one that fits their voice."
+  },
+  "stock.thanks-weight-off": "Thank you. That's a weight off my mind.",
+  "@stock.thanks-weight-off": {
+    "description": "Shared phrase \"thanks-weight-off\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it when the player turns in a finished task; NPCs pick the one that fits their voice."
+  },
+  "stock.thanks-well-done": "Well done.",
+  "@stock.thanks-well-done": {
+    "description": "Shared phrase \"thanks-well-done\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it when the player turns in a finished task; NPCs pick the one that fits their voice."
   },
   "stock.which-root": "Which root was it again?",
   "@stock.which-root": {

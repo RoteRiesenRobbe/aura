@@ -26,6 +26,7 @@
       {
         "id": "root",
         "lines": [
+          {"id": "you-return-friend", "conditions": [{"kind": "quest_at_stage", "quest": "dire-wolves-at-the-camp", "stage": "completed"}]},
           {"id": "let-nature-guide-you"}
         ],
         "options": [
@@ -33,7 +34,7 @@
             "id": "the-8-wolves",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-well-done",
                 "kind": "advance_quest",
                 "quest": "wolves-on-the-road",
                 "fromStage": "carry-word",
@@ -64,7 +65,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-well-met",
                 "kind": "offer_quest",
                 "quest": "dire-wolves-at-the-camp"
               }
@@ -82,7 +83,7 @@
             "id": "i-killed-the-6-dire",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-knew-it",
                 "kind": "advance_quest",
                 "quest": "dire-wolves-at-the-camp",
                 "fromStage": "report",

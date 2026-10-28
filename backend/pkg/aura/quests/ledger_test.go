@@ -215,6 +215,21 @@ func TestLedger_KillsAdvanceARunningQuest(t *testing.T) {
 	assert.True(t, completed)
 }
 
+// not_completed is completed's complement (a first-meeting greeting's gate):
+// true before the accept and while running, false once the quest is done.
+func TestLedger_NotCompletedIsTheComplementOfCompleted(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotCompleted), "never accepted")
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotCompleted), "running")
+
+	for i := 0; i < 3; i++ {
+		l.NoteKill(wolf)
+	}
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotCompleted), "completed")
+}
+
 func TestLedger_TalkToObjectiveAdvances(t *testing.T) {
 	l := testLedger(t, &QuestDefinition{
 		ID: "meet", Title: "Meet the Farmer", Level: 1,

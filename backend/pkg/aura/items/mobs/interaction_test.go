@@ -390,6 +390,52 @@ func TestMapMobDefinition_ResolvesAQuestCondition(t *testing.T) {
 	assert.Equal(t, "turn-in", c.Stage)
 }
 
+// A line may carry its own gate (the returning-player greeting): the node
+// stays one node with one option list, and only the gated line comes and goes.
+func TestMapMobDefinition_ResolvesALineCondition(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": [
+	    {"text": "What do you want, stranger?", "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "not_completed"}]},
+	    {"text": "Ah, you're back.", "conditionsMode": "any", "conditions": [
+	      {"kind": "quest_at_stage", "quest": "pelts", "stage": "completed"},
+	      {"kind": "quest_at_stage", "quest": "boars", "stage": "completed"}]},
+	    "Mind the field."
+	  ]
+	}]}`)
+	require.NoError(t, err)
+
+	node := def.Interaction.Nodes[0]
+	assert.Equal(t, []string{"What do you want, stranger?", "Ah, you're back.", "Mind the field."}, node.Lines)
+	require.Len(t, node.LineGates, 3, "parallel to Lines once any line is gated")
+	assert.Equal(t, QuestStageNotCompleted, node.LineGates[0].Conditions[0].Stage)
+	assert.Equal(t, ConditionModeAny, node.LineGates[1].Mode)
+	assert.Len(t, node.LineGates[1].Conditions, 2)
+	assert.Empty(t, node.LineGates[2].Conditions, "an ungated line always speaks")
+}
+
+func TestMapMobDefinition_UngatedLinesCarryNoGates(t *testing.T) {
+	def, err := mapInteraction(t, teachOneJSON)
+	require.NoError(t, err)
+	assert.Nil(t, def.Interaction.Nodes[0].LineGates, "nothing to judge per line, nothing allocated per tick")
+}
+
+// Ambient barks are said unprompted to whoever stands near, so there is no
+// one player to judge a gate against: refused rather than silently dropped.
+func TestMapMobDefinition_RejectsAGatedAmbientLine(t *testing.T) {
+	_, err := mapInteraction(t, `{
+	  "ambient": [{"text": "Hey!", "conditions": [{"kind": "minLevel", "value": 2}]}],
+	  "nodes": [{"id": "root", "lines": ["Hello."]}]
+	}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambient")
+}
+
+func TestMapMobDefinition_RejectsAModeOnAnUngatedLine(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{"id": "root", "lines": [{"text": "Hello.", "conditionsMode": "any"}]}]}`)
+	require.Error(t, err)
+}
+
 // Per-kind payload resolution (§5's code-review item): the loader used to resolve
 // a `skill` for EVERY grant unconditionally, so every new kind would have had to
 // author a dummy skill name to boot at all.

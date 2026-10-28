@@ -29,7 +29,7 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
-const QUEST_SENTINELS = ['not_started', 'completed', 'running'];
+const QUEST_SENTINELS = ['not_started', 'completed', 'running', 'not_completed'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to', 'bind_restock', 'restock', 'fly'];
 const ROW_KINDS = ['', 'ascension_catalog', 'memorial_names'];

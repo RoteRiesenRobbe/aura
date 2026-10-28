@@ -761,29 +761,17 @@
     "description": "Quest title of \"turnip-chore\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.village-welcome.back.journal": "Reinhard and the Town Crier have been met; the Hermit waits nearby.",
-  "@quest.village-welcome.back.journal": {
-    "description": "Journal (diary) entry of quest \"village-welcome\", stage \"back\": written in the player's voice, first person."
-  },
-  "quest.village-welcome.back.tracker": "Return to the Hermit",
-  "@quest.village-welcome.back.tracker": {
-    "description": "Tracker line of quest \"village-welcome\", stage \"back\": the one objective line shown under the quest title."
-  },
-  "quest.village-welcome.known.journal": "Done. Reported back to the Hermit.",
+  "quest.village-welcome.known.journal": "You found Flora and told her the Hermit sent you.",
   "@quest.village-welcome.known.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"known\": written in the player's voice, first person."
   },
-  "quest.village-welcome.meet.journal": "Talk to Reinhard and the Town Crier.",
+  "quest.village-welcome.meet.journal": "The Hermit told you to talk to Flora. Her farm is just east of his camp.",
   "@quest.village-welcome.meet.journal": {
     "description": "Journal (diary) entry of quest \"village-welcome\", stage \"meet\": written in the player's voice, first person."
   },
-  "quest.village-welcome.meet.talk_to.Reinhard.tracker": "Talk to Reinhard",
-  "@quest.village-welcome.meet.talk_to.Reinhard.tracker": {
-    "description": "Tracker line of one talk_to objective (Reinhard) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
-  },
-  "quest.village-welcome.meet.talk_to.TownCrier.tracker": "Talk to the Town Crier",
-  "@quest.village-welcome.meet.talk_to.TownCrier.tracker": {
-    "description": "Tracker line of one talk_to objective (Town Crier) in quest \"village-welcome\", stage \"meet\". Write the whole line: articles, case and prepositions belong here (L8)."
+  "quest.village-welcome.meet.tracker": "Talk to Flora",
+  "@quest.village-welcome.meet.tracker": {
+    "description": "Tracker line of quest \"village-welcome\", stage \"meet\": the one objective line shown under the quest title."
   },
   "quest.village-welcome.title": "Village Welcome",
   "@quest.village-welcome.title": {

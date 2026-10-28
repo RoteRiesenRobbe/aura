@@ -49,6 +49,14 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
   label, the row shows the skill's own name. Write an own line only when the
   NPC says more than that. The phrases: `stock.*` in
   `api/lang/en/conversations.arb`.
+- **Accept and turn-in replies come from a pool** (PO 2026-10-25): there is no
+  plain "Good." any more. After an accept the NPC says one of the `accept-*`
+  phrases (`accept-good-luck`, `accept-come-back`, `accept-careful`,
+  `accept-counting`, `accept-off-you-go`, `accept-thank-you`,
+  `accept-well-met`), after a turn-in one of the `thanks-*` phrases
+  (`thanks-well-done`, `thanks-fine-work`, `thanks-weight-off`,
+  `thanks-knew-it`); pick the one that fits the NPC's voice. Extend the pool in
+  the ARB rather than writing a one-off line, unless the NPC says more.
 - **A mob a kill or harvest objective counts carries its plural in its name**
   (D24): `"mob_Wolf_name": "{count, plural, one {Wolf} other {Wolves}}"`. Every
   other mob name is plain text. The old `namePlural` field is retired.
@@ -1714,7 +1722,8 @@ shape goes red there.
 ### Node conditions — greetings, and hiding a spent info row
 
 Gate nodes with `quest_at_stage` (`{"quest", "stage"}`, where `stage` is a stage
-id or `not_started` / `completed` / `running`). Options have no conditions of
+id or `not_started` / `completed` / `running` / `not_completed`; the last is
+`completed`'s complement: never accepted, abandoned, or running). Options have no conditions of
 their own; an option pointing at a hidden node is hidden with it. Two uses:
 **state-dependent greetings** (the traveller greets differently once his quest is
 done), and **hiding a row by gating its destination**.
@@ -1809,6 +1818,30 @@ Only `all` and `any` are valid, and a mode with no conditions is refused at boot
 (an empty list always passes, so the mode would do nothing). A locked row joins
 an OR gate with "or" (`level 30 (12/30) or complete "The Lost Lamp"`). The same
 key works on an ascension entry (`api/ascension/README.md`).
+
+**Gated lines: a greeting that knows the player.** A single line can carry
+its own `conditions` (and `conditionsMode`), in the same vocabulary as a node.
+The line is spoken only when its gate passes; the node, its options and its
+other lines stay. This is how a quest giver greets a stranger and a returning
+player differently without writing its option list twice:
+
+```json
+"lines": [
+  {"id": "what-do-you-want-stranger", "conditions": [
+    {"kind": "quest_at_stage", "quest": "ready-for-harvest", "stage": "not_completed"},
+    {"kind": "quest_at_stage", "quest": "meat-for-dinner", "stage": "not_completed"}]},
+  {"id": "ah-youre-back-already-what", "conditionsMode": "any", "conditions": [
+    {"kind": "quest_at_stage", "quest": "ready-for-harvest", "stage": "completed"},
+    {"kind": "quest_at_stage", "quest": "meat-for-dinner", "stage": "completed"}]}
+]
+```
+
+The convention (PO 2026-10-25): every quest giver's first line greets a stranger
+until one of THEIR quests is completed, then a returning line takes over. List
+all of the NPC's quests in both gates (`not_completed` under `all`, `completed`
+under `any`). An ambient line cannot be gated (it is said to whoever stands
+near). `node tools/lang/extract-english.mjs` keeps a line's gate when it moves
+its text.
 
 ⚑ **Gate on `completed`, not on `not_started`, whenever the row should read as
 a locked door.** `describeConditions` renders `completed` as

@@ -29,7 +29,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "i-am-passing-through"}
+          {"id": "i-am-passing-through", "conditions": [{"kind": "quest_at_stage", "quest": "kobolds-on-the-road", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "the-lost-friend", "stage": "not_completed"}]},
+          {"id": "we-meet-again", "conditionsMode": "any", "conditions": [{"kind": "quest_at_stage", "quest": "kobolds-on-the-road", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "the-lost-friend", "stage": "completed"}]}
         ],
         "options": [
           { "id": "which-way-is-safe", "next": "roads" },
@@ -56,7 +57,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-counting",
                 "kind": "offer_quest",
                 "quest": "kobolds-on-the-road"
               }
@@ -74,7 +75,7 @@
             "id": "i-killed-the-8-kobolds",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-knew-it",
                 "kind": "advance_quest",
                 "quest": "kobolds-on-the-road",
                 "fromStage": "report",

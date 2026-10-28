@@ -89,6 +89,23 @@ func TestHydrate_FillsDialogueAndCarriesTheFullKeyAsTheID(t *testing.T) {
 	assert.False(t, plainText, "a row with no id has no authored text (a teach row is labelled by its skill)")
 }
 
+// A line's gate rides through hydration: the line is rebuilt as {id, text},
+// and dropping its conditions would show a returning greeting to strangers.
+func TestHydrate_KeepsALinesConditions(t *testing.T) {
+	en := map[string]string{
+		"mob.Farmer.name":        "Farmer",
+		"conv.Farmer.youre-back": "You're back.",
+	}
+	m := hydrated(t, DomainMob, `{"name": "Farmer", "interaction": {"nodes": [{"id": "root",
+		"lines": [{"id": "youre-back", "conditionsMode": "any",
+			"conditions": [{"kind": "quest_at_stage", "quest": "q", "stage": "completed"}]}]}]}}`, en)
+	node := m["interaction"].(map[string]any)["nodes"].([]any)[0].(map[string]any)
+	line := node["lines"].([]any)[0].(map[string]any)
+	assert.Equal(t, "You're back.", line["text"])
+	assert.Equal(t, "any", line["conditionsMode"])
+	assert.Len(t, line["conditions"], 1)
+}
+
 func TestHydrate_SkillsAndRegions(t *testing.T) {
 	en := map[string]string{
 		"skill.LongRangeStrike.name":        "Long-Range Strike",

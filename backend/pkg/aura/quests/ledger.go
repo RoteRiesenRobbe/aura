@@ -353,7 +353,8 @@ func (l *Ledger) Progress(questID string) (path []string, running, completed boo
 
 // MatchesStage answers a `quest_at_stage` dialogue condition (C2): does this
 // character's ledger have questID at want, where want is a stage id or one of
-// mobs.QuestStageNotStarted / mobs.QuestStageCompleted / mobs.QuestStageRunning.
+// mobs.QuestStageNotStarted / mobs.QuestStageCompleted / mobs.QuestStageRunning /
+// mobs.QuestStageNotCompleted.
 //
 // ⚑ O(1), and that is a requirement rather than a nicety (L15): present() runs
 // per tick per conversing player and evaluates node conditions on the way, so
@@ -364,7 +365,8 @@ func (l *Ledger) Progress(questID string) (path []string, running, completed boo
 // exclusive by construction: an abandoned quest is not-started (D13), and a
 // completed one matches `completed` but NOT the terminal stage it ended on —
 // otherwise a turn-in row gated on that stage would stay clickable forever after
-// the quest was over. A stage id is a refinement inside `running`.
+// the quest was over. A stage id is a refinement inside `running`;
+// `not_completed` is the union of not-started and running.
 func (l *Ledger) MatchesStage(questID, want string) bool {
 	if l == nil {
 		return false // fail closed: a conversation is not the place to panic
@@ -376,6 +378,8 @@ func (l *Ledger) MatchesStage(questID, want string) bool {
 		return !ok || (!p.Running && !p.Completed)
 	case mobs.QuestStageCompleted:
 		return ok && p.Completed
+	case mobs.QuestStageNotCompleted:
+		return !ok || !p.Completed
 	case mobs.QuestStageRunning:
 		// The band, not a stage: true from Accept until the quest ends, across
 		// every stage it rests on. Running and Completed are mutually exclusive

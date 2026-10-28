@@ -1,18 +1,10 @@
 {
-  "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb. (Originally also the showcase for D3's retroactive credit — a veteran cascaded straight to the report stage on accepting; N4/D4 reversed that, so a fresh talk after accepting is required even for targets already spoken to.) Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
+  "_comment": "The first quest: the Hermit sends a newcomer to Flora. A handoff with no objectives, turned in on Flora's root row 'The Hermit sent me.' (the eliza-sends-me shape). Reward: 150 XP (half of the level-1 requirement). The stage ids are persisted in quest progress.",
   "id": "village-welcome",
   "level": 1,
   "stages": [
     {
-      "id": "meet",
-      "objectives": [
-        { "kind": "talk_to", "npc": "Reinhard" },
-        { "kind": "talk_to", "npc": "TownCrier" }
-      ],
-      "next": "back"
-    },
-    {
-      "id": "back"
+      "id": "meet"
     },
     {
       "id": "known"

@@ -26,7 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "plenty-of-work-around-here"}
+          {"id": "plenty-of-work-around-here", "conditions": [{"kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "the-millers-ring", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "boars-in-the-field", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "the-sounder-at-the-mill", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "a-lost-shipment", "stage": "not_completed"}, {"kind": "quest_at_stage", "quest": "turnip-chore", "stage": "not_completed"}]},
+          {"id": "back-for-more-work-theres", "conditionsMode": "any", "conditions": [{"kind": "quest_at_stage", "quest": "giant-rats-in-the-barn", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "the-millers-ring", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "boars-in-the-field", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "the-sounder-at-the-mill", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "a-lost-shipment", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "turnip-chore", "stage": "completed"}]}
         ],
         "options": [
           {
@@ -246,7 +247,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-come-back",
                 "kind": "offer_quest",
                 "quest": "boars-in-the-field"
               }
@@ -426,7 +427,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-off-you-go",
                 "kind": "offer_quest",
                 "quest": "turnip-chore"
               }
@@ -444,7 +445,7 @@
             "id": "i-harvested-the-5-turnips",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-well-done",
                 "kind": "advance_quest",
                 "quest": "turnip-chore",
                 "fromStage": "handover",

@@ -61,7 +61,14 @@ type InteractionNode struct {
 	Lines []string
 	// LineIDs is each line's stable id (D20), parallel to Lines.
 	LineIDs []string
-	Options []InteractionOption
+	// LineGates is each line's own gate, parallel to Lines, and nil when no
+	// line of the node is gated (the common case, which present() then copies
+	// without judging anything). A line whose gate fails is not spoken; the
+	// node, its options and its other lines stay. This is how one root node
+	// greets a stranger and a returning player differently without its option
+	// list being written twice.
+	LineGates []Gate
+	Options   []InteractionOption
 
 	// Rows names a GENERATED row source, empty for the overwhelming majority
 	// of nodes whose rows are authored above (plan-ascension.md §4.2, P10).
@@ -481,6 +488,11 @@ const (
 	// node once per stage, and a row that answers a question only a running
 	// quest asks is exactly what should leave when the quest does.
 	QuestStageRunning = "running"
+	// QuestStageNotCompleted is completed's complement: never accepted,
+	// abandoned or running. It is what a first-meeting greeting gates on, and
+	// under the all mode it says "none of these quests is done", which no
+	// combination of the other sentinels can.
+	QuestStageNotCompleted = "not_completed"
 )
 
 // ConditionMode says how a condition list combines (plan-quest-dialogue.md D5).
@@ -608,8 +620,10 @@ type jsonInteractionNode struct {
 // D27, D28). A bare string still parses, with no id, so a unit fixture stays
 // short; shipped content without ids is refused by the boot's lang stage.
 type jsonDialogueLine struct {
-	ID   string
-	Text string
+	ID             string
+	Text           string
+	Conditions     []JSONCondition
+	ConditionsMode string
 }
 
 func (l *jsonDialogueLine) UnmarshalJSON(data []byte) error {
@@ -617,15 +631,17 @@ func (l *jsonDialogueLine) UnmarshalJSON(data []byte) error {
 		return json.Unmarshal(data, &l.Text)
 	}
 	var v struct {
-		ID   string `json:"id"`
-		Text string `json:"text"`
+		ID             string          `json:"id"`
+		Text           string          `json:"text"`
+		Conditions     []JSONCondition `json:"conditions"`
+		ConditionsMode string          `json:"conditionsMode"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&v); err != nil {
 		return err
 	}
-	l.ID, l.Text = v.ID, v.Text
+	l.ID, l.Text, l.Conditions, l.ConditionsMode = v.ID, v.Text, v.Conditions, v.ConditionsMode
 	return nil
 }
 
@@ -755,10 +771,47 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 				"which is an authored gate that does nothing", cond.Value)
 	}
 	if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
-		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q, %q or %q)",
-			QuestStageNotStarted, QuestStageCompleted, QuestStageRunning)
+		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q, %q, %q or %q)",
+			QuestStageNotStarted, QuestStageCompleted, QuestStageRunning, QuestStageNotCompleted)
 	}
 	return cond, nil
+}
+
+// EachGate visits the node's own gate and then every gated line's, naming each
+// ("" for the node, "line N" for a line), so a pass over conditions cannot
+// forget the lines. It stops at the first error.
+func (n *InteractionNode) EachGate(visit func(where string, g *Gate) error) error {
+	if err := visit("", &n.Gate); err != nil {
+		return err
+	}
+	for i := range n.LineGates {
+		if err := visit(fmt.Sprintf("line %d", i), &n.LineGates[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// parseGate resolves one authored condition list and its mode: a node's, or a
+// single line's. The caller names where it was authored.
+func parseGate(jcs []JSONCondition, mode string, sr SkillNamer) (Gate, error) {
+	var gate Gate
+	for j, jc := range jcs {
+		cond, err := ParseCondition(jc)
+		if err == nil {
+			err = ResolveSkillCondition(&cond, sr)
+		}
+		if err != nil {
+			return Gate{}, fmt.Errorf("condition %d: %w", j, err)
+		}
+		gate.Conditions = append(gate.Conditions, cond)
+	}
+	m, err := ParseConditionMode(mode, len(jcs))
+	if err != nil {
+		return Gate{}, err
+	}
+	gate.Mode = m
+	return gate, nil
 }
 
 // SkillNamer is the narrow half of skills.Registry a skill_level condition
@@ -857,6 +910,12 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 
 	in := &Interaction{Range: ji.Range}
 	in.Ambient, in.AmbientIDs = splitDialogue(ji.Ambient)
+	for i, l := range ji.Ambient {
+		if len(l.Conditions) > 0 || l.ConditionsMode != "" {
+			return nil, fmt.Errorf("mob %q: interaction ambient line %d: an ambient line cannot be gated, "+
+				"it is said to whoever stands near, not to one player", m.Name, i)
+		}
+	}
 	ids := make(map[string]bool, len(ji.Nodes))
 	for i := range ji.Nodes {
 		jn := &ji.Nodes[i]
@@ -870,6 +929,19 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 
 		node := InteractionNode{ID: jn.ID}
 		node.Lines, node.LineIDs = splitDialogue(jn.Lines)
+		for li, l := range jn.Lines {
+			if len(l.Conditions) == 0 && l.ConditionsMode == "" {
+				continue
+			}
+			if node.LineGates == nil {
+				node.LineGates = make([]Gate, len(jn.Lines))
+			}
+			gate, err := parseGate(l.Conditions, l.ConditionsMode, sr)
+			if err != nil {
+				return nil, fmt.Errorf("mob %q: interaction node %q line %d: %w", m.Name, jn.ID, li, err)
+			}
+			node.LineGates[li] = gate
+		}
 		if jn.Rows != "" {
 			kind, ok := ParseRowSourceKind(jn.Rows)
 			if !ok {
@@ -901,21 +973,11 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		if err := mapBonusLooks(m.Name, jn, &node); err != nil {
 			return nil, err
 		}
-		for j, jc := range jn.Conditions {
-			cond, err := ParseCondition(jc)
-			if err == nil {
-				err = ResolveSkillCondition(&cond, sr)
-			}
-			if err != nil {
-				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: %w", m.Name, jn.ID, j, err)
-			}
-			node.Gate.Conditions = append(node.Gate.Conditions, cond)
-		}
-		mode, err := ParseConditionMode(jn.ConditionsMode, len(jn.Conditions))
+		gate, err := parseGate(jn.Conditions, jn.ConditionsMode, sr)
 		if err != nil {
 			return nil, fmt.Errorf("mob %q: interaction node %q: %w", m.Name, jn.ID, err)
 		}
-		node.Gate.Mode = mode
+		node.Gate = gate
 
 		if len(jn.Options) > maxAddressableIndex+1 {
 			return nil, fmt.Errorf("mob %q: interaction node %q: %d options, but only indices 0..%d are addressable on the wire",

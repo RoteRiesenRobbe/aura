@@ -25,7 +25,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "the-tunnel-is-overrun"}
+          {"id": "the-tunnel-is-overrun", "conditions": [{"kind": "quest_at_stage", "quest": "spiders-in-the-diggings", "stage": "not_completed"}]},
+          {"id": "the-tunnels-quieter-since-you", "conditions": [{"kind": "quest_at_stage", "quest": "spiders-in-the-diggings", "stage": "completed"}]}
         ],
         "options": [
           { "id": "what-happened-down-there", "next": "tunnel" },
@@ -44,7 +45,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-come-back",
                 "kind": "offer_quest",
                 "quest": "spiders-in-the-diggings"
               }
@@ -62,7 +63,7 @@
             "id": "i-killed-the-6-spiders",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-fine-work",
                 "kind": "advance_quest",
                 "quest": "spiders-in-the-diggings",
                 "fromStage": "report",

@@ -124,6 +124,22 @@ test('extract: dialogue mints slugs, names shared phrases, and never changes an 
   assert.equal(m.has('conv.Farmer.good'), false, 'a shared phrase is not copied per line');
 });
 
+test('extract: a gated line keeps its conditions', () => {
+  const gate = [{ kind: 'quest_at_stage', quest: 'q', stage: 'completed' }];
+  const source = JSON.stringify({
+    name: 'Farmer',
+    interaction: { nodes: [{ id: 'root', lines: [{ text: 'Back again?', conditionsMode: 'any', conditions: gate }, { text: 'Good.', conditions: gate }] }] },
+  }, null, 2);
+  const arbs = arbsWith({ good: 'Good.' });
+  arbs.mobs.entries.set('mob.Farmer.name', { text: 'Farmer', meta: { description: 'n' } });
+  const { text, problems } = extractFile(source, 'mob', arbs, 'mobs');
+  assert.deepEqual(problems, []);
+  assert.deepEqual(JSON.parse(text).interaction.nodes[0].lines, [
+    { id: 'back-again', conditionsMode: 'any', conditions: gate },
+    { stock: 'good', conditions: gate },
+  ]);
+});
+
 test('extract: a changed English replaces the text and keeps the note', () => {
   const arbs = arbsWith();
   arbs.quests.entries.set('quest.q.title', { text: 'Old', meta: { description: 'hand-written note' } });

@@ -175,7 +175,8 @@ func (h *hydrator) mob(m map[string]any) {
 	}
 }
 
-// lines turns each {"id": slug} or {"stock": name} into {"id": key, "text": English}.
+// lines turns each {"id": slug} or {"stock": name} into {"id": key, "text": English},
+// keeping a gated line's conditions and conditionsMode.
 func (h *hydrator) lines(obj map[string]any, field, npc, where string) {
 	list, ok := obj[field].([]any)
 	if !ok {
@@ -196,7 +197,13 @@ func (h *hydrator) lines(obj map[string]any, field, npc, where string) {
 			h.fail("%s line %d: no English for %s (api/lang/en)", where, i, key)
 			continue
 		}
-		list[i] = map[string]any{"id": key, "text": text}
+		hydratedLine := map[string]any{"id": key, "text": text}
+		for _, gateKey := range []string{"conditions", "conditionsMode"} {
+			if v, ok := line[gateKey]; ok {
+				hydratedLine[gateKey] = v
+			}
+		}
+		list[i] = hydratedLine
 	}
 }
 

@@ -1372,6 +1372,55 @@ func TestPresent_QuestStageSelectsTheGreeting(t *testing.T) {
 	assert.Equal(t, "thanks_node", present(in, p, noRows, noTravel).EntryNode, "completed → the epilogue")
 }
 
+// A gated line comes and goes with its gate while the node, its options and
+// its other lines stay put: the first-meeting greeting gives way to the
+// returning one once the player has finished the NPC's quest. LineIDs follow
+// Lines, or the client would localise the wrong line.
+func TestPresent_GatedLinesFollowTheQuest(t *testing.T) {
+	notDone := mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageNotCompleted}}}
+	done := mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageCompleted}}}
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{
+			ID:      "turn_in_node",
+			Gate:    mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: stageTurn}}},
+			Lines:   []string{"You have them?"},
+			Options: []mobs.InteractionOption{{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}}},
+		},
+		{
+			ID:        "root",
+			Lines:     []string{"What do you want, stranger?", "Back again?", "Mind the road."},
+			LineIDs:   []string{"stranger", "back", "road"},
+			LineGates: []mobs.Gate{notDone, done, {}},
+			Options:   []mobs.InteractionOption{{Text: "Bye.", Next: "turn_in_node"}},
+		},
+	}}
+	rootOf := func(c *model.Conversation) model.ConversationNode {
+		for _, n := range c.Nodes {
+			if n.ID == "root" {
+				return n
+			}
+		}
+		t.Fatal("no root node presented")
+		return model.ConversationNode{}
+	}
+
+	p := newQuestLearner(t, 1, peltsQuest())
+	first := rootOf(present(in, p, noRows, noTravel))
+	assert.Equal(t, []string{"What do you want, stranger?", "Mind the road."}, first.Lines)
+	assert.Equal(t, []string{"stranger", "road"}, first.LineIDs)
+
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	_, _, ok := applyGrant(in, p, noRows, noTravel, "turn_in_node", 0, 0)
+	require.True(t, ok)
+
+	back := rootOf(present(in, p, noRows, noTravel))
+	assert.Equal(t, []string{"Back again?", "Mind the road."}, back.Lines)
+	assert.Equal(t, []string{"back", "road"}, back.LineIDs)
+	assert.Len(t, in.Nodes[1].Lines, 3, "present() filters a copy, never the authored lines")
+}
+
 // The offer row is not merely deprioritised once the quest is running — its node
 // is gone, and with it the row.
 func TestPresent_OfferNodeVanishesOnceRunning(t *testing.T) {

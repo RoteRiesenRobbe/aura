@@ -53,7 +53,7 @@
             "stock": "quest-accept",
             "grants": [
               {
-                "stock": "good",
+                "stock": "accept-thank-you",
                 "kind": "offer_quest",
                 "quest": "the-lost-lamp"
               }
@@ -71,7 +71,7 @@
             "id": "the-6-kobolds-are-dead",
             "grants": [
               {
-                "stock": "good",
+                "stock": "thanks-weight-off",
                 "kind": "advance_quest",
                 "quest": "the-lost-lamp",
                 "fromStage": "bring-it-back",

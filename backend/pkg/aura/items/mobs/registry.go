@@ -129,17 +129,23 @@ func resolveConditionSpecies(mobs *registry) error {
 		}
 		for ni := range def.Interaction.Nodes {
 			node := &def.Interaction.Nodes[ni]
-			for ci := range node.Gate.Conditions {
-				cond := &node.Gate.Conditions[ci]
-				if cond.Kind != ConditionKillsThisLife {
-					continue
+			err := node.EachGate(func(where string, gate *Gate) error {
+				for ci := range gate.Conditions {
+					cond := &gate.Conditions[ci]
+					if cond.Kind != ConditionKillsThisLife {
+						continue
+					}
+					species, err := mobs.GetByName(cond.Species)
+					if err != nil {
+						return fmt.Errorf("mob %q: interaction node %q %s gates on kills of %q, "+
+							"which does not match any mob definition", def.Name, node.ID, where, cond.Species)
+					}
+					cond.SpeciesID = species.ID
 				}
-				species, err := mobs.GetByName(cond.Species)
-				if err != nil {
-					return fmt.Errorf("mob %q: interaction node %q gates on kills of %q, "+
-						"which does not match any mob definition", def.Name, node.ID, cond.Species)
-				}
-				cond.SpeciesID = species.ID
+				return nil
+			})
+			if err != nil {
+				return err
 			}
 		}
 	}
