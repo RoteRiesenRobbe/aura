@@ -1,0 +1,50 @@
+{
+  "_comment": "Woodcutter 3 (placeholder name), the woodcutters' associate in Dionsburg's market district: teaches Hatchet to anyone, the second of its two teachers (content-zone-2-woodland.md §3.7). Standing talkable-NPC shape (miller.json). entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "id": 128,
+  "name": "Woodcutter3",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "timber-kindling-lumber-fritzs"}
+        ],
+        "options": [
+          { "stock": "ask-teach", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          {"id": "brambles-in-your-way"}
+        ],
+        "options": [
+          {
+            "grants": [
+              { "stock": "teach-skill", "kind": "teach_skill", "skill": "Hatchet" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "_comment": "The gnome's cure for the bog sickness (content-zone-7-swamp.md §2.4), taught on the-spider-queen's turn-in: a passive that resists miasma, the poison bog's damage type, like Antivenom resists poison. All values [PLACEHOLDER].",
+  "id": 176,
+  "name": "FenTonic",
+  "icon": "lorc/poison-bottle",
+  "packIcon": "antidote-vial",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "resist_passive",
+      "resistTags": ["miasma"],
+      "resistFactor": 0.6,
+      "resistFactorPerLevel": -0.1
+    }
+  ]
+}

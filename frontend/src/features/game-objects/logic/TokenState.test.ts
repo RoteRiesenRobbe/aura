@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     AppliedEffectBit,
+    CAMOUFLAGE_ALPHA,
     INDICATOR_GAP,
     STATE_ROWS,
     STEALTH_ALPHA,
@@ -114,6 +115,15 @@ describe('tokenState', () => {
         expect(tokenState(AppliedEffectBit.Slow | AppliedEffectBit.Fear, false).alpha).toBe(1);
     });
 
+    // content-zone-7-swamp.md E2: the bog frog at its spawn point.
+    it('fades a camouflaged mob fainter than stealth, never to nothing, with no indicator', () => {
+        const state = tokenState(AppliedEffectBit.Camouflage, false);
+        expect(state.alpha).toBe(CAMOUFLAGE_ALPHA);
+        expect(state.indicators).toEqual([]);
+        expect(CAMOUFLAGE_ALPHA).toBeGreaterThan(0);
+        expect(CAMOUFLAGE_ALPHA).toBeLessThan(STEALTH_ALPHA);
+    });
+
     it('greys a dead token and shows the skull', () => {
         const state = tokenState(0, true);
         expect(state.grey).toBe(true);
@@ -124,7 +134,7 @@ describe('tokenState', () => {
     it('shows every indicator of a full mask, once each', () => {
         const full = bits.reduce((mask, bit) => mask | bit, 0);
         const state = tokenState(full, false);
-        expect(state.alpha).toBe(STEALTH_ALPHA);
+        expect(state.alpha).toBe(Math.min(STEALTH_ALPHA, CAMOUFLAGE_ALPHA));
         expect(state.indicators).toHaveLength(indicatorRows.length - 1);
         expect(state.indicators.map(row => row.source)).not.toContain('dead');
     });

@@ -447,6 +447,60 @@
     "description": "Quest title of \"meat-for-dinner\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.mushrooms-for-the-gnome.bring.journal": "I have six blue mushrooms for the gnome at the south end of the swamp.",
+  "@quest.mushrooms-for-the-gnome.bring.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"bring\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.bring.tracker": "Bring the mushrooms to the gnome in the south",
+  "@quest.mushrooms-for-the-gnome.bring.tracker": {
+    "description": "Tracker line of quest \"mushrooms-for-the-gnome\", stage \"bring\": the one objective line shown under the quest title."
+  },
+  "quest.mushrooms-for-the-gnome.done.journal": "Done. The gnome Fennick has his mushrooms.",
+  "@quest.mushrooms-for-the-gnome.done.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.pick.journal": "Hedda picks bog mushrooms for a gnome at the south end of the swamp, but her cough keeps her by the fire. She asked me to pick six blue mushrooms beside the planks in the dark heart of the swamp.",
+  "@quest.mushrooms-for-the-gnome.pick.journal": {
+    "description": "Journal (diary) entry of quest \"mushrooms-for-the-gnome\", stage \"pick\": written in the player's voice, first person."
+  },
+  "quest.mushrooms-for-the-gnome.pick.tracker": "{n, number}/{m, number} blue mushrooms picked",
+  "@quest.mushrooms-for-the-gnome.pick.tracker": {
+    "description": "Tracker line of quest \"mushrooms-for-the-gnome\", stage \"pick\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.mushrooms-for-the-gnome.title": "Mushrooms for the Gnome",
+  "@quest.mushrooms-for-the-gnome.title": {
+    "description": "Quest title of \"mushrooms-for-the-gnome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.oil-for-the-lamps.bring.journal": "I have a flask of gnome lamp oil for the Lamplighter at the edge of the dark forest.",
+  "@quest.oil-for-the-lamps.bring.journal": {
+    "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"bring\": written in the player's voice, first person."
+  },
+  "quest.oil-for-the-lamps.bring.tracker": "Bring the lamp oil to the Lamplighter",
+  "@quest.oil-for-the-lamps.bring.tracker": {
+    "description": "Tracker line of quest \"oil-for-the-lamps\", stage \"bring\": the one objective line shown under the quest title."
+  },
+  "quest.oil-for-the-lamps.done.journal": "Done. The Lamplighter taught me to carry a lamp.",
+  "@quest.oil-for-the-lamps.done.journal": {
+    "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.oil-for-the-lamps.fetch.journal": "The Lamplighter's lamps are dry, and nobody gets through the dark forest without a light. The gnomes in Dionsburg make the oil he needs.",
+  "@quest.oil-for-the-lamps.fetch.journal": {
+    "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"fetch\": written in the player's voice, first person."
+  },
+  "quest.oil-for-the-lamps.fetch.tracker": "Get lamp oil from the gnomes in Dionsburg",
+  "@quest.oil-for-the-lamps.fetch.tracker": {
+    "description": "Tracker line of quest \"oil-for-the-lamps\", stage \"fetch\": the one objective line shown under the quest title."
+  },
+  "quest.oil-for-the-lamps.title": "Oil for the Lamps",
+  "@quest.oil-for-the-lamps.title": {
+    "description": "Quest title of \"oil-for-the-lamps\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.ready-for-harvest.done.journal": "Flora has her beets.",
   "@quest.ready-for-harvest.done.journal": {
     "description": "Journal (diary) entry of quest \"ready-for-harvest\", stage \"done\": written in the player's voice, first person."
@@ -501,23 +555,73 @@
     "description": "Quest title of \"spiders-in-the-diggings\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-lost-friend.done.journal": "Done. The Wanderer knows his friend is dead.",
+  "quest.the-alpha-bear.done.journal": "Done. Reported to Fritz.",
+  "@quest.the-alpha-bear.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-alpha-bear\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-alpha-bear.hunt.journal": "A great bear led the attack on the woodcutters' camp. It dens in a cave east of the camp. Fritz wants it dead.",
+  "@quest.the-alpha-bear.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"the-alpha-bear\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.the-alpha-bear.hunt.tracker": "Kill the alpha bear",
+  "@quest.the-alpha-bear.hunt.tracker": {
+    "description": "Tracker line of quest \"the-alpha-bear\", stage \"hunt\": the one objective line shown under the quest title."
+  },
+  "quest.the-alpha-bear.report.journal": "The alpha bear is dead.",
+  "@quest.the-alpha-bear.report.journal": {
+    "description": "Journal (diary) entry of quest \"the-alpha-bear\", stage \"report\": written in the player's voice, first person."
+  },
+  "quest.the-alpha-bear.report.tracker": "Return to Fritz",
+  "@quest.the-alpha-bear.report.tracker": {
+    "description": "Tracker line of quest \"the-alpha-bear\", stage \"report\": the one objective line shown under the quest title."
+  },
+  "quest.the-alpha-bear.title": "The Alpha Bear",
+  "@quest.the-alpha-bear.title": {
+    "description": "Quest title of \"the-alpha-bear\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.the-captive.done.journal": "Done. Fritz knows she is alive.",
+  "@quest.the-captive.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-captive\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-captive.return.journal": "She is alive, tied up on the plateau. Fritz should hear it.",
+  "@quest.the-captive.return.journal": {
+    "description": "Journal (diary) entry of quest \"the-captive\", stage \"return\": written in the player's voice, first person."
+  },
+  "quest.the-captive.return.tracker": "Tell Fritz",
+  "@quest.the-captive.return.tracker": {
+    "description": "Tracker line of quest \"the-captive\", stage \"return\": the one objective line shown under the quest title."
+  },
+  "quest.the-captive.search.journal": "Fritz saw the kobolds drag one of his woodcutters up to their plateau in the north-west. She may still be alive.",
+  "@quest.the-captive.search.journal": {
+    "description": "Journal (diary) entry of quest \"the-captive\", stage \"search\": written in the player's voice, first person."
+  },
+  "quest.the-captive.search.talk_to.Woodcutter2.tracker": "Find the captive woodcutter on the plateau",
+  "@quest.the-captive.search.talk_to.Woodcutter2.tracker": {
+    "description": "Tracker line of one talk_to objective (Woodcutter2) in quest \"the-captive\", stage \"search\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.the-captive.title": "The Captive",
+  "@quest.the-captive.title": {
+    "description": "Quest title of \"the-captive\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.the-lost-friend.done.journal": "Done. Fritz knows his scout is dead.",
   "@quest.the-lost-friend.done.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-lost-friend.return.journal": "The Wanderer's friend lies dead at the back of the kobold cave.",
+  "quest.the-lost-friend.return.journal": "Fritz's scout lies dead at the edge of the dark forest, among the spiders.",
   "@quest.the-lost-friend.return.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"return\": written in the player's voice, first person."
   },
-  "quest.the-lost-friend.return.tracker": "Tell the Wanderer",
+  "quest.the-lost-friend.return.tracker": "Tell Fritz",
   "@quest.the-lost-friend.return.tracker": {
     "description": "Tracker line of quest \"the-lost-friend\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest.the-lost-friend.search.journal": "The Wanderer's friend went into the forest to collect berries and did not come back. He wears a grey cloak and carries a walking staff.",
+  "quest.the-lost-friend.search.journal": "Fritz's scout went south to look over the darker part of the forest for new timber and never came back.",
   "@quest.the-lost-friend.search.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"search\": written in the player's voice, first person."
   },
-  "quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": "Find the Wanderer's friend in the forest",
+  "quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": "Find Fritz's scout in the south",
   "@quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": {
     "description": "Tracker line of one talk_to objective (Fallen Traveller) in quest \"the-lost-friend\", stage \"search\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
@@ -546,7 +650,7 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.the-lost-lamp.lit.journal": "Done. Learned Lantern.",
+  "quest.the-lost-lamp.lit.journal": "Done. Learned Torch.",
   "@quest.the-lost-lamp.lit.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-lamp\", stage \"lit\": written in the player's voice, first person."
   },
@@ -666,6 +770,64 @@
     "description": "Quest title of \"the-sounder-at-the-mill\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.the-spider-queen.bring.journal": "The Spider Queen is dead and I have her venom.",
+  "@quest.the-spider-queen.bring.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"bring\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.bring.tracker": "Bring the venom to Fennick",
+  "@quest.the-spider-queen.bring.tracker": {
+    "description": "Tracker line of quest \"the-spider-queen\", stage \"bring\": the one objective line shown under the quest title."
+  },
+  "quest.the-spider-queen.done.journal": "Done. Fennick brewed his cure and gave me some.",
+  "@quest.the-spider-queen.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.hunt.journal": "Fennick brews a cure for the bog sickness. He needs venom from the Spider Queen, who lives in a den in the west of the swamp. He told me not to go alone.",
+  "@quest.the-spider-queen.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"the-spider-queen\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.the-spider-queen.hunt.tracker": "Kill the Spider Queen",
+  "@quest.the-spider-queen.hunt.tracker": {
+    "description": "Tracker line of quest \"the-spider-queen\", stage \"hunt\": the one objective line shown under the quest title."
+  },
+  "quest.the-spider-queen.title": "The Spider Queen",
+  "@quest.the-spider-queen.title": {
+    "description": "Quest title of \"the-spider-queen\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.the-stolen-shipment.deliver.journal": "I have the shipment and Reinhard's letter. They belong to the gnomes in Dionsburg.",
+  "@quest.the-stolen-shipment.deliver.journal": {
+    "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"deliver\": written in the player's voice, first person."
+  },
+  "quest.the-stolen-shipment.deliver.tracker": "Bring the shipment to the gnomes in Dionsburg",
+  "@quest.the-stolen-shipment.deliver.tracker": {
+    "description": "Tracker line of quest \"the-stolen-shipment\", stage \"deliver\": the one objective line shown under the quest title."
+  },
+  "quest.the-stolen-shipment.done.journal": "Done. The gnomes have their shipment.",
+  "@quest.the-stolen-shipment.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-stolen-shipment.follow.journal": "The bandits burned Tobias's cart, but kobolds dragged the crates off into the trees to the north-east. Follow the spilled cargo.",
+  "@quest.the-stolen-shipment.follow.journal": {
+    "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"follow\": written in the player's voice, first person."
+  },
+  "quest.the-stolen-shipment.follow.reach.woodcutters-camp.tracker": "Follow the crates north-east",
+  "@quest.the-stolen-shipment.follow.reach.woodcutters-camp.tracker": {
+    "description": "Tracker line of one reach objective (woodcutters-camp) in quest \"the-stolen-shipment\", stage \"follow\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.the-stolen-shipment.recover.journal": "The trail ends at the kobold cave behind the wrecked woodcutters' camp. Their chief holds the shipment up on the plateau.",
+  "@quest.the-stolen-shipment.recover.journal": {
+    "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"recover\": written in the player's voice, first person."
+  },
+  "quest.the-stolen-shipment.recover.tracker": "Kill the kobold chief on the plateau",
+  "@quest.the-stolen-shipment.recover.tracker": {
+    "description": "Tracker line of quest \"the-stolen-shipment\", stage \"recover\": the one objective line shown under the quest title."
+  },
+  "quest.the-stolen-shipment.title": "The Stolen Shipment",
+  "@quest.the-stolen-shipment.title": {
+    "description": "Quest title of \"the-stolen-shipment\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.the-strays.done.journal": "Hans has his herd back. More or less.",
   "@quest.the-strays.done.journal": {
     "description": "Journal (diary) entry of quest \"the-strays\", stage \"done\": written in the player's voice, first person."
@@ -703,6 +865,31 @@
     "description": "Quest title of \"the-strays\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.the-wolf-den.done.journal": "Done. Reported to Fritz.",
+  "@quest.the-wolf-den.done.journal": {
+    "description": "Journal (diary) entry of quest \"the-wolf-den\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.the-wolf-den.hunt.journal": "A mean old alpha wolf dens in a cave to the south-west and hunts Fritz's woodcutters. Fritz wants it dead.",
+  "@quest.the-wolf-den.hunt.journal": {
+    "description": "Journal (diary) entry of quest \"the-wolf-den\", stage \"hunt\": written in the player's voice, first person."
+  },
+  "quest.the-wolf-den.hunt.tracker": "Kill the alpha wolf",
+  "@quest.the-wolf-den.hunt.tracker": {
+    "description": "Tracker line of quest \"the-wolf-den\", stage \"hunt\": the one objective line shown under the quest title."
+  },
+  "quest.the-wolf-den.report.journal": "The alpha wolf is dead.",
+  "@quest.the-wolf-den.report.journal": {
+    "description": "Journal (diary) entry of quest \"the-wolf-den\", stage \"report\": written in the player's voice, first person."
+  },
+  "quest.the-wolf-den.report.tracker": "Return to Fritz",
+  "@quest.the-wolf-den.report.tracker": {
+    "description": "Tracker line of quest \"the-wolf-den\", stage \"report\": the one objective line shown under the quest title."
+  },
+  "quest.the-wolf-den.title": "The Wolf Den",
+  "@quest.the-wolf-den.title": {
+    "description": "Quest title of \"the-wolf-den\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.thin-the-orc-line.cull.journal": "Kill 5 orcs on the front line to the south.",
   "@quest.thin-the-orc-line.cull.journal": {
     "description": "Journal (diary) entry of quest \"thin-the-orc-line\", stage \"cull\": written in the player's voice, first person."
@@ -730,6 +917,31 @@
   "quest.thin-the-orc-line.title": "Thin the Orc Line",
   "@quest.thin-the-orc-line.title": {
     "description": "Quest title of \"thin-the-orc-line\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
+  "quest.treasure-in-the-bog.done.journal": "Done. Captain Brack has his chest, and I have my share.",
+  "@quest.treasure-in-the-bog.done.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.find.journal": "The pirates hid a chest in the bog before the spiders came. Captain Brack says it lies in the south of the swamp, past where the planks end.",
+  "@quest.treasure-in-the-bog.find.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"find\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.find.talk_to.SunkChest.tracker": "Find the pirates' chest in the bog",
+  "@quest.treasure-in-the-bog.find.talk_to.SunkChest.tracker": {
+    "description": "Tracker line of one talk_to objective (Sunk Chest) in quest \"treasure-in-the-bog\", stage \"find\". Write the whole line: articles, case and prepositions belong here (L8)."
+  },
+  "quest.treasure-in-the-bog.return.journal": "I found the pirates' chest, sunk to its lid in the bog.",
+  "@quest.treasure-in-the-bog.return.journal": {
+    "description": "Journal (diary) entry of quest \"treasure-in-the-bog\", stage \"return\": written in the player's voice, first person."
+  },
+  "quest.treasure-in-the-bog.return.tracker": "Tell Captain Brack",
+  "@quest.treasure-in-the-bog.return.tracker": {
+    "description": "Tracker line of quest \"treasure-in-the-bog\", stage \"return\": the one objective line shown under the quest title."
+  },
+  "quest.treasure-in-the-bog.title": "Treasure in the Bog",
+  "@quest.treasure-in-the-bog.title": {
+    "description": "Quest title of \"treasure-in-the-bog\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
   "quest.turnip-chore.handover.journal": "The turnips are gathered; the Farmer waits by his field.",

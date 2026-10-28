@@ -7,7 +7,7 @@
   "tier": "normal",
   "curveLevel": 9,
   "factors": {
-    "resistances": {"poison": 0.25},
+    "resistances": {"poison": 0.25, "miasma": 0},
     "baseMaxHealth": 182,
     "maxHealthVariance": 0.1,
     "speed": 0.95,
@@ -15,8 +15,8 @@
     "turnRate": 0.1,
     "wanderRadius": 3,
     "idleSpeedFactor": 0.3,
-    "idleDwellMinTicks": 240,
-    "idleDwellMaxTicks": 900
+    "idleDwellMinTicks": 60,
+    "idleDwellMaxTicks": 180
   },
   "body": {
     "radius": 0.45,

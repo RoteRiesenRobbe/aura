@@ -1,0 +1,20 @@
+{
+  "_comment": "Fritz's wolf (content-zone-2-woodland.md §3.5 quest 5): the mean alpha in the wolf cave to the south-west, the EliteWolf placed there. A named fight with a count of 1. Priced at L8 by the L9 half-level rule (its placement).",
+  "id": "the-wolf-den",
+  "level": 8,
+  "stages": [
+    {
+      "id": "hunt",
+      "objectives": [
+        { "kind": "kill", "species": "EliteWolf", "count": 1 }
+      ],
+      "next": "report"
+    },
+    {
+      "id": "report"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

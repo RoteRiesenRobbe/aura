@@ -1,5 +1,5 @@
 {
-  "_comment": "A damage aura on the nearest target, 14 HP plus 3.2 per level, gated by the harvest key: it only damages mobs or objects that list harvest in their own gateKeys (turnip plants, bramble walls), and does nothing to ordinary combat mobs. A gated effect must not also author damageTags; the two cannot mix on one effect. All values placeholder.",
+  "_comment": "A damage aura on the nearest target, 14 HP plus 3.2 per level, gated by the harvest key: it only damages mobs or objects that list harvest in their own gateKeys (turnip plants; bramble walls take Hatchet's chop key instead), and does nothing to ordinary combat mobs. A gated effect must not also author damageTags; the two cannot mix on one effect. All values placeholder.",
   "id": 41,
   "name": "Harvest",
   "icon": "lorc/scythe",

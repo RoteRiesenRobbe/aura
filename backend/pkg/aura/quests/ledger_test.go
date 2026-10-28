@@ -293,6 +293,21 @@ func TestLedger_OneShotRefusesReOffer(t *testing.T) {
 	assert.Error(t, l.Accept("choice"), "a finished one-shot stays finished (D13)")
 }
 
+// AcceptAt starts a quest on a named stage (an offer_quest with a toStage): the
+// path holds that stage alone, and the quest waits there like any other.
+func TestLedger_AcceptAtLandsOnTheNamedStage(t *testing.T) {
+	l := testLedger(t, lampQuest())
+	require.NoError(t, l.AcceptAt("lamp", "bring-it-back"))
+
+	path, running, completed := l.Progress("lamp")
+	assert.Equal(t, []string{"bring-it-back"}, path)
+	assert.True(t, running)
+	assert.False(t, completed)
+	require.NoError(t, l.AdvanceDialogue("lamp", "bring-it-back", "lit"))
+
+	assert.Error(t, testLedger(t, lampQuest()).AcceptAt("lamp", "nowhere"))
+}
+
 func TestLedger_AcceptRefusedWhileRunning(t *testing.T) {
 	l := testLedger(t, branchQuest())
 	require.NoError(t, l.Accept("choice"))

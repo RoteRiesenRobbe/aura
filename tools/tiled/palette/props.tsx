@@ -108,7 +108,7 @@
   <properties>
    <property name="auraType" value="Boulder"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/stone.png" width="256" height="256"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/rock.svg" width="100" height="100"/>
  </tile>
  <tile id="18" type="AuraProp">
   <properties>
@@ -534,7 +534,7 @@
   <properties>
    <property name="auraType" value="Rock"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/stone.png" width="256" height="256"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/rock.svg" width="100" height="100"/>
  </tile>
  <tile id="89" type="AuraProp">
   <properties>

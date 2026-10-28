@@ -252,6 +252,10 @@ var DamageTypes = map[string]bool{
 	"nature":   true,
 	"poison":   true,
 	"bleed":    true,
+	// miasma is the swamp's rot (content-zone-7-swamp.md C1): only the world
+	// deals it, so a mob immune to it shrugs off the bog and loses nothing a
+	// player build leans on.
+	"miasma": true,
 }
 
 // GateKeys is the CLOSED vocabulary of lock-and-key tags (GDD §5 chore gates).
@@ -259,6 +263,7 @@ var DamageTypes = map[string]bool{
 // `factors.gateKeys`. Nothing else can be damaged by that effect at all — which
 // is why the key is not a damage type and never touches resistance math.
 var GateKeys = map[string]bool{
+	"chop":    true,
 	"harvest": true,
 	"smash":   true,
 }

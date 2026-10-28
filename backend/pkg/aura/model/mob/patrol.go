@@ -253,10 +253,19 @@ func (m *Mob) pickWanderTarget() {
 }
 
 // updateRoutePatrol marches toward the current waypoint at the idle speed and
-// advances the index within the arrival band.
+// advances the index within the arrival band. A species authoring
+// patrolStopChance may stand there first for one roll of its dwell band.
 func (m *Mob) updateRoutePatrol() {
+	if m.dwellTicks > 0 {
+		m.dwellTicks--
+		return
+	}
 	if m.arrivedAt(m.waypoints[m.waypointIdx]) {
 		m.advanceWaypoint()
+		if c := m.definition.Factors.PatrolStopChance; c > 0 && m.rand.Float32() < c {
+			m.dwellTicks = m.rollDwell()
+			return
+		}
 	}
 	m.moveTowardsScaled(m.waypoints[m.waypointIdx], m.idleSpeedFactor)
 }

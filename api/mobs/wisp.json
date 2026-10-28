@@ -1,5 +1,5 @@
 {
-  "_comment": "A drifting light that pelts intruders. Placeholder: draws NpcPlaceholder (art owed) and borrows KoboldRanged's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "_comment": "A drifting light that pelts intruders. Placeholder: draws NpcPlaceholder (art owed) and borrows KoboldRanged's skill and HP/speed shape until it gets its own. Glows sickly green (WispGlow, the swamp's lure) and is immune to miasma. All values [PLACEHOLDER].",
   "id": 101,
   "name": "Wisp",
   "type": "MOB",
@@ -8,6 +8,7 @@
   "tier": "normal",
   "curveLevel": 13,
   "factors": {
+    "resistances": {"miasma": 0},
     "baseMaxHealth": 40,
     "maxHealthVariance": 0.1,
     "speed": 0.55,
@@ -26,6 +27,7 @@
     {
       "skillName": "KoboldVolley",
       "level": 1
-    }
+    },
+    { "skillName": "WispGlow", "level": 1 }
   ]
 }

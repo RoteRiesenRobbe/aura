@@ -2,7 +2,7 @@
  * Generates the PLACEHOLDER RIDGED-FIELD tiles for the terrain profiles
  * (plan-world-paths.md — the C3 blocker was "there is no water tile").
  *
- *     water · bog · lava · ice
+ *     water · bog · deep bog · lava · ice
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
  * is to be re-tuned: change a constant, re-run, look at it again. The committed
@@ -220,6 +220,24 @@ const TILES = [
         warpOffset: [0.23, 0.44],
         sharpness: [1.4, 1.9],
         fineOffset: [97, -53],
+        mix: [0.70, 0.30],
+        gamma: 2.6,
+    },
+    {
+        // ⭐ DEEP BOG (`Deep Bog`, the swamp's deep-water walls,
+        // content-zone-7-swamp.md §6a): the bog recoloured darker, nothing
+        // else. Blue `Water` read as a clean lake in the middle of a rotting
+        // swamp (PO 2026-10-25); this is the same murk one step deeper, so a
+        // wall of it reads as "too deep to wade" beside the walkable bog. Its
+        // own offsets so the two never show the same blotch side by side.
+        file: 'deep-bog-placeholder.png',
+        ramp: [[0x0e, 0x12, 0x0a], [0x2c, 0x34, 0x1a]],
+        waves: BOG_BLOTCH,
+        warp: BOG_WARP,
+        warpStrength: 64,
+        warpOffset: [0.61, 0.17],
+        sharpness: [1.4, 1.9],
+        fineOffset: [-41, 83],
         mix: [0.70, 0.30],
         gamma: 2.6,
     },

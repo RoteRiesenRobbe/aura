@@ -376,7 +376,11 @@ enum EntityType : ushort {
 
   // Market clutter, drawn over their PropPlaceholder boxes.
   Barrel = 158,
-  Bench = 159
+  Bench = 159,
+
+  // Sorrowfen's lake crab: the SandClamper's art recoloured blue
+  // (content-zone-7-swamp.md C9).
+  LakeCrab = 160
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

@@ -83,6 +83,11 @@
     "description": "Name of the skill BoarGore: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.BogSickness.name": "Bog Sickness",
+  "@skill.BogSickness.name": {
+    "description": "Name of the skill BogSickness: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.BombBurst.name": "Bomb Burst",
   "@skill.BombBurst.name": {
     "description": "Name of the skill BombBurst: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -219,6 +224,15 @@
     "description": "Name of the skill Fade: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.FenTonic.description": "The gnome's cure for the bog sickness. You take less damage from the swamp's miasma.",
+  "@skill.FenTonic.description": {
+    "description": "Tooltip prose block of the skill FenTonic."
+  },
+  "skill.FenTonic.name": "Fen Tonic",
+  "@skill.FenTonic.name": {
+    "description": "Name of the skill FenTonic: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.FieldMedics.name": "Field Medics",
   "@skill.FieldMedics.name": {
     "description": "Name of the skill FieldMedics: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -327,6 +341,11 @@
     "description": "Name of the skill Haste: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.Hatchet.name": "Hatchet",
+  "@skill.Hatchet.name": {
+    "description": "Name of the skill Hatchet: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Heal.name": "Heal",
   "@skill.Heal.name": {
     "description": "Name of the skill Heal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
@@ -372,7 +391,7 @@
     "description": "Name of the skill KoboldVolley: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
-  "skill.Lantern.name": "Lantern",
+  "skill.Lantern.name": "Torch",
   "@skill.Lantern.name": {
     "description": "Name of the skill Lantern: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
@@ -657,7 +676,7 @@
     "description": "Name of the skill ThrowMine: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
-  "skill.Torch.name": "Torch",
+  "skill.Torch.name": "Lamp",
   "@skill.Torch.name": {
     "description": "Name of the skill Torch: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
@@ -735,6 +754,11 @@
   "skill.Wildfire.name": "Wildfire",
   "@skill.Wildfire.name": {
     "description": "Name of the skill Wildfire: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.WispGlow.name": "Wisp Glow",
+  "@skill.WispGlow.name": {
+    "description": "Name of the skill WispGlow: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
   "skill.WolfBite.name": "Wolf Bite",

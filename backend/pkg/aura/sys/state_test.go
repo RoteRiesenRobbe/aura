@@ -1316,15 +1316,16 @@ func TestReconnect_CarriesCampCharges(t *testing.T) {
 
 // D3's other half: death zeroes them. Achieved by construction (the respawn
 // builds a fresh player struct and the death scene carries no count), which is
-// exactly why it needs a test — nothing in the code says so.
-func TestRespawn_ZeroesCampCharges(t *testing.T) {
+// exactly why it needs a test — nothing in the code says so. An unbound player
+// wakes at no fire of theirs, so nothing refills them.
+func TestRespawn_UnboundZeroesCampCharges(t *testing.T) {
 	s, g := newStateFixture(t)
 	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
-	bindAt(t, s, p, fire.Pos)
-	require.Positive(t, p.CampCharges())
+	p.SetCampCharges(1)
+	require.Empty(t, s.anchors)
 
 	s.handleDeath(p)
 	c.respawns = append(c.respawns, &model.Respawn{})
@@ -1332,7 +1333,58 @@ func TestRespawn_ZeroesCampCharges(t *testing.T) {
 
 	respawned := g.players[len(g.players)-1]
 	require.NotSame(t, p, respawned, "the respawn rebuilds the player struct")
-	assert.Zero(t, respawned.CampCharges(), "death costs the charges (D3) — the fire you wake at refills them")
+	assert.Zero(t, respawned.CampCharges(), "death costs the charges (D3)")
+}
+
+// The fire you wake at refills them. Before the panel rows (2026-10-20) the
+// standing dwell did that; deleting it left every respawn at 0 charges.
+func TestRespawn_AtTheBoundFireRefillsCampCharges(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	// Level 14 puts the cap at 3, so a refill is distinguishable from a carry.
+	p.SetProgression(model.PlayerProgression{Level: 14, Experience: 0})
+	bindAt(t, s, p, fire.Pos)
+	require.True(t, p.SpendCampCharge())
+
+	s.handleDeath(p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+
+	respawned := g.players[len(g.players)-1]
+	assert.Equal(t, skills.CampChargeCap(14), respawned.CampCharges(),
+		"waking at the bound fire leaves it full")
+}
+
+// A cold login at the bound fire is the same arrival: charges are never
+// persisted, so without the refill every login started at 0.
+func TestColdJoin_AtTheBoundFireRefillsCampCharges(t *testing.T) {
+	s, g := newStateFixture(t)
+	bound := CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{bound})
+
+	c := newFakeClient()
+	p := joinPlayerWithState(t, s, g, c, "Alice", persist.CharacterState{
+		CharacterID: 1, Level: 14, HomeCampfireID: "spawnpoint-2",
+	})
+
+	assert.Equal(t, skills.CampChargeCap(14), p.CampCharges(),
+		"the cap is the RESTORED level's, so the refill runs after the load")
+}
+
+// An unbound arrival lands at the default spawn, at no fire of theirs: it
+// starts empty until its first Bind & Restock.
+func TestColdJoin_UnboundStartsWithoutCampCharges(t *testing.T) {
+	s, g := newStateFixture(t)
+	start := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: -20, Y: -20}, DwellRadius: 0.75, StartingSpawn: true}
+	s.SetCampfireAnchors([]CampfireAnchor{start})
+
+	c := newFakeClient()
+	p := joinPlayerWithState(t, s, g, c, "Alice", persist.CharacterState{CharacterID: 1, Level: 14})
+
+	assert.Zero(t, p.CampCharges())
 }
 
 // ⭐ DEATH CANCELS A RUNNING CHANNEL, and nothing did that before C2a step 5.

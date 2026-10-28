@@ -142,19 +142,20 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &fixture))
 
 	assert.Equal(t, map[string]uint16{
-		"dot":      uint16(skills.AppliedEffectDot),
-		"slow":     uint16(skills.AppliedEffectSlow),
-		"hot":      uint16(skills.AppliedEffectHot),
-		"resist":   uint16(skills.AppliedEffectResist),
-		"tickRate": uint16(skills.AppliedEffectTickRate),
-		"calm":     uint16(skills.AppliedEffectCalm),
-		"charm":    uint16(skills.AppliedEffectCharm),
-		"speed":    uint16(skills.AppliedEffectSpeed),
-		"statUp":   uint16(skills.AppliedEffectStatUp),
-		"statDown": uint16(skills.AppliedEffectStatDown),
-		"reflect":  uint16(skills.AppliedEffectReflect),
-		"fear":     uint16(skills.AppliedEffectFear),
-		"stealth":  uint16(skills.AppliedEffectStealth),
+		"dot":        uint16(skills.AppliedEffectDot),
+		"slow":       uint16(skills.AppliedEffectSlow),
+		"hot":        uint16(skills.AppliedEffectHot),
+		"resist":     uint16(skills.AppliedEffectResist),
+		"tickRate":   uint16(skills.AppliedEffectTickRate),
+		"calm":       uint16(skills.AppliedEffectCalm),
+		"charm":      uint16(skills.AppliedEffectCharm),
+		"speed":      uint16(skills.AppliedEffectSpeed),
+		"statUp":     uint16(skills.AppliedEffectStatUp),
+		"statDown":   uint16(skills.AppliedEffectStatDown),
+		"reflect":    uint16(skills.AppliedEffectReflect),
+		"fear":       uint16(skills.AppliedEffectFear),
+		"stealth":    uint16(skills.AppliedEffectStealth),
+		"camouflage": uint16(skills.AppliedEffectCamouflage),
 	}, fixture.AppliedEffectBits,
 		"skills.AppliedEffect has drifted from api/shared-constants.json — the client colors pips off these bits")
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Stands at the mouth of the dark forest and hands out Torch — the zone-1/2 tunnel's light/damage trade-off starts here. Shares the Hermit sprite (entityType override); named by the PO 2026-07-27. ⚑ TEXT SHAPE (PO 2026-08-02): single-teach NPC — teaching behind the unified 'Teach me something.' row as a row that NAMES the skill directly. ⚑ QUESTS: offers and turns in `dire-wolves-in-the-forest` (plan-generic-kill-quests.md C1) behind its own root row per the Q4 tree shape.",
+  "_comment": "The Lamplighter, at the dark forest's edge by the spiders (content-zone-2-woodland.md §3.8): nobody gets through the dark without a light, and his lamps are dry. Offers and turns in oil-for-the-lamps, which teaches Lamp (the Torch passive, its display name since 2026-10-25) on the turn-in row; still offers dire-wolves-in-the-forest. Standing talkable-NPC shape, entityType Hermit placeholder art. All values [PLACEHOLDER].",
   "id": 53,
   "name": "Lamplighter",
   "type": "MOB",
@@ -8,38 +8,28 @@
   "role": "creature",
   "tier": "normal",
   "curveLevel": 1,
-  "factors": {
-    "baseMaxHealth": 200,
-    "xpFactor": 0,
-    "speed": 0
-  },
-  "body": {
-    "radius": 0.35,
-    "collisionLayer": 97,
-    "collisionMask": 16,
-    "aggroRadius": 1.0
-  },
+  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
+  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
   "skills": [],
   "interaction": {
-    "range": 2.0,
+    "range": 2,
     "nodes": [
       {
         "id": "root",
         "lines": [
-          {"id": "back-from-the-dark-i", "conditions": [{"kind": "quest_at_stage", "quest": "dire-wolves-in-the-forest", "stage": "completed"}]},
+          {"id": "back-from-the-dark-i", "conditionsMode": "any", "conditions": [{"kind": "quest_at_stage", "quest": "dire-wolves-in-the-forest", "stage": "completed"}, {"kind": "quest_at_stage", "quest": "oil-for-the-lamps", "stage": "completed"}]},
           {"id": "i-can-teach-you"}
         ],
         "options": [
           { "stock": "ask-task", "next": "wolves" },
           { "id": "about-the-dire-wolves", "next": "wolves_running" },
-          { "stock": "ask-teach", "next": "teachings" }
+          { "id": "can-i-help-with-your", "next": "oil" },
+          { "id": "about-the-lamp-oil", "next": "oil_running" }
         ]
       },
       {
         "id": "wolves",
-        "lines": [
-          {"id": "kill-4-dire-wolves"}
-        ],
+        "lines": [ { "id": "kill-4-dire-wolves" } ],
         "options": [
           {
             "stock": "quest-accept",
@@ -55,9 +45,7 @@
       },
       {
         "id": "wolves_running",
-        "lines": [
-          {"id": "the-dire-wolves"}
-        ],
+        "lines": [ { "id": "the-dire-wolves" } ],
         "options": [
           {
             "id": "i-killed-the-4-dire",
@@ -69,47 +57,55 @@
                 "fromStage": "report",
                 "toStage": "done"
               },
-              {
-                "kind": "grant_xp",
-                "xp": 370
-              }
+              { "kind": "grant_xp", "xp": 370 }
             ]
           },
-          {
-            "stock": "quest-progress",
-            "next": "wolves_on_it"
-          }
+          { "stock": "quest-progress", "next": "wolves_on_it" }
         ]
       },
       {
         "id": "wolves_on_it",
-        "conditions": [
-          {
-            "kind": "quest_at_stage",
-            "quest": "dire-wolves-in-the-forest",
-            "stage": "cull"
-          }
-        ],
-        "lines": [
-          {"id": "kill-4-dire-wolves-2"}
-        ]
+        "conditions": [ { "kind": "quest_at_stage", "quest": "dire-wolves-in-the-forest", "stage": "cull" } ],
+        "lines": [ { "id": "kill-4-dire-wolves-2" } ]
       },
       {
-        "id": "teachings",
+        "id": "oil",
         "lines": [
-          {"stock": "offer-teach"}
+          {"id": "the-gnomes-in-dionsburg-make"},
+          {"id": "they-dont-hand-it"}
         ],
         "options": [
           {
-            "grants": [
-              {
-                "stock": "teach-skill",
-                "kind": "teach_skill",
-                "skill": "Torch"
-              }
-            ]
+            "stock": "quest-accept",
+            "grants": [ { "stock": "accept-thank-you", "kind": "offer_quest", "quest": "oil-for-the-lamps" } ]
           }
         ]
+      },
+      {
+        "id": "oil_running",
+        "lines": [ {"id": "the-lamp-oil"} ],
+        "options": [
+          {
+            "id": "here-is-your-lamp-oil",
+            "grants": [
+              {
+                "id": "light-at-last-here-let",
+                "kind": "advance_quest",
+                "quest": "oil-for-the-lamps",
+                "fromStage": "bring",
+                "toStage": "done"
+              },
+              { "kind": "teach_skill", "skill": "Torch" },
+              { "kind": "grant_xp", "xp": 450 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "oil_on_it" }
+        ]
+      },
+      {
+        "id": "oil_on_it",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "oil-for-the-lamps", "stage": "fetch" } ],
+        "lines": [ {"id": "the-gnomes-in-the-craftsmens"} ]
       }
     ]
   }

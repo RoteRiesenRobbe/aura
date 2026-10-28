@@ -1,6 +1,8 @@
 # plan-server-performance.md — raising the concurrent-player ceiling
 
 **Status: chunks 0 and 3 SHIPPED; chunks 1, 2, 4, 5 not started. 2026-09-06.**
+**Chunk 6 added 2026-10-25** (static props re-sent 30×/s: ~174 KB/s per player
+in the densest Deep Woods view, measured; not started).
 ⭐ **Chunk 3 SHIPPED 2026-09-06 `68946f78`** — send-on-change for the
 owner-only block and the conversation tree, measured at **39.3 % of
 steady-state bytes** (and **59.1 %** with a dialogue open) on the real encoder.
@@ -393,6 +395,79 @@ radius pays it hardest.
 changed since the client's last acknowledged snapshot. Only worth opening after
 1–4, because each of those reduces the work delta encoding would be avoiding,
 and this one costs a client rewrite plus per-client server state.
+
+## Chunk 6 — send a static prop once, not 30× a second (added 2026-10-25)
+
+**Props never change after boot, yet every prop in a viewport is re-encoded and
+re-sent to that viewer every tick.** `entitiesInView` → `EntitiesMarshalFlatbuf`
+has no "already sent" path, and the client reads absence as removal
+(`EntityManager.newSnapshot`), so today it *must* resend them. Dense forest made
+this the largest steady-state item on the wire.
+
+**Measured 2026-10-25** (real encoder, `prop.New` → `EntitiesMarshalFlatbuf`,
+100 props minus 0): **68.2 B per unrotated prop**; rotation adds one float plus
+its vtable slot (not measured; 688 of `world.json`'s 1 143 props are rotated).
+Densest 20×12 viewport in `world.json` (a sliding window over every placement,
++1 u for colliders): **~85 props at (-129, 3), Deep Woods** → **~5.8 KB/tick ≈
+174 KB/s ≈ 1.4 Mbit/s per player**, for data that never changes. The two
+`Forest` polygons alone (312 u², 97 tree props inside) put up to 67 in one
+view, which is ~137 KB/s. For scale: chunk 3's whole owner block was 384 B/tick.
+There is no WebSocket compression (`EnableCompression` is never set), so the wire
+carries these bytes as they are.
+
+⚑ This is the **bandwidth / mobile data** axis, like chunk 3. It also removes
+those props' encode CPU per viewer, so it lightens chunk 1's load, but chunk 1
+cannot remove the bytes and this chunk can.
+
+⚑ Whether a prop blocks movement changes nothing here: a walk-through prop keeps
+the viewport layer (`prop.propLayer`), streams the same, and its physics cost
+was never significant (statics only reach the narrowphase when touched).
+
+**Options (decide with the PO at the chunk's start):**
+
+- **A. Per-viewer "known props" set.** A prop is encoded only on the tick it
+  enters a viewer's view; the snapshot gains an explicit `props_left:[ulong]`;
+  the client stops removing a known prop just because it is absent. Per-player
+  server state is a set of a few hundred ids.
+- **B. One prop message per zone entry.** The whole zone's props go out once as
+  their own message (1 143 × ~70 B ≈ 80 KB for `world.json`), and GameState
+  never carries a prop again. Simplest server side, no per-viewer state; the
+  client must then cull off-screen props itself, or it draws all of them.
+- **C. The client builds props from the zone file it already bundles.** Zero
+  wire, but it works against `plan-world-scale.md` S1 (stop bundling every zone
+  into every client) and needs both sides to agree on prop ids (the draw order
+  is by id, `plan-prop-draw-order.md` D6).
+
+Lean: **B**, on KISS grounds; A if the client-side culling turns out costly.
+
+### Chunk 6 landmines
+
+- ⚑ **Absence means removal on the client today.** Whatever replaces it needs an
+  explicit signal (`project-change-only-wire-fields`: every in-band inference
+  collides with a real value).
+- ⚑ **A new viewer starts empty**: join, respawn, reconnect (the stash path,
+  chunk 3 L2) and every zone change must re-send, or the client shows a forest
+  with no trees.
+- ⚑ **Corpses ride the same `Resource` table but change and expire.** Only
+  `model.PropEntity` qualifies; a corpse stays on the per-tick path.
+- ⚑ **The viewport is not one size**: flight (`player.FlightViewportScale`) and
+  the spectator tour (`TourViewportScale`) widen it. Under A, the known set
+  follows the real box.
+- ⚑ The premise is "nothing changes a prop after boot" (`prop.go`: "nothing
+  moves a prop afterwards"). A future destructible or opening prop leaves this
+  path, or the premise breaks silently.
+
+### Chunk 6 test strategy
+
+- Bytes before/after on a steady-state tick standing in Deep Woods (the
+  chunk 3 bytes test is the shape).
+- A prop leaves the view and comes back; a reconnect and a zone change each get
+  the full set on their first tick.
+- Client vitest: a snapshot without props removes no known prop (under A, only
+  `props_left` does).
+
+**Schema impact: WIRE YES (A: +1 GameState vector; B: +1 server message), DB
+NONE.**
 
 ---
 

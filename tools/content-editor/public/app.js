@@ -775,6 +775,11 @@ function factorsSection(mob, onChange) {
       if (v === undefined) delete mob.factors.ccImmune; else mob.factors.ccImmune = v;
       onChange();
     })),
+    field('Camouflage (faint at its spawn point out of combat)', checkboxInput(!!factors.camouflage, (v) => {
+      mob.factors = mob.factors || {};
+      if (v) mob.factors.camouflage = true; else delete mob.factors.camouflage;
+      onChange();
+    })),
     field('Speed', numberInput(factors.speed ?? 0, setFactor('speed'))),
     field('Delta phi', numberInput(factors.deltaPhi ?? 0, setFactor('deltaPhi'))),
     field('Turn rate', numberInput(factors.turnRate ?? 0, setFactor('turnRate'))),
@@ -785,6 +790,7 @@ function factorsSection(mob, onChange) {
     field('Idle speed factor [0,1]', numberInput(factors.idleSpeedFactor ?? 0, setFactor('idleSpeedFactor'))),
     field('Idle dwell min ticks', numberInput(factors.idleDwellMinTicks ?? 0, setFactor('idleDwellMinTicks'))),
     field('Idle dwell max ticks', numberInput(factors.idleDwellMaxTicks ?? 0, setFactor('idleDwellMaxTicks'))),
+    field('Patrol stop chance [0,1] (per waypoint, stands one dwell)', numberInput(factors.patrolStopChance ?? 0, setFactor('patrolStopChance'))),
   ]));
   col.body.appendChild(el('div', { class: 'subsection' }, [
     el('div', { class: 'subsection-title', text: 'Resistances (blank = no entry; 0 = immune)' }),

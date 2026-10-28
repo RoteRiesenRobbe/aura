@@ -1,0 +1,20 @@
+{
+  "_comment": "Fritz's bear (content-zone-2-woodland.md §3.5 quest 6): the alpha bear that led the attack on the woodcutters' camp, in the bear cave east of it. A named fight with a count of 1, like the-sounder-at-the-mill. Priced at L9 by the L9 half-level rule (the alpha bear's level).",
+  "id": "the-alpha-bear",
+  "level": 9,
+  "stages": [
+    {
+      "id": "hunt",
+      "objectives": [
+        { "kind": "kill", "species": "AlphaBear", "count": 1 }
+      ],
+      "next": "report"
+    },
+    {
+      "id": "report"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "_comment": "A pirate deckhand at the fire on Sorrowfen's lake shore (content-zone-7-swamp.md §2.2, C5): Captain Brack's crew, one lore line, placed more than once. Bored: each placement paces a short waypoint route round the camp (speed 0.7 at idleSpeedFactor 0.2, the farmhand's amble) and stops at half its waypoints for 3-10 s (patrolStopChance 0.5, the default dwell band), so collisionMask 80 = MobStatic(64) + Border(16), the moving-mob default, keeps them off the thicket and the props; entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "id": 133,
+  "name": "PirateDeckhand",
+  "type": "MOB",
+  "entityType": "Wanderer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0.7,
+    "idleSpeedFactor": 0.2,
+    "patrolStopChance": 0.5
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 80,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "the-captain-does-the-talking"}
+        ]
+      }
+    ]
+  }
+}

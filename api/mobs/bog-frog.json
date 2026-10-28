@@ -1,0 +1,29 @@
+{
+  "_comment": "Bog frog, Sorrowfen's ambusher (content-zone-7-swamp.md §2.2, C7): it sits in the bog beside the planks and leaps at whoever comes close, so a short aggro and no wander. Camouflaged: drawn faint while it sits at its spawn point out of combat (factors.camouflage). Immune to miasma. Borrows RatBite until it gets its own skill; entityType NpcPlaceholder until its art lands. All values [PLACEHOLDER].",
+  "id": 136,
+  "name": "BogFrog",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "tier": "normal",
+  "curveLevel": 9,
+  "factors": {
+    "resistances": {"miasma": 0},
+    "camouflage": true,
+    "baseMaxHealth": 70,
+    "maxHealthVariance": 0.1,
+    "speed": 0.8,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 0,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 1.8
+  },
+  "skills": [
+    { "skillName": "RatBite", "level": 1 }
+  ]
+}

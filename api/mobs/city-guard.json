@@ -26,7 +26,7 @@
         "id": "root",
         "lines": [
           {"id": "you-again-the-walls-are", "conditions": [{"kind": "quest_at_stage", "quest": "bears-at-the-walls", "stage": "completed"}]},
-          {"id": "the-gate-is-closed"}
+          {"id": "the-gate-is-open"}
         ],
         "options": [
           {

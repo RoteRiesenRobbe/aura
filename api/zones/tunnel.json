@@ -18,8 +18,8 @@
   "spawns": [
     {
       "mob": "DireWolf",
-      "x": -14.47,
-      "y": 8.93,
+      "x": -1.26,
+      "y": 3.1,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -28,8 +28,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": -10.2,
-      "y": 8.67,
+      "x": 0.68,
+      "y": 3.55,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -38,8 +38,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": -3.53,
-      "y": 10.07,
+      "x": -2.15,
+      "y": 3.64,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -48,8 +48,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": 4.47,
-      "y": 9.47,
+      "x": 2.17,
+      "y": 3.96,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -58,8 +58,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": 13.87,
-      "y": 6,
+      "x": 3.91,
+      "y": 4.09,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -68,8 +68,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": 14.07,
-      "y": -9.67,
+      "x": 5.48,
+      "y": 3.83,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -78,8 +78,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": -12.2,
-      "y": -11.8,
+      "x": -3.33,
+      "y": 3.57,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -88,8 +88,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": -21,
-      "y": -9,
+      "x": -4.96,
+      "y": 3.68,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -98,8 +98,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": -20.4,
-      "y": 4.57,
+      "x": -6.69,
+      "y": 4.18,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -108,8 +108,8 @@
     },
     {
       "mob": "DireWolf",
-      "x": 19.74,
-      "y": 3.82,
+      "x": 7.44,
+      "y": 3.93,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -123,26 +123,13 @@
       "y": -3,
       "anchor": "surface-west",
       "look": "cave-exit"
-    },
-    {
-      "x": 18,
-      "y": -3,
-      "anchor": "surface-east",
-      "look": "cave-exit"
     }
   ],
   "bindPoints": [
     {
       "id": "underworld-1",
-      "x": 0,
-      "y": 8
-    }
-  ],
-  "darkAreas": [
-    {
-      "x": 0,
-      "y": -1,
-      "radius": 10
+      "x": 0.25,
+      "y": -0.27
     }
   ],
   "regions": [
@@ -173,11 +160,6 @@
       "name": "under-west",
       "x": -17.93,
       "y": -1.27
-    },
-    {
-      "name": "under-east",
-      "x": 17.94,
-      "y": -1.29
     }
   ]
 }

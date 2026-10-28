@@ -2394,9 +2394,28 @@ func (m *Mob) ShieldHP() vitals.VitalSign {
 
 // AppliedEffects is the bitmask of buff/debuff kinds currently applied to this
 // mob; serialized as the applied_effects wire field. A live value, like
-// ShieldHP.
+// ShieldHP. A camouflaged species adds its Camouflage bit here, beside the
+// buff store's bits: it is a state of the mob, not a buff.
 func (m *Mob) AppliedEffects() skills.AppliedEffect {
+	if m.camouflaged() {
+		return m.buffs.AppliedEffects() | skills.AppliedEffectCamouflage
+	}
 	return m.buffs.AppliedEffects()
+}
+
+// camouflageHomeRadius is how far a camouflaged mob may sit from its spawn
+// point and stay hidden, in world units. [PLACEHOLDER]
+const camouflageHomeRadius = 0.75
+
+// camouflaged reports whether a species that authors factors.camouflage is
+// sitting at its spawn point out of combat (content-zone-7-swamp.md E2):
+// leaving the spot or entering combat reveals it, and it hides again once
+// it is home and the fight is over. Visual only.
+func (m *Mob) camouflaged() bool {
+	if !m.definition.Factors.Camouflage || m.InCombat() {
+		return false
+	}
+	return m.Position().Sub(m.spawnPosition).Abs() <= camouflageHomeRadius
 }
 
 // DueBuffEvents advances and drains this tick's due dot damage and hot heal

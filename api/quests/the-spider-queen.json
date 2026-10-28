@@ -1,0 +1,18 @@
+{
+  "_comment": "Sorrowfen's peak (content-zone-7-swamp.md §2.3 quest B): the gnome Fennick, after mushrooms-for-the-gnome, sends the player into the spiders' den to kill the Spider Queen, a group boss, and bring back her venom. The turn-in teaches FenTonic, his cure. Priced at L12 by the half-level rule, 0.5 x 300 x 1.2^11. All values [PLACEHOLDER].",
+  "id": "the-spider-queen",
+  "level": 12,
+  "stages": [
+    {
+      "id": "hunt",
+      "objectives": [{ "kind": "kill", "species": "SpiderQueen", "count": 1 }],
+      "next": "bring"
+    },
+    {
+      "id": "bring"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

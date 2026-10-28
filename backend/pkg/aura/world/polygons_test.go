@@ -31,6 +31,29 @@ func TestPolygonParses(t *testing.T) {
 }
 
 // Every zone shipped before this authors none — the feature is inert at HEAD.
+// A spawn inside a BLOCKING structure starts walled in and never gets out (the
+// Deep Woods' forest masses swallowed four Wolves, PO 2026-10-25), so the zone
+// refuses it by name. A decorative polygon may hold spawns.
+func TestSpawnInsideABlockingStructureIsRefused(t *testing.T) {
+	doc := func(blocks bool) string {
+		b := "false"
+		if blocks {
+			b = "true"
+		}
+		return `{"name":"P","bounds":{"width":60,"height":40},
+			"structures":[{"profile":"Forest","blocksMovement":` + b + `,
+			  "points":[{"x":-5,"y":-5},{"x":5,"y":-5},{"x":5,"y":5},{"x":-5,"y":5}]}],
+			"spawns":[{"mob":"Wolf","x":10,"y":10},{"mob":"Wolf","x":1,"y":1}]}`
+	}
+	_, err := parseZone([]byte(doc(true)))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "spawn 1")
+	assert.Contains(t, err.Error(), "inside blocking structure 0")
+
+	_, err = parseZone([]byte(doc(false)))
+	assert.NoError(t, err)
+}
+
 func TestZoneWithoutPolygonsIsValid(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"None","bounds":{"width":60,"height":40}}`))
 	require.NoError(t, err)

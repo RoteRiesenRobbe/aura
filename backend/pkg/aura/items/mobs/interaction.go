@@ -205,7 +205,8 @@ type InteractionGrant struct {
 	Skill *skills.SkillDefinition
 
 	// Quest is the quest id an offer/advance drives; FromStage and ToStage are
-	// the branch edge an advance walks (C2).
+	// the branch edge an advance walks (C2). An offer may carry ToStage alone:
+	// the stage the accept lands on instead of the quest's first.
 	//
 	// ⚑ These stay STRINGS rather than a resolved *quests.QuestDefinition, unlike
 	// Skill above: the quests package resolves species names against this one, so
@@ -346,7 +347,9 @@ const (
 	GrantTeachSkill GrantKind = "teach_skill"
 
 	// GrantOfferQuest moves a quest from not-started onto its first stage
-	// (plan-quests.md C2 / D11 — every quest begins at a dialogue row).
+	// (plan-quests.md C2 / D11 — every quest begins at a dialogue row), or onto
+	// the stage its ToStage names: a second giver who hands the quest over with
+	// its first step already done (content-zone-2-woodland.md §3.8).
 	GrantOfferQuest GrantKind = "offer_quest"
 	// GrantAdvanceQuest walks one authored branch edge: this quest, out of this
 	// stage, into that one (D1/D9). Several rows on several NPCs may move the
@@ -1265,11 +1268,11 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 		if jg.Quest == "" {
 			return g, fmt.Errorf("%s: offer_quest needs a quest id", where)
 		}
-		if jg.FromStage != "" || jg.ToStage != "" {
-			return g, fmt.Errorf("%s: offer_quest carries no edge — the quest file's first stage is where an "+
-				"accept lands, so drop fromStage/toStage", where)
+		if jg.FromStage != "" {
+			return g, fmt.Errorf("%s: offer_quest carries no fromStage — an accept leaves no stage behind; "+
+				"toStage alone names where it lands (default: the quest file's first stage)", where)
 		}
-		g.Quest = jg.Quest
+		g.Quest, g.ToStage = jg.Quest, jg.ToStage
 
 	case GrantAdvanceQuest:
 		if jg.Quest == "" {

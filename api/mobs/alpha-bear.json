@@ -1,0 +1,34 @@
+{
+  "_comment": "The alpha bear in the bear cave east of the woodcutters' camp, who led the bears that wrecked it: the kill target of `the-alpha-bear` (content-zone-2-woodland.md §3.5 quest 6). Elite on the Dire Bear's baseline; wears the DireBear sprite at a larger body until its own art lands. All values [PLACEHOLDER].",
+  "id": 126,
+  "name": "AlphaBear",
+  "type": "MOB",
+  "entityType": "DireBear",
+  "faction": "wildlife_predator",
+  "tier": "elite",
+  "curveLevel": 7,
+  "factors": {
+    "resistances": { "frost": 0.5 },
+    "baseMaxHealth": 284,
+    "maxHealthVariance": 0.1,
+    "speed": 0.4,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 90,
+    "idleDwellMaxTicks": 270,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.65,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    { "skillName": "BearSwipe", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "ThickHide", "chance": 0.25 },
+    { "skillName": "Berserker", "chance": 0.15 }
+  ]
+}

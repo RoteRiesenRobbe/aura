@@ -79,6 +79,32 @@ func TestCrossValidate_AcceptsAWellFormedQuest(t *testing.T) {
 	assert.Empty(t, warnings)
 }
 
+// An offer naming its landing stage must name a stage the quest has, and one
+// that waits: landing on a terminal stage would complete the quest at accept.
+func TestCrossValidate_ChecksAnOffersLandingStage(t *testing.T) {
+	landing := func(stage string) mobs.InteractionOption {
+		row := offerRow("pelts")
+		row.Grants[0].ToStage = stage
+		return row
+	}
+	_, err := crossValidate(t, []*QuestDefinition{threeStage()},
+		conversant("Gnome", landing("turn-in")),
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
+	require.NoError(t, err)
+
+	_, err = crossValidate(t, []*QuestDefinition{threeStage()},
+		conversant("Gnome", landing("nowhere")),
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "nowhere")
+
+	_, err = crossValidate(t, []*QuestDefinition{threeStage()},
+		conversant("Gnome", landing("done")),
+		conversant("Hermit", advanceRow("pelts", "turn-in", "done")))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "terminal")
+}
+
 func TestCrossValidate_RejectsAnUnknownQuest(t *testing.T) {
 	_, err := crossValidate(t, []*QuestDefinition{threeStage()},
 		conversant("Farmer", offerRow("no-such-quest")))

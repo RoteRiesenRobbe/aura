@@ -1,0 +1,29 @@
+{
+  "_comment": "The kobold leader on the plateau, who holds the stolen shipment: the kill target of `the-stolen-shipment` (content-zone-2-woodland.md §3.7). Elite at curveLevel 7 (at the Kobold's cL3 it misses the simharness elite ceiling); wears the Kobold sprite at a larger body until its own art lands (PO 2026-10-25). All values [PLACEHOLDER].",
+  "id": 125,
+  "name": "KoboldChief",
+  "type": "MOB",
+  "entityType": "Kobold",
+  "faction": "kobold",
+  "tier": "elite",
+  "curveLevel": 7,
+  "factors": {
+    "baseMaxHealth": 220,
+    "maxHealthVariance": 0.1,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 3.5
+  },
+  "skills": [
+    { "skillName": "KoboldStab", "level": 1 }
+  ]
+}

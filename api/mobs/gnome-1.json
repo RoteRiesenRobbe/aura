@@ -1,0 +1,100 @@
+{
+  "_comment": "Pim Sprocketwhistle (placeholder name; the id Gnome1 stays), the tinker in Dionsburg's gnome craft district (content-zone-2-woodland.md §3.8): turns in `the-stolen-shipment` (the shipment and Reinhard's letter are for the gnomes), then offers `oil-for-the-lamps` already at its bring stage; to a player who came from the Lamplighter it hands the oil over if they delivered the shipment or are level 7 (PO 2026-10-25). Teaches nothing. Standing talkable-NPC shape (miller.json). entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "id": 129,
+  "name": "Gnome1",
+  "type": "MOB",
+  "entityType": "Hermit",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "tinkering-always-tinkering-what"}
+        ],
+        "options": [
+          { "id": "about-tobiass-shipment", "next": "shipment_running" },
+          { "id": "the-lamplighter-sent-me", "next": "oil_give" },
+          { "id": "anything-i-can-do", "next": "oil_offer" }
+        ]
+      },
+      {
+        "id": "shipment_running",
+        "lines": [
+          {"id": "the-shipment-from-reinhards-farm"}
+        ],
+        "options": [
+          {
+            "id": "i-brought-the-shipment",
+            "grants": [
+              { "id": "wonderful-and-reinhards-letter", "kind": "advance_quest", "quest": "the-stolen-shipment", "fromStage": "deliver", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 540 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "shipment_on_it" }
+        ]
+      },
+      {
+        "id": "shipment_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "running" }
+        ],
+        "lines": [
+          {"id": "tobias-was-bringing-it-bring"}
+        ]
+      },
+      {
+        "id": "oil_give",
+        "conditionsMode": "any",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "completed" },
+          { "kind": "minLevel", "value": 7 }
+        ],
+        "lines": [
+          {"id": "for-the-lamplighter-he-burns"}
+        ],
+        "options": [
+          {
+            "id": "may-i-have-a-flask",
+            "grants": [
+              { "id": "here-one-flask-mind-you", "kind": "advance_quest", "quest": "oil-for-the-lamps", "fromStage": "fetch", "toStage": "bring" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "oil_offer",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-stolen-shipment", "stage": "completed" }
+        ],
+        "lines": [
+          {"id": "the-lamplighter-at-the-edge"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              { "stock": "accept-come-back", "kind": "offer_quest", "quest": "oil-for-the-lamps", "toStage": "bring" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

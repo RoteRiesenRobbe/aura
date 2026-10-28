@@ -1,0 +1,60 @@
+{
+  "_comment": "Hedda (placeholder name), the mushroom picker at Sorrowfen's entry fire (content-zone-7-swamp.md §2.2, C3): coughing from the bog sickness, she offers mushrooms-for-the-gnome, which the gnome Fennick turns in at the south camp. Standing talkable-NPC shape (miller.json); entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "id": 130,
+  "name": "Hedda",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "mind-the-bog-stay"}
+        ],
+        "options": [
+          { "id": "what-are-you-doing-out", "next": "mushrooms" },
+          { "id": "about-the-mushrooms", "next": "mushrooms_on_it" }
+        ]
+      },
+      {
+        "id": "mushrooms",
+        "lines": [
+          {"id": "i-pick-bog-mushrooms"},
+          {"id": "my-cough-is-too-bad"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [ { "stock": "accept-thank-you", "kind": "offer_quest", "quest": "mushrooms-for-the-gnome" } ]
+          }
+        ]
+      },
+      {
+        "id": "mushrooms_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "mushrooms-for-the-gnome", "stage": "pick" }
+        ],
+        "lines": [
+          {"id": "the-blue-ones-grow-beside"}
+        ]
+      }
+    ]
+  }
+}

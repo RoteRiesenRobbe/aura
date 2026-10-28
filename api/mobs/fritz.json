@@ -1,0 +1,254 @@
+{
+  "_comment": "Fritz, foreman of the woodcutters, at the fire on the woods road with the survivors (content-zone-2-woodland.md §3.5); he took over the Wanderer's spawn and quests there. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Gives kobolds-on-the-road, the-lost-friend, the-captive, the-alpha-bear and the-wolf-den, each in the two-row shape. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "id": 124,
+  "name": "Fritz",
+  "type": "MOB",
+  "entityType": "Wanderer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "sit-if-you-like-there"}
+        ],
+        "options": [
+          { "id": "what-happened-here", "next": "camp" },
+          { "stock": "ask-task", "next": "kobolds" },
+          { "id": "about-the-kobolds", "next": "kobolds_running" },
+          { "id": "are-all-your-people-here", "next": "friend" },
+          { "id": "about-your-scout", "next": "friend_running" },
+          { "id": "and-your-other-missing", "next": "captive" },
+          { "id": "about-the-captive", "next": "captive_running" },
+          { "id": "what-about-the-bears", "next": "bear" },
+          { "id": "about-the-bear", "next": "bear_running" },
+          { "id": "anything-else-out-there", "next": "wolf" },
+          { "id": "about-the-wolf", "next": "wolf_running" }
+        ]
+      },
+      {
+        "id": "camp",
+        "lines": [
+          {"id": "we-are-woodcutters-our-camp"},
+          {"id": "bears-came-out"},
+          {"id": "and-the-city-sends-no"}
+        ]
+      },
+      {
+        "id": "kobolds",
+        "lines": [
+          {"id": "the-kobolds-are-all-over"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              { "stock": "accept-counting", "kind": "offer_quest", "quest": "kobolds-on-the-road" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "kobolds_running",
+        "lines": [
+          {"id": "the-kobolds"}
+        ],
+        "options": [
+          {
+            "id": "i-killed-the-8-kobolds",
+            "grants": [
+              { "stock": "thanks-knew-it", "kind": "advance_quest", "quest": "kobolds-on-the-road", "fromStage": "report", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 450 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "kobolds_on_it" }
+        ]
+      },
+      {
+        "id": "kobolds_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "kobolds-on-the-road", "stage": "cull" }
+        ],
+        "lines": [
+          {"id": "kill-8-kobolds-near"}
+        ]
+      },
+      {
+        "id": "friend",
+        "lines": [
+          {"id": "two-of-mine-are-missing"},
+          {"id": "one-went-south-to-look"}
+        ],
+        "options": [
+          {
+            "id": "ill-look-for-him",
+            "grants": [
+              { "id": "thank-you-watch-for-spiders", "kind": "offer_quest", "quest": "the-lost-friend" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "friend_running",
+        "lines": [
+          {"id": "my-scout"}
+        ],
+        "options": [
+          {
+            "id": "i-found-him-he-is",
+            "grants": [
+              { "id": "i-feared-as-much-thank", "kind": "advance_quest", "quest": "the-lost-friend", "fromStage": "return", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 311 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "friend_on_it" }
+        ]
+      },
+      {
+        "id": "friend_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-lost-friend", "stage": "search" }
+        ],
+        "lines": [
+          {"id": "he-went-south-towards"}
+        ]
+      },
+      {
+        "id": "captive",
+        "lines": [
+          {"id": "the-other-one-they-took"},
+          {"id": "if-she-still-lives-bring"}
+        ],
+        "options": [
+          {
+            "id": "ill-find-her",
+            "grants": [
+              { "id": "go-carefully-their-chief-keeps", "kind": "offer_quest", "quest": "the-captive" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "captive_running",
+        "lines": [
+          {"id": "did-you-find-her"}
+        ],
+        "options": [
+          {
+            "id": "she-is-alive-she-will",
+            "grants": [
+              { "id": "alive-that-is-the-first", "kind": "advance_quest", "quest": "the-captive", "fromStage": "return", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 540 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "captive_on_it" }
+        ]
+      },
+      {
+        "id": "captive_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-captive", "stage": "search" }
+        ],
+        "lines": [
+          {"id": "the-kobold-plateau"}
+        ]
+      },
+      {
+        "id": "bear",
+        "lines": [
+          {"id": "the-bear-that-led-them"},
+          {"id": "it-dens-in-a-cave"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              { "stock": "accept-careful", "kind": "offer_quest", "quest": "the-alpha-bear" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bear_running",
+        "lines": [
+          {"id": "the-bear"}
+        ],
+        "options": [
+          {
+            "id": "the-alpha-bear-is-dead",
+            "grants": [
+              { "id": "then-we-can-go-back", "kind": "advance_quest", "quest": "the-alpha-bear", "fromStage": "report", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 645 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "bear_on_it" }
+        ]
+      },
+      {
+        "id": "bear_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-alpha-bear", "stage": "hunt" }
+        ],
+        "lines": [
+          {"id": "its-cave-is-east"}
+        ]
+      },
+      {
+        "id": "wolf",
+        "lines": [
+          {"id": "there-is-a-wolf"},
+          {"id": "it-hunts-my-people-when"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [
+              { "stock": "accept-good-luck", "kind": "offer_quest", "quest": "the-wolf-den" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "wolf_running",
+        "lines": [
+          {"id": "the-wolf"}
+        ],
+        "options": [
+          {
+            "id": "the-alpha-wolf-is-dead",
+            "grants": [
+              { "id": "good-my-people-can-work", "kind": "advance_quest", "quest": "the-wolf-den", "fromStage": "report", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 540 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "wolf_on_it" }
+        ]
+      },
+      {
+        "id": "wolf_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "the-wolf-den", "stage": "hunt" }
+        ],
+        "lines": [
+          {"id": "its-cave-is"}
+        ]
+      }
+    ]
+  }
+}

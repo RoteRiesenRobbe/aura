@@ -452,14 +452,27 @@ func (l *Ledger) Snapshot() []ProgressEntry {
 // snapshots the N4 baselines, so objectives start at zero — the old D3
 // veteran auto-complete at accept cannot happen any more (see enter).
 func (l *Ledger) Accept(questID string) error {
+	return l.AcceptAt(questID, "")
+}
+
+// AcceptAt is Accept landing on a named stage ("" = the first): an offer_quest
+// with a toStage, a second giver handing the quest over with its first step
+// already done. The path then holds that stage alone.
+func (l *Ledger) AcceptAt(questID, stage string) error {
 	q, err := l.canAccept(questID)
 	if err != nil {
 		return err
 	}
+	s := q.First()
+	if stage != "" {
+		if s = q.Stage(stage); s == nil {
+			return fmt.Errorf("quest %q has no stage %q", questID, stage)
+		}
+	}
 	p := l.progressOf(questID)
 	p.Running = true
 	p.Path = nil
-	l.enter(q, p, q.First())
+	l.enter(q, p, s)
 	return nil
 }
 

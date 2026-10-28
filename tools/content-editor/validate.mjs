@@ -41,9 +41,9 @@ const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to', 'reach'];
 export const ROLES = ['creature', 'structure'];
 export const TIERS = ['normal', 'elite', 'boss'];
 const TIER_RANK = { normal: 0, elite: 1, boss: 2 };
-export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed'];
+export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed', 'miasma'];
 export const RESIST_WILDCARD = '*';
-export const GATE_KEYS = ['harvest', 'smash'];
+export const GATE_KEYS = ['chop', 'harvest', 'smash'];
 // backend/pkg/aura/model/layers.go: CollisionLayer is `0x1 << iota` from
 // LayerPlayerStaticCollision, with one reserved gap bit (8) that must never
 // be offered — see that file's comment on why the gap cannot be filled.
@@ -419,12 +419,14 @@ export function validateInteraction(mob, idx) {
           if (g.quest === grants[0].quest) err(`${gWho}: the trailing offer_quest offers the quest the row itself moves`);
           if (!g.quest) err(`${gWho}: offer_quest needs a quest id`);
           else if (!idx.questsById.has(g.quest)) err(`${gWho}: offer_quest names unknown quest "${g.quest}"`);
-          if (g.fromStage || g.toStage) err(`${gWho}: offer_quest carries no edge — drop fromStage/toStage`);
+          if (g.fromStage) err(`${gWho}: offer_quest carries no fromStage — toStage alone names where the accept lands`);
+          if (g.toStage && g.quest && idx.questsById.has(g.quest) && !(idx.questsById.get(g.quest).stages || []).some(st => st.id === g.toStage)) err(`${gWho}: offer_quest lands on unknown stage "${g.toStage}" of quest "${g.quest}"`);
         } else if (g.kind === 'offer_quest') {
           questKindCount++; if (questKindIdx < 0) questKindIdx = gi;
           if (!g.quest) err(`${gWho}: offer_quest needs a quest id`);
           else if (!idx.questsById.has(g.quest)) err(`${gWho}: offer_quest names unknown quest "${g.quest}"`);
-          if (g.fromStage || g.toStage) err(`${gWho}: offer_quest carries no edge — drop fromStage/toStage`);
+          if (g.fromStage) err(`${gWho}: offer_quest carries no fromStage — toStage alone names where the accept lands`);
+          if (g.toStage && g.quest && idx.questsById.has(g.quest) && !(idx.questsById.get(g.quest).stages || []).some(st => st.id === g.toStage)) err(`${gWho}: offer_quest lands on unknown stage "${g.toStage}" of quest "${g.quest}"`);
         } else if (g.kind === 'advance_quest') {
           questKindCount++; if (questKindIdx < 0) questKindIdx = gi;
           if (!g.quest) err(`${gWho}: advance_quest needs a quest id`);
@@ -587,6 +589,8 @@ export function validateMob(mob, idx) {
   const dwellMax = factors.idleDwellMaxTicks ?? 0;
   if (dwellMin < 0 || dwellMax < 0) err(`${who}: idle dwell ticks must not be negative`);
   if (dwellMax > 0 && dwellMin > dwellMax) err(`${who}: idleDwellMinTicks ${dwellMin} exceeds idleDwellMaxTicks ${dwellMax}`);
+  const patrolStopChance = factors.patrolStopChance ?? 0;
+  if (patrolStopChance < 0 || patrolStopChance > 1) err(`${who}: factors.patrolStopChance ${patrolStopChance} must be in [0, 1]`);
 
   for (const [tag, multiplier] of Object.entries(factors.resistances || {})) {
     if (!tag) { err(`${who}: resistances: empty tag`); continue; }

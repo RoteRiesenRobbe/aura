@@ -210,7 +210,8 @@ type player struct {
 	// simply absent from the freshly built player struct a respawn produces —
 	// which is how "zeroed on death" is achieved by construction rather than
 	// by a reset someone has to remember. Only a reconnect carries it, through
-	// the stash.
+	// the stash. Arriving at the bound fire (a respawn or a login) refills it
+	// again: ConnectionStateSystem.spawnAtHome.
 	campCharges int
 
 	// bloodlineUnlocks is what this character's SLOT has already spent on past

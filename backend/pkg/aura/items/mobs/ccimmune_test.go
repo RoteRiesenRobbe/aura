@@ -103,6 +103,9 @@ func TestCCImmune_ContentCensus(t *testing.T) {
 		// (content-zone-design-guide.md §2.4, the Mill POI). It is the
 		// lowest-curveLevel entry in this table by four levels.
 		"AlphaBoar": true,
+		// The Deep Woods' two named fights (content-zone-2-woodland.md §3.5).
+		"KoboldChief": true,
+		"AlphaBear":   true,
 		// The content-world.md placeholder roster's elites and its one boss,
 		// immune like every elite before them.
 		"MercenaryCaptain": true,
@@ -112,5 +115,7 @@ func TestCCImmune_ContentCensus(t *testing.T) {
 		"Dragon":           true,
 		"BlightedTreant":   true,
 		"SandBasilisk":     true,
+		// Sorrowfen's group boss in the spiders' den (content-zone-7-swamp.md C6).
+		"SpiderQueen": true,
 	}, immune, "every elite/boss names its CC stance; adding one is fine, adding it AND this line is the ceremony")
 }

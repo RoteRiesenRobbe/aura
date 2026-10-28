@@ -53,6 +53,15 @@
     "description": "Region banner title of the place \"ashen-fields\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
+  "region.bear-cave.subtitle": "Deep Woods",
+  "@region.bear-cave.subtitle": {
+    "description": "Region banner subtitle under \"Bear Cave\"."
+  },
+  "region.bear-cave.title": "Bear Cave",
+  "@region.bear-cave.title": {
+    "description": "Region banner title of the place \"bear-cave\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
   "region.brackenfold.subtitle": "Plough and Bramble",
   "@region.brackenfold.subtitle": {
     "description": "Region banner subtitle under \"Brackenfold Meadows\"."
@@ -306,6 +315,15 @@
     "description": "Region banner title of the place \"southgate\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
+  "region.spider-den.subtitle": "Sorrowfen",
+  "@region.spider-den.subtitle": {
+    "description": "Region banner subtitle under \"Spider Den\"."
+  },
+  "region.spider-den.title": "Spider Den",
+  "@region.spider-den.title": {
+    "description": "Region banner title of the place \"spider-den\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
   "region.sunscar.subtitle": "Road's End",
   "@region.sunscar.subtitle": {
     "description": "Region banner subtitle under \"The Sunscar\"."
@@ -331,6 +349,24 @@
   "region.witherwood.title": "The Witherwood",
   "@region.witherwood.title": {
     "description": "Region banner title of the place \"witherwood\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.wolf-den.subtitle": "Deep Woods",
+  "@region.wolf-den.subtitle": {
+    "description": "Region banner subtitle under \"Wolf Den\"."
+  },
+  "region.wolf-den.title": "Wolf Den",
+  "@region.wolf-den.title": {
+    "description": "Region banner title of the place \"wolf-den\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
+    "x-maxLength": 24
+  },
+  "region.woodcutters-camp.subtitle": "Deep Woods",
+  "@region.woodcutters-camp.subtitle": {
+    "description": "Region banner subtitle under \"Woodcutters' Camp\"."
+  },
+  "region.woodcutters-camp.title": "Woodcutters' Camp",
+  "@region.woodcutters-camp.title": {
+    "description": "Region banner title of the place \"woodcutters-camp\". Descriptive names translate, coined ones stay (style guide §4). At most 24 characters: it is the region banner.",
     "x-maxLength": 24
   },
   "region.wreckers-bluff.subtitle": "Wind and Wreckage",
@@ -359,6 +395,10 @@
   "@zone.koboldCave.name": {
     "description": "Name of the zone \"koboldCave\", shown on the crossing curtain when no region names the arrival point."
   },
+  "zone.spiderDen.name": "Spider Den",
+  "@zone.spiderDen.name": {
+    "description": "Name of the zone \"spiderDen\", shown on the crossing curtain when no region names the arrival point."
+  },
   "zone.tunnel.name": "Tunnel",
   "@zone.tunnel.name": {
     "description": "Name of the zone \"tunnel\", shown on the crossing curtain when no region names the arrival point."
@@ -366,6 +406,10 @@
   "zone.underworld.name": "Underworld",
   "@zone.underworld.name": {
     "description": "Name of the zone \"underworld\", shown on the crossing curtain when no region names the arrival point."
+  },
+  "zone.wolfDen.name": "Wolf Den",
+  "@zone.wolfDen.name": {
+    "description": "Name of the zone \"wolfDen\", shown on the crossing curtain when no region names the arrival point."
   },
   "zone.world.name": "World",
   "@zone.world.name": {

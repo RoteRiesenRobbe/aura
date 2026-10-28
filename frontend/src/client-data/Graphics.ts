@@ -165,6 +165,15 @@ export const GraphicsConfig = {
             medallion: <MedallionSpec> {},
             maxSize: <number> 46,
         },
+        // Sorrowfen's lake crab: the Sand Clamper recoloured blue, the pack
+        // bust tinted to match.
+        lakeCrab: {
+            file: require('../features/game-objects/assets/mobs/lakeCrab.svg'),
+            packIcon: 'portrait-crab',
+            packTint: <color> 0x7fb4ff,
+            medallion: <MedallionSpec> {},
+            maxSize: <number> 46,
+        },
 
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
@@ -224,11 +233,13 @@ export const GraphicsConfig = {
             maxSize: <number> 64,
         },
 
+        // maxSize is the 0.9 u body's radius (108 px): any smaller and the
+        // medallion draws an upscaled, pixelated bake of the SVG.
         bramble: {
             file: require('../features/game-objects/assets/mobs/bramble.svg'),
             packIcon: 'portrait-carnivorous-plant',
             medallion: <MedallionSpec> {},
-            maxSize: <number> 66,
+            maxSize: <number> 108,
         },
 
         // C3 kobold hideout + Dark Tunnel (content pass C3).
@@ -593,6 +604,8 @@ export const GraphicsConfig = {
     // kin species shares (D33, D34) [PLACEHOLDER shades].
     speciesPortraits: <{ [species: string]: { packIcon: string, packTint?: color } }> {
         BlightedTreant: {packIcon: 'portrait-tree-man', packTint: <color> 0xa0c088},
+        BogFrog: {packIcon: 'portrait-lizard', packTint: <color> 0x9cc66a},
+        BogSnake: {packIcon: 'portrait-lizard', packTint: <color> 0x7a8f52},
         CultAcolyte: {packIcon: 'portrait-hades-servant'},
         CultHighPriest: {packIcon: 'portrait-old-cultist'},
         Cultist: {packIcon: 'portrait-purple-hood'},
@@ -609,6 +622,7 @@ export const GraphicsConfig = {
         MercenaryCrossbowman: {packIcon: 'portrait-spearman'},
         SandBasilisk: {packIcon: 'portrait-lizard'},
         Skeleton: {packIcon: 'portrait-skeleton'},
+        SunkChest: {packIcon: 'portrait-gold-amulet'},
         SkeletonArcher: {packIcon: 'portrait-helmet-skeleton'},
         Treant: {packIcon: 'portrait-tree-man'},
         Wisp: {packIcon: 'portrait-ghost'},

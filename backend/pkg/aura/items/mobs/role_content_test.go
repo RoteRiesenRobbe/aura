@@ -128,7 +128,13 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// + SandClamper (the Saltgrass Strand crab, a walking, fighting
 	// creature): 94 -> 95.
 	// - CaveExit, retired by plan-passages.md P3b: 95 -> 94.
-	assert.Len(t, byRole[RoleCreature], 94, "everything else is a creature")
+	// + the Deep Woods (content-zone-2-woodland.md §3.5): Fritz, Woodcutter 2
+	// and 3 and Gnome 1 (the standing talkable-NPC shape), the Kobold Chief and
+	// the Alpha Bear (fighting creatures): 94 -> 100.
+	// + Sorrowfen (content-zone-7-swamp.md 6b): Hedda, Fennick, Captain Brack,
+	// the Pirate Deckhand and the SunkChest (talkable), the Spider Queen, Bog
+	// Frog, Bog Snake and Lake Crab (fighting creatures): 100 -> 109.
+	assert.Len(t, byRole[RoleCreature], 109, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

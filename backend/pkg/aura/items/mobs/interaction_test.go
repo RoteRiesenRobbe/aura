@@ -496,8 +496,24 @@ func TestMapMobDefinition_RejectsAnAdvanceWithoutStages(t *testing.T) {
 	}
 }
 
-// An offer carries no edge: which stage it lands on is the quest file's business
-// (its first), so authoring one here is a misunderstanding worth naming.
+// An offer may name the stage it lands on (the gnome's lamp oil,
+// content-zone-2-woodland.md §3.8): a toStage alone, no fromStage, because an
+// accept leaves no stage behind.
+func TestMapMobDefinition_AcceptsAnOfferLandingOnALaterStage(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "toStage": "turn-in", "line": "go"}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+	g := def.Interaction.Nodes[0].Options[0].Grants[0]
+	assert.Equal(t, "turn-in", g.ToStage)
+	assert.Empty(t, g.FromStage)
+}
+
+// An offer carries no edge: a fromStage would claim the quest was already
+// somewhere, so authoring one is a misunderstanding worth naming.
 func TestMapMobDefinition_RejectsAnOfferCarryingStages(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root", "lines": ["hi"],

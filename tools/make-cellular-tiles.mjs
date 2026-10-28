@@ -5,7 +5,7 @@
  * `state: stock`, borrowing the desert tile, which is a different fault with
  * the same fix).
  *
- *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
+ *     forest · thicket (the swamp's walls) · wall · road · stones (the first OVERLAY tile, ground-noise W2)
  *     · cobble (the city street) · flagstone (a building floor) · town-ground (the city between
  *     the streets) · limestone + coast-grass (the clifftop,
  *     `Coastal Cliff` = limestone under a coast-grass overlay)
@@ -324,6 +324,65 @@ const TILES = [
             },
         ],
         shadowColor: [0x18, 0x2e, 0x1a],
+    },
+    {
+        // ⭐ THE THICKET (`Thicket`, the swamp's walls, content-zone-7-swamp.md
+        // P3): the forest's recipe turned into something you cannot walk
+        // through. `Forest` is a FLOOR, so worn by a blocking polygon it read
+        // as walkable ground with an invisible wall (PO 2026-10-25). The fix is
+        // a difference in KIND from both neighbours, the pd141 lesson again:
+        // from the `Bog` it borders in detail (pieces, not a smooth ridged
+        // sheen) and from `Forest` in value and in what the pieces are (pale
+        // DEADWOOD on near-black, not leaves on moss). ⚑ The roots carry the
+        // tangle: low sharpness and high strength turn the forest's faint
+        // root veins into a mesh of pale branches over the whole tile.
+        file: 'thicket-placeholder.png',
+        profileColor: [0x23, 0x17, 0x0c],
+        paint: 'litter',
+        warp: {waves: LITTER_WARP, strength: 24, offset: [0.53, 0.19]},
+        // ⭐ PO 2026-10-25: "thicker, heavier, dark brown, spiky, unpassable".
+        // Dark brown throughout, the floor nearly black so the gaps read as
+        // depth, four layers piled to near-full cover, and `thorn` pieces
+        // (pointed at both ends) on top so the surface bristles.
+        duff: {
+            waves: DUFF,
+            ramp: [[0x0c, 0x07, 0x04], [0x18, 0x0f, 0x08], [0x24, 0x17, 0x0c]],
+            grit: 0.3,
+            gamma: 1.0,
+        },
+        roots: {waves: ROOT_WAVES, sharpness: 18, strength: 0.45,
+            color: [0x3a, 0x26, 0x14]},
+        layers: [
+            {
+                // Heavy limbs: the bulk of the tangle, dark brown.
+                n: 8, jitter: 0.35, elong: 5, radius: 0.6, sizeVar: 0.4,
+                fill: 0.95, salt: 910,
+                ramp: [[0x2c, 0x1c, 0x10], [0x4a, 0x31, 0x1c]],
+                rim: 0.24, shadow: [12, 14], shadowStrength: 0.7,
+            },
+            {
+                // Bramble stems crossing every way.
+                n: 14, jitter: 0.40, elong: 10, radius: 0.55, sizeVar: 0.4,
+                fill: 0.95, salt: 950,
+                ramp: [[0x26, 0x18, 0x0c], [0x44, 0x2c, 0x18]],
+                rim: 0.2, shadow: [8, 10], shadowStrength: 0.65,
+            },
+            {
+                // Thorns: long needles pointed at both ends.
+                n: 16, jitter: 0.40, elong: 10, radius: 0.58, sizeVar: 0.4,
+                fill: 0.85, salt: 990, thorn: true,
+                ramp: [[0x4a, 0x30, 0x18], [0x86, 0x5e, 0x34]],
+                rim: 0.2, shadow: [6, 8], shadowStrength: 0.65,
+            },
+            {
+                // Short spikes on top, the lightest brown: what catches the eye.
+                n: 22, jitter: 0.40, elong: 8, radius: 0.5, sizeVar: 0.5,
+                fill: 0.7, salt: 1030, thorn: true,
+                ramp: [[0x5a, 0x3c, 0x20], [0x96, 0x6c, 0x3e]],
+                rim: 0.2, shadow: [5, 6], shadowStrength: 0.6,
+            },
+        ],
+        shadowColor: [0x06, 0x04, 0x02],
     },
     {
         // ⭐ Stones vary in BOTH directions from the wall's average tone, and
@@ -799,7 +858,9 @@ function leafCover(x, y, cfg) {
             const across = (-ox * sa + oy * ca) * cfg.elong;
 
             const r = cw * cfg.radius * (1 + cfg.sizeVar * (hash(wi, wj, cfg.salt + 4) - 0.5));
-            const ratio = Math.hypot(along, across) / r;
+            // `thorn` measures the L1 norm instead: a rhombus, so an elongated piece
+            // ends in two sharp POINTS rather than rounded tips (the thicket's thorns).
+            const ratio = (cfg.thorn ? Math.abs(along) + Math.abs(across) : Math.hypot(along, across)) / r;
             if (ratio < best) { best = ratio; tint = hash(wi, wj, cfg.salt + 5); }
         }
     }

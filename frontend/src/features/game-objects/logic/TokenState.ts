@@ -34,10 +34,16 @@ export enum AppliedEffectBit {
     Fear = 1 << 11,
     // A live stealth (C6, D24): a whole-entity alpha, never an indicator.
     Stealth = 1 << 12,
+    // A camouflaged mob at its spawn point (content-zone-7-swamp.md E2): a
+    // whole-entity alpha like stealth, fainter, and visual only.
+    Camouflage = 1 << 13,
 }
 
 /** A stealthed entity's alpha, for every viewer and its own player. [PLACEHOLDER] */
 export const STEALTH_ALPHA = 0.4;
+
+/** A camouflaged mob's alpha: much harder to spot, never invisible. [PLACEHOLDER] */
+export const CAMOUFLAGE_ALPHA = 0.2;
 
 /**
  * A state's glyph (R12): the pack icon, and the committed `file` drawn where
@@ -109,6 +115,7 @@ export const STATE_ROWS: readonly StateRow[] = [
     {id: 'hot', source: AppliedEffectBit.Hot, angle: 337.5, colour: AURA_CATEGORY_COLORS.heal},
     // Treatment only.
     {id: 'stealth', source: AppliedEffectBit.Stealth, treatment: {alpha: STEALTH_ALPHA}},
+    {id: 'camouflage', source: AppliedEffectBit.Camouflage, treatment: {alpha: CAMOUFLAGE_ALPHA}},
 ];
 
 /** What a token shows for one (mask, dead): the entity applies alpha, the medallion the rest. */
