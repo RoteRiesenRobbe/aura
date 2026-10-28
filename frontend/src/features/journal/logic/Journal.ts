@@ -93,6 +93,8 @@ export function toggle() {
     open = !open;
     if (open) {
         PanelExclusivity.notifyOpened('journal');
+    } else {
+        PanelExclusivity.notifyClosed('journal');
     }
     render();
 }
@@ -103,6 +105,7 @@ export function close() {
         return;
     }
     open = false;
+    PanelExclusivity.notifyClosed('journal');
     render();
 }
 
@@ -113,8 +116,12 @@ export function isOpen(): boolean {
 /** A quest tracker row: open the panel already turned to that quest. */
 export function openQuest(questId: string) {
     model.select(questId);
-    open = true;
-    PanelExclusivity.notifyOpened('journal');
+    // Already open means already exclusive: notifying again would only replay
+    // the open sound for a click that just turns the page.
+    if (!open) {
+        open = true;
+        PanelExclusivity.notifyOpened('journal');
+    }
     render();
 }
 

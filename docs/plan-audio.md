@@ -246,4 +246,14 @@ P1-P5 in §4 are confirmed as written, except where a ruling below narrows them.
 
 ## 9. Chunk ledgers
 
-*(appended per execution session; none yet)*
+- **C3 slice taken early, 2026-10-28 (PO ask, before C1): spellbook and
+  journal open/close.** The composer's two files
+  (`sfx_interface_spellbook_open.wav` / `_close.wav`) play flat (R8) for both
+  panels. `audio/logic/UiSounds.ts` holds a two-id table plus a panel → sound
+  map and listens to `PanelExclusivity`'s new change feed (`onChange`,
+  `notifyClosed`); a close the registry causes by opening another panel is
+  `replaced` and silent. Webpack learned `.wav`. ⚑ For C1: absorb the table
+  into the one sound table and put these ids on the SFX channel (they ride
+  master today); the panels need no change. ⚑ For C3: the spellbook and
+  journal rows are done; another panel joins with one `PANEL_SOUNDS` line and
+  `notifyClosed` on its close paths. Schema: none (client only).

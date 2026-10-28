@@ -133,6 +133,8 @@ export function toggle() {
     open = !open;
     if (open) {
         PanelExclusivity.notifyOpened('spellbook');
+    } else {
+        PanelExclusivity.notifyClosed('spellbook');
     }
     render();
 }
@@ -143,6 +145,7 @@ export function close() {
         return;
     }
     open = false;
+    PanelExclusivity.notifyClosed('spellbook');
     render();
 }
 

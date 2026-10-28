@@ -81,3 +81,52 @@ describe('PanelExclusivity', () => {
         expect(late.calls.n).toBe(0);
     });
 });
+
+// The change feed the UI sounds hear (audio/logic/UiSounds.ts): a close the
+// player made is plain, a close the sweep made is `replaced`, so the sounds can
+// play the new panel's open without the old one's close on top of it.
+describe('PanelExclusivity change feed', () => {
+    function recorder() {
+        const changes: import('./PanelExclusivity').PanelChange[] = [];
+        registry.onChange((change) => changes.push(change));
+        return changes;
+    }
+
+    it('reports an open', () => {
+        const changes = recorder();
+
+        registry.notifyOpened('spellbook');
+
+        expect(changes).toEqual([{id: 'spellbook', open: true, replaced: false}]);
+    });
+
+    it('reports a close the player made as not replaced', () => {
+        const changes = recorder();
+
+        registry.notifyClosed('journal');
+
+        expect(changes).toEqual([{id: 'journal', open: false, replaced: false}]);
+    });
+
+    it('marks a close the sweep caused as replaced', () => {
+        registry.register('spellbook', () => registry.notifyClosed('spellbook'));
+        const changes = recorder();
+
+        registry.notifyOpened('journal');
+
+        expect(changes).toEqual([
+            {id: 'journal', open: true, replaced: false},
+            {id: 'spellbook', open: false, replaced: true},
+        ]);
+    });
+
+    it('stops marking closes replaced once the sweep is over, even when a closer throws', () => {
+        registry.register('help', () => { throw new Error('boom'); });
+        const changes = recorder();
+
+        expect(() => registry.notifyOpened('journal')).toThrow('boom');
+        registry.notifyClosed('journal');
+
+        expect(changes.at(-1)).toEqual({id: 'journal', open: false, replaced: false});
+    });
+});

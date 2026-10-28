@@ -25,14 +25,54 @@ export function register(id: PanelId, close: () => void) {
     closers.set(id, close);
 }
 
+/**
+ * A family member opened or shut. `replaced` marks a close the sweep in
+ * notifyOpened caused: another panel took the screen, the player did not close
+ * this one. The UI sounds (audio/logic/UiSounds.ts) stay silent on it.
+ */
+export interface PanelChange {
+    id: PanelId;
+    open: boolean;
+    replaced: boolean;
+}
+
+const listeners: ((change: PanelChange) => void)[] = [];
+let sweeping = false;
+
+/** Hear every open and close of the family. Called once, at import. */
+export function onChange(listener: (change: PanelChange) => void) {
+    listeners.push(listener);
+}
+
+function emit(change: PanelChange) {
+    for (const listener of listeners) {
+        listener(change);
+    }
+}
+
 /** `id` just went on screen: shut every other member of the family. */
 export function notifyOpened(id: PanelId) {
+    emit({id, open: true, replaced: false});
     // Snapshotted rather than iterated live: a close function is ordinary panel
     // code and is free to touch the registry, and a sweep that broke on that
     // would be invisible from the panel module doing it.
-    for (const [other, close] of [...closers]) {
-        if (other !== id) {
-            close();
+    sweeping = true;
+    try {
+        for (const [other, close] of [...closers]) {
+            if (other !== id) {
+                close();
+            }
         }
+    } finally {
+        sweeping = false;
     }
+}
+
+/**
+ * `id` just left the screen. Optional for a member: only a panel that wants
+ * to be heard calls it, and only when it really was open (a registered close
+ * runs on every family open, shut or not).
+ */
+export function notifyClosed(id: PanelId) {
+    emit({id, open: false, replaced: sweeping});
 }

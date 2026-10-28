@@ -123,7 +123,7 @@ module.exports = {
 			},
 
 			{
-				test: /\.mp3$/,
+				test: /\.(mp3|wav)$/,
 				type: 'asset/resource'
 			}
 		]
