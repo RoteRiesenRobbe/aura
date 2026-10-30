@@ -1273,6 +1273,27 @@ system ships blind.
 > `world.json`. It is recorded here because *the next map* is decided even
 > though its slot is not.
 
+> **The near-term build order (PO 2026-10-30, one prompt round):** the open plans run
+> in this order, one chunk per session:
+>
+> 1. **Revive ledger fix** (the parked watch item below: `ReviveAtCorpse` skips
+>    `SetQuestLedger`), red-first.
+> 2. **EP2** (`plan-entity-presentation.md`, stun's own bit).
+> 3. **EP3 design pass** (planning only, §7 Q6: which spawned things are props), then
+>    **EP3 build**. Closes the gap EP1 left: `Totem`, the summoned `FireTotem`,
+>    `WarbannerTotem` and `Rockfall` carry state bits and show none.
+> 4. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`).
+> 5. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
+> 6. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
+> 7. **Audio C1 onward** (`plan-audio.md`).
+> 8. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
+>
+> ⭐ **Appearance C0b + the skull repack jump the queue** the day the pilot art lands; the
+> open-work gate no longer waits on them (it held campfire traits and quest icons behind
+> C0b, amended the same day). PO-owed looks and approvals (C6 corpses, herding, German
+> strings, the ascension ceremony plan, one real-phone session for the buff tray, skill
+> VFX and appearance C1) run beside the builds and block none of them.
+
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends

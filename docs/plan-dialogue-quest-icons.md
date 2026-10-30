@@ -2,8 +2,9 @@
 
 **Status: DESIGNED + APPROVED 2026-10-25 (planning session, PO in chat). R1-R4 RULED, D1-D7
 APPROVED, nothing built.** Q1-Q3 (§7) go with their proposed answers unless the PO rules
-otherwise at the look. One chunk (§5, QI1); it can start once the open-work gate clears (appearance C6 + C0b first, the "finish open work
-first" rule), and once the shared tree's `server.fbs` merge conflict is resolved (L1).
+otherwise at the look. One chunk (§5, QI1); it runs in `roadmap.md`'s near-term build order (PO 2026-10-30: after campfire traits CT3;
+the gate behind appearance C0b is lifted, C0b jumps the queue when its art lands). L1 (the
+shared tree's `server.fbs` merge) cleared 2026-10-25 with C6.
 
 **Owns:** the per-row quest marker in the conversation panel.
 **Builds on:** `archive/plan-quest-giver-markers.md` (the head/map marker: kinds, colours,
@@ -151,7 +152,7 @@ row press repaints.
 
 ### QI1 - Quest icons on conversation rows (size M, one session)
 
-Needs first: appearance C6 + C0b done (open-work gate); L1 cleared.
+Needs first: its slot in `roadmap.md`'s near-term build order (PO 2026-10-30); L1 cleared 2026-10-25.
 
 1. **Server** (`sys/questmarkers.go` + `sys/interaction.go`): scope the walk helpers to a
    subtree root (D2), stamp `QuestMarker` (and the widened `QuestLevel`) on every presented

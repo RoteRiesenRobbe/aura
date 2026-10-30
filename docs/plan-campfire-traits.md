@@ -2,8 +2,9 @@
 
 **Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R20
 RULED (Q1-Q6 answered as proposed, R15-R20), D1-D11 approved, nothing built.** 3 chunks
-(§5). ⏸ **Queued behind `plan-appearance.md` (PO 2026-10-24: open work is finished
-first): CT1 starts once appearance is complete, C6 AND C0b (the artist's pilot art).**
+(§5). ⏸ **Queued in `roadmap.md`'s near-term build order (PO 2026-10-30): CT1 runs after
+the revive ledger fix, EP2 and EP3.** The 2026-10-24 gate behind appearance C0b is lifted:
+C0b jumps the queue when its art lands.
 
 **Owns:** campfire points, the six camp traits, the camp's rest buffs.
 **Builds on:** `archive/plan-downtime.md` (the Camp utility, D1-D9: channel, charges,
@@ -206,7 +207,7 @@ change.
 | CT3 | Rest buffs | rest clock (D10), three buffs (D9), the max-Focus pool rule (Q3), death clearing (D11), tray look | M |
 
 ### CT1 - Server foundation and the core three
-Needs: appearance complete, C6 and C0b (PO 2026-10-24, open work first). **Schema:** DB none (Q1 option 1) · wire +1 field · content +6
+Needs: its slot in `roadmap.md`'s near-term build order (PO 2026-10-30; no longer C0b). **Schema:** DB none (Q1 option 1) · wire +1 field · content +6
 skill files, +1 category, `camp-aura` levels · shared-constants none · lang +6 entries.
 - `SkillCategoryCamp`, the `campTrait` block, its validator; the six files with the
   buff traits authored but inert until CT3.
