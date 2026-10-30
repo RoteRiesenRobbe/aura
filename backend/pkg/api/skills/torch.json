@@ -1,5 +1,5 @@
 {
-  "_comment": "A light-emitting passive, deliberately dimmer than the Light aura so it can be carried alongside an active aura without giving up light entirely. light_aura is rendering-only; it does not affect combat. All values placeholder.",
+  "_comment": "A light-emitting passive, deliberately dimmer than the Light aura so it can be carried alongside an active aura without giving up light entirely; carrying it slows the walk (the drawback BeltLantern lacks). light_aura is rendering-only; it does not affect combat. All values placeholder.",
   "id": 46,
   "name": "Torch",
   "icon": "lorc/lantern-flame",
@@ -13,6 +13,11 @@
       "flicker": true,
       "radius": 2.5,
       "radiusPerLevel": 0.25
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "movementSpeed",
+      "statBonus": -0.2
     }
   ]
 }

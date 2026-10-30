@@ -50,6 +50,11 @@
     "description": "Name of the skill BearSwipe: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.BeltLantern.name": "Belt Lantern",
+  "@skill.BeltLantern.name": {
+    "description": "Name of the skill BeltLantern: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.Berserker.name": "Berserker",
   "@skill.Berserker.name": {
     "description": "Name of the skill Berserker: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",

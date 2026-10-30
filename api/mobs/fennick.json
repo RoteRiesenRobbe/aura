@@ -1,5 +1,5 @@
 {
-  "_comment": "Fennick (placeholder name), the gnome from the wasteland at Sorrowfen's south camp (content-zone-7-swamp.md §2.2, C4): turns in mushrooms-for-the-gnome, then offers the-spider-queen and turns it in, teaching FenTonic (his cure for the bog sickness). Standing talkable-NPC shape (gnome-1.json); entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Fennick (placeholder name), the gnome from the wasteland at Sorrowfen's south camp (content-zone-7-swamp.md §2.2, C4): turns in mushrooms-for-the-gnome, then offers the-spider-queen and turns it in, teaching FenTonic (his cure for the bog sickness); teaches BeltLantern on request. Standing talkable-NPC shape (gnome-1.json); entityType Hermit is placeholder art. All values [PLACEHOLDER].",
   "id": 131,
   "name": "Fennick",
   "type": "MOB",
@@ -31,7 +31,21 @@
         "options": [
           { "id": "hedda-sent-me-with-mushrooms", "next": "mushrooms_running" },
           { "id": "what-are-you-brewing", "next": "queen" },
-          { "id": "about-the-spider-queen", "next": "queen_running" }
+          { "id": "about-the-spider-queen", "next": "queen_running" },
+          { "stock": "ask-teach", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          {"id": "a-lamp-in-your-fist"}
+        ],
+        "options": [
+          {
+            "grants": [
+              { "stock": "teach-skill", "kind": "teach_skill", "skill": "BeltLantern", "requiredLevel": 7 }
+            ]
+          }
         ]
       },
       {

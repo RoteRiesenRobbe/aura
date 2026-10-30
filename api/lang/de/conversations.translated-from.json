@@ -83,6 +83,7 @@
   "conv.Farmhand.sometimes-i-feel-like-these": "Sometimes I feel like these turnips are hiding even deeper in the ground once I'm around to pull them out ...",
   "conv.Farmhand.these-rats-they-were-bigger": "These rats ... They were bigger than my forearm. I'm not going back in there!",
   "conv.Fennick.a-cure-for-the-bog": "A cure for the bog sickness. The rot gets into everyone who stays here. Hedda coughs, and so will you.",
+  "conv.Fennick.a-lamp-in-your-fist": "A lamp in your fist slows you in the mud. Hang the light on your belt and keep both hands free.",
   "conv.Fennick.about-the-spider-queen": "About the Spider Queen.",
   "conv.Fennick.good-ones-and-fresh-thank": "Good ones, and fresh. Thank you.",
   "conv.Fennick.hedda-sent-me-with-mushrooms": "Hedda sent me with mushrooms.",
@@ -446,7 +447,6 @@
   "conv.Wanderer.east-is-dangerous-bandits-watch": "East is dangerous. Bandits watch that road.",
   "conv.Wanderer.i-am-passing-through": "I am passing through.",
   "conv.Wanderer.north-through-the-tunnel-bring": "North, through the tunnel. Bring a light.",
-
   "conv.Wanderer.which-way-is-safe": "Which way is safe?",
   "conv.Woodcutter2.fritz-is-alive-tell-him": "Fritz is alive? Tell him I am coming down as soon as I can stand.",
   "conv.Woodcutter2.the-only-way-down": "The only way down from here is through the brambles. Let me show you how we cut them.",

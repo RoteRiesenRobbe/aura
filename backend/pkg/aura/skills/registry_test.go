@@ -273,7 +273,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + ShortSpear 172 and SpearThrow 173, Henrik's two taught spear skills.
 	// 136 -> 138 (90 player + 48 mob).
 	// 139 -> 142: + FenTonic, BogSickness, WispGlow (content-zone-7-swamp.md 6b).
-	assert.Len(t, r.All(), 142)
+	assert.Len(t, r.All(), 143)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

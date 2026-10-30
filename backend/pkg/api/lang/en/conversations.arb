@@ -336,6 +336,10 @@
   "@conv.Fennick.a-cure-for-the-bog": {
     "description": "Fennick speaks this in the conversation, node \"queen\", line 1."
   },
+  "conv.Fennick.a-lamp-in-your-fist": "A lamp in your fist slows you in the mud. Hang the light on your belt and keep both hands free.",
+  "@conv.Fennick.a-lamp-in-your-fist": {
+    "description": "Fennick speaks this in the conversation, node \"teachings\", line 1."
+  },
   "conv.Fennick.about-the-spider-queen": "About the Spider Queen.",
   "@conv.Fennick.about-the-spider-queen": {
     "description": "A row the player picks when talking to Fennick (node \"root\"), written as the player's own words."

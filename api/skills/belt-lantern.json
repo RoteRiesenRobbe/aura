@@ -1,0 +1,18 @@
+{
+  "_comment": "A light-emitting passive with Torch's light and none of its walk drawback. light_aura is rendering-only; it does not affect combat. All values placeholder.",
+  "id": 178,
+  "name": "BeltLantern",
+  "icon": "lorc/lantern-flame",
+  "packIcon": "lantern",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "light_aura",
+      "color": "#ffc98a",
+      "flicker": true,
+      "radius": 2.5,
+      "radiusPerLevel": 0.25
+    }
+  ]
+}
