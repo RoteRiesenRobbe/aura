@@ -1428,6 +1428,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
+	p.SetQuestLedger(dead.quests)
 	p.SetLook(dead.corpse.Look())
 	p.SetAppearanceOwned(dead.owned)
 	dead.lineage.applyTo(p)

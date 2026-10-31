@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ BUILD ORDER (PO 2026-10-30, `docs/roadmap.md` "The near-term build order"):** revive ledger fix → EP2 → EP3 design + build → campfire traits CT1-CT3 → quest icons QI1 → ascension ceremony (once approved) → audio C1+ → UI pass C9. Appearance C0b + the skull repack jump the queue when the art lands; PO looks run beside.
+- **⭐ BUILD ORDER (PO 2026-10-30, `docs/roadmap.md` "The near-term build order"):** ~~revive ledger fix~~ ✅ 2026-10-31 → EP2 → EP3 design + build → campfire traits CT1-CT3 → quest icons QI1 → ascension ceremony (once approved) → audio C1+ → UI pass C9. Appearance C0b + the skull repack jump the queue when the art lands; PO looks run beside.
 
 - **⭐ ENTITY PRESENTATION: EP1 DONE 2026-10-24 (PO look passed), appearance C6 built 2026-10-25 (lights `dead`), NEXT = EP2; EP3 unplanned** (`docs/plan-entity-presentation.md`, R1-R13, ledger §11): states sit at reserved angles outside the medallion ring. EP2 = stun's own bit. EP3 = R14, one token system (a design pass first: which spawned things are props, §7 Q6). **Schema: EP2 wire +1 bit value.**
 

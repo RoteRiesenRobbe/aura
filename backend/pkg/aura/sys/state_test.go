@@ -1092,6 +1092,22 @@ func TestRespawn_CarriesQuestLedger(t *testing.T) {
 	assertQuestProgressCarried(t, g.players[1], ledger)
 }
 
+// L11, revive half: ReviveAtCorpse rebuilds the player like tryRespawn does,
+// so it must carry the ledger the same way (found 2026-10-21, it did not).
+func TestReviveAtCorpse_CarriesQuestLedger(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	ledger := startQuestProgress(t, p)
+
+	kill(t, s, p)
+	require.True(t, s.ReviveAtCorpse(g.livingCorpses()[0].Basic().ID(), 0.3))
+
+	require.Len(t, g.players, 2)
+	assertQuestProgressCarried(t, g.players[1], ledger)
+}
+
 // L11, reconnect half: an alive disconnect stashes the ledger and reattach
 // restores it.
 func TestReconnect_CarriesQuestLedger(t *testing.T) {
