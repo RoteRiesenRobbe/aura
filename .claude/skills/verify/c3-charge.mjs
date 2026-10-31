@@ -7,7 +7,7 @@
 //   2  next to a boar the press moves the player to contact with it
 //      (the gap to the TAGGED boar shrinks to touching)
 //   3  the stun authored after the charge lands from the landing spot
-//      (a Slow-bit pip on a mob: stun is wire-identical to slow on the state indicators)
+//      (a Stun-bit state indicator on a mob: stun has its own bit since entity presentation EP2)
 //   4  the cooldown starts after a landed charge
 //   5  the charge's `rush` layer glides the token (non-zero body offsets
 //      written) and leaves it at exact zero
@@ -37,7 +37,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 const shotDir = process.env.CHARGE_SHOT_DIR || '/tmp';
 
-const PIP_SLOW = 2; // api/shared-constants.json appliedEffectBits.slow
+const PIP_STUN = 16384; // api/shared-constants.json appliedEffectBits.stun (EP2)
 // Venues derived from world_debug.json by scoring every boar and stag with a
 // stand point 4 u out: inside the border, no other enemy spawn (turnips count)
 // within 2.5 u of the target's distance, the line to it clearest of blocking
@@ -242,7 +242,7 @@ const stand = await bestStand(4);
 if (stand) { await warp(stand); await page.waitForTimeout(1500); }
 const startGap = stand ? await taggedGap() : null;
 if (!equipped || startGap === null || startGap > SEARCH - 0.5 || startGap < 2) {
-  for (const n of ['The press moves the player to contact with the boar', 'The stun after the charge lands (Slow-bit pip on a mob)', 'A landed charge starts the cooldown', 'The charge plays its rush: the token glided (non-zero body offsets) and rests at exact zero']) {
+  for (const n of ['The press moves the player to contact with the boar', 'The stun after the charge lands (Stun-bit indicator on a mob)', 'A landed charge starts the cooldown', 'The charge plays its rush: the token glided (non-zero body offsets) and rests at exact zero']) {
     check(n, null, `INCONCLUSIVE: equipped ${equipped}, clear stand ${JSON.stringify(stand)}, tagged boar ${startGap} u (need 2-${SEARCH - 0.5})`);
   }
 } else {
@@ -264,7 +264,7 @@ if (!equipped || startGap === null || startGap > SEARCH - 0.5 || startGap < 2) {
   const after = await me();
   const endGap = await nearestWildGap();
   const moved = Math.hypot(after.x - before.x, after.y - before.y);
-  const LEGS = ['The press moves the player to contact with the boar', 'The stun after the charge lands (Slow-bit pip on a mob)', 'A landed charge starts the cooldown', 'The charge plays its rush: the token glided (non-zero body offsets) and rests at exact zero'];
+  const LEGS = ['The press moves the player to contact with the boar', 'The stun after the charge lands (Stun-bit indicator on a mob)', 'A landed charge starts the cooldown', 'The charge plays its rush: the token glided (non-zero body offsets) and rests at exact zero'];
   if (!fired) {
     // Never a FAIL: either the key never reached the server, or the server
     // refused because the venue's premise (an enemy in range) did not hold.
@@ -278,9 +278,9 @@ if (!equipped || startGap === null || startGap > SEARCH - 0.5 || startGap < 2) {
     // enemy the harness does not see: venue, not product.
     check(LEGS[0], contact ? true : null,
       `${contact ? '' : 'INCONCLUSIVE: stopped short. '}gap ${startGap} -> ${endGap} u (nearest wildlife or turnip), moved ${moved.toFixed(2)} u, line clearance ${stand.clearance} u`);
-    const stunned = await page.evaluate((b) => window.__masks.some((m) => (m & b) !== 0), PIP_SLOW);
+    const stunned = await page.evaluate((b) => window.__masks.some((m) => (m & b) !== 0), PIP_STUN);
     check(LEGS[1], contact ? stunned : null,
-      `${contact ? '' : 'INCONCLUSIVE: no contact, so the 1 u stun had nothing to reach. '}Slow bit seen in a pip mask: ${stunned}`);
+      `${contact ? '' : 'INCONCLUSIVE: no contact, so the 1 u stun had nothing to reach. '}Stun bit seen in a state mask: ${stunned}`);
     check(LEGS[2], true, 'slot shows a seconds timer');
     // The rush (the charge's look): the token glided through body offsets and
     // is back at EXACT zero once it ran out (well inside the 1.4 s key hold).

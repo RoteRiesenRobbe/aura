@@ -13,10 +13,10 @@
 //   4. stealth (R3, R13): Vanish fades the own shape AND its plate to 0.4; a
 //      mob handed the Stealth bit client-side (no mob authors stealth, so this
 //      is the client path only) fades with its plate;
-//   6. stun's own bit (EP2, D10): Paralyze on a wolf beside the dot venue shows
-//      `stun` at 0° as a glyph sprite and NO `slow` (a stun no longer borrows
-//      the slow bit); with the Slow aura armed, a second Paralyze shows `stun`
-//      and `slow` together;
+//   6. stun's own bit (EP2, D10; runs between 3 and 4b): Paralyze on a wolf
+//      beside the dot venue shows `stun` at 0° as a glyph sprite and NO `slow`
+//      (a stun no longer borrows the slow bit); with the Slow aura armed, a
+//      second Paralyze shows `stun` and `slow` together;
 //   5. a MEASUREMENT, no assert: rAF frame time with up to 30 mobs each
 //      forced to 4 indicators vs none, alternated over rounds. Headless here is
 //      SwiftShader (CPU raster), so only the ratio means anything.

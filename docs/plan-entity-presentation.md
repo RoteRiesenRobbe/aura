@@ -492,7 +492,11 @@ two new legs: Paralyze on a wolf shows `stun` at 0° r 45.0 as a glyph sprite wi
 with the Slow aura lit a second Paralyze shows `stun` 0° + `slow` 45° together. ⚑ Harness
 findings: re-slotting is refused in combat (HUD `combatLocked`), so leg 6 slots Paralyze and
 Slow before the wolf venue; the old `equipCooldown` check passed on "— Empty —" and now matches
-the skill name.
+the skill name. Other harnesses the coverage map ties to stun or glyphs: `c3-charge` asserted
+the charge's stun as the SLOW bit, red by design after EP2; rewritten to the Stun bit, 6/0/0 on
+the DEBUG world (was 2/0/4 on EP1, venue) · `c3-paralyze` 4/0/1 (its documented venue
+precondition) · `corpse-medallion` 4/0/0 (skull still a sprite at 180°). `c2-player-cc` reads the
+tray's `EffectKind` bits, where stun always had its own, so it is untouched.
 
 **PO look (owed):** a stunned mob shows the purple swirl at 12 o'clock and no slow; a stun on a
 slowed mob shows both; the swirl reads at the phone's smallest token.
