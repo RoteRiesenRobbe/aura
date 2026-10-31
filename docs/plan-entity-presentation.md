@@ -3,7 +3,7 @@
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
 Q2-Q3 open, Q4 + L5 RULED 2026-10-24, Q1 RULED 2026-10-31. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
 `plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); EP2 BUILT
-2026-10-31 [uncommitted], PO look owed (§11); next EP3 (one token system), unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+2026-10-31 `610315fd`, PO look owed (§11); next EP3 (one token system), unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -457,7 +457,7 @@ stealth alpha).
 
 **Schema:** DB none · wire none · conf none · content none · catalog/lang none.
 
-### EP2 - BUILT 2026-10-31 [uncommitted], PO look owed
+### EP2 - BUILT 2026-10-31 `610315fd`, PO look owed
 
 Stun's own bit, D10 as planned except the bit number. PO rulings in session (choice prompts):
 
