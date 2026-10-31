@@ -113,22 +113,25 @@ func TestStun_RefreshTakesTheLongerRemainder(t *testing.T) {
 	assert.True(t, b.Stunned(), "a SHORTER re-application must not cut a live stun short")
 }
 
-// The pip: no bit is left in the applied_effects ubyte, so D6 reuses the slow
-// bit rather than widening the wire for one buff — the lifestealPayload
-// precedent, applied where a stun at least reads as *movement impairment*
-// instead of as nothing at all.
-//
-// ⚑ The conflation is real and recorded: a stunned mob is indistinguishable
-// from a slowed one on the wire until backlog §39 replaces presence-only pips.
-func TestStun_LightsTheSlowPipWithoutWideningTheWire(t *testing.T) {
+// The pip: a stun has its own bit (plan-entity-presentation.md D10, EP2), so
+// a stunned mob no longer reads as a slowed one on the wire.
+func TestStun_LightsItsOwnBit(t *testing.T) {
 	var b Buffs
 	b.ApplyStun(stunSource, 90)
-	assert.Equal(t, AppliedEffectSlow, b.AppliedEffects())
+	assert.Equal(t, AppliedEffectStun, b.AppliedEffects())
 }
 
-// A stun is NOT a slow in the store, even though it borrows the slow's pip —
-// SlowFraction walks slowPayloads and must not see it, or "strongest slow
-// wins" would start arbitrating against a stun.
+// D10: a stun no longer hides a slow under one shared bit; a stunned and
+// slowed target carries both.
+func TestStun_AndASlowCarryBothBits(t *testing.T) {
+	var b Buffs
+	b.ApplyStun(stunSource, 90)
+	b.ApplySlow(2, 0.4, 90)
+	assert.Equal(t, AppliedEffectStun|AppliedEffectSlow, b.AppliedEffects())
+}
+
+// A stun is NOT a slow in the store: SlowFraction walks slowPayloads and must
+// not see it, or "strongest slow wins" would start arbitrating against a stun.
 func TestStun_IsNotASlowInTheStore(t *testing.T) {
 	var b Buffs
 	b.ApplyStun(stunSource, 90)

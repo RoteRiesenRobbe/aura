@@ -1,8 +1,9 @@
 # Plan: Entity presentation: every state an actor is in shows on its medallion, at a position reserved for it
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
-Q1-Q3 open, Q4 + L5 RULED 2026-10-24. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
-`plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); next EP2; EP3 (one token system) unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+Q2-Q3 open, Q4 + L5 RULED 2026-10-24, Q1 RULED 2026-10-31. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
+`plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); EP2 BUILT
+2026-10-31 [uncommitted], PO look owed (§11); next EP3 (one token system), unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -134,7 +135,7 @@ matching the tray's D13 rule):
 | 90 | fear | 270 | resist |
 | 112.5 | calm | 247.5 | reflect |
 | 135 | charm | 225 | tickRate |
-| 157.5 | *spare* | 202.5 | *spare* (lifesteal? §7 Q1) |
+| 157.5 | *spare* | 202.5 | *spare* (lifesteal not in EP2, §7 Q1) |
 | 180 | **dead** | | |
 
 Explicit angles, never derived from a count, so adding a state never moves an existing one
@@ -218,7 +219,9 @@ two new fields, and the corpse calls `setState(0, dead = true)`. The skull glyph
 `stunPayload.appliedBit()` returns `AppliedEffectSlow` today (`applied_effects.go:86`), so a
 stunned mob reads as slowed and a stun hides a weaker slow. EP2 adds `AppliedEffectStun = 1 << 13`
 on both sides and `api/shared-constants.json`, the 0° row, and a swirl glyph. A stunned and
-slowed mob then shows both.
+slowed mob then shows both. ⚑ Built as `1 << 14` (EP2, 2026-10-31): camouflage took bit 13 on
+2026-10-25 (`content-zone-7-swamp.md` E2), after this plan was written. Bit 15 is the last free
+bit of the ushort.
 
 ### D11 - `aura_category` is a rule, not a chunk
 
@@ -293,8 +296,8 @@ slowed mob shows both.
 
 ## 7. Open PO calls
 
-- **Q1. Lifesteal's indicator**: the backlog §40 note says it should be "the first thing §39
-  gives one to". Proposed: yes, bit 14 + the 202.5° spare, in EP2. Not asked this session.
+- ~~**Q1. Lifesteal's indicator**~~: RULED 2026-10-31 at EP2: not in EP2. Bit 15 (the last
+  free bit, since stun took 14) and the 202.5° spare stay free; lifesteal keeps no indicator.
 - **Q2. The glyph list** (R12): one PONETI icon per row; proposed as an art pass after EP1,
   with the colour discs standing in.
 - **Q3. Durations for others** (R10, parked): if it returns, the hover/tap tooltip with a
@@ -453,3 +456,46 @@ them pass (own `hot` under R8, a spider's `dot`, StatUp/Reflect/Fear masks, the 
 stealth alpha).
 
 **Schema:** DB none · wire none · conf none · content none · catalog/lang none.
+
+### EP2 - BUILT 2026-10-31 [uncommitted], PO look owed
+
+Stun's own bit, D10 as planned except the bit number. PO rulings in session (choice prompts):
+
+- **The bit is 14, not 13.** Camouflage took bit 13 on 2026-10-25 (`a1c443a2`, swamp content),
+  after this plan was written; found reading `applied_effects.go`, not from the plan. Bit 15 is
+  now the LAST free bit of the `applied_effects` ushort: the state after it widens the field
+  (an fbs edit, D11's pattern). The Go header comment says so.
+- **Q1 RULED: lifesteal gets no indicator in EP2** (bit 15 and the 202.5° spare stay free).
+- **The glyph: PONETI `Y_shadowstun`** (`SkillsIcons/Bonus/Skill1_Standart/`), manifest name
+  `stun-swirl`, a new pick. The PO first chose "reuse a pack swirl"; cropped, both picked swirls
+  turned out to be full paintings that blur at 12 px and already belong to skills (`dash-swirl`
+  = Dash, `frenzy-swirl` = Berserker), so a second prompt offered the pack's two real spirals
+  and the PO took the purple one. It has a background, so it draws as a small square tile, not
+  a round disc like the skull. Repacked on this machine (167 icons); committed placeholder
+  `stun-swirl.svg` (asset tracker row `state-stun-swirl`). Fallback disc colour 0x8e44ad
+  [PLACEHOLDER], matching the glyph.
+
+- **Go:** `AppliedEffectStun = 1 << 14`; `stunPayload.appliedBit()` returns it (the D6
+  borrow-the-slow comment is gone). `stun_test.go`'s old pin (stun reads as slow) flipped to
+  `TestStun_LightsItsOwnBit` + `TestStun_AndASlowCarryBothBits`; the Go twin pins `stun`.
+- **Client:** `AppliedEffectBit.Stun`, the `stun` row at 0° with the glyph. The side test's
+  harmful half is now `[0°, 180°)`: stun sits on the axis, in D2's harmful column. The "keeps 12
+  o'clock free" test became "stun owns 12 o'clock with its glyph"; a stun + slow mask draws
+  `stun` and `slow`.
+- Nothing else read stun as slow: the other `AppliedEffectSlow` assertions are real slows.
+
+**Verified:** red first on both sides (Go: undefined constant; vitest 5 red: SharedConstants,
+sides, angle pins, the 0° row, stun + slow) → `go build ./...` · `go test ./...` red only on the
+three known (Passages words, ArchetypeTrade guardrail, prop C1b), store + accounts run against
+`aura_test` · vitest 1952/0 · typecheck clean · `npm run build` · `ep1-state-ring` 11/0/0 with
+two new legs: Paralyze on a wolf shows `stun` at 0° r 45.0 as a glyph sprite with NO `slow`, and
+with the Slow aura lit a second Paralyze shows `stun` 0° + `slow` 45° together. ⚑ Harness
+findings: re-slotting is refused in combat (HUD `combatLocked`), so leg 6 slots Paralyze and
+Slow before the wolf venue; the old `equipCooldown` check passed on "— Empty —" and now matches
+the skill name.
+
+**PO look (owed):** a stunned mob shows the purple swirl at 12 o'clock and no slow; a stun on a
+slowed mob shows both; the swirl reads at the phone's smallest token.
+
+**Schema:** DB none · wire +1 `applied_effects` bit value (no field, no fbs edit) · conf none ·
+content none · catalog none (pack manifest +1 icon) · lang none.

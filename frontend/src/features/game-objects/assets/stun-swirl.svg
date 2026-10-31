@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder for the PONETI Y_shadowstun swirl (plan-entity-presentation.md D10, EP2):
+     drawn where the icon pack is not on this machine. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect x="2" y="2" width="60" height="60" rx="8" fill="#2a0f3a"/>
+  <path fill="none" stroke="#c77dff" stroke-width="6" stroke-linecap="round"
+        d="M32 32c0-3 4-4 6-2 3 3 1 9-4 10-7 2-12-4-11-10 1-9 11-13 18-10 9 4 11 16 6 23-6 8-19 9-26 2"/>
+</svg>

@@ -37,6 +37,9 @@ export enum AppliedEffectBit {
     // A camouflaged mob at its spawn point (content-zone-7-swamp.md E2): a
     // whole-entity alpha like stealth, fainter, and visual only.
     Camouflage = 1 << 13,
+    // A live stun (plan-entity-presentation.md D10, EP2): its own bit, so a
+    // stunned mob no longer reads as a slowed one.
+    Stun = 1 << 14,
 }
 
 /** A stealthed entity's alpha, for every viewer and its own player. [PLACEHOLDER] */
@@ -74,10 +77,11 @@ export interface StateRow {
  * never derived from a count, so adding a state never moves another (R5).
  * Harmful to the wearer sits on the right half, helpful on the left (R6);
  * calm and charm are done to a mob against its will, so they are harmful
- * (buff tray D13). 0° is stun's (EP2); 157.5° and 202.5° are the spares.
+ * (buff tray D13). Stun owns 12 o'clock (EP2); 157.5° and 202.5° are the
+ * spares.
  *
  * The colours are the retired pip strip's and the colour-disc fallback until
- * a glyph is picked (R12). Dot/slow/hot/resist/speed reuse the aura-ring
+ * a glyph is picked (R12; stun and dead have one). Dot/slow/hot/resist/speed reuse the aura-ring
  * category language, so "purple around a mob" and "purple on its rim" mean
  * the same thing. Calm's pale blue is far from slow's blue (a slowed wolf is
  * still coming for you, a calmed one is not), charm's warm violet far from
@@ -88,6 +92,12 @@ export interface StateRow {
  */
 export const STATE_ROWS: readonly StateRow[] = [
     // Right half: harmful.
+    // 12 o'clock: stun (D10). PONETI `Y_shadowstun`, with a committed
+    // placeholder for clones without the pack; the violet disc matches it.
+    {
+        id: 'stun', source: AppliedEffectBit.Stun, angle: 0, colour: 0x8e44ad,
+        glyph: {packIcon: 'stun-swirl', file: require('../assets/stun-swirl.svg')},
+    },
     {id: 'dot', source: AppliedEffectBit.Dot, angle: 22.5, colour: AURA_CATEGORY_COLORS.dot},
     {id: 'slow', source: AppliedEffectBit.Slow, angle: 45, colour: AURA_CATEGORY_COLORS.slow},
     // A dull rust for a weakened stat.

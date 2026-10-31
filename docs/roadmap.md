@@ -1280,7 +1280,8 @@ system ships blind.
 >    `SetQuestLedger(dead.quests)`, pinned red-first by
 >    `TestReviveAtCorpse_CarriesQuestLedger`. Revives before the fix most likely saved
 >    a fresh ledger over the stored one (unverified); lost progress is not recovered.
-> 2. **EP2** (`plan-entity-presentation.md`, stun's own bit).
+> 2. ✅ **EP2, BUILT 2026-10-31** (`plan-entity-presentation.md` §11): stun has its own
+>    `applied_effects` bit (14; bit 15 is the last free one) and a swirl glyph at 0°. PO look owed.
 > 3. **EP3 design pass** (planning only, §7 Q6: which spawned things are props), then
 >    **EP3 build**. Closes the gap EP1 left: `Totem`, the summoned `FireTotem`,
 >    `WarbannerTotem` and `Rockfall` carry state bits and show none.

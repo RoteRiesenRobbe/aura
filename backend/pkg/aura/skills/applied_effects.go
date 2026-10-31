@@ -37,14 +37,18 @@ const (
 	// buff but a mob state, set by Mob.AppliedEffects rather than the buff
 	// store; the client draws it faint. Visual only, unlike stealth.
 	AppliedEffectCamouflage AppliedEffect = 1 << 13
+	// A live stun (plan-entity-presentation.md D10, EP2): its own bit, so a
+	// stunned mob no longer reads as a slowed one.
+	AppliedEffectStun AppliedEffect = 1 << 14
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
-	// ⚑ Bit 7 was the LAST bit of the old ubyte; effect types round 2 C0
-	// (plan-effect-types-round-2.md) widened the wire field to a ushort, so
-	// bits 8-15 are free. lifestealPayload (R3) and reflectPayload went
-	// without a pip while there was no room; reflect got bit 10 in that plan's
-	// C2, lifesteal still has none.
+	// ⚑ Bit 15 is the LAST free bit of the ushort (effect types round 2 C0
+	// widened the field from a ubyte; plan-effect-types-round-2.md): the state
+	// after it widens the field again. lifestealPayload (R3) and
+	// reflectPayload went without a pip while there was no room; reflect got
+	// bit 10 in that plan's C2, lifesteal still has none (PO 2026-10-31: not
+	// in EP2, plan-entity-presentation.md §7 Q1).
 	// The burst is not silent in play — every hit floats a heal number off the
 	// caster and the cooldown icon runs its own timer — but it is the first buff
 	// with NO pip and a real duration, so it is the concrete cost of the missing
@@ -82,12 +86,8 @@ func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 // It got one with thorns on others (plan-effect-types-round-2.md C2).
 func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectReflect }
 
-// D6: the stun borrows the SLOW bit rather than widening the wire for one
-// buff — the lifestealPayload precedent above, applied where reuse at least
-// reads as movement impairment instead of as nothing at all. ⚑ The conflation
-// is real: a stunned mob is indistinguishable from a slowed one on the wire,
-// and a stun suppresses a weaker slow's pip. §39 owns splitting them.
-func (*stunPayload) appliedBit() AppliedEffect { return AppliedEffectSlow }
+// The stun borrowed the slow bit until EP2 (D10) gave it its own.
+func (*stunPayload) appliedBit() AppliedEffect { return AppliedEffectStun }
 
 func (p *statPayload) appliedBit() AppliedEffect {
 	if p.bonus < 0 {

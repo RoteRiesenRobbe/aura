@@ -13,6 +13,10 @@
 //   4. stealth (R3, R13): Vanish fades the own shape AND its plate to 0.4; a
 //      mob handed the Stealth bit client-side (no mob authors stealth, so this
 //      is the client path only) fades with its plate;
+//   6. stun's own bit (EP2, D10): Paralyze on a wolf beside the dot venue shows
+//      `stun` at 0° as a glyph sprite and NO `slow` (a stun no longer borrows
+//      the slow bit); with the Slow aura armed, a second Paralyze shows `stun`
+//      and `slow` together;
 //   5. a MEASUREMENT, no assert: rAF frame time with up to 30 mobs each
 //      forced to 4 indicators vs none, alternated over rounds. Headless here is
 //      SwiftShader (CPU raster), so only the ratio means anything.
@@ -39,7 +43,7 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 // TokenState.ts [PLACEHOLDER]s, restated.
-const ANGLES = { dot: 22.5, slow: 45, speed: 315, hot: 337.5 };
+const ANGLES = { stun: 0, dot: 22.5, slow: 45, speed: 315, hot: 337.5 };
 const GAP = 3;
 const diameterOf = (size) => Math.max(6, Math.min(12, (size + GAP) * Math.PI / 8 * 0.85));
 const radiusOf = (size) => size + GAP + diameterOf(size) / 2;
@@ -90,6 +94,7 @@ const waitFor = async (pred, ms, step = 200) => {
 const readTokenSource = (which) => {
   const pick = () => {
     if (which === 'own') return window.game.character;
+    if (typeof which === 'number') return window.game.objectsInView().find((o) => o && o.id === which) || null;
     const me = window.game.character;
     const mobs = window.game.objectsInView().filter((o) => o && o !== me && o.medallion && typeof o.setStance === 'function' && o.shape?.parent);
     const named = which ? mobs.filter((o) => (o.nameElement?.text || '').startsWith(which)) : mobs;
@@ -109,7 +114,7 @@ const readTokenSource = (which) => {
     size: ring ? ring.width / 2 : null,
     order: token.children.map((c) => c.label).join(','),
     indicators: (box?.children ?? []).map((c) => ({
-      label: c.label, x: c.x, y: c.y, w: c.width,
+      label: c.label, x: c.x, y: c.y, w: c.width, glyph: !!c.texture,
       angle: ((Math.atan2(c.x, -c.y) * 180 / Math.PI) + 360) % 360,
       r: Math.hypot(c.x, c.y),
       inToken: box.parent?.parent === token,
@@ -142,7 +147,7 @@ const equipCooldown = async (skillRe, slotIndex) => {
   const sbox = await (await page.$(`#cooldownSlotList li[data-slot="${slotIndex}"]`)).boundingBox();
   await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
   await page.waitForTimeout(700);
-  return page.evaluate((i) => /\S/.test(document.querySelector(`#cooldownSlotList li[data-slot="${i}"] .slotLabel`)?.textContent || ''), slotIndex);
+  return page.evaluate(({ i, re }) => new RegExp(re, 'i').test(document.querySelector(`#cooldownSlotList li[data-slot="${i}"] .slotLabel`)?.textContent || ''), { i: slotIndex, re: skillRe.source });
 };
 const equipAndActivateAura = async (skillRe, slotIndex) => {
   const rowIndex = await page.waitForFunction(
@@ -163,6 +168,21 @@ const equipAndActivateAura = async (skillRe, slotIndex) => {
     await page.waitForTimeout(1200);
   }
   return false;
+};
+const equipAura = async (skillRe, slotIndex) => {
+  const rowIndex = await page.waitForFunction(
+    (re) => [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)),
+    skillRe.source, { timeout: 20_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => -1);
+  if (rowIndex < 0) return false;
+  await showSkillRowAt(page, rowIndex);
+  const box = await (await page.$$('#spellbookList li'))[rowIndex].boundingBox();
+  await page.mouse.click(box.x + 25, box.y + box.height / 2);
+  await page.waitForTimeout(700);
+  const sel = `#auraSlotList li[data-slot="${slotIndex}"]`;
+  const sbox = await (await page.$(sel)).boundingBox();
+  await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+  await page.waitForTimeout(1000);
+  return page.evaluate(({ s, re }) => new RegExp(re, 'i').test(document.querySelector(`${s} .slotLabel`)?.textContent || ''), { s: sel, re: skillRe.source });
 };
 // ⚑ ~1.4 s hold: slot hotkeys are edge-triggered off an rAF clock a headless
 // page throttles (swift-cooldown.mjs).
@@ -219,6 +239,14 @@ else check('Vanish fades the own shape and plate (R3, R13)',
   !!stealthed && Math.abs(stealthed.alpha - 0.4) < 1e-6 && Math.abs(stealthed.plateAlpha - 0.4) < 1e-6 && stealthed.indicators.length === 0,
   stealthed ? `shape ${stealthed.alpha}, plate ${stealthed.plateAlpha}, indicators ${stealthed.indicators.map((i) => i.label).join(',') || 'none'}` : 'alpha never dropped within 4 s');
 
+// Leg 6's loadout, slotted before the wolf venue: re-slotting is refused in
+// combat (HUD's combatLocked), and the venue is a fight. Slow goes into aura
+// slot 2 unlit; Immolate takes the active aura at the venue.
+await cmd('SKILL Paralyze');
+await cmd('SKILL Slow');
+const paralyzeSlot = await equipCooldown(/Paralyze/, 2);
+const slowSlot = await equipAura(/Slow/, 1);
+
 // --- 3: a dot on a wolf -----------------------------------------------------------
 await cmd(`WARP ${WOLF_VENUE[0] * 120} ${WOLF_VENUE[1] * 120}`, 3000);
 const wolf0 = await readToken('Wolf');
@@ -259,6 +287,76 @@ else {
   const bandOuter = radiusOf(dotted.size) + diameterOf(dotted.size) / 2;
   check('The wolf\'s bar clears the indicator band (D8)', dotted.barTop >= bandOuter - 1e-6,
     `bar top ${dotted.barTop?.toFixed(1)} vs band outer ${bandOuter.toFixed(1)}`);
+}
+
+// --- 6: stun's own bit (EP2) -------------------------------------------------------
+// Paralyze stuns the nearest enemy within 2.5 u for 3 s (cooldown 30 s). Warp
+// onto a wolf, fire F, then scan every mob in view for a stun indicator.
+// Up to three casts, waiting out the cooldown after one that landed nowhere
+// visible, until `want` holds for a stunned mob.
+const paralyzeUntil = async (want) => {
+  for (let n = 0; n < 3; n++) {
+    const t = await paralyzeWolf();
+    if (t && want(t)) return t;
+    await page.waitForTimeout(31_000);
+  }
+  return null;
+};
+const paralyzeWolf = async () => {
+  const target = await page.evaluate(() => {
+    const me = window.game.character;
+    const mobs = window.game.objectsInView().filter((o) => o && o !== me && o.medallion && (o.nameElement?.text || '').startsWith('Wolf'));
+    mobs.sort((a, b) => Math.hypot(a.getX() - me.getX(), a.getY() - me.getY()) - Math.hypot(b.getX() - me.getX(), b.getY() - me.getY()));
+    return mobs[0] ? [mobs[0].getX(), mobs[0].getY()] : null;
+  });
+  if (!target) return null;
+  await cmd(`WARP ${Math.round(target[0])} ${Math.round(target[1])}`, 800);
+  await fireKey('f');
+  return waitFor(async () => {
+    const id = await page.evaluate(() => {
+      const me = window.game.character;
+      const o = window.game.objectsInView().find((x) => x && x !== me && x.shape?.getChildByLabel('stateIndicators', true)?.children?.some((c) => c.label === 'stun'));
+      return o ? o.id : null;
+    });
+    return id === null ? null : page.evaluate(readTokenSource, id);
+  }, 3000, 200);
+};
+let stunned = null;
+if (paralyzeSlot) stunned = await paralyzeUntil(() => true);
+if (stunned) await page.screenshot({ path: join(shotDir, `ep1-${label}-wolf-stun.png`) });
+if (!paralyzeSlot) check('Paralyze puts the stun indicator on a wolf at 0°, slow absent (EP2, D10)', null, 'Paralyze never reached cooldown slot 3');
+else if (!stunned) check('Paralyze puts the stun indicator on a wolf at 0°, slow absent (EP2, D10)', null, 'no mob showed a stun indicator within 3 s (venue)');
+else {
+  const p = placed(stunned, 'stun');
+  const glyph = stunned.indicators.find((i) => i.label === 'stun')?.glyph;
+  const slow = stunned.indicators.some((i) => i.label === 'slow');
+  check('Paralyze puts the stun indicator on a wolf at 0°, slow absent (EP2, D10)', p.ok && glyph && !slow,
+    `${stunned.name}: ${p.why}, glyph sprite ${glyph}, slow shown ${slow}`);
+}
+// Switching the active aura stays allowed in combat.
+const activateAuraSlot = async (i) => {
+  const sel = `#auraSlotList li[data-slot="${i}"]`;
+  const sbox = await (await page.$(sel)).boundingBox();
+  for (let n = 0; n < 5; n++) {
+    await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+    await page.waitForTimeout(1200);
+    if (await page.evaluate((s) => !!document.querySelector(s)?.classList.contains('activeSlot'), sel)) return true;
+  }
+  return false;
+};
+const slowArmed = paralyzeSlot && slowSlot && await activateAuraSlot(1);
+let both = null;
+if (slowArmed) {
+  await page.waitForTimeout(31_000); // Paralyze's cooldown
+  both = await paralyzeUntil((t) => t.indicators.some((i) => i.label === 'slow'));
+}
+if (both) await page.screenshot({ path: join(shotDir, `ep1-${label}-wolf-stun-slow.png`) });
+if (!slowArmed) check('A stunned and slowed wolf shows both indicators (D10)', null, 'Paralyze or the Slow aura never armed');
+else if (!both) check('A stunned and slowed wolf shows both indicators (D10)', null, 'no stunned mob also showed a slow (venue)');
+else {
+  const ps = placed(both, 'stun');
+  const pl = placed(both, 'slow');
+  check('A stunned and slowed wolf shows both indicators (D10)', ps.ok && pl.ok, `${both.name}: ${ps.why}; ${pl.why}`);
 }
 
 // --- 4b: mob stealth, client path ---------------------------------------------------

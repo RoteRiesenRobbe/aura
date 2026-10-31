@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-10-25 from 321 rows.
+Rendered 2026-10-31 from 325 rows.
 
 ---
 
@@ -39,16 +39,16 @@ Rendered 2026-10-25 from 321 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 287 |
+| Art | 291 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
 
 | State | Rows | Means |
 | --- | ---: | --- |
-| ✅ drawn | 89 | has its own art today |
+| ✅ drawn | 90 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 141 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 144 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 9 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
@@ -59,10 +59,10 @@ Rendered 2026-10-25 from 321 rows.
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
 | **P1** | 76 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 120 | normal — placed but not everywhere |
-| **P3** | 94 | low — unplaced, deferred, or already fine |
+| **P2** | 123 | normal — placed but not everywhere |
+| **P3** | 95 | low — unplaced, deferred, or already fine |
 
-**207 rows need work** (missing, shared, placeholder, stock or blocked),
+**210 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -85,7 +85,7 @@ of which **11 are P0**:
 
 # Art
 
-## Mob — 33
+## Mob — 34
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -122,6 +122,7 @@ of which **11 are P0**:
 | ❌ | **Goblin** | — | P1 |  | 60–76 | Z2 Woodland — Named in the world bible beside Kobold; no definition and no art exist. Must read as a DIFFERENT species from Kobold at the same size, not a recolour. |
 | ✅ | **AlphaBoar** | `wildboar_alpha.png` | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder, and the first elite a new player meets. It got its OWN silhouette rather than the entityType-variant shortcut this row used to allow — a mob whose only tell is the health bar is one the player cannot decide to avoid. Rendered at 52-62 (this column is DPR-2). Placement is the PO's: the mill POI takes exactly one. |
 | ❌ | **BanditLeader** | — | P2 |  | 100–116 | Z2 bandit camp — Named elite leading the Woodland camp. Content on top of EliteBandit — art optional, but a named antagonist with the generic elite face is a missed beat. |
+| 🟡 | **Lake Crab** | `lakeCrab.svg` | P2 | 6 | 46 | Z7 — Sorrowfen's beach crab (content-zone-7-swamp.md C9). Placeholder: the Sand Clamper SVG recoloured blue (PO 2026-10-25); the pack bust is portrait-crab tinted blue. Real art wanted. |
 
 ## Hazard — 4
 
@@ -320,13 +321,14 @@ of which **11 are P0**:
 | 🟡 | **Shells** | `shells.svg` | P2 |  | 50–110 | Z1 Strand · Z3–4 — Tide-line scatter: cockles, mussels, periwinkles. Three kinds so it reads as a beach, not confetti. |
 | 🟡 | **Kelp Line** | `kelpLine.svg` | P2 |  | 120–300 | Z1 Strand · Z3–4 — The strand line of dead wrack the high tide leaves. A LINE drawn west-east: rotate along the shore, overlap the thin ends. |
 
-## Player — 3
+## Player — 4
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
 | ✅ | **Player character** | `characters/player.svg` | P0 |  | 60 | ⭐ One drawing is every player on the server — there's no avatar system yet. A portrait; never rotates. Smallest important sprite in the game. |
 | ⚙️ | **Player hands** | — | P3 |  | tiny | Two circles drawn procedurally, skin #f2a586 + black outline. If the avatar's shape changes, these move or go. |
-| ✅ | **Death skull** | `red-skull.svg` | P3 |  | 32 | Since plan-appearance.md C6 the corpse is the dead player's own medallion, greyed, with this red skull at 6 o'clock (the gravestone retired). Placeholder for the PONETI `Rune_Death_nb` pack icon (`red-skull`), drawn where the pack is absent. |
+| ✅ | **Death skull** | `red-skull.svg` | P3 |  | 32 | Placeholder for the PONETI Rune_Death_nb pack icon (red-skull); the corpse is the dead player's greyed medallion since plan-appearance.md C6. |
+| ✅ | **Stun swirl** | `stun-swirl.svg` | P3 |  | 12 | Placeholder for the PONETI Y_shadowstun pack icon (stun-swirl); the stun indicator since plan-entity-presentation.md EP2. |
 
 ## VFX — 29
 
@@ -374,7 +376,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 32
+## Terrain profile — 34
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -382,6 +384,7 @@ of which **11 are P0**:
 | ✅ | **Suburbs** | `Grass6.jpg` | P1 |  | seamless tile, 512² suggested | Village/settled ground. Shares Grass6 with Fields. |
 | 🟡 | **Ploughed** | `ploughed-placeholder.png` | P1 |  | seamless tile 750² | Z1 — Field plots, worn by POLYGONS on the Fields region (zone guide 2.2), not by regions. GENERATED placeholder (tools/make-field-tiles.mjs): furrow ridges with crevices between the clods. blend 0 - a field plot has straight man-made edges. Ships TWICE, as Ploughed and Ploughed Cross, because a profile has no rotation knob and one row direction everywhere reads as a printing error. scale 1 (NOT the usual 0.35): a tile covers 6.25 u and repeats ~1.7x on screen, where 0.35 repeated five times and read as corduroy. Furrows 0.57 u apart, soft rather than crisp, with sparse dark blotches breaking them - tuned against a reference image the PO supplied. Clods are a cellular lattice, now almost silent. |
 | 🟡 | **Wheat** | `wheat-placeholder.png` | P1 |  | seamless tile 750² | Z1 — Standing crop, same posture as Ploughed: a polygon plot, blend 0, and a Wheat Cross twin for the other row direction. GENERATED placeholder (tools/make-field-tiles.mjs), tuned against a tabletop static-grass reference the PO supplied: a dense flock of ~0.05 u TUFTS (the cellular lattice, not waves - wave marks read as squiggles or as ribbed card), with the drills deciding how much crop stands so bare earth shows between them. scale 1, drills 0.5 u apart. Fallback colour moved to #b08f4c with the art. |
+| 🟡 | **Thicket** | `thicket-placeholder.png` | P2 |  | seamless tile 750² | Z7 — The swamp's thicket walls (content-zone-7-swamp.md P3). GENERATED placeholder (tools/make-cellular-tiles.mjs `thicket`): dark brown limbs and bramble piled to near-full cover with long shadows, thorns pointed at both ends on top; scale 0.6 so the pieces read at game zoom. Added 2026-10-25 because Forest on a blocking polygon read as walkable floor. Real art wanted. |
 | 🟡 | **Forest** | `forest-placeholder.png` | P0 |  | seamless tile, 512² suggested | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
 | 🟡 | **Swamp** | `pd161.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #585044. All numbers [PLACEHOLDER]. |
 | 🟡 | **Coastal Cliff** | `limestone-placeholder.png + coast-grass-placeholder.png` | P1 |  | seamless tile 750² | Z3 — ⭐ The clifftop of Wrecker's Bluff: Burren LIMESTONE under a COAST GRASS overlay (coverage 0.72), so it reads as rock with grass on it. Was the Mountains tile (pd196). Two generated tiles (tools/make-cellular-tiles.mjs); real art = a limestone tile + a pale salt-bleached sward tile. All numbers [PLACEHOLDER]. |
@@ -409,6 +412,7 @@ of which **11 are P0**:
 | 🟡 | **Flagstone** | `flagstone-placeholder.png` | P2 |  | seamless tile 750² | A building floor, first laid in the cathedral: a REGION profile inside a building's walls. GENERATED placeholder (tools/make-cellular-tiles.mjs `flagstone`): the wall's courses laid flat, dressed pale-sandstone slabs in straight staggered rows with thin grout, a step lighter than the City ground so an interior reads as swept. Real art wanted. |
 | 🟡 | **Water** | `water-placeholder.png` | P1 |  | seamless tile, 512² suggested | Rivers and ponds. Placeholder PNG. Drift is authored; the tile is not. |
 | 🟡 | **Bog** | `bog-placeholder.png` | P2 |  | seamless tile, 512² suggested | Swamp water. Placeholder PNG. First area-effect consumer when that ships. |
+| 🟡 | **Deep Bog** | `deep-bog-placeholder.png` | P2 |  | seamless tile | Z7 — The swamp's deep-water walls (content-zone-7-swamp.md §6a). GENERATED placeholder (tools/make-water-tile.mjs `deep-bog`): the bog tile recoloured darker. Added 2026-10-25 because blue Water read as a clean lake in the swamp. Real art wanted. |
 | 🟡 | **Lava** | `lava-placeholder.png` | P3 |  | seamless tile, 512² suggested | Placeholder PNG. No zone authors it yet. |
 
 ## Atmosphere — 11

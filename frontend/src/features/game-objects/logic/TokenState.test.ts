@@ -40,14 +40,15 @@ describe('STATE_ROWS', () => {
 
     // R6 / D2: harmful to the wearer on the right, helpful on the left; calm
     // and charm are done to a mob against its will (the tray's D13 rule).
+    // Stun owns 12 o'clock (EP2), so the harmful half includes 0°.
     it('sorts harmful states to the right half and helpful ones to the left', () => {
-        const harmful = [AppliedEffectBit.Dot, AppliedEffectBit.Slow, AppliedEffectBit.StatDown,
-            AppliedEffectBit.Fear, AppliedEffectBit.Calm, AppliedEffectBit.Charm];
+        const harmful = [AppliedEffectBit.Stun, AppliedEffectBit.Dot, AppliedEffectBit.Slow,
+            AppliedEffectBit.StatDown, AppliedEffectBit.Fear, AppliedEffectBit.Calm, AppliedEffectBit.Charm];
         const helpful = [AppliedEffectBit.Hot, AppliedEffectBit.Speed, AppliedEffectBit.StatUp,
             AppliedEffectBit.Resist, AppliedEffectBit.Reflect, AppliedEffectBit.TickRate];
         for (const bit of harmful) {
             const angle = rowOf(bit).angle;
-            expect(angle > 0 && angle < 180, AppliedEffectBit[bit]).toBe(true);
+            expect(angle >= 0 && angle < 180, AppliedEffectBit[bit]).toBe(true);
         }
         for (const bit of helpful) {
             const angle = rowOf(bit).angle;
@@ -58,6 +59,7 @@ describe('STATE_ROWS', () => {
     });
 
     it('pins the D2 angles', () => {
+        expect(rowOf(AppliedEffectBit.Stun).angle).toBe(0);
         expect(rowOf(AppliedEffectBit.Dot).angle).toBe(22.5);
         expect(rowOf(AppliedEffectBit.Slow).angle).toBe(45);
         expect(rowOf(AppliedEffectBit.StatDown).angle).toBe(67.5);
@@ -72,8 +74,11 @@ describe('STATE_ROWS', () => {
         expect(rowOf(AppliedEffectBit.TickRate).angle).toBe(225);
     });
 
-    it('keeps 12 o\'clock free for stun (EP2)', () => {
-        expect(indicatorRows.some(row => row.angle === 0)).toBe(false);
+    it('gives stun 12 o\'clock with the swirl glyph (EP2, D10)', () => {
+        const stun = rowOf(AppliedEffectBit.Stun);
+        expect(indicatorRows.filter(row => row.angle === 0)).toEqual([stun]);
+        expect(stun.glyph?.packIcon).toBeTruthy();
+        expect(stun.glyph?.file).toBeTruthy();
     });
 
     it('makes dead an indicator at 180° that also greys, with the skull glyph', () => {
@@ -137,6 +142,12 @@ describe('tokenState', () => {
         expect(state.alpha).toBe(Math.min(STEALTH_ALPHA, CAMOUFLAGE_ALPHA));
         expect(state.indicators).toHaveLength(indicatorRows.length - 1);
         expect(state.indicators.map(row => row.source)).not.toContain('dead');
+    });
+
+    // D10: a stun no longer hides a slow; a stunned and slowed mob shows both.
+    it('shows a stun and a slow side by side', () => {
+        const state = tokenState(AppliedEffectBit.Stun | AppliedEffectBit.Slow, false);
+        expect(state.indicators.map(row => row.id)).toEqual(['stun', 'slow']);
     });
 
     it('carries its inputs, so a consumer can tell two states apart', () => {
