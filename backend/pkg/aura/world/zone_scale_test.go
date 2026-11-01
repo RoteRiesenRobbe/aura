@@ -196,57 +196,18 @@ func TestPropScale_ErrorNamesTheOffendingIndex(t *testing.T) {
 	assert.Contains(t, err.Error(), "prop props.canopy[1]: scale -3")
 }
 
-// ⭐ The C1b migration pin, against the REAL api/props content.
+// The C1b rule for rect props, against the REAL api/props content: they never
+// had a client size factor, so they carry no collisionFactor either; their body
+// is both footprints.
 //
-// C1b inverted what an authored body means: it used to be the collider, with
-// the client inflating the sprite by a hardcoded per-class factor
-// (`size * 1.15 + character.size` for trees, `* 1.07` for minerals); it is now
-// the VISUAL footprint, with `collisionFactor` shrinking the collider back.
-//
-// The whole point of the migration was that NEITHER end moves: the world looks
-// the same and walks the same. Those two claims are only true if the authored
-// numbers are right, and no other test would notice a typo in them — the client
-// side of the equation is untestable here, so this pins the server side against
-// the constants the client used to apply.
-func TestPropContent_C1bMigrationPreservesLookAndCollision(t *testing.T) {
-	const px = 120                    // client-data/BasicConfig.ts PIXEL_PER_METER
-	const characterSizePx = 0.25 * px // meter2px(PLAYER_COLLIDER_RADIUS_METERS)
-
+// The per-class half of the old C1b migration pin (Tree, Rock and Boulder kept
+// their pre-C1b look and collider) is retired: `bc8bd1be` (2026-09-17) resized
+// the Tree and Boulder bodies on purpose, and today's sizes are ruled, not a
+// migration result (PO 2026-11-01).
+func TestPropContent_RectPropsCollideAtTheirOwnSize(t *testing.T) {
 	reg, err := PropRegistryFromFS(os.DirFS("../../../../api/props"))
 	require.NoError(t, err)
 
-	cases := []struct {
-		prop string
-		// what the sprite USED to be drawn at, in px, from the pre-C1b client
-		wasSpritePx float64
-		// the collider it USED to have, in units — its whole authored body
-		wasColliderUnits float64
-	}{
-		// Resources.ts Tree: size*1.15 + character.size, over a 1.0 body
-		{"Tree", 1.0*px*1.15 + characterSizePx, 1.0},
-		// Resources.ts Mineral: size*1.07, over 0.5 and 1.5 bodies
-		{"Rock", 0.5 * px * 1.07, 0.5},
-		{"Boulder", 1.5 * px * 1.07, 1.5},
-	}
-	for _, tc := range cases {
-		t.Run(tc.prop, func(t *testing.T) {
-			def, err := reg.GetByName(tc.prop)
-			require.NoError(t, err)
-
-			// The sprite is now drawn at exactly the visual radius, with no
-			// client-side factor — so the visual body must equal what the old
-			// formula produced, or every one of these props changes size.
-			assert.InDelta(t, tc.wasSpritePx, float64(def.Body.VisualRadius())*px, 0.5,
-				"%s would change size on screen", tc.prop)
-
-			// And the collider must not have moved at all.
-			assert.InDelta(t, tc.wasColliderUnits, float64(def.Body.Collision().Radius), 1e-4,
-				"%s would change what it blocks", tc.prop)
-		})
-	}
-
-	// The rect props never had a client factor, so they must NOT have grown a
-	// collision factor either — their body already was both footprints.
 	for _, name := range []string{"House", "GateWall"} {
 		def, err := reg.GetByName(name)
 		require.NoError(t, err)

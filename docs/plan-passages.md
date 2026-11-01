@@ -3,8 +3,9 @@
 **Status: P1-P6 BUILT 2026-10-17/18 (P1 `31b87226`, P2 `0bc12406`, P3 `9011e6d4`, P4 `815e8581`,
 P3b `9d681b16`, P5 `22524cf4`, P6 `cefa9ad7`; PO-look follow-ups `a8197337`, `ab065b86`), MERGED to main
 and DEPLOYED LIVE 2026-10-20 as `59780288`.** R1-R6 RULED, D1-D11 PROPOSED (built as written). §7 Q1-Q9 all RULED
-2026-10-18. Left open (2026-10-21): world.json's barn-door touch exit still carries the test id
-`fallow-test-glow`; `passages.mjs` stops at venue drift (`2d40c404` removed its barn door); the
+2026-10-18. Left open (2026-10-21): ~~world.json's barn-door touch exit still carries the test id
+`fallow-test-glow`~~ renamed `barn-cellar-glow` 2026-11-01 (PO: the glow area IS the barn's
+entrance; its orphan words `anchor.barn-inside.text` dropped, en + de); `passages.mjs` stops at venue drift (`2d40c404` removed its barn door); the
 covered name the PO saw once is unreproduced.
 
 **Owns:** the `exits` Tiled layer, `zone.exits[]` (talk exits) and `zone.exitAreas[]` (touch

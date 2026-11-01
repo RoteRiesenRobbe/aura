@@ -308,8 +308,8 @@ func archetypeDPS(t *testing.T, def *mobs.MobDefinition) float64 {
 	return 0
 }
 
-// archetypeExempt is the curated scope decision for D6, and it holds exactly
-// one entry. Scope is otherwise the WHOLE catalog, deliberately: at the knobs
+// archetypeExempt is the curated scope decision for D6: each entry is a
+// written ruling. Scope is otherwise the WHOLE catalog, deliberately: at the knobs
 // above nothing outside §3.8's eight fails, including hazards, props, summons
 // and encounter internals, so a new mob is asserted by DEFAULT and exempting it
 // has to be a decision someone writes down right here.
@@ -335,6 +335,11 @@ var archetypeExempt = map[string]string{
 	// The death-trigger example (plan-effect-types-round-2.md C7): the
 	// GiantSpider's body, debug zones only.
 	"BroodMother": "the GiantSpider's body, a debug-only death-trigger example",
+	// The Sorrowfen boss (a1c443a2, 2026-10-25): 12.7x the unit's HP at speed
+	// 1.14x and damage 0.88x. PO 2026-11-01, offered damage -10%, a slower body
+	// or this: a boss may be bigger, not just differently shaped. Its numbers
+	// stay as authored (placeholders like every number).
+	"SpiderQueen": "the swamp boss, bigger by ruling (PO 2026-11-01): HP pays for nothing, as authored",
 }
 
 // TestGuardrails_ArchetypeTrade is D6. It is a pure function of the authored

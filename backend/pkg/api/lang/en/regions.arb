@@ -1,9 +1,5 @@
 {
   "@@locale": "en",
-  "anchor.barn-inside.text": "A low door into the barn's cellar.",
-  "@anchor.barn-inside.text": {
-    "description": "What every generic door leading into the barn cellar (anchor \"barn-inside\") says when the player presses E at it: one line in the door's panel, under the place name. A plain description of the way in."
-  },
   "exit-look.cave-exit.go": "Climb up.",
   "@exit-look.cave-exit.go": {
     "description": "The button on every exit drawn as a cave exit (a way up out of a cave) that moves the player through it, by default. An imperative, like \"Climb down.\""
