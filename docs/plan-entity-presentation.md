@@ -3,7 +3,8 @@
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
 Q2-Q3 open, Q4 + L5 RULED 2026-10-24, Q1 RULED 2026-10-31. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
 `plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); EP2 BUILT
-2026-10-31 `610315fd`, PO look owed (§11); next EP3 (one token system), unplanned.** Open PO calls in §7. Two chunks here (EP1, EP2, §5) with
+2026-10-31 `610315fd`, PO look owed (§11); EP3 (one token system) DESIGNED + APPROVED 2026-11-01
+(R15-R16, D13-D16), nothing built.** Open PO calls in §7. Three chunks here (EP1, EP2, EP3, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -14,9 +15,10 @@ its death art); `plan-entity-medallions.md` (cited M-§n: the token, D11 stance)
 D10/D13 (the own player's tray, the harmful/helpful split). **Replaces:** `EffectPips` (the pip
 strip under the health bar retires, R5). **Unblocks:** `plan-appearance.md` C6 (D43).
 **Schema (as designed):** DB none · wire none in EP1; EP2 +1 `applied_effects` bit value (no
-field) · conf none · content none · catalog none · lang none.
+field); EP3 none · conf none · content none · catalog none · lang none.
 
-⚑ Line references pinned 2026-10-23 at `ace434c7` (main); re-verify before relying on them.
+⚑ Line references pinned 2026-10-23 at `ace434c7` (main); EP3's (§3 D13-D16, L10-L13) pinned
+2026-11-01 at `a4144368`; re-verify before relying on them.
 
 ---
 
@@ -97,7 +99,20 @@ sprite.** This plan meets it by construction: the indicators live inside the tok
   reads the same on every actor; the Character plate mirrors `shape.alpha`.
 - **R14. One system for all tokens** (L5, at the EP1 look 2026-10-24): any spawned entity that
   is not an in-world prop, or that does not show what it is through its own asset, wears a
-  medallion, totems included, so it shows state like every other token. EP3, unplanned.
+  medallion, totems included, so it shows state like every other token. EP3 (D13-D16).
+- **R15. Reachable means medallion** (Q6, EP3 planning session 2026-11-01): a spawned thing an
+  aura can reach wears a medallion; one no aura can reach is a prop and keeps its own art. That
+  puts `Totem` (summon-totem, omni-strike, BurstTotem), the summoned `FireTotem`,
+  `WarbannerTotem` and `Rockfall` in medallions; `SpiderWeb`, `PoisonPool`, `SpikeBarricade`,
+  `Campfire`, `Camp`, `Remains`, `Signpost` and `Passage` stay props. Why: EP1's L5 survey had
+  already sorted the list by exactly this test (collision layer); `Rockfall` is the `Bramble`
+  recipe verbatim (layer 99, radius 0.9) and `Bramble` already wears one; the web, pool and
+  spikes are drawn at their aura's footprint, so their picture IS what they are (R14's second
+  clause).
+- **R16. The portals wear the medallion for now** (EP3 planning session 2026-11-01): PortalHome
+  and PortalSummon are props by R15 but draw as `FireTotem` (`plan-portal-spells.md` D2,
+  placeholder art), so they inherit its medallion. No extra code; the portal's own EntityType,
+  when the spell earns its sprite, is where it becomes a prop again.
 
 ---
 
@@ -234,6 +249,38 @@ Cast bars (nothing casts; YAGNI until something does), durations for others (R10
 marker (R11), a shared ascension-ceremony effect (old §6 item 8, parked), faction on the
 entity (the tooltip names it), allegiance beyond the stance tint (M-D11, done), stacks.
 
+### D13 - EP3: four classes opt in to the medallion (R15)
+
+The medallion is opt-in per species in `client-data/Graphics.ts` (`medallion: <MedallionSpec> {}`,
+read by `medallion()` in `Mobs.ts:50`); a species without one is a plain object (D37). EP3 adds
+the spec to `totem`, `fireTotem`, `warbannerTotem` and `rockfall`, and nothing else: the existing
+`Mob` medallion path (ring resolver, stance, tier, `setState`, `indicatorBand` anchors) does the
+rest. BurstTotem draws as `Totem` and the portals as `FireTotem`, so they follow (R16).
+
+### D14 - Sized by the collider, like every medallion (plan-appearance.md D15)
+
+A medallion draws at the wire radius with no roll, so each of the four drops its `minSize`, and
+its constructor takes the wire `size` the way `Companion` does (`Mobs.ts:650`) instead of
+`randomInt(minSize, maxSize)` (`Mobs.ts:637`, `1028`, `1180`, `1361`). `EntityManager` already
+passes `entity.radius` to every constructor (`EntityManager.ts:126`), so no caller changes.
+This changes how big they draw: `Rockfall` (radius 0.9 m, the `Bramble` body) draws at
+`Bramble`'s size instead of today's 58-66 roll; the totems (0.25 m) and the warbanner (0.4 m)
+move to their colliders too. That is the rule working; the ledger records before/after px.
+`maxSize` is raised to the drawn size so the SVG is not rasterised small and blown up (L11).
+
+### D15 - Ring and disc come from the existing resolvers
+
+The totems author no faction: grey fallback ring (`FALLBACK_FAMILY`). `WarbannerTotem` is
+`orc`: `leatherClaws`. `Rockfall` has no faction: grey. The disc takes the wire stance, so a
+player's own totem must read friendly blue (L12). Tier is `normal` on all four: the dark grey
+ring tint.
+
+### D16 - Portrait: the existing art until an art pass
+
+Each of the four keeps its current SVG as the portrait inside the ring; no pack bust is picked in
+EP3. Busts for them join §7 Q2's art pass (the glyph list), where a `packIcon` line per species is
+the whole change.
+
 ---
 
 ## 4. What changes for the author
@@ -253,7 +300,7 @@ skill's effect-type checklist gains that line in EP1.
 | **EP1** | The state ring | D1-D8: `TokenState.ts`, the `indicators` slot, `StateIndicators`, every existing bit at its angle (colour-disc fallback), pips retire, stealth as entity alpha on Character AND Mob, the own token fed, the tint composer, the grey treatment and the dead row built and pinned (unlit), anchors clear the band | M |
 | *(C6)* | *`plan-appearance.md` C6* | *D9: the corpse medallion lights the dead row* | *M, owned there* |
 | **EP2** | Stun's own bit | D10: Go bit + shared constant + TS bit + the 0° row + swirl glyph (or fallback disc) | S |
-| **EP3** | One token system | R14: every spawned actor that is not an in-world prop wears a medallion, so it shows state like every other token. Unplanned: needs a short design pass first (§7 Q6) | ? |
+| **EP3** | One token system | R14-R16, D13-D16: `Totem`, `FireTotem`, `WarbannerTotem`, `Rockfall` wear a medallion at their collider size; the portals follow `FireTotem`; web, pool, spikes and the rest stay props | S |
 
 ### EP1 - the state ring (M; needs: plan approved)
 
@@ -269,6 +316,19 @@ nameplate, `E` cap or quest glyph; the smallest mob's indicators are legible on 
 *Schema: DB none · wire +1 `applied_effects` bit value, no field · conf none · content none.*
 **In-game (PO):** a stunned mob shows the 0° indicator and no longer the slow; a stun on a
 slowed mob shows both.
+
+### EP3 - one token system (S; needs: EP1)
+
+Contents: D13-D16 in `client-data/Graphics.ts` (four specs, `minSize` dropped, `maxSize` at the
+drawn size) and `Mobs.ts` (four constructors take the wire `size` and pass `medallion(...)`).
+
+*Schema: DB none · wire none · conf none · content none · catalog none · lang none.*
+**In-game (PO):** a summoned totem and a fire totem are medallions (grey ring, blue disc for
+your own) and show a hostile dot or slow at its angle; the Warlord's warbanners are orc-ringed
+medallions and show your slow at 45°; the Rockfall in the Dark Tunnel reads as a bramble-sized
+medallion and still clears to the Pickaxe; a portal wears the fire totem's medallion and is
+acceptable as placeholder (R16); web, pool and spikes look exactly as before; no totem's bar or
+`E` cap sits in the indicator band.
 
 ---
 
@@ -291,6 +351,15 @@ slowed mob shows both.
   diameter; frame time with 30 mobs each wearing 4 indicators vs none (sprites, no filter, so
   expect noise); C6 records one corpse's pass cost.
 - Then the PO's in-game look (§5).
+- **EP3, vitest red first:** a pin in `Medallions.test.ts` (or a new `Graphics.test.ts`) that
+  `totem`, `fireTotem`, `warbannerTotem`, `rockfall` carry a `medallion` spec and no `minSize`,
+  and that `spiderWeb`, `poisonPool`, `spikeBarricade`, `campfire`, `camp`, `remains` and
+  `signpost` carry none (the R15 sort, enumerated both ways so a new species is a conscious
+  call). `PlateAnchors` needs no new case: the band already applies to any medallion Mob.
+- **EP3, verify:** extend `ep1-state-ring.mjs` with a leg that summons a totem (SKILL + cast),
+  reads it as a medallion in the scene graph at the wire radius, applies a dot to it from a
+  hostile and reads the 22.5° indicator. Rockfall gets no indicator leg (L13).
+- **EP3, measure:** each of the four classes' drawn size before and after (px), for the ledger.
 
 ---
 
@@ -304,12 +373,8 @@ slowed mob shows both.
   change-only per-entity expiry list (modelled on `own_effects`) was the leading option.
 - ~~**Q4. Indicator sizes and the greys**~~: RULED 2026-10-24 at the EP1 look: keep today's
   values (still placeholders, tunable later).
-- **Q6. Which spawned things are props** (EP3, R14): the medallion-less classes a skill spawns
-  are `Totem` (summon-totem, omni-strike, BurstTotem), `FireTotem` (fire-totem, and both
-  portals, PortalHome + PortalSummon, draw as it), and mob-made `SpiderWeb`, `PoisonPool`,
-  `SpikeBarricade`, `WarbannerTotem`, `Rockfall`. `ProjectileBomb` draws as `NpcPlaceholder` and
-  so already wears the placeholder NPC medallion. Which of these are in-world props (no
-  medallion) is the design pass's first question.
+- ~~**Q6. Which spawned things are props**~~: RULED 2026-11-01, R15 (reachable by an aura =
+  medallion) and R16 (the portals wear `FireTotem`'s for now).
 - ~~**Q5. A stealthed player's plate**~~: RULED 2026-10-23, R13 (it fades, like a Mob's).
 - ~~Which sibling overlays merge into the frame~~: RULED 2026-10-23, R5 (pips into the
   medallion), the bar, nameplate, aura rings and badge stay anchored to it (D8).
@@ -341,18 +406,31 @@ slowed mob shows both.
   silently leaves the own token without indicators (R8).
 - **L8.** The corpse look has the catalog race (M-§5.5): a corpse resolved before
   `/appearance` lands keeps the default forever unless re-resolved (C6).
+- **L10.** The medallion is keyed on the EntityType's graphic, not the mob definition: anything
+  else drawing as `Totem` or `FireTotem` gains one with it (today BurstTotem and the two
+  portals, R16). Grep `api/mobs` for `"entityType"` naming the four before the build.
+- **L11.** An SVG is rasterised once at `maxSize` (`Preloading.registerGameObjectSVG`): drawn
+  bigger it blurs. Raise `maxSize` to the drawn medallion size (D14).
+- **L12.** The stance disc of an owned structure: read from source, a player's totem is sent
+  friendly, because the spawn path's `EnlistUnder` (`model/mob/mob.go:898`) gives it the
+  owner's faction and `Stance()` answers `FactionAligned` with friendly (`mob.go:1988`); the
+  portals likewise. Confirm it in-game; if a totem reads red anyway, bring it back as a finding
+  rather than improvising a fix (it would touch the wire `stance`).
+- **L13.** `Rockfall` may never carry a bit (EP1's survey did not trace one landing). Its
+  medallion is for one look with `Bramble` (R15), not for its indicators; a test must not
+  depend on it lighting.
 
 ---
 
 ## 9. Schema impact
 
-| Layer | EP1 | EP2 |
-| --- | --- | --- |
-| Database | NONE | NONE |
-| Wire | NONE (the own `applied_effects` is already sent) | +1 bit VALUE in `applied_effects` (no field, no fbs edit) |
-| Conf | NONE | NONE |
-| Content | NONE | NONE |
-| Catalog / lang | NONE | NONE |
+| Layer | EP1 | EP2 | EP3 |
+| --- | --- | --- | --- |
+| Database | NONE | NONE | NONE |
+| Wire | NONE (the own `applied_effects` is already sent) | +1 bit VALUE in `applied_effects` (no field, no fbs edit) | NONE (the radius is already sent) |
+| Conf | NONE | NONE | NONE |
+| Content | NONE | NONE | NONE |
+| Catalog / lang | NONE | NONE | NONE |
 
 (C6's own line stays in `plan-appearance.md`: `Resource` +2.)
 
