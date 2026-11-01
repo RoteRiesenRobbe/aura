@@ -4,7 +4,7 @@
 Q2-Q3 open, Q4 + L5 RULED 2026-10-24, Q1 RULED 2026-10-31. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
 `plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there), PO look
 passed 2026-11-01; EP2 DONE 2026-10-31 `610315fd`, PO look passed 2026-11-01 (§11); EP3 DONE
-2026-11-01 `[uncommitted]`, PO look passed 2026-11-01 (§11). Every chunk is built; the doc stays
+2026-11-01 `a277d84e`, PO look passed 2026-11-01 (§11). Every chunk is built; the doc stays
 live for Q2 (the glyph list) and Q3 (durations, parked).** Open PO calls in §7. Three chunks here (EP1, EP2, EP3, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
@@ -588,7 +588,7 @@ rides the deferred real-phone checks.
 **Schema:** DB none · wire +1 `applied_effects` bit value (no field, no fbs edit) · conf none ·
 content none · catalog none (pack manifest +1 icon) · lang none.
 
-### EP3 - DONE 2026-11-01 `[uncommitted]`, PO look passed 2026-11-01
+### EP3 - DONE 2026-11-01 `a277d84e`, PO look passed 2026-11-01
 
 One token system, D13-D15 as planned; D16 amended (picks, not the old SVG). PO ruling in session
 (choice prompt):
