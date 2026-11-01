@@ -1280,12 +1280,13 @@ system ships blind.
 >    `SetQuestLedger(dead.quests)`, pinned red-first by
 >    `TestReviveAtCorpse_CarriesQuestLedger`. Revives before the fix most likely saved
 >    a fresh ledger over the stored one (unverified); lost progress is not recovered.
-> 2. ✅ **EP2, BUILT 2026-10-31** (`plan-entity-presentation.md` §11): stun has its own
->    `applied_effects` bit (14; bit 15 is the last free one) and a swirl glyph at 0°. PO look owed.
-> 3. ~~EP3 design pass~~ ✅ 2026-11-01 (R15-R16: reachable by an aura = medallion), then
->    **EP3 build** (S). Closes the gap EP1 left: `Totem`, the summoned `FireTotem`,
->    `WarbannerTotem` and `Rockfall` carry state bits and show none.
-> 4. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`).
+> 2. ✅ **EP2, DONE 2026-10-31** (`plan-entity-presentation.md` §11): stun has its own
+>    `applied_effects` bit (14; bit 15 is the last free one) and a swirl glyph at 0°. PO look
+>    passed 2026-11-01.
+> 3. ✅ **EP3, DONE 2026-11-01** (design + build the same day, R15-R16: reachable by an aura =
+>    medallion): `Totem`, `FireTotem`, `WarbannerTotem` and `Rockfall` wear medallions with
+>    pack busts. PO look passed 2026-11-01.
+> 4. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ⭐ NEXT.
 > 5. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
 > 6. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
 > 7. **Audio C1 onward** (`plan-audio.md`).
@@ -1293,9 +1294,10 @@ system ships blind.
 >
 > ⭐ **Appearance C0b + the skull repack jump the queue** the day the pilot art lands; the
 > open-work gate no longer waits on them (it held campfire traits and quest icons behind
-> C0b, amended the same day). PO-owed looks and approvals (C6 corpses, herding, German
-> strings, the ascension ceremony plan, one real-phone session for the buff tray, skill
-> VFX and appearance C1) run beside the builds and block none of them.
+> C0b, amended the same day). PO-owed looks and approvals (German strings, the ascension
+> ceremony plan, one real-phone session for the buff tray, skill VFX and appearance C1,
+> that session ⏸ deferred by the PO 2026-11-01) run beside the builds and block none of
+> them. The C6, EP2, EP3 and herding looks passed 2026-11-01.
 
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load

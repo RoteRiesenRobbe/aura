@@ -104,10 +104,11 @@ describe('the faction map', () => {
 // medallion or a plain world object (sprite only, no frame, D38); there is no
 // third, bordered kind, so no `borderFile` may come back.
 describe('one kind of token', () => {
-    // Graphics keys drawn as plain world objects: fixtures, hazards, totems
-    // and the conversant objects (signs, remains, portals).
-    const PLAIN_OBJECTS = ['totem', 'campfire', 'camp', 'remains', 'poisonPool', 'spiderWeb', 'rockfall',
-        'spikeBarricade', 'warbannerTotem', 'fireTotem', 'signpost'];
+    // Graphics keys drawn as plain world objects: what no aura can reach
+    // (fixtures, hazards drawn at their footprint) and the conversant objects
+    // (signs, remains). Totems and Rockfall wear one (entity-presentation R15).
+    const PLAIN_OBJECTS = ['campfire', 'camp', 'remains', 'poisonPool', 'spiderWeb',
+        'spikeBarricade', 'signpost'];
     const configs: Record<string, object> = {...GraphicsConfig.mobs, ...GraphicsConfig.npcs};
 
     it('refuses a borderFile anywhere', () => {
@@ -141,9 +142,10 @@ describe('one kind of token', () => {
 // own art. Player summons and the army wear one too (C2b, D37).
 describe('medallion coverage', () => {
     // Graphics keys of conversant OBJECTS: signs, stones, roots, cave mouths,
-    // remains, portals, campfires (PO 2026-10-17: "things in the world to
-    // interact with that have models instead").
-    const OBJECTS = ['signpost', 'remains', 'fireTotem', 'campfire'];
+    // remains, campfires (PO 2026-10-17: "things in the world to interact
+    // with that have models instead"). The portals draw as fireTotem and
+    // wear its medallion for now (entity-presentation R16).
+    const OBJECTS = ['signpost', 'remains', 'campfire'];
     // Entity types that draw NOTHING of their own, so no Graphics entry and
     // no ring: a talk exit's door (plan-passages.md D4), whose picture is
     // the exit's look.

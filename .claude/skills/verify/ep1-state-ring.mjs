@@ -17,6 +17,9 @@
 //      beside the dot venue shows `stun` at 0° as a glyph sprite and NO `slow`
 //      (a stun no longer borrows the slow bit); with the Slow aura armed, a
 //      second Paralyze shows `stun` and `slow` together;
+//   7. one token system (EP3, R15; runs first, at the spawn): Summon Totem and
+//      Fire Totem each leave a medallion at the collider radius (30 px) that
+//      reads friendly (L12) and places a dot at 22.5° (forced client-side);
 //   5. a MEASUREMENT, no assert: rAF frame time with up to 30 mobs each
 //      forced to 4 indicators vs none, alternated over rounds. Headless here is
 //      SwiftShader (CPU raster), so only the ratio means anything.
@@ -201,6 +204,53 @@ const own0 = await readToken('own');
 check('The own token stacks disc, actualShape, frame, indicators', own0.order === 'disc,actualShape,frame,indicators', own0.order);
 check('No pip strip under the own bar', own0.barChildren === 3, `${own0.barChildren} bar children`);
 check('A fresh own token shows no indicators', own0.indicators.length === 0 && !own0.visible, `${own0.indicators.length} indicators, visible ${own0.visible}`);
+
+// --- 7: one token system (EP3, R15, D13-D15) -------------------------------------
+// At the calm spawn, before Swift takes slot 1 (re-slotting is combat-locked).
+// Each summon is the medallion that appears beside the caster after the cast:
+// it must draw at the wire radius (the collider, 0.25 u = 30 px), read
+// friendly (L12), and place a dot at 22.5°. The dot is forced client-side as in
+// leg 4b: no hostile dots a player's totem on a fixed venue.
+const TOTEM_RADIUS = 0.25 * 120;
+const summonAndRead = async (skillRe, name) => {
+  const slotted = await equipCooldown(skillRe, 0);
+  if (!slotted) return { why: `${name} never reached cooldown slot 1` };
+  const before = await page.evaluate(() => window.game.objectsInView().map((o) => o?.id));
+  await fireKey('q');
+  const id = await waitFor(() => page.evaluate((seen) => {
+    const me = window.game.character;
+    const o = window.game.objectsInView().find((x) => x && x !== me && !seen.includes(x.id)
+      && Math.hypot(x.getX() - me.getX(), x.getY() - me.getY()) < 3 * 120 && x.shape?.parent);
+    return o ? o.id : null;
+  }, before), 4000);
+  if (id === null) return { why: `no new object beside the caster within 4 s of ${name}` };
+  const out = await page.evaluate(async ({ id, bit }) => {
+    const o = window.game.objectsInView().find((x) => x.id === id);
+    if (!o.medallion) return { medallion: false };
+    o.setAppliedEffects(bit);
+    o.setAppliedEffects = () => {}; // hold it against the next snapshot (deleted below)
+    await new Promise((r) => setTimeout(r, 300));
+    return { medallion: true, stance: o.medallion.stance };
+  }, { id, bit: BIT.dot });
+  const t = out.medallion ? await readToken(id) : null;
+  await page.evaluate((id) => {
+    const o = window.game.objectsInView().find((x) => x.id === id);
+    if (o?.medallion) { delete o.setAppliedEffects; o.setAppliedEffects(0); }
+  }, id);
+  return { ...out, t };
+};
+for (const [re, name] of [[/Summon Totem/, 'Summon Totem'], [/Fire Totem/, 'Fire Totem']]) {
+  await cmd(`SKILL ${name.replace(' ', '')}`);
+  const r = await summonAndRead(re, name);
+  if (r.why) { check(`${name}'s summon wears a medallion at its collider (EP3, R15, D14)`, null, r.why); continue; }
+  if (!r.medallion) { check(`${name}'s summon wears a medallion at its collider (EP3, R15, D14)`, false, 'drawn without a medallion'); continue; }
+  check(`${name}'s summon wears a medallion at its collider (EP3, R15, D14)`, Math.abs(r.t.size - TOTEM_RADIUS) < 0.5,
+    `ring radius ${r.t.size?.toFixed(1)} px (want ${TOTEM_RADIUS})`);
+  check(`${name}'s summon reads friendly to its caster (EP3, L12)`, r.stance === 2, `stance ${r.stance} (2 = friendly)`);
+  const p = placed(r.t, 'dot');
+  check(`${name}'s summon places a dot at 22.5° (EP3; client path)`, p.ok, p.why);
+  await page.screenshot({ path: join(shotDir, `ep1-${label}-${name.replace(' ', '-').toLowerCase()}.png`) });
+}
 
 await cmd('SKILL Swift');
 await cmd('SKILL Vanish');

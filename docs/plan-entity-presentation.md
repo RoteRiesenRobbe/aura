@@ -2,9 +2,10 @@
 
 **Status: APPROVED 2026-10-23 (planning session, PO in chat). R1-R13 RULED, D1-D12 approved,
 Q2-Q3 open, Q4 + L5 RULED 2026-10-24, Q1 RULED 2026-10-31. EP1 DONE 2026-10-24 `fb869fcc`, PO look passed (§11);
-`plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there); EP2 BUILT
-2026-10-31 `610315fd`, PO look owed (§11); EP3 (one token system) DESIGNED + APPROVED 2026-11-01
-(R15-R16, D13-D16), nothing built.** Open PO calls in §7. Three chunks here (EP1, EP2, EP3, §5) with
+`plan-appearance.md` C6 BUILT 2026-10-25 (lights the dead row, D9; its ledger is there), PO look
+passed 2026-11-01; EP2 DONE 2026-10-31 `610315fd`, PO look passed 2026-11-01 (§11); EP3 DONE
+2026-11-01 `[uncommitted]`, PO look passed 2026-11-01 (§11). Every chunk is built; the doc stays
+live for Q2 (the glyph list) and Q3 (durations, parked).** Open PO calls in §7. Three chunks here (EP1, EP2, EP3, §5) with
 `plan-appearance.md` C6 between them; EP1 can start once the plan is approved, and C6 builds on
 EP1 right after it.
 
@@ -277,9 +278,13 @@ ring tint.
 
 ### D16 - Portrait: the existing art until an art pass
 
-Each of the four keeps its current SVG as the portrait inside the ring; no pack bust is picked in
-EP3. Busts for them join §7 Q2's art pass (the glyph list), where a `packIcon` line per species is
-the whole change.
+~~Each of the four keeps its current SVG as the portrait inside the ring; no pack bust is picked in
+EP3.~~ **AMENDED at the EP3 build (PO 2026-11-01): pick pack busts for all four, no exemption.**
+The D31 pin in `Medallions.test.ts` (every medallion species draws a pack bust) would otherwise
+have gone red for all seven species; the PO chose picks over an exemption list. `totem` →
+`totem-blue`, `fireTotem` → `totem-fire`, `warbannerTotem` → `war-banner` (the icons their
+summoning skills already wear), `rockfall` → `rubble-pile` (a new pick). The SVGs stay the
+fallback.
 
 ---
 
@@ -535,7 +540,7 @@ stealth alpha).
 
 **Schema:** DB none · wire none · conf none · content none · catalog/lang none.
 
-### EP2 - BUILT 2026-10-31 `610315fd`, PO look owed
+### EP2 - DONE 2026-10-31 `610315fd`, PO look passed 2026-11-01
 
 Stun's own bit, D10 as planned except the bit number. PO rulings in session (choice prompts):
 
@@ -576,8 +581,48 @@ the DEBUG world (was 2/0/4 on EP1, venue) · `c3-paralyze` 4/0/1 (its documented
 precondition) · `corpse-medallion` 4/0/0 (skull still a sprite at 180°). `c2-player-cc` reads the
 tray's `EffectKind` bits, where stun always had its own, so it is untouched.
 
-**PO look (owed):** a stunned mob shows the purple swirl at 12 o'clock and no slow; a stun on a
-slowed mob shows both; the swirl reads at the phone's smallest token.
+**PO look: PASSED 2026-11-01** (desktop): a stunned mob shows the purple swirl at 12 o'clock and
+no slow; a stun on a slowed mob shows both. ⏸ The phone half (the swirl at the smallest token)
+rides the deferred real-phone checks.
 
 **Schema:** DB none · wire +1 `applied_effects` bit value (no field, no fbs edit) · conf none ·
 content none · catalog none (pack manifest +1 icon) · lang none.
+
+### EP3 - DONE 2026-11-01 `[uncommitted]`, PO look passed 2026-11-01
+
+One token system, D13-D15 as planned; D16 amended (picks, not the old SVG). PO ruling in session
+(choice prompt):
+
+- **D16 collided with the D31 pin** ("every medallion species draws a PONETI pack bust",
+  `Medallions.test.ts`), which the planning session missed: the four specs would turn it red for
+  Totem, FireTotem, WarbannerTotem, Rockfall, BurstTotem and both portals. The PO ruled "pick pack
+  icons for all open ones, no exemption": `totem-blue`, `totem-fire`, `war-banner` (already the
+  summoning skills' icons, `Skill_standart` squares; `packIconTexture` clips every portrait to a
+  disc, so their frames do not show) and a new pick `rubble-pile` (`BuildingMaterials/Stones.png`).
+  Runners-up shown: the stone fragments for Rockfall, a plain red banner for the warbanner.
+  Repacked on this machine (168 icons).
+
+- **Client:** `Graphics.ts`: the four entries gain `medallion` + `packIcon`, lose `minSize`;
+  `rockfall.maxSize` 66 → 108 (the Bramble body, L11); the totems' 50 and the warbanner's 54
+  already exceed their 30 / 48 px colliders. `Mobs.ts`: the four constructors take the wire `size`
+  and pass `medallion(...)`, like `Companion`; no other caller constructs them.
+- **Tests:** the planned pin already existed: red first by moving the four out of
+  `PLAIN_OBJECTS` and `fireTotem` out of the conversant `OBJECTS` (the portals, R16) in
+  `Medallions.test.ts` (2 red for the right reasons), no new test file.
+- **Sizes (px radius), before → after:** totem 50 → 30 and fire totem 50 → 30, measured in the
+  harness; portals 50 → 42, warbanner 50-54 roll → 48, Rockfall 58-66 roll → 108, computed from
+  the colliders.
+
+**Verified:** vitest 1952/0 · typecheck clean · `check-icon-leak` clean (content rule on) · `npm
+run build` · `go test ./cmd/aurad ./pkg/aura/skills` (the two manifest readers) red only on the
+known Passages words; no Go change · `ep1-state-ring` 17/0/0 with a new leg 7 at the spawn:
+Summon Totem and Fire Totem each leave a medallion at ring radius 30.0 px, stance 2 (friendly,
+L12 confirmed), and a dot at 22.5° r 38.5. ⚑ The dot is forced client-side (as leg 4b does
+stealth): no hostile reliably dots a player's totem on a fixed venue. The console's one error is
+the known WebGL context loss (§29) in the measurement leg.
+
+**PO look: PASSED 2026-11-01:** totems and portals wear medallions, the warbanners are orc-ringed,
+Rockfall reads bramble-sized and still clears to the Pickaxe, web, pool and spikes unchanged.
+
+**Schema:** DB none · wire none · conf none · content none · catalog none (pack manifest +1 icon)
+· lang none.

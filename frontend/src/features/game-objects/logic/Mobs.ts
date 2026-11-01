@@ -627,15 +627,15 @@ export abstract class Mob extends GameObject
     }
 }
 
-// The player-summoned totem (mob-depth chunk 1): stationary, fixed size, no
-// hit sound — the base Damaged flash suffices for the placeholder art.
+// The player-summoned totem (mob-depth chunk 1): stationary, a medallion at
+// its collider (entity-presentation R15); no hit sound, the base Damaged
+// flash suffices.
 export class Totem extends Mob {
     static svg: PIXI.Texture;
 
-    constructor(id: number, x: number, y: number) {
+    constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.totem, x, y,
-            randomInt(minSize('totem'), maxSize('totem')),
-            Totem.svg);
+            size, Totem.svg, medallion('totem'));
     }
 }
 
@@ -1023,10 +1023,9 @@ Preloading.registerGameObjectSVG(SpiderWeb, file('spiderWeb'), maxSize('spiderWe
 export class Rockfall extends Mob {
     static svg: PIXI.Texture;
 
-    constructor(id: number, x: number, y: number) {
+    constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.wildlife, x, y,
-            randomInt(minSize('rockfall'), maxSize('rockfall')),
-            Rockfall.svg);
+            size, Rockfall.svg, medallion('rockfall'));
     }
 }
 
@@ -1175,10 +1174,9 @@ Preloading.registerGameObjectSVG(OrcWarlord, file('orcWarlord'), maxSize('orcWar
 export class WarbannerTotem extends Mob {
     static svg: PIXI.Texture;
 
-    constructor(id: number, x: number, y: number) {
+    constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.wildlife, x, y,
-            randomInt(minSize('warbannerTotem'), maxSize('warbannerTotem')),
-            WarbannerTotem.svg);
+            size, WarbannerTotem.svg, medallion('warbannerTotem'));
     }
 }
 
@@ -1351,15 +1349,14 @@ export class FireStirer extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(FireStirer, file('fireStirer'), maxSize('fireStirer'));
 
-// The player-summoned fire totem: stationary and fixed-size, on the same
-// `totem` layer as its plain sibling.
+// The player-summoned fire totem: stationary, a medallion at its collider,
+// on the same `totem` layer as its plain sibling.
 export class FireTotem extends Mob {
     static svg: PIXI.Texture;
 
-    constructor(id: number, x: number, y: number) {
+    constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.mobs.totem, x, y,
-            randomInt(minSize('fireTotem'), maxSize('fireTotem')),
-            FireTotem.svg);
+            size, FireTotem.svg, medallion('fireTotem'));
     }
 }
 

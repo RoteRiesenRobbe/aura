@@ -75,9 +75,12 @@ export const GraphicsConfig = {
                 anchor?: {x: number, y: number}
             }
     }>{
+        // Totems and Rockfall wear a medallion because an aura can reach them
+        // (entity-presentation R15); BurstTotem draws as this one.
         totem: {
             file: require('../features/game-objects/assets/mobs/totem.svg'),
-            minSize: <number> 50,
+            packIcon: 'totem-blue',
+            medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
 
@@ -286,10 +289,12 @@ export const GraphicsConfig = {
             maxSize: <number> 180,
         },
 
+        // The Bramble body (0.9 u = 108 px), so baked at that radius.
         rockfall: {
             file: require('../features/game-objects/assets/mobs/rockfall.svg'),
-            minSize: <number> 58,
-            maxSize: <number> 66,
+            packIcon: 'rubble-pile',
+            medallion: <MedallionSpec> {},
+            maxSize: <number> 108,
         },
 
         // C4 Z2 village + bandit gate (content pass C4).
@@ -357,7 +362,8 @@ export const GraphicsConfig = {
 
         warbannerTotem: {
             file: require('../features/game-objects/assets/mobs/warbannerTotem.svg'),
-            minSize: <number> 50,
+            packIcon: 'war-banner',
+            medallion: <MedallionSpec> {},
             maxSize: <number> 54,
         },
 
@@ -472,10 +478,12 @@ export const GraphicsConfig = {
             maxSize: <number> 84,
         },
 
-        // Sized to match the plain totem (50/50) — they are siblings.
+        // The plain totem's sibling. The portals draw as this one and wear
+        // its medallion for now (entity-presentation R16).
         fireTotem: {
             file: require('../features/game-objects/assets/mobs/fireTotem.svg'),
-            minSize: <number> 50,
+            packIcon: 'totem-fire',
+            medallion: <MedallionSpec> {},
             maxSize: <number> 50,
         },
     },

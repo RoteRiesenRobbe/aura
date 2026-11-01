@@ -9,7 +9,7 @@ component for every token). C3 DONE 2026-10-20 (D39, the chosen player medallion
 by the PO into C5 + C5c; PO look passed 2026-10-22). C5c DONE 2026-10-23 (the unlock client; PO look
 passed the same day). C5b DONE 2026-10-23 (the stone bonus only, D21c; the pick moved to
 `plan-ascension-ceremony.md` AC2; PO look passed the same day). C6 BUILT 2026-10-25 (player
-corpses as medallions, D40-D46, on `plan-entity-presentation.md` EP1; PO look owed). Left: C0b
+corpses as medallions, D40-D46, on `plan-entity-presentation.md` EP1; PO look passed 2026-11-01). Left: C0b
 whenever the artist's pilot lands.** Order (D24): C0a → C1 → C1b → C2 → C2b → C3 → C4 → C5 → C5c (+C5b) → [entity-presentation design] → C6, C0b whenever the artist's pilot lands. One plan for two things the PO ruled must be built
 > together: the **entity medallions** (`plan-entity-medallions.md`, every actor as a
 > token in a ring) and the player's **Appearance** (a chosen portrait and a chosen
@@ -1431,7 +1431,7 @@ of an ascension stone"; the first run's `live stance` leg failed for want of a b
 venue flake; a `timeout 900` wrapper killed one earlier attempt mid-join) · harness rows cleaned,
 server stopped first.
 
-### C6 - BUILT 2026-10-25 `e90bfee6`, PO look owed
+### C6 - DONE 2026-10-25 `e90bfee6`, PO look passed 2026-11-01
 
 Player corpses (D40-D46, §3.8), built on `plan-entity-presentation.md` EP1 (its D9). The
 corpse is a medallion wearing the dead player's portrait and ring, at the player's token size,

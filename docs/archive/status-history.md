@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-01, the entity presentation EP3 wrap: the CAMPFIRE TRAITS planning entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: CAMPFIRE TRAITS, designed + approved** ✅ DOCS-ONLY 2026-10-24 (plan: `docs/plan-campfire-traits.md`, R1-R20, one planning session): the Camp gets a separate point pool, 1 per discovered permanent fire (46 today), spent in the spellbook on six flat traits (camp duration, heal, owner-only charges; max Focus / damage / speed buffs for everyone resting 5 s at the camp, 5 min, strongest wins). Not a tree: the 2026-07-24 ruling against ability trees stands. ⏸ Queued by the PO behind appearance C6 + C0b (open work first). ⚑ The max-Focus buff needs `poolFactor` to read timed buffs (L3). **Schema: none (docs only).**
+
 *(2026-10-31, the entity presentation EP2 wrap: the ENTITY PRESENTATION EP1 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: ENTITY PRESENTATION EP1, the state ring** ✅ DONE 2026-10-24 `fb869fcc`, PO look passed 2026-10-24, DEPLOYED LIVE 2026-10-24 as `654fd239` (ledger: `docs/plan-entity-presentation.md` §11 EP1): every applied-effect bit draws at its reserved angle just outside the medallion ring (`TokenState.ts` is the one table, `StateIndicators` the drawer, the token's new `indicators` slot); the pip strip is gone; stealth fades the whole entity on Character AND Mob, plates included; the own token shows its types (R8); `dead` is built and pinned, unlit until C6. Every anchor clears `indicatorBand` (`PlateAnchors.ts`; the player's name and level moved too). ⚑ R14 (PO at the look): one system for all tokens, every spawned non-prop wears a medallion (totems, FireTotem, ...): EP3, unplanned. ⚑ c1-medallions lost the WebGL context 2 runs in 4 (HEAD 0 in 1): watch. **Schema: none.** Verified: vitest 1936/0 · `ep1-state-ring` 9/0 · c1-medallions 53/0/1 · nine migrated harnesses (buff-tray Tough + chunk3-charm venue red on HEAD too).

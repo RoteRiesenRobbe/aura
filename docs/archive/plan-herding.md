@@ -1,7 +1,8 @@
 # Plan: Herding — Hans's sheep run from you, and you drive them into his pen
 
 **Status: DESIGNED 2026-10-17 (planning session, PO in chat). R1-R16 RULED, D1-D11 ⭐ APPROVED
-2026-10-17, D12-D13 built for the PO look (R15/R16). H1 BUILT + committed, H2 BUILT (§10).** Two chunks (§5).
+2026-10-17, D12-D13 built for the PO look (R15/R16). H1, H2 and the polish DONE; PO look, feel and
+text approval PASSED 2026-11-01 (§10). COMPLETE, archived 2026-11-01.** Two chunks (§5).
 
 **Owns:** the mob `herd` block (a sheep that runs from players and counts in its pen), the
 herder list, the pen check, the `herd` objective kind, and Hans's new quest.
@@ -157,7 +158,7 @@ the per-definition counter already does, no engine change.
 
 ### D7 — the quest
 
-- id `back-to-the-pen`, title "Back to the Pen" [PLACEHOLDER, text owed], level 2. A new id,
+- id `back-to-the-pen`, title "Back to the Pen" (text approved 2026-11-01), level 2. A new id,
   not `the-strays` reused: that quest's `find` stage asked for talks, and a saved ledger
   sitting in it would silently change meaning (R7 keeps its file).
 - Stages (R15):
@@ -369,7 +370,7 @@ No open PO calls.
 
 ## 10. Chunk ledgers
 
-### H1 — BUILT 2026-10-17, committed `75376c13`, PO look owed
+### H1 — DONE 2026-10-17, committed `75376c13`, PO look passed 2026-11-01
 
 - **Engine:** `mobs.Herd` + `BindHerdPens` (boot: unlisted pen fails, undrawn warns),
   `model/mob/herd.go` (`herdPush`, `tickHerd`, `UpdatePen`), the `herded` case in
@@ -397,7 +398,7 @@ No open PO calls.
   spawns.
 - **Committed** `75376c13` (with the whole `world.json`, PO ask; rebased onto `origin/main` 2026-10-18, was `c5ca34c6`).
 
-### H2 — BUILT 2026-10-17, committed `c9fa2bb4`, PO look + text approval owed
+### H2 — DONE 2026-10-17, committed `c9fa2bb4`, PO look + text approval passed 2026-11-01
 
 - **Quest engine:** `ObjectiveHerd` (`"herd"`): shares the species counters, refuses a species
   without a herd pen and a chance; a count-1 herd objective with its own tracker ticks ✓ like a
@@ -414,7 +415,7 @@ No open PO calls.
   D12 table and moved: **Baabara (-202.5, -15) by the wolves, Woolliam (-251, -28.8) on the
   beach among the Sand Clampers, Lambert (-255, -14) by the Rockfall**, `respawnTicks 1800`;
   `Sheep` named with its plural (en "Sheep", de "Schaf/Schafe"). Text drafted, en + de, PO
-  approval owed. `the-strays` parked: `parkedQuests` in `quests/content_test.go` + cleanup.md
+  approval passed 2026-11-01. `the-strays` parked: `parkedQuests` in `quests/content_test.go` + cleanup.md
   entry 7.
 - **Verified:** Go tests first (`quests` herd_test 7, `model/mob` +2); full suite green bar
   the two known reds; `aurad -validate` 0 findings (one expected warning: the-strays offered by
@@ -424,7 +425,7 @@ No open PO calls.
   runs at 1.0 u, 0 page errors.
 - **Schema:** DB/conf NONE · wire +1 `QuestObjectiveKind` value · content +`herd` objective.
 
-### Polish — BUILT 2026-10-18, PO feel owed
+### Polish — DONE 2026-10-18, PO feel passed 2026-11-01
 
 - **Linger (PO):** a herd animal keeps running in its last direction for `herdFleeLingerTicks`
   (1 s [PLACEHOLDER]) after nobody is inside its run radius, which ends the edge jitter when a
