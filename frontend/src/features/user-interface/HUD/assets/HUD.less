@@ -808,6 +808,14 @@
 @book-width:      26rem;  // 34 read as too wide (PO look 2): the room goes to the icon, not the gap
 @book-row-height: 4rem;   // = the 3.5rem token + padding, and > two 1.15-line text lines
 @book-page-rows:  8;      // = PAGE_SIZE
+// Everything in #leftColumn's height that is NOT the page (PO 2026-11-03): the
+// book's title, tabs, pager and padding, the column's margins and gap, and the
+// passive island under it. A viewport shorter than page + this reserve shrinks
+// the page and lets it scroll, so the passives stay on screen and clickable
+// (measured: the column needed ~812px; a MacBook browser window has less).
+// The floor keeps two rows readable on absurdly short windows. [PLACEHOLDER]
+@book-column-reserve: ~"16rem + 100px"; // rem for the book chrome, px for the 52px slot island
+@book-page-floor:     (@book-row-height * 2);
 
 #spellbook {
 	.ink-panel-chrome();
@@ -912,6 +920,12 @@
 		// relative max-height is what let a two-line name push the page into
 		// scrolling, and the height must not follow the names either.
 		height: (@book-row-height * @book-page-rows);
+		// ⚑ The one exception to the fixed page (PO 2026-11-03): a viewport too
+		// short for page + passives shrinks the page, and SimpleBar scrolls it.
+		// max-height, not a flex shrink, because SimpleBar only sees a size set
+		// ON this element (see above). HUD.mobile.less resets it to none: the
+		// phone's full-screen book scrolls as one surface.
+		max-height: ~"max(@{book-page-floor}, calc(100vh - (@{book-column-reserve})))";
 		// Disables SimpleBar's horizontal axis (its recalculate() reads the
 		// host overflow-x) — its scrollbar-hiding trick otherwise fakes ~20px
 		// of x-overflow and renders a pointless horizontal bar. overflow-y
