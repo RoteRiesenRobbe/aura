@@ -345,7 +345,7 @@ the stronger buff; die and lose them.
 
 ## 11. Chunk ledgers
 
-### CT1 - Server foundation and the core three ✅ DONE 2026-11-03 `[uncommitted]`
+### CT1 - Server foundation and the core three ✅ DONE 2026-11-03 `4772a418`
 
 Built in one execution session, the PO in chat; R21-R24 ruled at its start (§2, third round).
 
