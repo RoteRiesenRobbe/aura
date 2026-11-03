@@ -148,8 +148,11 @@ const charges = async () => {
 // text — the number a player looks at, and the one place both halves are
 // rendered from the same snapshot.
 const healthFraction = () => page.evaluate(() => {
-  const m = /Focus\s+(\d+)\/(\d+)/.exec(document.querySelector('#healthBar .barText')?.textContent ?? '');
-  return m && +m[2] > 0 ? +m[1] / +m[2] : 0;
+  // ⚑ Thousands separators: after leg 1's level-up the pool is past 1,000 and
+  // the HUD formats it ("1,234/1,234"), which a bare \d+ cannot read.
+  const m = /Focus\s+([\d,.  ]+)\/([\d,.  ]+)/.exec(document.querySelector('#healthBar .barText')?.textContent ?? '');
+  const n = (s) => +s.replace(/[^\d]/g, '');
+  return m && n(m[2]) > 0 ? n(m[1]) / n(m[2]) : 0;
 });
 
 // Camps within `radius` world units of the player, on the campfireMob layer.
@@ -312,6 +315,11 @@ try {
   });
 
   // Stand ON the spawn fire (a jittered spawn point may be outside its circle).
+  // ⚑ Since d9ea9cda (2026-10-22) a fresh character arrives at the fire-less
+  // default spawn on the west road, not in a fire: warp onto the starting fire
+  // first, or nearestFire() finds nothing in view.
+  await cmd('WARP spawnpoint-1');
+  await page.waitForTimeout(4_000);
   const FIRE = await nearestFire();
   await cmd(`WARP ${w(FIRE.x, FIRE.y)}`);
   await page.waitForTimeout(3_000);

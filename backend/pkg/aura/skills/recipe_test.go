@@ -240,3 +240,28 @@ func TestRecipes_DuplicateIngredientSetAllowed(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, rr.All(), 2)
 }
+
+// R23: a recipe never results in a campfire trait; reading one as an
+// ingredient's level is fine, like any skill.
+func TestRecipes_ACampTraitIsNoResultButMayBeAnIngredient(t *testing.T) {
+	fsys := fstest.MapFS{
+		"damage.json": {Data: damageAuraJSON},
+		"heal.json":   {Data: healAuraJSON},
+		"camp.json":   {Data: campTraitJSON(`{"kind": "heal", "perLevel": 1}`)},
+	}
+	sr, err := RegistryFromFS(fsys, nil)
+	require.NoError(t, err)
+
+	_, err = RecipesFromFS(fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "CampTest",
+      "ingredients": [{ "skill": "Damage", "level": 1 }]
+    }`)}}, sr)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "campfire trait")
+
+	_, err = RecipesFromFS(fstest.MapFS{"ok.json": {Data: []byte(`{
+      "id": 1, "result": "Heal",
+      "ingredients": [{ "skill": "CampTest", "level": 2 }]
+    }`)}}, sr)
+	assert.NoError(t, err)
+}

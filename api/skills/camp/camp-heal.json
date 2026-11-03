@@ -1,0 +1,13 @@
+{
+  "_comment": "A campfire trait: each level raises the placed camp's CampAura by one level (about 5 percent more heal). Bought with campfire points, never equipped. All values placeholder.",
+  "id": 180,
+  "name": "CampHeal",
+  "icon": "delapouite/healing",
+  "category": "camp",
+  "maxLevel": 15,
+  "campTrait": {
+    "kind": "heal",
+    "perLevel": 1
+  },
+  "effects": []
+}

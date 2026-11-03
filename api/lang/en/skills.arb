@@ -141,6 +141,60 @@
     "description": "Name of the skill CampAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
+  "skill.CampCharges.description": "You can carry more camp charges.",
+  "@skill.CampCharges.description": {
+    "description": "Tooltip prose block of the skill CampCharges."
+  },
+  "skill.CampCharges.name": "Camp charges",
+  "@skill.CampCharges.name": {
+    "description": "Name of the skill CampCharges: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.CampDamageBuff.description": "Resting at your camp raises damage dealt for a while.",
+  "@skill.CampDamageBuff.description": {
+    "description": "Tooltip prose block of the skill CampDamageBuff."
+  },
+  "skill.CampDamageBuff.name": "Damage buff",
+  "@skill.CampDamageBuff.name": {
+    "description": "Name of the skill CampDamageBuff: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.CampDuration.description": "Your camp burns longer.",
+  "@skill.CampDuration.description": {
+    "description": "Tooltip prose block of the skill CampDuration."
+  },
+  "skill.CampDuration.name": "Camp duration",
+  "@skill.CampDuration.name": {
+    "description": "Name of the skill CampDuration: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.CampFocusBuff.description": "Resting at your camp raises max Focus for a while.",
+  "@skill.CampFocusBuff.description": {
+    "description": "Tooltip prose block of the skill CampFocusBuff."
+  },
+  "skill.CampFocusBuff.name": "Max Focus buff",
+  "@skill.CampFocusBuff.name": {
+    "description": "Name of the skill CampFocusBuff: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.CampHeal.description": "Your camp heals everyone resting at it more strongly.",
+  "@skill.CampHeal.description": {
+    "description": "Tooltip prose block of the skill CampHeal."
+  },
+  "skill.CampHeal.name": "Camp heal",
+  "@skill.CampHeal.name": {
+    "description": "Name of the skill CampHeal: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
+  "skill.CampSpeedBuff.description": "Resting at your camp raises movement speed for a while.",
+  "@skill.CampSpeedBuff.description": {
+    "description": "Tooltip prose block of the skill CampSpeedBuff."
+  },
+  "skill.CampSpeedBuff.name": "Speed buff",
+  "@skill.CampSpeedBuff.name": {
+    "description": "Name of the skill CampSpeedBuff: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
+    "x-maxLength": 30
+  },
   "skill.CampfireAura.name": "Campfire Aura",
   "@skill.CampfireAura.name": {
     "description": "Name of the skill CampfireAura: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",

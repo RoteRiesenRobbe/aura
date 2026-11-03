@@ -1,0 +1,14 @@
+{
+  "_comment": "A campfire trait: resting at this character's camp grants movement speed, 0.33 percent per level. Bought with campfire points, never equipped. All values placeholder.",
+  "id": 184,
+  "name": "CampSpeedBuff",
+  "icon": "lorc/wingfoot",
+  "category": "camp",
+  "maxLevel": 15,
+  "campTrait": {
+    "kind": "buff",
+    "stat": "movementSpeed",
+    "perLevel": 0.0033
+  },
+  "effects": []
+}

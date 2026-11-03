@@ -118,6 +118,14 @@ type PlayerEntity interface {
 	// from the player level minus the points bound in the spellbook. Derived
 	// each call — free respec means it must always reconcile.
 	AvailableSkillPoints() int
+	// Campfire traits (plan-campfire-traits D3, R22): the unspent campfire
+	// points, a trait's free floor (1 when an ascension or a reached milestone
+	// grants it), a kind's summed trait value and the charge cap with the
+	// charges trait.
+	AvailableCampPoints() int
+	CampTraitFloor(id skills.SkillID) int
+	CampTraitTotal(kind skills.CampTraitKind) float32
+	CampChargeCap() int
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
 	// AuraTickInterval / AuraTickPhase are the active aura's first-effect

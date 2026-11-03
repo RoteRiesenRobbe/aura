@@ -17,7 +17,7 @@
  *       Skills tab would render a form that cannot express real content - and
  *       if the category table disagreed with the content, the picker would
  *       hide a type the game actually ships (C3 rider, PO 2026-09-12).
- *   (b) every top-level key is one of the 16 the loader reads, or starts with
+ *   (b) every top-level key is one of the 17 the loader reads, or starts with
  *       an underscore. ⚑ This is the FIRST check of that class anywhere:
  *       skill JSON is parsed WITHOUT DisallowUnknownFields, so a typo'd
  *       top-level key vanishes in silence and the field it meant to set stays
@@ -210,6 +210,9 @@ const visualTriggersByCategory = vocabulary.visualTriggersByCategory || {};
 const visualCountMaxByKind = vocabulary.visualCountMaxByKind || {};
 const visualAppliedEffectTypes = vocabulary.visualAppliedEffectTypes || [];
 for (const category of vocabulary.categories) {
+  // A campfire trait has no moment to dress (Go's vocabulary_test.go): no row,
+  // and every layer on one is refused.
+  if (category === 'camp') continue;
   const moments = visualTriggersByCategory[category];
   if (!Array.isArray(moments) || moments.length === 0) {
     finding('api/skill-vocabulary.json', `visualTriggersByCategory has no row for category "${category}" - the builder could offer no moment on it (${REGEN_VOCABULARY})`);

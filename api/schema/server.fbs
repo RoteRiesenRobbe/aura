@@ -1453,6 +1453,14 @@ table GameState {
   // locked left", on a tick without it the client keeps what it has.
   // Appended at the table end so existing field IDs stay stable.
   appearance_locks:[AppearanceLock];
+
+  // The own player's unspent campfire points (plan-campfire-traits D4): one
+  // per discovered permanent fire, minus the trait levels bought above their
+  // free floor; the skill_points convention. Sent every tick like
+  // camp_charges, NOT in the owner block: the discovered-fire count has no
+  // revision to key off. Trait levels ride spellbook / spellbook_levels.
+  // Appended at the table end so existing field IDs stay stable.
+  camp_points:ushort;
 }
 
 table Welcome {

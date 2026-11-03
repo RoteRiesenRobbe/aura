@@ -2036,9 +2036,11 @@ type campExpirable interface{ SetTTLTicks(int) }
 // a charge rule anywhere before this point.
 //
 // Hand-rolled rather than routed through spawnSummon: that path wants an
-// EquippedSkill (a utility has none) and would RaiseLoadoutLevels, which the
-// camp does not want — its aura is level 1 and heals a fraction of each
-// target's pool, so it scales with the target rather than with the placer.
+// EquippedSkill (a utility has none) and would RaiseLoadoutLevels to the
+// summon skill's level. The camp's aura level comes from its owner's campfire
+// traits instead (plan-campfire-traits D6-D7): 1 + the heal trait, and the
+// lifetime is campTTLTicks + the duration trait. Both are read ONCE, here, so a
+// respec while the camp burns changes the next camp, not this one.
 func (s *SkillSystem) applyCamp(e skillEntity) bool {
 	p, ok := e.(model.PlayerEntity)
 	if !ok {
@@ -2063,7 +2065,8 @@ func (s *SkillSystem) applyCamp(e skillEntity) bool {
 	// the pool only widens once the owner is bound (the summon precedent). The
 	// body is unreachable anyway, so this is tidiness rather than survival.
 	m.RestoreToFullHealth()
-	m.SetTTLTicks(campTTLTicks)
+	m.SkillComponent().RaiseLoadoutLevels(1 + int(p.CampTraitTotal(skills.CampTraitHeal)))
+	m.SetTTLTicks(campTTLTicks + int(p.CampTraitTotal(skills.CampTraitDuration)))
 	m.SetPosition(s.summonPosition(e, m.Radius()))
 
 	s.replaceStandingCamp(p)

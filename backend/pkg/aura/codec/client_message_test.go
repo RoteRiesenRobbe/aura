@@ -181,3 +181,31 @@ func TestSelectAppearanceMessageFlatbufferUnmarshal_RoundTrip(t *testing.T) {
 	assert.Equal(t, uint16(7), result.Portrait)
 	assert.Equal(t, uint16(2), result.Ring)
 }
+
+// --- Respec (round-7 item 8; camp flag plan-campfire-traits R21) ---------------
+
+func buildRespecClientMessage(camp bool) []byte {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.RespecStart(b)
+	if camp {
+		AuraApi.RespecAddCamp(b, true)
+	}
+	body := AuraApi.RespecEnd(b)
+
+	AuraApi.ClientMessageStart(b)
+	AuraApi.ClientMessageAddBodyType(b, AuraApi.ClientMessageBodyRespec)
+	AuraApi.ClientMessageAddBody(b, body)
+	root := AuraApi.ClientMessageEnd(b)
+	b.Finish(root)
+	return b.FinishedBytes()
+}
+
+func TestRespecMessageFlatbufferUnmarshal_CampFlag(t *testing.T) {
+	plain := RespecMessageFlatbufferUnmarshal(ClientMessageFlatbufferUnmarshal(buildRespecClientMessage(false)))
+	require.NotNil(t, plain)
+	assert.False(t, plain.Camp, "an absent flag is the ability reset, as every old client sends")
+
+	camp := RespecMessageFlatbufferUnmarshal(ClientMessageFlatbufferUnmarshal(buildRespecClientMessage(true)))
+	require.NotNil(t, camp)
+	assert.True(t, camp.Camp)
+}

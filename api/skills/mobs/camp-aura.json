@@ -1,9 +1,9 @@
 {
-  "_comment": "The mob-summoned camp's aura: heals every wounded allied entity within 0.75 units for 12% of their own max HP every 60 ticks, uncapped target count, and casts light out to 2.0 units. The camp sits 0.8 units from its summoner, so shrinking the heal radius much below about 0.6 units stops the summoner being healed by their own camp. All values placeholder.",
+  "_comment": "The mob-summoned camp's aura: heals every wounded allied entity within 0.75 units for 12% of their own max HP every 60 ticks, plus 0.6% per level above 1 (the camp spawns it at 1 + its owner's Camp heal trait level, so level 16 heals 21%), uncapped target count, and casts light out to 2.0 units. The camp sits 0.8 units from its summoner, so shrinking the heal radius much below about 0.6 units stops the summoner being healed by their own camp. All values placeholder.",
   "id": 138,
   "name": "CampAura",
   "category": "active_aura",
-  "maxLevel": 1,
+  "maxLevel": 16,
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 5, "ms": 1600, "scale": 1.6, "tint": "#d8843a" },
@@ -15,6 +15,7 @@
       "type": "heal_aura",
       "radius": 0.75,
       "healFractionOfMax": 0.12,
+      "healFractionOfMaxPerLevel": 0.006,
       "maxTargets": 0,
       "tickInterval": 60
     },

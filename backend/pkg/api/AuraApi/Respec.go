@@ -41,8 +41,23 @@ func (rcv *Respec) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
+func (rcv *Respec) Camp() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Respec) MutateCamp(n bool) bool {
+	return rcv._tab.MutateBoolSlot(4, n)
+}
+
 func RespecStart(builder *flatbuffers.Builder) {
-	builder.StartObject(0)
+	builder.StartObject(1)
+}
+func RespecAddCamp(builder *flatbuffers.Builder, camp bool) {
+	builder.PrependBoolSlot(0, camp, false)
 }
 func RespecEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

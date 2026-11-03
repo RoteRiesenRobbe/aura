@@ -280,6 +280,7 @@ Run the harnesses whose "Re-run when" column matches what you changed BEFORE wri
 | `c1-open-portal.mjs` | travel_to grant (open portal) at the game surface |  | `travel_to` parse or apply, the `AnchorSource` seam / `AnchorOf`, ... |
 | `c2-pull-through.mjs` | spawn_at_anchor and caster destination mode (pull-through) |  | `spawn_at_anchor` parse/validation or its placement probe, `anchorSpawnOffset`, ... |
 | `r4-camp.mjs` | mini-campfire: Camp button, charge store, placed fire |  | the camp charge store, cast completion, camp TTL or replacement, the fire's Restock row, ... |
+| `ct1-camp-traits.mjs` | campfire traits over the raw wire: pool, spend, resets, charges, heal, lifetime |  | `camp_points`, camp-category spend/respec, `applyCamp`'s trait reads, `camp-aura.json`, the client `CATEGORY_MAP` |
 | `filler-batch.mjs` | DAMAGE cheat, darkness damage numbers, minimap-on-death, Ctrl zoom |  | darkness suppression, minimap lifecycle, dev cheats |
 | `c1-world-map.mjs` | world map's two states and entry points |  | `MiniMap` state/toggle, `#worldMap` markup or z-index, `MapScale`, `MapTerrain`, ... |
 | `m1-minimap-radar.mjs` | docked radar scale and dot placement |  | `MapScale.mapScale`/`layerOffset`/`groundRing`/`fixedIconScale`, ... |

@@ -1627,3 +1627,12 @@ func TestResolveSkillCondition_LeavesOtherKindsAlone(t *testing.T) {
 	cond := InteractionCondition{Kind: ConditionMinLevel, Value: 3}
 	require.NoError(t, ResolveSkillCondition(&cond, skillNames{}))
 }
+
+// R23: NPC teaching and quest rewards (both the teach_skill grant) never grant
+// a campfire trait.
+func TestMapMobDefinition_ACampTraitIsNeverTaught(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{"id": "root", "lines": ["hi"],
+	  "options": [{"grants": [{"kind": "teach_skill", "skill": "CampHeal", "line": "Here."}]}]}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "campfire trait")
+}

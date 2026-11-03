@@ -1259,6 +1259,9 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 		if err != nil {
 			return g, fmt.Errorf("%s: skill %q not found: %w", where, jg.Skill, err)
 		}
+		if def.IsCampTrait() {
+			return g, fmt.Errorf("%s: %q is a campfire trait, which only spending, an ascension or a milestone grants (plan-campfire-traits R23)", where, jg.Skill)
+		}
 		if def.Legacy && !m.Legacy {
 			*legacyRefs = append(*legacyRefs, "teaching "+def.Name)
 		}

@@ -1,0 +1,13 @@
+{
+  "_comment": "A campfire trait: each level adds one Camp charge to this character's own cap; nobody else can draw charges from a camp. Bought with campfire points, never equipped. All values placeholder.",
+  "id": 181,
+  "name": "CampCharges",
+  "icon": "lorc/campfire",
+  "category": "camp",
+  "maxLevel": 5,
+  "campTrait": {
+    "kind": "charges",
+    "perLevel": 1
+  },
+  "effects": []
+}

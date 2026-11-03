@@ -406,3 +406,18 @@ func TestCatalogFromFS_ConditionsModeWithoutConditionsIsABootError(t *testing.T)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "conditionsMode")
 }
+
+// plan-campfire-traits R23: an ascension is one of the two doors that may grant
+// a campfire trait (the other is a milestone), so a stone entry naming one loads.
+func TestCatalogFromFS_ACampTraitIsAnAscensionReward(t *testing.T) {
+	campHeal := &skills.SkillDefinition{ID: 180, Name: "CampHeal", Category: skills.SkillCategoryCamp, MaxLevel: 15,
+		CampTrait: &skills.CampTraitDef{Kind: skills.CampTraitHeal, PerLevel: 1}}
+	sk := allSkills()
+	sk[campHeal.Name] = campHeal
+
+	catalog, err := CatalogFromFS(fstest.MapFS{"camp-heal.json": {Data: []byte(`{"unlockKey":"CampHeal"}`)}}, sk, allGates())
+
+	require.NoError(t, err)
+	require.Len(t, catalog.All(), 1)
+	assert.Same(t, campHeal, catalog.All()[0].Skill)
+}

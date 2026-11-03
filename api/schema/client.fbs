@@ -71,9 +71,15 @@ table SpendSkillPoint {
 // Reset every skill in the spellbook to level 1, refunding all spent points
 // in one step (round-7 item 8, PO 2026-08-02: free · blocked in combat ·
 // level 1 is the floor, so the milestone-seeded free baseline survives).
-// Carries nothing: the op is whole-spellbook by definition, and the refund
-// falls out of SpentPoints being derived rather than stored.
+// The refund falls out of SpentPoints being derived rather than stored.
+//
+// camp=true is the campfire section's own reset instead
+// (plan-campfire-traits R21): every campfire trait drops to its free floor
+// (1 for a granted trait, else 0 = unbought) and no ability is touched. The
+// ability reset never touches a trait. Not blocked in combat: a trait only
+// changes the NEXT camp placed.
 table Respec {
+    camp: bool = false;
 }
 
 // Baseline utilities (plan-downtime.md D1): a small class of always-present

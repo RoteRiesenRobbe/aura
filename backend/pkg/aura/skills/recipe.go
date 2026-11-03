@@ -108,6 +108,9 @@ func (raw *recipeDefinitionRaw) resolve(sr Registry) (*RecipeDefinition, error) 
 	if err != nil {
 		return nil, fmt.Errorf("unknown result skill %q", raw.Result)
 	}
+	if result.IsCampTrait() {
+		return nil, fmt.Errorf("result %q is a campfire trait, which only spending, an ascension or a milestone grants (plan-campfire-traits R23)", raw.Result)
+	}
 	if len(raw.Ingredients) == 0 {
 		return nil, fmt.Errorf("empty ingredient list")
 	}

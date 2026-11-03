@@ -543,6 +543,10 @@ func twoSkillTestGame(t *testing.T) *fakeSkillGame {
 		  "id": 41, "name": "Taunt", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
 		  "effects": [{"type": "taunt", "radius": 2, "threatMargin": 1}]
 		}`)},
+		"camp-heal.json": {Data: []byte(`{
+		  "id": 180, "name": "CampHeal", "category": "camp", "maxLevel": 15,
+		  "campTrait": {"kind": "heal", "perLevel": 1}, "effects": []
+		}`)},
 	}, nil)
 	require.NoError(t, err)
 	return &fakeSkillGame{registry: r}
@@ -588,4 +592,29 @@ func TestWizardCommand_TogglesAndTakesOnOff(t *testing.T) {
 	require.NoError(t, commands["WIZARD"](g, p, strPtr("off")))
 	assert.False(t, p.noCooldowns)
 	assert.Error(t, commands["WIZARD"](g, p, strPtr("maybe")))
+}
+
+// --- campfire traits (plan-campfire-traits CT1) ---
+
+// SKILL all / WIZARD hand out abilities, never a trait: a trait at level 1 is a
+// bought level, so a cheat session would hold free, saved campfire levels.
+func TestSkillCommand_AllSkipsCampTraits(t *testing.T) {
+	g := twoSkillTestGame(t)
+	p := newFakeSkillPlayer()
+
+	require.NoError(t, commands["SKILL"](g, p, strPtr("all")))
+	require.NoError(t, commands["WIZARD"](g, newFakeSkillPlayer(), nil))
+
+	assert.True(t, p.sc.HasDiscovered(40))
+	assert.False(t, p.sc.HasDiscovered(180), "a campfire trait is bought, never discovered")
+}
+
+func TestSkillCommand_ACampTraitByNameIsRefused(t *testing.T) {
+	g := twoSkillTestGame(t)
+	p := newFakeSkillPlayer()
+
+	err := commands["SKILL"](g, p, strPtr("CampHeal"))
+
+	assert.Error(t, err)
+	assert.False(t, p.sc.HasDiscovered(180))
 }

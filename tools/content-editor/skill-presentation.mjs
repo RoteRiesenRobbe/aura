@@ -47,7 +47,7 @@
 const SHARED = 'shared';
 const PAYLOAD = 'payload';
 
-// The 16 top-level keys (skillDefinition's json tags, fixture `topLevelKeys`).
+// The 17 top-level keys (skillDefinition's json tags, fixture `topLevelKeys`).
 export const SKILL_PRESENTATION = {
   id: { control: 'number', unit: 'count', hint: 'Persisted in every spellbook row; never changes once shipped.' },
   name: { control: 'text', hint: 'The reference key everywhere: mob skills[]/unlocks[], milestones, NPC grants, recipes, the SKILL cheat.' },
@@ -64,6 +64,9 @@ export const SKILL_PRESENTATION = {
   castTicksPerLevel: { control: 'number', section: 'category' },
   castInterruptedByDamage: { control: 'bool', section: 'category', hint: 'Only legal when castTicks > 0 (loader rule).' },
   targetFactions: { control: 'multi', options: 'factions', section: 'category', hint: 'Faction allowlist; MANDATORY when any effect is calm or charm, and then it gates EVERY effect of the skill.' },
+  // A campfire trait's block (plan-campfire-traits D2). No builder in v1 (the
+  // plan's section 4): hand-authored JSON, kept intact by the editor.
+  campTrait: { control: 'text', hidden: true },
   visual: { control: 'visual', hint: 'The skill VFX layer list (plan-skill-vfx.md C0), drawn by the Visuals section from LAYER_PRESENTATION. A skill with no layers omits the key.' },
   effects: { control: 'effects' },
 };

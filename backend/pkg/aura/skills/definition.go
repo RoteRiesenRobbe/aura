@@ -24,12 +24,15 @@ const (
 	SkillCategoryActiveAura
 	SkillCategoryPassive
 	SkillCategoryCooldown
+	// SkillCategoryCamp is a campfire trait (camp.go, plan-campfire-traits D2).
+	SkillCategoryCamp
 )
 
 var skillCategoryMap = map[string]SkillCategory{
 	"active_aura": SkillCategoryActiveAura,
 	"passive":     SkillCategoryPassive,
 	"cooldown":    SkillCategoryCooldown,
+	"camp":        SkillCategoryCamp,
 }
 
 type EffectType int
@@ -1257,6 +1260,10 @@ type SkillDefinition struct {
 	// catalog and a skill with no dressing serves no key at all.
 	Visual *VisualDef `json:"visual,omitempty"`
 
+	// CampTrait is the authored `campTrait` block, set exactly when Category is
+	// SkillCategoryCamp (camp.go). omitempty: every other skill serves no key.
+	CampTrait *CampTraitDef `json:"campTrait,omitempty"`
+
 	Effects []EffectDef `json:"effects"`
 }
 
@@ -1433,6 +1440,9 @@ type skillDefinition struct {
 	// allowlist (visual.go) can only hard-fail a key the kind does not read if
 	// it still sees the authored object.
 	Visual json.RawMessage `json:"visual"`
+
+	// Kept raw so the category can decide whether it is legal (camp.go).
+	CampTrait json.RawMessage `json:"campTrait"`
 
 	// Kept raw so mapping can hard-fail keys the effect type does not read
 	// (see effectKeys).
@@ -1902,6 +1912,11 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 	}
 
+	campTrait, err := parseCampTrait(s.CampTrait, category)
+	if err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+	}
+
 	effects := make([]EffectDef, 0, len(s.Effects))
 	for _, rawEffect := range s.Effects {
 		effect, err := mapEffect(rawEffect)
@@ -1966,6 +1981,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		TargetFactionMask:       targetFactionMask,
 		TargetFactions:          targetFactionNames,
 		Visual:                  visual,
+		CampTrait:               campTrait,
 		Effects:                 effects,
 	}, nil
 }

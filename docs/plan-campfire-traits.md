@@ -1,10 +1,9 @@
 # Plan: Campfire traits: spend points earned at fires to grow your own camp
 
-**Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R20
-RULED (Q1-Q6 answered as proposed, R15-R20), D1-D11 approved, nothing built.** 3 chunks
-(§5). ⏸ **Queued in `roadmap.md`'s near-term build order (PO 2026-10-30): CT1 runs after
-the revive ledger fix, EP2 and EP3.** The 2026-10-24 gate behind appearance C0b is lifted:
-C0b jumps the queue when its art lands.
+**Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R24
+RULED (R21-R23 at CT1's start 2026-11-03, R24 a default), D1-D11 approved. ✅ CT1 DONE
+2026-11-03 (§11). ⭐ NEXT: CT2, the spellbook's campfire section; then CT3.** 3 chunks (§5),
+in `roadmap.md`'s near-term build order (PO 2026-10-30).
 
 **Owns:** campfire points, the six camp traits, the camp's rest buffs.
 **Builds on:** `archive/plan-downtime.md` (the Camp utility, D1-D9: channel, charges,
@@ -90,6 +89,25 @@ Second round, same day (§7 Q1-Q6, each taken as proposed; plan approved):
 - **R18. A weaker buff stream is kept** and takes over if a stronger one expires first (Q4).
 - **R19. Taking damage does not reset the rest clock**; only leaving the ring does (Q5).
 - **R20. Permanent world fires give no rest buffs** (Q6).
+
+Third round, 2026-11-03 (CT1 session start, PO in chat):
+
+- **R21. "Reset all" leaves camp traits alone; the campfire section gets its own reset.**
+  The ability respec (`ResetSkillLevels`) skips the camp category. A camp-only reset
+  lowers every trait to its floor (R22). Server path in CT1, button in CT2.
+- **R22. A trait can be granted, and a grant is a free level.** The trait starts at
+  level 1 at no cost and no respec takes it below 1; levels above cost 1 campfire point
+  each (the ability discovery-floor shape). One grant = one free level; a second grant
+  of the same trait adds nothing.
+- **R23. Only rebuildable doors grant traits: ascension (bloodline unlocks) and
+  milestones.** Both are re-derived at every join, so the free floor needs no storage
+  (DB stays none). The loader refuses a camp trait as a kill drop, NPC teach, quest
+  reward or recipe result until content wants one. Reading a trait's level (stone
+  conditions, recipe ingredients) works as for any skill. Example content: an
+  ascension granting one permanent level in one specific trait.
+- **R24 (default, not ruled).** The discovered-fire list keeps ids the loaded zone no
+  longer places, so a removed fire keeps its point. Accepted: fires only get added
+  today, and R13 revisits the curve when they change.
 
 ## 3. Design
 
@@ -327,4 +345,57 @@ the stronger buff; die and lose them.
 
 ## 11. Chunk ledgers
 
-(none yet)
+### CT1 - Server foundation and the core three ✅ DONE 2026-11-03 `[uncommitted]`
+
+Built in one execution session, the PO in chat; R21-R24 ruled at its start (§2, third round).
+
+**What shipped.**
+- `skills/camp.go`: `SkillCategoryCamp`, the `campTrait` block (`kind` duration / heal /
+  charges / buff; a buff names `stat` maxHealth / damageDealt / movementSpeed; `perLevel` > 0),
+  validated at load both ways (camp needs the block, nothing else may carry it).
+- Six files in `api/skills/camp/` (ids 179-184, placeholder icons): CampDuration (+30 ticks
+  a level, max 15), CampHeal (+1 camp-aura level, max 15), CampCharges (+1, max 5) and the
+  three buff traits (0.0033 a level, max 15), inert until CT3. `camp-aura` reaches level 16.
+- The pool is counted (D3): discovered fires minus the levels bought above the floor. The
+  player keeps the discovered count from `NoteCampfireState` (`campfiresDiscovered`), because
+  the GameState vector is a per-tick one-shot. The floor (R22) is derived at every join from
+  milestones (level ≤ the character's) and bloodline keys, so nothing new persists.
+- Spend and refund route camp traits to `spendCampTrait` (flat cost 1, no recipe cascade,
+  never below the floor). `Respec{camp: true}` resets traits only (R21) and is NOT
+  combat-locked (a trait only changes the next camp); a plain respec skips traits.
+  `SpentPoints` and the ability reset ignore the category.
+- `applyCamp` snapshots the owner's traits at placement (D6): TTL + duration, aura level
+  1 + heal. `CampChargeCap()` = base + the charges trait; Refill and the reconnect clamp use it.
+- Wire: `camp_points:ushort` appended to GameState, sent every tick ungated (no revision to
+  key off); `Respec.camp` on the client side. The client knows the category (`Skills.ts`,
+  no bind keys) and ignores the field until CT2.
+- R23 doors: the mob loader refuses a camp trait as a kill unlock or a `teach_skill` grant,
+  the recipe loader as a result (an ingredient is fine). Ascension unlock keys and milestones
+  take them. Cheats: `SKILL <trait>` refuses; `SKILL all` and WIZARD skip traits.
+
+**Findings that outlive the chunk.**
+- ⚑ The reconnect order is load-bearing: the stash restores the skill component BEFORE
+  `SetCampCharges`, or the clamp reads the base cap and drops the trait's charge
+  (`TestCampPoints_FollowTheDiscoveredSetAcrossJoinDeathAndReconnect`, falsified against the
+  old clamp).
+- ⚑ L4 is half-live: the client's charge cap lacks the trait term until CT2, so the Camp
+  button can read "2/1" after a Restock (only the harness can buy the trait today).
+- ⚑ `r4-camp.mjs` had been stale since `d9ea9cda` (2026-10-22, fresh characters arrive at a
+  fire-less spawn) and could not parse a health reading above 1,000. Repaired (WARP
+  spawnpoint-1 first; separators accepted), not a CT1 regression.
+- The vocabulary fixture gained `camp` + `campTrait`; camp has no visual-moment row (exempt
+  in `vocabulary_test.go`, `visual_test.go` and the editor smoke).
+- Cosmetic leftovers for CT2: the editor's `skill-inventory.mjs` lists the traits as
+  uncategorised and the skill form says "Unknown category"; the icons are borrowed.
+- ct1 harness: the Restock leg asserts ≥ 2 charges, not exactly base + 1 (the same at level 1).
+
+**Schema:** DB none · wire +1 field each way (`GameState.camp_points`, `Respec.camp`) ·
+conf none · content +6 skill files, +1 category, +1 block, `camp-aura` maxLevel 16 ·
+lang +6 names and descriptions (en + de; the German names await the PO's look) · vocabulary
+fixture +2 · Tiled palette +6 skill names (generated).
+
+**Verified:** Go 40 packages ok, 0 FAIL · `make db-test` (store, accounts vs `aura_test`) ok ·
+`aurad -validate` 0 findings (disk, embedded, debug zones) · vitest 1953/0 · typecheck 0 ·
+editor smoke 0 findings, editor tests 12/0 · `ct1-camp-traits` 16/16 (new) · `r4-camp` 31/31
+(repaired) · `hygiene-wire-prune` clean · boot 149 skills. **In-game (PO):** a regression
+checklist handed over 2026-11-03 (camp, charges, respec, cheats); the first real look is CT2's.

@@ -880,12 +880,99 @@ func (sc *SkillComponent) LowerSkillLevel(def *SkillDefinition) bool {
 // setSkillLevel. The refund needs no point arithmetic at all: SpentPoints is
 // derived from the spellbook, which is exactly what made free respec
 // drift-proof.
-func (sc *SkillComponent) ResetSkillLevels() {
+//
+// Campfire traits are skipped (plan-campfire-traits R21): they have their own
+// reset, ResetCampTraits, which is why this needs the registry.
+func (sc *SkillComponent) ResetSkillLevels(defs Registry) {
 	for id, level := range sc.Spellbook {
-		if level > 1 {
+		if level > 1 && !isCampTrait(defs, id) {
 			sc.setSkillLevel(id, 1)
 		}
 	}
+}
+
+// isCampTrait resolves an entry's category. An unresolvable id reads as an
+// ability, the reading every caller had before the camp category existed.
+func isCampTrait(defs Registry, id SkillID) bool {
+	def, err := defs.Get(id)
+	return err == nil && def.IsCampTrait()
+}
+
+// RaiseCampTrait buys one level of a campfire trait (plan-campfire-traits D5).
+// Unlike RaiseSkillLevel it may buy level 1: a trait starts at 0 = no entry.
+// Like it, the caller checks the pool. Returns false if nothing changed.
+func (sc *SkillComponent) RaiseCampTrait(def *SkillDefinition) bool {
+	if sc.Spellbook == nil || !def.IsCampTrait() {
+		return false
+	}
+	level := sc.Spellbook[def.ID]
+	if level >= def.MaxLevel {
+		return false
+	}
+	sc.setSkillLevel(def.ID, level+1)
+	return true
+}
+
+// LowerCampTrait refunds one level, never below floor (1 for a granted trait,
+// R22; else 0). Reaching 0 deletes the entry: a zero entry would still ship on
+// Discovered() and persist, and the restore clamps a stored level up to 1.
+func (sc *SkillComponent) LowerCampTrait(def *SkillDefinition, floor int) bool {
+	if sc.Spellbook == nil || !def.IsCampTrait() {
+		return false
+	}
+	level := sc.Spellbook[def.ID]
+	if level <= floor || level <= 0 {
+		return false
+	}
+	sc.setCampTraitLevel(def.ID, level-1)
+	return true
+}
+
+// ResetCampTraits lowers every campfire trait to its floor in one step, the
+// campfire section's own reset (R21).
+func (sc *SkillComponent) ResetCampTraits(defs Registry, floor func(SkillID) int) {
+	for id, level := range sc.Spellbook {
+		if !isCampTrait(defs, id) {
+			continue
+		}
+		if f := floor(id); level > f {
+			sc.setCampTraitLevel(id, f)
+		}
+	}
+}
+
+func (sc *SkillComponent) setCampTraitLevel(id SkillID, level int) {
+	if level > 0 {
+		sc.setSkillLevel(id, level)
+		return
+	}
+	delete(sc.Spellbook, id)
+	sc.revision++
+}
+
+// CampSpentPoints is the campfire points bound in traits: each level above the
+// trait's free floor costs 1 (R5, R22). Derived, never stored (D3).
+func (sc *SkillComponent) CampSpentPoints(defs Registry, floor func(SkillID) int) int {
+	spent := 0
+	for id, level := range sc.Spellbook {
+		if isCampTrait(defs, id) {
+			spent += max(level-floor(id), 0)
+		}
+	}
+	return spent
+}
+
+// CampTraitTotal sums the value of every trait of a kind at its current level,
+// in the kind's unit (CampTraitDef.Value). Zero for a mob.
+func (sc *SkillComponent) CampTraitTotal(defs Registry, kind CampTraitKind) float32 {
+	var total float32
+	for id, level := range sc.Spellbook {
+		def, err := defs.Get(id)
+		if err == nil && def.IsCampTrait() && def.CampTrait.Kind == kind {
+			total += def.CampTrait.Value(level)
+		}
+	}
+	return total
 }
 
 func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
@@ -955,6 +1042,9 @@ func (sc *SkillComponent) SpentPoints(defs Registry) int {
 	for id, level := range sc.Spellbook {
 		maxLevel := level
 		if def, err := defs.Get(id); err == nil {
+			if def.IsCampTrait() {
+				continue // its own pool: CampSpentPoints
+			}
 			maxLevel = def.MaxLevel
 		}
 		// An unresolvable spellbook entry cannot happen with a loaded registry

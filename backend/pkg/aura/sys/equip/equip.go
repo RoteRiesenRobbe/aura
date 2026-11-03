@@ -17,6 +17,10 @@ type equipEntity interface {
 	InCombat() bool
 	SkillComponent() *skills.SkillComponent
 	AvailableSkillPoints() int
+	// Campfire traits (plan-campfire-traits D5, R22): their own pool, and the
+	// free floor a granted trait never drops below.
+	AvailableCampPoints() int
+	CampTraitFloor(id skills.SkillID) int
 	// ApplyRecipeCascade discovers any combination recipes newly satisfied by a
 	// skill-level raise (Phase 9).
 	ApplyRecipeCascade()
@@ -68,7 +72,17 @@ func (es *EquipSystem) Update(dt float32) {
 // one click rather than a walk of every skill. Blocked in combat like equip:
 // it is loadout surgery, and every equipped instance's level drops with it.
 func (es *EquipSystem) handleRespec(player equipEntity) {
-	if player.Client().NextRespec() == nil {
+	msg := player.Client().NextRespec()
+	if msg == nil {
+		return
+	}
+	if msg.Camp {
+		// The campfire section's own reset (R21). No combat lock: a trait only
+		// changes the next camp placed (D6).
+		player.SkillComponent().ResetCampTraits(es.g.Skills(), player.CampTraitFloor)
+		slog.Info("respec: camp traits",
+			slog.String("player", player.Name()),
+			slog.Int("availableCampPoints", player.AvailableCampPoints()))
 		return
 	}
 	if player.InCombat() {
@@ -76,7 +90,7 @@ func (es *EquipSystem) handleRespec(player equipEntity) {
 			slog.String("player", player.Name()))
 		return
 	}
-	player.SkillComponent().ResetSkillLevels()
+	player.SkillComponent().ResetSkillLevels(es.g.Skills())
 	slog.Info("respec",
 		slog.String("player", player.Name()),
 		slog.Int("availablePoints", player.AvailableSkillPoints()))
@@ -183,6 +197,10 @@ func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
 	}
 
 	sc := player.SkillComponent()
+	if def.IsCampTrait() {
+		es.spendCampTrait(player, def, msg.Unspend)
+		return
+	}
 	if msg.Unspend {
 		// Free respec: refunding frees a point, so no availability check.
 		if !sc.LowerSkillLevel(def) {
@@ -220,5 +238,43 @@ func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
 		slog.String("player", player.Name()),
 		slog.String("skill", def.Name),
 		slog.Bool("unspend", msg.Unspend),
+		slog.Int("newLevel", sc.SkillLevel(def.ID)))
+}
+
+// spendCampTrait buys or refunds one level of a campfire trait (plan-campfire-
+// traits D5): a flat 1 point from the camp pool (R5), level 1 included, and a
+// refund never below the trait's free floor (R22). No recipe cascade: a trait
+// is never a recipe ingredient's reason to change (R23 keeps it off recipe
+// results, and a raise is not a discovery).
+func (es *EquipSystem) spendCampTrait(player equipEntity, def *skills.SkillDefinition, unspend bool) {
+	sc := player.SkillComponent()
+	if unspend {
+		if !sc.LowerCampTrait(def, player.CampTraitFloor(def.ID)) {
+			slog.Warn("spend: cannot unspend camp trait",
+				slog.String("player", player.Name()),
+				slog.String("skill", def.Name),
+				slog.Int("level", sc.SkillLevel(def.ID)))
+			return
+		}
+	} else {
+		if player.AvailableCampPoints() < 1 {
+			slog.Warn("spend: not enough campfire points",
+				slog.String("player", player.Name()),
+				slog.String("skill", def.Name),
+				slog.Int("available", player.AvailableCampPoints()))
+			return
+		}
+		if !sc.RaiseCampTrait(def) {
+			slog.Warn("spend: cannot raise camp trait",
+				slog.String("player", player.Name()),
+				slog.String("skill", def.Name),
+				slog.Int("level", sc.SkillLevel(def.ID)))
+			return
+		}
+	}
+	slog.Info("spend: camp trait",
+		slog.String("player", player.Name()),
+		slog.String("skill", def.Name),
+		slog.Bool("unspend", unspend),
 		slog.Int("newLevel", sc.SkillLevel(def.ID)))
 }

@@ -2,6 +2,7 @@
   "_comment": "GENERATED FILE, do not hand-edit: written by `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` (backend/pkg/aura/skills/vocabulary_test.go), which is its single writer. Go owns this vocabulary, so the Go tables are the source and this file is the copy. Complement rule: everything here is what api/shared-constants.json does NOT carry - effectTypes, selectors, gateKeys and statNames live there and no list appears in both; a reader merges the two. Read by tools/content-editor (server.mjs + smoke.mjs) to render the skill form from Go's own key table (plan-content-editor.md B3/B4.2). Not loaded by the game: no cp-defs, no embed entry.",
   "categories": [
     "active_aura",
+    "camp",
     "cooldown",
     "passive"
   ],
@@ -22,6 +23,7 @@
     "castInterruptedByDamage",
     "targetFactions",
     "visual",
+    "campTrait",
     "effects"
   ],
   "effectKeys": {

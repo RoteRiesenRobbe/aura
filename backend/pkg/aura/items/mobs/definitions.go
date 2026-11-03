@@ -719,6 +719,9 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		if err != nil {
 			return nil, fmt.Errorf("mob %q: unlock skill %q not found: %w", m.Name, u.SkillName, err)
 		}
+		if def.IsCampTrait() {
+			return nil, fmt.Errorf("mob %q: unlock %q is a campfire trait, which only spending, an ascension or a milestone grants (plan-campfire-traits R23)", m.Name, u.SkillName)
+		}
 		chance := float32(1.0)
 		if u.Chance != nil {
 			chance = *u.Chance

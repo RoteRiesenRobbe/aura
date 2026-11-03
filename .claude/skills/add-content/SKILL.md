@@ -45,6 +45,11 @@ the bottom. Trust the code over the manual if a path has drifted.
   hashes, chunk names, rulings, glyphs, history or placement claims (where
   it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
   tempted to write there goes in the plan doc.
+- **A campfire trait (`"category": "camp"`, `api/skills/camp/`) is granted only
+  by an ascension or a milestone** (plan-campfire-traits R23): the loader
+  refuses one as a kill drop, a `teach_skill` grant or a recipe result. Its
+  rules (the `campTrait` block, no effects, no visual) are in the manual's
+  "Campfire traits" section.
 - **A skill with no `visual` draws no LAYER** (`plan-skill-vfx.md` C2a + C2b +
   C3a, PO 2026-09-19/20/21). The old cadence-derived slash/fire lever
   (`hitStyle`) is deleted end to end and no engine fallback replaced it, so

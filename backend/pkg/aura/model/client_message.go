@@ -69,7 +69,12 @@ type SpendSkillPoint struct {
 // back to level 1, all spent points refunded in one step. Free (PO 2026-08-02),
 // rejected while in combat (the equip-lock precedent), and level 1 is the
 // floor — the milestone-seeded free baseline survives it by construction.
-type Respec struct{}
+//
+// Camp is the campfire section's own reset instead (plan-campfire-traits R21):
+// every trait drops to its free floor and no ability is touched.
+type Respec struct {
+	Camp bool
+}
 
 // UseUtility is a baseline-utility press (plan-downtime.md C1): Recall now,
 // the mini-campfire with C2. Free and cooldown-less by design (D7) — the

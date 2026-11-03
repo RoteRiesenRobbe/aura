@@ -126,6 +126,11 @@ var commands = map[string]Command{
 		if err != nil {
 			return err
 		}
+		if def.IsCampTrait() {
+			// A trait at level 1 is a bought level (plan-campfire-traits D5),
+			// so discovering one would hand out a saved campfire level free.
+			return fmt.Errorf("%s is a campfire trait: buy it with campfire points", def.Name)
+		}
 
 		if !p.SkillComponent().HasDiscovered(def.ID) {
 			p.SkillComponent().Discover(def.ID)
@@ -221,6 +226,9 @@ var commands = map[string]Command{
 func discoverAll(g model.Game, p model.PlayerEntity) {
 	sc := p.SkillComponent()
 	for _, def := range g.Skills().All() {
+		if def.IsCampTrait() {
+			continue // bought, never discovered (see SKILL)
+		}
 		sc.Discover(def.ID)
 	}
 	p.ApplyRecipeCascade()

@@ -159,6 +159,13 @@ type player struct {
 	// from the game again.
 	skillDefs skills.Registry
 
+	// campfiresDiscovered is the size of the character's discovered-fire set,
+	// the campfire point budget (plan-campfire-traits D3, R3). Kept from
+	// NoteCampfireState, which the ConnectionStateSystem calls on every way into
+	// the world and on every discovery, because discoveredCampfires itself is a
+	// per-tick publish that ResetTickNumbers clears.
+	campfiresDiscovered int
+
 	// questLedger is the character's lifetime quest state (plan-quests.md C1).
 	// Like the skill component it outlives this struct: the connection-state
 	// stash carries the pointer across death and reconnect (L11).
@@ -576,6 +583,47 @@ func (p *player) DiscoveredCampfires() []string { return p.discoveredCampfires }
 func (p *player) NoteCampfireState(home string, discovered []string) {
 	p.homeCampfire = home
 	p.discoveredCampfires = discovered
+	p.campfiresDiscovered = len(discovered)
+}
+
+// AvailableCampPoints is the unspent campfire point count (D3): one per
+// discovered fire, minus the trait levels bought above their free floor.
+// Derived on every call, like AvailableSkillPoints.
+func (p *player) AvailableCampPoints() int {
+	return p.campfiresDiscovered - p.skills.CampSpentPoints(p.skillDefs, p.CampTraitFloor)
+}
+
+// CampTraitFloor is the free level a campfire trait holds (R22): 1 when an
+// ascension (a bloodline unlock key) or a milestone the character has reached
+// grants it, else 0. Derived rather than stored: both doors are rebuilt at
+// every join (R23), so the floor needs no persistence. Always 0 for an ability.
+func (p *player) CampTraitFloor(id skills.SkillID) int {
+	def, err := p.skillDefs.Get(id)
+	if err != nil || !def.IsCampTrait() {
+		return 0
+	}
+	for _, u := range p.milestoneUnlocks {
+		if u.Skill.ID == id && u.Level <= p.progression.Level {
+			return 1
+		}
+	}
+	for _, key := range p.bloodlineUnlocks {
+		if key == def.Name {
+			return 1
+		}
+	}
+	return 0
+}
+
+// CampTraitTotal is the owner's summed trait value of one kind (D6).
+func (p *player) CampTraitTotal(kind skills.CampTraitKind) float32 {
+	return p.skills.CampTraitTotal(p.skillDefs, kind)
+}
+
+// CampChargeCap is this player's charge cap: the level-derived cap plus the
+// charges trait (D8), which only ever raises the owner's own store (R6).
+func (p *player) CampChargeCap() int {
+	return skills.CampChargeCap(int(p.Progression().Level)) + int(p.CampTraitTotal(skills.CampTraitCharges))
 }
 
 // MapFog is the stored map reveal published this tick; nil when there is
@@ -638,7 +686,7 @@ func (p *player) SpendCampCharge() bool {
 // (D9). To-cap rather than by-one: the fire is the anchor of the loop, so
 // leaving it should always mean leaving it full.
 func (p *player) RefillCampCharges() {
-	if cap := skills.CampChargeCap(int(p.Progression().Level)); p.campCharges < cap {
+	if cap := p.CampChargeCap(); p.campCharges < cap {
 		p.campCharges = cap
 	}
 }
@@ -648,7 +696,7 @@ func (p *player) RefillCampCharges() {
 // shrunk between the disconnect and the return only if the level did, but a
 // clamp costs one comparison and makes the invariant unconditional.
 func (p *player) SetCampCharges(n int) {
-	if cap := skills.CampChargeCap(int(p.Progression().Level)); n > cap {
+	if cap := p.CampChargeCap(); n > cap {
 		n = cap
 	}
 	if n < 0 {

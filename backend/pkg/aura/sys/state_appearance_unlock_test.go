@@ -124,7 +124,7 @@ func TestGrant_SkillRaiseGrants_ARespecRevokesNothing(t *testing.T) {
 	s.Update(0)
 	require.Equal(t, []uint16{flatCrown}, p.AppearanceOwned())
 
-	p.SkillComponent().ResetSkillLevels()
+	p.SkillComponent().ResetSkillLevels(g.Skills())
 	s.Update(0)
 	assert.Equal(t, []uint16{flatCrown}, p.AppearanceOwned(), "a respec revokes nothing")
 }

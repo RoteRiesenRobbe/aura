@@ -22,8 +22,17 @@ static getSizePrefixedRootAsRespec(bb:flatbuffers.ByteBuffer, obj?:Respec):Respe
   return (obj || new Respec()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 }
 
+camp():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startRespec(builder:flatbuffers.Builder) {
-  builder.startObject(0);
+  builder.startObject(1);
+}
+
+static addCamp(builder:flatbuffers.Builder, camp:boolean) {
+  builder.addFieldInt8(0, +camp, +false);
 }
 
 static endRespec(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -31,8 +40,9 @@ static endRespec(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createRespec(builder:flatbuffers.Builder):flatbuffers.Offset {
+static createRespec(builder:flatbuffers.Builder, camp:boolean):flatbuffers.Offset {
   Respec.startRespec(builder);
+  Respec.addCamp(builder, camp);
   return Respec.endRespec(builder);
 }
 }

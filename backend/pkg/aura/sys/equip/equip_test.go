@@ -105,6 +105,8 @@ type stubEquipEntity struct {
 	sc              *skills.SkillComponent
 	client          *stubClient
 	availablePoints int
+	campPoints      int
+	campFloor       map[skills.SkillID]int
 	inCombat        bool
 	recipes         skills.RecipeRegistry
 }
@@ -115,6 +117,8 @@ func (e *stubEquipEntity) Client() model.Client                   { return e.cli
 func (e *stubEquipEntity) InCombat() bool                         { return e.inCombat }
 func (e *stubEquipEntity) SkillComponent() *skills.SkillComponent { return e.sc }
 func (e *stubEquipEntity) AvailableSkillPoints() int              { return e.availablePoints }
+func (e *stubEquipEntity) AvailableCampPoints() int               { return e.campPoints }
+func (e *stubEquipEntity) CampTraitFloor(id skills.SkillID) int   { return e.campFloor[id] }
 func (e *stubEquipEntity) ApplyRecipeCascade() {
 	if e.recipes != nil {
 		skills.ApplyRecipes(e.sc, e.recipes)
@@ -545,4 +549,117 @@ func TestRespec_RejectedInCombat(t *testing.T) {
 
 	assert.Equal(t, 2, player.sc.SkillLevel(defDamage.ID),
 		"respec follows the equip lock: no loadout surgery mid-fight")
+}
+
+// --- Campfire traits (plan-campfire-traits D5, R21, R22) ---
+
+var defCampHeal = &skills.SkillDefinition{ID: 180, Name: "CampHeal", Category: skills.SkillCategoryCamp, MaxLevel: 3,
+	CampTrait: &skills.CampTraitDef{Kind: skills.CampTraitHeal, PerLevel: 1}}
+
+func TestSpendCampTrait_BuysLevelOneFromTheCampPool(t *testing.T) {
+	es, player := newSystem(defDamage, defCampHeal)
+	player.campPoints = 1
+	player.availablePoints = 0
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defCampHeal.ID), "a trait starts at 0 and level 1 is bought")
+}
+
+func TestSpendCampTrait_NoCampPointIsRefusedWhateverTheSkillPoints(t *testing.T) {
+	es, player := newSystem(defCampHeal)
+	player.campPoints = 0
+	player.availablePoints = 10
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 0, player.sc.SkillLevel(defCampHeal.ID), "ability points never buy a trait")
+}
+
+func TestSpendSkillPoint_CampPointsNeverBuyAnAbility(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	player.campPoints = 10
+	player.availablePoints = 0
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+}
+
+func TestSpendCampTrait_UnspendStopsAtTheFloor(t *testing.T) {
+	es, player := newSystem(defCampHeal)
+	player.sc.Discover(defCampHeal.ID) // granted
+	player.campFloor = map[skills.SkillID]int{defCampHeal.ID: 1}
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID, Unspend: true}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defCampHeal.ID), "a granted level is never refunded")
+}
+
+func TestSpendCampTrait_UnspendToZeroRemovesTheEntry(t *testing.T) {
+	es, player := newSystem(defCampHeal)
+	player.campPoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID}
+	es.Update(0)
+	require.Equal(t, 1, player.sc.SkillLevel(defCampHeal.ID))
+
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID, Unspend: true}
+	es.Update(0)
+
+	assert.False(t, player.sc.HasDiscovered(defCampHeal.ID))
+}
+
+func TestEquip_ACampTraitIsNeverEquipped(t *testing.T) {
+	es, player := newSystem(defCampHeal)
+	player.campPoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defCampHeal.ID}
+	es.Update(0)
+	player.client.msg = &model.EquipSkill{SkillID: defCampHeal.ID, Slot: 0}
+
+	es.Update(0)
+
+	for _, s := range player.sc.AuraSlots {
+		assert.Nil(t, s)
+	}
+	for _, s := range player.sc.PassiveSlots {
+		assert.Nil(t, s)
+	}
+	for _, s := range player.sc.CooldownSlots {
+		assert.Nil(t, s)
+	}
+}
+
+func TestRespec_ResetAllLeavesCampTraits(t *testing.T) {
+	es, player := newSystem(defDamage, defCampHeal)
+	player.sc.Discover(defDamage.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defDamage))
+	require.True(t, player.sc.RaiseCampTrait(defCampHeal))
+	require.True(t, player.sc.RaiseCampTrait(defCampHeal))
+	player.client.respec = &model.Respec{}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+	assert.Equal(t, 2, player.sc.SkillLevel(defCampHeal.ID))
+}
+
+func TestRespec_TheCampResetLowersTraitsToTheirFloorOnly(t *testing.T) {
+	es, player := newSystem(defDamage, defCampHeal)
+	player.sc.Discover(defDamage.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defDamage))
+	player.sc.Discover(defCampHeal.ID) // granted
+	require.True(t, player.sc.RaiseCampTrait(defCampHeal))
+	player.campFloor = map[skills.SkillID]int{defCampHeal.ID: 1}
+	player.inCombat = true // a trait only changes the next camp: no combat lock
+	player.client.respec = &model.Respec{Camp: true}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defCampHeal.ID))
+	assert.Equal(t, 2, player.sc.SkillLevel(defDamage.ID), "abilities are untouched")
 }

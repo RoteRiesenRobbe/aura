@@ -726,6 +726,7 @@ const BIND_KEY_CODES: { [category in SkillCategory]: Set<string> } = {
     aura: new Set(['Digit1', 'Digit2', 'Digit3']),
     cooldown: new Set(['KeyQ', 'KeyR', 'KeyF']),
     passive: new Set(), // passives bind by click only — every non-movement key clears
+    camp: new Set(), // a campfire trait never binds (plan-campfire-traits D5)
 };
 
 function setupPendingSelectionEscape() {

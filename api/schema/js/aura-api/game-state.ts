@@ -318,8 +318,13 @@ appearanceLocksLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+campPoints():number {
+  const offset = this.bb!.__offset(this.bb_pos, 74);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(35);
+  builder.startObject(36);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -650,6 +655,10 @@ static createAppearanceLocksVector(builder:flatbuffers.Builder, data:flatbuffers
 
 static startAppearanceLocksVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
+}
+
+static addCampPoints(builder:flatbuffers.Builder, campPoints:number) {
+  builder.addFieldInt16(35, campPoints, 0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -1163,6 +1163,32 @@ including the orientation and anchor rule per kind, is
 hidden and preserved untouched on round trip, exactly like `legacy`, so a
 hand-authored block survives a save from the tab.
 
+### Campfire traits: the `camp` category (plan-campfire-traits.md)
+
+A campfire trait is a skill file under `api/skills/camp/` with
+`"category": "camp"`, a `campTrait` block and `"effects": []`:
+
+```json
+"campTrait": { "kind": "duration" | "heal" | "charges" | "buff", "stat": "...", "perLevel": 30 }
+```
+
+- `kind` is what the trait changes about its owner's camp; `perLevel` is in
+  the kind's unit (duration: ticks of lifetime; heal: CampAura levels;
+  charges: charges on the owner's cap; buff: a stat fraction). `stat` is
+  only legal on a `buff` and must be `maxHealth`, `damageDealt` or
+  `movementSpeed`. The loader refuses anything else, an effect on a trait,
+  any `visual` layer, and a `campTrait` block on another category.
+- A trait is bought with **campfire points** (one per discovered fire) at a
+  flat 1 per level, starting from 0. It is never equipped.
+- **Only an ascension (a stone's `unlockKey`) or a milestone may grant a
+  trait** (R23): a grant is a free level 1 that no respec removes, rebuilt at
+  every join from the bloodline keys and the level. The loader refuses a trait
+  as a kill drop, a `teach_skill` grant (NPC teaching and quest rewards) or a
+  recipe result. Reading a trait's level (a stone's `skill_level` condition, a
+  recipe ingredient) works like any skill.
+- `SKILL <name>` refuses a trait and `SKILL all` / WIZARD skip them: buy
+  traits through the spellbook's campfire section (CT2).
+
 ### Retiring a skill: never delete the file
 
 *(PO ruling 2026-09-18, `plan-content-editor.md` §B12 C5, which replaced the

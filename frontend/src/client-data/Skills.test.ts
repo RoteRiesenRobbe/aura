@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {ActivationRejection} from '../../../api/schema/js/aura-api/activation-rejection';
 import {
-    ActivationRejectionMessages, activationRejectionMessage, loadSkillCatalog, skillDisplayNameFor,
+    ActivationRejectionMessages, activationRejectionMessage, CATEGORY_MAP, loadSkillCatalog, skillDisplayNameFor,
 } from './Skills';
 
 // §35 C4b: the rejection-feedback map used to be keyed by bare numbers,
@@ -69,5 +69,14 @@ describe('a skill named by its registry name', () => {
         // Aid", which is the drift this lookup exists to avoid.
         expect(skillDisplayNameFor('CallForAid')).toBe('Call for Aid');
         expect(skillDisplayNameFor('FrostShield')).toBe('Frost Shield');
+    });
+});
+
+// Campfire traits CT1 (plan-campfire-traits D2): the server serves "camp", and
+// an unknown category falls back to 'aura', so without its own entry a bought
+// trait would be listed among the player's auras.
+describe('the camp category', () => {
+    it('maps to its own client category, never the aura fallback', () => {
+        expect(CATEGORY_MAP['camp']).toBe('camp');
     });
 });

@@ -614,8 +614,20 @@ func (rcv *GameState) AppearanceLocksLength() int {
 	return 0
 }
 
+func (rcv *GameState) CampPoints() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCampPoints(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(74, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(35)
+	builder.StartObject(36)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -763,6 +775,9 @@ func GameStateAddAppearanceLocks(builder *flatbuffers.Builder, appearanceLocks f
 }
 func GameStateStartAppearanceLocksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func GameStateAddCampPoints(builder *flatbuffers.Builder, campPoints uint16) {
+	builder.PrependUint16Slot(35, campPoints, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

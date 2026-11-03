@@ -180,8 +180,12 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 	// the editor could author no look on it), every moment named is a real
 	// trigger, a count ceiling only makes sense on a kind that reads `count`,
 	// and every applied type must be a named effect type.
-	require.ElementsMatch(t, sortedKeys(skillCategoryMap), mapKeys(visualTriggersByCategory),
-		"visualTriggersByCategory must name exactly the skill categories")
+	// A campfire trait (camp.go) is never switched on, cast or hit with: it has
+	// no moment to dress, so it has no row and every visual layer on one is
+	// refused by the same legality check.
+	dressable := slices.DeleteFunc(sortedKeys(skillCategoryMap), func(c string) bool { return c == "camp" })
+	require.ElementsMatch(t, dressable, mapKeys(visualTriggersByCategory),
+		"visualTriggersByCategory must name exactly the dressable skill categories")
 	for category, moments := range visualTriggersByCategory {
 		require.NotEmpty(t, moments, "skill category %q has an empty visualTriggersByCategory row", category)
 		for _, on := range moments {

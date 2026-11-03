@@ -645,6 +645,11 @@ func TestVisual_D2TriggersByCategory(t *testing.T) {
 // that category's layers through without anybody noticing.
 func TestVisual_EveryCategoryHasATriggerRow(t *testing.T) {
 	for name := range skillCategoryMap {
+		if name == "camp" {
+			// A campfire trait has no moment to dress (vocabulary_test.go).
+			assert.Empty(t, visualTriggersByCategory[name])
+			continue
+		}
 		assert.NotEmpty(t, visualTriggersByCategory[name],
 			"skill category %q has no visualTriggersByCategory row", name)
 	}

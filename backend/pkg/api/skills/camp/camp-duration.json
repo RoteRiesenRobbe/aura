@@ -1,0 +1,13 @@
+{
+  "_comment": "A campfire trait: each level adds 30 ticks (1 s) to the lifetime of the camp this character places. Bought with campfire points, never equipped. All values placeholder.",
+  "id": 179,
+  "name": "CampDuration",
+  "icon": "lorc/stopwatch",
+  "category": "camp",
+  "maxLevel": 15,
+  "campTrait": {
+    "kind": "duration",
+    "perLevel": 30
+  },
+  "effects": []
+}

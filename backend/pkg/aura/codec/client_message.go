@@ -229,11 +229,15 @@ func AbandonQuestMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.A
 	return unmarshalAbandonQuest(unwrapAbandonQuest(msg))
 }
 
-// Respec carries no fields, the Respawn precedent: the asserted body type is
-// the whole payload (round-7 item 8).
+// Respec (round-7 item 8) carries one flag since campfire traits: camp=true
+// resets the traits instead of the abilities (plan-campfire-traits R21).
 func RespecMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Respec {
 	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyRespec)
-	return &model.Respec{}
+	r := &AuraApi.Respec{}
+	if err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, r); err != nil {
+		return &model.Respec{}
+	}
+	return &model.Respec{Camp: r.Camp()}
 }
 
 func unwrapUseUtility(msg *AuraApi.ClientMessage) *AuraApi.UseUtility {

@@ -23,6 +23,10 @@ func testSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
 		"dodo-aura.json": {Data: testAuraSkillJSON},
+		// A campfire trait (plan-campfire-traits R23): reachable only by
+		// spending, an ascension or a milestone, so these loaders refuse it.
+		"camp-heal.json": {Data: []byte(`{"id": 180, "name": "CampHeal", "category": "camp", "maxLevel": 15,
+			"campTrait": {"kind": "heal", "perLevel": 1}, "effects": []}`)},
 	}, nil)
 	require.NoError(t, err)
 	return r
@@ -869,4 +873,21 @@ func TestMapMobDefinition_NegativeCurveLevelFails(t *testing.T) {
 	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "curveLevel")
+}
+
+// R23: a kill drop never grants a campfire trait (its free floor could not be
+// rebuilt at join, so it would read as a bought level nobody paid for).
+func TestMapMobDefinition_ACampTraitIsNoKillUnlock(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Wolf",
+	  "type": "MOB",
+	  "unlocks": [{"skillName": "CampHeal"}],
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "campfire trait")
 }

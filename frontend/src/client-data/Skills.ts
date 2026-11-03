@@ -15,7 +15,9 @@ import {contentCatalogUrl} from '../features/backend/logic/Urls';
 // module, which only needs the three named values.
 import {ActivationRejection} from '../../../api/schema/js/aura-api/activation-rejection';
 
-export type SkillCategory = 'aura' | 'passive' | 'cooldown';
+// 'camp' is a campfire trait (plan-campfire-traits D2): bought from its own
+// pool, never equipped, and listed by no ability section of the spellbook.
+export type SkillCategory = 'aura' | 'passive' | 'cooldown' | 'camp';
 
 // --- catalog wire types (mirror of the Go skills.SkillDefinition JSON) ---
 
@@ -437,6 +439,7 @@ export const CATEGORY_MAP: { [server: string]: SkillCategory } = {
     active_aura: 'aura',
     passive: 'passive',
     cooldown: 'cooldown',
+    camp: 'camp',
 };
 
 export function loadSkillCatalog(): Promise<void> {

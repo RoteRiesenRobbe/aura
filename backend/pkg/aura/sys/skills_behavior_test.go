@@ -94,15 +94,16 @@ type fakePlayer struct {
 	resists       []appliedResist
 	shields       []appliedShield
 	hots          []appliedHot
-	costPaid      vitals.VitalSign     // NoteCostPaid accumulator (round-7 item 7)
-	inCombat      bool                 // reported by InCombat (chunk 1 combat-gate tests)
-	combatActions int                  // NoteCombatAction call count (chunk 1)
-	client        model.Client         // recall reads Client().UUID() (chunk 4)
-	rejections    []rejectedActivation // NoteActivationRejected calls (chunk 4)
-	campCharges   int                  // Camp baseline-utility charges (C2)
-	lastMoveDir   phy.Vec2f            // dash aim source (chunk 5)
-	buffs         skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
-	powerScale    float32              // f(character level) (C0); newFakePlayer sets neutral 1
+	costPaid      vitals.VitalSign                 // NoteCostPaid accumulator (round-7 item 7)
+	inCombat      bool                             // reported by InCombat (chunk 1 combat-gate tests)
+	combatActions int                              // NoteCombatAction call count (chunk 1)
+	client        model.Client                     // recall reads Client().UUID() (chunk 4)
+	rejections    []rejectedActivation             // NoteActivationRejected calls (chunk 4)
+	campCharges   int                              // Camp baseline-utility charges (C2)
+	campTraits    map[skills.CampTraitKind]float32 // CampTraitTotal (plan-campfire-traits CT1)
+	lastMoveDir   phy.Vec2f                        // dash aim source (chunk 5)
+	buffs         skills.Buffs                     // real store for tick_rate (chunk 6); zero value = factor 1.0
+	powerScale    float32                          // f(character level) (C0); newFakePlayer sets neutral 1
 	// The per-tick interactable stamp (chunk 3b-i). Nothing clears these
 	// between ticks the way ResetTickNumbers does for a real player — the
 	// clearing is pinned in model/player, these doubles only need to carry the
@@ -249,6 +250,9 @@ func (f *fakePlayer) SpendCampCharge() bool {
 }
 func (f *fakePlayer) RefillCampCharges()   { f.campCharges = skills.CampChargeCap(int(f.level)) }
 func (f *fakePlayer) SetCampCharges(n int) { f.campCharges = n }
+func (f *fakePlayer) CampTraitTotal(kind skills.CampTraitKind) float32 {
+	return f.campTraits[kind]
+}
 
 func (f *fakePlayer) Interactable() uint64 { return f.interactableID }
 
@@ -6116,3 +6120,61 @@ func TestSpawnAtAnchor_RejectsAtCompletionWhenTheAnchorIsLost(t *testing.T) {
 // through for the hit event). Non-zero on purpose: 0 means "no skill" on the
 // wire, and a test should not accidentally pin that.
 const testSkillID skills.SkillID = 1
+
+// --- campfire traits at placement (plan-campfire-traits CT1, D6-D7) ------------
+
+// campHealAuraDef is camp-aura.json's shape with levels: the heal trait raises
+// the aura's level, so the test def must have room above 1.
+func campHealAuraDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{ID: 138, Name: "CampAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 16,
+		Effects: []skills.EffectDef{{Type: skills.EffectTypeHealAura, Radius: 0.75, TickInterval: 60,
+			Heal: &skills.HealParams{FractionOfMax: 0.12, FractionOfMaxPerLevel: 0.006}}}}
+}
+
+func placeTraitCamp(t *testing.T, traits map[skills.CampTraitKind]float32) (*fakePlayer, *mob.Mob) {
+	t.Helper()
+	caster, g, sk := campTestSetup(1)
+	def := campMobTestDef()
+	def.Skills = []mobs.MobSkill{{Def: campHealAuraDef(), Level: 1}}
+	g.mobReg = fakeMobRegistry{campMobName: def}
+	caster.campTraits = traits
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+	require.Len(t, g.added, 1)
+	return caster, g.added[0].(*mob.Mob)
+}
+
+// burnTicks counts the camp's lifetime the way TestUtilityCamp_BurnsOutOnItsTTL
+// does: updates until the TTL path removes it.
+func burnTicks(m *mob.Mob) int {
+	n := 0
+	for m.Update(0) {
+		n++
+	}
+	return n + 1
+}
+
+func TestUtilityCamp_NoTraitsIsTodaysCamp(t *testing.T) {
+	_, m := placeTraitCamp(t, nil)
+	assert.Equal(t, 1, m.SkillComponent().AuraSlots[0].Level)
+	assert.Equal(t, campTTLTicks, burnTicks(m))
+}
+
+func TestUtilityCamp_TheDurationTraitLengthensTheCamp(t *testing.T) {
+	_, m := placeTraitCamp(t, map[skills.CampTraitKind]float32{skills.CampTraitDuration: 4 * 30})
+	assert.Equal(t, campTTLTicks+120, burnTicks(m), "D6: 450 + duration ticks")
+}
+
+func TestUtilityCamp_TheHealTraitRaisesTheAuraLevel(t *testing.T) {
+	_, m := placeTraitCamp(t, map[skills.CampTraitKind]float32{skills.CampTraitHeal: 3})
+	assert.Equal(t, 4, m.SkillComponent().AuraSlots[0].Level, "D7: 1 + heal trait level")
+}
+
+func TestUtilityCamp_ARespecAfterPlacementLeavesTheBurningCamp(t *testing.T) {
+	caster, m := placeTraitCamp(t, map[skills.CampTraitKind]float32{skills.CampTraitHeal: 3, skills.CampTraitDuration: 60})
+	caster.campTraits = nil // the owner resets every trait
+	assert.Equal(t, 4, m.SkillComponent().AuraSlots[0].Level, "D6: the camp snapshots at placement")
+	assert.Equal(t, campTTLTicks+60, burnTicks(m))
+}

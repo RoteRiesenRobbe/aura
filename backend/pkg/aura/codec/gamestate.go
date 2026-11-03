@@ -734,6 +734,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// the cap from the level it already has, through the shared cap curve, so
 	// the button can read "2/3" off one field.
 	AuraApi.GameStateAddCampCharges(builder, uint8(min(max(gs.Player.CampCharges(), 0), 255)))
+	// The unspent campfire points (plan-campfire-traits D4), ungated for the
+	// same reason: the discovered-fire count has no revision to key off.
+	AuraApi.GameStateAddCampPoints(builder, uint16(min(max(gs.Player.AvailableCampPoints(), 0), 65535)))
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.
