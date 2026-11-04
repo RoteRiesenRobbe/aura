@@ -293,7 +293,7 @@ outside it (R7):
 
 ## 11. Chunk ledgers
 
-### BR1 - built 2026-11-04, uncommitted, PO look owed
+### BR1 - built 2026-11-04 `0ddde877`, PO tested it in game the same day ("works"); German strings look owed
 - **Where:** `frontend/src/features/bug-report/` (`ReportText.ts` builder + `frameStats` +
   WARP/time forms, `ConsoleRing.ts` + `installConsoleRing.ts`, `Diagnostics.ts`,
   `BugReport.ts` form + panel, `buildInfo.ts`); the form in `settings.partial.html`; the
