@@ -291,7 +291,9 @@ try {
 
   await page.click('#characterSelect .slotCard[data-slot-index="1"]');
   await waitShown('#characterCreation', 30_000);
-  await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+  // ⚑ 'attached', not visible: since 31975ae4 (2026-10-25) the choices start folded
+  // behind "Change look", and this leg only reads their data-item (repaired 2026-11-04).
+  await page.waitForSelector('#characterCreation .lookOption.selected', { state: 'attached', timeout: 30_000 });
   const heirLook = await creationLook();
   JSON.stringify(heirLook) === JSON.stringify(['villager', 'ring-leather-claws'])
     ? pass('an heir starts on the predecessor\'s look', heirLook.join(' + '))
@@ -306,7 +308,9 @@ try {
   await waitShown('#characterSelect', 30_000);
   await page.click('#characterSelect .slotCard[data-slot-index="2"]');
   await waitShown('#characterCreation', 30_000);
-  await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+  // ⚑ 'attached', not visible: since 31975ae4 (2026-10-25) the choices start folded
+  // behind "Change look", and this leg only reads their data-item (repaired 2026-11-04).
+  await page.waitForSelector('#characterCreation .lookOption.selected', { state: 'attached', timeout: 30_000 });
   const freshLook = await creationLook();
   const freshOffers = await creationOffers();
   JSON.stringify(freshLook) === JSON.stringify(['default', 'ring-plain'])

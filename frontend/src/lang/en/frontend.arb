@@ -230,6 +230,50 @@
   "@backend.connection-lost": {
     "description": "Banner: the game connection dropped."
   },
+  "bug-report.heading": "Bugs",
+  "@bug-report.heading": {
+    "description": "Settings panel: heading of the bug report group (plan-bug-report.md D1)."
+  },
+  "bug-report.open": "Report bug",
+  "@bug-report.open": {
+    "description": "Settings panel: the button that opens the bug report form."
+  },
+  "bug-report.placeholder": "What happened? What did you expect?",
+  "@bug-report.placeholder": {
+    "description": "Settings panel: placeholder of the bug report's free-text box."
+  },
+  "bug-report.generate": "Generate bug report",
+  "@bug-report.generate": {
+    "description": "Settings panel: the button that builds the report (runs a short fps check first)."
+  },
+  "bug-report.measuring": "Measuring…",
+  "@bug-report.measuring": {
+    "description": "Settings panel: the generate button's label while the fps check runs (about 2 seconds)."
+  },
+  "bug-report.banner": "PLEASE SEND THIS REPORT TO US VIA DISCORD:",
+  "@bug-report.banner": {
+    "description": "Bug report panel: the banner above the report text. Upper case on purpose (PO ruling R3)."
+  },
+  "bug-report.discord": "Open Discord",
+  "@bug-report.discord": {
+    "description": "Bug report panel: link beside the banner to the game's Discord server."
+  },
+  "bug-report.copy": "Copy",
+  "@bug-report.copy": {
+    "description": "Bug report panel: button that copies the report to the clipboard."
+  },
+  "bug-report.copied": "Copied!",
+  "@bug-report.copied": {
+    "description": "Bug report panel: confirmation shown for 2 seconds after Copy worked."
+  },
+  "bug-report.copy-failed": "Select the text and copy it by hand",
+  "@bug-report.copy-failed": {
+    "description": "Bug report panel: shown when the browser refused to copy."
+  },
+  "bug-report.done": "DONE",
+  "@bug-report.done": {
+    "description": "Bug report panel: button that closes the panel. Upper case on purpose (PO ruling R3)."
+  },
   "confirm-row.cancel": "Cancel",
   "@confirm-row.cancel": {
     "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."

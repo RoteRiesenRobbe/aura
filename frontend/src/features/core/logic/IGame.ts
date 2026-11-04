@@ -59,6 +59,12 @@ export interface IGame {
      */
     updateActiveZone(xPx: number, yPx: number): string | undefined;
 
+    /** The zone the player is in now; follows crossings, unlike `zoneName`. */
+    activeZoneName(): string | undefined;
+
+    /** The world renderer, for the bug report's facts (plan-bug-report.md D4). */
+    readonly renderer: PIXI.Renderer;
+
     readonly width: number;
     readonly height: number;
     readonly centerX: number;

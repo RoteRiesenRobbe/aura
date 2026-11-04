@@ -1,0 +1,131 @@
+@import "../../user-interface/assets/variables";
+
+// The bug report (plan-bug-report.md D1, D2).
+
+.bug-report-button() {
+    display: inline-block;
+    background-color: @brand;
+    color: white;
+    border-radius: 0.7vh;
+    padding: 0.5rem 1rem;
+    line-height: 1;
+    font: inherit;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border: 2px outset rgb(221, 221, 221);
+
+    &:active {
+        border-style: inset;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: progress;
+    }
+}
+
+// The form, inside the settings panel.
+#bugReportGroup {
+    .button {
+        .bug-report-button();
+    }
+
+    #bugReportForm {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        &.hidden {
+            display: none;
+        }
+    }
+
+    textarea {
+        width: 100%;
+        min-width: 16rem;
+        box-sizing: border-box;
+        font: inherit;
+        font-size: 0.9rem;
+        resize: vertical;
+    }
+}
+
+// The report panel. Above the world map: it is opened on purpose and is the
+// only thing the player is doing at that moment.
+#bugReportPanel {
+    .ink-panel-chrome();
+    color: white;
+    font-size: inherit;
+
+    position: fixed;
+    z-index: (@z-world-map + 1);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    // [PLACEHOLDER] size (D2): about two thirds of the screen.
+    width: 66vw;
+    height: 66vh;
+    min-width: min(30rem, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    &.hidden {
+        display: none;
+    }
+
+    > .closeButton {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.75rem;
+    }
+
+    .bugReportHeader {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.25rem 1rem;
+        padding-right: 2rem; // clear of the X
+
+        h2 {
+            margin: 0;
+            color: @gold-levelup;
+            font-size: 1.2rem;
+        }
+
+        a {
+            color: @gold-levelup;
+        }
+    }
+
+    textarea {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        box-sizing: border-box;
+        resize: none;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 0.8rem;
+        white-space: pre;
+        overflow: auto;
+    }
+
+    .bugReportActions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.75rem;
+
+        #bugReportCopyStatus {
+            margin-right: auto;
+            font-size: 0.9rem;
+        }
+
+        .button {
+            .bug-report-button();
+        }
+    }
+}

@@ -108,5 +108,20 @@
             </a>
         </div>
         </div>
+
+        <!--
+          Bug report (plan-bug-report.md D1, R1): here because the gear is
+          reachable everywhere, the start screen included. The form and the
+          report panel it opens are wired by bug-report/logic/BugReport.ts.
+        -->
+        <h3 data-i18n="bug-report.heading">Bugs</h3>
+        <div class="setting-group" id="bugReportGroup">
+            <a data-i18n="bug-report.open" href="#" class="button" id="openBugReport">Report bug</a>
+            <div id="bugReportForm" class="hidden">
+                <textarea id="bugReportMessage" rows="5" maxlength="4000"
+                          data-i18n-attr="placeholder:bug-report.placeholder"></textarea>
+                <button data-i18n="bug-report.generate" type="button" class="button" id="generateBugReport">Generate bug report</button>
+            </div>
+        </div>
     </section>
 </div>

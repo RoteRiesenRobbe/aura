@@ -1,12 +1,12 @@
 # Plan: Bug report: a player writes what went wrong, the game adds what we need to know
 
 **Status: DESIGNED + APPROVED 2026-11-03 (planning session, PO in chat). R1-R7 RULED, D1-D12
-APPROVED, Q1-Q3 taken as proposed with the approval, nothing built.** 2 chunks (§5); BR1 can start once approved, BR2 after BR1.
+APPROVED, Q1-Q3 taken as proposed with the approval. ⭐ BR1 BUILT 2026-11-04 (§11), PO look owed; BR2 next.** 2 chunks (§5). D6 amended 2026-11-04.
 
 **Owns:** the "Report bug" entry in the settings panel, the report text and its diagnostics,
 the server's bug-report file. **Builds on:** the settings panel (`game-settings/`), the
 accounts HTTP API and its JWT (`accounts/server.go`), the dev `Fps.ts` frame delta
-(`PrerenderEvent`), Ping/Pong (`Backend.ts`). **Amends / Supersedes:** nothing.
+(`PrerenderEvent`), `GET /api/session` for latency (D6, amended 2026-11-04). **Amends / Supersedes:** nothing.
 **Schema (as designed):** DB none · wire none (HTTP JSON, not FlatBuffers) · conf +1 key
 (BR2, the report file path) · content none · lang +~12 frontend keys (en + de).
 
@@ -97,7 +97,7 @@ renderer:       webgl · resolution 2 · canvas 3024×1720 (5.2 Mpx) · MSAA on
 gpu:            <unmasked renderer, or masked string> · max texture 16384
 minimap:        webgl · canvas 240×240
 fps check:      2.0 s · avg 8.3 fps · median 118 ms · p95 160 ms · worst 210 ms · tab visible
-ping:           42 ms
+http rtt:       42 ms
 settings:       skill effects full · muted yes
 character:      <name> · level 12 · zone world · at 41.20, -7.85 (WARP 4944 -942)
 server:         wss://aura-game.duckdns.org/game
@@ -126,10 +126,14 @@ median, p95 and worst frame time, plus `document.visibilityState`. A pure
 open over the world; that is a known, constant overlay, stated in the report line rather
 than worked around.
 
-### D6 - Ping at the press
-Send one Ping and time the next `PongReceivedEvent`; give up after 2 s [PLACEHOLDER] and
-print `n/a (no pong)`. Runs in parallel with the fps window, so it adds no wait. Not
-connected (start screen): `n/a`.
+### D6 - Latency at the press (AMENDED 2026-11-04, PO in chat)
+~~Send one Ping and time the next `PongReceivedEvent`.~~ ⚑ Found at BR1's start: `PING` is a
+cheat command (`sys/cmd/cmd.go`), answered only for a valid cheat token, and live players
+have none. **Ruled 2026-11-04:** time one `GET /api/session` round trip instead (the same
+call shape `accounts/logic/` already uses) and print it as `http rtt`. No server or wire
+change, and it works on the start screen too; it includes one small DB read, so it reads a
+few ms high. Give up after 2 s [PLACEHOLDER] and print `n/a (timeout)`. Runs in parallel
+with the fps window, so it adds no wait.
 
 ### D7 - Console ring buffer
 Installed **first thing in the entry point**, before Pixi and the game boot: wraps
@@ -289,4 +293,45 @@ outside it (R7):
 
 ## 11. Chunk ledgers
 
-(none yet)
+### BR1 - built 2026-11-04, uncommitted, PO look owed
+- **Where:** `frontend/src/features/bug-report/` (`ReportText.ts` builder + `frameStats` +
+  WARP/time forms, `ConsoleRing.ts` + `installConsoleRing.ts`, `Diagnostics.ts`,
+  `BugReport.ts` form + panel, `buildInfo.ts`); the form in `settings.partial.html`; the
+  version stamp in `webpack.common.js`; `PanelId` +`bugReport`; Controls' Escape closes it;
+  small accessors `Game.renderer`, `Game.activeZoneName()`, `Player.level`.
+- **Deviations:** D6 amended (`http rtt` via `GET /api/session`, PO 2026-11-04, above).
+  D5 times `requestAnimationFrame` rather than `PrerenderEvent`: the same frames in the
+  world (Pixi's ticker is rAF), and it also measures on the start screen, where the game
+  loop is paused. The settings heading reads "Bugs" / "Fehler".
+- **Added after the PO's test (PO 2026-11-04, "add 3 small lines"):** `device` gains CPU
+  cores and device memory (Chromium only; Firefox/Safari print n/a); `settings` gains the
+  camera zoom level and the radar diameter; a new `session` line holds page uptime and the
+  connection state with its age (`uptime 12 min · PLAYING for 11 min`).
+- ⚑ **A partial must start with its element:** `htmlToElement` returns `firstChild`, so a
+  leading HTML comment made `renderPartial` hand a comment node to `applyI18n` and the boot
+  died (`e.querySelectorAll is not a function`). The comment now sits inside the section.
+- ⚑ `select()` on focus scrolled the report to the selection's END (labels hidden); the
+  focus selects backward instead (pinned in the harness).
+- ⚑ The http rtt runs on the main thread, so a starved client inflates it: headless
+  software rendering (~3 fps) read ~1 s against a local server. Read it beside `fps check`.
+- **Schema:** DB none · wire none · conf none · content none · lang +11 frontend keys (en +
+  de, records refreshed).
+- **Verified:** vitest 1977/0 (+24 new: ReportText 15, ConsoleRing 9) · typecheck clean ·
+  `bug-report.mjs` 28/28 (start screen, WASD in the box, every line, console buffer, Copy
+  to the clipboard, Escape/X/DONE, Escape in the form, 1440×780 fit, scroll) ·
+  `c2-layering` 9/0/2 (the two known conversation SKIPs) · `chunk2-accounts` 26/27: leg 8
+  (an heir's creation) had been red since `31975ae4` (look choices fold behind "Change look";
+  it waited for visible), repaired to wait for attached; leg 7 reads the ~3 s delete
+  countdown and loses the race on a slow page (passed at "(1)"/"(2)" in other runs), not
+  touched by BR1 · Go
+  `pkg/aura/lang` ok (`message_test.go` reads `frontend.arb`); no other Go change.
+  ⚑ `UPDATE_LANG_SOURCE=1` also re-encodes `api/lang/de/conversations.translated-from.json`
+  (`\u0026` → `&`); that diff was reverted, it is not part of BR1. ⚑ Under `&develop` the dev panel covers the X (the harness dispatches its
+  `pointerdown`); players never see that panel.
+- **PO look owed:** the panel on the Mac (DPR 2 line, GPU string), the German strings, and
+  whether the 50 % ink panel is opaque enough over the HUD. ⚑ On the start screen Escape
+  closes the report only while focus is in its text (Controls, the in-world Escape, is not
+  running there); X and DONE always work.
+- ⚑ **For BR2:** `devops/deploy.sh` builds the backend (cp-defs) before the frontend, and
+  `-dirty` counts untracked files, so a live build may stamp `-dirty`; check on the first
+  deploy.

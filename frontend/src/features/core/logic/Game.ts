@@ -1,4 +1,4 @@
-import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
+import {Application, Container, Graphics, Renderer, RenderTexture, Ticker} from 'pixi.js';
 
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
@@ -144,6 +144,16 @@ export class Game implements IGame {
 
     public get domElement(): HTMLCanvasElement {
         return this.application.canvas;
+    }
+
+    /** The world renderer, for the bug report's facts (plan-bug-report.md D4). */
+    public get renderer(): Renderer {
+        return this.application.renderer;
+    }
+
+    /** The zone the player is in now; follows crossings, unlike `zoneName`. */
+    public activeZoneName(): string | undefined {
+        return this.activeZone?.active?.name;
     }
 
     private get stage(): Container {

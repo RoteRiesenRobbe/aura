@@ -10,6 +10,7 @@ import {BackendState} from '../../backend/logic/IBackend';
 import * as Locale from '../../localization/logic/Locale';
 import {registerMuteToggle} from '../../audio/logic/Audio';
 import {registerFullscreenToggle} from '../../full-screen/logic/FullScreen';
+import * as BugReport from '../../bug-report/logic/BugReport';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;
@@ -57,6 +58,7 @@ function setupPanel() {
     setupGraphicsSettings();
     setupLanguage();
     AccountSettings.setup(panelElement);
+    BugReport.setupForm(panelElement, hide);
 }
 
 /**

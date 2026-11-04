@@ -28,6 +28,11 @@ export class Player {
     private readonly miniMap: MiniMap;
     private lastLevel: number | null = null;
 
+    /** The level the server last sent; null before the first snapshot. */
+    get level(): number | null {
+        return this.lastLevel;
+    }
+
     constructor(id: number, x: number, y: number, name: string, miniMap: MiniMap) {
         this.character = new Character(id, x, y, name, true);
         this.character.visibleOnMinimap = true;

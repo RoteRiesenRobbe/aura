@@ -1,0 +1,24 @@
+<section id="bugReportPanel" class="hidden">
+    <!--
+      The bug report panel (plan-bug-report.md D2). Rendered on its own, outside
+      the HUD, so it opens from the start screen as well as in the world.
+      ⚑ The report goes in through textarea.value, never innerHTML (L9): the
+      console buffer carries arbitrary text.
+    -->
+    <a href="#" id="closeBugReport" class="closeButton">X</a>
+
+    <div class="bugReportHeader">
+        <h2 data-i18n="bug-report.banner">PLEASE SEND THIS REPORT TO US VIA DISCORD:</h2>
+        <!-- The invite is the social links' one (social-media-links/assets/socialMedia.html). -->
+        <a id="bugReportDiscord" href="https://discord.gg/5Rgx4z3hRB" target="_blank" rel="noopener"
+           data-i18n="bug-report.discord">Open Discord</a>
+    </div>
+
+    <textarea id="bugReportText" readonly spellcheck="false"></textarea>
+
+    <div class="bugReportActions">
+        <span id="bugReportCopyStatus"></span>
+        <button type="button" class="button" id="copyBugReport" data-i18n="bug-report.copy">Copy</button>
+        <button type="button" class="button" id="doneBugReport" data-i18n="bug-report.done">DONE</button>
+    </div>
+</section>

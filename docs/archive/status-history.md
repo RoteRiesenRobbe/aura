@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-04, the bug report BR1 wrap: the ENTITY PRESENTATION EP2 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: ENTITY PRESENTATION EP2, stun's own bit** ✅ DONE 2026-10-31 `610315fd`, PO look passed 2026-11-01 (ledger: `docs/plan-entity-presentation.md` §11 EP2): `AppliedEffectStun`, reported by `stunPayload`, so a stunned mob no longer reads as slowed and a stun + slow shows both; the 0° row wears PONETI `Y_shadowstun` (`stun-swirl`, new pick + repack, placeholder `stun-swirl.svg`). ⚑ The bit is **14**, not the plan's 13 (camouflage took 13 on 2026-10-25): bit 15 is the ushort's LAST, the next state widens the field. Q1 RULED: lifesteal gets no indicator. **Schema: DB none · wire +1 bit value.** Verified: Go red only on the three known · vitest 1952/0 · `ep1-state-ring` 11/0/0 (two new stun legs) · `c3-charge` 6/0/0 (its stun leg moved off the Slow bit) · `c3-paralyze` 4/0/1 · `corpse-medallion` 4/0/0.
+
 *(2026-11-03, the campfire traits CT1 wrap: the APPEARANCE C6 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: APPEARANCE C6, player corpses** ✅ BUILT 2026-10-25 `e90bfee6`, DEPLOYED LIVE 2026-10-28 as `891dc7aa`, PO look passed 2026-11-01 (ledger: `docs/plan-appearance.md` §12 C6, D40-D46): the corpse is a medallion wearing the dead player's portrait + ring at the player's size, grey, with the red skull at 6 o'clock (EP1's `dead` row, lit); the gravestone is gone. The corpse is now the one source of the dead player's look (respawn, revive and the reconnect stash read `corpse.Look()`). Ships on the placeholder `red-skull.svg` until a repack (D46). ⚑ Merged behind origin's `tint`: `Resource` ends `tint`, `portrait`, `ring`. **Schema: DB none · wire `Resource` +2.** Verified: Go red only on the three known · vitest 1945/0 · `corpse-medallion` 4/0/0 (rerun after a WebGL context loss) · `ep1-state-ring` 9/0 · c1-medallions 53/0/1.

@@ -1286,12 +1286,15 @@ system ships blind.
 > 3. ✅ **EP3, DONE 2026-11-01** (design + build the same day, R15-R16: reachable by an aura =
 >    medallion): `Totem`, `FireTotem`, `WarbannerTotem` and `Rockfall` wear medallions with
 >    pack busts. PO look passed 2026-11-01.
-> 4. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ✅ CT1 DONE 2026-11-03
->    (server: pool, spend, camp reset, placement snapshot, `camp_points`). ⭐ NEXT: CT2.
-> 5. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
-> 6. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
-> 7. **Audio C1 onward** (`plan-audio.md`).
-> 8. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
+> 4. **Bug report BR1 → BR2** (`plan-bug-report.md`), moved ahead of CT2 by the PO
+>    2026-11-04 (the Mac/Firefox issues need its diagnostics). ✅ BR1 DONE 2026-11-04
+>    (the report, client only; PO tested it). ⭐ NEXT: BR2 (the server copy).
+> 5. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ✅ CT1 DONE 2026-11-03
+>    (server: pool, spend, camp reset, placement snapshot, `camp_points`). CT2 after BR2.
+> 6. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
+> 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
+> 8. **Audio C1 onward** (`plan-audio.md`).
+> 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
 >
 > ⭐ **Appearance C0b + the skull repack jump the queue** the day the pilot art lands; the
 > open-work gate no longer waits on them (it held campfire traits and quest icons behind

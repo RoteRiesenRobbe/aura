@@ -2,6 +2,22 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const svgToMiniDataURI = require('mini-svg-data-uri');
 const FaviconWebpackPlugin = require('favicons-webpack-plugin');
+const {DefinePlugin} = require('webpack');
+const {execSync} = require('child_process');
+
+/**
+ * The game version stamp (plan-bug-report.md D8): the git short hash, with
+ * `-dirty` when the tree has changes, read once per build. `unknown` where git
+ * is not available (the Docker build). Read in the client by buildInfo.ts.
+ */
+function gameVersion() {
+	try {
+		const git = (args) => execSync(`git ${args}`, {cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore']}).toString().trim();
+		return git('rev-parse --short HEAD') + (git('status --porcelain') ? '-dirty' : '');
+	} catch {
+		return 'unknown';
+	}
+}
 
 
 module.exports = {
@@ -10,6 +26,10 @@ module.exports = {
 	// OBJECT entries. The game page is scoped to its own chunk below.
 	entry: {main: './src/index.ts'},
 	plugins: [
+		new DefinePlugin({
+			__GAME_VERSION__: JSON.stringify(gameVersion()),
+			__BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+		}),
 		new HtmlWebpackPlugin({
 			title: 'Aura',
 			chunks: ['main'],

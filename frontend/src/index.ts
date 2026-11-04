@@ -1,3 +1,6 @@
+// plan-bug-report.md L4: the bug report's console buffer installs before anything can fail.
+import './features/bug-report/logic/installConsoleRing';
+
 // plan-localization.md C0a: resolve the locale and declare the page language first.
 import {loadCatalog} from './features/localization/logic/Locale';
 

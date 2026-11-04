@@ -16,6 +16,7 @@ import * as Conversation from '../../conversation/logic/Conversation';
 import * as Journal from '../../journal/logic/Journal';
 import * as Help from '../../help/logic/Help';
 import * as GameSettingsUI from '../../game-settings/logic/GameSettingsUI';
+import * as BugReport from '../../bug-report/logic/BugReport';
 import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as Spellbook from '../../user-interface/HUD/logic/Spellbook';
@@ -186,6 +187,8 @@ export class Controls {
             // plan-ui-pass.md C2 (D2) and had no Escape close before that.
             // Escape stays a blanket close-all, never a stack pop.
             GameSettingsUI.hide();
+            // ...and the bug report panel (plan-bug-report.md D2), same rule.
+            BugReport.close();
             // ...and the full-screen map, same rule again (C1).
             Game?.miniMap?.close();
             // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a
