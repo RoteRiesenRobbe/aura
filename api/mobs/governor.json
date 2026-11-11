@@ -1,5 +1,5 @@
 {
-  "_comment": "The Governor of Dionsburg, beside the City Guard at the city gate. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `he-who-cried-wolf` behind his progress row. His lines are drafted, the sheet has none. entityType Hermit is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Leonard Caskroe, the Governor of Dionsburg (id Governor), beside the City Guard at the city gate. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `he-who-cried-wolf` behind his progress row. His lines are drafted, the sheet has none. entityType Hermit is placeholder art. All values [PLACEHOLDER].",
   "id": 122,
   "name": "Governor",
   "type": "MOB",

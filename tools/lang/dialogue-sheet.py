@@ -90,7 +90,7 @@ for f in sorted(glob.glob(os.path.join(API, 'zones', '*.json'))):
     walk(json.load(open(f, encoding='utf-8')), os.path.basename(f), '')
 
 REGION_LABEL = {'farmlands': 'Farmlands', 'deep-woods': 'Deep Woods', 'city-hub': 'Dionsburg',
-                'umberwood': 'Umberwood', 'glimmerwood': 'Glimmerwood', 'Underworld': 'Kobold Cave'}
+                'umberwood': 'Umberwood', 'glimmerwood': 'Glimmerwood', 'sorrowfen': 'Sorrowfen', 'Underworld': 'Kobold Cave'}
 
 def offers(mob):
     out = []

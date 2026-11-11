@@ -150,10 +150,10 @@ const talk = [
   ['Fritz', spawnOf('Fritz'), { dx: -1.1, dy: -0.2 }, /What happened here\?/],
   // a fresh character has none of Tobias's quests running, so his rows all hide
   ['Tobias', spawnOf('Tobias'), { dx: 0.5, dy: 1.0 }, null],
-  ['Gnome 1', spawnOf('Gnome1'), { dx: 0, dy: 1.0 }, null],
-  ['Lamplighter', spawnOf('Lamplighter'), { dx: -1.0, dy: -0.4 }, /Can I help with your lamps\?/],
-  ['Woodcutter 1', spawnOf('FallenTraveller'), { dx: 0, dy: -1.1 }, null],
-  ['Woodcutter 2', spawnOf('Woodcutter2'), { dx: 0, dy: 1.1 }, null],
+  ['Pim Sprocketwhistle', spawnOf('Gnome1'), { dx: 0, dy: 1.0 }, null],
+  ['Wanderer', spawnOf('Lamplighter'), { dx: -1.0, dy: -0.4 }, /Can I help with your lamp\?/],
+  ['Illias', spawnOf('FallenTraveller'), { dx: 0, dy: -1.1 }, null],
+  ['Zacharias', spawnOf('Woodcutter2'), { dx: 0, dy: 1.1 }, null],
   ['Woodcutter 3', spawnOf('Woodcutter3'), { dx: 0, dy: 1.1 }, null],
   // the bridge is back (PO 2026-10-25): his greeting says the gate is open
   ['City Guard', spawnOf('CityGuard'), { dx: -1.1, dy: 0 }, null, /The gate is open./],

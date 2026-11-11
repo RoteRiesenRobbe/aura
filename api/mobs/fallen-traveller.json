@@ -1,5 +1,5 @@
 {
-  "_comment": "The Wanderer's lost friend, dead at the back of the kobold cave (koboldCave.json, the east chamber): the talk_to target of `the-lost-friend`, the zone-2 'lost friend' beat (content-zone-2-woodland.md §3.3). dead-carter.json's shape: unattackable (townsfolk, collisionLayer 97), speed 0, xpFactor 0, one lore node with no options; opening the panel is the talk. Its lines match the Wanderer's brief (grey cloak, walking staff) and read true without the quest, so nothing is gated. EntityType Remains. All values [PLACEHOLDER]; text plain.",
+  "_comment": "Illias, Fritz's woodcutter, dead among the spiders at the dark forest's edge in Deep Woods (world.json): the talk_to target of `the-lost-friend`, the zone-2 'lost friend' beat (content-zone-2-woodland.md §3.3). dead-carter.json's shape: unattackable (townsfolk, collisionLayer 97), speed 0, xpFactor 0, one lore node with no options; opening the panel is the talk. Its lines read true without the quest, so nothing is gated. EntityType Remains. All values [PLACEHOLDER]; text plain.",
   "id": 115,
   "name": "FallenTraveller",
   "type": "MOB",

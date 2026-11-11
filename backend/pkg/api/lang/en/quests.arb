@@ -29,7 +29,7 @@
     "description": "Quest title of \"a-healthy-brew\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.a-lost-shipment.found.journal": "You found Tobias alive at a campfire in the woods. The shipment is lost, but he still has Reinhard's letter.",
+  "quest.a-lost-shipment.found.journal": "You found Tobias alive at a campfire in the woods. Bandits attacked him, and he had to leave the shipment behind.",
   "@quest.a-lost-shipment.found.journal": {
     "description": "Journal (diary) entry of quest \"a-lost-shipment\", stage \"found\": written in the player's voice, first person."
   },
@@ -277,15 +277,15 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.dire-wolves-in-the-forest.done.journal": "Done. Reported back to the Lamplighter.",
+  "quest.dire-wolves-in-the-forest.done.journal": "Done. Reported back to the Wanderer.",
   "@quest.dire-wolves-in-the-forest.done.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-in-the-forest\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.dire-wolves-in-the-forest.report.journal": "The dire wolves are dealt with; the Lamplighter waits at the forest edge.",
+  "quest.dire-wolves-in-the-forest.report.journal": "The dire wolves are dealt with; the Wanderer waits at the forest edge.",
   "@quest.dire-wolves-in-the-forest.report.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-in-the-forest\", stage \"report\": written in the player's voice, first person."
   },
-  "quest.dire-wolves-in-the-forest.report.tracker": "Return to the Lamplighter",
+  "quest.dire-wolves-in-the-forest.report.tracker": "Return to the Wanderer",
   "@quest.dire-wolves-in-the-forest.report.tracker": {
     "description": "Tracker line of quest \"dire-wolves-in-the-forest\", stage \"report\": the one objective line shown under the quest title."
   },
@@ -405,15 +405,15 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.kobolds-on-the-road.done.journal": "Done. Reported back to the Wanderer.",
+  "quest.kobolds-on-the-road.done.journal": "Done. Reported back to Fritz.",
   "@quest.kobolds-on-the-road.done.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.kobolds-on-the-road.report.journal": "The kobolds are thinned; the Wanderer is on the road nearby.",
+  "quest.kobolds-on-the-road.report.journal": "The kobolds are thinned; Fritz is on the road nearby.",
   "@quest.kobolds-on-the-road.report.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"report\": written in the player's voice, first person."
   },
-  "quest.kobolds-on-the-road.report.tracker": "Return to the Wanderer",
+  "quest.kobolds-on-the-road.report.tracker": "Return to Fritz",
   "@quest.kobolds-on-the-road.report.tracker": {
     "description": "Tracker line of quest \"kobolds-on-the-road\", stage \"report\": the one objective line shown under the quest title."
   },
@@ -476,19 +476,19 @@
     "description": "Quest title of \"mushrooms-for-the-gnome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.oil-for-the-lamps.bring.journal": "I have a flask of gnome lamp oil for the Lamplighter at the edge of the dark forest.",
+  "quest.oil-for-the-lamps.bring.journal": "I have a flask of gnome lamp oil for the Wanderer at the edge of the dark forest.",
   "@quest.oil-for-the-lamps.bring.journal": {
     "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"bring\": written in the player's voice, first person."
   },
-  "quest.oil-for-the-lamps.bring.tracker": "Bring the lamp oil to the Lamplighter",
+  "quest.oil-for-the-lamps.bring.tracker": "Bring the lamp oil to the Wanderer",
   "@quest.oil-for-the-lamps.bring.tracker": {
     "description": "Tracker line of quest \"oil-for-the-lamps\", stage \"bring\": the one objective line shown under the quest title."
   },
-  "quest.oil-for-the-lamps.done.journal": "Done. The Lamplighter taught me to carry a lamp.",
+  "quest.oil-for-the-lamps.done.journal": "Done. The Wanderer taught me to carry a lamp.",
   "@quest.oil-for-the-lamps.done.journal": {
     "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.oil-for-the-lamps.fetch.journal": "The Lamplighter's lamps are dry, and nobody gets through the dark forest without a light. The gnomes in Dionsburg make the oil he needs.",
+  "quest.oil-for-the-lamps.fetch.journal": "The Wanderer's lamps are dry, and nobody gets through the dark forest without a light. The gnomes in Dionsburg make the oil he needs.",
   "@quest.oil-for-the-lamps.fetch.journal": {
     "description": "Journal (diary) entry of quest \"oil-for-the-lamps\", stage \"fetch\": written in the player's voice, first person."
   },
@@ -580,11 +580,11 @@
     "description": "Quest title of \"the-alpha-bear\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-captive.done.journal": "Done. Fritz knows she is alive.",
+  "quest.the-captive.done.journal": "Done. Fritz knows Zacharias is alive.",
   "@quest.the-captive.done.journal": {
     "description": "Journal (diary) entry of quest \"the-captive\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-captive.return.journal": "She is alive, tied up on the plateau. Fritz should hear it.",
+  "quest.the-captive.return.journal": "Zacharias is alive, tied up on the plateau. Fritz should hear it.",
   "@quest.the-captive.return.journal": {
     "description": "Journal (diary) entry of quest \"the-captive\", stage \"return\": written in the player's voice, first person."
   },
@@ -592,11 +592,11 @@
   "@quest.the-captive.return.tracker": {
     "description": "Tracker line of quest \"the-captive\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest.the-captive.search.journal": "Fritz saw the kobolds drag one of his woodcutters up to their plateau in the north-west. She may still be alive.",
+  "quest.the-captive.search.journal": "Fritz believes the kobolds took his woodcutter Zacharias up to their plateau in the north-west. He may still be alive.",
   "@quest.the-captive.search.journal": {
     "description": "Journal (diary) entry of quest \"the-captive\", stage \"search\": written in the player's voice, first person."
   },
-  "quest.the-captive.search.talk_to.Woodcutter2.tracker": "Find the captive woodcutter on the plateau",
+  "quest.the-captive.search.talk_to.Woodcutter2.tracker": "Find Zacharias on the kobold plateau",
   "@quest.the-captive.search.talk_to.Woodcutter2.tracker": {
     "description": "Tracker line of one talk_to objective (Woodcutter2) in quest \"the-captive\", stage \"search\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
@@ -605,11 +605,11 @@
     "description": "Quest title of \"the-captive\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-lost-friend.done.journal": "Done. Fritz knows his scout is dead.",
+  "quest.the-lost-friend.done.journal": "Done. Fritz knows Illias is dead.",
   "@quest.the-lost-friend.done.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-lost-friend.return.journal": "Fritz's scout lies dead at the edge of the dark forest, among the spiders.",
+  "quest.the-lost-friend.return.journal": "Illias lies dead at the edge of the dark forest, among the spiders.",
   "@quest.the-lost-friend.return.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"return\": written in the player's voice, first person."
   },
@@ -617,11 +617,11 @@
   "@quest.the-lost-friend.return.tracker": {
     "description": "Tracker line of quest \"the-lost-friend\", stage \"return\": the one objective line shown under the quest title."
   },
-  "quest.the-lost-friend.search.journal": "Fritz's scout went south to look over the darker part of the forest for new timber and never came back.",
+  "quest.the-lost-friend.search.journal": "Fritz's woodcutter Illias went south to get help from the city and never came back.",
   "@quest.the-lost-friend.search.journal": {
     "description": "Journal (diary) entry of quest \"the-lost-friend\", stage \"search\": written in the player's voice, first person."
   },
-  "quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": "Find Fritz's scout in the south",
+  "quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": "Find Illias in the south",
   "@quest.the-lost-friend.search.talk_to.FallenTraveller.tracker": {
     "description": "Tracker line of one talk_to objective (Fallen Traveller) in quest \"the-lost-friend\", stage \"search\". Write the whole line: articles, case and prepositions belong here (L8)."
   },
@@ -795,7 +795,7 @@
     "description": "Quest title of \"the-spider-queen\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-stolen-shipment.deliver.journal": "I have the shipment and Reinhard's letter. They belong to the gnomes in Dionsburg.",
+  "quest.the-stolen-shipment.deliver.journal": "I have the shipment. It should go to the gnomes in Dionsburg.",
   "@quest.the-stolen-shipment.deliver.journal": {
     "description": "Journal (diary) entry of quest \"the-stolen-shipment\", stage \"deliver\": written in the player's voice, first person."
   },

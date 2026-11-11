@@ -1,5 +1,5 @@
 {
-  "_comment": "The Lamplighter, at the dark forest's edge by the spiders (content-zone-2-woodland.md §3.8): nobody gets through the dark without a light, and his lamps are dry. Offers and turns in oil-for-the-lamps, which teaches Lamp (the Torch passive, its display name since 2026-10-25) on the turn-in row; still offers dire-wolves-in-the-forest. Standing talkable-NPC shape, entityType Hermit placeholder art. All values [PLACEHOLDER].",
+  "_comment": "The Wanderer (id Lamplighter), at the dark forest's edge by the spiders (content-zone-2-woodland.md §3.8): nobody gets through the dark without a light, and his lamps are dry. Offers and turns in oil-for-the-lamps, which teaches Lamp (the Torch passive, its display name since 2026-10-25) on the turn-in row; still offers dire-wolves-in-the-forest. Standing talkable-NPC shape, entityType Hermit placeholder art. All values [PLACEHOLDER].",
   "id": 53,
   "name": "Lamplighter",
   "type": "MOB",
