@@ -6040,3 +6040,12 @@ if it pulsed"* is a statement about something seen rather than imagined.
 are client-side (`plan-region-atmosphere.md` D12) and nothing leaves the client.
 A new profile key is a **zone-format** question only if a shape ever authors one
 directly, which candidate shapes 1–3 above all avoid by staying on the profile.
+
+## 63. A bandit camp with chests in Deep Woods
+
+Annie's 2026-11-08 proposal for `the-stolen-shipment`: a small bandit camp whose chests the player
+breaks open (with Harvest?) for part of Tobias's cargo. `plan-dionsburg-quests.md` R6/D1 builds the
+step on what exists (the bandit group north of Tobias, the Dead Carter as the "chest"). **Re-open
+when** the PO or Mark places a camp in `deep-woods`, or chest props with a harvest gate exist; then
+the `search` stage's `talk_to DeadCarter` moves to the chest. Schema as sketched: DB none · wire
++1 EntityType if a chest is a new mob with its own art · content one mob, one stage target.
