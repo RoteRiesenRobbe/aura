@@ -340,7 +340,7 @@ outside it (R7):
   `-dirty` counts untracked files, so a live build may stamp `-dirty`; check on the first
   deploy.
 
-### BR2 - built 2026-11-14 `[uncommitted]`, PO filed a report locally the same day and it landed in the file
+### BR2 - built 2026-11-14 `964c7968`, PO filed a report locally the same day and it landed in the file
 - **Where:** `backend/pkg/aura/accounts/bugreports.go` (`BugReportLog`: the file, the
   per-account rate limit, the ceiling; `cleanReportText`; `handleBugReport`), the route and
   the per-route body cap in `server.go`, three refusal codes in `respond.go` +
