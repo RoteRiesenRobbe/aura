@@ -49,6 +49,11 @@ export const API_ERROR_CODES = [
     'busy',
     'database_unavailable',
     'internal',
+    // The bug report's refusals (plan-bug-report.md D11): an over-cap report,
+    // the per-account rate limit, the server's file at its ceiling.
+    'too_large',
+    'rate_limited',
+    'reports_full',
 ] as const;
 
 export type ApiErrorCode = typeof API_ERROR_CODES[number]
@@ -380,6 +385,14 @@ export const AccountsApi = {
      */
     session(): Promise<SessionState> {
         return request<SessionState>('GET', 'session');
+    },
+
+    /**
+     * The server copy of a bug report (plan-bug-report.md D10): both strings
+     * are stored as text and never served back. Answers the record's id.
+     */
+    reportBug(message: string, diagnostics: string): Promise<{id: string}> {
+        return request<{id: string}>('POST', 'bug-reports', {message, diagnostics});
     },
 
     /**

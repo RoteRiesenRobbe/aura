@@ -1,6 +1,7 @@
 {
   "server": {
-    "port": 2000
+    "port": 2000,
+    "bugReportsPath": "bug-reports.jsonl"
   },
   "game": {
     "startZone": "world",

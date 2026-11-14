@@ -274,6 +274,29 @@
   "@bug-report.done": {
     "description": "Bug report panel: button that closes the panel. Upper case on purpose (PO ruling R3)."
   },
+  "bug-report.saved": "A copy was saved on our server (id {id}).",
+  "@bug-report.saved": {
+    "description": "Bug report panel: the line under the banner when the server kept a copy (plan-bug-report.md Q1).",
+    "placeholders": {
+      "id": {"type": "String", "description": "The report id the server answered", "example": "3f9a0c12b7e45d68"}
+    }
+  },
+  "bug-report.not-saved.signed-out": "No copy was saved on our server: you are not logged in.",
+  "@bug-report.not-saved.signed-out": {
+    "description": "Bug report panel: the line under the banner when nobody is logged in, so the server keeps no copy (plan-bug-report.md D10, D11 rule 1)."
+  },
+  "bug-report.not-saved.rate-limited": "No copy was saved on our server: too many reports in a short time.",
+  "@bug-report.not-saved.rate-limited": {
+    "description": "Bug report panel: the line under the banner when the server refused the copy for its rate limit (plan-bug-report.md D10, D11)."
+  },
+  "bug-report.not-saved.offline": "No copy was saved on our server: it could not be reached.",
+  "@bug-report.not-saved.offline": {
+    "description": "Bug report panel: the line under the banner when the server copy failed because the server did not answer in time (plan-bug-report.md D10)."
+  },
+  "bug-report.not-saved.refused": "No copy was saved on our server: it refused the report.",
+  "@bug-report.not-saved.refused": {
+    "description": "Bug report panel: the line under the banner when the server refused the copy for another reason (too long, storage full) (plan-bug-report.md D10)."
+  },
   "confirm-row.cancel": "Cancel",
   "@confirm-row.cancel": {
     "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."

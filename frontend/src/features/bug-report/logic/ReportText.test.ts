@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {buildBugReport, formatFrameStats, formatLocalTime, formatUptime, frameStats, warpForm} from './ReportText';
+import {buildBugReport, diagnosticsSection, formatFrameStats, formatLocalTime, formatUptime, frameStats, savedCopyLine, warpForm} from './ReportText';
 
 describe('buildBugReport', () => {
     it('puts the message first, verbatim, then the diagnostics in a stable order', () => {
@@ -112,5 +112,36 @@ describe('formatLocalTime', () => {
         const date = new Date(Date.UTC(2026, 10, 4, 2, 30));
         expect(formatLocalTime(date, 'X/Y', 270))
             .toBe('2026-11-03 22:00 (X/Y, UTC-4:30) · UTC 02:30');
+    });
+});
+
+describe('diagnosticsSection (the server copy, D10)', () => {
+    it('is the report\'s diagnostics without the report id line', () => {
+        const diagnostics = {gameVersion: 'abc1234', reportId: 'ignored', console: ['[error 1] boom']};
+        const forServer = diagnosticsSection(diagnostics, false);
+        expect(forServer).not.toMatch(/^report id:/m);
+        expect(forServer.split('\n')[0]).toBe('game version:   abc1234');
+        expect(buildBugReport('x', diagnostics)).toContain(forServer);
+    });
+});
+
+describe('savedCopyLine', () => {
+    it('shows the server\'s id', () => {
+        const saved = savedCopyLine({id: '0123456789abcdef'});
+        expect(saved).toEqual({reportId: '0123456789abcdef', note: 'saved'});
+        expect(buildBugReport('x', {reportId: saved.reportId, console: []}))
+            .toMatch(/^report id: +0123456789abcdef$/m);
+    });
+
+    it('says why there is no id, in English, with a localized note', () => {
+        expect(savedCopyLine({failure: 'rate_limited'}))
+            .toEqual({reportId: 'n/a (not saved: rate limited)', note: 'rate-limited'});
+        expect(savedCopyLine({failure: 'no_identity'}).note).toBe('signed-out');
+        expect(savedCopyLine({failure: 'session_expired'}).reportId).toBe('n/a (not saved: not logged in)');
+        expect(savedCopyLine({failure: 'timeout'}))
+            .toEqual({reportId: 'n/a (not saved: server unreachable (timeout))', note: 'offline'});
+        expect(savedCopyLine({failure: 'network'}).note).toBe('offline');
+        expect(savedCopyLine({failure: 'reports_full'}))
+            .toEqual({reportId: 'n/a (not saved: refused (reports_full))', note: 'refused'});
     });
 });

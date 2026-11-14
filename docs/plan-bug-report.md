@@ -1,7 +1,7 @@
 # Plan: Bug report: a player writes what went wrong, the game adds what we need to know
 
 **Status: DESIGNED + APPROVED 2026-11-03 (planning session, PO in chat). R1-R7 RULED, D1-D12
-APPROVED, Q1-Q3 taken as proposed with the approval. ⭐ BR1 BUILT 2026-11-04 (§11), PO look owed; BR2 next.** 2 chunks (§5). D6 amended 2026-11-04.
+APPROVED, Q1-Q3 taken as proposed with the approval. ⭐ BR1 BUILT 2026-11-04, BR2 BUILT 2026-11-14 (§11), both PO-tested locally; owed: the German strings look and the first live deploy's path check (BR2 ledger).** 2 chunks (§5). D6 amended 2026-11-04, D12 amended 2026-11-14.
 
 **Owns:** the "Report bug" entry in the settings panel, the report text and its diagnostics,
 the server's bug-report file. **Builds on:** the settings panel (`game-settings/`), the
@@ -186,11 +186,15 @@ The report is untrusted input end to end. The rules, all in the handler:
 And on the client: the report is shown via `textarea.value`, never `innerHTML`, because the
 console buffer can carry arbitrary text.
 
-### D12 - Where the file lives
-Conf key `bugReports.path` [PLACEHOLDER name]. Dev default: `bug-reports.jsonl` next to
-`conf.json`, gitignored. Live: **`/var/lib/aurad/bug-reports.jsonl`**, outside `/opt/aurad/`
-because `deploy.sh` rsyncs that directory with `--delete` (L5). Same not-backed-up posture as
-the live DB (project_playtest_deploy).
+### D12 - Where the file lives (AMENDED 2026-11-14, PO in chat)
+Conf key `server.bugReportsPath` (the conf has only `server` and `game` blocks). Dev:
+`bug-reports.jsonl`, next to `conf.json` when aurad runs from `backend/`, gitignored. Live:
+**`/var/lib/state/bug-reports.jsonl`**, outside `/opt/aurad/` because `deploy.sh` rsyncs that
+directory with `--delete` (L5). ⚑ Amended from `/var/lib/aurad/`: `devops/aurad.service` runs
+with `DynamicUser=yes`, so aurad can write only its `StateDirectory=state` (`/var/lib/state/`)
+and its cache directory; the PO chose the existing state directory over a hand edit of the
+unit (2026-11-14). An empty path or an unopenable file fails the boot. Same not-backed-up
+posture as the live DB (project_playtest_deploy).
 
 ## 5. Chunks
 
@@ -209,7 +213,7 @@ the live DB (project_playtest_deploy).
 
 ### BR2 - The server copy
 - **Needs first:** BR1.
-- **Schema:** DB none · wire none · conf +1 key `bugReports.path` · content none · lang +2-3
+- **Schema:** DB none · wire none · conf +1 key `server.bugReportsPath` · content none · lang +2-3
   keys (the "not saved" reasons).
 - **In-game (PO):** Generate a report; the panel shows a report id; the same id is the last
   line of the file (`jq` it); a fourth report inside 10 min says "not saved: rate limited"
@@ -254,7 +258,7 @@ the live DB (project_playtest_deploy).
 - **L4 - The console buffer must install before anything can fail.** Installed late, it
   misses exactly the boot and bake errors it exists for (the Firefox blue map would be one).
 - **L5 - `deploy.sh` rsyncs `/opt/aurad/` with `--delete`** (`devops/deploy.sh:36`): a
-  report file inside it is wiped on every full deploy. Keep it in `/var/lib/aurad/` and make
+  report file inside it is wiped on every full deploy. Keep it in `/var/lib/state/` (D12, amended) and make
   sure the service user can write there (`devops/aurad.service`).
 - **L6 - Conf has several copies** (conf.default.json, the local ones, `devops/conf.json`,
   the fifth on the live server, memory project_pre_accounts_hygiene): the new key goes in
@@ -269,7 +273,7 @@ the live DB (project_playtest_deploy).
 
 - **DB:** NONE (the file is not the database; no migration).
 - **Wire:** NONE (FlatBuffers untouched; the POST is plain HTTP JSON on the accounts mux).
-- **Conf:** BR1 none; BR2 +1 key `bugReports.path` in every conf copy (L6).
+- **Conf:** BR1 none; BR2 +1 key `server.bugReportsPath` in every conf copy (L6).
 - **Content:** NONE.
 - **Lang:** +~12 frontend keys (BR1), +2-3 (BR2), en and de in the same change.
 
@@ -335,3 +339,44 @@ outside it (R7):
 - ⚑ **For BR2:** `devops/deploy.sh` builds the backend (cp-defs) before the frontend, and
   `-dirty` counts untracked files, so a live build may stamp `-dirty`; check on the first
   deploy.
+
+### BR2 - built 2026-11-14 `[uncommitted]`, PO filed a report locally the same day and it landed in the file
+- **Where:** `backend/pkg/aura/accounts/bugreports.go` (`BugReportLog`: the file, the
+  per-account rate limit, the ceiling; `cleanReportText`; `handleBugReport`), the route and
+  the per-route body cap in `server.go`, three refusal codes in `respond.go` +
+  `api/shared-constants.json` + `AccountsApi.ts` (`too_large` 413, `rate_limited` 429,
+  `reports_full` 507); `cfg.Server.BugReportsPath`, opened at boot in `cmd/aurad/accounts.go`
+  (empty or unopenable = no boot); client: `AccountsApi.reportBug`, `saveCopy` in
+  `BugReport.ts` (2 s race), `diagnosticsSection` + `savedCopyLine` in `ReportText.ts`, the
+  `#bugReportSaved` note under the banner.
+- **Deviations:** D12 amended (live `/var/lib/state/`, key `server.bugReportsPath`, above).
+  The record carries `character_id` (from `Sessions.Live`), not a name: the name is already
+  in the diagnostics. The server copy's diagnostics leave out the `report id` line. Success
+  is 201. Lang is +5 keys (saved + four reasons), not 2-3. The diagnostics' id line stays
+  English (Q2): `n/a (not saved: rate limited | not logged in | server unreachable (timeout) |
+  refused (<code>))`.
+- ⚑ **`withCORS` wraps every body in a 4 KB `MaxBytesReader`;** a nested larger reader cannot
+  lift it, so the cap is chosen per path there.
+- ⚑ **`encoding/json` silently turns invalid UTF-8 into U+FFFD,** so D11 rule 3's refusal is a
+  `utf8.Valid` check on the raw body before decoding.
+- ⚑ **The key is required, and `backend/conf.json` is gitignored:** every other checkout
+  (the Windows box, a coworker) must add `"bugReportsPath": "bug-reports.jsonl"` under
+  `server` before it boots again.
+- ⚑ **Before the first live deploy:** `deploy.sh` never installs the unit, so check
+  `systemctl cat aurad | grep -E 'StateDirectory|DynamicUser'` on the host; afterwards the
+  journal tail must show `🐞 bug reports are saved`. A path aurad cannot write is a restart loop.
+- ⚑ A copy that lands after the 2 s wait is saved without its id shown (the note says "could
+  not be reached"); the headless harness measured ~1 s http rtt, so the margin is thin there.
+- ⚑ The browser logs a refused fetch (401, 429) as a console error; the harness excuses only
+  those two on `/api/bug-reports`. The console ring never sees them.
+- **Schema:** DB none · wire none · conf +1 key `server.bugReportsPath` (all five conf copies;
+  `devops/conf.json` is the live one) · content none · lang +5 frontend keys (en + de, record
+  refreshed) · shared constants +3 error codes.
+- **Verified:** Go full suite 0 FAIL (Passages green too) · `db-test` ok, the 18 bug report
+  tests run against Postgres (10 endpoint, 8 log; 507 is pinned at the log only, not over
+  HTTP) · vitest 1980/0 · typecheck clean · `bug-report.mjs` 36/36 on a fresh aurad (start
+  screen not saved, the id is the file's last line with message, diagnostics and
+  `character_id`, the 4th report in the world rate limited) · `chunk2-accounts` 27/27 (a
+  first run 26/27 on a headless "WebGL world context lost" console error, green on the rerun).
+- **Owed:** the German strings look (BR1's and these five); dev cleanup after aurad stops
+  (`harnessdb -cleanup`, the harness records in `backend/bug-reports.jsonl`).

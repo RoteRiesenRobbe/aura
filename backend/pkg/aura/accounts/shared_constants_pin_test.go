@@ -47,6 +47,9 @@ func TestApiErrorCodes_MatchSharedConstants(t *testing.T) {
 		codeBusy,
 		codeDatabase,
 		codeInternal,
+		codeTooLarge,
+		codeRateLimited,
+		codeReportsFull,
 	}, fixture.ApiErrorCodes,
 		"accounts' refusal codes have drifted from api/shared-constants.json — the client branches UI flow on these strings")
 }

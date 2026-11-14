@@ -11,15 +11,20 @@ import * as Preloading from '../../core/logic/Preloading';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
 import {t} from '../../localization/logic/Locale';
+import {AccountsApi, ApiError} from '../../accounts/logic/AccountsApi';
 import {collectDiagnostics} from './Diagnostics';
-import {buildBugReport} from './ReportText';
+import {buildBugReport, diagnosticsSection, SavedNote, SaveResult, savedCopyLine} from './ReportText';
 
 /** D9 [PLACEHOLDER]. */
 const COPIED_NOTE_MS = 2000;
 
+/** D10: the longest the panel waits on the server copy [PLACEHOLDER]. */
+const SAVE_WAIT_MS = 2000;
+
 let panel: HTMLElement;
 let reportText: HTMLTextAreaElement;
 let copyStatus: HTMLElement;
+let savedNote: HTMLElement;
 let copyStatusTimer: ReturnType<typeof setTimeout>;
 
 Preloading.renderPartial(require('../assets/bugReport.html'), onDomReady);
@@ -28,6 +33,7 @@ function onDomReady() {
     panel = document.getElementById('bugReportPanel');
     reportText = panel.querySelector('#bugReportText');
     copyStatus = panel.querySelector('#bugReportCopyStatus');
+    savedNote = panel.querySelector('#bugReportSaved');
 
     panel.querySelectorAll('a, button, textarea').forEach(preventShortcutPropagation);
     onPress(panel.querySelector('#closeBugReport'), close);
@@ -84,6 +90,9 @@ export function setupForm(settingsPanel: HTMLElement, closeSettings: () => void)
         generate.textContent = t('bug-report.measuring');
         try {
             const diagnostics = await collectDiagnostics();
+            const saved = savedCopyLine(await saveCopy(message.value, diagnosticsSection(diagnostics, false)));
+            diagnostics.reportId = saved.reportId;
+            savedNote.textContent = savedNoteText(saved.note, saved.reportId);
             open(buildBugReport(message.value, diagnostics));
             message.value = '';
             form.classList.add('hidden');
@@ -93,6 +102,42 @@ export function setupForm(settingsPanel: HTMLElement, closeSettings: () => void)
             generate.textContent = t('bug-report.generate');
         }
     });
+}
+
+/**
+ * D10: POST the copy, waiting at most SAVE_WAIT_MS. The panel opens either
+ * way. ⚑ A copy that lands after the wait is still saved, only its id is not
+ * shown; the Discord post then carries no id to match it by.
+ */
+async function saveCopy(message: string, diagnostics: string): Promise<SaveResult> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<SaveResult>((resolve) => {
+        timer = setTimeout(() => resolve({failure: 'timeout'}), SAVE_WAIT_MS);
+    });
+    const post = AccountsApi.reportBug(message, diagnostics).then(
+        ({id}): SaveResult => ({id}),
+        (error): SaveResult => ({failure: error instanceof ApiError ? error.code : 'network'}),
+    );
+    try {
+        return await Promise.race([post, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+function savedNoteText(note: SavedNote, id: string): string {
+    switch (note) {
+        case 'saved':
+            return t('bug-report.saved', {id});
+        case 'signed-out':
+            return t('bug-report.not-saved.signed-out');
+        case 'rate-limited':
+            return t('bug-report.not-saved.rate-limited');
+        case 'offline':
+            return t('bug-report.not-saved.offline');
+        case 'refused':
+            return t('bug-report.not-saved.refused');
+    }
 }
 
 function open(text: string) {

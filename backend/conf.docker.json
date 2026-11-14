@@ -1,6 +1,7 @@
 {
   "_comment": "Only genuine per-environment deltas live here (§35 C1, D1); every absent game key resolves to the Go defaults, documented in full in conf.default.json.",
   "server": {
-    "port": 80
+    "port": 80,
+    "bugReportsPath": "bug-reports.jsonl"
   }
 }

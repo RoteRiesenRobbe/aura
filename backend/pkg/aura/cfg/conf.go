@@ -23,6 +23,15 @@ type Server struct {
 	// staging origin. Origins are not secrets, so conf.json is the right home
 	// (unlike AURA_DB_URL and AURA_JWT_KEY, which are not).
 	AllowedOrigins []string `json:"allowedOrigins"`
+
+	// BugReportsPath is the file the server copy of bug reports appends to
+	// (plan-bug-report.md D12). Relative paths resolve against the working
+	// directory. Required: aurad refuses to boot without it.
+	//
+	// ⚑ LIVE: /var/lib/state/bug-reports.jsonl. The unit runs with
+	// DynamicUser=yes, so its StateDirectory is the only durable place it may
+	// write, and /opt/aurad/ is rsynced with --delete on every deploy.
+	BugReportsPath string `json:"bugReportsPath"`
 }
 
 type Config struct {

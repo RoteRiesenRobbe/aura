@@ -1288,9 +1288,10 @@ system ships blind.
 >    pack busts. PO look passed 2026-11-01.
 > 4. **Bug report BR1 → BR2** (`plan-bug-report.md`), moved ahead of CT2 by the PO
 >    2026-11-04 (the Mac/Firefox issues need its diagnostics). ✅ BR1 DONE 2026-11-04
->    (the report, client only; PO tested it). ⭐ NEXT: BR2 (the server copy).
+>    (the report, client only; PO tested it). ✅ BR2 DONE 2026-11-14 (the server copy;
+>    PO tested it locally). Owed: the German strings look, the first deploy's path check.
 > 5. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ✅ CT1 DONE 2026-11-03
->    (server: pool, spend, camp reset, placement snapshot, `camp_points`). CT2 after BR2.
+>    (server: pool, spend, camp reset, placement snapshot, `camp_points`). ⭐ NEXT: CT2.
 > 6. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
 > 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
 > 8. **Audio C1 onward** (`plan-audio.md`).

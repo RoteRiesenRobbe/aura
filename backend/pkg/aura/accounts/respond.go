@@ -36,6 +36,9 @@ const (
 	codeBusy              = "busy"                 // the bcrypt gate was full — NOT a failed login
 	codeDatabase          = "database_unavailable" //
 	codeInternal          = "internal"             //
+	codeTooLarge          = "too_large"            // a bug report over a size cap
+	codeRateLimited       = "rate_limited"         // the bug report rate limit
+	codeReportsFull       = "reports_full"         // the bug report file is at its ceiling
 )
 
 // The player-facing strings, verbatim from implementation.md §5b. They live as
@@ -57,6 +60,9 @@ const (
 	msgGeneric           = "Something went wrong. Please try again."
 	msgBadRequest        = "That request could not be understood."
 	msgForbiddenOrigin   = "That request came from an origin this server does not serve."
+	msgTooLarge          = "That report is too long."
+	msgRateLimited       = "Too many reports in a short time. Please try again later."
+	msgReportsFull       = "The server cannot store more reports right now."
 )
 
 // errorBody is what a refused request returns.

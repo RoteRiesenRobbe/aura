@@ -117,6 +117,10 @@ type Config struct {
 	// Creation therefore stamps a constant, and the day a picker lands it
 	// becomes a request field rather than a schema change.
 	DefaultFaction string
+
+	// BugReports is the server copy of bug reports (plan-bug-report.md D10),
+	// opened at boot from server.bugReportsPath.
+	BugReports *BugReportLog
 }
 
 // Server holds the endpoints.
@@ -148,6 +152,8 @@ func New(cfg Config) (*Server, error) {
 		return nil, errors.New("accounts: no appearance catalog")
 	case cfg.DefaultFaction == "":
 		return nil, errors.New("accounts: characters need a default faction")
+	case cfg.BugReports == nil:
+		return nil, errors.New("accounts: no bug report file")
 	}
 
 	s := &Server{cfg: cfg, mux: http.NewServeMux()}
@@ -161,6 +167,7 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("GET /api/session", s.handleSession)
 	s.mux.HandleFunc("POST /api/session/anonymous", s.handleAnonymousSession)
 	s.mux.HandleFunc("POST /api/session/refresh", s.handleRefresh)
+	s.mux.HandleFunc("POST "+bugReportRoute, s.handleBugReport)
 	return s, nil
 }
 
@@ -215,7 +222,12 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		// The bug report is the one route with a larger body (D11 rule 2).
+		limit := int64(maxBodyBytes)
+		if r.URL.Path == bugReportRoute {
+			limit = maxBugReportBodyBytes
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		next.ServeHTTP(w, r)
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -67,6 +68,9 @@ type harness struct {
 	// a timing measurement taken from one address would be measuring the throttle
 	// rather than the thing under test.
 	remoteAddr string
+	// bugReportPath is the file POST /api/bug-reports appends to: a fresh one
+	// per test, in the test's temp dir.
+	bugReportPath string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -87,12 +91,16 @@ func newHarness(t *testing.T) *harness {
 	require.NoError(t, err)
 
 	h := &harness{
-		t:        t,
-		db:       db,
-		tickets:  auth.NewTicketStore(auth.TicketTTL),
-		sessions: auth.NewSessionRegistry(),
-		cookies:  map[string]*http.Cookie{},
+		t:             t,
+		db:            db,
+		tickets:       auth.NewTicketStore(auth.TicketTTL),
+		sessions:      auth.NewSessionRegistry(),
+		cookies:       map[string]*http.Cookie{},
+		bugReportPath: filepath.Join(t.TempDir(), "bug-reports.jsonl"),
 	}
+	bugReports, err := accounts.OpenBugReportLog(h.bugReportPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = bugReports.Close() })
 	server, err := accounts.New(accounts.Config{
 		Store:    db,
 		Keys:     keys,
@@ -105,6 +113,7 @@ func newHarness(t *testing.T) *harness {
 		MaxAliveCharacters: 3,
 		Looks:              testLooks(t),
 		DefaultFaction:     "aligned",
+		BugReports:         bugReports,
 	})
 	require.NoError(t, err)
 	h.handler = server.Handler()

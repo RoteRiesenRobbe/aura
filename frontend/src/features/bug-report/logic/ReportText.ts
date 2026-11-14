@@ -56,8 +56,20 @@ function line(label: string, value: string | undefined): string {
 export function buildBugReport(message: string, diagnostics: Diagnostics): string {
     const out: string[] = ['== Bug report =='];
     out.push(message.trim() === '' ? '(no message)' : message.replace(/\s+$/, ''));
-    out.push('', '== Diagnostics ==');
+    out.push('', '== Diagnostics ==', diagnosticsSection(diagnostics, true));
+    return out.join('\n');
+}
+
+/**
+ * The diagnostics lines alone. The server copy (D10) sends them without the
+ * `report id` line: the id is the server's answer, and its record carries it.
+ */
+export function diagnosticsSection(diagnostics: Diagnostics, withReportId: boolean): string {
+    const out: string[] = [];
     for (const [key, label] of FIELDS) {
+        if (key === 'reportId' && !withReportId) {
+            continue;
+        }
         out.push(line(label, diagnostics[key]));
     }
     if (diagnostics.console.length === 0) {
@@ -69,6 +81,43 @@ export function buildBugReport(message: string, diagnostics: Diagnostics): strin
         }
     }
     return out.join('\n');
+}
+
+/**
+ * How the server copy went (D10): the server's id, or why it is missing. A
+ * failure is an accounts API code (AccountsApi's ApiErrorCode), `network`, or
+ * `timeout` (the 2 s the panel waits).
+ */
+export type SaveResult = {id: string} | {failure: string};
+
+/** Which note the panel shows under the banner (Q1). */
+export type SavedNote = 'saved' | 'signed-out' | 'rate-limited' | 'offline' | 'refused';
+
+/**
+ * The `report id` value (English, like every diagnostics line, Q2) and which
+ * localized note goes under the banner.
+ */
+export function savedCopyLine(result: SaveResult): {reportId: string; note: SavedNote} {
+    if ('id' in result) {
+        return {reportId: result.id, note: 'saved'};
+    }
+    const [reason, note] = notSavedReason(result.failure);
+    return {reportId: `n/a (not saved: ${reason})`, note};
+}
+
+function notSavedReason(failure: string): [string, SavedNote] {
+    switch (failure) {
+        case 'rate_limited':
+            return ['rate limited', 'rate-limited'];
+        case 'no_identity':
+        case 'session_expired':
+            return ['not logged in', 'signed-out'];
+        case 'network':
+        case 'timeout':
+            return [`server unreachable (${failure})`, 'offline'];
+        default:
+            return [`refused (${failure})`, 'refused'];
+    }
 }
 
 export interface FrameStats {

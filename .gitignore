@@ -7,6 +7,8 @@
 /backend/loadbot
 /backend/loadbot.exe
 /backend/conf.json
+# The server copy of bug reports (plan-bug-report.md D12): player text, never committed.
+bug-reports.jsonl
 /backend/simharness
 /backend/harnessdb
 /backend/harnessdb.exe

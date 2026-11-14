@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bug report BR1 (docs/plan-bug-report.md §5 BR1): the report, client only.
+// Bug report BR1 + BR2 (docs/plan-bug-report.md §5): the report, and its server copy.
 //
 //   1  start screen: settings → Report bug → Generate opens the panel; the
 //      in-game lines print n/a there, the fps check still measures
@@ -12,11 +12,19 @@
 //   5  Escape in the report closes it (L3); X closes it; DONE closes it
 //   6  Escape in the form's text box closes the settings panel (L3)
 //   7  1440×780: the panel, its text and both buttons fit inside the viewport
+//   BR2: the start screen saves nothing (not logged in); the first report in the
+//      world shows a server id that is the file's last line; the 4th report in
+//      the world (leg 7) is rate limited and the panel still opens
 //
 // Usage: node .claude/skills/verify/bug-report.mjs [label] [url]
+// The file it reads: $AURA_BUG_REPORTS (default backend/bug-reports.jsonl, the
+// dev conf's path with aurad started from backend/). Run against a freshly
+// started aurad: the rate limit lives in memory.
 // Afterwards (stop aurad first): cd backend && go run ./cmd/harnessdb -cleanup
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -27,6 +35,13 @@ const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
+
+const reportsFile = process.env.AURA_BUG_REPORTS
+  || join(dirname(fileURLToPath(import.meta.url)), '../../../backend/bug-reports.jsonl');
+const lastReport = () => {
+  const lines = readFileSync(reportsFile, 'utf8').trim().split('\n');
+  return JSON.parse(lines[lines.length - 1]);
+};
 
 const results = [];
 const check = (pass, name, detail = '') => {
@@ -60,7 +75,7 @@ await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 
 const page = await context.newPage();
 const consoleErrors = [];
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
-page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`${m.text()} @ ${m.location().url}`); });
 
 try {
   await page.goto(url);
@@ -72,6 +87,9 @@ try {
     check(text.startsWith('== Bug report ==\nstart screen report\n'), 'start screen: the report opens with the message');
     check(field(text, 'character') === 'n/a', 'start screen: the character line is n/a', field(text, 'character'));
     check(/frames · avg/.test(field(text, 'fps check') || ''), 'start screen: the fps check still measures', field(text, 'fps check'));
+    check(field(text, 'report id') === 'n/a (not saved: not logged in)', 'start screen: no server copy, not logged in', field(text, 'report id'));
+    const note = await page.textContent('#bugReportSaved');
+    check(note === 'No copy was saved on our server: you are not logged in.', 'start screen: the note says why', note);
     await page.click('#doneBugReport');
     check(!(await shown(page, 'bugReportPanel')), 'start screen: DONE closes the panel');
   }
@@ -118,7 +136,20 @@ try {
   check(/^webgl/.test(field(text, 'minimap') || ''), 'the minimap renderer line', field(text, 'minimap'));
   check(/DPR [\d.]+ · window \d+×\d+/.test(field(text, 'screen') || ''), 'the screen line', field(text, 'screen'));
   check(/\[error \d\d:\d\d:\d\d\] harness-marker: something broke Error: boom/.test(text), 'the console buffer caught the error');
-  check(field(text, 'report id') === 'n/a', 'report id is n/a until BR2');
+  const reportId = field(text, 'report id') || '';
+  check(/^[0-9a-f]{16}$/.test(reportId), 'the report carries the server id', reportId);
+  const savedNote = await page.textContent('#bugReportSaved');
+  check(savedNote === `A copy was saved on our server (id ${reportId}).`, 'the note under the banner names the id', savedNote);
+  try {
+    const record = lastReport();
+    check(record.id === reportId, 'the id is the file\'s last line', record.id);
+    check(record.message === 'The map is blue.\n  Second line "quoted" <b>not html</b>', 'the record holds the message verbatim');
+    check(record.diagnostics.includes('fps check:') && !/^report id:/m.test(record.diagnostics),
+      'the record holds the diagnostics, without the report id line');
+    check(record.character_id > 0, 'the record names the character in the world', String(record.character_id));
+  } catch (e) {
+    check(false, 'the report file is readable', `${reportsFile}: ${e.message}`);
+  }
   check(/ · cores \d+ · memory (\d+(\.\d+)? GB|n\/a)$/.test(field(text, 'device') || ''), 'the device line carries cores and memory', field(text, 'device'));
   check(/ · camera zoom \d+ · radar \d+ m$/.test(field(text, 'settings') || ''), 'the settings line carries camera zoom and radar', field(text, 'settings'));
   check(/^uptime \d+ (s|min) · PLAYING for \d+ (s|min)$/.test(field(text, 'session') || ''), 'the session line: uptime and PLAYING', field(text, 'session'));
@@ -159,6 +190,8 @@ try {
     return ['bugReportPanel', 'bugReportText', 'copyBugReport', 'doneBugReport'].every(inside);
   });
   check(fit, '1440×780: panel, text and both buttons fit');
+  const limited = field(await reportText(page), 'report id');
+  check(limited === 'n/a (not saved: rate limited)', 'the 4th report in the world is rate limited, the panel still opens', limited);
   const scroll = await page.evaluate(() => {
     const t = document.getElementById('bugReportText');
     return {left: t.scrollLeft, top: t.scrollTop, start: t.selectionStart, end: t.selectionEnd, len: t.value.length};
@@ -170,7 +203,10 @@ try {
 } catch (e) {
   check(false, 'the run completed', e.message);
 } finally {
-  const real = consoleErrors.filter((e) => !/favicon|webglcontextlost|harness-marker/i.test(e));
+  // BR2's two refusals this run provokes on purpose (start screen 401, leg 7's 429)
+  // are logged by the browser as failed resources; nothing else is excused.
+  const expected = (e) => /status of (401|429) .* @ \S*\/api\/bug-reports$/.test(e);
+  const real = consoleErrors.filter((e) => !/favicon|webglcontextlost|harness-marker/i.test(e) && !expected(e));
   check(real.length === 0, 'no console errors', real.slice(0, 3).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

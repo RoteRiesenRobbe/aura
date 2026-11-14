@@ -3,6 +3,7 @@ package accounts_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -37,9 +38,19 @@ func corsHandler(t *testing.T) http.Handler {
 		MaxAliveCharacters: 3,
 		Looks:              testLooks(t),
 		DefaultFaction:     "aligned",
+		BugReports:         noBugReports(t),
 	})
 	require.NoError(t, err)
 	return server.Handler()
+}
+
+// noBugReports is a log in the test's temp dir that these tests never reach.
+func noBugReports(t *testing.T) *accounts.BugReportLog {
+	t.Helper()
+	log, err := accounts.OpenBugReportLog(filepath.Join(t.TempDir(), "bug-reports.jsonl"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = log.Close() })
+	return log
 }
 
 func send(handler http.Handler, method, path, origin string) *httptest.ResponseRecorder {
@@ -140,4 +151,22 @@ func TestUnroutedApiPathsDoNotLeak(t *testing.T) {
 	// server would have accepted.
 	assert.Equal(t, http.StatusUnauthorized,
 		send(handler, http.MethodPost, "/api/characters/notanumber/select", "https://aura-game.test").Code)
+}
+
+// TestBugReportNeedsALogin is D11 rule 1, answered before any query.
+func TestBugReportNeedsALogin(t *testing.T) {
+	w := send(corsHandler(t), http.MethodPost, "/api/bug-reports", "https://aura-game.test")
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// TestOtherRoutesKeepTheSmallBodyCap: the bug report's 32 KB is a per-route
+// exception in withCORS (its own larger reports are accepted in
+// TestBugReportCapsEachField); every other route keeps the 4 KB cap.
+func TestOtherRoutesKeepTheSmallBodyCap(t *testing.T) {
+	body := `{"username":"` + strings.Repeat("x", 5<<10) + `"}`
+	r := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(body))
+	r.Header.Set("Origin", "https://aura-game.test")
+	w := httptest.NewRecorder()
+	corsHandler(t).ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code, "login refuses a 5 KB body")
 }

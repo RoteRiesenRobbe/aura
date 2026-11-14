@@ -68,6 +68,11 @@ func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Co
 	if err != nil {
 		return nil, err
 	}
+	bugReports, err := accounts.OpenBugReportLog(config.Server.BugReportsPath)
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("🐞 bug reports are saved", slog.String("file", config.Server.BugReportsPath))
 
 	return accounts.New(accounts.Config{
 		Store:    db,
@@ -91,5 +96,6 @@ func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Co
 		AllowHarnessNames: dev,
 		Looks:             looks,
 		DefaultFaction:    defaultCharacterFaction,
+		BugReports:        bugReports,
 	})
 }
