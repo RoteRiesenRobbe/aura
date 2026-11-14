@@ -140,6 +140,11 @@ export interface TerrainProfile {
     // resolved: a cap belongs to the tile it continues. ⚑ The art shares the
     // tile's height and scale, and its left column continues the tile's.
     cap?: string | null;
+    // The music track played while the local player stands here, by id from
+    // Music.ts's track table (plan-audio.md C4, its forest slice built early).
+    // Absent is transparent (D0), so a camp inside the woods keeps the woods'
+    // track; nothing declaring one plays the title (plan-audio.md R4).
+    music?: string;
 }
 
 /** An authored overlay, as the parser keeps it: the two required keys and
@@ -328,6 +333,9 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     overlay: null,
     // No cap: only a path's `fade` end reads it, and only a cliff names one.
     cap: null,
+    // The title track, the fallback until a better one exists (plan-audio.md
+    // R4). Must stay a key of Music.ts's track table.
+    music: 'title',
     // The world before atmosphere: nothing is dark except the authored
     // `darkAreas` circles. ⚑ A non-zero default would black out every zone the
     // moment A1 shipped — the feature has to cost exactly zero until a profile
@@ -525,7 +533,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown, blendOutward?: unknown,
             wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown,
             overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown, motes?: unknown,
-            cap?: unknown,
+            cap?: unknown, music?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -599,6 +607,12 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'cap' in entry) {
             const parsed = parseTextureName(entry.cap);
             if (parsed !== undefined) { profile.cap = parsed; }
+        }
+        if (entry && 'music' in entry) {
+            // A track id has a file stem's shape; an unknown one is Music.ts's
+            // loud fallback (D4), not a parse error.
+            const parsed = parseTextureName(entry.music);
+            if (parsed !== undefined) { profile.music = parsed; }
         }
         out[name] = profile;
     });

@@ -776,3 +776,30 @@ describe('PROFILES — the cap key (plan-cliffs.md D2)', () => {
         expect(regionCap(square('Cliff Smooth', 0, 0), shipped)).toBe('cliff-smooth-cap-placeholder');
     });
 });
+
+// plan-audio.md C4's forest slice: a profile names its music track by id.
+describe('music', () => {
+    const MUSIC = buildProfiles({
+        woods: {color: '#00ff00', music: 'forest'},
+        camp: {color: '#ff0000'},
+        badMusic: {music: 7},
+    });
+
+    it('keeps a track id and drops what cannot name one', () => {
+        expect(MUSIC.woods.music).toBe('forest');
+        expect('music' in MUSIC.badMusic).toBe(false);
+    });
+
+    it('falls through a region that names no music (the camp in the woods)', () => {
+        const woods = square('woods', 0, 0, 100);
+        const camp = square('camp', 10, 10, 10);
+        expect(resolveIn('music', {x: 15, y: 15}, [woods, camp], MUSIC)).toBe('forest');
+        expect(resolveIn('music', {x: 500, y: 500}, [woods, camp], MUSIC)).toBe(DEFAULT_PROFILE.music);
+    });
+
+    it('gives every shipped Forest region the forest track', () => {
+        const shipped = buildProfiles(terrainProfilesJson as { [k: string]: unknown });
+        expect(shipped.Forest.music).toBe('forest');
+        expect(DEFAULT_PROFILE.music).toBe('title');
+    });
+});

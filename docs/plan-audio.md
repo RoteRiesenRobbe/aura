@@ -212,6 +212,19 @@ P1-P5 in §4 are confirmed as written, except where a ruling below narrows them.
 - **C4, region music and footsteps** (lanes D + E), from
   `archive/plan-region-audio.md` C1-C3, on the C2 controller (region requests)
   and the C1 table (footstep sets, the L4 throttle fix).
+  ⚑ **AMENDED 2026-11-14 (PO): the forest music slice landed early, before
+  C1/C2**, because the first region track arrived (`Aura - Forest Track.mp3`).
+  Built: a `music` key on the terrain profile (`Regions.ts`, absent =
+  transparent, default `title` per R4), `"music": "forest"` on `Forest` (so
+  Deep Woods AND the Umberwood play it, PO ruling), the pure
+  `audio/logic/MusicMix.ts` (crossfade 2.5 s [PLACEHOLDER], D4 fallback with
+  one warning, D9 no restart, a fading track turns around) and `Music.ts`
+  rewritten on it (local player only, D7; nothing plays while muted, unmute
+  starts from the beginning). Left for the real C1/C2: the §19 streaming
+  (both tracks are still decoded WebAudio; the forest track loads on first
+  entry), the request stack (menu < region < event) and footsteps. C2 takes
+  over `MusicMix`'s switching rather than adding a second one.
+  **Schema: DB none · wire none · conf none · client data +1 profile key.**
 - **C5, event music** (lane F): ascension requests the event level while it
   runs and withdraws when it ends.
 - **C6, credits** (`plan-region-audio.md` C4): attribution for every shipped

@@ -20,7 +20,7 @@
   "Wheat":              { "texture": "wheat-placeholder", "scale": 1, "blend": 0.16, "wobbleReach": 0.02, "wobbleSize": 0.1, "color": "#b08f4c" },
   "Wheat Cross":        { "texture": "wheat-cross-placeholder", "scale": 1, "blend": 0.16, "wobbleReach": 0.02, "wobbleSize": 0.1, "color": "#b08f4c" },
 
-  "Forest":             { "texture": "forest-placeholder", "scale": 0.35, "blend": 1.5, "color": "#2d6b33" },
+  "Forest":             { "texture": "forest-placeholder", "scale": 0.35, "blend": 1.5, "color": "#2d6b33", "music": "forest" },
   "_comment_thicket": "⭐ THE THICKET: a WALL you cannot walk through, worn by BLOCKING polygons (the swamp's walls first, content-zone-7-swamp.md P3). It exists because `Forest` is a FLOOR: on a blocking polygon it read as walkable ground with an invisible wall (PO 2026-10-25). Its tile is tools/make-cellular-tiles.mjs's `thicket`: dark brown limbs and bramble piled to near-full cover over near-black duff, with long shadows and thorns pointed at both ends on top (PO 2026-10-25: thicker, heavier, dark brown, spiky, unpassable). `scale` 0.6, larger than the floors' 0.35, so the pieces read at game zoom. `blend` 0.6 keeps the edge firm (the fade lies OUTSIDE the polygon, D23, over whatever borders it). `color` is the tile's measured mean (the generator asserts it, D14). All values [PLACEHOLDER], the tile is a PLACEHOLDER.",
   "Thicket":            { "texture": "thicket-placeholder", "scale": 0.6, "blend": 0.6, "color": "#23170c" },
   "Swamp":              { "texture": "pd161", "scale": 0.35, "blend": 1.5, "color": "#585044" },

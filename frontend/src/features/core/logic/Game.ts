@@ -15,6 +15,7 @@ import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as Chat from '../../chat/logic/Chat';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 import * as RegionBanner from '../../user-interface/region-banner/logic/RegionBanner';
+import * as Music from '../../audio/logic/Music';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {InputManager} from '../../input-system/logic/InputManager';
 import {JoystickManager} from '../../input-system/logic/virtual-joystick/JoystickManager';
@@ -540,6 +541,7 @@ export class Game implements IGame {
         Chat.setup(this, Backend);
         AlertBanner.setup();
         RegionBanner.setup(this);
+        Music.setup(this);
         ExitAreas.setup(this);
 
         /*
