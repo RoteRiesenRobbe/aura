@@ -175,7 +175,10 @@ await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 const armedText = await page.evaluate(() => document.getElementById('respecButton')?.textContent);
 console.log('after first press:', armedText);
 if (armedText !== 'Confirm?') fail('first press did not arm the button: ' + armedText);
-await page.screenshot({ path: join(outdir, 'respec-armed.png') });
+// ⚑ No screenshot between the presses: the arm window is 4 s and a headless
+// full-page screenshot can outlast it, which silently disarms the button and
+// turns the confirm into a fresh arm (seen 2026-11-15: no respec ever reached
+// the server). The armed state is asserted by text above instead.
 box = await respecBtn.boundingBox();
 await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 

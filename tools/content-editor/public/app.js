@@ -1954,7 +1954,7 @@ function skillCategorySection(ctx) {
     }
     col.body.appendChild(livePreview(ctx, 'Per level', skill, vocab.topLevelKeys));
   } else {
-    col.body.appendChild(el('div', { class: 'mob-readonly-note', text: category === 'active_aura' ? 'An aura has no cooldown or cast: it is toggled, one active at a time, and ticks on its own cadence (each effect\'s tickInterval).' : category === 'passive' ? 'A passive is always on and has no cadence, cooldown or cast.' : 'Unknown category - the loader would refuse this file.' }));
+    col.body.appendChild(el('div', { class: 'mob-readonly-note', text: category === 'active_aura' ? 'An aura has no cooldown or cast: it is toggled, one active at a time, and ticks on its own cadence (each effect\'s tickInterval).' : category === 'passive' ? 'A passive is always on and has no cadence, cooldown or cast.' : category === 'camp' ? 'A campfire trait is bought with campfire points and never equipped: it has no cadence, cooldown or cast, and its campTrait block (hand-authored JSON, no builder) is what the camp reads at placement.' : 'Unknown category - the loader would refuse this file.' }));
   }
   const scoped = effects.filter((e) => e && vocab.factionScoped.includes(e.type)).map((e) => e.type);
   const factionsField = keyField('targetFactions', skill, ctx);

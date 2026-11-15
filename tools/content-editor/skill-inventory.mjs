@@ -314,7 +314,7 @@ function build() {
   const RENDERED_TOP = new Set([
     'id', 'name', 'displayName', 'icon', 'description', 'category', 'maxLevel',
     'cooldownTicks', 'cooldownTicksPerLevel', 'castTicks', 'castTicksPerLevel',
-    'castInterruptedByDamage', 'targetFactions', 'effects',
+    'castInterruptedByDamage', 'targetFactions', 'effects', 'campTrait',
   ]);
   // 'legacy' is a retired flag, never shown to a reader; 'visual' is the VFX
   // layer list (plan-skill-vfx.md C0, authored in the editor's Visuals section
@@ -425,7 +425,10 @@ function render(ctx) {
     cell(s.raw.icon ?? ''),
     cell(renderCost(s.raw, vocabulary, ticksPerSecond)),
     cell(renderTiming(s.raw, vocabulary, ticksPerSecond)),
-    cell(renderEffects(s.raw, vocabulary, ticksPerSecond)),
+    // A campfire trait has no effects; its campTrait block is its numbers.
+    cell(s.raw.campTrait
+      ? `campTrait ${s.raw.campTrait.kind}${s.raw.campTrait.stat ? ` ${s.raw.campTrait.stat}` : ''}: +${s.raw.campTrait.perLevel} per level`
+      : renderEffects(s.raw, vocabulary, ticksPerSecond)),
     cell((s.raw.targetFactions || []).join('/')),
     sourcesCell(s.raw),
     cell(s.raw.description ?? ''),
@@ -442,8 +445,9 @@ function render(ctx) {
   const auras = byCategory('active_aura');
   const passives = byCategory('passive');
   const cooldowns = byCategory('cooldown');
+  const camps = byCategory('camp');
 
-  const uncategorised = players.filter((s) => !['active_aura', 'passive', 'cooldown'].includes(s.raw.category));
+  const uncategorised = players.filter((s) => !['active_aura', 'passive', 'cooldown', 'camp'].includes(s.raw.category));
   if (uncategorised.length) fail(`player skills with an unknown category: ${uncategorised.map((s) => s.raw.name).join(', ')}`);
 
   // --- mob-only table
@@ -577,7 +581,7 @@ marked because the code already knows them: **test rig** (\`TEST_RIG_SKILLS\`,
 kitchen-sink rigs that must never gain a source) and **prototype** (a skill
 using an effect type in \`HIDDEN_EFFECT_TYPES\`, parked pending a verdict).
 
-**${all.length} skills = ${players.length} player (${auras.length} auras, ${passives.length} passives, ${cooldowns.length} cooldowns) + ${mobSkills.length} mob-only.**
+**${all.length} skills = ${players.length} player (${auras.length} auras, ${passives.length} passives, ${cooldowns.length} cooldowns, ${camps.length} campfire traits) + ${mobSkills.length} mob-only.**
 
 ## ${CATEGORY_LABELS.active_aura} (${auras.length})
 
@@ -590,6 +594,14 @@ ${table(PLAYER_HEADER, passives.map(playerRow))}
 ## ${CATEGORY_LABELS.cooldown} (${cooldowns.length})
 
 ${table(PLAYER_HEADER, cooldowns.map(playerRow))}
+
+## ${CATEGORY_LABELS.camp} (${camps.length})
+
+Bought with campfire points (one per discovered fire), never equipped; each
+file's \`campTrait\` block is what the camp reads at placement
+(\`docs/plan-campfire-traits.md\`).
+
+${table(PLAYER_HEADER, camps.map(playerRow))}
 
 ## Mob-only skills (${mobSkills.length})
 

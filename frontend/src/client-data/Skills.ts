@@ -412,7 +412,18 @@ export interface SkillDefinition {
     // draws nothing, by PO ruling - there is no engine default.
     visual?: VisualDef;
 
+    // A campfire trait's authored block (plan-campfire-traits D2), present
+    // exactly on the camp category. PerLevel is in the kind's own unit: ticks
+    // of camp lifetime, camp-aura levels, charges, or a stat fraction.
+    campTrait?: CampTraitDef;
+
     effects: SkillEffect[];
+}
+
+export interface CampTraitDef {
+    kind: string;
+    stat?: string;
+    perLevel: number;
 }
 
 // LevelCurve mirrors the Go curve.Curve served alongside the definitions
@@ -696,8 +707,34 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
 const CAMP_CHARGE_CAP_BASE = 1;      // [PLACEHOLDER]
 const CAMP_CHARGE_CAP_PER_LEVELS = 7; // [PLACEHOLDER]
 
-export function campChargeCap(level: number): number {
-    return CAMP_CHARGE_CAP_BASE + Math.floor(Math.max(level, 0) / CAMP_CHARGE_CAP_PER_LEVELS);
+//
+// `chargesTotal` is the charges trait's term (plan-campfire-traits D8, L4):
+// campTraitTotal('charges', …), truncated like the Go player.CampChargeCap's
+// int(). Defaults to 0 so the level curve alone stays pinned on its own.
+export function campChargeCap(level: number, chargesTotal: number = 0): number {
+    return CAMP_CHARGE_CAP_BASE + Math.floor(Math.max(level, 0) / CAMP_CHARGE_CAP_PER_LEVELS)
+        + Math.trunc(Math.max(chargesTotal, 0));
+}
+
+// The campfire traits the catalog holds, by id (plan-campfire-traits D5): the
+// spellbook lists them from HERE, not from the player's spellbook, because an
+// unbought trait has no spellbook entry and is still shown, at 0.
+export function campTraits(): SkillDefinition[] {
+    return [...catalog.values()]
+        .filter((def) => def.category === 'camp' && def.campTrait)
+        .sort((a, b) => a.id - b.id);
+}
+
+// Σ perLevel × level over every trait of one kind: the client twin of the Go
+// SkillComponent.CampTraitTotal. `levelOf` answers 0 for an unbought trait.
+export function campTraitTotal(kind: string, levelOf: (id: number) => number): number {
+    let total = 0;
+    for (const def of campTraits()) {
+        if (def.campTrait.kind === kind) {
+            total += def.campTrait.perLevel * Math.max(levelOf(def.id), 0);
+        }
+    }
+    return total;
 }
 
 export function activationRejectionMessage(reason: number): string {

@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-15, the campfire traits CT2 wrap: the CAMPFIRE TRAITS CT1 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: CAMPFIRE TRAITS CT1, server foundation** ✅ DONE 2026-11-03 `4772a418` (ledger: `docs/plan-campfire-traits.md` §11 CT1; R21-R24): 1 campfire point per discovered fire, counted never stored; six `camp` skills (ids 179-184) at flat cost 1; `Respec{camp}` resets traits only; a camp snapshots its owner's traits at placement; ascension keys and milestones grant a free level 1 no reset removes. ⚑ The reconnect restores skills BEFORE the charge clamp (pinned). **Schema: DB none · wire +1 field each way · content +6 skills +1 category.** Verified: Go 40 ok/0 FAIL · db-test ok · vitest 1953/0 · `ct1-camp-traits` 16/16 · `r4-camp` 31/31.
+
 *(2026-11-14, the bug report BR2 wrap: the ENTITY PRESENTATION EP3 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: ENTITY PRESENTATION EP3, one token system** ✅ DONE 2026-11-01 `a277d84e`, PO look passed 2026-11-01 (ledger: `docs/plan-entity-presentation.md` §11 EP3): `Totem`, `FireTotem`, `WarbannerTotem` and `Rockfall` wear a medallion at their collider size (BurstTotem and the portals follow, R16); web, pool, spikes stay props. ⚑ D16 AMENDED by the PO: the old D31 pin (every medallion species draws a pack bust) collided with "keep the SVG", so all four got busts (`totem-blue`, `totem-fire`, `war-banner`, new `rubble-pile`; repack). Same day the PO passed the looks for EP2, appearance C6 and herding (archived). **Schema: DB none · wire none · content none.** Verified: vitest 1952/0 · typecheck · `ep1-state-ring` 17/0/0 (new leg 7: both totems at 30 px, friendly, a dot at 22.5°) · Go red only on the known Passages test (no Go change).

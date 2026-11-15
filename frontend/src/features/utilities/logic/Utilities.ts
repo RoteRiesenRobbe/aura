@@ -97,11 +97,11 @@ export const UTILITY_CAST_SECONDS: { [kind: number]: number } = {
     [AuraApi.UtilityKind.Ascend]: 10,
 };
 
-// The live charge count and character level, pushed in by updateCampCharges
+// The live charge count and cap (level + charges trait), pushed in by updateCampCharges
 // from every snapshot. The tooltip is built at HOVER time so it reads whatever
 // the last snapshot said, rather than whatever was true when the bar was wired.
 let campCharges = 0;
-let campLevel = 1;
+let campCap = 1;
 
 // The counter's gold, so the tooltip's charge line and the button agree.
 const CHARGE_COLOR = 'gold';
@@ -136,7 +136,7 @@ function utilityTooltip(kind: number): TooltipContent | null {
             {text: t('utility.camp.line')},
             {text: t('utility.camp.limits')},
             {text: cast},
-            {text: t('utility.camp.charges', {charges: campCharges, cap: campChargeCap(campLevel)}), labelColor: CHARGE_COLOR},
+            {text: t('utility.camp.charges', {charges: campCharges, cap: campCap}), labelColor: CHARGE_COLOR},
             {text: t('utility.camp.refill')},
         ],
     };
@@ -174,14 +174,17 @@ export function trigger(kind: number) {
  * the press instead of only as floating text after it. The button stays
  * clickable on purpose: pressing it is how you learn why it is grey.
  */
-export function updateCampCharges(charges: number, level: number) {
+//
+// `chargesTotal` is the charges trait's term (plan-campfire-traits D8): the
+// owner's cap grows with it, mirroring the Go player.CampChargeCap.
+export function updateCampCharges(charges: number, level: number, chargesTotal: number = 0) {
     campCharges = charges;
-    campLevel = level;
+    campCap = campChargeCap(level, chargesTotal);
     const button = document.querySelector<HTMLElement>('#utilityList > li[data-utility="2"]');
     if (!button) {
         return;
     }
-    button.querySelector('.utilityCharges')!.textContent = `${charges}/${campChargeCap(level)}`;
+    button.querySelector('.utilityCharges')!.textContent = `${charges}/${campCap}`;
     button.classList.toggle('outOfCharges', charges <= 0);
     // Swap the fire only when lit/unlit flips: this runs every snapshot, and
     // rebuilding the token each time would churn the DOM under a hover.

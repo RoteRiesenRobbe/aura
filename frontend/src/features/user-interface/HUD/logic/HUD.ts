@@ -20,10 +20,12 @@ import {
     skillCategory,
     skillPointCost,
     SkillCategory,
+    campTraits,
+    campTraitTotal,
 } from '../../../../client-data/Skills';
 import {createIconToken, hasGlyph} from './IconToken';
 import {createSweepMemory, sweepFraction} from './CooldownSweep';
-import {attachSkillTooltips, attachTooltips, hideTooltip, setAvailableSkillPoints, showEffectTooltip, tooltipAnchor} from './SkillTooltip';
+import {attachSkillTooltips, attachTooltips, hideTooltip, setAvailableCampPoints, setAvailableSkillPoints, showEffectTooltip, showTooltip, tooltipAnchor} from './SkillTooltip';
 import {alwaysOnTenants, applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant, TrayState} from './BuffTray';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
@@ -81,7 +83,9 @@ let buffTrayTick = 0;
 const currentSkillLevels = new Map<number, number>();
 
 function skillLevelOf(skillId: number): number {
-    return currentSkillLevels.get(skillId) ?? 1;
+    // An ability the book lists is at least level 1; a campfire trait starts
+    // at 0, which is the absence of its entry (plan-campfire-traits D5).
+    return currentSkillLevels.get(skillId) ?? (skillCategory(skillId) === 'camp' ? 0 : 1);
 }
 
 let selectedSkillId: number | null = null;
@@ -92,6 +96,16 @@ let skillPointsBadgeElements: HTMLElement[] = [];
 let spellbookButtonElements: HTMLElement[] = [];
 // Latest unspent-skill-point count from the server; gates the spend buttons.
 let currentSkillPoints = 0;
+// The campfire tab (plan-campfire-traits CT2): its own list beside
+// #spellbookList, its own points pool and its own badge on the open buttons
+// and the tab. The rebuild key is everything a row shows, so the per-tick
+// call rebuilds nothing until a level, the pool or the catalog moves.
+let campTraitListElement: HTMLElement | null = null;
+let campPointsTextElement: HTMLElement | null = null;
+let campPointsBadgeElements: HTMLElement[] = [];
+let currentCampPoints = 0;
+let renderedCampPoints = -1;
+let knownCampTraitKey = '';
 
 // Latest positional aura-slot contents from the server (skill id per slot, 0 = empty).
 // Source of truth for the activate-vs-empty check in the slot pointerdown handler.
@@ -226,7 +240,9 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
 // Thin pass-through so Backend keeps talking to one HUD surface, the way it
 // does for every other panel.
 export function updateCampCharges(charges: number, level: number) {
-    Utilities.updateCampCharges(charges, level);
+    // The charges trait's term (plan-campfire-traits D8, L4), read from the
+    // retained levels: the snapshot's spellbook fields are change-only.
+    Utilities.updateCampCharges(charges, level, campTraitTotal('charges', skillLevelOf));
 }
 
 // updateCombatIndicator shows/hides the red sword next to the zoom control
@@ -346,7 +362,11 @@ let flightTicksTotal = 0;
 // confirm(), which would freeze the render loop mid-game. pointerdown, not
 // click: MouseManager preventDefaults mousedown, so click never fires on HUD
 // panels (the documented gotcha).
-function setupRespecButton(button: HTMLElement) {
+//
+// `camp` wires the campfire tab's own reset (plan-campfire-traits R21): traits
+// only, and NOT combat-locked, because a trait changes the next camp placed,
+// never anything equipped (the server's handleRespec agrees).
+function setupRespecButton(button: HTMLElement, camp: boolean = false) {
     if (!button) {
         return;
     }
@@ -361,7 +381,7 @@ function setupRespecButton(button: HTMLElement) {
     };
     button.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
-        if (rejectEquipInCombat()) {
+        if (!camp && rejectEquipInCombat()) {
             disarm();
             return;
         }
@@ -372,7 +392,7 @@ function setupRespecButton(button: HTMLElement) {
             return;
         }
         disarm();
-        new RespecMessage().send();
+        new RespecMessage(camp).send();
     });
 }
 
@@ -476,6 +496,7 @@ function setupSpellbook() {
     skillPointsBadgeElements = [...document.querySelectorAll('.skillPointsBadge')] as HTMLElement[];
     spellbookButtonElements = [...document.querySelectorAll('.spellbookOpenButton')] as HTMLElement[];
     setupRespecButton(document.getElementById('respecButton'));
+    setupCampTraits();
     // Explicit init: the HUD partial lands after DOMContentLoaded, so
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
     // MutationObserver tracks the list re-renders in updateSpellbook.
@@ -785,10 +806,123 @@ function updateSkillPointsDisplay(points: number) {
         badge.textContent = t('spellbook.points-badge', {points});
         badge.classList.toggle('hidden', points <= 0);
     }
-    for (const button of spellbookButtonElements) {
-        button.classList.toggle('hasPoints', points > 0);
-    }
+    refreshOpenButtonGlow();
     document.getElementById('spellbook').classList.toggle('hasPoints', points > 0);
+}
+
+// The open buttons glow while EITHER pool has something to spend (PO
+// 2026-11-15, CT2): a campfire point waits in the same book. `#spellbook
+// .hasPoints` stays ability-only - it is what undims #spellbookList's +.
+function refreshOpenButtonGlow() {
+    for (const button of spellbookButtonElements) {
+        button.classList.toggle('hasPoints', currentSkillPoints > 0 || currentCampPoints > 0);
+    }
+}
+
+function setupCampTraits() {
+    campTraitListElement = document.getElementById('campTraitList');
+    campPointsTextElement = document.getElementById('campPointsText');
+    campPointsBadgeElements = [...document.querySelectorAll('.campPointsBadge')] as HTMLElement[];
+    if (!campTraitListElement) {
+        return;
+    }
+    attachSkillTooltips(campTraitListElement, skillLevelOf);
+    // + and − only: a trait is never equipped (D5), so a row press selects
+    // nothing. The server re-validates every request (pool, cap, floor).
+    campTraitListElement.addEventListener('pointerdown', (e) => {
+        const target = e.target as HTMLElement;
+        const li = target.closest('li') as HTMLElement;
+        if (!li || !li.dataset.skillId) return;
+        const id = Number(li.dataset.skillId);
+        const button = target.closest('.spendBtn, .unspendBtn');
+        if (!button || button.classList.contains('inactive')) return;
+        new SpendSkillPointMessage(id, button.classList.contains('unspendBtn')).send();
+    });
+    const respec = document.getElementById('campRespecButton');
+    setupRespecButton(respec, true);
+    // The game tooltip, never a native title (PO 2026-08-03, 2026-10-23).
+    attachTooltips(respec.parentElement, '#campRespecButton', (entry) => showTooltip(entry, {
+        title: t('spellbook.respec.label'),
+        subtitle: t('tooltip.category.camp'),
+        description: t('spellbook.camp-respec.tooltip'),
+        lines: [],
+    }));
+}
+
+// updateCampPoints is called every tick with the unspent campfire points
+// (plan-campfire-traits D4, ungated on the wire). Cheap when nothing moved:
+// renderCampTraits keys its rebuild.
+export function updateCampPoints(points: number) {
+    currentCampPoints = points;
+    // The DOM only when the count moves; -1 at start so the first 0 renders.
+    if (points !== renderedCampPoints) {
+        renderedCampPoints = points;
+        setAvailableCampPoints(points);
+        if (campPointsTextElement) {
+            campPointsTextElement.textContent = t('spellbook.camp-points.text', {points});
+        }
+        for (const badge of campPointsBadgeElements) {
+            badge.textContent = t('spellbook.camp-points-badge', {points});
+            badge.classList.toggle('hidden', points <= 0);
+        }
+        refreshOpenButtonGlow();
+    }
+    renderCampTraits();
+}
+
+// renderCampTraits lists every trait the CATALOG holds (D5: all six, at 0
+// when unbought), not the spellbook's entries. Levels come from
+// currentSkillLevels, which updateSpellbook keeps. A row has the ability
+// row's anatomy (token, .skillName, − level +) so it reads as one book.
+function renderCampTraits() {
+    if (!campTraitListElement) return;
+    const traits = campTraits();
+    const key = `${currentCampPoints}|` + traits.map((def) => `${def.id}:${skillLevelOf(def.id)}`).join(',');
+    if (key === knownCampTraitKey) return;
+    knownCampTraitKey = key;
+
+    campTraitListElement.innerHTML = '';
+    for (const def of traits) {
+        const level = skillLevelOf(def.id);
+        const li = document.createElement('li');
+        li.dataset.skillId = String(def.id);
+        li.dataset.category = 'camp';
+        li.appendChild(createIconToken(skillIcon(def.id), def.displayName, skillPackIcon(def.id)));
+
+        const name = document.createElement('span');
+        name.className = 'skillName';
+        name.textContent = def.displayName;
+        li.appendChild(name);
+
+        const controls = document.createElement('span');
+        controls.className = 'skillControls';
+        const unspendBtn = document.createElement('button');
+        unspendBtn.className = 'unspendBtn';
+        unspendBtn.textContent = '−';
+        // ⚑ The floor of a GRANTED trait (R22: a free level 1) is not on the
+        // wire; no content grants one today, so 0 is the floor the client
+        // knows, and the server refuses anything below the real one.
+        unspendBtn.classList.toggle('inactive', level <= 0);
+        controls.appendChild(unspendBtn);
+
+        const levelBadge = document.createElement('span');
+        levelBadge.className = 'skillLevel';
+        levelBadge.textContent = `${level}/${def.maxLevel}`;
+        controls.appendChild(levelBadge);
+
+        // A flat 1 point a level (R5), so the + never prints a cost.
+        const spendBtn = document.createElement('button');
+        spendBtn.className = 'spendBtn';
+        spendBtn.textContent = '+';
+        spendBtn.classList.toggle('inactive', level >= def.maxLevel || currentCampPoints < 1);
+        controls.appendChild(spendBtn);
+        li.appendChild(controls);
+
+        campTraitListElement.appendChild(li);
+    }
+    // The tab shows once the pane has rows (the catalog can land after the
+    // first snapshot), so the structure re-reads them.
+    Spellbook.refresh();
 }
 
 // updateSpellbook is called every tick in PLAYING state with the full list of
@@ -939,6 +1073,9 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     knownSpellbookIds = ids.slice();
     knownSpellbookLevels = levels.slice();
     knownSpellbookPoints = points;
+
+    // A bought or refunded trait arrives as a spellbook level change.
+    renderCampTraits();
 }
 
 // updateActiveAuraSlot applies the server-authoritative active aura slot

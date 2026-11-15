@@ -236,7 +236,7 @@ export const EFFECT_TYPE_NOTES = {
 // Sidebar and header labels for the fixture's categories, in the plan's
 // display order (Auras · Cooldowns · Passives). Keyed by the authored
 // category name.
-export const CATEGORY_LABELS = { active_aura: 'Auras', cooldown: 'Cooldowns', passive: 'Passives' };
+export const CATEGORY_LABELS = { active_aura: 'Auras', cooldown: 'Cooldowns', passive: 'Passives', camp: 'Campfire traits' };
 
 // The effect type a fresh effect card starts on, by skill category (§B4.5).
 // Lives here rather than in app.js so C4's "+ New skill" flow reads the same

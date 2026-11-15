@@ -84,6 +84,9 @@ export class GameStateMessage {
     // Camp baseline-utility charges the owning player holds (C2); 0 = none.
     // The CAP is not on the wire — campChargeCap derives it from the level.
     campCharges: number;
+    // Unspent campfire points (plan-campfire-traits D4): sent every tick,
+    // ungated, so always defined; 0 for anyone but the owning player.
+    campPoints: number;
     // The map's campfire markers (plan-world-map.md C2): the spawn-point ids
     // this character has dwelled at, and the one it would respawn at.
     //
@@ -251,6 +254,7 @@ export class GameStateMessage {
         this.castTicksTotal = gameState.castTicksTotal();
         this.castUtility = gameState.castUtility();
         this.campCharges = gameState.campCharges();
+        this.campPoints = gameState.campPoints();
         this.homeCampfire = gameState.homeCampfire() ?? undefined;
         this.discoveredCampfires = unmarshalDiscoveredCampfires(gameState);
         this.mapFog = unmarshalMapFog(gameState);

@@ -837,13 +837,24 @@
 	// are exactly what a harness clicks.
 	> #spellbookTabs {
 		display: flex;
-		gap: 0.4rem;
+		// Four tabs since CT2 (Campfire): a language whose labels outgrow the
+		// fixed book width wraps the ROW onto a second line instead of the
+		// global `hyphens: auto` breaking each label mid-word (German read
+		// "Au-ren / Pas-sive" on the desktop book, 2026-11-15).
+		// Smaller than the panel text so four English tabs share ONE row at
+		// the fixed book width (PO 2026-11-15); a longer language wraps the
+		// row and the book grows by it (PO: "we go for rows").
+		flex-wrap: wrap;
+		gap: 0.3rem;
 		margin: 0 0 0.6rem;
 		padding: 0;
 		list-style: none;
 
 		> .spellbookTab {
-			padding: 0.3rem 0.8rem;
+			white-space: nowrap;
+			hyphens: manual;
+			font-size: 0.8em;
+			padding: 0.3rem 0.4rem;
 			border: 1px solid @panel-border;
 			border-radius: 0.4rem 0.4rem 0 0;
 			border-bottom: 2px solid fade(@gold-levelup, 25%);
@@ -902,6 +913,56 @@
 				}
 			}
 		}
+	}
+
+	// The campfire tab swaps the ability list for its own pane (CT2); explicit
+	// for the id-beats-.hidden reason noted on #spellbook above.
+	> #spellbookScroll.hidden,
+	> #campTraitPane.hidden {
+		display: none;
+	}
+
+	// The pane's strip: the campfire points and the traits-only reset, the
+	// title strip's badge + reset in miniature. The title's own pair is about
+	// skills, so it steps aside while this tab is up (one Reset on screen).
+	> #campTraitPane > .campTraitStrip {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.6rem;
+		margin-bottom: 0.4rem;
+		padding-bottom: 0.4rem;
+		border-bottom: 1px solid @panel-row-divider;
+		color: @brand;
+
+		> #campRespecButton {
+			color: fade(#ffffff, 55%);
+			white-space: nowrap;
+			cursor: pointer;
+
+			&:hover {
+				color: fade(#ffffff, 85%);
+			}
+
+			&.armed {
+				color: #ff6b6b;
+				font-weight: 700;
+			}
+		}
+	}
+
+	// The same fixed page as #spellbookScroll, so switching to the tab never
+	// makes the book jump (PO 2026-09-24 / 2026-10-18), short-viewport
+	// exception included; it scrolls natively in that case.
+	> #campTraitPane {
+		height: (@book-row-height * @book-page-rows);
+		max-height: ~"max(@{book-page-floor}, calc(100vh - (@{book-column-reserve})))";
+		overflow-y: auto;
+	}
+
+	&.campTab > .spellbookTitle > .skillPointsBadge,
+	&.campTab > .spellbookTitle > #respecButton {
+		display: none;
 	}
 
 	> #spellbookScroll {
@@ -1015,8 +1076,10 @@
 	}
 
 	// Descendant (not child) selector: SimpleBar nests its own wrappers
-	// between #spellbookScroll and the list.
-	#spellbookList {
+	// between #spellbookScroll and the list. #campTraitList (CT2) shares the
+	// row anatomy, so a trait row reads as one more spellbook row.
+	#spellbookList,
+	#campTraitList {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -2728,5 +2791,24 @@
 	.confirmRowConfirm.disabled {
 		opacity: 0.55;
 		cursor: default;
+	}
+}
+
+// Unspent campfire points (plan-campfire-traits CT2): a small number pill in
+// the campfire's orange, on both spellbook open buttons and on the Campfire
+// tab. Its own class, never .skillPointsBadge: HUD.ts writes every element of
+// that class the ability count.
+.campPointsBadge {
+	margin-left: 0.4rem;
+	padding: 0 0.45em;
+	border: 1px solid fade(@brand, 70%);
+	border-radius: 0.8em;
+	color: @brand;
+	font-size: 0.85em;
+	font-weight: 700;
+	white-space: nowrap;
+
+	&.hidden {
+		display: none;
 	}
 }

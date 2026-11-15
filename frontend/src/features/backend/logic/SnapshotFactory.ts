@@ -37,6 +37,7 @@ export class Snapshot {
     castTicksTotal: number;
     castUtility: number; // baseline utility winding up (downtime C1); 0 = none
     campCharges: number; // Camp charges held (downtime C2); cap derived from level
+    campPoints: number; // unspent campfire points (plan-campfire-traits D4), always carried
     // The map's campfire markers (plan-world-map.md C2). undefined = not
     // published this tick, which is the case on all but two ticks of a session.
     discoveredCampfires: string[] | undefined;
@@ -119,6 +120,8 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // (an empty store greys the button), so a delta snapshot dropping the
         // field would leave the counter showing a charge the player has spent.
         snapshot.campCharges = gameState.campCharges;
+        // Always carried for the same reason: the server sends it every tick.
+        snapshot.campPoints = gameState.campPoints;
         // ⚑ Carried VERBATIM, undefineds included — the opposite of the
         // always-carry reasoning above, and deliberately so. These two are
         // one-shots: undefined means "unchanged", and substituting a value

@@ -1,8 +1,8 @@
 # Plan: Campfire traits: spend points earned at fires to grow your own camp
 
 **Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R24
-RULED (R21-R23 at CT1's start 2026-11-03, R24 a default), D1-D11 approved. ✅ CT1 DONE
-2026-11-03 (§11). ⭐ NEXT: CT2, the spellbook's campfire section; then CT3.** 3 chunks (§5),
+RULED (R21-R23 at CT1's start 2026-11-03, R24 a default; R25-R26 at CT2 2026-11-15), D1-D11
+approved. ✅ CT1 DONE 2026-11-03, ✅ CT2 DONE 2026-11-15 (§11). ⭐ NEXT: CT3, the rest buffs.** 3 chunks (§5),
 in `roadmap.md`'s near-term build order (PO 2026-10-30).
 
 **Owns:** campfire points, the six camp traits, the camp's rest buffs.
@@ -108,6 +108,15 @@ Third round, 2026-11-03 (CT1 session start, PO in chat):
 - **R24 (default, not ruled).** The discovered-fire list keeps ids the loaded zone no
   longer places, so a removed fire keeps its point. Accepted: fires only get added
   today, and R13 revisits the curve when they change.
+
+Fourth round, 2026-11-15 (CT2 session, PO in chat):
+
+- **R25. The traits are a fourth spellbook tab, "Campfire"**, with its own strip (points +
+  a traits-only Reset); unspent campfire points light the spellbook open buttons as well
+  as the tab.
+- **R26. Four tabs share one row in English** (smaller tab text); a language whose labels
+  outgrow the book wraps the tab row and the book grows by it, never a label broken
+  mid-word.
 
 ## 3. Design
 
@@ -399,3 +408,61 @@ fixture +2 · Tiled palette +6 skill names (generated).
 editor smoke 0 findings, editor tests 12/0 · `ct1-camp-traits` 16/16 (new) · `r4-camp` 31/31
 (repaired) · `hygiene-wire-prune` clean · boot 149 skills. **In-game (PO):** a regression
 checklist handed over 2026-11-03 (camp, charges, respec, cheats); the first real look is CT2's.
+
+### CT2 - The spellbook's Campfire tab ✅ DONE 2026-11-15 `[uncommitted]`
+
+Built in one execution session, the PO in chat; R25-R26 ruled at its start and mid-way
+(§2, fourth round). PO look: "works visually".
+
+**What shipped.**
+- A fourth tab, `Campfire`, whose rows live in their OWN pane (`#campTraitPane` /
+  `#campTraitList`) beside `#spellbookScroll`: ~50 verify scripts read `#spellbookList`
+  blind, and a fresh character holding a point would meet six live + buttons in it.
+  `Spellbook.ts` swaps the panes on the tab and hides the pager there; the tab shows
+  whenever the catalog has traits (D5: all six listed, at 0 when unbought).
+- Rows come from the catalog (`campTraits()`), levels from the retained spellbook map
+  (`skillLevelOf` answers 0 for an unbought trait, 1 still for an ability). + is a flat 1
+  (R5), − stops at 0; a row press selects nothing (never equipped). A bought trait is no
+  discovery: no glow, pulse, breadcrumb or banner (the unlock diff only walks ability rows).
+- `camp_points` decoded and carried every tick (`HUD.updateCampPoints`): the strip text,
+  a `.campPointsBadge` pill on both open buttons and the tab, and the open buttons'
+  `hasPoints` glow for either pool (R25). `#spellbook.hasPoints` stays ability-only.
+- The camp Reset: the same two-press arm as the skill Reset, `Respec{camp: true}`, no
+  combat lock (the server agrees); the title's skill Reset and badge hide on the tab.
+  Hover text through the game tooltip, never `title`.
+- Tooltip: subtitle "Campfire trait", one line generated from `campTrait` through `prog()`
+  (duration in seconds, heal in camp-aura LEVELS, charges, buff as stat + percent); the
+  next-level preview reads campfire points, not the ability cost curve (L2).
+- L4 closed: `campChargeCap(level, chargesTotal)`, where `campTraitTotal('charges')` =
+  Σ perLevel × level over the kind, truncated like Go's `int()`; both Camp-button readouts
+  use it.
+- Tabs: `white-space: nowrap` + `hyphens: manual` + a wrapping row (the global
+  `hyphens: auto` broke German labels into "Au-ren / Pas-sive"), tab text 0.8em and
+  0.4rem side padding so four English tabs fit 26rem (R26). The short-viewport reserve is
+  unchanged: German's three tabs were already 2-3 lines tall before.
+- Content editor: `camp` is a category everywhere (`CATEGORY_LABELS`, the form's note,
+  the inventory's own section, `campTrait` rendered in its Effects column).
+
+**Findings that outlive the chunk.**
+- ⚑ The R22 floor of a GRANTED trait is not on the wire: its − looks live at level 1 and
+  the server refuses the refund. No content grants a trait today; add a wire field the
+  day one does.
+- ⚑ `r7-respec-cost` had been red at HEAD: its screenshot between the two Reset presses
+  outlasted the 4 s arm window, so the "confirm" re-armed and no respec reached the
+  server. Screenshot removed; 0 respec lines in the server log was the tell.
+- The three buff traits are buyable and their tooltips describe the buff, but nothing
+  applies it until CT3.
+
+**Schema:** DB none · wire none (CT1 added `camp_points` and `Respec.camp`) · conf none ·
+content none · lang +9 UI keys (en + de; the German awaits the PO's look) · shared
+constants none.
+
+**Verified:** vitest 2000/0 (9 new: catalog helpers + cap, tooltip line, tab/pane swap) ·
+typecheck 0 · `go build` ok · `aurad -lang-status` 0/0/0 · editor smoke 0 findings,
+editor tests 12/0 · `ct2-camp-tab` 19/19 (new; German phone + German and English desktop
+fit) · `ct1-camp-traits` 16/16 · `r4-camp` 31/31 · `c4b-breadcrumb` 24/24 ·
+`round4-tooltip` pass · `chunk4-persistence` 16/16 · `c3-spellbook` 24/0/2 inconclusive
+(C1 updated for the camp tab) · `r7-respec-cost` pass (repaired). Red identically at HEAD
+`58e8133e`, recorded in the verify skill: `c4-skill-icons`, `c5-ability-bar`, `i18n-de`
+2/7, `mobile-layout` journal legs. **In-game (PO):** looked 2026-11-15, "works visually".
+**Owed:** the German strings (nine new + CT1's six names), the badge pill's look.

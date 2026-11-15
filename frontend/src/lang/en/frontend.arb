@@ -1006,6 +1006,11 @@
     "description": "HUD: text of the <li> element in #spellbookTabs in #spellbook. At most 20 characters: it heads a slot group in the spellbook.",
     "x-maxLength": 20
   },
+  "skill-kind.campfire": "Campfire",
+  "@skill-kind.campfire": {
+    "description": "HUD: text of the <span> in the Campfire tab of #spellbookTabs in #spellbook (the campfire traits). At most 20 characters: it is a tab beside Auras, Passives and Cooldowns.",
+    "x-maxLength": 20
+  },
   "skill-kind.cooldowns": "Cooldowns",
   "@skill-kind.cooldowns": {
     "description": "HUD: text of the <div> element in #cooldownLoadout in #abilityBar. At most 20 characters: it heads a slot group in the spellbook.",
@@ -1027,6 +1032,24 @@
   "spellbook.label": "Spellbook",
   "@spellbook.label": {
     "description": "HUD: label of the spellbook button and the spellbook panel title (the collection of every skill the player has discovered)."
+  },
+  "spellbook.camp-points-badge": "{points, number}",
+  "@spellbook.camp-points-badge": {
+    "description": "A small pill on the spellbook buttons and on the Campfire tab: unspent campfire points (one per discovered campfire). Just the number.",
+    "placeholders": {
+      "points": {"type": "int", "description": "Unspent campfire points", "example": "2"}
+    }
+  },
+  "spellbook.camp-points.text": "Campfire points: {points, number}",
+  "@spellbook.camp-points.text": {
+    "description": "Spellbook, Campfire tab: the strip above the campfire traits, how many campfire points are unspent (one per discovered campfire).",
+    "placeholders": {
+      "points": {"type": "int", "description": "Unspent campfire points", "example": "3"}
+    }
+  },
+  "spellbook.camp-respec.tooltip": "Lower every campfire trait you bought back to 0 and refund its campfire points.",
+  "@spellbook.camp-respec.tooltip": {
+    "description": "Spellbook, Campfire tab: hover text of the reset button beside the campfire points. It resets campfire traits only, never skills."
   },
   "spellbook.points-badge": "{points, plural, one {# Point} other {# Points}}",
   "@spellbook.points-badge": {
@@ -1143,6 +1166,35 @@
       "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
     }
   },
+  "tooltip.camp-trait.buff": "Resting at your camp: {stat} {amount}",
+  "@tooltip.camp-trait.buff": {
+    "description": "Skill tooltip of a campfire trait: the buff everyone resting at the player's camp gets.",
+    "placeholders": {
+      "stat": {"type": "String", "description": "Stat label, nominative", "example": "All damage"},
+      "amount": {"type": "String", "description": "Already formatted signed percent, with a → next-level preview while one can be bought", "example": "+0.99% → +1.32%"}
+    }
+  },
+  "tooltip.camp-trait.charges": "Camp charges: {amount}",
+  "@tooltip.camp-trait.charges": {
+    "description": "Skill tooltip of a campfire trait: extra camp charges the player can carry.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted signed total, with a → next-level preview while one can be bought", "example": "+2s → +3s"}
+    }
+  },
+  "tooltip.camp-trait.duration": "Camp lifetime: {amount}",
+  "@tooltip.camp-trait.duration": {
+    "description": "Skill tooltip of a campfire trait: how much longer the player's camp burns.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted signed total, with a → next-level preview while one can be bought", "example": "+2s → +3s"}
+    }
+  },
+  "tooltip.camp-trait.heal": "Camp aura level: {amount}",
+  "@tooltip.camp-trait.heal": {
+    "description": "Skill tooltip of a campfire trait: extra levels of the camp's healing aura.",
+    "placeholders": {
+      "amount": {"type": "String", "description": "Already formatted signed total, with a → next-level preview while one can be bought", "example": "+2s → +3s"}
+    }
+  },
   "tooltip.cast-time": "Cast time: {duration}{interrupt}",
   "@tooltip.cast-time": {
     "description": "Skill tooltip. Cast time line.",
@@ -1154,6 +1206,10 @@
   "tooltip.category.aura": "Aura",
   "@tooltip.category.aura": {
     "description": "Skill tooltip. Skill kind in the tooltip subtitle."
+  },
+  "tooltip.category.camp": "Campfire trait",
+  "@tooltip.category.camp": {
+    "description": "Skill tooltip subtitle: the kind of a campfire trait (bought with campfire points, never equipped)."
   },
   "tooltip.category.cooldown": "Cooldown",
   "@tooltip.category.cooldown": {

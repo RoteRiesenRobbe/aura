@@ -1774,3 +1774,29 @@ describe('summon death triggers', () => {
             .not.toContain('↳ When it ends:');
     });
 });
+
+// Campfire traits CT2: a trait has no effects, so without its own line its
+// tooltip would be a name and a sentence. The line is generated from the
+// served campTrait block (never hand-typed), level 0 included.
+describe('a campfire trait', () => {
+    const trait = (kind: string, perLevel: number, stat?: string) => skill({
+        displayName: 'Camp thing', category: 'camp' as SkillCategory, maxLevel: 15, effects: [],
+        campTrait: {kind, perLevel, ...(stat ? {stat} : {})},
+    } as Partial<SkillDefinition> & { effects: SkillEffect[] });
+
+    it('names its category and previews the next level', () => {
+        const content = formatSkillTooltip(trait('duration', 30), 2, 1);
+        expect(content.subtitle).toBe('Campfire trait · Lv 2/15');
+        expect(content.lines.map(line => line.text)).toEqual(['Camp lifetime: +2s → +3s']);
+    });
+
+    it('reads 0 → first level when unbought, and no arrow at the cap', () => {
+        expect(lines(trait('charges', 1), 0, 1)).toEqual(['Camp charges: +0 → +1']);
+        expect(lines(trait('heal', 1), 15, 1)).toEqual(['Camp aura level: +15']);
+    });
+
+    it('words a buff with the stat label and a percent', () => {
+        expect(lines(trait('buff', 0.0033, 'damageDealt'), 3, 1))
+            .toEqual(['Resting at your camp: All damage +0.99% → +1.32%']);
+    });
+});

@@ -246,8 +246,12 @@ if (!stocked.spellbook || stocked.rows < 10) {
   skip('C/D tabs and pages', `INCONCLUSIVE - the cheated skills did not arrive (${JSON.stringify({ rows: stocked.rows, spellbook: stocked.spellbook })}).`);
 } else {
   const cats = Object.keys(stocked.perCategory).sort();
-  check('C1 ⭐ one tab per category that has discovered something',
-    JSON.stringify(stocked.tabsShown.slice().sort()) === JSON.stringify(cats),
+  // The Campfire tab (plan-campfire-traits CT2) lists the traits from the
+  // catalog in its own pane, never #spellbookList, so it shows on every
+  // character and is checked apart from the ability tabs (ct2-camp-tab owns it).
+  const abilityTabs = stocked.tabsShown.filter((c) => c !== 'camp');
+  check('C1 ⭐ one tab per category that has discovered something (+ the Campfire tab)',
+    JSON.stringify(abilityTabs.slice().sort()) === JSON.stringify(cats) && stocked.tabsShown.includes('camp'),
     `tabs=${stocked.tabsShown} categories=${JSON.stringify(stocked.perCategory)}`);
 
   check('C2 the open tab shows its own category and nothing else',

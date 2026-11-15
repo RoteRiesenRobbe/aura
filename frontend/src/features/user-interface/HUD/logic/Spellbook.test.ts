@@ -535,3 +535,69 @@ describe('the unlock breadcrumb trail', () => {
         expect(anyPulse()).toBe(0);
     });
 });
+
+// Campfire traits CT2 (plan-campfire-traits D5): the traits are a FOURTH tab
+// whose rows live in their own list, #campTraitList, never in #spellbookList -
+// the verify suite counts and clicks that list blind, and a fresh character
+// holding a campfire point would otherwise meet six live + buttons in it.
+describe('the campfire tab', () => {
+    function campFixture(abilityRows: { id: number, category: string }[], traitCount: number) {
+        fixture(abilityRows);
+        const tabs = document.getElementById('spellbookTabs');
+        const tab = document.createElement('li');
+        tab.className = 'spellbookTab';
+        tab.dataset.category = 'camp';
+        tabs.appendChild(tab);
+        const pane = document.createElement('div');
+        pane.id = 'campTraitPane';
+        pane.innerHTML = '<ul id="campTraitList"></ul>';
+        document.getElementById('spellbook').appendChild(pane);
+        const list = document.getElementById('campTraitList');
+        for (let i = 0; i < traitCount; i++) {
+            const li = document.createElement('li');
+            li.dataset.skillId = String(900 + i);
+            li.dataset.category = 'camp';
+            list.appendChild(li);
+        }
+    }
+
+    const hidden = (id: string) => document.getElementById(id).classList.contains('hidden');
+
+    it('shows its tab whenever the catalog has traits, even with no ability at all', () => {
+        campFixture([], 6);
+        spellbook.setup();
+        spellbook.toggle();
+        expect(tabState()).toEqual(['aura:off', 'passive:off', 'cooldown:off', 'camp:on*']);
+        expect(hidden('campTraitPane')).toBe(false);
+        expect(hidden('spellbookScroll')).toBe(true);
+    });
+
+    it('swaps panes: the ability list and pager go, the trait pane comes, and back', () => {
+        campFixture(many('aura', 20), 6);
+        spellbook.setup();
+        spellbook.toggle();
+        expect(tabState()).toEqual(['aura:on*', 'passive:off', 'cooldown:off', 'camp:on']);
+        expect(hidden('campTraitPane')).toBe(true);
+        expect(hidden('spellbookPager')).toBe(false);
+
+        press('.spellbookTab[data-category="camp"]');
+        expect(hidden('campTraitPane')).toBe(false);
+        expect(hidden('spellbookScroll')).toBe(true);
+        expect(hidden('spellbookPager')).toBe(true);
+        // The ability rows stay in the DOM (the harness rule), just off screen.
+        expect(document.querySelectorAll('#spellbookList > li[data-skill-id]').length).toBe(20);
+
+        press('.spellbookTab[data-category="aura"]');
+        expect(hidden('campTraitPane')).toBe(true);
+        expect(hidden('spellbookScroll')).toBe(false);
+        expect(shown()).toEqual(many('aura', 8).map((row) => String(row.id)));
+    });
+
+    it('hides the tab while the catalog has no traits', () => {
+        campFixture(many('aura', 2), 0);
+        spellbook.setup();
+        spellbook.toggle();
+        expect(tabState()).toEqual(['aura:on*', 'passive:off', 'cooldown:off', 'camp:off']);
+        expect(hidden('campTraitPane')).toBe(true);
+    });
+});

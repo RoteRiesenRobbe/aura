@@ -10,8 +10,16 @@ import {ClientMessage} from "./ClientMessage";
  */
 export class RespecMessage extends ClientMessage {
 
+    // `camp` = the campfire tab's reset (plan-campfire-traits R21): it lowers
+    // every campfire trait to its floor and touches no skill; the plain reset
+    // skips traits.
+    constructor(private readonly camp: boolean = false) {
+        super();
+    }
+
     public send(): void {
         AuraApi.Respec.startRespec(this.builder);
+        AuraApi.Respec.addCamp(this.builder, this.camp);
         const body = AuraApi.Respec.endRespec(this.builder);
         super.send(AuraApi.ClientMessageBody.Respec, body);
     }

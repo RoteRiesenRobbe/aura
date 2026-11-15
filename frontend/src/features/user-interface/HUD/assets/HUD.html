@@ -59,7 +59,7 @@
          there. Both share .spellbookOpenButton, which is what Spellbook.ts
          wires. -->
     <div data-i18n-attr="title:hud.spellbook-button.title" id="spellbookButton" class="spellbookOpenButton" title="Spellbook (B)">
-        <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span id="skillPointsBadge" class="skillPointsBadge hidden"></span>
+        <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span id="skillPointsBadge" class="skillPointsBadge hidden"></span><span class="campPointsBadge hidden"></span>
     </div>
 
     <!-- The Appearance panel's desktop way in (plan-appearance.md C4, D10),
@@ -325,7 +325,7 @@
              sheet content - it opens full-screen over it, and the two are
              mutually exclusive like every other family member. -->
         <div data-i18n-attr="title:hud.spellbook-sheet-button.title" id="spellbookSheetButton" class="spellbookOpenButton" title="Spellbook (B)">
-            <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span class="skillPointsBadge hidden"></span>
+            <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span class="skillPointsBadge hidden"></span><span class="campPointsBadge hidden"></span>
         </div>
 
         <!-- The phone's way into the Appearance panel (C4), beside the
@@ -344,9 +344,19 @@
                 <li data-i18n="skill-kind.auras" class="spellbookTab hidden" data-category="aura">Auras</li>
                 <li data-i18n="skill-kind.passives" class="spellbookTab hidden" data-category="passive">Passives</li>
                 <li data-i18n="skill-kind.cooldowns" class="spellbookTab hidden" data-category="cooldown">Cooldowns</li>
+                <li class="spellbookTab hidden" data-category="camp"><span data-i18n="skill-kind.campfire">Campfire</span><span class="campPointsBadge hidden"></span></li>
             </ul>
             <div id="spellbookScroll">
                 <ul id="spellbookList"></ul>
+            </div>
+            <!-- The campfire traits (plan-campfire-traits CT2): a pane of its
+                 own beside #spellbookScroll, so #spellbookList never holds a
+                 trait row (the verify suite counts and clicks that list blind).
+                 Rows are HUD.updateCampTraits'; which pane shows is
+                 Spellbook.ts'. -->
+            <div id="campTraitPane" class="hidden">
+                <div class="campTraitStrip"><span id="campPointsText"></span><span data-i18n="spellbook.respec.label" id="campRespecButton">Reset</span></div>
+                <ul id="campTraitList"></ul>
             </div>
             <div id="spellbookPager" class="hidden">
                 <span class="spellbookPageStep" data-step="-1">&lsaquo;</span>

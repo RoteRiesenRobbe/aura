@@ -1291,7 +1291,8 @@ system ships blind.
 >    (the report, client only; PO tested it). ✅ BR2 DONE 2026-11-14 (the server copy;
 >    PO tested it locally). Owed: the German strings look, the first deploy's path check.
 > 5. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ✅ CT1 DONE 2026-11-03
->    (server: pool, spend, camp reset, placement snapshot, `camp_points`). ⭐ NEXT: CT2.
+>    (server: pool, spend, camp reset, placement snapshot, `camp_points`). ✅ CT2 DONE
+>    2026-11-15 (the spellbook's Campfire tab; PO: "works visually"). ⭐ NEXT: CT3.
 > 6. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
 > 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
 > 8. **Audio C1 onward** (`plan-audio.md`).

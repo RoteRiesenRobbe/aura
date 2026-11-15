@@ -558,6 +558,9 @@ export class Backend implements IBackend {
             // wire; the cap comes from getLocalPlayerLevel, which Player has
             // already mirrored from this same snapshot's own character.
             HUD.updateCampCharges(snapshot.campCharges ?? 0, getLocalPlayerLevel());
+            // The spellbook's campfire tab (plan-campfire-traits CT2). Every
+            // tick, unlike updateSpellbook: the field is ungated on the wire.
+            HUD.updateCampPoints(snapshot.campPoints ?? 0);
 
             // The map's campfire markers (plan-world-map.md C2). Passed
             // straight through, including the undefineds: absent means "not

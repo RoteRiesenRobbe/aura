@@ -16,6 +16,7 @@ import {formatList, formatNumber, t, tKey} from '../../../localization/logic/Loc
 // absolute number the player will actually see.
 
 import {
+    CampTraitDef,
     DamageParams,
     SkillDefinition,
     SkillEffect,
@@ -177,6 +178,7 @@ const CATEGORY_LABELS: { [category: string]: string } = {
     aura: t('tooltip.category.aura'),
     passive: t('tooltip.category.passive'),
     cooldown: t('tooltip.category.cooldown'),
+    camp: t('tooltip.category.camp'),
 };
 
 // One entry per stat the server dispatches in recomputeDerived — a stat
@@ -970,6 +972,27 @@ function summonSkillLines(refs: SummonSkillRef[], raiseTo: number, scale: number
 // means "no snapshot yet" and leaves the multiplier neutral. resolveSkill is
 // injected so the formatter stays pure — the app passes the catalog lookup,
 // tests pass fixtures, and the default keeps every existing call site working.
+// A campfire trait's one number line (plan-campfire-traits CT2), generated from
+// the served campTrait block: a trait has no effects, and its total is
+// perLevel × level, which is prog() with perLevel as the base (level 0 renders
+// 0). The heal trait counts camp-aura LEVELS, not a percent: the aura's own
+// numbers live on its catalog entry, and restating one here would drift.
+function campTraitLine(trait: CampTraitDef, level: number, previewMax: number): string {
+    const signed = (render: (n: number) => string) => (n: number) => `+${render(n)}`;
+    const amount = (render: (n: number) => string) =>
+        prog(trait.perLevel, trait.perLevel, level, previewMax, signed(render));
+    switch (trait.kind) {
+        case 'duration':
+            return t('tooltip.camp-trait.duration', {amount: amount(ticksToSecs)});
+        case 'heal':
+            return t('tooltip.camp-trait.heal', {amount: amount(fmt)});
+        case 'charges':
+            return t('tooltip.camp-trait.charges', {amount: amount(fmt)});
+        default:
+            return t('tooltip.camp-trait.buff', {stat: STAT_LABELS[trait.stat] ?? trait.stat, amount: amount(pct)});
+    }
+}
+
 export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
                                    maxHealth: number = 0, costFactor: number = 1,
                                    showNextLevel: boolean = true,
@@ -1149,6 +1172,9 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         const interrupt = def.castInterruptedByDamage ? t('tooltip.interrupted') : '';
         lines.push({text: t('tooltip.cast-time', {duration: prog(def.castTicks, def.castTicksPerLevel, level, previewMax, ticksToSecs), interrupt})});
     }
+    if (def.campTrait) {
+        lines.push({text: campTraitLine(def.campTrait, level, previewMax)});
+    }
     return {
         title: def.displayName,
         subtitle: t('tooltip.subtitle', {category: CATEGORY_LABELS[def.category] ?? def.category, level: fmt(level), max: fmt(def.maxLevel)}),
@@ -1167,6 +1193,13 @@ let currentAnchor: HTMLElement | null = null;
 // Unspent skill points, pushed in by HUD.updateSkillPointsDisplay every time
 // the server count changes. Only the next-level preview reads it.
 let availableSkillPoints = 0;
+
+// Unspent campfire points, pushed in the same way (plan-campfire-traits CT2).
+let availableCampPoints = 0;
+
+export function setAvailableCampPoints(points: number) {
+    availableCampPoints = points;
+}
 
 export function setAvailableSkillPoints(points: number) {
     availableSkillPoints = points;
@@ -1232,8 +1265,12 @@ function showSkillTooltip(anchor: HTMLElement, skillId: number, level: number) {
     // "do I hold any point at all": levels cost 1–3 points on the D10 curve, so
     // the two answers differ, and a preview showing while the button is dead
     // would be advertising a spend the player cannot make.
+    // A campfire trait is bought from its own pool at a flat 1 point a level
+    // (plan-campfire-traits R5), never through the ability cost curve (L2).
     const nextCost = skillPointCost(def.maxLevel, level + 1);
-    const canSpend = nextCost > 0 && availableSkillPoints >= nextCost;
+    const canSpend = def.category === 'camp'
+        ? level < def.maxLevel && availableCampPoints >= 1
+        : nextCost > 0 && availableSkillPoints >= nextCost;
     showTooltip(anchor, formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
         getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend,
         getLocalPlayerDamageFactor(), getLocalPlayerLevel()));

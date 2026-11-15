@@ -36,8 +36,13 @@ import {setMenuBreadcrumb} from './MenuBreadcrumb';
 import {playCssAnimation} from '../../../common/logic/Utils';
 import * as PanelExclusivity from '../../logic/PanelExclusivity';
 
-/** The three shipped categories, in tab order. Utility is deferred (D3). */
-const TABS = ['aura', 'passive', 'cooldown'] as const;
+/**
+ * The categories, in tab order. Utility is deferred (D3). `camp` is the
+ * campfire traits' tab (plan-campfire-traits CT2): its rows live in their own
+ * pane, #campTraitList, never in #spellbookList, so it never pages and never
+ * takes part in the breadcrumb trail (a bought trait is not a discovery).
+ */
+const TABS = ['aura', 'passive', 'cooldown', 'camp'] as const;
 type SpellbookTab = typeof TABS[number];
 
 /**
@@ -71,6 +76,11 @@ let listElement: HTMLElement;
 let pagerElement: HTMLElement;
 let pageLabelElement: HTMLElement;
 let tabElements: HTMLElement[] = [];
+// The campfire pane and the ability list's scroller, which swap on the camp
+// tab. Optional: a page without the pane simply has no camp tab to select.
+let scrollElement: HTMLElement | null = null;
+let campPaneElement: HTMLElement | null = null;
+let campListElement: HTMLElement | null = null;
 
 let open = false;
 let tab: SpellbookTab = 'aura';
@@ -99,6 +109,9 @@ export function setup() {
     pagerElement = document.getElementById('spellbookPager');
     pageLabelElement = document.getElementById('spellbookPageLabel');
     tabElements = [...panelElement.querySelectorAll('.spellbookTab')] as HTMLElement[];
+    scrollElement = document.getElementById('spellbookScroll');
+    campPaneElement = document.getElementById('campTraitPane');
+    campListElement = document.getElementById('campTraitList');
 
     if (!wired) {
         wired = true;
@@ -207,6 +220,14 @@ function render() {
     for (const entry of entries) {
         counts.set(entry.dataset.category, (counts.get(entry.dataset.category) ?? 0) + 1);
     }
+    // The campfire tab counts its own pane's rows: one per trait the catalog
+    // holds, so it shows from the first snapshot on (D5: all six always
+    // listed, at 0 when unbought) and stays hidden only while the catalog has
+    // no traits.
+    const traits = campListElement?.querySelectorAll(':scope > li[data-skill-id]').length ?? 0;
+    if (traits > 0) {
+        counts.set('camp', traits);
+    }
     if (!counts.has(tab)) {
         tab = TABS.find((candidate) => counts.has(candidate)) ?? tab;
     }
@@ -226,8 +247,13 @@ function render() {
         row.classList.toggle('offPage', !onPage.has(row));
     }
 
+    const onCamp = tab === 'camp';
+    panelElement.classList.toggle('campTab', onCamp);
+    scrollElement?.classList.toggle('hidden', onCamp);
+    campPaneElement?.classList.toggle('hidden', !onCamp);
+
     const pages = pageCount(inTab.length);
-    pagerElement.classList.toggle('hidden', pages <= 1);
+    pagerElement.classList.toggle('hidden', onCamp || pages <= 1);
     pageLabelElement.textContent = `${page + 1} / ${pages}`;
     for (const step of panelElement.querySelectorAll('.spellbookPageStep')) {
         const delta = Number((step as HTMLElement).dataset.step);
