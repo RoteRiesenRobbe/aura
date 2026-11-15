@@ -409,7 +409,7 @@ editor smoke 0 findings, editor tests 12/0 · `ct1-camp-traits` 16/16 (new) · `
 (repaired) · `hygiene-wire-prune` clean · boot 149 skills. **In-game (PO):** a regression
 checklist handed over 2026-11-03 (camp, charges, respec, cheats); the first real look is CT2's.
 
-### CT2 - The spellbook's Campfire tab ✅ DONE 2026-11-15 `[uncommitted]`
+### CT2 - The spellbook's Campfire tab ✅ DONE 2026-11-15 `99115ff7`
 
 Built in one execution session, the PO in chat; R25-R26 ruled at its start and mid-way
 (§2, fourth round). PO look: "works visually".
