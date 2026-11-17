@@ -161,10 +161,15 @@ type ConversationOption struct {
 	// door is still a door. The client never starts a transition from a locked
 	// row because it gives locked rows no handler at all.
 	Travel TravelDirection
-	// QuestLevel is the target level of the quest an offer row hands out, which
-	// the panel tints the row by (plan-quest-giver-markers.md D4); 0 on every
+	// QuestLevel is the level the row's `!` is tinted by: on any row whose
+	// QuestMarker is an offer, the grant row and the rows leading to it
+	// (plan-dialogue-quest-icons.md D3; the lowest offer met, Q2). 0 on every
 	// other row. Derived from the quest, never authored on the row.
 	QuestLevel uint8
+	// QuestMarker is the marker the NPC's head would wear if this row were the
+	// whole conversation: its own quest grant plus everything reachable beneath
+	// it (plan-dialogue-quest-icons.md D2). Stamped by present(), never authored.
+	QuestMarker QuestMarkerKind
 	// plan-localization.md C3: how the client words the row. TextID/ReplyID are
 	// the authored strings' stable ids (D20); TextKey/ReplyKey are UI keys for a
 	// synthesized row; Locks/LocksAny say why a locked row is locked.

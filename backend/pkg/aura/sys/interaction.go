@@ -1013,6 +1013,7 @@ func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) 
 			Options: byNode[node.ID],
 		})
 	}
+	stampQuestMarkers(in, c, p)
 	return c
 }
 
@@ -1139,10 +1140,8 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 				Reply:       opt.Grants[0].Line,
 				ReplyID:     opt.Grants[0].LineID,
 			}
-			// The offer row is tinted by its quest's level (plan-quest-giver-markers.md D4).
-			if opt.Grants[0].Kind == mobs.GrantOfferQuest {
-				row.QuestLevel = uint8(min(max(p.QuestLedger().Level(opt.Grants[0].Quest), 0), 255))
-			}
+			// Its QuestMarker and QuestLevel are stamped once the tree is built
+			// (stampQuestMarkers, plan-dialogue-quest-icons.md D2).
 			rows = append(rows, row)
 			continue
 		}

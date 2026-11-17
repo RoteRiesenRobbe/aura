@@ -23,7 +23,8 @@ import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountd
 import {attachSkillTooltips, hideTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {beginCrossing} from '../../zones/logic/ZoneCurtain';
-import {questTitleColor} from '../../../client-data/QuestMarkers';
+import {questMarkerColor, questMarkerGlyph} from '../../../client-data/QuestMarkers';
+import {cssHex} from '../../../client-data/Theme';
 import {
     ConversationModel,
     ConversationRow,
@@ -290,10 +291,20 @@ function render() {
             li.dataset.skillId = String(row.skillId);
         }
 
+        // A quest row wears the head's `!` / `?` in the gutter left of its text,
+        // tinted by the same table as the head and the maps; the text keeps the
+        // panel's colour (plan-dialogue-quest-icons.md D4, R3/R4).
+        // ⚑ Drawn by CSS (`::before` from the attribute), never as a child node:
+        // the row's textContent stays its label, which every reader of a row's
+        // text (the verify harnesses among them) compares against.
+        if (row.questMarker > 0) {
+            li.dataset.questGlyph = questMarkerGlyph(row.questMarker);
+            li.style.setProperty('--quest-glyph-color',
+                cssHex(questMarkerColor({kind: row.questMarker, level: row.questLevel})));
+        }
+
         const label = document.createElement('span');
         label.textContent = row.text;
-        // An offer row is tinted by its quest's level (plan-quest-giver-markers.md D4).
-        label.style.color = questTitleColor(row.questLevel);
         li.appendChild(label);
 
         // D20: name the wall on a locked row, so the panel reads as a signpost

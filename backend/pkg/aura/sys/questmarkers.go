@@ -102,14 +102,30 @@ func uniqueQuests(lists ...[]string) []string {
 // The lead grant is the row's kind: a trailing offer_quest inside a turn-in
 // bundle (Eliza's dinner) is a reward, not an offer.
 func reachableQuestGrants(in *mobs.Interaction, c *model.Conversation) []*mobs.InteractionGrant {
+	grants, _ := questWalk(in, presentedByID(c), c.EntryNode, map[string]bool{})
+	return grants
+}
+
+// presentedByID indexes a presented conversation's nodes by id.
+func presentedByID(c *model.Conversation) map[string]*model.ConversationNode {
 	presented := make(map[string]*model.ConversationNode, len(c.Nodes))
 	for i := range c.Nodes {
 		presented[c.Nodes[i].ID] = &c.Nodes[i]
 	}
+	return presented
+}
 
-	var grants []*mobs.InteractionGrant
-	seen := map[string]bool{c.EntryNode: true}
-	queue := []string{c.EntryNode}
+// questWalk walks the presented tree from start along navigation rows, never
+// entering a node already in seen (which it extends), and returns the lead
+// grant of every quest row met plus the ids of the nodes it reached. Rows on a
+// row-source node and locked rows count for nothing (M landmine 3).
+func questWalk(in *mobs.Interaction, presented map[string]*model.ConversationNode,
+	start string, seen map[string]bool) (grants []*mobs.InteractionGrant, reached []string) {
+	if seen[start] {
+		return nil, nil
+	}
+	seen[start] = true
+	queue := []string{start}
 	for len(queue) > 0 {
 		id := queue[0]
 		queue = queue[1:]
@@ -117,43 +133,124 @@ func reachableQuestGrants(in *mobs.Interaction, c *model.Conversation) []*mobs.I
 		if node == nil || authored == nil {
 			continue
 		}
-		for _, row := range node.Options {
+		reached = append(reached, id)
+		for i := range node.Options {
+			row := &node.Options[i]
 			if row.Next != "" && !seen[row.Next] {
 				seen[row.Next] = true
 				queue = append(queue, row.Next)
 			}
-			if authored.Rows != "" || row.Locked || row.GrantIndex == model.ConversationNoGrant ||
-				int(row.OptionIndex) >= len(authored.Options) {
-				continue
-			}
-			opt := &authored.Options[row.OptionIndex]
-			if len(opt.Grants) > 0 && opt.Grants[0].Kind.IsQuestKind() {
-				grants = append(grants, &opt.Grants[0])
+			if g := leadQuestGrant(authored, row); g != nil {
+				grants = append(grants, g)
 			}
 		}
 	}
-	return grants
+	return grants, reached
+}
+
+// leadQuestGrant is the quest grant a presented row hands over when taken, or
+// nil: the row's lead grant decides its kind (a trailing offer_quest in a
+// turn-in bundle is a reward).
+func leadQuestGrant(authored *mobs.InteractionNode, row *model.ConversationOption) *mobs.InteractionGrant {
+	if authored.Rows != "" || row.Locked || row.GrantIndex == model.ConversationNoGrant ||
+		int(row.OptionIndex) >= len(authored.Options) {
+		return nil
+	}
+	opt := &authored.Options[row.OptionIndex]
+	if len(opt.Grants) > 0 && opt.Grants[0].Kind.IsQuestKind() {
+		return &opt.Grants[0]
+	}
+	return nil
 }
 
 // awaitedQuestsFinishedBy lists p's running quests for which this conversant
 // authors an advance_quest row leaving the stage the quest is working towards:
 // the grey `?` (D11).
 func awaitedQuestsFinishedBy(in *mobs.Interaction, p learner) []string {
-	ledger := p.QuestLedger()
 	var quests []string
 	for i := range in.Nodes {
-		for j := range in.Nodes[i].Options {
-			opt := &in.Nodes[i].Options[j]
-			if len(opt.Grants) == 0 || opt.Grants[0].Kind != mobs.GrantAdvanceQuest {
-				continue
-			}
-			g := &opt.Grants[0]
-			if awaited := ledger.AwaitedStage(g.Quest); awaited != "" && awaited == g.FromStage {
-				quests = append(quests, g.Quest)
-			}
+		quests = appendAwaited(quests, &in.Nodes[i], p)
+	}
+	return quests
+}
+
+// appendAwaited is awaitedQuestsFinishedBy for one node. It reads the AUTHORED
+// options, never the presented rows: the hand-in row is hidden while the quest
+// runs, which is exactly when the grey `?` shows (plan-dialogue-quest-icons.md L2).
+func appendAwaited(quests []string, node *mobs.InteractionNode, p learner) []string {
+	ledger := p.QuestLedger()
+	for j := range node.Options {
+		opt := &node.Options[j]
+		if len(opt.Grants) == 0 || opt.Grants[0].Kind != mobs.GrantAdvanceQuest {
+			continue
+		}
+		g := &opt.Grants[0]
+		if awaited := ledger.AwaitedStage(g.Quest); awaited != "" && awaited == g.FromStage {
+			quests = append(quests, g.Quest)
 		}
 	}
 	return quests
+}
+
+// stampQuestMarkers gives every presented row the marker the NPC's head would
+// wear if that row were the whole conversation (plan-dialogue-quest-icons.md
+// D2): its own quest grant plus everything reachable beneath it, turn-in over
+// offer over in-progress. An offer row's QuestLevel is the lowest offer met (Q2).
+//
+// ⚑ It reuses the conversation present() just built and never presents again
+// (L5): present() runs per tick for an open panel.
+//
+// ⚑ The walk below a row never enters the entry node or the row's own node, so
+// a row pointing back up the tree does not inherit the whole NPC's marker.
+func stampQuestMarkers(in *mobs.Interaction, c *model.Conversation, p learner) {
+	ledger := p.QuestLedger()
+	if ledger == nil {
+		return
+	}
+	presented := presentedByID(c)
+	for ni := range c.Nodes {
+		node := &c.Nodes[ni]
+		authored := nodeByID(in, node.ID)
+		if authored == nil || authored.Rows != "" {
+			continue
+		}
+		for ri := range node.Options {
+			row := &node.Options[ri]
+			if row.Locked {
+				continue
+			}
+			var grants []*mobs.InteractionGrant
+			if g := leadQuestGrant(authored, row); g != nil {
+				grants = append(grants, g)
+			}
+			var awaited []string
+			if row.Next != "" {
+				below, reached := questWalk(in, presented, row.Next, map[string]bool{c.EntryNode: true, node.ID: true})
+				grants = append(grants, below...)
+				for _, id := range reached {
+					awaited = appendAwaited(awaited, nodeByID(in, id), p)
+				}
+			}
+
+			turnIn, offered, level := false, false, 0
+			for _, g := range grants {
+				switch g.Kind {
+				case mobs.GrantAdvanceQuest:
+					turnIn = true
+				case mobs.GrantOfferQuest:
+					offered, level = true, lowestPositive(level, ledger.Level(g.Quest))
+				}
+			}
+			switch {
+			case turnIn:
+				row.QuestMarker = model.QuestMarkerTurnIn
+			case offered:
+				row.QuestMarker, row.QuestLevel = model.QuestMarkerOffer, uint8(min(level, 255))
+			case len(awaited) > 0:
+				row.QuestMarker = model.QuestMarkerInProgress
+			}
+		}
+	}
 }
 
 func lowestPositive(current, candidate int) int {

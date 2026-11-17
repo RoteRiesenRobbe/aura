@@ -937,10 +937,11 @@ table ConversationOption {
   // one — the grant_index = 255 convention above. Appended at the table end.
   travel:ubyte = 0;
 
-  // The target level of the quest an offer row hands out, which the panel
-  // tints the row by (plan-quest-giver-markers.md D4, the mob nameplate's
-  // difficulty colour). 0 on every other row, the turn-in included. Derived
-  // from the quest, never authored on the row. Appended at the table end.
+  // The level the row's `!` is tinted by (the mob nameplate's difficulty
+  // colour): set on any row whose quest_marker is an offer, the grant row and
+  // the rows leading to it; the lowest offer met when a row leads to several
+  // (plan-dialogue-quest-icons.md D3, Q2). 0 on every other row, the turn-in
+  // included. Derived from the quest, never authored on the row.
   quest_level:ubyte = 0;
   // --- plan-localization.md C3 (D20), appended: the client words the row. ---
   // The stable id of the authored label / reply line: the client looks it up
@@ -957,6 +958,13 @@ table ConversationOption {
   // conditionsMode). text stays the server's English for an old client.
   locks:[ConversationLock];
   locks_any:bool = false;
+  // The quest marker this row wears, the head marker's kinds and numbering
+  // (QuestMarker.kind): 0 none · 1 offer `!` · 2 turn-in yellow `?` · 3 in
+  // progress grey `?`. The row's own quest grant plus everything reachable
+  // beneath it, so a root row that only navigates wears the marker of the
+  // quest it leads to (plan-dialogue-quest-icons.md D2). DERIVED, NEVER
+  // AUTHORED, the travel convention. Appended at the table end.
+  quest_marker:ubyte = 0;
 }
 
 // StoneGift: a look only an ascension stone gives (plan-appearance.md C5b).

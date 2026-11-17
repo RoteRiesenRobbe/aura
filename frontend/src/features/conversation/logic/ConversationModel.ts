@@ -65,10 +65,19 @@ export interface ConversationRow {
      */
     travel: TravelDirection;
     /**
-     * The target level of the quest an offer row hands out, which tints the row
-     * (plan-quest-giver-markers.md D4); 0 on every other row.
+     * The level the row's `!` is tinted by, on any row whose questMarker is an
+     * offer (plan-dialogue-quest-icons.md D3); 0 on every other row.
      */
     questLevel: number;
+    /**
+     * The quest marker this row wears (the head marker's kinds, QUEST_MARKER_*;
+     * 0 none), stamped by the server: the row's own quest grant plus everything
+     * beneath it (plan-dialogue-quest-icons.md D2).
+     *
+     * ⚑ It rides in the view row so a change re-renders the panel (L4): never
+     * derive the glyph outside the view, e.g. from questMarkerFor.
+     */
+    questMarker: number;
 }
 
 /**

@@ -83,7 +83,21 @@ describe('quest markers', () => {
     });
 
     it('never tints a `?` by level', () => {
-        expect(questMarkerColor({mobId: 1, kind: QUEST_MARKER_TURN_IN, level: 0, quests: []})).toBe(QUEST_TURN_IN_COLOR);
-        expect(questMarkerColor({mobId: 1, kind: QUEST_MARKER_IN_PROGRESS, level: 0, quests: []})).toBe(DIFFICULTY_GRAY);
+        expect(questMarkerColor({kind: QUEST_MARKER_TURN_IN, level: 0})).toBe(QUEST_TURN_IN_COLOR);
+        expect(questMarkerColor({kind: QUEST_MARKER_IN_PROGRESS, level: 0})).toBe(DIFFICULTY_GRAY);
+    });
+});
+
+// plan-dialogue-quest-icons.md D4: the conversation row calls the SAME table
+// with a bare {kind, level}; every kind has a glyph and a colour.
+describe('questMarkerColor on a conversation row', () => {
+    it('colours every kind from a bare {kind, level}', () => {
+        setLocalPlayerLevel(1);
+        expect(questMarkerColor({kind: QUEST_MARKER_OFFER, level: 6})).toBe(difficultyColor(6));
+        expect(questMarkerColor({kind: QUEST_MARKER_TURN_IN, level: 0})).toBe(QUEST_TURN_IN_COLOR);
+        expect(questMarkerColor({kind: QUEST_MARKER_IN_PROGRESS, level: 0})).toBe(DIFFICULTY_GRAY);
+        expect(questMarkerGlyph(QUEST_MARKER_OFFER)).toBe('!');
+        expect(questMarkerGlyph(QUEST_MARKER_TURN_IN)).toBe('?');
+        expect(questMarkerGlyph(QUEST_MARKER_IN_PROGRESS)).toBe('?');
     });
 });

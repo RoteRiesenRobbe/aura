@@ -1,10 +1,8 @@
 # Plan: Dialogue quest icons: the map's `!` and `?` in front of every quest row
 
-**Status: DESIGNED + APPROVED 2026-10-25 (planning session, PO in chat). R1-R4 RULED, D1-D7
-APPROVED, nothing built.** Q1-Q3 (§7) go with their proposed answers unless the PO rules
-otherwise at the look. One chunk (§5, QI1); it runs in `roadmap.md`'s near-term build order (PO 2026-10-30: after campfire traits CT3;
-the gate behind appearance C0b is lifted, C0b jumps the queue when its art lands). L1 (the
-shared tree's `server.fbs` merge) cleared 2026-10-25 with C6.
+**Status: ✅ COMPLETE 2026-11-17 (QI1, §11), archived.** Designed + approved 2026-10-25
+(planning session, PO in chat): R1-R4 ruled, D1-D7 approved; Q1-Q3 took their proposed
+answers, and the PO's look ("works", 2026-11-17) accepted the Q3 placeholders. One chunk.
 
 **Owns:** the per-row quest marker in the conversation panel.
 **Builds on:** `archive/plan-quest-giver-markers.md` (the head/map marker: kinds, colours,
@@ -248,4 +246,54 @@ Schema: DB none · wire +1 field · conf none · content none · lang none.
 
 ## 11. Chunk ledgers
 
-(none yet)
+### QI1 - Quest icons on conversation rows ✅ DONE 2026-11-17 `[uncommitted]`
+
+Built in one execution session (2026-11-17), the PO in chat. PO look 2026-11-17: "works".
+
+**What shipped.**
+- `sys/questmarkers.go`: `reachableQuestGrants` is now `questWalk` from any start node with a
+  caller-seeded seen-set (plus `presentedByID`, `leadQuestGrant`); the grey rule is
+  `appendAwaited` per node, reading AUTHORED options (L2). `stampQuestMarkers` runs once at
+  the end of `present()` over the conversation just built (L5): per unlocked row on a
+  non-row-source node, its own lead quest grant plus `questWalk(row.Next)` seeded with the
+  entry node and the row's own node (D2's guard), combined turn-in > offer > in-progress.
+  An offer marker sets `QuestLevel` to the lowest offer met (Q2), on leading rows too (D3);
+  the old offer-row `QuestLevel` line in `presentOptions` is gone (one source).
+- `model.ConversationOption.QuestMarker`; wire `ConversationOption.quest_marker:ubyte`
+  appended after `locks_any`; `quest_level`'s comment widened. Bindings regenerated (TS with
+  flatc on absolute paths: `api/schema/make.sh` only works run from `api/schema/`).
+- Client: `ConversationRow.questMarker` decoded and carried in the view row (L4);
+  `questMarkerColor` takes `Pick<QuestMarkerData, 'kind' | 'level'>`; `Conversation.ts`
+  sets `data-quest-glyph` + `--quest-glyph-color` on a quest row and drops the label tint
+  (D5; `questTitleColor` stays for the journal and tracker, L6). `HUD.less`: every row's
+  left padding gains `@conversation-quest-gutter` (1.2rem), the glyph is the row's
+  `::before` in that gutter (bold, a 1px black text-shadow outline), and the Back footer
+  takes the same indent (R4).
+
+**Deviation from D4.** The glyph is a CSS `::before` from an attribute, not a `<span>`: a
+child node put the glyph into the row's `textContent`, and about a dozen verify harnesses
+compare raw row text (`"!I'll do it."` would match none of them). The row's text stays its
+label.
+
+**Findings that outlive the chunk.**
+- ⚑ The plan's in-game checklist named the Hermit, but the Hermit never shows a grey `?`:
+  Flora finishes `village-welcome`. Reinhard (offers and hands in the rats) is the venue.
+- ⚑ The `QUEST ADVANCE` cheat refuses an OBJECTIVE stage (it fails in the server log only),
+  so a walkable hand-in behind kills cannot be cheated; yellow on a LEADING row is pinned in
+  Go, the harness shows yellow on a grant row via `eliza-sends-me` (its `road` reach
+  objective is Reinhard's farm).
+- Baselines at HEAD `b6971436` on the DEBUG world (settled in a HEAD worktree, leg for leg
+  identical with QI1): `chunk3b-ii-conversation` 21/34 (the Emberkeeper teaches Lamp now, no
+  Torch: content drift; the Wanderer legs flip run to run on both trees, the mover heuristic
+  pins a campfire), `chunkC4-quests` 27/39.
+
+**Schema:** DB none · wire +1 field (`ConversationOption.quest_marker:ubyte`), `quest_level`
+widened in meaning · conf none · content none · lang none.
+
+**Verified:** Go 40 packages ok, 0 FAIL · `make db-test` ok · vitest 2005/0 · typecheck 0 ·
+the content invariant pin (`TestContent_RowMarkersAgreeWithTheHeadMarker`) falsified (turn-in
+dropped → 44 failures) and the D2 guard falsified alone (seed removed → the back row reads
+turn-in) · `qi1-quest-icons` 13/13 desktop, 7/7 phone leg 1 (new) · `hygiene-wire-prune` 0
+console errors · `chunk3b-ii-conversation` 21/34 and `chunkC4-quests` 27/39, both identical at
+HEAD (above).
+**In-game (PO):** 2026-11-17, "works" (Q3's 1.2rem gutter and 1px outline accepted).

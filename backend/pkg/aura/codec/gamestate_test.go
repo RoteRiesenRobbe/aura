@@ -1145,14 +1145,18 @@ func TestPresenceBitfields_GoMirrorMatchesTheWireWidth(t *testing.T) {
 	assert.Equal(t, kind, reflect.TypeOf(own.Kinds).Out(0).Size(), "OwnEffect.kinds")
 }
 
-// plan-quest-giver-markers.md D4: an offer row's quest level rides the row;
-// every other row leaves the slot at its default 0.
-func TestGameStateConversation_QuestLevelRoundTrips(t *testing.T) {
+// plan-quest-giver-markers.md D4 + plan-dialogue-quest-icons.md D3: a row's
+// quest marker and its `!` level ride the row, a leading row that only
+// navigates included; every other row leaves both slots at their default 0.
+func TestGameStateConversation_QuestMarkerAndLevelRoundTrip(t *testing.T) {
 	c := &model.Conversation{
 		EntityID: 7, ActorName: "Reinhard", EntryNode: "root",
 		Nodes: []model.ConversationNode{{ID: "root", Options: []model.ConversationOption{
-			{OptionIndex: 0, GrantIndex: 0, Text: "I'll do it.", QuestLevel: 6},
-			{OptionIndex: 1, GrantIndex: model.ConversationNoGrant, Text: "Bye."},
+			{OptionIndex: 0, GrantIndex: model.ConversationNoGrant, Text: "Anything?", Next: "offer",
+				QuestMarker: model.QuestMarkerOffer, QuestLevel: 6},
+			{OptionIndex: 1, GrantIndex: model.ConversationNoGrant, Text: "About it...", Next: "progress",
+				QuestMarker: model.QuestMarkerInProgress},
+			{OptionIndex: 2, GrantIndex: model.ConversationNoGrant, Text: "Bye."},
 		}}},
 	}
 	b := flatbuffers.NewBuilder(256)
@@ -1164,10 +1168,11 @@ func TestGameStateConversation_QuestLevelRoundTrips(t *testing.T) {
 	var root AuraApi.ConversationNode
 	var opt AuraApi.ConversationOption
 	require.True(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil).Nodes(&root, 0))
-	require.True(t, root.Options(&opt, 0))
-	assert.EqualValues(t, 6, opt.QuestLevel())
-	require.True(t, root.Options(&opt, 1))
-	assert.EqualValues(t, 0, opt.QuestLevel())
+	for i, want := range []struct{ marker, level byte }{{1, 6}, {3, 0}, {0, 0}} {
+		require.True(t, root.Options(&opt, i))
+		assert.EqualValues(t, want.marker, opt.QuestMarker(), "row %d marker", i)
+		assert.EqualValues(t, want.level, opt.QuestLevel(), "row %d level", i)
+	}
 }
 
 // plan-quest-giver-markers.md C2: the markers in order, every field intact.

@@ -70,7 +70,7 @@ export function questTitleColor(level: number): string {
  * mob nameplate's rule, read against the player's CURRENT level, so a level-up
  * recolours it without the server resending anything (D9).
  */
-export function questMarkerColor(marker: QuestMarkerData): number {
+export function questMarkerColor(marker: Pick<QuestMarkerData, 'kind' | 'level'>): number {
     switch (marker.kind) {
         case QUEST_MARKER_OFFER:
             return difficultyColor(marker.level);

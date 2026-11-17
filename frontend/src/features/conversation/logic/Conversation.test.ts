@@ -13,6 +13,8 @@ import {beforeEach, afterEach, describe, expect, it, vi} from 'vitest';
 import * as Conversation from './Conversation';
 import {ConversationTree, TravelDirection} from './ConversationModel';
 import {showTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
+import {QUEST_MARKER_TURN_IN, QUEST_TURN_IN_COLOR} from '../../../client-data/QuestMarkers';
+import {cssHex} from '../../../client-data/Theme';
 
 function buildDom(): void {
     document.body.innerHTML = `
@@ -57,6 +59,7 @@ function irreversibleTree(skillId = 0): ConversationTree {
                 skillId,
                 travel: TravelDirection.None,
                 questLevel: 0,
+                questMarker: 0,
             }],
         }],
     };
@@ -143,5 +146,38 @@ describe('Conversation - the hover tooltip', () => {
         Conversation.update(null);
 
         expect(tooltip.classList.contains('hidden')).toBe(true);
+    });
+});
+
+/**
+ * plan-dialogue-quest-icons.md D4/D5: a quest row wears the map's glyph in a
+ * gutter left of its text, coloured by the marker table; the text itself goes
+ * back to the panel's colour (R3), and a plain row gets no glyph at all.
+ */
+describe('Conversation - the quest glyph', () => {
+    beforeEach(() => {
+        buildDom();
+        Conversation.setup();
+        Conversation.update(null);
+    });
+
+    it('marks a quest row only, never tints the label, and keeps the glyph out of the text', () => {
+        const tree = irreversibleTree();
+        const base = tree.nodes[0].rows[0];
+        tree.nodes[0].rows = [
+            {...base, text: 'About the pelts...', confirmSeconds: 0, questMarker: QUEST_MARKER_TURN_IN},
+            {...base, optionIndex: 1, text: 'Tell me more.', confirmSeconds: 0},
+        ];
+        Conversation.update(tree);
+
+        const [quest, plain] = Array.from(document.querySelectorAll(
+            '#conversation .conversationRows > li')) as HTMLElement[];
+        expect(quest.dataset.questGlyph).toBe('?');
+        expect(quest.style.getPropertyValue('--quest-glyph-color')).toBe(cssHex(QUEST_TURN_IN_COLOR));
+        expect(quest.textContent).toBe('About the pelts...');
+        for (const li of [quest, plain]) {
+            expect((li.querySelector('span') as HTMLElement).style.color).toBe('');
+        }
+        expect(plain.dataset.questGlyph).toBeUndefined();
     });
 });

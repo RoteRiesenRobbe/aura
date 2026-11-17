@@ -20,6 +20,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         skillId: 0,
         travel: TravelDirection.None,
         questLevel: 0,
+        questMarker: 0,
         ...partial,
     };
 }
@@ -66,6 +67,19 @@ describe('ConversationModel', () => {
         expect(view?.lines).toEqual(['Fire remembers who feeds it.']);
         expect(view?.rows).toHaveLength(2);
         expect(view?.canGoBack).toBe(false);
+    });
+
+    // plan-dialogue-quest-icons.md L4: the marker rides IN the view row, so a
+    // marker change is a view change and the panel re-renders on it.
+    it('carries a row\'s quest marker into the view, and re-renders on its change', () => {
+        const m = new ConversationModel();
+        const marked = (questMarker: number) => tree({nodes: [{id: 'root', lines: ['Hello.'], rows: [
+            row({text: 'Anything?', next: 'root', questMarker, questLevel: 4}),
+        ]}]});
+        m.update(marked(1));
+        expect(m.view()?.rows[0]).toMatchObject({questMarker: 1, questLevel: 4});
+        expect(m.update(marked(3))).toBe(true);
+        expect(m.view()?.rows[0].questMarker).toBe(3);
     });
 
     // plan-passages.md P5 (PO 2026-10-18): a row that moves the player starts

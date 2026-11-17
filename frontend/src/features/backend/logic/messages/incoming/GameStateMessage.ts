@@ -537,6 +537,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 skillId: o.skillId(),
                 travel: o.travel() as TravelDirection,
                 questLevel: o.questLevel(),
+                questMarker: o.questMarker(),
             });
         }
 

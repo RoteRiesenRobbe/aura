@@ -462,6 +462,7 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 				AuraApi.ConversationOptionAddLocks(builder, locks)
 				AuraApi.ConversationOptionAddLocksAny(builder, opt.LocksAny)
 			}
+			AuraApi.ConversationOptionAddQuestMarker(builder, byte(opt.QuestMarker))
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))

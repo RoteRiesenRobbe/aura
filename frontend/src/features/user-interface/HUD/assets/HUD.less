@@ -558,6 +558,11 @@
 // ⚑ It sits at the TOP of the #bottomCenter column, above the cast bar. That
 // stack is stable by construction: #castBar hides with `visibility`, keeping its
 // slot, so a cast starting mid-conversation cannot shove the panel around (L25).
+
+// The left gutter every conversation row reserves for a quest glyph
+// (plan-dialogue-quest-icons.md D4). [PLACEHOLDER] width (Q3).
+@conversation-quest-gutter: 1.2rem;
+
 #conversation {
 	width: 44rem;
 	max-width: 90vw;
@@ -632,7 +637,10 @@
 		padding: 0;
 
 		> li {
-			padding: 0.6rem 0.8rem;
+			// Every row's text starts after the quest gutter, glyph or not, so the
+			// text column stays aligned (plan-dialogue-quest-icons.md R4, D4).
+			position: relative;
+			padding: 0.6rem 0.8rem 0.6rem (0.8rem + @conversation-quest-gutter);
 			// The board's ink row divider (C7): the moss field is dark enough
 			// that a light hairline reads as a scratch on it, an ink one as a
 			// drawn rule.
@@ -661,6 +669,22 @@
 				}
 			}
 
+			// The quest row's `!` / `?` hangs in the gutter, left of the text: the
+			// DOM twin of the head's bold, black-stroked PIXI glyph. The glyph and
+			// its colour come from the row (data-quest-glyph, --quest-glyph-color,
+			// set from questMarkerColor), so the row's text stays its label.
+			&[data-quest-glyph]::before {
+				content: attr(data-quest-glyph);
+				color: var(--quest-glyph-color);
+				position: absolute;
+				left: 0.8rem;
+				width: @conversation-quest-gutter;
+				text-align: center;
+				font-weight: bold;
+				// [PLACEHOLDER] outline (Q3), settled at the PO look.
+				text-shadow: -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000;
+			}
+
 			// The synthetic "Leave." row (Q1 §4.3): rendered last, only at the
 			// root, doing exactly what ✕ does. Styled like the Back footer so it
 			// reads as an exit, not as one of the actor's offers - muted gold
@@ -678,6 +702,8 @@
 	> .conversationBack {
 		margin-top: 0.8rem;
 		padding-top: 0.6rem;
+		// Lines up with the rows' text column, past the quest gutter (R4).
+		padding-left: (0.8rem + @conversation-quest-gutter);
 		border-top: 1px solid fade(@ink, 70%);
 		color: fade(@gold-levelup, 55%);
 		font-size: @panel-title-size;

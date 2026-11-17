@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-17, the dialogue quest icons QI1 wrap: the BUG REPORT BR2 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: BUG REPORT BR2, the server copy** ✅ DONE 2026-11-14 `964c7968`, PO filed a report locally and it landed (ledger: `docs/plan-bug-report.md` §11 BR2): `POST /api/bug-reports` (login only, capped, cleaned, rate limited, 50 MB ceiling) appends one JSON line per report to `server.bugReportsPath`; the panel shows the id or why not. ⚑ D12 AMENDED: live `/var/lib/state/` (`DynamicUser`); check the host's unit before the first deploy. ⚑ The key is REQUIRED: every gitignored `backend/conf.json` needs it or aurad will not boot. **Schema: DB none · wire none · conf +1 key · lang +5 · shared constants +3 codes.** Verified: Go 0 FAIL · db-test ok · vitest 1980/0 · typecheck · `bug-report` 36/36 · `chunk2-accounts` 27/27.
+
 *(2026-11-17, the campfire traits CT3 wrap: the BUG REPORT BR1 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: BUG REPORT BR1, the report, client only** ✅ DONE 2026-11-04 `0ddde877`, PO tested it ("works") (ledger: `docs/plan-bug-report.md` §11 BR1): settings → Report bug → Generate (fps check) → a Discord panel with Copy/DONE/X/Esc; diagnostics from git hash to the last 20 console errors. ⚑ D6 AMENDED: `PING` is a token-gated cheat, so latency = one `GET /api/session`. ⚑ A partial must START with its element (`htmlToElement` = `firstChild`). **Schema: DB none · wire none · conf none · lang +11 keys.** Verified: vitest 1977/0 · typecheck · `bug-report` 28/28 · `c2-layering` 9/0/2 · `chunk2-accounts` 26/27 (leg 7 a countdown race).
