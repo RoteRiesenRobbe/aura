@@ -478,7 +478,7 @@ fit) · `ct1-camp-traits` 16/16 · `r4-camp` 31/31 · `c4b-breadcrumb` 24/24 ·
 2/7, `mobile-layout` journal legs. **In-game (PO):** looked 2026-11-15, "works visually".
 **Owed:** the German strings (nine new + CT1's six names), the badge pill's look.
 
-### CT3 - Rest buffs ✅ DONE 2026-11-17 `[uncommitted]`
+### CT3 - Rest buffs ✅ DONE 2026-11-17 `c8c8996c`
 
 Built in one execution session (2026-11-15), the PO in chat; R27 ruled mid-way (§2, fifth
 round). PO look 2026-11-17: "works".
