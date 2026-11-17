@@ -246,7 +246,7 @@ Schema: DB none · wire +1 field · conf none · content none · lang none.
 
 ## 11. Chunk ledgers
 
-### QI1 - Quest icons on conversation rows ✅ DONE 2026-11-17 `[uncommitted]`
+### QI1 - Quest icons on conversation rows ✅ DONE 2026-11-17 `787d8b22`
 
 Built in one execution session (2026-11-17), the PO in chat. PO look 2026-11-17: "works".
 
