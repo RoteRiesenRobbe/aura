@@ -1,9 +1,11 @@
 # Plan: Campfire traits: spend points earned at fires to grow your own camp
 
-**Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R24
-RULED (R21-R23 at CT1's start 2026-11-03, R24 a default; R25-R26 at CT2 2026-11-15), D1-D11
-approved. ✅ CT1 DONE 2026-11-03, ✅ CT2 DONE 2026-11-15 (§11). ⭐ NEXT: CT3, the rest buffs.** 3 chunks (§5),
-in `roadmap.md`'s near-term build order (PO 2026-10-30).
+**Status: DESIGNED + APPROVED 2026-10-24 (one planning session, PO in chat). R1-R27
+RULED (R21-R23 at CT1's start 2026-11-03, R24 a default; R25-R26 at CT2 2026-11-15; R27 at
+CT3 2026-11-15), D1-D11 approved. ✅ CT1 DONE 2026-11-03, ✅ CT2 DONE 2026-11-15, ✅ CT3 DONE
+2026-11-17 (§11): every chunk built. Stays live for the PO-owed items in CT3's ledger (the
+German strings, the reconnect question).** 3 chunks (§5), in `roadmap.md`'s near-term build
+order (PO 2026-10-30).
 
 **Owns:** campfire points, the six camp traits, the camp's rest buffs.
 **Builds on:** `archive/plan-downtime.md` (the Camp utility, D1-D9: channel, charges,
@@ -15,7 +17,8 @@ D11-D15), `plan-buff-tray.md` (where the buffs show), the spellbook and its free
 `archive/plan-playtest-feedback.md` decision 1 (2026-07-24, no skill tree for abilities):
 this is a flat list on its own pool, not a tree (R2).
 **Schema (as designed):** DB none (traits ride `character_spellbook` rows, D2, R15; buffs not
-persisted, R12) · wire +1 field (`camp_points`, D4) · conf none · content +6 skill files,
+persisted, R12) · wire +1 field (`camp_points`, D4; as built +3: `Respec.camp` in CT1,
+`OwnEffect.level` in CT3 for R27) · conf none · content +6 skill files,
 +1 `SkillCategory` value, +1 `campTrait` block, `camp-aura.json` gains levels (D7) ·
 shared-constants none (the client adds the trait level from its spellbook, D8) · lang +6 names/descriptions (en + de) + spellbook section UI keys.
 
@@ -117,6 +120,14 @@ Fourth round, 2026-11-15 (CT2 session, PO in chat):
 - **R26. Four tabs share one row in English** (smaller tab text); a language whose labels
   outgrow the book wraps the tab row and the book grows by it, never a label broken
   mid-word.
+
+Fifth round, 2026-11-15 (CT3 session, PO in chat):
+
+- **R27. A rest buff's tray tooltip shows the strength the player holds** (send it on the
+  wire, chosen over dropping the level line or leaving it). Before, it priced the tooltip at
+  the viewer's own trait level, so a stranger resting at someone's camp read "Lv 0/15 …
+  +0%" on a live +1.65 % buff. Built as the granted LEVEL (strength = level × perLevel),
+  so the existing tooltip words it.
 
 ## 3. Design
 
@@ -466,3 +477,64 @@ fit) · `ct1-camp-traits` 16/16 · `r4-camp` 31/31 · `c4b-breadcrumb` 24/24 ·
 `58e8133e`, recorded in the verify skill: `c4-skill-icons`, `c5-ability-bar`, `i18n-de`
 2/7, `mobile-layout` journal legs. **In-game (PO):** looked 2026-11-15, "works visually".
 **Owed:** the German strings (nine new + CT1's six names), the badge pill's look.
+
+### CT3 - Rest buffs ✅ DONE 2026-11-17 `[uncommitted]`
+
+Built in one execution session (2026-11-15), the PO in chat; R27 ruled mid-way (§2, fifth
+round). PO look 2026-11-17: "works".
+
+**What shipped.**
+- `sys/camp_rest.go`: the rest clock (D10). `applyCamp` snapshots the owner's buff traits
+  (`CampRestBuffs()`, sorted by id) plus the camp aura's heal radius and interval into
+  `SkillSystem.restCamps`, keyed by the camp's entity id; a camp whose owner holds no buff
+  trait gets no entry. `processEntity` ticks it every tick from the camp's own aura sensor:
+  a player counts once per tick (a stamp, so two shapes never double-count and the leaver
+  sweep allocates nothing) while within the heal reach (`withinReach`, pulled out of
+  `effectCollisions`). At `campRestTicks` = 150 the buffs land, then again every heal cycle
+  (60 ticks) while the player stays. `Remove` drops the entry. Players only; damage does
+  not reset (R19); world fires never register (R20).
+- Buffs (D9): source = the trait's id; damage and max Focus through `ApplyStat`, speed
+  through `ApplySpeed(1 + bonus)`; `campRestBuffTicks` = 9000. All [PLACEHOLDER].
+- Max Focus (R17, L3): `DerivedStats.WithBuffs` carries `MaxHealthBonus`, and `poolFactor`
+  reads `EffectiveStats()`. Gaining raises the maximum only; expiry is the existing per-tick
+  shrink clamp in `player.Update`, which never kills. `Mob.MaxHealth()` stays on Derived
+  (nothing can put a timed maxHealth buff on a mob).
+- Death and logout (D11, L6): by construction. The buff store lives on the player entity and
+  respawn, revive and reconnect all build a new one; pinned by
+  `TestRespawn_ClearsTheRestBuffs`.
+- R27: `skills.OwnEffect` gains `Strength` (the strongest live stat or speed stream under a
+  circle, the one that counts) and `Level`; `player.OwnEffects()` sets Level for a camp trait
+  = round(Strength / perLevel). Wire `OwnEffect.level:ubyte` (the struct pads 24 → 32 bytes);
+  the client's tooltip uses it when non-zero (`tooltipLevel`), else the viewer's own level.
+
+**Findings that outlive the chunk.**
+- ⚑ A reconnect (F5 inside the reconnect window) drops the rest buffs, while camp charges
+  survive the same door. Consistent with R12 by construction, NOT ruled: asked the PO
+  2026-11-17, unanswered.
+- ⚑ The tray circle's timer is the LONGEST stream, its strength (R27) the STRONGEST: resting
+  at a weaker camp refills the timer while the strength stays (R18). Intended, said in the
+  PO look.
+- ⚑ When the maximum rises, the camp's own heal tops a now-wounded player up in the same
+  window: a harness must never assert "current Focus stays" at a camp (Go pins R17's gain).
+- `effectCollisions` allocates a map whenever an effect's radius is below the sensor's (the
+  camp: heal 0.75 under light 2.0); never call it per tick.
+- `buff-tray.mjs` is red at HEAD (16/5/1): its Tough leg expects a circle for an equipped
+  passive, which the PO removed 2026-10-22 (`alwaysOnTenants`). Stale premise, recorded in the
+  verify skill; the leg needs a rewrite.
+- Speed is pinned in Go and on the tray, never measured as a pace (+1.65-5 % is below a
+  hand's feel).
+
+**Schema:** DB none · wire +1 field (`OwnEffect.level:ubyte`, struct 24 → 32 bytes, R27) ·
+conf none · content none · lang none · shared constants none. Join fills Focus to the fresh
+maximum (`persist.go`), so a buffed logout carries nothing over.
+
+**Verified:** Go 40 packages ok, 0 FAIL, vet clean (after the wire change) · `make db-test`
+(store, accounts vs `aura_test`) ok · vitest 2002/0 · typecheck 0 · the wiring test
+falsified (hook removed → red) · `ct3-rest-buffs` 13/13 (new: two clients, the clock, both
+players at the owner's +4.95 %, the granted-level tooltip, the weaker camp, death) ·
+`ct2-camp-tab` 19/19 · `ct1-camp-traits` 16/16 (a rerun; run 1 read its duration delta at
+1.0 s, the window's edge, untouched by CT3) · `r4-camp` 31/31 · `c1-stat-buffs` 4/4 (DEBUG) ·
+`hygiene-wire-prune` 0 console errors · `buff-tray` 16/5/1 (identical at HEAD, above).
+**In-game (PO):** 2026-11-17, "works".
+**Owed:** the German strings (CT1's six names, CT2's nine keys), the badge pill's look, the
+reconnect ruling.

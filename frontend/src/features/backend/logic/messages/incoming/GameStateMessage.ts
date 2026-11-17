@@ -353,6 +353,7 @@ function unmarshalOwnEffects(gameState: AuraApi.GameState): OwnEffectData[] {
             totalTicks: e.totalTicks(),
             caster: Number(e.caster()),
             expiresTick: Number(e.expiresTick()),
+            level: e.level(),
         });
     }
     return effects;

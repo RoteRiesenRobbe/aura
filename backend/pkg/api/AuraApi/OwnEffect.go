@@ -40,24 +40,33 @@ func (rcv *OwnEffect) MutateKinds(n EffectKind) bool {
 	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(4), uint32(n))
 }
 
-func (rcv *OwnEffect) Caster() uint64 {
-	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(8))
+func (rcv *OwnEffect) Level() byte {
+	return rcv._tab.GetByte(rcv._tab.Pos + flatbuffers.UOffsetT(8))
 }
-func (rcv *OwnEffect) MutateCaster(n uint64) bool {
-	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(8), n)
+func (rcv *OwnEffect) MutateLevel(n byte) bool {
+	return rcv._tab.MutateByte(rcv._tab.Pos+flatbuffers.UOffsetT(8), n)
 }
 
-func (rcv *OwnEffect) ExpiresTick() uint64 {
+func (rcv *OwnEffect) Caster() uint64 {
 	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(16))
 }
-func (rcv *OwnEffect) MutateExpiresTick(n uint64) bool {
+func (rcv *OwnEffect) MutateCaster(n uint64) bool {
 	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(16), n)
 }
 
-func CreateOwnEffect(builder *flatbuffers.Builder, skillId uint16, totalTicks uint16, kinds EffectKind, caster uint64, expiresTick uint64) flatbuffers.UOffsetT {
-	builder.Prep(8, 24)
+func (rcv *OwnEffect) ExpiresTick() uint64 {
+	return rcv._tab.GetUint64(rcv._tab.Pos + flatbuffers.UOffsetT(24))
+}
+func (rcv *OwnEffect) MutateExpiresTick(n uint64) bool {
+	return rcv._tab.MutateUint64(rcv._tab.Pos+flatbuffers.UOffsetT(24), n)
+}
+
+func CreateOwnEffect(builder *flatbuffers.Builder, skillId uint16, totalTicks uint16, kinds EffectKind, level byte, caster uint64, expiresTick uint64) flatbuffers.UOffsetT {
+	builder.Prep(8, 32)
 	builder.PrependUint64(expiresTick)
 	builder.PrependUint64(caster)
+	builder.Pad(7)
+	builder.PrependByte(level)
 	builder.PrependUint32(uint32(kinds))
 	builder.PrependUint16(totalTicks)
 	builder.PrependUint16(skillId)

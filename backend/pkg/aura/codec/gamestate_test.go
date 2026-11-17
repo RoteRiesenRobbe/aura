@@ -1051,6 +1051,7 @@ func TestOwnEffectsMarshalFlatbuf_RoundTrip(t *testing.T) {
 		{Skill: 12, Caster: wolf, Kinds: skills.EffectKindDot, Total: 150, Left: 150},
 		{Skill: 12, Caster: lava, Kinds: skills.EffectKindDot, Total: 30, Left: 1},
 		{Skill: 40, Caster: "a test double", Kinds: skills.EffectKindStun, Total: 70000, Left: 5},
+		{Skill: 183, Kinds: skills.EffectKindStatUp, Total: 9000, Left: 9000, Level: 15},
 	}
 
 	b := flatbuffers.NewBuilder(256)
@@ -1061,7 +1062,7 @@ func TestOwnEffectsMarshalFlatbuf_RoundTrip(t *testing.T) {
 	b.Finish(AuraApi.GameStateEnd(b))
 
 	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
-	require.Equal(t, 4, got.OwnEffectsLength())
+	require.Equal(t, 5, got.OwnEffectsLength())
 	var e AuraApi.OwnEffect
 
 	require.True(t, got.OwnEffects(&e, 0))
@@ -1082,6 +1083,10 @@ func TestOwnEffectsMarshalFlatbuf_RoundTrip(t *testing.T) {
 	require.True(t, got.OwnEffects(&e, 3))
 	assert.Zero(t, e.Caster(), "a caster that is neither resolves to 0 rather than panicking")
 	assert.Equal(t, uint16(0xFFFF), e.TotalTicks(), "a lifetime past the ushort clamps instead of wrapping")
+	assert.Zero(t, e.Level(), "no granted level: the viewer's own")
+
+	require.True(t, got.OwnEffects(&e, 4))
+	assert.Equal(t, uint8(15), e.Level(), "a rest buff carries the level it was granted at (CT3)")
 }
 
 func TestOwnEffectsMarshalFlatbuf_EmptyWritesNothing(t *testing.T) {

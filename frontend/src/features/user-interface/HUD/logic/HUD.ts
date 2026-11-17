@@ -26,7 +26,7 @@ import {
 import {createIconToken, hasGlyph} from './IconToken';
 import {createSweepMemory, sweepFraction} from './CooldownSweep';
 import {attachSkillTooltips, attachTooltips, hideTooltip, setAvailableCampPoints, setAvailableSkillPoints, showEffectTooltip, showTooltip, tooltipAnchor} from './SkillTooltip';
-import {alwaysOnTenants, applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant, TrayState} from './BuffTray';
+import {alwaysOnTenants, applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant, tooltipLevel, TrayState} from './BuffTray';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -1155,14 +1155,15 @@ function buffTenantOf(circle: HTMLElement): Tenant | undefined {
 // The level the tooltip scales to (plan-buff-tray.md §3.4, Q1 as proposed):
 // the own spellbook level for the player's own skills, and skillLevelOf's
 // fallback of 1 for a skill cast by someone else, which the client never
-// knows the level of.
+// knows the level of. A campfire rest buff is the exception: the server sends
+// the level it was granted at (the camp owner's, plan-campfire-traits CT3).
 function showBuffCircleTooltip(circle: HTMLElement) {
     const tenant = buffTenantOf(circle);
     if (!tenant) {
         hideTooltip();
         return;
     }
-    showEffectTooltip(circle, tenant.skillId, skillLevelOf(tenant.skillId), buffTimeLine(tenant));
+    showEffectTooltip(circle, tenant.skillId, tooltipLevel(tenant, skillLevelOf(tenant.skillId)), buffTimeLine(tenant));
 }
 
 // The tooltip's time line (§9 P6). A circle an aura keeps up has no countdown

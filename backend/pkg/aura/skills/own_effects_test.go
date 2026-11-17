@@ -262,3 +262,24 @@ func TestEffectKind_EveryPayloadHasItsOwnBit(t *testing.T) {
 	}
 	assert.Len(t, seen, 12)
 }
+
+// --- the circle's strength (plan-campfire-traits CT3, the rest-buff tooltip) ---
+
+// Strength is the magnitude of the STRONGEST live stat or speed stream under a
+// circle: the one that counts (R11), even while a weaker, longer stream sets
+// the circle's time (R18).
+func TestOwnEffects_StrengthIsTheStrongestLiveStream(t *testing.T) {
+	var b Buffs
+	b.ApplyStat(183, StatDamageDealt, 0.04, 100)
+	b.ApplyStat(183, StatDamageDealt, 0.02, 300) // weaker, longer
+	b.ApplySpeed(184, 1.0165, 100)
+	b.ApplySlow(9, 0.3, 100)
+
+	got := b.OwnEffects()
+
+	require.Len(t, got, 3)
+	assert.InDelta(t, 0.04, got[1].Strength, 1e-6, "the stronger stream counts")
+	assert.Equal(t, 300, got[1].Left, "while the longer one sets the time")
+	assert.InDelta(t, 0.0165, got[2].Strength, 1e-6, "a speed factor's distance from 1")
+	assert.Zero(t, got[0].Strength, "a kind with no stat or speed strength reports none")
+}

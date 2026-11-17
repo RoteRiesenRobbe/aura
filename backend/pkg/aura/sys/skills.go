@@ -154,6 +154,11 @@ type SkillSystem struct {
 	// placement, so the map needs no fan-out cleanup and cannot hold an
 	// entity alive.
 	campByOwner map[uuid.UUID]uint64
+
+	// restCamps holds each placed camp's rest buffs and clocks (CT3, D10),
+	// keyed by the camp's entity id: only camps whose owner held a buff trait
+	// at placement. Dropped in Remove when the camp burns out.
+	restCamps map[uint64]*restCamp
 }
 
 // SetConnState wires the ConnectionStateSystem seam (chunk 4); called from
@@ -174,6 +179,7 @@ func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
 		game:        g,
 		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		campByOwner: map[uuid.UUID]uint64{},
+		restCamps:   map[uint64]*restCamp{},
 	}
 }
 
@@ -331,6 +337,11 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// never-kill floor skipped it) is not a beat.
 	if ran && equip.Def.Visual != nil && equip.Def.Visual.HasFired {
 		model.NoteSkillFired(e, equip.Def.ID)
+	}
+
+	// A placed camp's rest clock (CT3) reads the same sensor, every tick.
+	if rc := s.restCamps[e.Basic().ID()]; rc != nil {
+		rc.tick(collider.Position(), collisions)
 	}
 }
 
@@ -2076,6 +2087,12 @@ func (s *SkillSystem) applyCamp(e skillEntity) bool {
 		s.campByOwner = map[uuid.UUID]uint64{}
 	}
 	s.campByOwner[p.Client().UUID()] = m.Basic().ID()
+	if rc := restCampFor(p, m.SkillComponent().AuraSlots[0]); rc != nil {
+		if s.restCamps == nil {
+			s.restCamps = map[uint64]*restCamp{} // the campByOwner guard's twin
+		}
+		s.restCamps[m.Basic().ID()] = rc
+	}
 	p.SpendCampCharge()
 	return true
 }
@@ -3376,6 +3393,7 @@ func selfHealHP(p *skills.SelfHealParams, level int, maxHP vitals.VitalSign, pow
 }
 
 func (s *SkillSystem) Remove(e ecs.BasicEntity) {
+	delete(s.restCamps, e.ID())
 	idx := minions.FindBasic(func(i int) model.BasicEntity { return s.entities[i] }, len(s.entities), e)
 	if idx >= 0 {
 		s.entities = append(s.entities[:idx], s.entities[idx+1:]...)

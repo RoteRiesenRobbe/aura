@@ -28,22 +28,28 @@ kinds():EffectKind {
   return this.bb!.readUint32(this.bb_pos + 4);
 }
 
-caster():bigint {
-  return this.bb!.readUint64(this.bb_pos + 8);
+level():number {
+  return this.bb!.readUint8(this.bb_pos + 8);
 }
 
-expiresTick():bigint {
+caster():bigint {
   return this.bb!.readUint64(this.bb_pos + 16);
 }
 
-static sizeOf():number {
-  return 24;
+expiresTick():bigint {
+  return this.bb!.readUint64(this.bb_pos + 24);
 }
 
-static createOwnEffect(builder:flatbuffers.Builder, skill_id: number, total_ticks: number, kinds: EffectKind, caster: bigint, expires_tick: bigint):flatbuffers.Offset {
-  builder.prep(8, 24);
+static sizeOf():number {
+  return 32;
+}
+
+static createOwnEffect(builder:flatbuffers.Builder, skill_id: number, total_ticks: number, kinds: EffectKind, level: number, caster: bigint, expires_tick: bigint):flatbuffers.Offset {
+  builder.prep(8, 32);
   builder.writeInt64(BigInt(expires_tick ?? 0));
   builder.writeInt64(BigInt(caster ?? 0));
+  builder.pad(7);
+  builder.writeInt8(level);
   builder.writeInt32(kinds);
   builder.writeInt16(total_ticks);
   builder.writeInt16(skill_id);

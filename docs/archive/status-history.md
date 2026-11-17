@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-17, the campfire traits CT3 wrap: the BUG REPORT BR1 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: BUG REPORT BR1, the report, client only** ✅ DONE 2026-11-04 `0ddde877`, PO tested it ("works") (ledger: `docs/plan-bug-report.md` §11 BR1): settings → Report bug → Generate (fps check) → a Discord panel with Copy/DONE/X/Esc; diagnostics from git hash to the last 20 console errors. ⚑ D6 AMENDED: `PING` is a token-gated cheat, so latency = one `GET /api/session`. ⚑ A partial must START with its element (`htmlToElement` = `firstChild`). **Schema: DB none · wire none · conf none · lang +11 keys.** Verified: vitest 1977/0 · typecheck · `bug-report` 28/28 · `c2-layering` 9/0/2 · `chunk2-accounts` 26/27 (leg 7 a countdown race).
+
 *(2026-11-15, the campfire traits CT2 wrap: the CAMPFIRE TRAITS CT1 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: CAMPFIRE TRAITS CT1, server foundation** ✅ DONE 2026-11-03 `4772a418` (ledger: `docs/plan-campfire-traits.md` §11 CT1; R21-R24): 1 campfire point per discovered fire, counted never stored; six `camp` skills (ids 179-184) at flat cost 1; `Respec{camp}` resets traits only; a camp snapshots its owner's traits at placement; ascension keys and milestones grant a free level 1 no reset removes. ⚑ The reconnect restores skills BEFORE the charge clamp (pinned). **Schema: DB none · wire +1 field each way · content +6 skills +1 category.** Verified: Go 40 ok/0 FAIL · db-test ok · vitest 1953/0 · `ct1-camp-traits` 16/16 · `r4-camp` 31/31.

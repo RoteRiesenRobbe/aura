@@ -1292,8 +1292,9 @@ system ships blind.
 >    PO tested it locally). Owed: the German strings look, the first deploy's path check.
 > 5. **Campfire traits CT1 → CT2 → CT3** (`plan-campfire-traits.md`). ✅ CT1 DONE 2026-11-03
 >    (server: pool, spend, camp reset, placement snapshot, `camp_points`). ✅ CT2 DONE
->    2026-11-15 (the spellbook's Campfire tab; PO: "works visually"). ⭐ NEXT: CT3.
-> 6. **Quest icons QI1** (`plan-dialogue-quest-icons.md`).
+>    2026-11-15 (the spellbook's Campfire tab; PO: "works visually"). ✅ CT3 DONE 2026-11-17
+>    (the rest buffs; PO: "works"). Owed: the German strings, the reconnect ruling.
+> 6. **Quest icons QI1** (`plan-dialogue-quest-icons.md`). ⭐ NEXT.
 > 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved.
 > 8. **Audio C1 onward** (`plan-audio.md`).
 > 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.

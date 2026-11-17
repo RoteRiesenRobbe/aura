@@ -126,6 +126,9 @@ type PlayerEntity interface {
 	CampTraitFloor(id skills.SkillID) int
 	CampTraitTotal(kind skills.CampTraitKind) float32
 	CampChargeCap() int
+	// CampRestBuffs is what resting at this player's camp grants (CT3, D9):
+	// the buff traits at their level, snapshotted by the camp at placement.
+	CampRestBuffs() []skills.CampRestBuff
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
 	// AuraTickInterval / AuraTickPhase are the active aura's first-effect

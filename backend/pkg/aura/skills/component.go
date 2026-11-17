@@ -1,6 +1,9 @@
 package skills
 
-import "slices"
+import (
+	"cmp"
+	"slices"
+)
 
 // MaxAuraSlots, MaxPassiveSlots, MaxCooldownSlots: 3/3/3 per PO 2026-07-20
 // (still [PLACEHOLDER] until marked final).
@@ -322,10 +325,17 @@ func (d DerivedStats) ThreatFactor() float32 {
 }
 
 // WithBuffs is the stats as they stand right now: Derived (the equip-time
-// fold) plus the timed stat buffs in b, for the four stats a buff can carry
-// (plan-effect-types-round-2.md D14). A copy, so Derived stays a pure fold of
-// the loadout. Every read site of those four stats goes through it.
+// fold) plus the timed stat buffs in b, for the five stats a buff can carry
+// (plan-effect-types-round-2.md D14; maxHealth since plan-campfire-traits CT3,
+// the camp's rest buff, L3). A copy, so Derived stays a pure fold of the
+// loadout. Every read site of those stats goes through it.
+//
+// ⚑ maxHealth is read through this only by the PLAYER pool (poolFactor).
+// Mob.MaxHealth() stays on Derived: nothing can put a timed maxHealth buff on a
+// mob (the loader refuses the stat on stat_aura and instant_stat, and the camp
+// buffs players only), so the mob needs no mid-fight clamp rule.
 func (d DerivedStats) WithBuffs(b *Buffs) DerivedStats {
+	d.MaxHealthBonus += b.StatBonus(StatMaxHealth)
 	d.DamageDealtBonus += b.StatBonus(StatDamageDealt)
 	d.DamageReductionBonus += b.StatBonus(StatDamageReduction)
 	d.CritChanceBonus += b.StatBonus(StatCritChance)
@@ -973,6 +983,30 @@ func (sc *SkillComponent) CampTraitTotal(defs Registry, kind CampTraitKind) floa
 		}
 	}
 	return total
+}
+
+// CampRestBuff is one buff trait's application at its owner's level
+// (plan-campfire-traits D9): the trait's own id as the buff source, so the
+// store's per-source strongest-wins rules give R11 and R18 for free.
+type CampRestBuff struct {
+	Source SkillID
+	Stat   string
+	Bonus  float32
+}
+
+// CampRestBuffs lists the buff traits held, at their level, sorted by id so a
+// camp applies them in a stable order. Empty for a mob or a player without a
+// buff trait (D10: such a camp runs no rest clock).
+func (sc *SkillComponent) CampRestBuffs(defs Registry) []CampRestBuff {
+	var out []CampRestBuff
+	for id, level := range sc.Spellbook {
+		def, err := defs.Get(id)
+		if err == nil && def.IsCampTrait() && def.CampTrait.Kind == CampTraitBuff && level > 0 {
+			out = append(out, CampRestBuff{Source: id, Stat: def.CampTrait.Stat, Bonus: def.CampTrait.Value(level)})
+		}
+	}
+	slices.SortFunc(out, func(a, b CampRestBuff) int { return cmp.Compare(a.Source, b.Source) })
+	return out
 }
 
 func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {

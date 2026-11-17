@@ -86,6 +86,26 @@ type OwnEffect struct {
 	// Total and Left are the longest stream's lifetime and remaining ticks:
 	// the wedge. A refresh resets both to the new lifetime (D2).
 	Total, Left int
+	// Strength is the magnitude of the strongest live stat or speed stream
+	// under the circle (plan-campfire-traits CT3): the one that counts (R11),
+	// which need not be the longest. 0 for every other kind.
+	Strength float32
+	// Level is the level the effect was granted at, when the server knows it
+	// (a campfire rest buff, set by the player from Strength); 0 = unknown,
+	// and the client prices the tooltip at the viewer's own level.
+	Level int
+}
+
+// strength is a payload's magnitude for OwnEffect.Strength: a stat bonus, a
+// speed factor's distance from 1, nothing for the other kinds.
+func strength(p buffPayload) float32 {
+	switch p := p.(type) {
+	case *statPayload:
+		return abs32(p.bonus)
+	case *speedPayload:
+		return abs32(p.factor - 1)
+	}
+	return 0
 }
 
 // Revision is the tray-visible change counter. See the field.
@@ -132,6 +152,7 @@ func (b *Buffs) OwnEffects() []OwnEffect {
 			p, isDot := e.payload.(*dotPayload)
 			if !isDot {
 				shared.Kinds |= e.payload.effectKind()
+				shared.Strength = max(shared.Strength, strength(e.payload))
 				if e.ticks > shared.Left {
 					shared.Left, shared.Total = e.ticks, e.total
 				}

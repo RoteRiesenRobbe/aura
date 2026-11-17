@@ -371,7 +371,12 @@ func (p *player) poolFactor() float32 {
 	// things is how the curve gets dropped. Mob.MaxHealth() writes this same
 	// product inline; whoever gives *Mob a healCaster-shaped method (sys/skills.go
 	// documents that as coming) must return the PRODUCT, not the passive.
-	return p.PowerScale() * p.skills.Derived.MaxHealthFactor()
+	//
+	// The timed half (plan-campfire-traits CT3, R17): EffectiveStats carries the
+	// camp's max-Focus rest buff. Gaining raises the maximum only (current HP
+	// stays, like a level-up); expiry is clamped by Update's per-tick shrink
+	// rule, which only ever lowers HP to the new maximum, so it never kills.
+	return p.PowerScale() * p.EffectiveStats().MaxHealthFactor()
 }
 
 // PowerScale is f(character level) — the global HP-value inflation multiplier
@@ -618,6 +623,11 @@ func (p *player) CampTraitFloor(id skills.SkillID) int {
 // CampTraitTotal is the owner's summed trait value of one kind (D6).
 func (p *player) CampTraitTotal(kind skills.CampTraitKind) float32 {
 	return p.skills.CampTraitTotal(p.skillDefs, kind)
+}
+
+// CampRestBuffs is the buff traits at their level (CT3, D9).
+func (p *player) CampRestBuffs() []skills.CampRestBuff {
+	return p.skills.CampRestBuffs(p.skillDefs)
 }
 
 // CampChargeCap is this player's charge cap: the level-derived cap plus the
@@ -979,7 +989,24 @@ func (p *player) BuffRevision() uint64 { return p.buffs.Revision() }
 
 // OwnEffects is the buff tray's projection (plan-buff-tray.md C1). Allocates;
 // the codec calls it only on a tick that sends the owner block.
-func (p *player) OwnEffects() []skills.OwnEffect { return p.buffs.OwnEffects() }
+// OwnEffects is the buff tray's projection. A campfire rest buff's circle
+// carries the level it was granted at (CT3): the camp owner's trait level,
+// read back from the strongest stream's strength (strength = level ×
+// perLevel), so a stranger's tooltip shows the buff they hold, not their own
+// trait level.
+func (p *player) OwnEffects() []skills.OwnEffect {
+	effects := p.buffs.OwnEffects()
+	if p.skillDefs == nil {
+		return effects
+	}
+	for i, e := range effects {
+		def, err := p.skillDefs.Get(e.Skill)
+		if err == nil && def.IsCampTrait() && def.CampTrait.PerLevel > 0 && e.Strength > 0 {
+			effects[i].Level = int(math.Round(float64(e.Strength / def.CampTrait.PerLevel)))
+		}
+	}
+	return effects
+}
 
 // DueBuffEvents advances and drains this tick's due dot damage and hot heal
 // events; called once per tick by the SkillSystem's acting site.

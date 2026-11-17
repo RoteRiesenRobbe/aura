@@ -11,12 +11,13 @@ import {
     OwnEffectData,
     secondsLeft,
     tenantKey,
+    tooltipLevel,
 } from './BuffTray';
 
 const K = AuraApi.EffectKind;
 
 function effect(partial: Partial<OwnEffectData>): OwnEffectData {
-    return {skillId: 1, kinds: K.Speed, totalTicks: 150, caster: 0, expiresTick: 1150, ...partial};
+    return {skillId: 1, kinds: K.Speed, totalTicks: 150, caster: 0, expiresTick: 1150, level: 0, ...partial};
 }
 
 function keys(list: { key: string }[]): string[] {
@@ -280,5 +281,16 @@ describe('BuffTray always-on circles (D9, P5)', () => {
     it('draws a permanent circle full: no wedge', () => {
         const [t] = alwaysOnTenants(20, defOf, level1).harmful;
         expect(fractionLeft(t, 5000)).toBe(1);
+    });
+});
+
+// plan-campfire-traits CT3: a rest buff's circle carries the level it was
+// granted at (the camp owner's), so the tooltip prices that, not the viewer's.
+describe('tooltipLevel', () => {
+    it('uses the granted level when the server sends one', () => {
+        expect(tooltipLevel(effect({level: 5}), 0)).toBe(5);
+    });
+    it("falls back to the viewer's own level", () => {
+        expect(tooltipLevel(effect({level: 0}), 3)).toBe(3);
     });
 });

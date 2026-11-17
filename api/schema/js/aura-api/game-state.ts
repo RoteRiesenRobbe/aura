@@ -270,7 +270,7 @@ mapFog(obj?:MapFog):MapFog|null {
 
 ownEffects(index: number, obj?:OwnEffect):OwnEffect|null {
   const offset = this.bb!.__offset(this.bb_pos, 64);
-  return offset ? (obj || new OwnEffect()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 24, this.bb!) : null;
+  return offset ? (obj || new OwnEffect()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 32, this.bb!) : null;
 }
 
 ownEffectsLength():number {
@@ -597,7 +597,7 @@ static addOwnEffects(builder:flatbuffers.Builder, ownEffectsOffset:flatbuffers.O
 }
 
 static startOwnEffectsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(24, numElems, 8);
+  builder.startVector(32, numElems, 8);
 }
 
 static addQuestMarkers(builder:flatbuffers.Builder, questMarkersOffset:flatbuffers.Offset) {

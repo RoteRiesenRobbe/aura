@@ -52,20 +52,26 @@ func effectCollisions(collisions phy.ColliderSet, casterPos phy.Vec2f, sensorRad
 	}
 	filtered := make(phy.ColliderSet, len(collisions))
 	for c := range collisions {
-		circle, ok := c.(*phy.Circle)
-		if !ok {
-			// Non-circle bodies don't occur on aura layers today; keep them —
-			// the sensor already matched them, and dropping silently would be
-			// the worse failure mode.
-			filtered[c] = struct{}{}
-			continue
-		}
-		r := radius + circle.Radius
-		if casterPos.DistanceToSquared(circle.Position()) < r*r {
+		if withinReach(c, casterPos, radius) {
 			filtered[c] = struct{}{}
 		}
 	}
 	return filtered
+}
+
+// withinReach reports whether a sensed body lies inside an effect's own reach
+// around center: the circles overlap. Shared by effectCollisions and the camp's
+// rest clock (camp_rest.go), which asks it every tick without building a set.
+func withinReach(c phy.Collider, center phy.Vec2f, radius float32) bool {
+	circle, ok := c.(*phy.Circle)
+	if !ok {
+		// Non-circle bodies don't occur on aura layers today; keep them —
+		// the sensor already matched them, and dropping silently would be
+		// the worse failure mode.
+		return true
+	}
+	r := radius + circle.Radius
+	return center.DistanceToSquared(circle.Position()) < r*r
 }
 
 // selectTargets runs the item-11 targeting pipeline over a raw collision set:

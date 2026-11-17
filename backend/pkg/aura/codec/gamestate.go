@@ -262,6 +262,7 @@ func OwnEffectsMarshalFlatbuf(effects []skills.OwnEffect, tick uint64, builder *
 			uint16(e.Skill),
 			uint16(min(e.Total, 0xFFFF)),
 			AuraApi.EffectKind(e.Kinds),
+			uint8(min(e.Level, 0xFF)),
 			model.SourceID(e.Caster),
 			tick+uint64(e.Left),
 		)

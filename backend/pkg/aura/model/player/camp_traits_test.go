@@ -98,3 +98,61 @@ func TestCampCharges_TheTraitRaisesTheOwnersCap(t *testing.T) {
 }
 
 var _ model.PlayerEntity = (*player)(nil)
+
+// --- CT3: the max-Focus rest buff (R17, L3) ---------------------------------------
+
+const campFocusBuffID skills.SkillID = 182
+
+func TestCampFocusBuff_RaisesTheMaximumOnlyAndExpiryClampsToTheNewMaximum(t *testing.T) {
+	p := newCampPlayer(nil)
+	p.config.BaseHealth = 1000
+	p.isGod = true // keep regen out: the clamp sits above the GOD gate
+	p.VitalSigns().Health = 1000
+	require.Equal(t, 1000, int(p.MaxHealth()))
+
+	p.ApplyStat(campFocusBuffID, skills.StatMaxHealth, 0.05, 3)
+
+	assert.Equal(t, 1050, int(p.MaxHealth()), "L3: the pool reads the timed buff")
+	p.Update(0)
+	assert.Equal(t, 1000, int(p.VitalSigns().Health), "R17: gaining raises the maximum only")
+
+	p.VitalSigns().Health = 1050 // rested up into the new room
+	for range 3 {
+		p.buffs.Tick()
+	}
+	assert.Equal(t, 1000, int(p.MaxHealth()), "the buff expired")
+	p.Update(0)
+	assert.Equal(t, 1000, int(p.VitalSigns().Health), "R17: expiry clamps current Focus to the new maximum")
+}
+
+func TestCampFocusBuff_ExpiryNeverKills(t *testing.T) {
+	p := newCampPlayer(nil)
+	p.config.BaseHealth = 1000
+	p.isGod = true
+	p.ApplyStat(campFocusBuffID, skills.StatMaxHealth, 0.05, 1)
+	p.VitalSigns().Health = 1
+
+	p.buffs.Tick()
+	p.Update(0)
+
+	assert.Equal(t, 1, int(p.VitalSigns().Health), "R17: never below 1")
+}
+
+// The tray reports a rest buff at the level it was GRANTED at (the camp
+// owner's), so a stranger's tooltip shows the real strength, not their own.
+func TestOwnEffects_ACampTraitCircleCarriesItsGrantedLevel(t *testing.T) {
+	p := newCampPlayer(nil)
+	damageBuff := &skills.SkillDefinition{ID: 183, Name: "CampDamageBuff", Category: skills.SkillCategoryCamp, MaxLevel: 15,
+		CampTrait: &skills.CampTraitDef{Kind: skills.CampTraitBuff, Stat: skills.StatDamageDealt, PerLevel: 0.0033}}
+	ability := &skills.SkillDefinition{ID: 77, Name: "Bulwark", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	p.skillDefs = newStubRegistry(damageBuff, ability)
+
+	p.ApplyStat(damageBuff.ID, skills.StatDamageDealt, 0.0033*5, 100) // a level-5 camp
+	p.ApplyStat(ability.ID, skills.StatDamageReduction, 0.2, 100)
+
+	got := p.OwnEffects()
+
+	require.Len(t, got, 2)
+	assert.Equal(t, 0, got[0].Level, "an ability circle leaves the level to the viewer's spellbook")
+	assert.Equal(t, 5, got[1].Level, "the camp trait's granted level, whatever the viewer holds")
+}

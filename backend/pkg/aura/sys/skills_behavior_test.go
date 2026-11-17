@@ -101,6 +101,7 @@ type fakePlayer struct {
 	rejections    []rejectedActivation             // NoteActivationRejected calls (chunk 4)
 	campCharges   int                              // Camp baseline-utility charges (C2)
 	campTraits    map[skills.CampTraitKind]float32 // CampTraitTotal (plan-campfire-traits CT1)
+	campBuffs     []skills.CampRestBuff            // CampRestBuffs (plan-campfire-traits CT3)
 	lastMoveDir   phy.Vec2f                        // dash aim source (chunk 5)
 	buffs         skills.Buffs                     // real store for tick_rate (chunk 6); zero value = factor 1.0
 	powerScale    float32                          // f(character level) (C0); newFakePlayer sets neutral 1
@@ -253,6 +254,7 @@ func (f *fakePlayer) SetCampCharges(n int) { f.campCharges = n }
 func (f *fakePlayer) CampTraitTotal(kind skills.CampTraitKind) float32 {
 	return f.campTraits[kind]
 }
+func (f *fakePlayer) CampRestBuffs() []skills.CampRestBuff { return f.campBuffs }
 
 func (f *fakePlayer) Interactable() uint64 { return f.interactableID }
 

@@ -193,3 +193,45 @@ func TestCampTrait_TotalSumsEveryTraitOfAKind(t *testing.T) {
 	assert.Zero(t, sc.CampTraitTotal(campDefs(), CampTraitCharges))
 	assert.Zero(t, NewSkillComponent(false).CampTraitTotal(campDefs(), CampTraitHeal), "a mob has none")
 }
+
+// --- CT3: the rest buffs (D9) ---------------------------------------------------
+
+var (
+	campFocusBuff = &SkillDefinition{ID: 903, Name: "CampFocusBuff", Category: SkillCategoryCamp, MaxLevel: 15,
+		CampTrait: &CampTraitDef{Kind: CampTraitBuff, Stat: StatMaxHealth, PerLevel: 0.0033}}
+	campSpeedBuff = &SkillDefinition{ID: 904, Name: "CampSpeedBuff", Category: SkillCategoryCamp, MaxLevel: 15,
+		CampTrait: &CampTraitDef{Kind: CampTraitBuff, Stat: StatMovementSpeed, PerLevel: 0.0033}}
+)
+
+func TestCampTrait_RestBuffsAreTheBuffTraitsAtTheirLevel(t *testing.T) {
+	defs := campDefs()
+	defs[campFocusBuff.ID] = campFocusBuff
+	defs[campSpeedBuff.ID] = campSpeedBuff
+	sc := NewSkillComponent(true)
+	for range 3 {
+		require.True(t, sc.RaiseCampTrait(campSpeedBuff))
+	}
+	require.True(t, sc.RaiseCampTrait(campFocusBuff))
+	require.True(t, sc.RaiseCampTrait(campHeal)) // not a buff: never listed
+
+	got := sc.CampRestBuffs(defs)
+
+	require.Len(t, got, 2)
+	assert.Equal(t, campFocusBuff.ID, got[0].Source, "sorted by id: stable application order")
+	assert.Equal(t, StatMaxHealth, got[0].Stat)
+	assert.InDelta(t, 0.0033, got[0].Bonus, 1e-6)
+	assert.Equal(t, campSpeedBuff.ID, got[1].Source, "D9: the source is the trait's own id")
+	assert.Equal(t, StatMovementSpeed, got[1].Stat)
+	assert.InDelta(t, 0.0099, got[1].Bonus, 1e-6)
+	assert.Empty(t, NewSkillComponent(true).CampRestBuffs(defs), "no buff traits, no buffs (D10 skips the clock)")
+}
+
+// L3: the pool can only read a timed max-health buff if WithBuffs carries it.
+func TestWithBuffs_CarriesATimedMaxHealthBuff(t *testing.T) {
+	var b Buffs
+	b.ApplyStat(campFocusBuff.ID, StatMaxHealth, 0.05, 100)
+	d := DerivedStats{MaxHealthBonus: 0.1}
+
+	assert.InDelta(t, 1.15, d.WithBuffs(&b).MaxHealthFactor(), 1e-6)
+	assert.InDelta(t, 1.1, d.MaxHealthFactor(), 1e-6, "Derived stays the pure loadout fold")
+}

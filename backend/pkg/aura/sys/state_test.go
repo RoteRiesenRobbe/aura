@@ -1429,3 +1429,29 @@ func TestDeath_CancelsARunningCastAndItsAscensionPick(t *testing.T) {
 	assert.False(t, p.SkillComponent().IsCasting(), "dying ends the ceremony")
 	assert.Nil(t, p.SkillComponent().PendingAscension, "and takes the pick with it")
 }
+
+// Campfire traits CT3 (D11, R12, L6): death ends the rest buffs. By
+// construction, like the charges above: the buff store lives on the player
+// struct and the respawn builds a new one, which is why it needs a test.
+func TestRespawn_ClearsTheRestBuffs(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	rest := []skills.CampRestBuff{
+		{Source: 182, Stat: skills.StatMaxHealth, Bonus: 0.05},
+		{Source: 183, Stat: skills.StatDamageDealt, Bonus: 0.05},
+		{Source: 184, Stat: skills.StatMovementSpeed, Bonus: 0.05},
+	}
+	applyRestBuffs(p, rest)
+	require.Len(t, p.OwnEffects(), 3, "precondition: three rest buffs on the tray")
+
+	s.handleDeath(p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+
+	respawned := g.players[len(g.players)-1]
+	require.NotSame(t, p, respawned)
+	assert.Empty(t, respawned.OwnEffects(), "R12: death ends every rest buff")
+	assert.Zero(t, respawned.(model.StatBuffable).EffectiveStats().DamageDealtBonus)
+	assert.Equal(t, float32(1), respawned.MovementFactor())
+}

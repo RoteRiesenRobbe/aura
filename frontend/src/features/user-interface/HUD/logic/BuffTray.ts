@@ -40,6 +40,8 @@ export interface OwnEffectData {
     caster: number;
     /** The server tick the longest stream ends on; `GameState.tick` is the clock. */
     expiresTick: number;
+    /** The level the effect was granted at (a campfire rest buff: the camp owner's trait level), 0 = unknown. */
+    level: number;
 }
 
 /** A circle the tray draws. */
@@ -112,6 +114,14 @@ export function fractionLeft(t: OwnEffectData & Partial<Pick<Tenant, 'sustained'
         left = (t.expiresTick - tick) / t.totalTicks;
     }
     return Math.min(1, Math.max(0, left));
+}
+
+/**
+ * The level a circle's tooltip is priced at (plan-campfire-traits CT3): the
+ * level the server says the effect was granted at, else the viewer's own.
+ */
+export function tooltipLevel(t: OwnEffectData, ownLevel: number): number {
+    return t.level > 0 ? t.level : ownLevel;
 }
 
 /** Whole seconds left for the tooltip's time line, rounded UP so a live circle never reads 0. */
@@ -196,7 +206,7 @@ export function alwaysOnTenants(activeAuraSkill: number,
                                 defOf: (skillId: number) => SkillDefinition | undefined,
                                 levelOf: (skillId: number) => number): TrayState {
     const permanent = (skillId: number, harmful: boolean): Tenant => ({
-        key: `always:${skillId}`, skillId, kinds: 0, totalTicks: 0, caster: 0, expiresTick: 0,
+        key: `always:${skillId}`, skillId, kinds: 0, totalTicks: 0, caster: 0, expiresTick: 0, level: 0,
         harmful, sustained: false, permanent: true,
     });
     return {

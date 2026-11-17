@@ -521,7 +521,7 @@ func (rcv *GameState) OwnEffects(obj *OwnEffect, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 24
+		x += flatbuffers.UOffsetT(j) * 32
 		obj.Init(rcv._tab.Bytes, x)
 		return true
 	}
@@ -753,7 +753,7 @@ func GameStateAddOwnEffects(builder *flatbuffers.Builder, ownEffects flatbuffers
 	builder.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(ownEffects), 0)
 }
 func GameStateStartOwnEffectsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(24, numElems, 8)
+	return builder.StartVector(32, numElems, 8)
 }
 func GameStateAddQuestMarkers(builder *flatbuffers.Builder, questMarkers flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(31, flatbuffers.UOffsetT(questMarkers), 0)

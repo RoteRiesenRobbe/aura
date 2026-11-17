@@ -1165,6 +1165,11 @@ struct OwnEffect {
   skill_id:ushort;
   total_ticks:ushort;   // the lifetime the longest stream started with; a refresh resets it (D2)
   kinds:EffectKind;     // the union of EffectKind bits live under this circle (after total_ticks so the uint packs without padding)
+  // The level the effect was granted at, when the server knows it: a campfire
+  // rest buff carries the camp owner's trait level (plan-campfire-traits CT3),
+  // so the tooltip shows the strength held, not the viewer's own level. 0 =
+  // unknown, priced at the viewer's level as before. (Pads the struct 24 -> 32.)
+  level:ubyte;
   caster:ulong;         // see above; 0 = the skill's shared circle
   expires_tick:ulong;   // the server tick the longest stream ends on; GameState.tick is the clock
 }
