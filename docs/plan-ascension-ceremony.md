@@ -3,7 +3,7 @@
 **Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
 proposed). Designed 2026-10-22, nothing built.** Still open in §7: Q2 (AC2's placeholder
 items), Q5 (the per-pick home form, deferred to the first faction stone). Three chunks
-(§5); AC1 DONE 2026-11-18 [uncommitted] (§11), its PO look deferred to after AC2. It needs nothing from appearance C5c, and C5c needs nothing from it.
+(§5); AC1 DONE 2026-11-18 `a8a240a5` (§11), its PO look deferred to after AC2. It needs nothing from appearance C5c, and C5c needs nothing from it.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -430,7 +430,7 @@ the default spawn. A fresh account still lands on the default.
 
 ## 11. Chunk ledgers
 
-### AC1 - the walk, the gift step, the summary: DONE 2026-11-18 [uncommitted], PO look deferred to after AC2
+### AC1 - the walk, the gift step, the summary: DONE 2026-11-18 `a8a240a5`, PO look deferred to after AC2
 
 **Built:** `ceremony` loading with the D2 refusals plus two more (the summary's
 id is reserved; its row source `ascension_summary` cannot be authored), the
