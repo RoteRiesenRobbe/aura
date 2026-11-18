@@ -1,8 +1,9 @@
 # Plan: Ascension ceremony: one ascension, several picks in order, a summary at the end
 
-**Status: DESIGNED 2026-10-22 (planning session, PO in chat). R1-R9 RULED, D1-D14
-PROPOSED, nothing built.** Open PO calls in §7. Three chunks (§5); AC1 can start once
-the plan is approved. It needs nothing from appearance C5c, and C5c needs nothing from it.
+**Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
+proposed). Designed 2026-10-22, nothing built.** Still open in §7: Q2 (AC2's placeholder
+items), Q5 (the per-pick home form, deferred to the first faction stone). Three chunks
+(§5); AC1 is next. It needs nothing from appearance C5c, and C5c needs nothing from it.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -84,13 +85,13 @@ Today a stone has ONE pick: the gift node's row (`rows: "ascension_catalog"`) st
 
 ## 3. Design
 
-### D1 - The one rule [proposed]
+### D1 - The one rule [RULED 2026-11-17]
 
 A stone authors an ordered list of steps. Each step offers one list and shows it in the
 display that fits it. A pick is only remembered. The summary lists every pick, and its
 one Confirm is the only thing that starts the channel. Leaving throws the draft away.
 
-### D2 - The stone authors `ceremony`, an ordered list of node ids [proposed]
+### D2 - The stone authors `ceremony`, an ordered list of node ids [RULED 2026-11-17]
 
 ```json
 "interaction": {
@@ -109,7 +110,7 @@ one Confirm is the only thing that starts the channel. Leaving throws the draft 
 - Loader refusals: an id that is not a node, a node twice, a node whose row source is
   not a step kind, a step node outside `ceremony`, `ceremony` on a non-stone.
 
-### D3 - The step-kind seam (R7) [proposed]
+### D3 - The step-kind seam (R7) [RULED 2026-11-17]
 
 One Go interface; a kind is one implementation plus one row source entry:
 
@@ -127,7 +128,7 @@ Two kinds ship: `ascension_catalog` (the gift, today's `ascensionRows`) and
 more implementation, one more `RowSourceKind`, its own client display and its own grant
 writer. Nothing here is generic beyond that: no plug-in registry, no authored kind list.
 
-### D4 - The draft [proposed]
+### D4 - The draft [RULED 2026-11-17]
 
 `SkillComponent.PendingAscension` becomes the draft: `{Gate, Picks []StepPick}` where a
 `StepPick` is `{Step: nodeID, Kind, Key}` (ids only, never a closure over the player:
@@ -139,7 +140,7 @@ entry, so Back and re-pick simply overwrite. A skipped step is an entry with `Ke
 - The channel starts only from the summary's Confirm (D6); the gift click no longer
   starts it.
 
-### D5 - Navigation [proposed]
+### D5 - Navigation [RULED 2026-11-17]
 
 - Every step node gets a generated **Back** row (navigates to the previous step;
   grants nothing) except the first, whose Back returns to the node that opened the
@@ -150,7 +151,7 @@ entry, so Back and re-pick simply overwrite. A skipped step is an entry with `Ke
   skipped while D14's empty-gift row applies: that row is its pick.
 - A gated step node (`conditions` failing) counts as offering nothing.
 
-### D6 - The summary [proposed]
+### D6 - The summary [RULED 2026-11-17]
 
 Generated rows, all inert except the last two: one line per step that was shown, in
 order, naming the pick ("Gift: Frostbite", "Portrait: Villager", "Ring: none"), then
@@ -160,7 +161,7 @@ Confirming re-validates the whole draft (every step's `Validate` plus the site p
 then stashes it and starts the channel. Lines carry ids (skill id, appearance flat
 index), so the client words them in its own language.
 
-### D7 - The look step: `ascension_looks` [proposed]
+### D7 - The look step: `ascension_looks` [RULED 2026-11-17]
 
 ```json
 { "id": "portrait-a", "rows": "ascension_looks", "slot": "portrait",
@@ -186,7 +187,7 @@ index), so the client words them in its own language.
 - **Owning an item a stone offers is the "spent" state**: owned items leave the list.
 - Nothing is worn or preselected (R8).
 
-### D8 - The stone mode of the picker [proposed]
+### D8 - The stone mode of the picker [RULED 2026-11-17]
 
 The wire tells the client which display a node wants: `ConversationNode` +1
 `rows:string` (the row source name, empty for authored nodes) and
@@ -197,32 +198,32 @@ one slot's tab, the step's items (locked ones greyed with reasons), the preview,
 message any row uses; the server's next step arrives as usual. The picker closes when
 the conversation leaves the node, so the conversation panel stays the one owner.
 
-### D9 - Grants and validation at completion [proposed]
+### D9 - Grants and validation at completion [RULED 2026-11-17]
 
 `applyAscension` re-runs `Validate` on every pick (an item became owned, a gift's gate
 regressed), then builds one `AscensionRequest` (gift key + look grants + D21a count
 grants). A pick that fails is a refusal of the whole ascension with the existing
 "something changed" reply, never a partial grant. The transaction is unchanged.
 
-### D10 - Words [proposed]
+### D10 - Words [RULED 2026-11-17]
 
 Stock lines (en + de, `conversations.arb` `stock.*`): the summary header, "No new look",
 Back, Confirm, the per-kind line labels ("Gift", "Portrait", "Ring"), the modal text.
 Node lines stay authored per stone.
 
-### D11 - Content [proposed]
+### D11 - Content [RULED 2026-11-17]
 
 Both stones migrate to `ceremony`. AC2 adds two placeholder bloodline-scope look items
 (one portrait from the spare PONETI busts, one ring family) and puts a portrait step
 and a ring step on the main stone [PLACEHOLDER content, PO picks, Q2].
 
-### D12 - The content editor [proposed]
+### D12 - The content editor [RULED 2026-11-17]
 
 The editor's serializer is a whitelist (memory: mob levels / zone editor); `ceremony`,
 `slot` and `looks` must be added in the same chunk that introduces them, or the next
 editor save drops them silently (L1).
 
-### D13 - The heir home: a stone authors `heirHome` [proposed]
+### D13 - The heir home: a stone authors `heirHome` [RULED 2026-11-17]
 
 ```json
 "interaction": { "heirHome": "spawnpoint-12", "ceremony": [ ... ], "nodes": [ ... ] }
@@ -252,7 +253,7 @@ editor save drops them silently (L1).
   wakes at: <place>", only when the ascension sets a home (Q4 for the wording and which
   name the place goes by).
 
-### D14 - Per-pick homes: designed for, not built [proposed]
+### D14 - Per-pick homes: designed for, not built [RULED 2026-11-17]
 
 The seam already carries it: D3's `Grant(pick, req)` writes into the same
 `AscensionRequest`, so **any step kind may set `req.HeirHome`**. The precedence rule,
@@ -359,20 +360,20 @@ the default spawn. A fresh account still lands on the default.
 
 ## 7. Open PO calls
 
-- **Q1. Summary wording and the modal text.** Proposed: header "Your ascension", one
+- **Q1. [RULED 2026-11-17 as proposed] Summary wording and the modal text.** Proposed: header "Your ascension", one
   line per step "<label>: <pick or none>", modal "These are granted and <name> ends.".
 - **Q2. AC2's placeholder content:** which bust and which ring family the main stone
   offers. Proposed: two spare PONETI busts and one existing ring family, all bloodline
   scope [PLACEHOLDER].
-- **Q3. Does the front stone (`front-ascension-stone`) get look steps too?** Proposed: no,
+- **Q3. [RULED 2026-11-17 as proposed] Does the front stone (`front-ascension-stone`) get look steps too?** Proposed: no,
   gift only, until the PO authors more looks.
-- **Q4. The heir-home words, and the no-home case.** Proposed: the summary line "Your
+- **Q4. [RULED 2026-11-17 as proposed] The heir-home words, and the no-home case.** Proposed: the summary line "Your
   heir wakes at: <place>", the place named by its area (or a name authored on the bind
   point if areas do not fit); a stone without a home sets the heir unbound rather than
   passing on the ending life's own bind.
 - **Q5. The per-pick form (D14), when content first needs it:** (a) a home on the gift
   entry, or (b) a home step. Proposed: decide with the first faction stone's content.
-- **Q6. AC3's placeholder:** which stone gets a home, and which fire. Proposed: the
+- **Q6. [RULED 2026-11-17 as proposed] AC3's placeholder:** which stone gets a home, and which fire. Proposed: the
   front stone sends its heirs to the fire nearest the front camp [PLACEHOLDER].
 
 ## 8. Landmines
