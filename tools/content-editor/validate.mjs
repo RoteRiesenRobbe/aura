@@ -30,6 +30,10 @@ const QUEST_ID_PATTERN = /^[a-z0-9-]+$/; // quests.idPattern: a quest or stage i
 // app.js offers exactly this list rather than a second copy.
 export const TRAVEL_MODES = ['home_campfire', 'caster', 'anchor'];
 const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names'];
+// plan-ascension-ceremony.md D2-D3: the step kinds a ceremony lists, and the id
+// the loader gives its generated summary.
+const CEREMONY_STEP_KINDS = ['ascension_catalog'];
+const CEREMONY_SUMMARY_ID = 'ceremony-summary';
 // 'reach' (plan-region-identity.md R2) names a REGION id; whether the id is
 // listed and drawn needs api/regions/ and the zones, which only Go's
 // quests.BindRegions has, so this port checks its shape alone.
@@ -297,6 +301,30 @@ export function validateInteraction(mob, idx) {
     if (!node.id?.trim()) { err(`${who}: an interaction node has no id`); continue; }
     if (ids.has(node.id)) err(`${who}: duplicate node id "${node.id}"`);
     ids.add(node.id);
+  }
+
+  // plan-ascension-ceremony.md D2, a port of mobs.mapCeremony.
+  if (ids.has(CEREMONY_SUMMARY_ID)) {
+    err(`${who}: node id "${CEREMONY_SUMMARY_ID}" is reserved for the generated ceremony summary`);
+  }
+  const listed = new Set();
+  if ('ceremony' in inter) {
+    const ceremony = inter.ceremony || [];
+    if (ceremony.length === 0) err(`${who}: interaction.ceremony must name at least one step node`);
+    for (const id of ceremony) {
+      const node = nodes.find((n) => n.id === id);
+      if (!node) err(`${who}: interaction.ceremony names "${id}", which is not a node`);
+      else if (listed.has(id)) err(`${who}: interaction.ceremony names "${id}" twice`);
+      else if (!CEREMONY_STEP_KINDS.includes(node.rows)) {
+        err(`${who}: interaction.ceremony names "${id}", which is not a step (a step node has rows: ${CEREMONY_STEP_KINDS.join('/')})`);
+      }
+      listed.add(id);
+    }
+  }
+  for (const node of nodes) {
+    if (CEREMONY_STEP_KINDS.includes(node.rows) && !listed.has(node.id)) {
+      err(`${who}: node "${node.id}" is a ceremony step but interaction.ceremony does not list it`);
+    }
   }
 
   for (const node of nodes) {

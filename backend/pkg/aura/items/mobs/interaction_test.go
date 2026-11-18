@@ -890,7 +890,7 @@ func TestSenseRadius_WithoutInteractionIsTheAggroRadius(t *testing.T) {
 // shows nothing.
 
 func TestMapMobDefinition_ResolvesARowSource(t *testing.T) {
-	def, err := mapInteraction(t, `{"nodes": [{
+	def, err := mapInteraction(t, `{"ceremony": ["root"], "nodes": [{
 	  "id": "root",
 	  "lines": ["nothing left to teach"],
 	  "rows": "ascension_catalog",
@@ -906,7 +906,7 @@ func TestMapMobDefinition_ResolvesARowSource(t *testing.T) {
 // player will see it, and it is the ONLY thing that node ever serves.
 
 func TestMapMobDefinition_ResolvesARewardListInItsAuthoredOrder(t *testing.T) {
-	def, err := mapInteraction(t, `{"nodes": [{
+	def, err := mapInteraction(t, `{"ceremony": ["root"], "nodes": [{
 	  "id": "root",
 	  "lines": ["pick one"],
 	  "rows": "ascension_catalog",
@@ -936,7 +936,7 @@ func TestMapMobDefinition_RejectsACatalogNodeThatListsNoRewards(t *testing.T) {
 // stone that ends lives and hands out nothing (D14's ascend-anyway row is all it
 // offers). That distinction is the whole reason the authored shape is a pointer.
 func TestMapMobDefinition_AcceptsAnEmptyRewardList(t *testing.T) {
-	def, err := mapInteraction(t, `{"nodes": [{
+	def, err := mapInteraction(t, `{"ceremony": ["root"], "nodes": [{
 	  "id": "root",
 	  "lines": ["a life can be laid down here, and nothing is given back"],
 	  "rows": "ascension_catalog",
@@ -979,7 +979,7 @@ func TestMapMobDefinition_RejectsARewardListThatNamesOneKeyTwice(t *testing.T) {
 // --- a stone's bonus looks (plan-appearance.md C5b, D21c) ---
 
 func TestMapMobDefinition_ResolvesBonusLooks(t *testing.T) {
-	def, err := mapInteraction(t, `{"nodes": [{
+	def, err := mapInteraction(t, `{"ceremony": ["root"], "nodes": [{
 	  "id": "root",
 	  "lines": ["pick one"],
 	  "rows": "ascension_catalog",
@@ -991,7 +991,7 @@ func TestMapMobDefinition_ResolvesBonusLooks(t *testing.T) {
 }
 
 func TestMapMobDefinition_BonusLooksAreOptional(t *testing.T) {
-	def, err := mapInteraction(t, `{"nodes": [{
+	def, err := mapInteraction(t, `{"ceremony": ["root"], "nodes": [{
 	  "id": "root", "lines": ["pick one"], "rows": "ascension_catalog", "rewards": []
 	}]}`)
 	require.NoError(t, err)
@@ -1635,4 +1635,78 @@ func TestMapMobDefinition_ACampTraitIsNeverTaught(t *testing.T) {
 	  "options": [{"grants": [{"kind": "teach_skill", "skill": "CampHeal", "line": "Here."}]}]}]}`)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "campfire trait")
+}
+
+// --- the ascension ceremony (plan-ascension-ceremony.md AC1, D2) ---
+//
+// A stone authors `ceremony`, the ordered list of its step nodes, and the loader
+// appends the generated summary node after the last step. The list is the single
+// source of order: Next and the summary are derived from it, never authored.
+
+const ceremonyStoneJSON = `{"ceremony": ["catalog"], "nodes": [
+  {"id": "ready", "conditions": [{"kind": "minLevel", "value": 30}],
+   "lines": ["you may go"], "options": [{"text": "Show me", "next": "catalog"}]},
+  {"id": "catalog", "conditions": [{"kind": "minLevel", "value": 30}],
+   "lines": ["pick one"], "rows": "ascension_catalog", "rewards": ["RimeBurst"]},
+  {"id": "root", "lines": ["a stone"]}
+]}`
+
+func TestMapMobDefinition_ResolvesACeremonyAndAppendsItsSummary(t *testing.T) {
+	def, err := mapInteraction(t, ceremonyStoneJSON)
+	require.NoError(t, err)
+	in := def.Interaction
+
+	ids := make([]string, 0, len(in.Nodes))
+	for _, n := range in.Nodes {
+		ids = append(ids, n.ID)
+	}
+	// ⭐ Right after the last step, so it stays ABOVE the unconditional fallback
+	// (L3) and below a step whose gate it copies, which keeps it from ever
+	// being selected as the greeting.
+	assert.Equal(t, []string{"ready", "catalog", CeremonySummaryNodeID, "root"}, ids)
+
+	catalog := nodeByID(in, "catalog")
+	summary := nodeByID(in, CeremonySummaryNodeID)
+	require.NotNil(t, catalog.Ceremony)
+	assert.Same(t, catalog.Ceremony, summary.Ceremony, "one ceremony, shared by its steps and its summary")
+	require.Len(t, catalog.Ceremony.Steps, 1)
+	assert.Same(t, catalog, catalog.Ceremony.Steps[0])
+	assert.Same(t, summary, catalog.Ceremony.Summary)
+
+	assert.Equal(t, RowSourceAscensionSummary, summary.Rows)
+	// ⭐ THE PRICE: the summary carries the first step's gate, so a crafted
+	// Confirm is judged against what the stone charges.
+	assert.Equal(t, catalog.Gate, summary.Gate)
+	assert.NotEmpty(t, summary.LineIDs, "the summary's header is a keyed stock line")
+	assert.Nil(t, nodeByID(in, "root").Ceremony)
+}
+
+func TestMapMobDefinition_RejectsABadCeremony(t *testing.T) {
+	catalog := `{"id": "catalog", "lines": ["pick"], "rows": "ascension_catalog", "rewards": []}`
+	for name, tc := range map[string]struct{ json, want string }{
+		"names no node": {
+			`{"ceremony": ["catalog", "nowhere"], "nodes": [` + catalog + `]}`, "nowhere"},
+		"names a node twice": {
+			`{"ceremony": ["catalog", "catalog"], "nodes": [` + catalog + `]}`, "twice"},
+		"names a node that is not a step": {
+			`{"ceremony": ["catalog", "root"], "nodes": [` + catalog + `, {"id": "root", "lines": ["hi"]}]}`, "root"},
+		"names a memorial": {
+			`{"ceremony": ["catalog", "dead"], "nodes": [` + catalog + `, {"id": "dead", "lines": ["the dead"], "rows": "memorial_names"}]}`, "dead"},
+		"is empty": {
+			`{"ceremony": [], "nodes": [` + catalog + `]}`, "ceremony"},
+		"leaves a step out": {
+			`{"nodes": [` + catalog + `]}`, "ceremony"},
+		"is authored on a stone-less actor": {
+			`{"ceremony": ["root"], "nodes": [{"id": "root", "lines": ["hi"]}]}`, "root"},
+		"authors the summary's id": {
+			`{"ceremony": ["catalog"], "nodes": [` + catalog + `, {"id": "ceremony-summary", "lines": ["mine"]}]}`, "ceremony-summary"},
+		"authors the summary's row source": {
+			`{"nodes": [{"id": "root", "lines": ["x"], "rows": "ascension_summary"}]}`, "ascension_summary"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := mapInteraction(t, tc.json)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.want)
+		})
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -15,20 +16,14 @@ import (
 //
 // It answers two questions and nothing else. What can this bloodline still
 // learn, rendered per player with its gates evaluated; and what does taking one
-// of those rows do, which is to STASH the validated pick. The channel that
-// spends the stash is step 5, and the split is deliberate: a click must never be
-// the irreversible act.
+// of those rows do, which is to RECORD the validated pick in the ceremony's
+// draft (plan-ascension-ceremony.md D4). Only the summary's Confirm stashes it
+// and starts the channel: a click must never be the irreversible act.
 // ⚑ It holds the catalog BY KEY and not in order, and that is C3: since a site
 // authors the list it offers (D3/D5), the only order that means anything is the
 // node's, and every question this type asks the catalog is "what is this key".
 type ascensionRows struct {
 	byKey map[string]ascension.Entry
-}
-
-// NewAscensionRows builds the stone's row source. Exported because core/game.go
-// installs it; everything it answers is package-internal.
-func NewAscensionRows(catalog ascension.Catalog) AscensionSource {
-	return newAscensionRows(catalog)
 }
 
 func newAscensionRows(catalog ascension.Catalog) *ascensionRows {
@@ -67,10 +62,11 @@ func (a *ascensionRows) entriesFor(node *mobs.InteractionNode) []ascension.Entry
 	return entries
 }
 
-var _ AscensionSource = (*ascensionRows)(nil)
+var _ ceremonyStep = (*ascensionRows)(nil)
 
-// ascensionConfirmSeconds is how long the client's countdown modal holds a pick
-// before it may be confirmed (D21). ⚑ Hardcoded, exactly as DeleteDialog's own
+// ascensionConfirmSeconds is how long the client's countdown modal holds the
+// ceremony's Confirm before it may be sent (D21; on the summary since
+// plan-ascension-ceremony.md D6). ⚑ Hardcoded, exactly as DeleteDialog's own
 // CONFIRM_COOLDOWN_MS is and for the recorded reason (§10b ruling 4: the knob
 // was drafted, never built, and does not need to exist). It rides the row
 // rather than an authored key because a generated row has no authored option to
@@ -125,12 +121,12 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 	// the apply side and had to move with it.
 	if pickable == 0 {
 		rows = append(rows, model.ConversationOption{
-			OptionIndex:    ascensionEmptyPickIndex,
-			GrantIndex:     0,
-			Text:           "Spend this character, take no reward.",
-			TextKey:        "conversation.ascend.no-reward",
-			Reply:          "Channelling now. Walk away to cancel.",
-			ConfirmSeconds: ascensionConfirmSeconds,
+			OptionIndex: ascensionEmptyPickIndex,
+			GrantIndex:  0,
+			Text:        "Spend this character, take no reward.",
+			TextKey:     "conversation.ascend.no-reward",
+			Reply:       "No gift, then.",
+			ReplyKey:    "conversation.ascend.no-reward-reply",
 		})
 	}
 	return rows
@@ -158,7 +154,7 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 	// ⚑ A locked row rides with an EMPTY reply and is refused by ApplyRow, the
 	// same deliberate twin the teaching rows have: the greying and the named wall
 	// are the whole message, and the optimistic panel must have nothing to speak.
-	reply := fmt.Sprintf("%s it is. Channelling now, walk away to cancel.", text)
+	reply := fmt.Sprintf("%s it is.", text)
 	replyKey := "conversation.ascend.reply"
 	var locks []model.LockReason
 	if locked {
@@ -184,22 +180,14 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 		// cannot read the reward behind is indistinguishable from one that is
 		// merely hard (§13.7 item 3).
 		SkillID: uint16(entry.Skill.ID),
-		// ⚑ Only a TAKEABLE row: a locked one is inert on both ends, and asking
-		// a player to sit through a countdown for a row that will be refused
-		// would be friction with nothing behind it.
-		ConfirmSeconds: confirmSecondsFor(locked),
+		// ⚑ No countdown: a gift pick is only remembered now, and the summary's
+		// Confirm carries it (plan-ascension-ceremony.md D6).
 	}
 }
 
-func confirmSecondsFor(locked bool) uint8 {
-	if locked {
-		return 0
-	}
-	return ascensionConfirmSeconds
-}
-
-// ApplyRow validates the pick and stashes it. It does NOT ascend anybody: the
-// channel is what spends the stash (step 5), so a click stays reversible.
+// ApplyRow validates the pick and records it in the player's draft
+// (plan-ascension-ceremony.md D4). It starts nothing: the summary's Confirm is
+// the only start path (L3).
 //
 // ⚑ Every check is on the row's OWN merits and re-run here rather than trusted
 // from presentation, which is what lets a crafted message be refused the same
@@ -215,7 +203,7 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 		if a.anyPickable(node, p) {
 			return "", false
 		}
-		return a.stash(node, p, "")
+		return a.record(node, p, "")
 	}
 
 	entries := a.entriesFor(node)
@@ -226,7 +214,7 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 	if a.spent(p, entry.UnlockKey) || !conditionsPass(entry.Gate, p) {
 		return "", false
 	}
-	return a.stash(node, p, entry.UnlockKey)
+	return a.record(node, p, entry.UnlockKey)
 }
 
 // ValidatePick re-judges a stashed pick, and it is the completion half of the
@@ -248,6 +236,8 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 // already checked when the row was clicked and unable to change under a running
 // channel — and the pick carries a gate snapshot, not a node, so asking the
 // question here would need a second thing to carry for no property gained.
+// ⚑ Since the ceremony the click is not the last look: stillPickable asks the
+// SITE again at the summary and at Confirm, and this runs after Confirm.
 func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 	if key == "" {
 		return true
@@ -259,40 +249,64 @@ func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 	return !a.spent(p, key) && conditionsPass(entry.Gate, p)
 }
 
-// stash records the pick, starts the ceremony's channel, and returns the reply
-// the panel already spoke so the two cannot disagree.
-//
-// ⭐ THE CHANNEL STARTS HERE, not from a second client message. A utility press
-// carries no argument, so a press-started ceremony could arrive with no pick
-// behind it; starting it where the pick is validated keeps the two inseparable.
-// The channel remains the last escape: walking away cancels it, and CancelCast
-// takes the pick with it.
-//
-// ⭐ THE SITE'S PRICE RIDES ALONG (plan-ascension-sites.md P1), and both callers
-// pass it — the empty pick included, because D14's ascend-with-no-gift is still
-// something a player does AT A STONE and must cost what that stone asks.
-// `node.Gate` is stashed WHOLE, mode included (plan-quest-dialogue.md L1): its
-// list is a slice into loaded content, immutable after boot, so there is nothing
-// to copy or invalidate, and the mode must ride along or an `any` price is
-// re-judged as `all` at completion.
-func (a *ascensionRows) stash(node *mobs.InteractionNode, p learner, key string) (string, bool) {
-	sc := p.SkillComponent()
-	if sc == nil {
-		return "", false
-	}
-	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Gate, BonusLooks: node.BonusLooks}
-	sc.StartUtilityCast(skills.UtilityAscend)
+// record writes the pick into the draft and returns the reply the panel
+// already spoke, so the two cannot disagree. Re-picking the step overwrites it.
+func (a *ascensionRows) record(node *mobs.InteractionNode, p learner, key string) (string, bool) {
+	p.CeremonyDraft().Set(skills.StepPick{Step: node.ID, Kind: string(node.Rows), Key: key})
 	if key == "" {
-		return "Channelling now. Walk away to cancel.", true
+		return "No gift, then.", true
 	}
-	return fmt.Sprintf("%s it is. Channelling now, walk away to cancel.",
-		a.displayNameOf(key)), true
+	return fmt.Sprintf("%s it is.", a.displayNameOf(key)), true
+}
+
+// stillPickable re-judges a drafted gift against THIS stone's list, at the
+// summary and at Confirm (plan-ascension-ceremony.md D9).
+//
+// ⭐ IT JUDGES THE SITE, where ValidatePick judges only the catalog: between a
+// pick and its Confirm the player can do anything, so membership in this
+// stone's list is asked again rather than trusted from the click.
+func (a *ascensionRows) stillPickable(node *mobs.InteractionNode, p learner, key string) bool {
+	if key == "" {
+		return !a.anyPickable(node, p)
+	}
+	for _, entry := range a.entriesFor(node) {
+		if entry.UnlockKey == key {
+			return !a.spent(p, key) && conditionsPass(entry.Gate, p)
+		}
+	}
+	return false
+}
+
+// validate is ValidatePick under the step seam's name.
+func (a *ascensionRows) validate(p learner, key string) bool { return a.ValidatePick(p, key) }
+
+// grant writes the gift into the transaction: the one unlock key.
+func (a *ascensionRows) grant(key string, req *persist.AscensionRequest) { req.UnlockKey = key }
+
+// summaryLine names the gift on the summary: "Gift: <name>" or "Gift: none".
+// The client words it from the key and the skill id in its own language.
+func (a *ascensionRows) summaryLine(index int, key string) model.ConversationOption {
+	row := model.ConversationOption{
+		OptionIndex: uint8(index),
+		GrantIndex:  model.ConversationNoGrant,
+		Locked:      true, // inert on both ends, the memorial's shape
+		Text:        "Gift: none",
+		TextKey:     "conversation.ascend.summary.no-gift",
+	}
+	if key != "" {
+		row.Text = "Gift: " + a.displayNameOf(key)
+		row.TextKey = "conversation.ascend.summary.gift"
+		if entry, ok := a.byKey[key]; ok && entry.Skill != nil {
+			row.SkillID = uint16(entry.Skill.ID)
+		}
+	}
+	return row
 }
 
 // displayNameOf answers what a player should see this reward called.
 //
 // ⚑ It reads the catalog rather than deriving from the key, so BOTH ends of one
-// click agree: row() speaks this sentence optimistically in the panel and stash
+// click agree: row() speaks this sentence optimistically in the panel and record
 // returns it from the server, and a reward whose authored displayName differs
 // from its key ("RimeBurst" → "Rime-Burst") would otherwise be named one way on
 // screen and another way in the reply.

@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {
+    confirmBody,
     ConversationModel,
     ConversationRow,
     ConversationTree,
@@ -454,5 +455,28 @@ describe('ConversationModel', () => {
 
             expect(m.currentNodeId()).toBe('root');
         });
+    });
+});
+
+describe('confirmBody (plan-ascension-ceremony.md D6)', () => {
+    const summary = (rows: ConversationRow[]) => ({
+        actorName: 'Ascension Stone',
+        lines: ['Frost Shield it is.', 'Your ascension.'],
+        rows,
+        canGoBack: true,
+        showLeave: false,
+    });
+
+    it('lists every pick, then names who ends, and leaves the reply out', () => {
+        const body = confirmBody(summary([
+            row({optionIndex: 0, text: 'Gift: Frost Shield', locked: true}),
+            row({optionIndex: 1, text: 'Portrait: none', locked: true}),
+            row({optionIndex: 254, grantIndex: 0, text: 'Ascend.', confirmSeconds: 5}),
+        ]), 'These are granted and Aelric ends.');
+        expect(body).toBe('Gift: Frost Shield\nPortrait: none\n\nThese are granted and Aelric ends.');
+    });
+
+    it('is only the closing sentence when nothing is listed', () => {
+        expect(confirmBody(null, 'X ends.')).toBe('X ends.');
     });
 });

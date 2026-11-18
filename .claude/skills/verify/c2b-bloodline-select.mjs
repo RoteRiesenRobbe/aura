@@ -309,6 +309,8 @@ if (!reachedCatalog) {
     `no ungated ${GIFT_KEY} row. The seed catalog authors it ungated since C3 step 4, so this is a failure rather than a missing probe. rows: ${rows.map((r) => r.text).join(' | ') || '(none)'}`);
 } else {
   await clickRow(GIFT);
+  await page.waitForTimeout(600); // plan-ascension-ceremony.md AC1: the pick walks to the summary; its Confirm opens the countdown
+  await clickRow('Ascend.');
   await page.waitForTimeout(6200);           // D21's 5 s confirm countdown
   await clickIn('#confirmRow .confirmRowConfirm', 'confirm ascension');
   await page.waitForTimeout(14_000);         // the 10 s channel, plus slack

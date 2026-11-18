@@ -319,3 +319,16 @@ export class ConversationModel {
         return this.tree?.nodes.find((n) => n.id === id) ?? null;
     }
 }
+
+/**
+ * The countdown modal's body (plan-ascension-ceremony.md D6, Q1): one line per
+ * pick, which are the current node's inert rows on the summary, then the
+ * sentence naming who ends.
+ *
+ * ⚑ Not the node's lines: a row that picked and moved leaves its reply leading
+ * them (N1), and "Frost Shield it is." is no part of what is being confirmed.
+ */
+export function confirmBody(view: ConversationView | null, closing: string): string {
+    const picks = (view?.rows ?? []).filter((r) => r.locked).map((r) => r.text);
+    return [...(picks.length > 0 ? [picks.join('\n')] : []), closing].join('\n\n');
+}

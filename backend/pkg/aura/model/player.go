@@ -300,6 +300,9 @@ type PlayerEntity interface {
 	// known the snapshot after its grant lands.
 	ConversingWith() uint64
 	SetConversingWith(id uint64)
+	// CeremonyDraft is the ascension walk's picks before its Confirm
+	// (plan-ascension-ceremony.md D4): discarded whenever the conversant changes.
+	CeremonyDraft() *skills.CeremonyDraft
 	// Crossing is the touch exit about to move this player, as the way it
 	// goes, TravelNone otherwise (plan-passages.md D9). The PassageSystem
 	// writes it every tick; serialized as GameState.crossing.

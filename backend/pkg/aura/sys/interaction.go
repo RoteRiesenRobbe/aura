@@ -14,6 +14,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -887,6 +888,10 @@ type learner interface {
 	// the two above it is a session-constant fact resolved at /select, so it is a
 	// plain field read on the per-tick present path.
 	AccountID() int64
+	// CeremonyDraft is the ascension walk in progress with the actor this player
+	// is talking to (plan-ascension-ceremony.md D4): a step pick writes it, the
+	// summary reads it, Confirm copies it into the stash.
+	CeremonyDraft() *skills.CeremonyDraft
 }
 
 // RowSource supplies the rows a node's authored tree cannot carry
@@ -946,10 +951,11 @@ type RowSource interface {
 // "what the channel will accept" become two answers that can drift.
 type AscensionSource interface {
 	RowSource
-	// ValidatePick reports whether key is still a legitimate pick for p right
-	// now. A non-nil stash is not a valid pick: gates can regress during the
-	// ten seconds a channel runs.
-	ValidatePick(p learner, key string) bool
+	// CompleteAscension re-judges every confirmed pick against p right now and
+	// builds the grants (plan-ascension-ceremony.md D9). A stash is not a valid
+	// pick: gates can regress during the ten seconds a channel runs, and one
+	// pick that fails refuses the whole ascension.
+	CompleteAscension(p learner, pick *skills.AscensionPick) (persist.AscensionRequest, bool)
 }
 
 // present builds the personalised conversation tree for p (chunk 3b-ii, D16).

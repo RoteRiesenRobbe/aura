@@ -53,7 +53,11 @@ type ownerStateWatch struct {
 	// set only grows, so a grant is a size change.
 	owned          int
 	conversingWith uint64
-	nextForce      uint64
+	// draftRev is the ascension draft's revision (plan-ascension-ceremony.md
+	// D6): a pick writes nothing else the gate watches, yet the summary's rows
+	// are built from it.
+	draftRev  uint64
+	nextForce uint64
 }
 
 // ownerStateGate decides whether p's owner-only block and conversation tree
@@ -83,6 +87,7 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		buffRev:        p.BuffRevision(),
 		owned:          len(p.AppearanceOwned()),
 		conversingWith: p.ConversingWith(),
+		draftRev:       p.CeremonyDraft().Revision(),
 	}
 
 	watch, known := n.ownerState[clientUUID]
@@ -99,7 +104,8 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		current.questRev != watch.questRev ||
 		current.buffRev != watch.buffRev ||
 		current.owned != watch.owned
-	sendConvTree = sendOwner || current.conversingWith != watch.conversingWith
+	sendConvTree = sendOwner || current.conversingWith != watch.conversingWith ||
+		current.draftRev != watch.draftRev
 
 	if sendOwner || sendConvTree {
 		// nextForce is the OWNER-BLOCK heartbeat only. A conversation opening

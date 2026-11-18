@@ -29,6 +29,7 @@ type ownerStatePlayer struct {
 	buffRev        uint64
 	owned          []uint16
 	conversingWith uint64
+	draft          skills.CeremonyDraft
 }
 
 func (p *ownerStatePlayer) Basic() ecs.BasicEntity { return p.basic }
@@ -41,6 +42,7 @@ func (p *ownerStatePlayer) QuestLedger() *quests.Ledger            { return p.le
 func (p *ownerStatePlayer) BuffRevision() uint64                   { return p.buffRev }
 func (p *ownerStatePlayer) ConversingWith() uint64                 { return p.conversingWith }
 func (p *ownerStatePlayer) AppearanceOwned() []uint16              { return p.owned }
+func (p *ownerStatePlayer) CeremonyDraft() *skills.CeremonyDraft   { return &p.draft }
 
 type ownerStateClient struct {
 	model.Client
@@ -242,4 +244,22 @@ func TestOwnerStateGate_BuffRevisionForcesOwnerState(t *testing.T) {
 	n.game.Tick = 102
 	sendOwner, _ = n.ownerStateGate(p)
 	assert.False(t, sendOwner, "and the next quiet tick is quiet again")
+}
+
+// plan-ascension-ceremony.md AC1: a ceremony pick only writes the draft, which
+// no other revision sees, and the summary rows are built from it. Without this
+// the summary showed the previous pick until the heartbeat (found by
+// c2a-ascension-site, 2026-11-18).
+func TestOwnerStateGate_ACeremonyPickForcesTheTree(t *testing.T) {
+	n := &NetSystem{game: &game{Tick: 100}}
+	p := newOwnerStatePlayer()
+	p.draft.Set(skills.StepPick{Step: "catalog", Key: "RimeBurst"})
+	n.ownerStateGate(p)
+
+	n.game.Tick = 101
+	p.draft.Set(skills.StepPick{Step: "catalog", Key: "Frostbite"}) // a re-pick: same length
+	sendOwner, sendConvTree := n.ownerStateGate(p)
+
+	assert.False(t, sendOwner, "a draft is no part of the owner block")
+	assert.True(t, sendConvTree, "the summary is rebuilt from the draft, so the tree must go")
 }

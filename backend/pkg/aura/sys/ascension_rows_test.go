@@ -42,6 +42,15 @@ func newAscensionLearner(level uint32, spent ...string) *fakeLearner {
 	return l
 }
 
+// draftedKey is the one pick a single gift click left in the draft
+// (plan-ascension-ceremony.md D4).
+func draftedKey(t *testing.T, p learner) string {
+	t.Helper()
+	picks := p.CeremonyDraft().Picks
+	require.Len(t, picks, 1)
+	return picks[0].Key
+}
+
 func rowByText(rows []model.ConversationOption, needle string) (model.ConversationOption, bool) {
 	for _, r := range rows {
 		if strings.Contains(r.Text, needle) {
@@ -195,8 +204,7 @@ func TestAscensionRows_ApplyingTheEmptyPickStashesTheEmptyKey(t *testing.T) {
 	_, ok := src.ApplyRow(catalogNode(), p, ascensionEmptyPickIndex, 0)
 
 	require.True(t, ok)
-	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "", p.sc.PendingAscension.Key, "RequestAscension takes \"\" as the empty pick (C1)")
+	assert.Equal(t, "", draftedKey(t, p), "RequestAscension takes \"\" as the empty pick (C1)")
 }
 
 // --- apply ------------------------------------------------------------------
@@ -209,8 +217,7 @@ func TestAscensionRows_ApplyStashesTheValidatedPick(t *testing.T) {
 
 	require.True(t, ok)
 	assert.NotEmpty(t, reply)
-	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "FrostShield", p.sc.PendingAscension.Key)
+	assert.Equal(t, "FrostShield", draftedKey(t, p))
 }
 
 // ⭐ THE PICK CARRIES THE SITE'S PRICE (plan-ascension-sites.md C1/P1). Since D1
@@ -222,12 +229,12 @@ func TestAscensionRows_ApplyStashesTheValidatedPick(t *testing.T) {
 // what a snapshot of loaded content is: the slice is immutable after boot, so
 // there is nothing to deep-copy and nothing to go stale.
 func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
-	src := newAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil))
 	p := newAscensionLearner(30)
 	site := catalogNode()
 	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
 
-	_, ok := src.ApplyRow(site, p, 1, 0) // FrostShield
+	ok := pickAndConfirm(t, src, site, p, 1) // FrostShield
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
@@ -240,7 +247,7 @@ func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
 // bloodline with nothing left to learn does not get a cheaper entry than one
 // that is buying something.
 func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
-	src := newAscensionRows(testCatalog(map[string]mobs.Gate{
+	src := NewAscensionRows(testCatalog(map[string]mobs.Gate{
 		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 		"Paralyze":    {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
@@ -249,7 +256,7 @@ func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
 	site := catalogNode()
 	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
 
-	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
+	ok := pickAndConfirm(t, src, site, p, ascensionEmptyPickIndex)
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
@@ -261,10 +268,10 @@ func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
 // first carries an empty gate, the second carries none, and only the second is
 // refused at completion.
 func TestAscensionRows_AnUngatedSiteStillPricesThePick(t *testing.T) {
-	src := newAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil))
 	p := newAscensionLearner(30)
 
-	_, ok := src.ApplyRow(catalogNode(), p, 1, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), p, 1)
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
@@ -294,7 +301,7 @@ func TestAscensionRows_ApplyRefusalsLeaveNothingStashed(t *testing.T) {
 			_, ok := src.ApplyRow(catalogNode(), tc.player, tc.option, 0)
 
 			assert.False(t, ok)
-			assert.Nil(t, tc.player.sc.PendingAscension, "a refused pick must never be left stashed")
+			assert.Empty(t, tc.player.CeremonyDraft().Picks, "a refused pick must never be left drafted")
 		})
 	}
 }
@@ -375,8 +382,7 @@ func TestAscensionRows_ApplyResolvesTheIndexAgainstThisSitesList(t *testing.T) {
 	_, ok := src.ApplyRow(catalogNodeOffering("Paralyze", "EmberWard"), p, 0, 0)
 
 	require.True(t, ok)
-	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "Paralyze", p.sc.PendingAscension.Key, "row 0 of THIS site is Paralyze; row 0 of the catalog is EmberWard")
+	assert.Equal(t, "Paralyze", draftedKey(t, p), "row 0 of THIS site is Paralyze; row 0 of the catalog is EmberWard")
 }
 
 // A key this site does not offer is not addressable at it, however it is
@@ -389,7 +395,7 @@ func TestAscensionRows_RefusesAnIndexPastThisSitesList(t *testing.T) {
 	_, ok := src.ApplyRow(catalogNodeOffering("Paralyze"), p, 2, 0) // Paralyze's CATALOG index
 
 	assert.False(t, ok)
-	assert.Nil(t, p.sc.PendingAscension)
+	assert.Empty(t, p.CeremonyDraft().Picks)
 }
 
 // ⛑ THE ASCEND-ANYWAY ROW IS JUDGED AGAINST THIS SITE'S LIST, and it is the
@@ -412,8 +418,7 @@ func TestAscensionRows_TheAscendAnywayRowIsJudgedAgainstThisSitesList(t *testing
 	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
 
 	assert.True(t, ok, "a row this site presented must be acceptable at this site")
-	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "", p.sc.PendingAscension.Key)
+	assert.Equal(t, "", draftedKey(t, p))
 }
 
 // An authored empty list is legitimate (D5): a stone that ends lives and hands
@@ -559,36 +564,10 @@ func TestAscensionRows_AVeteranGateRefusesTheUntakeable(t *testing.T) {
 	_, ok := newAscensionRows(testCatalog(gates)).ApplyRow(catalogNode(), p, 2, 0)
 
 	assert.False(t, ok)
-	assert.Nil(t, p.sc.PendingAscension)
+	assert.Empty(t, p.CeremonyDraft().Picks)
 }
 
 // --- D21: the countdown confirm rides the row (C2a step 6) ------------------
-
-// ⭐ Only a TAKEABLE row asks for a confirmation. A locked row is inert on both
-// ends, so a countdown in front of it would be friction with nothing behind it.
-func TestAscensionRows_TakeableRowsCarryTheConfirmCountdown(t *testing.T) {
-	gates := map[string]mobs.Gate{"Paralyze": ascensionGate(3)}
-	rows := newAscensionRows(testCatalog(gates)).
-		PresentRows(catalogNode(), newAscensionLearner(30))
-
-	pick, ok := rowByText(rows, "Frost Shield")
-	require.True(t, ok)
-	assert.EqualValues(t, ascensionConfirmSeconds, pick.ConfirmSeconds,
-		"an irreversible pick is held behind a countdown (D21)")
-
-	locked, ok := rowByText(rows, "Paralyze")
-	require.True(t, ok)
-	assert.Zero(t, locked.ConfirmSeconds, "a locked row is inert; nothing to confirm")
-}
-
-// D14's row spends the character too, so it is held behind the same countdown.
-func TestAscensionRows_TheEmptyPickIsHeldBehindTheCountdownToo(t *testing.T) {
-	rows := newAscensionRows(ascension.CatalogOf()).
-		PresentRows(catalogNode(), newAscensionLearner(30))
-
-	require.Len(t, rows, 1)
-	assert.EqualValues(t, ascensionConfirmSeconds, rows[0].ConfirmSeconds)
-}
 
 // --- the row names its ability (§13.7 item 3) -------------------------------
 

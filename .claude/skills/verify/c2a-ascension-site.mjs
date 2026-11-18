@@ -86,6 +86,8 @@ const EMPTY_PICK = 'take no reward';
 // The two authored rows this script drives, one per state (C3 step 4).
 const GATED_ROW = 'Frost Shield';   // gated: bloodline_ascensions >= 3
 const UNGATED_ROW = 'Rime-Burst';   // ungated, and a displayName override
+const REPICK_ROW = 'Frostbite';     // a second ungated reward, for the re-pick leg (AC1)
+const CONFIRM_ROW = 'Ascend.';      // the summary's Confirm (plan-ascension-ceremony.md D6)
 
 const results = [];
 const check = (name, pass, detail) => {
@@ -302,6 +304,16 @@ const clickConfirm = async () => {
   return true;
 };
 
+// The panel's own Back button (D15; the ceremony's Back, PO 2026-11-18).
+const clickBack = async () => {
+  const el = await page.$('#conversation .conversationBack');
+  const b = el && await el.boundingBox();
+  if (!b) { missedClicks.push('back button not laid out'); return false; }
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(600);
+  return true;
+};
+
 const xpText = () => page.evaluate(() =>
   document.querySelector('#xpBar .barText')?.textContent?.trim()
   ?? document.getElementById('xpBar')?.textContent?.trim() ?? '');
@@ -462,14 +474,46 @@ if (ungatedRow) {
   // this row is authored `RimeBurst` and must reach the panel as `Rime-Burst`.
   check('an ungated entry renders under its authored displayName', true, ungatedRow);
 
-  // ⭐ Taking a pick STARTS the ceremony rather than spending the character.
-  // The ten-second channel is the last escape, and the cast bar is its only
-  // client surface until step 6 adds the confirm modal.
-  // ⭐ D21: the pick opens a COUNTDOWN and sends nothing until it is confirmed.
+  // ⭐ plan-ascension-ceremony.md AC1: a pick is only REMEMBERED. It opens no
+  // countdown and starts nothing; it walks to the generated summary, whose one
+  // Confirm is the only thing that starts the channel (D1, L3).
   await clickRow(UNGATED_ROW);
+  check('⭐ a gift pick opens no countdown (AC1)', (await confirmModal()) === null, 'no modal on the pick');
+  check('...and starts nothing', (await castBar()) === null, 'no cast bar after the pick');
+  await page.waitForTimeout(600); // the server's draft lands a tick after the click
+  const summary = await panel();
+  check('⭐ the pick leads to the summary, which names it (D6)',
+    !!summary && summary.locked.some((r) => r.includes(`Gift: ${UNGATED_ROW}`)),
+    summary ? `locked: ${summary.locked.join(' | ') || '(none)'}` : 'no panel');
+  check('...and offers Confirm', !!summary && summary.rows.some((r) => r.includes(CONFIRM_ROW)),
+    summary ? `rows: ${summary.rows.join(' | ')}` : 'no panel');
+  await page.screenshot({ path: `.claude/skills/verify/c2a-summary-${label}.png` });
+
+  // Back returns to the gift list (the panel's own Back, PO 2026-11-18), and a
+  // re-pick replaces the summary line.
+  await clickBack();
+  const again = await panel();
+  check('Back returns to the gift list', !!again && again.rows.some((r) => r.includes(REPICK_ROW)),
+    again ? `rows: ${again.rows.join(' | ')}` : 'no panel');
+  await clickRow(REPICK_ROW);
+  await page.waitForTimeout(600);
+  const repicked = await panel();
+  check('...and a re-pick changes the summary line',
+    !!repicked && repicked.locked.some((r) => r.includes(`Gift: ${REPICK_ROW}`))
+      && !repicked.locked.some((r) => r.includes(UNGATED_ROW)),
+    repicked ? `locked: ${repicked.locked.join(' | ') || '(none)'}` : 'no panel');
+  // Back to the reward the rest of this run is about.
+  await clickBack();
+  await clickRow(UNGATED_ROW);
+  await page.waitForTimeout(600);
+
+  // ⭐ D21 on the summary: Confirm opens the COUNTDOWN and sends nothing until
+  // it is confirmed; the modal lists the picks and names who ends (Q1).
+  await clickRow(CONFIRM_ROW);
   const modal = await confirmModal();
-  check('an irreversible pick opens the countdown confirm (D21)',
-    modal !== null && /rime-burst/i.test(modal.body), modal ? modal.body.slice(0, 70) : 'no modal');
+  check('Confirm opens the countdown, listing the pick (D6)',
+    modal !== null && modal.body.includes(`Gift: ${UNGATED_ROW}`) && /ends\./.test(modal.body),
+    modal ? modal.body.replace(/\s+/g, ' ').slice(0, 90) : 'no modal');
   check('...with the confirm button counting down and disabled',
     !!modal && modal.disabled && /\(\d\)/.test(modal.confirm), modal ? modal.confirm : 'no modal');
   check('...and nothing has started yet', (await castBar()) === null, 'no cast bar while it waits');
@@ -551,7 +595,15 @@ if (ungatedRow) {
     check('...without wearing it (the predecessor never did)', !worn.includes(BONUS_LOOK), worn.join(' + '));
     await page.screenshot({ path: `.claude/skills/verify/c2a-heir-${label}.png` });
   } catch (e) {
-    check('the heir\'s creation offers the bonus look (C5b)', false, String(e).slice(0, 120));
+    // Dump what the creation screen holds before anyone theorises.
+    const dom = await page.evaluate(() => {
+      const c = document.getElementById('characterCreation');
+      return c ? `hidden=${c.classList.contains('hidden')} tiles=${c.querySelectorAll('.lookOption').length}`
+        + ` selected=${c.querySelectorAll('.lookOption.selected').length}`
+        + ` sel-hidden=${document.getElementById('characterSelect')?.classList.contains('hidden')}`
+        : 'no #characterCreation';
+    }).catch((err) => String(err));
+    check('the heir\'s creation offers the bonus look (C5b)', false, `${String(e).slice(0, 80)} | ${dom}`);
   }
 } else {
   // ⚑ RED, not SKIP. Before C3 step 4 an absent reward row was the correct
@@ -560,7 +612,9 @@ if (ungatedRow) {
   // loading, or the row source came unwired. All three are failures.
   const why = `no ungated ${UNGATED_ROW} row. rows: ${rows.join(' | ') || '(none)'}`;
   check('an ungated entry renders under its authored displayName', false, why);
-  check('an irreversible pick opens the countdown confirm (D21)', false, why);
+  check('⭐ a gift pick opens no countdown (AC1)', false, why);
+  check('⭐ the pick leads to the summary, which names it (D6)', false, why);
+  check('Confirm opens the countdown, listing the pick (D6)', false, why);
   check('...with the confirm button counting down and disabled', false, why);
   check('...and nothing has started yet', false, why);
   check('...the button arms when the countdown runs out', false, why);

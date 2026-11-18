@@ -3,7 +3,7 @@
 **Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
 proposed). Designed 2026-10-22, nothing built.** Still open in §7: Q2 (AC2's placeholder
 items), Q5 (the per-pick home form, deferred to the first faction stone). Three chunks
-(§5); AC1 is next. It needs nothing from appearance C5c, and C5c needs nothing from it.
+(§5); AC1 DONE 2026-11-18 [uncommitted] (§11), its PO look deferred to after AC2. It needs nothing from appearance C5c, and C5c needs nothing from it.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -294,8 +294,8 @@ its first kind (D3), the draft and its discard paths (D4), Back and skip (D5), t
 generated summary with the moved countdown (D6), re-validation at completion (D9), the
 stock words (D10), both stones migrated (D11), editor support for `ceremony` (D12).
 With one step, the walk is gift → summary → Confirm.
-Needs: nothing. **Schema:** DB none · wire `ConversationNode` +1 (`rows`; AC1 already
-sends it, the client keys nothing on it yet) · content +1 stone key · lang + stock lines.
+Needs: nothing. **Schema:** DB none · wire none (`ConversationNode.rows` moved to AC2,
+PO 2026-11-18) · content +1 stone key · lang + stock lines.
 **In-game (PO):** at a stone pick a gift: no channel yet, the summary shows it; Back
 returns to the gift list, re-pick changes the summary line; Confirm counts down then
 channels; walk away during the walk and come back: the draft is gone; an exhausted
@@ -308,7 +308,8 @@ display hint (D8), `LookPicker` stone mode, grants into `AscensionRequest.Appear
 summary lines with the item's name, two placeholder items and two steps on the main
 stone (D11), editor support for `slot` + `looks`, `plan-appearance.md` D21 + C5b
 updated to point here.
-Needs: AC1. **Schema:** DB none · wire `ConversationOption` +1 · content +1 row source,
+Needs: AC1. **Schema:** DB none · wire `ConversationNode` +1 (`rows`, from AC1),
+`ConversationOption` +1 · content +1 row source,
 +2 node keys, +2 appearance items, +2 names en + de · lang + stock lines.
 **In-game (PO):** gift, then the picker opens with only the stone's portraits; pick
 one, the ring step opens; skip it; the summary lists gift + portrait + "Ring: none";
@@ -429,4 +430,63 @@ the default spawn. A fresh account still lands on the default.
 
 ## 11. Chunk ledgers
 
-(none yet)
+### AC1 - the walk, the gift step, the summary: DONE 2026-11-18 [uncommitted], PO look deferred to after AC2
+
+**Built:** `ceremony` loading with the D2 refusals plus two more (the summary's
+id is reserved; its row source `ascension_summary` cannot be authored), the
+generated `ceremony-summary` node right after the last step carrying the first
+step's gate (`mobs.mapCeremony`); the step seam `ceremonyStep` with the gift as
+its one kind (`sys/ascension_ceremony.go`, `ascension_rows.go`); Next stamped
+per player on takeable step rows, skipping steps that offer nothing (pinned with
+a fake second kind); the summary's inert "Gift: <name>" / "Gift: none" lines
+and its Confirm (index 254, the 5 s countdown moved here); Confirm re-judges
+every drafted pick against THIS stone's list and is the only start path (L3);
+completion runs `CompleteAscension` (validate + grant per pick, one failure
+refuses all, an empty stash fails closed). Both stones migrated (`"ceremony":
+["catalog"]`). Editor: a Ceremony textarea on stones, `validate.mjs` mirrors the
+refusals (`validate-ceremony.test.mjs`); a real editor save keeps `ceremony` and
+every value (L1 checked by round trip; it only reflows whitespace). Words: the
+summary header `stock.ascension-summary`, six UI keys, the gift replies no
+longer promise a channel; en + de.
+
+**Rulings (PO 2026-11-18, choice prompts):**
+- **Back is the panel's own button, not D5's generated row** (PO, choice prompt).
+  The panel already draws Back on every non-root node; a generated row would be
+  a second Back and a forward step to the client. Edge: with only the no-gift
+  row left, Back from the summary skips the one-row gift step to the greeting.
+- **The draft lives on the player entity, not the SkillComponent** (D4's
+  intent, a different home; PO accepted): `skills.CeremonyDraft`, cleared in
+  `SetConversingWith` on any change of conversant; death and reconnect build a
+  fresh entity, so they discard it by construction (the SkillComponent is
+  re-installed on both, which would have carried it). The confirmed stash stays
+  `PendingAscension{Picks, Gate, BonusLooks}`, written only by Confirm.
+- **`ConversationNode.rows` (D8) moves to AC2** (PO): nothing reads it in AC1.
+- **Words as built** (PO): the summary row reads "Ascend." (the modal button
+  stays "Confirm"); generated-row words live in `frontend.arb`, only the header
+  is a `stock.*` line.
+- **The wire gate watches the draft** (`ownerStateWatch.draftRev`): a pick moved
+  no other revision, so the summary showed the previous pick until the
+  heartbeat. Found by the harness.
+- `RequestAscension` keeps its signature; the grants come from the seam's
+  request (`UnlockKey`). AC2 widens it for looks.
+
+**Schema:** DB none · wire none (D8's field moved to AC2) · conf none · content
++1 stone key (`ceremony`) on both stones · lang +1 stock line, +6 UI keys, 2
+replies reworded, en + de.
+
+**Verified:** Go 0 FAIL (`./...`) · `db-test` ok · vitest 2007/0 · typecheck ·
+editor `node --test` 14/0 · `c2a-ascension-site` 39/40 on the DEBUG world (new legs: no countdown on the
+pick, the summary names it, Back, re-pick, Confirm's modal lists the pick) ·
+`c2b-bloodline-select` 12/12 · `c3-memorial-catalog` 14/14 · `c1-front-stone`
+13/16 with its 3 expected INCONCLUSIVE (the orc gate; its ceremony leg cannot be
+reached). The three scripts that ascend gained the summary step ("Ascend.");
+`c3-memorial-catalog` now polls for character select instead of a fixed 14 s
+sleep (the server logged the ascension while the sleep still read the world).
+⚑ The one red is SETTLED against HEAD `d6e6bbf9` (a worktree on port 2100,
+HEAD's own script): the same C5b heir leg times out there too (32/34, the other
+red a headless WebGL context loss), so it predates AC1. It reaches the creation
+screen (a DOM dump on failure: visible, 12 look tiles, 2 selected) and then
+times out waiting for a VISIBLE `.lookOption.selected`; owned by
+`plan-appearance.md`.
+
+**In-game (PO):** as §5 AC1, deferred by the PO 2026-11-18 to one look after AC2 (AC2 builds on the same summary); AC1 does not go live before it.

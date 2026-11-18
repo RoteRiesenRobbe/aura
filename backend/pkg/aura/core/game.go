@@ -214,6 +214,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// test: the harness leg that asserts rows appear is what catches it.
 	ascensionSource := sys.NewAscensionRows(gc.AscensionCatalog)
 	interactionSys.AddRowSource(mobs.RowSourceAscensionCatalog, ascensionSource)
+	interactionSys.AddRowSource(mobs.RowSourceAscensionSummary, ascensionSource)
 	// The memorial's names, the hook's SECOND consumer (C3 step 6, P10/P22). It
 	// takes a READER rather than a listing: the graveyard seam is installed
 	// post-construction by cmd/aurad and re-read on a timer, so a source handed a

@@ -298,12 +298,20 @@ await leave();
 await clickRow(CATALOG_ROW);
 const pickable = await clickRow(UNGATED_ROW);
 if (pickable) {
+  await page.waitForTimeout(600); // plan-ascension-ceremony.md AC1: the pick walks to the summary; its Confirm opens the countdown
+  await clickRow('Ascend.');
   await page.waitForTimeout(6200);                       // D21's 5 s countdown
   await page.evaluate(() => {
     document.querySelector('#confirmRow .confirmRowConfirm')
       ?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   });
-  await page.waitForTimeout(14_000);                     // the 10 s channel
+  // The 10 s channel, then the session ends: poll for the select screen rather
+  // than sleeping a fixed interval (the server logged the ascension while a 14 s
+  // sleep still read the world, 2026-11-18).
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('characterSelect');
+    return !!sel && !sel.classList.contains('hidden');
+  }, null, { timeout: 30_000 }).catch(() => {});
 }
 const onSelect = await page.evaluate(() => {
   const sel = document.getElementById('characterSelect');

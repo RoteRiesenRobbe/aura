@@ -394,6 +394,8 @@ if (isReady) {
   if (back?.actor === FRONT_ACTOR) {
     await clickRow(CATALOG_ROW);
     if (await clickRow(UNGATED_ROW)) {
+      await page.waitForTimeout(600); // plan-ascension-ceremony.md AC1: the pick walks to the summary; its Confirm opens the countdown
+      await clickRow('Ascend.');
       await page.waitForTimeout(6200);  // D21's 5 s countdown
       await clickConfirm();
       await page.waitForTimeout(14_000); // the 10 s channel

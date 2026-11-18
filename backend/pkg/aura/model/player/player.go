@@ -278,6 +278,9 @@ type player struct {
 	// where the player IS in the tree is a client concern, because every apply
 	// is validated on its own merits rather than on the path taken (D16).
 	conversingWith uint64
+	// ceremonyDraft is the ascension walk in progress with that actor
+	// (plan-ascension-ceremony.md D4); it dies with the session.
+	ceremonyDraft skills.CeremonyDraft
 	conversation   *model.Conversation
 
 	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
@@ -749,7 +752,12 @@ func (p *player) ConversingWith() uint64 { return p.conversingWith }
 // SetConversingWith opens or ends the session. 0 ends it, and drops the tree
 // with it so a stale panel can never outlive its conversation — the client
 // closes the panel because the tree left the snapshot, never on its own say-so.
+// ⭐ Any change of conversant discards the ascension draft: closing, walking
+// away and opening another actor all pass through here (D4, L4).
 func (p *player) SetConversingWith(id uint64) {
+	if id != p.conversingWith {
+		p.ceremonyDraft = skills.CeremonyDraft{}
+	}
 	p.conversingWith = id
 	if id == 0 {
 		p.conversation = nil
@@ -758,6 +766,9 @@ func (p *player) SetConversingWith(id uint64) {
 
 // Conversation is the streamed tree; nil = no panel. Serialized as
 // GameState.conversation.
+// CeremonyDraft is the ascension walk in progress (plan-ascension-ceremony.md D4).
+func (p *player) CeremonyDraft() *skills.CeremonyDraft { return &p.ceremonyDraft }
+
 func (p *player) Conversation() *model.Conversation { return p.conversation }
 
 // SetConversation replaces the tree. The InteractionSystem rebuilds it every

@@ -188,6 +188,7 @@ func TestAscensionCatalog_AFirstLifeSeesFivePickableAndThreeLocked(t *testing.T)
 type catalogLearner struct {
 	sc     *skills.SkillComponent
 	ledger *quests.Ledger
+	draft  skills.CeremonyDraft
 }
 
 func newCatalogLearner() *catalogLearner {
@@ -201,12 +202,13 @@ func (l *catalogLearner) SkillComponent() *skills.SkillComponent { return l.sc }
 func (l *catalogLearner) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: 30}
 }
-func (l *catalogLearner) ApplyRecipeCascade()         {}
-func (l *catalogLearner) QuestLedger() *quests.Ledger { return l.ledger }
-func (l *catalogLearner) AddExperience(uint64)        {}
-func (l *catalogLearner) BloodlineUnlocks() []string  { return nil }
-func (l *catalogLearner) BloodlineAscensions() int    { return 0 }
-func (l *catalogLearner) AccountID() int64            { return 0 }
+func (l *catalogLearner) ApplyRecipeCascade()                  {}
+func (l *catalogLearner) QuestLedger() *quests.Ledger          { return l.ledger }
+func (l *catalogLearner) AddExperience(uint64)                 {}
+func (l *catalogLearner) BloodlineUnlocks() []string           { return nil }
+func (l *catalogLearner) BloodlineAscensions() int             { return 0 }
+func (l *catalogLearner) AccountID() int64                     { return 0 }
+func (l *catalogLearner) CeremonyDraft() *skills.CeremonyDraft { return &l.draft }
 
 // --- the memorial's content (plan-ascension.md C3 step 6, D11) ---
 

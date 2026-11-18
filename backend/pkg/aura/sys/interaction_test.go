@@ -44,18 +44,20 @@ type fakeLearner struct {
 	bloodline  []string
 	ascensions int
 	accountID  int64
+	draft      skills.CeremonyDraft
 }
 
 func (f *fakeLearner) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeLearner) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: f.level}
 }
-func (f *fakeLearner) ApplyRecipeCascade()             { f.cascadeCalls++ }
-func (f *fakeLearner) QuestLedger() *quests.Ledger     { return f.ledger }
-func (f *fakeLearner) AddExperience(experience uint64) { f.xp = append(f.xp, experience) }
-func (f *fakeLearner) BloodlineUnlocks() []string      { return f.bloodline }
-func (f *fakeLearner) BloodlineAscensions() int        { return f.ascensions }
-func (f *fakeLearner) AccountID() int64                { return f.accountID }
+func (f *fakeLearner) ApplyRecipeCascade()                  { f.cascadeCalls++ }
+func (f *fakeLearner) QuestLedger() *quests.Ledger          { return f.ledger }
+func (f *fakeLearner) AddExperience(experience uint64)      { f.xp = append(f.xp, experience) }
+func (f *fakeLearner) BloodlineUnlocks() []string           { return f.bloodline }
+func (f *fakeLearner) BloodlineAscensions() int             { return f.ascensions }
+func (f *fakeLearner) AccountID() int64                     { return f.accountID }
+func (f *fakeLearner) CeremonyDraft() *skills.CeremonyDraft { return &f.draft }
 
 var _ learner = (*fakeLearner)(nil)
 
@@ -2230,7 +2232,7 @@ func TestSession_ClosingForTheCeremonyLeavesTheChannelRunning(t *testing.T) {
 	require.NotNil(t, p.conversation)
 
 	sc := p.SkillComponent()
-	sc.PendingAscension = &skills.AscensionPick{Key: "RimeBurst"}
+	sc.PendingAscension = &skills.AscensionPick{Picks: giftPicks("RimeBurst")}
 	sc.StartUtilityCast(skills.UtilityAscend)
 	step()
 
@@ -2238,7 +2240,7 @@ func TestSession_ClosingForTheCeremonyLeavesTheChannelRunning(t *testing.T) {
 	assert.True(t, sc.IsCasting(), "the channel survives the panel it closed")
 	assert.Equal(t, skills.UtilityAscend, sc.CastingUtility)
 	require.NotNil(t, sc.PendingAscension, "and so does the pick it is holding")
-	assert.Equal(t, "RimeBurst", sc.PendingAscension.Key)
+	assert.Equal(t, "RimeBurst", sc.PendingAscension.Picks[0].Key)
 }
 
 // The negative control, and the reason the rule names the ceremony rather than

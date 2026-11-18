@@ -14,6 +14,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/google/uuid"
@@ -2002,15 +2003,19 @@ func (s *SkillSystem) applyAscension(e skillEntity) {
 		sayToPlayer(p, ascensionRefusedLine)
 		return
 	}
-	if s.ascension != nil && !s.ascension.ValidatePick(p, pick.Key) {
-		log.Printf("⚰️ refusing '%s' the ascension pick %q: it is no longer legitimate", p.Name(), pick.Key)
-		sayToPlayer(p, ascensionRefusedLine)
-		return
+	var grants persist.AscensionRequest
+	if s.ascension != nil {
+		var ok bool
+		if grants, ok = s.ascension.CompleteAscension(p, pick); !ok {
+			log.Printf("⚰️ refusing '%s' the ascension %v: a pick is no longer legitimate", p.Name(), pick.Picks)
+			sayToPlayer(p, ascensionRefusedLine)
+			return
+		}
 	}
 	if s.connState == nil {
 		return // no world to ascend into (a sim or a test)
 	}
-	if !s.connState.RequestAscension(p, pick.Key, pick.BonusLooks) {
+	if !s.connState.RequestAscension(p, grants.UnlockKey, pick.BonusLooks) {
 		log.Printf("⚰️ '%s' completed the ceremony but the request was refused", p.Name())
 		sayToPlayer(p, ascensionRefusedLine)
 	}

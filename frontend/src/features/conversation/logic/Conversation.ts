@@ -26,12 +26,21 @@ import {beginCrossing} from '../../zones/logic/ZoneCurtain';
 import {questMarkerColor, questMarkerGlyph} from '../../../client-data/QuestMarkers';
 import {cssHex} from '../../../client-data/Theme';
 import {
+    confirmBody,
     ConversationModel,
     ConversationRow,
     ConversationTree,
     NO_GRANT,
 } from './ConversationModel';
 import {onRowPress} from './RowPress';
+import {GameSetupEvent} from '../../core/logic/Events';
+import {IGame} from '../../core/logic/IGame';
+
+/** The game, for the local character's name in the confirm modal. */
+let game: IGame | null = null;
+GameSetupEvent.subscribe((g: IGame) => {
+    game = g;
+});
 
 const model = new ConversationModel();
 
@@ -191,19 +200,20 @@ function closeConfirmRow(): void {
 /**
  * Put the delete dialog's countdown in front of an irreversible row.
  *
- * ⚑ The body is composed from what the panel ALREADY holds: the node's lines
- * are the loss list the author wrote, and the row's text is what is being
- * chosen. Nothing extra travels for it, which is why the wire field is one byte
- * rather than a second string.
+ * ⚑ The body is composed from what the panel ALREADY holds: the node's inert
+ * rows (the ascension summary's one line per pick, plan-ascension-ceremony.md
+ * D6), then the sentence naming who ends (Q1).
+ * Nothing extra travels for it, which is why the wire field is one byte rather
+ * than a second string.
  */
 function askToConfirm(row: ConversationRow, id: number, node: string): void {
     const root = document.getElementById('confirmRow');
     if (!root) {
         return;
     }
-    const view = model.view();
     const body = root.querySelector('.confirmRowBody') as HTMLElement;
-    body.textContent = `${(view?.lines ?? []).join(' ')}\n\n${row.text}`;
+    body.textContent = confirmBody(model.view(),
+        t('conversation.ascend.confirm-body', {name: game?.player?.character?.name ?? ''}));
 
     const confirm = root.querySelector('.confirmRowConfirm') as HTMLElement;
     const cancel = root.querySelector('.confirmRowCancel') as HTMLElement;

@@ -22,6 +22,7 @@
   "skills": [],
   "interaction": {
     "range": 2.0,
+    "ceremony": ["catalog"],
     "nodes": [
       {
         "id": "ready",

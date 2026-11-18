@@ -373,11 +373,60 @@ func (d DerivedStats) CostFactor() float32 {
 // conditions and the live player are in scope, and it fails CLOSED — a pick with
 // no gate is a pick nobody priced, and is refused.
 type AscensionPick struct {
-	Key  string
-	Gate any
+	// Picks is the confirmed walk, one entry per step the summary listed
+	// (plan-ascension-ceremony.md D4, D6). Copied from the draft at Confirm.
+	Picks []StepPick
+	Gate  any
 	// BonusLooks is the stone's bonus (plan-appearance.md C5b), stashed with
-	// its price: appearance ids granted on top of Key at completion.
+	// its price: appearance ids granted on top of the picks at completion.
 	BonusLooks []string
+}
+
+// StepPick is one ceremony step's pick (plan-ascension-ceremony.md D4). Ids
+// only, never a closure over the player: the reattach landmine above.
+type StepPick struct {
+	// Step is the step node's id, Kind its row source.
+	Step string
+	Kind string
+	// Key is what was picked; "" is the step's empty pick (D14's no-gift row).
+	Key string
+}
+
+// CeremonyDraft is a walk's picks before its Confirm (D4). It lives on the
+// player ENTITY, beside the conversation it belongs to, so death and reconnect
+// (each a fresh entity) discard it by construction, and any change of
+// conversant discards it in SetConversingWith. Never persisted.
+type CeremonyDraft struct {
+	Picks []StepPick
+	// revision counts Sets, so the wire's change gate (core.ownerStateGate)
+	// resends the tree the summary is built from: a re-pick keeps the length.
+	revision uint64
+}
+
+// Revision moves on every Set; a fresh draft starts at 0.
+func (d *CeremonyDraft) Revision() uint64 { return d.revision }
+
+// Set records a step's pick, replacing that step's earlier one (Back and
+// re-pick simply overwrite).
+func (d *CeremonyDraft) Set(pick StepPick) {
+	d.revision++
+	for i := range d.Picks {
+		if d.Picks[i].Step == pick.Step {
+			d.Picks[i] = pick
+			return
+		}
+	}
+	d.Picks = append(d.Picks, pick)
+}
+
+// Pick is the step's recorded pick, if any.
+func (d *CeremonyDraft) Pick(step string) (StepPick, bool) {
+	for _, p := range d.Picks {
+		if p.Step == step {
+			return p, true
+		}
+	}
+	return StepPick{}, false
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.

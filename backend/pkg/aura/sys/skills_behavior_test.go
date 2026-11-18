@@ -115,6 +115,7 @@ type fakePlayer struct {
 	// two above: a session survives ticks and is ended only by an explicit
 	// condition, which is precisely what the end-condition tests assert on.
 	conversingWith uint64
+	ceremonyDraft  skills.CeremonyDraft
 	// grounded counts Ground() calls - the travel_to grant's half of the
 	// Recall/WARP recipe (plan-portal-spells.md C1).
 	grounded int
@@ -274,11 +275,15 @@ func (f *fakePlayer) NoteInteractable(id uint64, distSq float32) {
 // the tree with it, so a stale panel can never outlive its conversation.
 func (f *fakePlayer) ConversingWith() uint64 { return f.conversingWith }
 func (f *fakePlayer) SetConversingWith(id uint64) {
+	if id != f.conversingWith {
+		f.ceremonyDraft = skills.CeremonyDraft{}
+	}
 	f.conversingWith = id
 	if id == 0 {
 		f.conversation = nil
 	}
 }
+func (f *fakePlayer) CeremonyDraft() *skills.CeremonyDraft  { return &f.ceremonyDraft }
 func (f *fakePlayer) Conversation() *model.Conversation     { return f.conversation }
 func (f *fakePlayer) SetConversation(c *model.Conversation) { f.conversation = c }
 

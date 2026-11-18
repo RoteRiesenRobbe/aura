@@ -434,8 +434,11 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	// walks the authored kinds and demands each be served, so it is precisely
 	// what goes red when a NEW row source is authored in content and never wired
 	// which is what it did the moment the memorial's node landed.
+	ceremony := sys.NewAscensionRows(ascension.CatalogOf(probes...))
 	sources := map[mobs.RowSourceKind]sys.RowSource{
-		mobs.RowSourceAscensionCatalog: sys.NewAscensionRows(ascension.CatalogOf(probes...)),
+		mobs.RowSourceAscensionCatalog: ceremony,
+		// The loader generates a summary node for every ceremony (D2).
+		mobs.RowSourceAscensionSummary: ceremony,
 		// One name is enough: this asserts WIRING, not content.
 		mobs.RowSourceMemorialNames: sys.NewMemorialRows(func() persist.Graveyard {
 			return persist.Graveyard{
@@ -472,7 +475,16 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 		if !assert.True(t, wired, "%s authors rows %q, and NOTHING is wired for that kind", a.where, kind) {
 			continue
 		}
-		assert.NotEmpty(t, source.PresentRows(a.node, maxLevelLearner(t)),
+		learner := maxLevelLearner(t)
+		if kind == mobs.RowSourceAscensionSummary {
+			// A summary lists the draft, so walk the first step before reading it.
+			step := a.node.Ceremony.Steps[0]
+			rows := source.PresentRows(step, learner)
+			require.NotEmpty(t, rows, a.where)
+			_, ok := source.ApplyRow(step, learner, int(rows[0].OptionIndex), int(rows[0].GrantIndex))
+			require.True(t, ok, a.where)
+		}
+		assert.NotEmpty(t, source.PresentRows(a.node, learner),
 			"%s authors rows %q, but the wired provider serves nothing for it", a.where, kind)
 	}
 }
@@ -506,7 +518,10 @@ func catalogRowsNode(t *testing.T, mr mobs.Registry, mobName string) *mobs.Inter
 //
 // ⚑ `sys.learner` is unexported, which does not stop this: every method on it
 // is exported, so a type declared here satisfies it and the call site type-checks.
-type contentLearner struct{ sc *skills.SkillComponent }
+type contentLearner struct {
+	sc    *skills.SkillComponent
+	draft skills.CeremonyDraft
+}
 
 func maxLevelLearner(t *testing.T) *contentLearner {
 	t.Helper()
@@ -517,9 +532,10 @@ func (l *contentLearner) SkillComponent() *skills.SkillComponent { return l.sc }
 func (l *contentLearner) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: 30}
 }
-func (l *contentLearner) ApplyRecipeCascade()         {}
-func (l *contentLearner) QuestLedger() *quests.Ledger { return nil }
-func (l *contentLearner) AddExperience(uint64)        {}
-func (l *contentLearner) BloodlineUnlocks() []string  { return nil }
-func (l *contentLearner) BloodlineAscensions() int    { return 0 }
-func (l *contentLearner) AccountID() int64            { return 0 }
+func (l *contentLearner) ApplyRecipeCascade()                  {}
+func (l *contentLearner) QuestLedger() *quests.Ledger          { return nil }
+func (l *contentLearner) AddExperience(uint64)                 {}
+func (l *contentLearner) BloodlineUnlocks() []string           { return nil }
+func (l *contentLearner) BloodlineAscensions() int             { return 0 }
+func (l *contentLearner) AccountID() int64                     { return 0 }
+func (l *contentLearner) CeremonyDraft() *skills.CeremonyDraft { return &l.draft }

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -109,6 +110,39 @@ type InteractionNode struct {
 	// a catalog node, where the stone's price lives too. Resolved at boot by
 	// appearance.CrossValidateStones, for the same cycle as Rewards.
 	BonusLooks []string
+
+	// Ceremony is the stone's walk this node belongs to (plan-ascension-ceremony.md
+	// D2): set on every step node and on the generated summary, nil everywhere
+	// else. A row source is handed only the node, so this is how a step finds the
+	// step after it and the summary finds the steps it lists.
+	Ceremony *Ceremony
+}
+
+// Ceremony is one stone's ordered walk of steps and its generated summary
+// (plan-ascension-ceremony.md D1-D2). Built by the loader from the authored
+// `ceremony` list, which is the single source of order: nothing on a node
+// authors a Next or a Back.
+type Ceremony struct {
+	// Steps are the step nodes in authored order.
+	Steps []*InteractionNode
+	// Summary is the generated last stop, whose Confirm starts the channel.
+	Summary *InteractionNode
+}
+
+// CeremonySummaryNodeID is the generated summary node's id, reserved: an
+// authored node may not take it.
+const CeremonySummaryNodeID = "ceremony-summary"
+
+// RowSourceAscensionSummary is the summary's generated row list: one inert line
+// per shown step, then Confirm (D6). ⚑ Deliberately NOT in rowSourceKinds: only
+// the loader may give a node this source, so authoring it is refused as an
+// unknown kind.
+const RowSourceAscensionSummary RowSourceKind = "ascension_summary"
+
+// IsCeremonyStep reports whether a node with this row source is a ceremony step
+// (D3). One kind ships in AC1; a new step kind is one more case here.
+func (k RowSourceKind) IsCeremonyStep() bool {
+	return k == RowSourceAscensionCatalog
 }
 
 // RowSourceKind names one generated row list. A closed vocabulary with the
@@ -598,6 +632,9 @@ type jsonInteraction struct {
 	Ambient []jsonDialogueLine    `json:"ambient"` // absent → says nothing unprompted
 	Range   float32               `json:"range"`   // absent → body.aggroRadius
 	Nodes   []jsonInteractionNode `json:"nodes"`
+	// Ceremony is a stone's ordered step node ids (plan-ascension-ceremony.md
+	// D2). A pointer so an authored `[]` is refused rather than read as absent.
+	Ceremony *[]string `json:"ceremony"`
 }
 
 type jsonInteractionNode struct {
@@ -1142,7 +1179,80 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			}
 		}
 	}
+	if err := mapCeremony(m.Name, ji.Ceremony, in); err != nil {
+		return nil, err
+	}
 	return in, nil
+}
+
+// mapCeremony resolves a stone's `ceremony` list and appends its generated
+// summary node (plan-ascension-ceremony.md D2).
+//
+// ⭐ THE SUMMARY SITS RIGHT AFTER THE LAST STEP and carries the FIRST step's
+// gate, which is the stone's price. The gate makes applyGrant judge a crafted
+// Confirm against what the stone charges; the position keeps it above the
+// unconditional fallback and below a step with the same gate, so present()
+// can never pick it as the greeting. It is placed after the L3 check above
+// ran, which only ever reads authored nodes.
+func mapCeremony(mobName string, authored *[]string, in *Interaction) error {
+	if nodeByID(in, CeremonySummaryNodeID) != nil {
+		return fmt.Errorf("mob %q: interaction node id %q is reserved for the generated ceremony summary",
+			mobName, CeremonySummaryNodeID)
+	}
+	listed := map[string]bool{}
+	if authored != nil {
+		if len(*authored) == 0 {
+			return fmt.Errorf("mob %q: interaction.ceremony must name at least one step node", mobName)
+		}
+		for _, id := range *authored {
+			node := nodeByID(in, id)
+			switch {
+			case node == nil:
+				return fmt.Errorf("mob %q: interaction.ceremony names %q, which is not a node", mobName, id)
+			case listed[id]:
+				return fmt.Errorf("mob %q: interaction.ceremony names %q twice", mobName, id)
+			case !node.Rows.IsCeremonyStep():
+				return fmt.Errorf("mob %q: interaction.ceremony names %q, which is not a step "+
+					"(a step node has rows: %q)", mobName, id, RowSourceAscensionCatalog)
+			}
+			listed[id] = true
+		}
+	}
+	for i := range in.Nodes {
+		if in.Nodes[i].Rows.IsCeremonyStep() && !listed[in.Nodes[i].ID] {
+			return fmt.Errorf("mob %q: interaction node %q is a ceremony step but interaction.ceremony "+
+				"does not list it", mobName, in.Nodes[i].ID)
+		}
+	}
+	if authored == nil {
+		return nil
+	}
+
+	// Insert first, take pointers after: an append can move the slice.
+	last := 0
+	for i := range in.Nodes {
+		if listed[in.Nodes[i].ID] {
+			last = i
+		}
+	}
+	first := nodeByID(in, (*authored)[0])
+	summary := InteractionNode{
+		ID:      CeremonySummaryNodeID,
+		Gate:    first.Gate,
+		Lines:   []string{"Your ascension."},
+		LineIDs: []string{lang.StockPhrase("ascension-summary")},
+		Rows:    RowSourceAscensionSummary,
+	}
+	in.Nodes = append(in.Nodes[:last+1], append([]InteractionNode{summary}, in.Nodes[last+1:]...)...)
+
+	c := &Ceremony{Summary: nodeByID(in, CeremonySummaryNodeID)}
+	c.Summary.Ceremony = c
+	for _, id := range *authored {
+		step := nodeByID(in, id)
+		step.Ceremony = c
+		c.Steps = append(c.Steps, step)
+	}
+	return nil
 }
 
 // mapRewards resolves a catalog node's authored reward list, and refuses one

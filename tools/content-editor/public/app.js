@@ -966,6 +966,19 @@ function dialogueTreeSection(mob, onChange) {
     el('label', { text: 'Ambient (hails called out to a player walking past)' }),
     linesEditor(mob, inter, 'ambient', onChange),
   ]));
+  // plan-ascension-ceremony.md D2: a stone's ordered steps. Shown on a stone
+  // (a node with an ascension step) or wherever one is already authored, so an
+  // ordinary NPC's form stays as it was.
+  if ('ceremony' in inter || (inter.nodes || []).some((n) => n.rows === 'ascension_catalog')) {
+    col.body.appendChild(el('div', { class: 'subsection' }, [
+      el('label', { text: 'Ceremony (the step node ids in order, one per line; the summary is generated after the last)' }),
+      textArea((inter.ceremony || []).join('\n'), (v) => {
+        const ids = splitLines(v);
+        if (ids.length) inter.ceremony = ids; else delete inter.ceremony;
+        onChange();
+      }, 'ceremony-textarea'),
+    ]));
+  }
 
   const graphWrap = el('div', { class: 'graph-wrap' });
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

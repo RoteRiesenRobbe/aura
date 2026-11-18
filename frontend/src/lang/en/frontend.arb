@@ -319,12 +319,42 @@
       "skill": {"type": "String", "description": "Unused here", "example": ""}
     }
   },
-  "conversation.ascend.reply": "{skill} it is. Channelling now, walk away to cancel.",
+  "conversation.ascend.reply": "{skill} it is.",
   "@conversation.ascend.reply": {
-    "description": "Ascension stone reply after picking a reward: the channel starts; walking away cancels it.",
+    "description": "Ascension stone reply after picking a reward; the summary comes next (plan-ascension-ceremony.md).",
     "placeholders": {
       "skill": {"type": "String", "description": "The chosen reward skill name", "example": "Lantern"}
     }
+  },
+  "conversation.ascend.no-reward-reply": "No gift, then.",
+  "@conversation.ascend.no-reward-reply": {
+    "description": "Ascension stone reply after picking no reward; the summary comes next (plan-ascension-ceremony.md).",
+    "placeholders": {"skill": {"type": "String", "description": "Unused here", "example": ""}}
+  },
+  "conversation.ascend.summary.gift": "Gift: {skill}",
+  "@conversation.ascend.summary.gift": {
+    "description": "Ascension summary line naming the picked reward.",
+    "placeholders": {"skill": {"type": "String", "description": "The chosen reward skill name", "example": "Lantern"}}
+  },
+  "conversation.ascend.summary.no-gift": "Gift: none",
+  "@conversation.ascend.summary.no-gift": {
+    "description": "Ascension summary line when the character ascends without a reward.",
+    "placeholders": {"skill": {"type": "String", "description": "Unused here", "example": ""}}
+  },
+  "conversation.ascend.confirm": "Ascend.",
+  "@conversation.ascend.confirm": {
+    "description": "Ascension summary row that starts the ceremony after a countdown; it ends this character.",
+    "placeholders": {"skill": {"type": "String", "description": "Unused here", "example": ""}}
+  },
+  "conversation.ascend.channel": "Channelling now. Walk away to cancel.",
+  "@conversation.ascend.channel": {
+    "description": "Ascension stone reply when the ceremony's channel starts; walking away cancels it.",
+    "placeholders": {"skill": {"type": "String", "description": "Unused here", "example": ""}}
+  },
+  "conversation.ascend.confirm-body": "These are granted and {name} ends.",
+  "@conversation.ascend.confirm-body": {
+    "description": "Last sentence of the ascension countdown dialog, under the list of picks.",
+    "placeholders": {"name": {"type": "String", "description": "The ascending character's name", "example": "Aelric"}}
   },
   "conversation.back": "← Back",
   "@conversation.back": {

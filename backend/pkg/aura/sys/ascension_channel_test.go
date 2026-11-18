@@ -20,6 +20,11 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
+// giftPicks is a confirmed walk holding one gift (plan-ascension-ceremony.md D4).
+func giftPicks(key string) []skills.StepPick {
+	return []skills.StepPick{{Step: "catalog", Kind: string(mobs.RowSourceAscensionCatalog), Key: key}}
+}
+
 // ascendCastUpdates is one press-processing update plus the full channel.
 const ascendCastUpdates = 1 + 300
 
@@ -48,14 +53,15 @@ func ascensionChannelSetup(t *testing.T, gates map[string]mobs.Gate) (
 	return caster, conn, src, sk
 }
 
-// --- taking a row starts the ceremony ---------------------------------------
+// --- Confirm starts the ceremony ---------------------------------------
 
-// ⭐ The row source is what starts the channel, because the alternative is a
-// second client message that could arrive without a pick behind it.
-func TestAscension_TakingARowStartsTheChannel(t *testing.T) {
+// ⭐ The row source is what starts the channel (the summary's Confirm since
+// plan-ascension-ceremony.md AC1), because the alternative is a second client
+// message that could arrive without a pick behind it.
+func TestAscension_ConfirmStartsTheChannel(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
 
-	_, ok := src.ApplyRow(catalogNode(), caster, 1, 0) // FrostShield
+	ok := pickAndConfirm(t, src, catalogNode(), caster, 1) // FrostShield
 	require.True(t, ok)
 
 	assert.True(t, caster.sc.IsCasting(), "the ceremony is a channel, not an instant")
@@ -78,7 +84,7 @@ func TestAscension_TheChannelIsNotInterruptedByDamage(t *testing.T) {
 
 func TestAscension_CompletionSpendsTheStashedPick(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
-	_, ok := src.ApplyRow(catalogNode(), caster, 1, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), caster, 1)
 	require.True(t, ok)
 
 	for i := 0; i < ascendCastUpdates; i++ {
@@ -99,7 +105,7 @@ func TestAscension_TheEmptyPickCompletesToo(t *testing.T) {
 		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 	}
 	caster, conn, src, sk := ascensionChannelSetup(t, gates)
-	_, ok := src.ApplyRow(catalogNode(), caster, ascensionEmptyPickIndex, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), caster, ascensionEmptyPickIndex)
 	require.True(t, ok)
 
 	for i := 0; i < ascendCastUpdates; i++ {
@@ -128,7 +134,7 @@ func TestAscension_TheStonesBonusRidesToCompletion(t *testing.T) {
 			caster, conn, src, sk := ascensionChannelSetup(t, tc.gates)
 			node := catalogNode()
 			node.BonusLooks = []string{"elder"}
-			_, ok := src.ApplyRow(node, caster, index, 0)
+			ok := pickAndConfirm(t, src, node, caster, index)
 			require.True(t, ok)
 
 			for i := 0; i < ascendCastUpdates; i++ {
@@ -149,7 +155,7 @@ func TestAscension_TheStonesBonusRidesToCompletion(t *testing.T) {
 // advanceCast re-checks preconditions at completion for exactly this class.
 func TestAscension_APickThatStoppedBeingLegitimateIsRefused(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
-	_, ok := src.ApplyRow(catalogNode(), caster, 1, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), caster, 1)
 	require.True(t, ok)
 
 	// The bloodline gains the very reward being channelled for, which is what a
@@ -183,7 +189,7 @@ func TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn(t *testing.
 	t.Run("the site this character can afford", func(t *testing.T) {
 		caster, conn, src, sk := ascensionChannelSetup(t, nil)
 		caster.level = 25
-		_, ok := src.ApplyRow(priced(25), caster, 1, 0)
+		ok := pickAndConfirm(t, src, priced(25), caster, 1)
 		require.True(t, ok)
 
 		for i := 0; i < ascendCastUpdates; i++ {
@@ -198,10 +204,12 @@ func TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn(t *testing.
 		caster.level = 25
 		// The panel would never have opened this node for a level-25 character
 		// (applyGrant checks the node gate first). Reaching the row source anyway
-		// is what a crafted message looks like, and the ceremony is the second
-		// place that refuses it.
-		_, ok := src.ApplyRow(priced(30), caster, 1, 0)
-		require.True(t, ok)
+		// is what a crafted message looks like. Since the ceremony
+		// (plan-ascension-ceremony.md D5) a step whose gate fails is not part of
+		// the walk, so Confirm already refuses; completion re-judges the price
+		// too (TestAscension_ASitePriceThatLapsesMidChannelRefuses).
+		ok := pickAndConfirm(t, src, priced(30), caster, 1)
+		assert.False(t, ok, "Confirm refuses a walk at a stone the player cannot afford")
 
 		for i := 0; i < ascendCastUpdates; i++ {
 			sk.Update(33.0)
@@ -220,7 +228,7 @@ func TestAscension_ASitePriceThatLapsesMidChannelRefuses(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
 	site := catalogNode()
 	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
-	_, ok := src.ApplyRow(site, caster, 1, 0)
+	ok := pickAndConfirm(t, src, site, caster, 1)
 	require.True(t, ok)
 
 	caster.level = 29 // whatever the price was, it is no longer met
@@ -245,7 +253,7 @@ func TestAscension_ASitePriceThatLapsesMidChannelRefuses(t *testing.T) {
 // produce and what a crafted one would carry. It must never ascend.
 func TestAscension_APickWithNoPriceIsRefused(t *testing.T) {
 	caster, conn, _, sk := ascensionChannelSetup(t, nil)
-	caster.sc.PendingAscension = &skills.AscensionPick{Key: "FrostShield"}
+	caster.sc.PendingAscension = &skills.AscensionPick{Picks: giftPicks("FrostShield")}
 	caster.sc.StartUtilityCast(skills.UtilityAscend)
 
 	for i := 0; i < ascendCastUpdates; i++ {
@@ -261,7 +269,7 @@ func TestAscension_APickWithNoPriceIsRefused(t *testing.T) {
 // CancelCast clears the pick with it.
 func TestAscension_CancellingTheChannelClearsThePickAndAscendsNobody(t *testing.T) {
 	caster, conn, src, sk := ascensionChannelSetup(t, nil)
-	_, ok := src.ApplyRow(catalogNode(), caster, 1, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), caster, 1)
 	require.True(t, ok)
 	sk.Update(33.0)
 
@@ -326,7 +334,7 @@ func TestAscension_ACraftedPressCannotCancelAnotherCast(t *testing.T) {
 func TestAscension_NoConnStateMeansNoAscension(t *testing.T) {
 	caster, _, src, sk := ascensionChannelSetup(t, nil)
 	sk.SetConnState(nil)
-	_, ok := src.ApplyRow(catalogNode(), caster, 1, 0)
+	ok := pickAndConfirm(t, src, catalogNode(), caster, 1)
 	require.True(t, ok)
 
 	for i := 0; i < ascendCastUpdates; i++ {
@@ -361,7 +369,7 @@ func TestAscension_AStashedAnyPriceStillHoldsWhenOneEntryLapses(t *testing.T) {
 		{Kind: mobs.ConditionMinLevel, Value: 30},
 		{Kind: mobs.ConditionBloodlineAscensions, Value: 2},
 	}}
-	_, ok := src.ApplyRow(site, caster, 1, 0)
+	ok := pickAndConfirm(t, src, site, caster, 1)
 	require.True(t, ok)
 
 	caster.level = 29 // one entry lapses, the other stands

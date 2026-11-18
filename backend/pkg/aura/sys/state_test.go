@@ -1419,7 +1419,7 @@ func TestDeath_CancelsARunningCastAndItsAscensionPick(t *testing.T) {
 	c := newFakeClient()
 	p := joinWithState(t, s, g, c, "Doomed", persist.CharacterState{})
 
-	p.SkillComponent().PendingAscension = &skills.AscensionPick{Key: "FrostShield"}
+	p.SkillComponent().PendingAscension = &skills.AscensionPick{Picks: giftPicks("FrostShield")}
 	p.SkillComponent().StartUtilityCast(skills.UtilityAscend)
 	require.True(t, p.SkillComponent().IsCasting())
 
