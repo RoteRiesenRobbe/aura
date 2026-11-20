@@ -3,7 +3,7 @@
 **Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
 proposed). Designed 2026-10-22.** Still open in §7: Q5 (the per-pick home form,
 deferred to the first faction stone). Three chunks (§5); AC1 DONE 2026-11-18 `a8a240a5`,
-AC2 DONE 2026-11-20 `[uncommitted]`, their joint PO look passed 2026-11-20 (§11); AC3 next. It needs nothing from appearance C5c, and C5c needs nothing from it.
+AC2 DONE 2026-11-20 `d3b3ab94`, their joint PO look passed 2026-11-20 (§11); AC3 next. It needs nothing from appearance C5c, and C5c needs nothing from it.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -492,7 +492,7 @@ times out waiting for a VISIBLE `.lookOption.selected`; owned by
 
 **In-game (PO):** as §5 AC1, deferred by the PO 2026-11-18 to one look after AC2; passed with AC2 on 2026-11-20 (§11 AC2).
 
-### AC2 - the look step and the stone picker: DONE 2026-11-20 `[uncommitted]`, PO look of AC1 + AC2 passed 2026-11-20 ("all works")
+### AC2 - the look step and the stone picker: DONE 2026-11-20 `d3b3ab94`, PO look of AC1 + AC2 passed 2026-11-20 ("all works")
 
 **Built:** the `ascension_looks` row source (D7): a step node authors `slot`
 (portrait | ring) and `looks` (stone-gift ids); `mobs.mapLooks` refuses a bad or
