@@ -350,8 +350,9 @@ type StoneSites interface {
 	Mobs() []*mobs.MobDefinition
 }
 
-// CrossValidateStones checks every stone's bonusLooks (C5b) against the
-// catalog: each id must name a stone gift, or the stone would hand out an
+// CrossValidateStones checks every stone's bonusLooks (C5b) and every look
+// step's looks against the catalog: each id must name a stone gift (of the
+// step's slot), or the stone would hand out an
 // item something else earns (or nothing). A stone gift that no stone names
 // is a warning: it loads, but nobody can ever own it.
 func CrossValidateStones(sites StoneSites, c Catalog) ([]string, error) {
@@ -366,6 +367,16 @@ func CrossValidateStones(sites StoneSites, c Catalog) ([]string, error) {
 				if !ok || !it.StoneGift() {
 					return nil, fmt.Errorf("mob %q: interaction node %q: bonusLooks %q is not a look with "+
 						"\"grantedBy\": %q", def.Name, node.ID, id, GrantedByStone)
+				}
+				named[id] = true
+			}
+			// A look step (plan-ascension-ceremony.md D7): the same rule, and
+			// each id must dress the step's own slot.
+			for _, id := range node.Looks {
+				it, ok := c.byID[id]
+				if !ok || !it.StoneGift() || string(it.Slot) != node.LookSlot {
+					return nil, fmt.Errorf("mob %q: interaction node %q: looks %q is not a %s with "+
+						"\"grantedBy\": %q", def.Name, node.ID, id, node.LookSlot, GrantedByStone)
 				}
 				named[id] = true
 			}

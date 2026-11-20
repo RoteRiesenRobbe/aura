@@ -212,8 +212,11 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// because the catalog is content the game assembles, and the system is built
 	// before it. ⚑ Forgetting this call shows an empty stone and fails no Go
 	// test: the harness leg that asserts rows appear is what catches it.
-	ascensionSource := sys.NewAscensionRows(gc.AscensionCatalog)
+	ascensionSource := sys.NewAscensionRows(gc.AscensionCatalog, gc.Appearance)
 	interactionSys.AddRowSource(mobs.RowSourceAscensionCatalog, ascensionSource)
+	// The look step (plan-ascension-ceremony.md AC2): the same source, so the
+	// summary and Confirm see its picks.
+	interactionSys.AddRowSource(mobs.RowSourceAscensionLooks, ascensionSource)
 	interactionSys.AddRowSource(mobs.RowSourceAscensionSummary, ascensionSource)
 	// The memorial's names, the hook's SECOND consumer (C3 step 6, P10/P22). It
 	// takes a READER rather than a listing: the graveyard seam is installed

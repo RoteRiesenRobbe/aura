@@ -28,3 +28,29 @@ test('every ceremony refusal of the loader is mirrored', () => {
     assert.match(problems(interaction), want, name);
   }
 });
+
+// plan-ascension-ceremony.md AC2, D7: a look step's shape, ported from
+// mobs.mapLooks (aurad checks each id names a stone gift of the slot).
+const look = (extra) => ({ id: 'look', lines: [{ id: 'face', text: 'a face' }], rows: 'ascension_looks', ...extra });
+
+test('a look step validates', () => {
+  const out = problems({ ceremony: ['catalog', 'look'],
+    nodes: [catalog, look({ slot: 'portrait', looks: ['crowned-heir', 'elder-sage'] })] });
+  assert.equal(out, '');
+});
+
+test('every look-step refusal of the loader is mirrored', () => {
+  const root = { id: 'root', lines: [{ id: 'hi', text: 'hi' }] };
+  for (const [name, node, want] of [
+    ['no slot', look({ looks: ['a'] }), /slot/],
+    ['an unknown slot', look({ slot: 'hat', looks: ['a'] }), /slot/],
+    ['no looks', look({ slot: 'ring' }), /looks/],
+    ['an empty list', look({ slot: 'ring', looks: [] }), /looks/],
+    ['one look twice', look({ slot: 'ring', looks: ['a', 'a'] }), /twice/],
+    ['an empty id', look({ slot: 'ring', looks: [' '] }), /looks/],
+    ['looks on another node', { ...root, id: 'look', looks: ['a'] }, /only for an ascension_looks node/],
+    ['slot on another node', { ...root, id: 'look', slot: 'ring' }, /only for an ascension_looks node/],
+  ]) {
+    assert.match(problems({ ceremony: ['catalog', 'look'], nodes: [catalog, node] }), want, name);
+  }
+});

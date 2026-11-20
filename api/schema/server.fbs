@@ -965,6 +965,12 @@ table ConversationOption {
   // quest it leads to (plan-dialogue-quest-icons.md D2). DERIVED, NEVER
   // AUTHORED, the travel convention. Appended at the table end.
   quest_marker:ubyte = 0;
+  // The appearance item this row is ABOUT, as its flat index into /appearance
+  // + 1 (every portrait, then every ring, the appearance_owned order); 0 =
+  // none. Set on a look step's rows and on the ascension summary's look lines
+  // (plan-ascension-ceremony.md D8), so the client draws the item and words
+  // its name. Appended at the table end.
+  appearance:ushort = 0;
 }
 
 // StoneGift: a look only an ascension stone gives (plan-appearance.md C5b).
@@ -998,6 +1004,11 @@ table ConversationNode {
   // C3 (D20), appended: each line's stable id, parallel to lines; the client
   // shows conv.<id> from the /lang bundle, lines as the fallback.
   line_ids:[string];
+  // The generated row source this node's rows come from (an authored node:
+  // empty), so the client knows which display the node wants: an
+  // "ascension_looks" step draws the look picker instead of rows
+  // (plan-ascension-ceremony.md D8). Appended at the table end.
+  rows:string;
 }
 
 table Conversation {

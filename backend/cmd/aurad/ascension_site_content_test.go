@@ -434,9 +434,11 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	// walks the authored kinds and demands each be served, so it is precisely
 	// what goes red when a NEW row source is authored in content and never wired
 	// which is what it did the moment the memorial's node landed.
-	ceremony := sys.NewAscensionRows(ascension.CatalogOf(probes...))
+	ceremony := sys.NewAscensionRows(ascension.CatalogOf(probes...), loadLangContent(t).appearance)
 	sources := map[mobs.RowSourceKind]sys.RowSource{
 		mobs.RowSourceAscensionCatalog: ceremony,
+		// A look step (plan-ascension-ceremony.md AC2), served by the real looks.
+		mobs.RowSourceAscensionLooks: ceremony,
 		// The loader generates a summary node for every ceremony (D2).
 		mobs.RowSourceAscensionSummary: ceremony,
 		// One name is enough: this asserts WIRING, not content.
@@ -456,14 +458,20 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 		where string
 		node  *mobs.InteractionNode
 	}
+	// ⛑ ONE NODE PER KIND, CHOSEN IN NAME ORDER, first wins. Mobs() walks a
+	// map, and a last-writer-wins pick made this test flaky since AC1: half the
+	// runs read the front stone's summary, whose quest-gated step this learner
+	// cannot pass, so its summary was empty. Sorted, the main stone wins.
+	defs := mobsRegistry.Mobs()
+	sort.Slice(defs, func(i, j int) bool { return defs[i].Name < defs[j].Name })
 	authored := map[mobs.RowSourceKind]authoredNode{}
-	for _, def := range mobsRegistry.Mobs() {
+	for _, def := range defs {
 		if def.Interaction == nil {
 			continue
 		}
 		for i := range def.Interaction.Nodes {
 			node := &def.Interaction.Nodes[i]
-			if node.Rows != "" {
+			if _, taken := authored[node.Rows]; node.Rows != "" && !taken {
 				authored[node.Rows] = authoredNode{where: def.Name + "/" + node.ID, node: node}
 			}
 		}
@@ -477,12 +485,13 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 		}
 		learner := maxLevelLearner(t)
 		if kind == mobs.RowSourceAscensionSummary {
-			// A summary lists the draft, so walk the first step before reading it.
-			step := a.node.Ceremony.Steps[0]
-			rows := source.PresentRows(step, learner)
-			require.NotEmpty(t, rows, a.where)
-			_, ok := source.ApplyRow(step, learner, int(rows[0].OptionIndex), int(rows[0].GrantIndex))
-			require.True(t, ok, a.where)
+			// A summary lists the draft, so walk every step before reading it.
+			for _, step := range a.node.Ceremony.Steps {
+				rows := source.PresentRows(step, learner)
+				require.NotEmpty(t, rows, a.where+" step "+step.ID)
+				_, ok := source.ApplyRow(step, learner, int(rows[0].OptionIndex), int(rows[0].GrantIndex))
+				require.True(t, ok, a.where+" step "+step.ID)
+			}
 		}
 		assert.NotEmpty(t, source.PresentRows(a.node, learner),
 			"%s authors rows %q, but the wired provider serves nothing for it", a.where, kind)
@@ -539,3 +548,4 @@ func (l *contentLearner) BloodlineUnlocks() []string           { return nil }
 func (l *contentLearner) BloodlineAscensions() int             { return 0 }
 func (l *contentLearner) AccountID() int64                     { return 0 }
 func (l *contentLearner) CeremonyDraft() *skills.CeremonyDraft { return &l.draft }
+func (l *contentLearner) AppearanceOwned() []uint16            { return nil }

@@ -299,6 +299,9 @@ await clickRow(CATALOG_ROW);
 const pickable = await clickRow(UNGATED_ROW);
 if (pickable) {
   await page.waitForTimeout(600); // plan-ascension-ceremony.md AC1: the pick walks to the summary; its Confirm opens the countdown
+  // AC2: the main stone's portrait and ring steps come first; skip both.
+  await clickRow('No new look.');
+  await clickRow('No new look.');
   await clickRow('Ascend.');
   await page.waitForTimeout(6200);                       // D21's 5 s countdown
   await page.evaluate(() => {

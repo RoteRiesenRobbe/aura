@@ -254,7 +254,7 @@ func TestRequestAscensionCarriesTheCountBasedItems(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	require.Zero(t, p.BloodlineAscensions(), "a first life")
 
-	require.True(t, s.RequestAscension(p, "", nil))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{}, nil))
 	require.Len(t, ascensions.requested, 1)
 	assert.Equal(t, []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}},
 		ascensions.requested[0].Appearance, "count 0 + this sacrifice = 1 earns the bloodline ring")
@@ -265,7 +265,7 @@ func TestRequestAscensionSkipsWhatIsOwned(t *testing.T) {
 	s.SetAppearance(gatedLooks(t))
 	p.SetAppearanceOwned([]uint16{flatClaws})
 
-	require.True(t, s.RequestAscension(p, "", nil))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{}, nil))
 	assert.Empty(t, ascensions.requested[0].Appearance)
 }
 

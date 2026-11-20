@@ -32,7 +32,7 @@ function el(tag, props = {}, children = []) {
 const QUEST_SENTINELS = ['not_started', 'completed', 'running', 'not_completed'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to', 'bind_restock', 'restock', 'fly'];
-const ROW_KINDS = ['', 'ascension_catalog', 'memorial_names'];
+const ROW_KINDS = ['', 'ascension_catalog', 'memorial_names', 'ascension_looks'];
 const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to', 'reach'];
 
 /* ---- state ------------------------------------------------------------ */
@@ -969,7 +969,7 @@ function dialogueTreeSection(mob, onChange) {
   // plan-ascension-ceremony.md D2: a stone's ordered steps. Shown on a stone
   // (a node with an ascension step) or wherever one is already authored, so an
   // ordinary NPC's form stays as it was.
-  if ('ceremony' in inter || (inter.nodes || []).some((n) => n.rows === 'ascension_catalog')) {
+  if ('ceremony' in inter || (inter.nodes || []).some((n) => n.rows === 'ascension_catalog' || n.rows === 'ascension_looks')) {
     col.body.appendChild(el('div', { class: 'subsection' }, [
       el('label', { text: 'Ceremony (the step node ids in order, one per line; the summary is generated after the last)' }),
       textArea((inter.ceremony || []).join('\n'), (v) => {
@@ -1016,8 +1016,11 @@ function dialogueTreeSection(mob, onChange) {
         oninput: (e) => { node.id = e.target.value; card.dataset.anchorIn = node.id || `__idx${i}`; scheduleRedraw(graphWrap, svg); onChange(); },
       }),
       select(ROW_KINDS, node.rows || '', (v) => {
-        if (v) { node.rows = v; node.options = []; if (v === 'ascension_catalog' && !node.rewards) node.rewards = []; }
-        else { delete node.rows; delete node.rewards; delete node.bonusLooks; }
+        if (v) {
+          node.rows = v; node.options = [];
+          if (v === 'ascension_catalog' && !node.rewards) node.rewards = [];
+          if (v === 'ascension_looks' && !node.slot) { node.slot = 'portrait'; node.looks = node.looks || []; }
+        } else { delete node.rows; delete node.rewards; delete node.bonusLooks; delete node.slot; delete node.looks; }
         rerenderNodes();
       }, (k) => k || 'rows: none'),
       el('div', { class: 'card-actions' }, [
@@ -1048,6 +1051,18 @@ function dialogueTreeSection(mob, onChange) {
           if (ids.length) node.bonusLooks = ids; else delete node.bonusLooks;
           onChange();
         }, 'bonus-looks-textarea'),
+      ]));
+    }
+
+    // plan-ascension-ceremony.md D7: a look step's slot and the looks it offers.
+    if (node.rows === 'ascension_looks') {
+      card.appendChild(el('div', { class: 'subsection' }, [
+        el('label', { text: 'Slot' }),
+        select(['portrait', 'ring'], node.slot || 'portrait', (v) => { node.slot = v; onChange(); }),
+      ]));
+      card.appendChild(el('div', { class: 'subsection' }, [
+        el('label', { text: 'Looks (one appearance id per line, each "grantedBy": "stone", in this slot)' }),
+        textArea((node.looks || []).join('\n'), (v) => { node.looks = splitLines(v); onChange(); }, 'looks-textarea'),
       ]));
     }
 

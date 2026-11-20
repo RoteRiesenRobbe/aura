@@ -341,6 +341,36 @@
     "description": "Ascension summary line when the character ascends without a reward.",
     "placeholders": {"skill": {"type": "String", "description": "Unused here", "example": ""}}
   },
+  "conversation.ascend.summary.portrait": "Portrait: {item}",
+  "@conversation.ascend.summary.portrait": {
+    "description": "Ascension summary line naming the portrait picked at the stone's look step.",
+    "placeholders": {"item": {"type": "String", "description": "The picked portrait's name", "example": "Elder Sage"}}
+  },
+  "conversation.ascend.summary.no-portrait": "Portrait: none",
+  "@conversation.ascend.summary.no-portrait": {
+    "description": "Ascension summary line when the player skipped the stone's portrait step."
+  },
+  "conversation.ascend.summary.ring": "Ring: {item}",
+  "@conversation.ascend.summary.ring": {
+    "description": "Ascension summary line naming the ring picked at the stone's look step.",
+    "placeholders": {"item": {"type": "String", "description": "The picked ring's name", "example": "Heirloom Ring"}}
+  },
+  "conversation.ascend.summary.no-ring": "Ring: none",
+  "@conversation.ascend.summary.no-ring": {
+    "description": "Ascension summary line when the player skipped the stone's ring step."
+  },
+  "conversation.ascend.no-look": "No new look.",
+  "@conversation.ascend.no-look": {
+    "description": "Row at an ascension stone's look step that skips it: the heir's line gets no new portrait or ring from this step."
+  },
+  "conversation.ascend.take-look": "Take this look.",
+  "@conversation.ascend.take-look": {
+    "description": "Button under the look picker at an ascension stone: takes the selected portrait or ring for the heir's line."
+  },
+  "conversation.ascend.pick-a-look": "Choose a look above, or take none.",
+  "@conversation.ascend.pick-a-look": {
+    "description": "Greyed button under the look picker at an ascension stone before the player has selected a portrait or ring."
+  },
   "conversation.ascend.confirm": "Ascend.",
   "@conversation.ascend.confirm": {
     "description": "Ascension summary row that starts the ceremony after a countdown; it ends this character.",

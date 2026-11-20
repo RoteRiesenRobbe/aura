@@ -60,7 +60,7 @@ func TestRequestAscension_GrantsNoStoneGiftByCount(t *testing.T) {
 	s, _, _, p, ascensions, _ := ascendingFixture(t)
 	s.SetAppearance(stoneLooks(t))
 
-	require.True(t, s.RequestAscension(p, "", nil))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{}, nil))
 	assert.Equal(t, []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}},
 		ascensions.requested[0].Appearance)
 }
@@ -70,11 +70,31 @@ func TestRequestAscension_GrantsTheStonesBonus(t *testing.T) {
 	s, _, _, p, ascensions, _ := ascendingFixture(t)
 	s.SetAppearance(stoneLooks(t))
 
-	require.True(t, s.RequestAscension(p, "", []string{"elder"}))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{}, []string{"elder"}))
 	assert.Equal(t, []persist.AppearanceGrant{
 		{Item: "ring-claws", Scope: "bloodline"},
 		{Item: "elder", Scope: "bloodline"},
 	}, ascensions.requested[0].Appearance)
+}
+
+// ⭐ plan-ascension-ceremony.md AC2: the ceremony's look picks reach the one
+// transaction beside the count grants and the bonus. Pinned on the request
+// that reaches Ascend, because CompleteAscension alone can build them while
+// nothing forwards them.
+func TestRequestAscension_ForwardsTheCeremonysLookPicks(t *testing.T) {
+	s, _, _, p, ascensions, _ := ascendingFixture(t)
+	s.SetAppearance(stoneLooks(t))
+
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{
+		UnlockKey:  "FrostShield",
+		Appearance: []persist.AppearanceGrant{{Item: "elder", Scope: "bloodline"}},
+	}, nil))
+	got := ascensions.requested[0]
+	assert.Equal(t, "FrostShield", got.UnlockKey)
+	assert.Equal(t, []persist.AppearanceGrant{
+		{Item: "elder", Scope: "bloodline"},
+		{Item: "ring-claws", Scope: "bloodline"},
+	}, got.Appearance)
 }
 
 // An owned bonus is not granted twice, and an id the catalog lacks (content
@@ -84,7 +104,7 @@ func TestRequestAscension_SkipsAnOwnedOrUnknownBonus(t *testing.T) {
 	s.SetAppearance(stoneLooks(t))
 	p.SetAppearanceOwned([]uint16{flatElder})
 
-	require.True(t, s.RequestAscension(p, "", []string{"elder", "retired-look"}))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{}, []string{"elder", "retired-look"}))
 	assert.Equal(t, []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}},
 		ascensions.requested[0].Appearance)
 }

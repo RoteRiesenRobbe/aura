@@ -30,9 +30,12 @@ import {
     ConversationModel,
     ConversationRow,
     ConversationTree,
+    LOOK_STEP_ROWS,
     NO_GRANT,
 } from './ConversationModel';
 import {onRowPress} from './RowPress';
+import {lookStepItems} from './LookStep';
+import {wornLook} from '../../user-interface/HUD/logic/AppearancePanel';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {IGame} from '../../core/logic/IGame';
 
@@ -63,6 +66,14 @@ let leaveElement: HTMLElement;
  * runs, and it would do the same to a player with an unlucky mouse.
  */
 let renderedSignature = '';
+
+/**
+ * The look step's selected item id ('' = none) and the node it was made on
+ * (plan-ascension-ceremony.md D8). Local state, never sent: only "Take this
+ * look." sends the selected item's row.
+ */
+let lookSelection = '';
+let lookSelectionNode = '';
 
 export function setup() {
     panelElement = document.getElementById('conversation');
@@ -270,9 +281,19 @@ function render() {
     // nothing is on screen, which is the closed state the branch above writes.
     const wasClosed = renderedSignature === '';
 
+    // A look step's selection is the panel's own state (LookStep.ts): it is
+    // dropped when the player stands on another node.
+    const lookStep = view.rowSource === LOOK_STEP_ROWS;
+    if (!lookStep || lookSelectionNode !== model.currentNodeId()) {
+        lookSelection = '';
+        lookSelectionNode = lookStep ? model.currentNodeId() : '';
+    }
+    const worn = lookStep ? wornLook() : null;
+
     // Nothing visible changed — leave the DOM (and the row the player's cursor
-    // is currently over) exactly where it is. See renderedSignature.
-    const signature = JSON.stringify(view);
+    // is currently over) exactly where it is. See renderedSignature. ⚑ The
+    // look step's selection and the worn look are on screen too.
+    const signature = JSON.stringify({view, lookSelection, worn});
     if (signature === renderedSignature) {
         return;
     }
@@ -285,6 +306,17 @@ function render() {
     panelElement.classList.remove('hidden');
     actorElement.textContent = view.actorName;
     linesElement.textContent = view.lines.join('\n');
+
+    // A look step draws the look picker in place of its rows
+    // (plan-ascension-ceremony.md D8); Back stays the panel's own button.
+    if (lookStep) {
+        rowsElement.replaceChildren(...lookStepItems(view.rows, worn, lookSelection, id => {
+            lookSelection = id;
+            render();
+        }, take));
+        backElement.classList.toggle('hidden', !view.canGoBack);
+        return;
+    }
 
     // Rebuilt wholesale each render rather than diffed: a tree is a handful of
     // rows, and rebuilding is what guarantees a taught row cannot linger with a

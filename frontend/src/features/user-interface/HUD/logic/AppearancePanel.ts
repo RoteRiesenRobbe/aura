@@ -106,6 +106,14 @@ export function isOpen(): boolean {
     return open;
 }
 
+/**
+ * The own character's worn look as item ids: where the ascension stone's
+ * look step starts its preview (plan-ascension-ceremony.md D8).
+ */
+export function wornLook(): {portrait: string, ring: string} {
+    return {portrait: portraitAt(portraitWire)?.id ?? '', ring: ringAt(ringWire)?.id ?? ''};
+}
+
 /** The own token's worn look as wire values, from every snapshot. */
 export function setOwnLook(portrait: number, ring: number) {
     portraitWire = portrait;
@@ -191,7 +199,7 @@ function render() {
     }
     renderedKey = key;
     // portraitAt/ringAt resolve 0 and unknown values to the slot's default.
-    const look = {portrait: portraitAt(portraitWire)?.id ?? '', ring: ringAt(ringWire)?.id ?? ''};
+    const look = wornLook();
     renderLookPicker(panelElement, catalog, look, pick =>
         new SelectAppearanceMessage(wireOf('portrait', pick.portrait), wireOf('ring', pick.ring)).send(), {
         shown: () => true,

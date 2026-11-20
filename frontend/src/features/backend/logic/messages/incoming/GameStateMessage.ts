@@ -4,6 +4,7 @@ import * as GroundTextureManager from '../../../../ground-textures/logic/GroundT
 import {formatText, tKey} from '../../../../localization/logic/Locale';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
+import {itemAtFlat} from '../../../../../client-data/Appearance';
 import {decodeLock, decodeObjectives, LockData, lockedText, mobName, objectiveLine} from '../../../../localization/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
@@ -445,11 +446,18 @@ const actorMobIds = new Map<number, number>();
 function rowText(o: AuraApi.ConversationOption): string {
     const english = o.text() ?? '';
     const skillName = o.skillId() ? skillDisplayName(o.skillId()) : '';
+    // A look row or summary line names its appearance item (flat + 1, D8).
+    const itemName = o.appearance() ? itemAtFlat(o.appearance() - 1)?.item.name ?? '' : '';
     let base: string | null = null;
     if (o.textId()) {
         base = contentText(o.textId(), '');
+    } else if (o.appearance() && !itemName) {
+        // The catalog has not landed yet: the server's English names the item.
+        base = english;
     } else if (o.textKey()) {
-        base = tKey(o.textKey(), {skill: skillName}, '');
+        base = tKey(o.textKey(), {skill: skillName, item: itemName}, '');
+    } else if (itemName) {
+        base = itemName;
     } else if (skillName) {
         base = skillName;
     }
@@ -538,10 +546,11 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 travel: o.travel() as TravelDirection,
                 questLevel: o.questLevel(),
                 questMarker: o.questMarker(),
+                appearance: o.appearance(),
             });
         }
 
-        nodes.push({id: node.id() ?? '', lines, rows});
+        nodes.push({id: node.id() ?? '', lines, rows, rowSource: node.rows() ?? ''});
     }
 
     // C3: the header names the conversant from the localized mob catalog by

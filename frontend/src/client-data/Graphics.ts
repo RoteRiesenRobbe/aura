@@ -600,6 +600,10 @@ export const GraphicsConfig = {
         'villager': {packIcon: 'portrait-villager'},
         // Only the ascension stone grants it (C5b) [PLACEHOLDER bust].
         'gold-amulet': {packIcon: 'portrait-gold-amulet'},
+        // The main stone's portrait step (plan-ascension-ceremony.md AC2,
+        // PO pick 2026-11-20) [PLACEHOLDER busts].
+        'crowned-heir': {packIcon: 'portrait-crowned-heir'},
+        'elder-sage': {packIcon: 'portrait-elder-sage'},
     },
 
     // Per-SPECIES portraits for species that share one sprite class, keyed by

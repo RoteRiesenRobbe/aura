@@ -372,7 +372,7 @@ func TestLoad_StoneGiftRefusals(t *testing.T) {
 		"a starter stone gift": `{"id": "p", "slot": "portrait", "starter": true, "grantedBy": "stone", "name": "x"}`,
 		// Granted during the sacrifice, a character item would land on the life
 		// that is ending (D21).
-		"a character stone gift": `{"id": "p", "slot": "portrait", "scope": "character", "grantedBy": "stone", "name": "x"}`,
+		"a character stone gift":       `{"id": "p", "slot": "portrait", "scope": "character", "grantedBy": "stone", "name": "x"}`,
 		"a stone gift without a scope": `{"id": "p", "slot": "portrait", "grantedBy": "stone", "name": "x"}`,
 	}
 	for name, file := range cases {
@@ -414,6 +414,36 @@ func TestCrossValidateStones(t *testing.T) {
 	for _, bad := range []string{"nobody", "crown", "archer"} {
 		_, err := CrossValidateStones(stoneSites{stoneOffering("Stone", bad)}, c)
 		assert.Error(t, err, bad)
+	}
+}
+
+func lookStep(name, slot string, looks ...string) *mobs.MobDefinition {
+	return &mobs.MobDefinition{Name: name, Interaction: &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "look", Rows: mobs.RowSourceAscensionLooks, LookSlot: slot, Looks: looks},
+	}}}
+}
+
+// A look step (plan-ascension-ceremony.md D7) names stone gifts of its own
+// slot, and naming one counts as a stone granting it.
+func TestCrossValidateStones_LookSteps(t *testing.T) {
+	c, err := Load(catalogFS(stoneFiles()), testWorld{})
+	require.NoError(t, err)
+
+	warnings, err := CrossValidateStones(stoneSites{lookStep("Stone", "portrait", "elder")}, c)
+	require.NoError(t, err)
+	assert.Empty(t, warnings, "a look step grants the item, so it is not orphaned")
+
+	for name, def := range map[string]*mobs.MobDefinition{
+		"an unknown id":                  lookStep("Stone", "portrait", "nobody"),
+		"an item its conditions earn":    lookStep("Stone", "portrait", "crown"),
+		"a starter":                      lookStep("Stone", "portrait", "archer"),
+		"a stone gift of the other slot": lookStep("Stone", "ring", "elder"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := CrossValidateStones(stoneSites{def}, c)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "looks")
+		})
 	}
 }
 

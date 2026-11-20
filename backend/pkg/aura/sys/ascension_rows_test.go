@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -229,7 +230,7 @@ func TestAscensionRows_ApplyStashesTheValidatedPick(t *testing.T) {
 // what a snapshot of loaded content is: the slice is immutable after boot, so
 // there is nothing to deep-copy and nothing to go stale.
 func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	site := catalogNode()
 	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
@@ -251,7 +252,7 @@ func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
 		"EmberWard":   {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 		"FrostShield": {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
 		"Paralyze":    {Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 99}}},
-	}))
+	}), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	site := catalogNode()
 	site.Gate.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
@@ -268,7 +269,7 @@ func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
 // first carries an empty gate, the second carries none, and only the second is
 // refused at completion.
 func TestAscensionRows_AnUngatedSiteStillPricesThePick(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 
 	ok := pickAndConfirm(t, src, catalogNode(), p, 1)

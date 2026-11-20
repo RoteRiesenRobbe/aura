@@ -156,7 +156,11 @@ func (s *ConnectionStateSystem) SetCharacterAscensions(ascensions CharacterAscen
 //
 // ⚑ Accepting is not committing. The session survives until the transaction is
 // observed to have succeeded; see drainAscensions.
-func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey string, bonusLooks []string) bool {
+//
+// ⭐ grants carries the ceremony's picks (the gift key, the look picks); the
+// count grants (D21a) and the stone's bonus are appended here, so a look pick
+// and a bonus ride one transaction.
+func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, grants persist.AscensionRequest, bonusLooks []string) bool {
 	if s.ascensions == nil {
 		return false
 	}
@@ -173,8 +177,8 @@ func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey
 		AccountID:   accountID,
 		CharacterID: characterID,
 		ClientUUID:  clientUUID,
-		UnlockKey:   unlockKey,
-		Appearance:  s.ascensionAppearance(p, bonusLooks),
+		UnlockKey:   grants.UnlockKey,
+		Appearance:  append(grants.Appearance, s.ascensionAppearance(p, bonusLooks)...),
 	})
 	return true
 }

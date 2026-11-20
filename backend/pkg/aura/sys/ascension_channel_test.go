@@ -13,9 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -48,7 +50,7 @@ func ascensionChannelSetup(t *testing.T, gates map[string]mobs.Gate) (
 	src := NewAscensionRows(ascension.CatalogOf(
 		ascension.Entry{UnlockKey: "EmberWard", Skill: rewardEmber, Gate: gates["EmberWard"]},
 		ascension.Entry{UnlockKey: "FrostShield", Skill: rewardFrost, Gate: gates["FrostShield"]},
-	))
+	), appearance.Catalog{})
 	sk.SetAscensionSource(src)
 	return caster, conn, src, sk
 }
@@ -95,6 +97,29 @@ func TestAscension_CompletionSpendsTheStashedPick(t *testing.T) {
 	assert.Equal(t, 1, conn.ascendCalls, "exactly one request, at completion")
 	assert.Equal(t, "FrostShield", conn.ascendKey, "the key the row stashed")
 	assert.Nil(t, caster.sc.PendingAscension, "the pick is consumed")
+}
+
+// ⭐ plan-ascension-ceremony.md AC2: the look picks leave the channel in the
+// request, beside the gift, not just the gift's key.
+func TestAscension_CompletionForwardsTheLookPicks(t *testing.T) {
+	caster, conn, _, sk := ascensionChannelSetup(t, nil)
+	c, _, gift, portrait, ring, summary := lookWalk(t)
+	sk.SetAscensionSource(c)
+	for _, click := range []struct {
+		node   *mobs.InteractionNode
+		option int
+	}{{gift, 1}, {portrait, 0}, {ring, lookSkipIndex}, {summary, summaryConfirmIndex}} {
+		_, ok := c.ApplyRow(click.node, caster, click.option, 0)
+		require.True(t, ok)
+	}
+
+	for i := 0; i < ascendCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	require.Equal(t, 1, conn.ascendCalls)
+	assert.Equal(t, "FrostShield", conn.ascendKey)
+	assert.Equal(t, []persist.AppearanceGrant{{Item: "elder", Scope: "bloodline"}}, conn.ascendLooks)
 }
 
 // D14: a bloodline with nothing left to learn still ascends, and the empty key

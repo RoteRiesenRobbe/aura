@@ -566,7 +566,10 @@
 #conversation {
 	width: 44rem;
 	max-width: 90vw;
-	max-height: 40vh;
+	// Tall enough for the ascension stone's look step (preview, tiles, take and
+	// skip rows) and its summary's Confirm without scrolling (PO 2026-11-20,
+	// plan-ascension-ceremony.md AC2; was 40vh). [PLACEHOLDER] 60vh.
+	max-height: 60vh;
 
 	// ⚑ The panel itself does NOT scroll — only .conversationBody does. Putting
 	// overflow on the panel grew a scrollbar down its right edge the moment a
@@ -667,6 +670,29 @@
 					float: right;
 					font-size: @panel-title-size;
 				}
+			}
+
+			// The ascension stone's look step (plan-ascension-ceremony.md D8):
+			// the picker sits where the rows would, the preview above its tiles.
+			&.conversationLookStep {
+				cursor: default;
+				text-align: center;
+				padding-left: 0.8rem;
+
+				&:hover {
+					background: none;
+				}
+
+				// Every medallion, the tiles' too, as the Appearance panel does;
+				// the tile rule in the mixin then sizes the tiles down.
+				.medallion {
+					.medallion-dom();
+					width: 5rem;
+					height: 5rem;
+					margin: 0 auto 0.5rem;
+				}
+
+				.look-picker-tiles();
 			}
 
 			// The quest row's `!` / `?` hangs in the gutter, left of the text: the
@@ -2348,6 +2374,13 @@
 			font-size: @panel-title-size;
 		}
 
+		.look-picker-tiles();
+	}
+}
+
+// The in-game look picker's tiles: the Appearance panel and the ascension
+// stone's look step in the conversation panel (plan-ascension-ceremony.md D8).
+.look-picker-tiles() {
 		.lookOptions {
 			display: flex;
 			flex-wrap: wrap;
@@ -2402,7 +2435,6 @@
 				}
 			}
 		}
-	}
 }
 
 // The help panel (placeholder tutorial): same overlay pattern as #journal —
@@ -2797,6 +2829,9 @@
 	.confirmRowBody {
 		margin-bottom: 0.7em;
 		line-height: 1.35;
+		// confirmBody() puts one pick per line and a blank line before the
+		// closing sentence; without this the newlines collapse into spaces.
+		white-space: pre-line;
 	}
 
 	.confirmRowControls {

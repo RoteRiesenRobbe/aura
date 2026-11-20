@@ -111,6 +111,15 @@ type InteractionNode struct {
 	// appearance.CrossValidateStones, for the same cycle as Rewards.
 	BonusLooks []string
 
+	// LookSlot and Looks are what an `ascension_looks` step offers
+	// (plan-ascension-ceremony.md D7): one slot ("portrait" or "ring") and the
+	// appearance ids in the order a player sees them. ⭐ Looks IS THE STEP'S
+	// INDEX SPACE, the Rewards rule: a row's OptionIndex is its position here.
+	// Shape only: appearance.CrossValidateStones checks that each id is a stone
+	// gift of this slot, for the same cycle as Rewards.
+	LookSlot string
+	Looks    []string
+
 	// Ceremony is the stone's walk this node belongs to (plan-ascension-ceremony.md
 	// D2): set on every step node and on the generated summary, nil everywhere
 	// else. A row source is handed only the node, so this is how a step finds the
@@ -140,10 +149,15 @@ const CeremonySummaryNodeID = "ceremony-summary"
 const RowSourceAscensionSummary RowSourceKind = "ascension_summary"
 
 // IsCeremonyStep reports whether a node with this row source is a ceremony step
-// (D3). One kind ships in AC1; a new step kind is one more case here.
+// (D3). A new step kind is one more case here.
 func (k RowSourceKind) IsCeremonyStep() bool {
-	return k == RowSourceAscensionCatalog
+	return k == RowSourceAscensionCatalog || k == RowSourceAscensionLooks
 }
+
+// RowSourceAscensionLooks is a look step (plan-ascension-ceremony.md D7): the
+// looks its stone offers in one slot, minus the ones this character owns, plus
+// a fixed "No new look" row. The client draws it as the look picker (D8).
+const RowSourceAscensionLooks RowSourceKind = "ascension_looks"
 
 // RowSourceKind names one generated row list. A closed vocabulary with the
 // refuse-at-boot discipline every other authored kind has: a typo must never
@@ -174,6 +188,7 @@ const RowSourceMemorialNames RowSourceKind = "memorial_names"
 var rowSourceKinds = map[string]RowSourceKind{
 	string(RowSourceAscensionCatalog): RowSourceAscensionCatalog,
 	string(RowSourceMemorialNames):    RowSourceMemorialNames,
+	string(RowSourceAscensionLooks):   RowSourceAscensionLooks,
 }
 
 // ParseRowSourceKind resolves an authored row source.
@@ -652,6 +667,11 @@ type jsonInteractionNode struct {
 	Rewards *[]string `json:"rewards"`
 
 	BonusLooks []string `json:"bonusLooks"`
+
+	// Slot and Looks are an `ascension_looks` step's (D7). Looks is a pointer
+	// so an authored `[]` is refused as empty rather than read as absent.
+	Slot  string    `json:"slot"`
+	Looks *[]string `json:"looks"`
 }
 
 // jsonDialogueLine is one line as the loader reads it: {"id": key, "text": "…"}.
@@ -1013,6 +1033,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		if err := mapBonusLooks(m.Name, jn, &node); err != nil {
 			return nil, err
 		}
+		if err := mapLooks(m.Name, jn, &node); err != nil {
+			return nil, err
+		}
 		gate, err := parseGate(jn.Conditions, jn.ConditionsMode, sr)
 		if err != nil {
 			return nil, fmt.Errorf("mob %q: interaction node %q: %w", m.Name, jn.ID, err)
@@ -1213,7 +1236,7 @@ func mapCeremony(mobName string, authored *[]string, in *Interaction) error {
 				return fmt.Errorf("mob %q: interaction.ceremony names %q twice", mobName, id)
 			case !node.Rows.IsCeremonyStep():
 				return fmt.Errorf("mob %q: interaction.ceremony names %q, which is not a step "+
-					"(a step node has rows: %q)", mobName, id, RowSourceAscensionCatalog)
+					"(a step node has rows: %q or %q)", mobName, id, RowSourceAscensionCatalog, RowSourceAscensionLooks)
 			}
 			listed[id] = true
 		}
@@ -1318,6 +1341,41 @@ func mapBonusLooks(mobName string, jn *jsonInteractionNode, node *InteractionNod
 		seen[id] = true
 		node.BonusLooks = append(node.BonusLooks, id)
 	}
+	return nil
+}
+
+// mapLooks takes a look step's slot and looks (plan-ascension-ceremony.md D7),
+// and refuses either key on any other node. Shape only: whether each id is a
+// stone gift of the slot is appearance.CrossValidateStones's question.
+func mapLooks(mobName string, jn *jsonInteractionNode, node *InteractionNode) error {
+	if node.Rows != RowSourceAscensionLooks {
+		if jn.Looks != nil || jn.Slot != "" {
+			return fmt.Errorf("mob %q: interaction node %q: slot and looks are what an %q node offers, and "+
+				"this node is not one", mobName, jn.ID, RowSourceAscensionLooks)
+		}
+		return nil
+	}
+	if jn.Slot != "portrait" && jn.Slot != "ring" {
+		return fmt.Errorf("mob %q: interaction node %q: an %q node needs slot \"portrait\" or \"ring\", not %q",
+			mobName, jn.ID, RowSourceAscensionLooks, jn.Slot)
+	}
+	if jn.Looks == nil || len(*jn.Looks) == 0 {
+		return fmt.Errorf("mob %q: interaction node %q: an %q node must name the looks it offers",
+			mobName, jn.ID, RowSourceAscensionLooks)
+	}
+	seen := make(map[string]bool, len(*jn.Looks))
+	for i, id := range *jn.Looks {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return fmt.Errorf("mob %q: interaction node %q looks %d: must name an appearance id", mobName, jn.ID, i)
+		}
+		if seen[id] {
+			return fmt.Errorf("mob %q: interaction node %q looks %d: %q is listed twice", mobName, jn.ID, i, id)
+		}
+		seen[id] = true
+		node.Looks = append(node.Looks, id)
+	}
+	node.LookSlot = jn.Slot
 	return nil
 }
 

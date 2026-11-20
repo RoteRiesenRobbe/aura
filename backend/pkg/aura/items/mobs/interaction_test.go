@@ -1710,3 +1710,63 @@ func TestMapMobDefinition_RejectsABadCeremony(t *testing.T) {
 		})
 	}
 }
+
+// --- the look step (plan-ascension-ceremony.md AC2, D7) ---
+//
+// A look step offers the looks its stone authors, one slot per step. Whether
+// each id names a stone gift of that slot is appearance.CrossValidateStones's
+// question (this package holds no appearance catalog); the shape is checked here.
+
+func TestMapMobDefinition_ResolvesALookStep(t *testing.T) {
+	def, err := mapInteraction(t, `{"ceremony": ["catalog", "portrait"], "nodes": [
+	  {"id": "catalog", "lines": ["pick"], "rows": "ascension_catalog", "rewards": []},
+	  {"id": "portrait", "lines": ["a face"], "rows": "ascension_looks", "slot": "portrait",
+	   "looks": ["crowned-heir", "elder-sage"]}
+	]}`)
+	require.NoError(t, err)
+	in := def.Interaction
+	step := nodeByID(in, "portrait")
+	assert.Equal(t, RowSourceAscensionLooks, step.Rows)
+	assert.Equal(t, "portrait", step.LookSlot)
+	assert.Equal(t, []string{"crowned-heir", "elder-sage"}, step.Looks)
+	require.NotNil(t, step.Ceremony)
+	require.Len(t, step.Ceremony.Steps, 2)
+	assert.Same(t, step, step.Ceremony.Steps[1])
+	assert.True(t, RowSourceAscensionLooks.IsCeremonyStep())
+}
+
+func TestMapMobDefinition_RejectsABadLookStep(t *testing.T) {
+	wrap := func(node string) string {
+		return `{"ceremony": ["look"], "nodes": [` + node + `]}`
+	}
+	for name, tc := range map[string]struct{ json, want string }{
+		"no slot": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "looks": ["a"]}`), "slot"},
+		"an unknown slot": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "hat", "looks": ["a"]}`), "slot"},
+		"no looks": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "ring"}`), "looks"},
+		"an empty list": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "ring", "looks": []}`), "looks"},
+		"one look twice": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "ring", "looks": ["a", "a"]}`), "twice"},
+		"an empty id": {
+			wrap(`{"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "ring", "looks": [" "]}`), "looks"},
+		"looks on another node": {
+			`{"nodes": [{"id": "root", "lines": ["hi"], "looks": ["a"]}]}`, "looks"},
+		"slot on another node": {
+			`{"nodes": [{"id": "root", "lines": ["hi"], "slot": "ring"}]}`, "slot"},
+		"looks on the gift step": {
+			`{"ceremony": ["c"], "nodes": [{"id": "c", "lines": ["x"], "rows": "ascension_catalog", "rewards": [],
+			  "slot": "ring", "looks": ["a"]}]}`, "looks"},
+		"a look step outside the ceremony": {
+			`{"ceremony": ["c"], "nodes": [{"id": "c", "lines": ["x"], "rows": "ascension_catalog", "rewards": []},
+			  {"id": "look", "lines": ["x"], "rows": "ascension_looks", "slot": "ring", "looks": ["a"]}]}`, "look"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := mapInteraction(t, tc.json)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.want)
+		})
+	}
+}

@@ -329,7 +329,13 @@ for (const v of VENUES) {
     return { portrait: el?.querySelector('.medallionPortrait')?.getAttribute('src'), ring: el?.querySelector('.medallionRing')?.getAttribute('src') };
   }, sel);
   await p2.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-  await p2.waitForSelector(tile('portrait', 'green-hood'), { timeout: 120_000 });
+  // ⚑ Since the one-screen creation (31975ae4, 2026-10-25) the picker sits
+  // behind "Change look": open it, or the tiles are attached but hidden.
+  await p2.waitForSelector('#characterCreation:not(.hidden)', { state: 'visible', timeout: 120_000 });
+  if (!(await p2.isVisible(tile('portrait', 'green-hood')))) {
+    await p2.click('#creationLookToggle');
+  }
+  await p2.waitForSelector(tile('portrait', 'green-hood'), { timeout: 30_000 });
   const tiles = await p2.locator('#characterCreation .lookOption').count();
   ok(tiles === 10, `picker offers ${tiles} starter tiles (8 portraits + 2 rings)`);
   const plainRing = (await srcs(tile('ring', 'ring-plain') + ' .medallion')).ring;

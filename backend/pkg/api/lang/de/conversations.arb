@@ -1,5 +1,7 @@
 {
   "@@locale": "de",
+  "conv.AscensionStone.a-face-for-the-lives": "Ein Gesicht für die Leben, die folgen. Nimm eines, oder behalte die Gesichter, die du hast.",
+  "conv.AscensionStone.a-ring-to-pass-down": "Ein Ring, der in der Linie weitergegeben wird. Nimm ihn, oder lass ihn hier.",
   "conv.AscensionStone.ascension-stone-a-life-can": "Aufstiegsstein. Hier kann man ein Leben niederlegen.",
   "conv.AscensionStone.confirming-ends-this-character": "Bestätigen beendet diese Figur. Ihr Name kommt auf den Gedenkstein.",
   "conv.AscensionStone.pick-one-reward-it-unlocks": "Wähle eine Belohnung. Sie wird für diesen Figurenplatz dauerhaft freigeschaltet.",

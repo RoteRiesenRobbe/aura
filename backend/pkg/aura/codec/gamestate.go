@@ -463,6 +463,7 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 				AuraApi.ConversationOptionAddLocksAny(builder, opt.LocksAny)
 			}
 			AuraApi.ConversationOptionAddQuestMarker(builder, byte(opt.QuestMarker))
+			AuraApi.ConversationOptionAddAppearance(builder, opt.Appearance)
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))
@@ -496,6 +497,10 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			lineIDs = builder.EndVector(len(idOffsets))
 		}
 
+		var rows flatbuffers.UOffsetT
+		if node.Rows != "" {
+			rows = builder.CreateString(node.Rows)
+		}
 		id := builder.CreateString(node.ID)
 		AuraApi.ConversationNodeStart(builder)
 		AuraApi.ConversationNodeAddId(builder, id)
@@ -503,6 +508,9 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 		AuraApi.ConversationNodeAddOptions(builder, options)
 		if lineIDs != 0 {
 			AuraApi.ConversationNodeAddLineIds(builder, lineIDs)
+		}
+		if rows != 0 {
+			AuraApi.ConversationNodeAddRows(builder, rows)
 		}
 		nodeOffsets = append(nodeOffsets, AuraApi.ConversationNodeEnd(builder))
 	}

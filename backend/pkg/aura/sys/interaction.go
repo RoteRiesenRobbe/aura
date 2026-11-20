@@ -892,6 +892,10 @@ type learner interface {
 	// is talking to (plan-ascension-ceremony.md D4): a step pick writes it, the
 	// summary reads it, Confirm copies it into the stash.
 	CeremonyDraft() *skills.CeremonyDraft
+	// AppearanceOwned is every locked look this character owns, as flat
+	// indices (plan-appearance.md C5): a look step offers only the rest
+	// (plan-ascension-ceremony.md D7). A plain slice, read per tick.
+	AppearanceOwned() []uint16
 }
 
 // RowSource supplies the rows a node's authored tree cannot carry
@@ -1017,6 +1021,8 @@ func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) 
 			Lines:   lines,
 			LineIDs: lineIDs,
 			Options: byNode[node.ID],
+			// The display the client picks (plan-ascension-ceremony.md D8).
+			Rows: string(node.Rows),
 		})
 	}
 	stampQuestMarkers(in, c, p)

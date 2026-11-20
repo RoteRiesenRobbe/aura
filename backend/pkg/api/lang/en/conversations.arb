@@ -1,5 +1,13 @@
 {
   "@@locale": "en",
+  "conv.AscensionStone.a-face-for-the-lives": "A face for the lives that follow. Take one, or keep the faces you have.",
+  "@conv.AscensionStone.a-face-for-the-lives": {
+    "description": "Ascension Stone speaks this in the conversation, node \"portrait\", line 1."
+  },
+  "conv.AscensionStone.a-ring-to-pass-down": "A ring to pass down the line. Take it, or leave it here.",
+  "@conv.AscensionStone.a-ring-to-pass-down": {
+    "description": "Ascension Stone speaks this in the conversation, node \"ring\", line 1."
+  },
   "conv.AscensionStone.ascension-stone-a-life-can": "Ascension stone. A life can be laid down here.",
   "@conv.AscensionStone.ascension-stone-a-life-can": {
     "description": "Ascension Stone speaks this in the conversation, node \"root\", line 1."
@@ -1863,11 +1871,11 @@
   "stock.accept-well-met": "Well met.",
   "@stock.accept-well-met": {
     "description": "Shared phrase \"accept-well-met\": every dialogue line that names it says this, so one edit changes all of them (D28). An NPC says it right after the player accepts a quest; NPCs pick the one that fits their voice."
-  },  "stock.ascension-summary": "Your ascension.",
+  },
+  "stock.ascension-summary": "Your ascension.",
   "@stock.ascension-summary": {
     "description": "Shared phrase \"ascension-summary\": the header of the generated summary at the end of an ascension stone's ceremony (plan-ascension-ceremony.md D6). Every pick is listed below it, then the Confirm that ends this character."
   },
-
   "stock.ask-assistance": "Any assistance for the task?",
   "@stock.ask-assistance": {
     "description": "Shared phrase \"ask-assistance\": every dialogue line that names it says this, so one edit changes all of them (D28)."

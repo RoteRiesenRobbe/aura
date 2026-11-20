@@ -134,8 +134,13 @@ questMarker():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+appearance():number {
+  const offset = this.bb!.__offset(this.bb_pos, 40);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(18);
+  builder.startObject(19);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -222,12 +227,16 @@ static addQuestMarker(builder:flatbuffers.Builder, questMarker:number) {
   builder.addFieldInt8(17, questMarker, 0);
 }
 
+static addAppearance(builder:flatbuffers.Builder, appearance:number) {
+  builder.addFieldInt16(18, appearance, 0);
+}
+
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number, textIdOffset:flatbuffers.Offset, replyIdOffset:flatbuffers.Offset, textKeyOffset:flatbuffers.Offset, replyKeyOffset:flatbuffers.Offset, locksOffset:flatbuffers.Offset, locksAny:boolean, questMarker:number):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number, questLevel:number, textIdOffset:flatbuffers.Offset, replyIdOffset:flatbuffers.Offset, textKeyOffset:flatbuffers.Offset, replyKeyOffset:flatbuffers.Offset, locksOffset:flatbuffers.Offset, locksAny:boolean, questMarker:number, appearance:number):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -247,6 +256,7 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addLocks(builder, locksOffset);
   ConversationOption.addLocksAny(builder, locksAny);
   ConversationOption.addQuestMarker(builder, questMarker);
+  ConversationOption.addAppearance(builder, appearance);
   return ConversationOption.endConversationOption(builder);
 }
 }

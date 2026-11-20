@@ -22,7 +22,7 @@
   "skills": [],
   "interaction": {
     "range": 2.0,
-    "ceremony": ["catalog"],
+    "ceremony": ["catalog", "portrait", "ring"],
     "nodes": [
       {
         "id": "ready",
@@ -69,6 +69,41 @@
           {"id": "pick-one-reward-it-unlocks"},
           {"id": "whatever-you-pick-the-line"},
           {"id": "confirming-ends-this-character"}
+        ]
+      },
+      {
+        "id": "portrait",
+        "conditions": [
+          {
+            "kind": "minLevel",
+            "value": 30
+          }
+        ],
+        "rows": "ascension_looks",
+        "slot": "portrait",
+        "looks": [
+          "crowned-heir",
+          "elder-sage"
+        ],
+        "lines": [
+          {"id": "a-face-for-the-lives"}
+        ]
+      },
+      {
+        "id": "ring",
+        "conditions": [
+          {
+            "kind": "minLevel",
+            "value": 30
+          }
+        ],
+        "rows": "ascension_looks",
+        "slot": "ring",
+        "looks": [
+          "ring-heirloom"
+        ],
+        "lines": [
+          {"id": "a-ring-to-pass-down"}
         ]
       },
       {

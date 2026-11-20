@@ -1295,8 +1295,8 @@ system ships blind.
 >    2026-11-15 (the spellbook's Campfire tab; PO: "works visually"). ✅ CT3 DONE 2026-11-17
 >    (the rest buffs; PO: "works"). Owed: the German strings, the reconnect ruling.
 > 6. ✅ **Quest icons QI1, DONE 2026-11-17** (`archive/plan-dialogue-quest-icons.md`; PO: "works").
-> 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`), once approved. ⭐ NEXT
->    (its plan's approval is owed first).
+> 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`, approved 2026-11-17).
+>    ✅ AC1 DONE 2026-11-18, ✅ AC2 DONE 2026-11-20 (their joint PO look: "all works"). ⭐ NEXT: AC3.
 > 8. **Audio C1 onward** (`plan-audio.md`).
 > 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
 >

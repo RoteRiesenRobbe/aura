@@ -310,6 +310,9 @@ if (!reachedCatalog) {
 } else {
   await clickRow(GIFT);
   await page.waitForTimeout(600); // plan-ascension-ceremony.md AC1: the pick walks to the summary; its Confirm opens the countdown
+  // AC2: the main stone's portrait and ring steps come first; skip both.
+  await clickRow('No new look.');
+  await clickRow('No new look.');
   await clickRow('Ascend.');
   await page.waitForTimeout(6200);           // D21's 5 s confirm countdown
   await clickIn('#confirmRow .confirmRowConfirm', 'confirm ascension');

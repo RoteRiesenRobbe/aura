@@ -66,8 +66,15 @@ lineIdsLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+rows():string|null
+rows(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+rows(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startConversationNode(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 }
 
 static addId(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset) {
@@ -122,17 +129,22 @@ static startLineIdsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 }
 
+static addRows(builder:flatbuffers.Builder, rowsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, rowsOffset, 0);
+}
+
 static endConversationNode(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationNode(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, linesOffset:flatbuffers.Offset, optionsOffset:flatbuffers.Offset, lineIdsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createConversationNode(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, linesOffset:flatbuffers.Offset, optionsOffset:flatbuffers.Offset, lineIdsOffset:flatbuffers.Offset, rowsOffset:flatbuffers.Offset):flatbuffers.Offset {
   ConversationNode.startConversationNode(builder);
   ConversationNode.addId(builder, idOffset);
   ConversationNode.addLines(builder, linesOffset);
   ConversationNode.addOptions(builder, optionsOffset);
   ConversationNode.addLineIds(builder, lineIdsOffset);
+  ConversationNode.addRows(builder, rowsOffset);
   return ConversationNode.endConversationNode(builder);
 }
 }

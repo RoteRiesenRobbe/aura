@@ -78,7 +78,16 @@ export interface ConversationRow {
      * derive the glyph outside the view, e.g. from questMarkerFor.
      */
     questMarker: number;
+    /**
+     * The appearance item this row is about, as its flat index + 1; 0 = none
+     * (plan-ascension-ceremony.md D8): a look step's rows and the summary's
+     * look lines.
+     */
+    appearance: number;
 }
+
+/** The row source of a look step: the panel draws the look picker (D8). */
+export const LOOK_STEP_ROWS = 'ascension_looks';
 
 /**
  * Which way a row moves the player. Wire values are permanent.
@@ -100,6 +109,8 @@ export interface ConversationNode {
     id: string;
     lines: string[];
     rows: ConversationRow[];
+    /** The generated row source; absent or '' for an authored node: which display it wants. */
+    rowSource?: string;
 }
 
 /** The whole personalised tree, as one snapshot delivered it. */
@@ -119,6 +130,8 @@ export interface ConversationView {
     /** The actor's lines for the current node, plus any reply already spoken. */
     lines: string[];
     rows: ConversationRow[];
+    /** The node's row source: LOOK_STEP_ROWS draws the look picker (D8). */
+    rowSource: string;
     /** Whether a Back button belongs on screen (never authored — D15). */
     canGoBack: boolean;
     /**
@@ -214,6 +227,7 @@ export class ConversationModel {
             // lines below are new, so the answer leads them (N1).
             lines: this.replyLines(node),
             rows: node.rows,
+            rowSource: node.rowSource ?? '',
             canGoBack: this.backStack.length > 0,
             showLeave: this.backStack.length === 0,
         };

@@ -12,9 +12,17 @@
   "@appearance.chainmail-coif.name": {
     "description": "Name of the look \"chainmail-coif\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   },
+  "appearance.crowned-heir.name": "Crowned Heir",
+  "@appearance.crowned-heir.name": {
+    "description": "Name of the look \"crowned-heir\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
   "appearance.default.name": "Morion Helm",
   "@appearance.default.name": {
     "description": "Name of the look \"default\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.elder-sage.name": "Elder Sage",
+  "@appearance.elder-sage.name": {
+    "description": "Name of the look \"elder-sage\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   },
   "appearance.gold-amulet.name": "Gold Amulet",
   "@appearance.gold-amulet.name": {
@@ -35,6 +43,10 @@
   "appearance.ring-forest.name": "Forest Ring",
   "@appearance.ring-forest.name": {
     "description": "Name of the look \"ring-forest\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
+  },
+  "appearance.ring-heirloom.name": "Heirloom Ring",
+  "@appearance.ring-heirloom.name": {
+    "description": "Name of the look \"ring-heirloom\" (a portrait or a ring of the player's medallion), shown in the appearance picker."
   },
   "appearance.ring-leather-claws.name": "Clawed Leather Ring",
   "@appearance.ring-leather-claws.name": {

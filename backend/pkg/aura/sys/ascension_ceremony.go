@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -31,8 +32,9 @@ type ceremonyStep interface {
 	validate(p learner, key string) bool
 	// grant adds the pick's writes to the one ascension transaction.
 	grant(key string, req *persist.AscensionRequest)
-	// summaryLine is the pick's inert line on the summary (D6).
-	summaryLine(index int, key string) model.ConversationOption
+	// summaryLine is the pick's inert line on the summary (D6). It takes the
+	// step's node because a skip has no key to name its slot by.
+	summaryLine(node *mobs.InteractionNode, index int, key string) model.ConversationOption
 }
 
 // summaryConfirmIndex is where the summary's Confirm row always sits: fixed,
@@ -46,16 +48,17 @@ type ascensionCeremony struct {
 	steps map[mobs.RowSourceKind]ceremonyStep
 }
 
-// NewAscensionRows builds the stone's row source: the ceremony with the gift
-// as its one step kind. Exported because core/game.go installs it for the
-// step kinds and the summary.
-func NewAscensionRows(catalog ascension.Catalog) AscensionSource {
-	return newAscensionCeremony(newAscensionRows(catalog))
+// NewAscensionRows builds the stone's row source: the ceremony with its two
+// step kinds, the gift and the look (AC2). Exported because core/game.go
+// installs it for every step kind and the summary.
+func NewAscensionRows(catalog ascension.Catalog, looks appearance.Catalog) AscensionSource {
+	return newAscensionCeremony(newAscensionRows(catalog), newAscensionLooks(looks))
 }
 
-func newAscensionCeremony(gift *ascensionRows) *ascensionCeremony {
+func newAscensionCeremony(gift *ascensionRows, looks *ascensionLooks) *ascensionCeremony {
 	return &ascensionCeremony{steps: map[mobs.RowSourceKind]ceremonyStep{
 		mobs.RowSourceAscensionCatalog: gift,
+		mobs.RowSourceAscensionLooks:   looks,
 	}}
 }
 
@@ -168,7 +171,7 @@ func (c *ascensionCeremony) summaryRows(node *mobs.InteractionNode, p learner) [
 	steps, complete := c.drafted(node, p)
 	rows := make([]model.ConversationOption, 0, len(steps)+1)
 	for i, s := range steps {
-		rows = append(rows, c.steps[s.node.Rows].summaryLine(i, s.pick.Key))
+		rows = append(rows, c.steps[s.node.Rows].summaryLine(s.node, i, s.pick.Key))
 	}
 	if complete {
 		rows = append(rows, model.ConversationOption{

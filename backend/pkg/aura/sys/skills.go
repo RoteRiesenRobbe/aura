@@ -102,9 +102,11 @@ type ConnState interface {
 	// RequestAscension spends a completed ceremony (plan-ascension.md §4.6): it
 	// enforces P1 against the LIVE level, runs the sacrifice transaction
 	// off-loop, and ends the session when it commits. Reports whether the
-	// request was accepted at all. bonusLooks is the stone's bonus
-	// (plan-appearance.md C5b), granted in the same transaction.
-	RequestAscension(p model.PlayerEntity, unlockKey string, bonusLooks []string) bool
+	// request was accepted at all. grants is what the ceremony's picks grant
+	// (the gift key and the look picks, plan-ascension-ceremony.md D9);
+	// bonusLooks is the stone's bonus (plan-appearance.md C5b). Both land in
+	// the same transaction.
+	RequestAscension(p model.PlayerEntity, grants persist.AscensionRequest, bonusLooks []string) bool
 }
 
 // SkillSystem applies active-aura effects and cooldown-skill bursts for every
@@ -2015,7 +2017,7 @@ func (s *SkillSystem) applyAscension(e skillEntity) {
 	if s.connState == nil {
 		return // no world to ascend into (a sim or a test)
 	}
-	if !s.connState.RequestAscension(p, grants.UnlockKey, pick.BonusLooks) {
+	if !s.connState.RequestAscension(p, grants, pick.BonusLooks) {
 		log.Printf("⚰️ '%s' completed the ceremony but the request was refused", p.Name())
 		sayToPlayer(p, ascensionRefusedLine)
 	}

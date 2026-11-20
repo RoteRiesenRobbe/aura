@@ -72,6 +72,10 @@ type ConversationNode struct {
 	Lines   []string
 	LineIDs []string // plan-localization.md D20, parallel to Lines
 	Options []ConversationOption
+	// Rows is the generated row source the options came from, empty for an
+	// authored node: the display the client picks (plan-ascension-ceremony.md
+	// D8, the look picker on an "ascension_looks" step).
+	Rows string
 }
 
 // LockKind and LockReason live beside the condition vocabulary they word
@@ -177,4 +181,8 @@ type ConversationOption struct {
 	TextKey, ReplyKey string
 	Locks             []LockReason
 	LocksAny          bool
+	// Appearance is the appearance item this row is about, as its flat index
+	// + 1; 0 = none (plan-ascension-ceremony.md D8): a look step's rows and the
+	// summary's look lines.
+	Appearance uint16
 }

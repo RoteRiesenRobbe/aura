@@ -391,5 +391,6 @@ func TestEmbeddedAppearance_LoadsAndMatchesSource(t *testing.T) {
 	}
 	assert.Equal(t, 8, starters(want.Portraits()), "the starter portraits (D30 as picked 2026-10-20)")
 	assert.Equal(t, 2, starters(want.Rings()), "the starter rings (D30)")
-	assert.Len(t, want.Gated(), 4, "one unlock per scope (C5, PO 2026-10-21) + the main stone's gift (C5b)")
+	assert.Len(t, want.Gated(), 7, "one unlock per scope (C5, PO 2026-10-21) + the main stone's gift (C5b) "+
+		"+ its two portraits and one ring (plan-ascension-ceremony.md AC2)")
 }

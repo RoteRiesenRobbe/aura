@@ -285,7 +285,7 @@ func (a *ascensionRows) grant(key string, req *persist.AscensionRequest) { req.U
 
 // summaryLine names the gift on the summary: "Gift: <name>" or "Gift: none".
 // The client words it from the key and the skill id in its own language.
-func (a *ascensionRows) summaryLine(index int, key string) model.ConversationOption {
+func (a *ascensionRows) summaryLine(_ *mobs.InteractionNode, index int, key string) model.ConversationOption {
 	row := model.ConversationOption{
 		OptionIndex: uint8(index),
 		GrantIndex:  model.ConversationNoGrant,

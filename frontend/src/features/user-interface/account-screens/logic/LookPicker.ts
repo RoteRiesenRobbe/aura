@@ -25,8 +25,9 @@ export interface TileRules {
 }
 
 /**
- * The look picker (plan-appearance.md D9): one picker, two mounts, character
- * creation and the in-game Appearance panel. It draws the given look into
+ * The look picker (plan-appearance.md D9): one picker, three mounts, character
+ * creation, the in-game Appearance panel and the ascension stone's look step
+ * (plan-ascension-ceremony.md D8, one slot only). It draws the given look into
  * root's `.lookPreview`, then each shown item into its slot's `.lookOptions`
  * as the medallion it would make with the other slot as given. A press hands
  * the look with that slot replaced to onPick; the mount decides what the
@@ -102,8 +103,13 @@ export function renderLookPicker(root: HTMLElement, catalog: AppearanceCatalog, 
         return tile;
     };
     for (const slot of ['portrait', 'ring'] as AppearanceSlot[]) {
+        // A mount may draw one slot only (the ascension stone's look step,
+        // plan-ascension-ceremony.md D8): it holds no container for the other.
+        const container = root.querySelector(`.lookOptions[data-slot="${slot}"]`);
+        if (!container) {
+            continue;
+        }
         const items = slot === 'portrait' ? catalog.portraits : catalog.rings;
-        root.querySelector(`.lookOptions[data-slot="${slot}"]`)
-            .replaceChildren(...items.filter(shown).map(item => option(slot, item)));
+        container.replaceChildren(...items.filter(shown).map(item => option(slot, item)));
     }
 }

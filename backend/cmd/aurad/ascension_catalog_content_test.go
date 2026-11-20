@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
@@ -147,7 +148,7 @@ func TestAscensionSites_OfferExactlyWhatTheCatalogHolds(t *testing.T) {
 // had come apart.
 func TestAscensionCatalog_AFirstLifeSeesFivePickableAndThreeLocked(t *testing.T) {
 	catalog, mobsRegistry := loadedCatalog(t)
-	source := sys.NewAscensionRows(catalog)
+	source := sys.NewAscensionRows(catalog, appearance.Catalog{})
 
 	rows := source.PresentRows(catalogRowsNode(t, mobsRegistry, "AscensionStone"), newCatalogLearner())
 	require.Len(t, rows, 8, "no empty-pick row while real choices are on screen (D14)")
@@ -209,6 +210,7 @@ func (l *catalogLearner) BloodlineUnlocks() []string           { return nil }
 func (l *catalogLearner) BloodlineAscensions() int             { return 0 }
 func (l *catalogLearner) AccountID() int64                     { return 0 }
 func (l *catalogLearner) CeremonyDraft() *skills.CeremonyDraft { return &l.draft }
+func (l *catalogLearner) AppearanceOwned() []uint16            { return nil }
 
 // --- the memorial's content (plan-ascension.md C3 step 6, D11) ---
 

@@ -29,10 +29,12 @@ const QUEST_ID_PATTERN = /^[a-z0-9-]+$/; // quests.idPattern: a quest or stage i
 // world.CrossValidateTravelAnchors has and this port does not). Exported so
 // app.js offers exactly this list rather than a second copy.
 export const TRAVEL_MODES = ['home_campfire', 'caster', 'anchor'];
-const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names'];
+const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names', 'ascension_looks'];
 // plan-ascension-ceremony.md D2-D3: the step kinds a ceremony lists, and the id
 // the loader gives its generated summary.
-const CEREMONY_STEP_KINDS = ['ascension_catalog'];
+const CEREMONY_STEP_KINDS = ['ascension_catalog', 'ascension_looks'];
+// plan-ascension-ceremony.md D7: the slots a look step offers.
+const LOOK_SLOTS = ['portrait', 'ring'];
 const CEREMONY_SUMMARY_ID = 'ceremony-summary';
 // 'reach' (plan-region-identity.md R2) names a REGION id; whether the id is
 // listed and drawn needs api/regions/ and the zones, which only Go's
@@ -366,6 +368,22 @@ export function validateInteraction(mob, idx) {
         else if (seenLook.has(id)) err(`${nWho}: bonusLooks "${id}" is listed twice`);
         seenLook.add(id);
       }
+    }
+    // plan-ascension-ceremony.md D7, a port of mobs.mapLooks (shape only;
+    // aurad checks each id names a stone gift of the slot).
+    if (node.rows === 'ascension_looks') {
+      if (!LOOK_SLOTS.includes(node.slot)) {
+        err(`${nWho}: an ascension_looks node needs slot ${LOOK_SLOTS.join(' or ')}`);
+      }
+      if (!(node.looks || []).length) err(`${nWho}: an ascension_looks node must name the looks it offers`);
+      const seenStepLook = new Set();
+      for (const id of node.looks || []) {
+        if (!id?.trim()) err(`${nWho}: a looks entry must name an appearance id`);
+        else if (seenStepLook.has(id)) err(`${nWho}: looks "${id}" is listed twice`);
+        seenStepLook.add(id);
+      }
+    } else if ('looks' in node || 'slot' in node) {
+      err(`${nWho}: slot and looks are only for an ascension_looks node`);
     }
 
     // A gate: the node's own, or one line's (a greeting that changes once the

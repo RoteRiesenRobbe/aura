@@ -103,8 +103,16 @@ func (rcv *ConversationNode) LineIdsLength() int {
 	return 0
 }
 
+func (rcv *ConversationNode) Rows() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func ConversationNodeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(5)
 }
 func ConversationNodeAddId(builder *flatbuffers.Builder, id flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(id), 0)
@@ -126,6 +134,9 @@ func ConversationNodeAddLineIds(builder *flatbuffers.Builder, lineIds flatbuffer
 }
 func ConversationNodeStartLineIdsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func ConversationNodeAddRows(builder *flatbuffers.Builder, rows flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(rows), 0)
 }
 func ConversationNodeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

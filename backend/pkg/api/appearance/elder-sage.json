@@ -1,0 +1,7 @@
+{
+  "_comment": "A portrait the main ascension stone offers in its portrait step (plan-ascension-ceremony.md D7, AC2): picked there, the slot's line owns it. PONETI bust Human_37 (Graphics.ts playerPortraits). [PLACEHOLDER bust and name]",
+  "id": "elder-sage",
+  "slot": "portrait",
+  "scope": "bloodline",
+  "grantedBy": "stone"
+}

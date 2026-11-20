@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-20, the ascension ceremony AC2 wrap: the CAMPFIRE TRAITS CT3 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: CAMPFIRE TRAITS CT3, the rest buffs** ✅ DONE 2026-11-17 `c8c8996c`, PO: "works" (ledger: `docs/plan-campfire-traits.md` §11 CT3; R27): 5 s in a player camp's heal ring grants the owner's three buff traits to every player resting there (5 min, strongest wins); the pool reads the max-Focus buff; death and logout clear by construction. R27: a tray circle carries its granted level, so a stranger's tooltip shows the real strength. ⚑ An F5 drops the buffs (charges survive it): unruled. ⚑ `buff-tray` red at HEAD, a stale passive leg. **Schema: DB none · wire +1 (`OwnEffect.level`, struct 24 → 32 B) · conf none · lang none.** Verified: Go 0 FAIL · db-test ok · vitest 2002/0 · typecheck · `ct3-rest-buffs` 13/13 · `ct1`/`ct2`/`r4-camp` green · `hygiene-wire-prune` clean.
+
 *(2026-11-18, the ascension ceremony AC1 wrap: the CAMPFIRE TRAITS CT2 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: CAMPFIRE TRAITS CT2, the spellbook's Campfire tab** ✅ DONE 2026-11-15 `99115ff7`, PO: "works visually" (ledger: `docs/plan-campfire-traits.md` §11 CT2; R25-R26): a fourth tab, rows in their own pane (`#campTraitList`; `#spellbookList` stays trait-free for the harnesses); six catalog traits, + / −, a traits-only Reset, a points pill; the Camp cap carries the charges trait (L4 closed); tabs never hyphenate. ⚑ A granted trait's R22 floor is not on the wire. **Schema: DB none · wire none · conf none · lang +9 UI keys.** Verified: vitest 2000/0 · typecheck · `ct2-camp-tab` 19/19 · `ct1` 16/16 · `r4-camp` 31/31 · `r7` repaired.

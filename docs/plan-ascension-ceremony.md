@@ -1,9 +1,9 @@
 # Plan: Ascension ceremony: one ascension, several picks in order, a summary at the end
 
 **Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
-proposed). Designed 2026-10-22, nothing built.** Still open in §7: Q2 (AC2's placeholder
-items), Q5 (the per-pick home form, deferred to the first faction stone). Three chunks
-(§5); AC1 DONE 2026-11-18 `a8a240a5` (§11), its PO look deferred to after AC2. It needs nothing from appearance C5c, and C5c needs nothing from it.
+proposed). Designed 2026-10-22.** Still open in §7: Q5 (the per-pick home form,
+deferred to the first faction stone). Three chunks (§5); AC1 DONE 2026-11-18 `a8a240a5`,
+AC2 DONE 2026-11-20 `[uncommitted]`, their joint PO look passed 2026-11-20 (§11); AC3 next. It needs nothing from appearance C5c, and C5c needs nothing from it.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -356,14 +356,15 @@ the default spawn. A fresh account still lands on the default.
   option index, locked items are inert; the client's row-source name mirror.
 - **Codec:** the two new fields round-trip; old clients ignore them.
 - **`verify` harness:** extend the ascension leg (gift → summary → confirm) in AC1, and
-  `c1-medallions` with the stone picker leg in AC2.
+  `c1-medallions` with the stone picker leg in AC2 (built in `c2a-ascension-site`
+  instead, which already walks the ceremony; §11 AC2).
 - **PO in-game look** per chunk (§5).
 
 ## 7. Open PO calls
 
 - **Q1. [RULED 2026-11-17 as proposed] Summary wording and the modal text.** Proposed: header "Your ascension", one
   line per step "<label>: <pick or none>", modal "These are granted and <name> ends.".
-- **Q2. AC2's placeholder content:** which bust and which ring family the main stone
+- **Q2. [RULED 2026-11-20: busts PONETI 28 + 37 and the forest ring, §11 AC2] AC2's placeholder content:** which bust and which ring family the main stone
   offers. Proposed: two spare PONETI busts and one existing ring family, all bloodline
   scope [PLACEHOLDER].
 - **Q3. [RULED 2026-11-17 as proposed] Does the front stone (`front-ascension-stone`) get look steps too?** Proposed: no,
@@ -489,4 +490,68 @@ screen (a DOM dump on failure: visible, 12 look tiles, 2 selected) and then
 times out waiting for a VISIBLE `.lookOption.selected`; owned by
 `plan-appearance.md`.
 
-**In-game (PO):** as §5 AC1, deferred by the PO 2026-11-18 to one look after AC2 (AC2 builds on the same summary); AC1 does not go live before it.
+**In-game (PO):** as §5 AC1, deferred by the PO 2026-11-18 to one look after AC2; passed with AC2 on 2026-11-20 (§11 AC2).
+
+### AC2 - the look step and the stone picker: DONE 2026-11-20 `[uncommitted]`, PO look of AC1 + AC2 passed 2026-11-20 ("all works")
+
+**Built:** the `ascension_looks` row source (D7): a step node authors `slot`
+(portrait | ring) and `looks` (stone-gift ids); `mobs.mapLooks` refuses a bad or
+missing slot, an empty list, duplicates, empty ids and either key on a non-look
+node; `appearance.CrossValidateStones` refuses an id that is not a stone gift of
+that slot. The kind (`sys/ascension_looks.go`) offers the step's unowned looks
+at their stable list index, plus the skip row at 254 ("No new look."); a step
+with nothing left presents no rows and the walk skips it. A pick only fills the
+draft; the summary reads "Portrait: <name>" / "Ring: none"; completion re-judges
+ownership and appends `AppearanceGrant{Item, Scope}` to the request. Wire (D8):
+`ConversationNode.rows` names the row source, `ConversationOption.appearance`
+carries the item's flat index + 1. Client: `LookStep.ts` draws the picker's
+tiles in the panel for a look step (selection is local; a take row, locked until
+a tile is selected, sends the pick); the tile CSS moved into a shared
+`.look-picker-tiles()` mixin. `RequestAscension` takes the looks beside the gift.
+Editor: the slot select and the looks textarea, `validate.mjs` mirrors the
+refusals. Content: three bloodline-scope stone gifts (Crowned Heir = PONETI
+Human_28, Elder Sage = Human_37, Heirloom Ring = the forest ring art) and the
+`portrait` + `ring` steps on the main stone, gated `minLevel` 30 like the gift
+(`"ceremony": ["catalog","portrait","ring"]`); `plan-appearance.md` D21(b) + C5b
+point here.
+
+**Rulings (PO 2026-11-20, choice prompts):**
+- **Q2: two portraits and one ring**, busts PONETI 28 + 37, the forest ring
+  family, all bloodline scope [PLACEHOLDER]. The PO: a new asset on this machine
+  always comes from the PONETI pack (memory `feedback_always_use_icon_pack`).
+- **The conversation panel grows to 60vh on desktop** (was 40vh; the phone's
+  70vh unchanged) [PLACEHOLDER], so the look step and the summary fit without
+  scrolling. It applies to every conversation (on the PO's look checklist; "all works").
+- **The confirm modal lists one pick per line** (PO look): `confirmBody` always
+  built the lines with `\n`, but `.confirmRowBody` collapsed them into one run-on
+  sentence since AC1; `white-space: pre-line` fixes it.
+
+**Departures:**
+- **No locked look rows.** A stone gift never carries conditions, so a look row
+  can never be locked; the branch is not built.
+- **The picker leg lives in `c2a-ascension-site`**, not `c1-medallions` (§6): c2a
+  already walks the ceremony.
+- **AC1's flake fixed:** `TestAuthoredRowSources` failed ~1 run in 2 at HEAD
+  (map order picked which stone defined a kind); defs are now sorted, first wins.
+- **Two stale harness legs repaired:** `c1-medallions` had been broken at
+  character creation since the one-screen creation (`31975ae4`, 2026-10-25: the
+  tiles sit behind "Change look"); c2a's heir leg (AC1's settled red) waited for
+  a VISIBLE selected tile for the same reason and now waits for it attached.
+
+**Schema:** DB none · wire +2 (`ConversationNode.rows`, `ConversationOption.appearance`)
+· conf none · content +1 row source (`ascension_looks`), +2 node keys (`slot`,
+`looks`), +3 appearance items, +2 stone nodes · lang +3 item names, +2 stone
+lines, +7 UI keys, en + de.
+
+**Verified:** Go 0 FAIL (`./...`) · `db-test` ok · vitest 2013/0 · typecheck ·
+editor `node --test` 16/0 + `smoke.mjs` 0 findings (a real save keeps `slot` and
+`looks`) · `c2a-ascension-site` 48/48 on the DEBUG world (rerun after the 60vh
+change 47/48, the red a headless WebGL context loss, backlog §29) ·
+`c2b-bloodline-select` 12/12 · `c3-memorial-catalog` 14/14 · `c1-front-stone`
+13/16 (3 expected) · `qi1-quest-icons` 13/13 · `hygiene-wire-prune` clean ·
+`c1-medallions` 52/1/1 (the fail the known `live stance` venue flake, the
+inconclusive the campfire out of view). The `pre-line` fix came after the
+harness runs and the PO look; it is CSS only (webpack compiled), not re-looked.
+
+**In-game (PO, 2026-11-20, AC1 + AC2 together):** "all works, as expected";
+the one finding (the run-on confirm list) fixed in this chunk.

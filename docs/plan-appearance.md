@@ -224,6 +224,11 @@ plan proposes on top (marked *proposed*).
 - ⚑ **AMENDED 2026-10-22 by `plan-ascension-ceremony.md` (R2, R6-R8):** (b) is now a
   look step IN ADDITION to the skill gift, one slot per step, always skippable, nothing
   preselected for the heir; it is built there (AC2). (c) stays here, in C5b.
+  ⭐ **(b) BUILT 2026-11-20 by AC2:** a stone authors `ascension_looks` step nodes
+  (`slot` + `looks`, each a `"grantedBy": "stone"` look of that slot, checked by
+  `appearance.CrossValidateStones`); the pick rides `AscensionRequest.Appearance`
+  beside the count grants and the bonus. The `pick`/`bonus` entry marks below were
+  never built; see `plan-ascension-ceremony.md` D7 and its §11 AC2 ledger.
 - **D21. Ascension unlocks come three ways.** (a) **By count**: an item's
   `bloodline_ascensions` condition (D15). (b) **A pick at the stone**: an
   appearance item offered as a row beside the skill rewards, taken *instead of* a
@@ -608,7 +613,8 @@ whenever the pilot lands.**
   a state that lasts one tick.)
   *Schema: wire `GameState` +1 vector, +1 table; DB none.*
 - **C5b, stone rewards** (D21b, D21c). ⚑ 2026-10-22: the `pick` half moved to
-  `plan-ascension-ceremony.md` AC2; C5b keeps only the `bonus` (D21c). Appearance entries in a site's reward
+  `plan-ascension-ceremony.md` AC2 (built 2026-11-20 as look steps, not reward-list
+  entries); C5b keeps only the `bonus` (D21c). Appearance entries in a site's reward
   list, `pick` rows beside the skill rows and `bonus` grants on top, written in
   the `AscendCharacter` transaction; the stone's rows render the item. May fold
   into C5 if C5 runs small. *Schema: ascension content format +1 entry kind; no

@@ -23,6 +23,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/corpse"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -3988,6 +3989,7 @@ type fakeConnState struct {
 	ascendCalls  int
 	ascendKey    string
 	ascendBonus  []string
+	ascendLooks  []persist.AppearanceGrant // the ceremony's look picks (AC2)
 	ascendResult bool
 
 	// fires are the authored campfires CampfireAt answers from - the D8 gate
@@ -4025,10 +4027,12 @@ func (p *fakePlayer) BloodlineUnlocks() []string        { return p.bloodline }
 func (p *fakePlayer) SetBloodlineUnlocks(keys []string) { p.bloodline = keys }
 func (p *fakePlayer) BloodlineAscensions() int          { return p.ascensions }
 func (p *fakePlayer) SetBloodlineAscensions(n int)      { p.ascensions = n }
+func (p *fakePlayer) AppearanceOwned() []uint16         { return nil }
 
-func (f *fakeConnState) RequestAscension(p model.PlayerEntity, unlockKey string, bonusLooks []string) bool {
+func (f *fakeConnState) RequestAscension(p model.PlayerEntity, grants persist.AscensionRequest, bonusLooks []string) bool {
 	f.ascendCalls++
-	f.ascendKey = unlockKey
+	f.ascendKey = grants.UnlockKey
+	f.ascendLooks = grants.Appearance
 	f.ascendBonus = bonusLooks
 	return f.ascendResult
 }

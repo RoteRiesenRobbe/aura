@@ -88,6 +88,13 @@ const GATED_ROW = 'Frost Shield';   // gated: bloodline_ascensions >= 3
 const UNGATED_ROW = 'Rime-Burst';   // ungated, and a displayName override
 const REPICK_ROW = 'Frostbite';     // a second ungated reward, for the re-pick leg (AC1)
 const CONFIRM_ROW = 'Ascend.';      // the summary's Confirm (plan-ascension-ceremony.md D6)
+// plan-ascension-ceremony.md AC2: the main stone's two look steps (D7, D11).
+const STEP_PORTRAITS = ['crowned-heir', 'elder-sage'];
+const STEP_RINGS = ['ring-heirloom'];
+const PICKED_PORTRAIT = 'elder-sage';
+const PICKED_PORTRAIT_NAME = 'Elder Sage';
+const TAKE_LOOK = 'Take this look.';
+const NO_LOOK = 'No new look.';
 
 const results = [];
 const check = (name, pass, detail) => {
@@ -314,6 +321,42 @@ const clickBack = async () => {
   return true;
 };
 
+// A look step (plan-ascension-ceremony.md D8): the picker drawn in place of the
+// rows. Null when the panel is not on one.
+const lookStep = () => page.evaluate(() => {
+  const step = document.querySelector('#conversation .conversationRows li.conversationLookStep');
+  if (!step) return null;
+  const take = document.querySelector('#conversation .conversationLookTake');
+  return {
+    slots: [...step.querySelectorAll('.lookOptions')].map((e) => e.dataset.slot),
+    tiles: [...step.querySelectorAll('.lookOption')].map((e) => e.dataset.item),
+    selected: [...step.querySelectorAll('.lookOption.selected')].map((e) => e.dataset.item),
+    preview: step.querySelector('.lookPreview .medallion')?.dataset.portrait ?? '',
+    takeLocked: !!take?.classList.contains('locked'),
+    take: take?.textContent?.trim() ?? '',
+    skip: document.querySelector('#conversation .conversationLookSkip')?.textContent?.trim() ?? '',
+  };
+});
+
+// A real mouse click on a look tile (pointerdown, like every HUD control).
+const clickTile = async (item) => {
+  const el = await page.$(`#conversation .conversationLookStep .lookOption[data-item="${item}"]`);
+  if (el) await el.scrollIntoViewIfNeeded();
+  const b = el && await el.boundingBox();
+  if (!b) { missedClicks.push(`tile not laid out: ${item}`); return false; }
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(500);
+  return true;
+};
+
+// The two look steps the quick way: take the portrait, skip the ring.
+const walkLookSteps = async () => {
+  await clickTile(PICKED_PORTRAIT);
+  await clickRow(TAKE_LOOK);
+  await clickRow(NO_LOOK);
+  await page.waitForTimeout(600); // the server's draft lands a tick after the click
+};
+
 const xpText = () => page.evaluate(() =>
   document.querySelector('#xpBar .barText')?.textContent?.trim()
   ?? document.getElementById('xpBar')?.textContent?.trim() ?? '');
@@ -481,22 +524,64 @@ if (ungatedRow) {
   check('⭐ a gift pick opens no countdown (AC1)', (await confirmModal()) === null, 'no modal on the pick');
   check('...and starts nothing', (await castBar()) === null, 'no cast bar after the pick');
   await page.waitForTimeout(600); // the server's draft lands a tick after the click
+
+  // ⭐ plan-ascension-ceremony.md AC2 (D7, D8): the gift leads to the portrait
+  // step, drawn as the look picker with ONLY the stone's portraits, one slot.
+  // The panel as a player first sees it, unscrolled (what fits above the fold).
+  const shotTop = (name) => page.evaluate(() => {
+    const body = document.querySelector('#conversation .conversationBody');
+    const scroller = body?.querySelector('.simplebar-content-wrapper') ?? body;
+    if (scroller) scroller.scrollTop = 0;
+  }).then(() => page.waitForTimeout(200))
+    .then(() => page.screenshot({ path: `.claude/skills/verify/c2a-${name}-top-${label}.png` }));
+  await shotTop('portrait-step');
+  const portraitStep = await lookStep();
+  check('⭐ the gift leads to the portrait step, drawn as the look picker (AC2)',
+    !!portraitStep && portraitStep.slots.join() === 'portrait'
+      && portraitStep.tiles.join() === STEP_PORTRAITS.join(),
+    portraitStep ? `slots ${portraitStep.slots.join()} tiles ${portraitStep.tiles.join()}` : 'no picker');
+  check('...nothing selected, the take row inert, "No new look." offered',
+    !!portraitStep && portraitStep.selected.length === 0 && portraitStep.takeLocked && portraitStep.skip === NO_LOOK,
+    portraitStep ? `selected [${portraitStep.selected}] take "${portraitStep.take}" skip "${portraitStep.skip}"` : 'no picker');
+  await clickTile(PICKED_PORTRAIT);
+  const selectedStep = await lookStep();
+  check('...a tile selects and previews, and sends nothing',
+    !!selectedStep && selectedStep.selected.join() === PICKED_PORTRAIT && selectedStep.preview === PICKED_PORTRAIT
+      && !selectedStep.takeLocked && selectedStep.take === TAKE_LOOK,
+    selectedStep ? `selected [${selectedStep.selected}] preview ${selectedStep.preview}` : 'no picker');
+  await page.screenshot({ path: `.claude/skills/verify/c2a-portrait-step-${label}.png` });
+  await clickRow(TAKE_LOOK);
+  const ringStep = await lookStep();
+  check('⭐ taking it opens the ring step, the stone\'s ring only',
+    !!ringStep && ringStep.slots.join() === 'ring' && ringStep.tiles.join() === STEP_RINGS.join(),
+    ringStep ? `slots ${ringStep.slots.join()} tiles ${ringStep.tiles.join()}` : 'no picker');
+  await clickRow(NO_LOOK);
+  await page.waitForTimeout(600);
+
   const summary = await panel();
-  check('⭐ the pick leads to the summary, which names it (D6)',
-    !!summary && summary.locked.some((r) => r.includes(`Gift: ${UNGATED_ROW}`)),
+  check('⭐ the summary names every pick in order (D6)',
+    !!summary && summary.locked.join(' | ')
+      === `Gift: ${UNGATED_ROW} | Portrait: ${PICKED_PORTRAIT_NAME} | Ring: none`,
     summary ? `locked: ${summary.locked.join(' | ') || '(none)'}` : 'no panel');
   check('...and offers Confirm', !!summary && summary.rows.some((r) => r.includes(CONFIRM_ROW)),
     summary ? `rows: ${summary.rows.join(' | ')}` : 'no panel');
   await page.screenshot({ path: `.claude/skills/verify/c2a-summary-${label}.png` });
+  await shotTop('summary');
 
-  // Back returns to the gift list (the panel's own Back, PO 2026-11-18), and a
-  // re-pick replaces the summary line.
+  // Back from the summary reopens the ring step (the panel's own Back).
+  await clickBack();
+  const ringAgain = await lookStep();
+  check('Back from the summary reopens the ring step', !!ringAgain && ringAgain.slots.join() === 'ring',
+    ringAgain ? `slots ${ringAgain.slots.join()}` : 'no picker');
+
+  // Back twice more returns to the gift list, and a re-pick replaces the line.
+  await clickBack();
   await clickBack();
   const again = await panel();
   check('Back returns to the gift list', !!again && again.rows.some((r) => r.includes(REPICK_ROW)),
     again ? `rows: ${again.rows.join(' | ')}` : 'no panel');
   await clickRow(REPICK_ROW);
-  await page.waitForTimeout(600);
+  await walkLookSteps();
   const repicked = await panel();
   check('...and a re-pick changes the summary line',
     !!repicked && repicked.locked.some((r) => r.includes(`Gift: ${REPICK_ROW}`))
@@ -504,15 +589,18 @@ if (ungatedRow) {
     repicked ? `locked: ${repicked.locked.join(' | ') || '(none)'}` : 'no panel');
   // Back to the reward the rest of this run is about.
   await clickBack();
+  await clickBack();
+  await clickBack();
   await clickRow(UNGATED_ROW);
-  await page.waitForTimeout(600);
+  await walkLookSteps();
 
   // ⭐ D21 on the summary: Confirm opens the COUNTDOWN and sends nothing until
   // it is confirmed; the modal lists the picks and names who ends (Q1).
   await clickRow(CONFIRM_ROW);
   const modal = await confirmModal();
   check('Confirm opens the countdown, listing the pick (D6)',
-    modal !== null && modal.body.includes(`Gift: ${UNGATED_ROW}`) && /ends\./.test(modal.body),
+    modal !== null && modal.body.includes(`Gift: ${UNGATED_ROW}`)
+      && modal.body.includes(`Portrait: ${PICKED_PORTRAIT_NAME}`) && /ends\./.test(modal.body),
     modal ? modal.body.replace(/\s+/g, ' ').slice(0, 90) : 'no modal');
   check('...with the confirm button counting down and disabled',
     !!modal && modal.disabled && /\(\d\)/.test(modal.confirm), modal ? modal.confirm : 'no modal');
@@ -582,17 +670,31 @@ if (ungatedRow) {
          JOIN game.characters c ON c.account_id = u.account_id AND c.slot_index = u.slot_index
         WHERE c.name = '${characterName}' AND u.item_key = '${BONUS_LOOK}'`], { encoding: 'utf8' }).trim();
     check('the stone\'s bonus look is granted to the line (C5b)', /^bloodline:\d+$/.test(row), row || 'no row');
+    // plan-ascension-ceremony.md AC2: the picked portrait rides the same
+    // transaction; the skipped ring and the other portrait do not.
+    const picked = execFileSync('docker', ['exec', 'aura-dev-db', 'psql', '-U', 'aura', '-d', 'aura', '-tAc',
+      `SELECT string_agg(u.item_key || ':' || u.scope, ',' ORDER BY u.item_key) FROM game.appearance_unlocks u
+         JOIN game.characters c ON c.account_id = u.account_id AND c.slot_index = u.slot_index
+        WHERE c.name = '${characterName}' AND u.item_key IN ('crowned-heir', 'elder-sage', 'ring-heirloom')`],
+      { encoding: 'utf8' }).trim();
+    check('⭐ the picked portrait is granted to the line, nothing else of the steps (AC2)',
+      picked === `${PICKED_PORTRAIT}:bloodline`, picked || 'no row');
   } catch (e) {
     check('the stone\'s bonus look is granted to the line (C5b)', null, `no docker DB: ${String(e).slice(0, 80)}`);
   }
   const offered = async () => page.$$eval('#characterCreation .lookOption', (els) => els.map((e) => e.dataset.item));
   try {
     await page.click('#characterSelect .slotCard[data-slot-index="0"]');
-    await page.waitForSelector('#characterCreation .lookOption.selected', { timeout: 30_000 });
+    // ⚑ ATTACHED, not visible: creation keeps its tiles behind "Change look",
+    // so a visible wait timed out on a healthy screen (red since before AC1).
+    await page.waitForSelector('#characterCreation .lookOption.selected', { state: 'attached', timeout: 30_000 });
     const tiles = await offered();
     const worn = await page.$$eval('#characterCreation .lookOption.selected', (els) => els.map((e) => e.dataset.item));
     check('the heir\'s creation offers the bonus look (C5b)', tiles.includes(BONUS_LOOK), tiles.join(' '));
     check('...without wearing it (the predecessor never did)', !worn.includes(BONUS_LOOK), worn.join(' + '));
+    check('⭐ ...and offers the picked portrait, not worn, not the other (AC2, R8)',
+      tiles.includes(PICKED_PORTRAIT) && !worn.includes(PICKED_PORTRAIT) && !tiles.includes('crowned-heir'),
+      tiles.join(' '));
     await page.screenshot({ path: `.claude/skills/verify/c2a-heir-${label}.png` });
   } catch (e) {
     // Dump what the creation screen holds before anyone theorises.

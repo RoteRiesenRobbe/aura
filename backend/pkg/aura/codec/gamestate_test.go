@@ -1175,6 +1175,39 @@ func TestGameStateConversation_QuestMarkerAndLevelRoundTrip(t *testing.T) {
 	}
 }
 
+// plan-ascension-ceremony.md D8: a node's row source and a row's appearance
+// item reach the client; an authored node and an ordinary row read empty.
+func TestGameStateConversation_RowSourceAndAppearanceRoundTrip(t *testing.T) {
+	c := &model.Conversation{
+		EntityID: 7, ActorName: "Stone", EntryNode: "root",
+		Nodes: []model.ConversationNode{
+			{ID: "root", Options: []model.ConversationOption{
+				{OptionIndex: 0, GrantIndex: model.ConversationNoGrant, Text: "Go on.", Next: "portrait"},
+			}},
+			{ID: "portrait", Rows: "ascension_looks", Options: []model.ConversationOption{
+				{OptionIndex: 1, Text: "Elder Sage", Appearance: 12},
+			}},
+		},
+	}
+	b := flatbuffers.NewBuilder(256)
+	offset := ConversationMarshalFlatbuf(c, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddConversation(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	conv := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil)
+	var node AuraApi.ConversationNode
+	var opt AuraApi.ConversationOption
+	require.True(t, conv.Nodes(&node, 0))
+	assert.Empty(t, string(node.Rows()))
+	require.True(t, node.Options(&opt, 0))
+	assert.Zero(t, opt.Appearance())
+	require.True(t, conv.Nodes(&node, 1))
+	assert.Equal(t, "ascension_looks", string(node.Rows()))
+	require.True(t, node.Options(&opt, 0))
+	assert.Equal(t, uint16(12), opt.Appearance())
+}
+
 // plan-quest-giver-markers.md C2: the markers in order, every field intact.
 func TestQuestMarkersMarshalFlatbuf_RoundTrip(t *testing.T) {
 	markers := []model.QuestMarker{

@@ -22,6 +22,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         travel: TravelDirection.None,
         questLevel: 0,
         questMarker: 0,
+        appearance: 0,
         ...partial,
     };
 }
@@ -463,6 +464,7 @@ describe('confirmBody (plan-ascension-ceremony.md D6)', () => {
         actorName: 'Ascension Stone',
         lines: ['Frost Shield it is.', 'Your ascension.'],
         rows,
+        rowSource: 'ascension_summary',
         canGoBack: true,
         showLeave: false,
     });

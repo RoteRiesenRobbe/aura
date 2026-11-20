@@ -45,6 +45,7 @@ type fakeLearner struct {
 	ascensions int
 	accountID  int64
 	draft      skills.CeremonyDraft
+	owned      []uint16 // appearance flat indices (plan-ascension-ceremony.md D7)
 }
 
 func (f *fakeLearner) SkillComponent() *skills.SkillComponent { return f.sc }
@@ -58,6 +59,7 @@ func (f *fakeLearner) BloodlineUnlocks() []string           { return f.bloodline
 func (f *fakeLearner) BloodlineAscensions() int             { return f.ascensions }
 func (f *fakeLearner) AccountID() int64                     { return f.accountID }
 func (f *fakeLearner) CeremonyDraft() *skills.CeremonyDraft { return &f.draft }
+func (f *fakeLearner) AppearanceOwned() []uint16            { return f.owned }
 
 var _ learner = (*fakeLearner)(nil)
 

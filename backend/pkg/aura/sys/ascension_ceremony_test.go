@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/appearance"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
@@ -61,7 +62,7 @@ func walledGates() map[string]mobs.Gate {
 // ⭐ L3: the gift click no longer starts the channel. A click that still
 // channelled would ascend with a half draft.
 func TestCeremony_AGiftPickStartsNothing(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	inCeremony(step)
@@ -78,7 +79,7 @@ func TestCeremony_AGiftPickStartsNothing(t *testing.T) {
 
 // D4: Back and re-pick simply overwrite, one entry per step.
 func TestCeremony_RePickingAStepOverwritesItsPick(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	inCeremony(step)
@@ -95,7 +96,7 @@ func TestCeremony_RePickingAStepOverwritesItsPick(t *testing.T) {
 // The gift rows lead to the summary, and lose the countdown the summary's
 // Confirm now carries (D6).
 func TestCeremony_GiftRowsLeadToTheSummaryWithNoCountdown(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	step := catalogNode()
 	inCeremony(step)
 
@@ -107,7 +108,7 @@ func TestCeremony_GiftRowsLeadToTheSummaryWithNoCountdown(t *testing.T) {
 	}
 
 	// The empty pick too (D14), with a reply that promises nothing.
-	rows = NewAscensionRows(testCatalog(walledGates())).PresentRows(step, newAscensionLearner(30))
+	rows = NewAscensionRows(testCatalog(walledGates()), appearance.Catalog{}).PresentRows(step, newAscensionLearner(30))
 	empty, ok := rowByText(rows, "take no reward")
 	require.True(t, ok)
 	assert.Equal(t, mobs.CeremonySummaryNodeID, empty.Next)
@@ -125,7 +126,7 @@ func TestCeremony_GiftRowsLeadToTheSummaryWithNoCountdown(t *testing.T) {
 // --- the summary --------------------------------------------------------------
 
 func TestCeremony_TheSummaryListsThePickThenConfirm(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	summary := inCeremony(step)
@@ -153,7 +154,7 @@ func TestCeremony_TheSummaryListsThePickThenConfirm(t *testing.T) {
 
 // An exhausted bloodline still ascends, and the summary says so (AC1's look).
 func TestCeremony_TheEmptyPickReadsAsNoGift(t *testing.T) {
-	src := NewAscensionRows(testCatalog(walledGates()))
+	src := NewAscensionRows(testCatalog(walledGates()), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	summary := inCeremony(step)
@@ -170,7 +171,7 @@ func TestCeremony_TheEmptyPickReadsAsNoGift(t *testing.T) {
 // --- Confirm -----------------------------------------------------------------
 
 func TestCeremony_ConfirmStashesTheDraftAndStartsTheChannel(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	step.Gate = mobs.Gate{Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}}
@@ -190,7 +191,7 @@ func TestCeremony_ConfirmStashesTheDraftAndStartsTheChannel(t *testing.T) {
 // Confirm refuses an empty draft: a crafted summary click with nothing picked
 // is not the empty pick.
 func TestCeremony_ConfirmRefusesADraftWithNoGift(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	summary := inCeremony(catalogNode())
 
@@ -201,7 +202,7 @@ func TestCeremony_ConfirmRefusesADraftWithNoGift(t *testing.T) {
 }
 
 func TestCeremony_ConfirmRefusesAnyOtherIndex(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	summary := inCeremony(step)
@@ -219,7 +220,7 @@ func TestCeremony_ConfirmRefusesAnyOtherIndex(t *testing.T) {
 // Confirm is refused, and the summary stops offering Confirm in the same breath
 // (present and apply agree, L24).
 func TestCeremony_APickSpentBeforeConfirmIsRefused(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	summary := inCeremony(step)
@@ -238,7 +239,7 @@ func TestCeremony_APickSpentBeforeConfirmIsRefused(t *testing.T) {
 // ⭐ Confirm judges THIS stone's list, not the catalog: a drafted key the
 // stone does not offer is refused even though the catalog holds it.
 func TestCeremony_ConfirmRefusesAKeyThisStoneDoesNotOffer(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNodeOffering("EmberWard")
 	summary := inCeremony(step)
@@ -257,7 +258,7 @@ func TestCeremony_TheEmptyPickIsRefusedOnceSomethingIsPickable(t *testing.T) {
 		"FrostShield": walledGates()["FrostShield"],
 		"Paralyze":    walledGates()["Paralyze"],
 	}
-	src := NewAscensionRows(testCatalog(gates))
+	src := NewAscensionRows(testCatalog(gates), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	step := catalogNode()
 	summary := inCeremony(step)
@@ -288,12 +289,12 @@ func (f *fakeStep) ApplyRow(node *mobs.InteractionNode, p learner, option, _ int
 func (f *fakeStep) stillPickable(*mobs.InteractionNode, learner, string) bool { return true }
 func (f *fakeStep) validate(learner, string) bool                             { return true }
 func (f *fakeStep) grant(string, *persist.AscensionRequest)                   {}
-func (f *fakeStep) summaryLine(index int, key string) model.ConversationOption {
+func (f *fakeStep) summaryLine(_ *mobs.InteractionNode, index int, key string) model.ConversationOption {
 	return model.ConversationOption{OptionIndex: uint8(index), Locked: true, Text: "Fake: " + key}
 }
 
 func TestCeremony_AStepThatOffersNothingIsSkipped(t *testing.T) {
-	c := newAscensionCeremony(newAscensionRows(testCatalog(nil)))
+	c := newAscensionCeremony(newAscensionRows(testCatalog(nil)), newAscensionLooks(appearance.Catalog{}))
 	empty, offering := &fakeStep{}, &fakeStep{rows: []model.ConversationOption{{Text: "a look"}}}
 	gift := catalogNode()
 	gift.ID = "gift"
@@ -339,14 +340,14 @@ func (r *routedStep) stillPickable(n *mobs.InteractionNode, p learner, k string)
 }
 func (r *routedStep) validate(p learner, k string) bool       { return true }
 func (r *routedStep) grant(string, *persist.AscensionRequest) {}
-func (r *routedStep) summaryLine(i int, k string) model.ConversationOption {
-	return (&fakeStep{}).summaryLine(i, k)
+func (r *routedStep) summaryLine(n *mobs.InteractionNode, i int, k string) model.ConversationOption {
+	return (&fakeStep{}).summaryLine(n, i, k)
 }
 
 // --- completion (D9) ------------------------------------------------------------
 
 func TestCeremony_CompletionBuildsTheGrantsFromEveryPick(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	p := newAscensionLearner(30)
 	req, ok := src.CompleteAscension(p, &skills.AscensionPick{Picks: []skills.StepPick{
 		{Step: "catalog", Kind: string(mobs.RowSourceAscensionCatalog), Key: "FrostShield"},
@@ -356,7 +357,7 @@ func TestCeremony_CompletionBuildsTheGrantsFromEveryPick(t *testing.T) {
 }
 
 func TestCeremony_CompletionRefusesAStashWithNoPicks(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	_, ok := src.CompleteAscension(newAscensionLearner(30), &skills.AscensionPick{})
 	assert.False(t, ok, "a stash nobody confirmed fails closed")
 	_, ok = src.CompleteAscension(newAscensionLearner(30), nil)
@@ -364,7 +365,7 @@ func TestCeremony_CompletionRefusesAStashWithNoPicks(t *testing.T) {
 }
 
 func TestCeremony_CompletionRefusesAnUnknownKind(t *testing.T) {
-	src := NewAscensionRows(testCatalog(nil))
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
 	_, ok := src.CompleteAscension(newAscensionLearner(30), &skills.AscensionPick{Picks: []skills.StepPick{
 		{Step: "x", Kind: "nobody", Key: "FrostShield"},
 	}})

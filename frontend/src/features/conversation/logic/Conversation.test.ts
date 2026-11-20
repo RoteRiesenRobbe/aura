@@ -60,6 +60,7 @@ function irreversibleTree(skillId = 0): ConversationTree {
                 travel: TravelDirection.None,
                 questLevel: 0,
                 questMarker: 0,
+                appearance: 0,
             }],
         }],
     };
