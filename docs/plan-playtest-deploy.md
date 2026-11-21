@@ -259,6 +259,18 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-11-21, `200a5046` (baseline `891dc7aa`, 2026-10-28):** full
+  deploy of 35 commits: entity presentation EP2 + EP3, the Torch / Belt Lantern
+  change, campfire traits CT1-CT3, bug report BR1 + BR2, the forest region music,
+  quest icons QI1, the ascension ceremony AC1 + AC2 (their joint PO look passed
+  2026-11-20). Wire changed (EP2/EP3, QI1, AC2) → hard refresh required. No
+  migrations; no pre-deploy dump. No announcement (nobody online: `💾 flushed 0
+  live character(s)`). Icons from `frontend/icons-prebuilt/` (repacked locally
+  2026-11-20, the AC2 busts included). Verified: content source `./api`, token
+  count 1, TLS boot, 48 campfires in 7 zones, no ERROR, the same two WARNs
+  (`the-lost-lamp`, `the-strays`), new client bundle `main.95e5703a…js` served,
+  `/skills` 200. BR2's path check passed: `🐞 bug reports are saved` at
+  `/var/lib/state/bug-reports.jsonl`. PO smoke join on live owed.
 - **DEPLOYED 2026-10-28, `891dc7aa` (baseline `654fd239`, 2026-10-24):** full
   deploy carrying appearance C6 (player corpses as medallions, placeholder skull,
   PO look owed), the Deep Woods W1-W3 and Sorrowfen (zone 7) content with frog
