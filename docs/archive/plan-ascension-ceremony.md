@@ -2,7 +2,7 @@
 
 **Status: COMPLETE, archived 2026-11-21. APPROVED 2026-11-17 (PO in chat: D1-D14 as
 laid out; Q1, Q3, Q4, Q6 ruled as proposed). Designed 2026-10-22.** All three chunks built
-and PO-passed (§11): AC1 2026-11-18 `a8a240a5`, AC2 2026-11-20 `d3b3ab94`, AC3 2026-11-21.
+and PO-passed (§11): AC1 2026-11-18 `a8a240a5`, AC2 2026-11-20 `d3b3ab94`, AC3 2026-11-21 `e8086abe`.
 Q5 (the per-pick home form, D14) is deferred to the first faction stone's content and
 parked in `roadmap.md` "Parked threads and watch items"; it is a design call, not unbuilt work.
 
@@ -557,7 +557,7 @@ harness runs and the PO look; it is CSS only (webpack compiled), not re-looked.
 **In-game (PO, 2026-11-20, AC1 + AC2 together):** "all works, as expected";
 the one finding (the run-on confirm list) fixed in this chunk.
 
-### AC3 - the heir home: DONE 2026-11-21 [uncommitted], PO look passed 2026-11-21 ("all works")
+### AC3 - the heir home: DONE 2026-11-21 `e8086abe`, PO look passed 2026-11-21 ("all works")
 
 **Built:** a stone authors `heirHome` (a bind-point id) beside its `ceremony`; the
 mob loader puts it on the summary node's `Ceremony` and refuses the key on an actor
