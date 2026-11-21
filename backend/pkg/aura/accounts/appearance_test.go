@@ -146,7 +146,7 @@ func TestListCharactersCarriesTheOwnedLooks(t *testing.T) {
 	accountID := accountOf(t, h, first)
 	grant(t, h, accountID, "account", nil, "crown")
 	grant(t, h, accountID, "bloodline", 1, "ring-claws")
-	_, err := h.db.AscendCharacter(context.Background(), accountID, h.characterID(first), "", nil)
+	_, err := h.db.AscendCharacter(context.Background(), accountID, h.characterID(first), "", nil, "")
 	require.NoError(t, err)
 
 	listed := h.do(http.MethodGet, "/api/characters", nil)

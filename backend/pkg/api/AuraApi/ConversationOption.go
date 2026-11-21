@@ -249,8 +249,16 @@ func (rcv *ConversationOption) MutateAppearance(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(40, n)
 }
 
+func (rcv *ConversationOption) Place() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func ConversationOptionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(20)
 }
 func ConversationOptionAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
 	builder.PrependByteSlot(0, optionIndex, 0)
@@ -311,6 +319,9 @@ func ConversationOptionAddQuestMarker(builder *flatbuffers.Builder, questMarker 
 }
 func ConversationOptionAddAppearance(builder *flatbuffers.Builder, appearance uint16) {
 	builder.PrependUint16Slot(18, appearance, 0)
+}
+func ConversationOptionAddPlace(builder *flatbuffers.Builder, place flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(19, flatbuffers.UOffsetT(place), 0)
 }
 func ConversationOptionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

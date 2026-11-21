@@ -323,6 +323,11 @@ export function validateInteraction(mob, idx) {
       listed.add(id);
     }
   }
+  // plan-ascension-ceremony.md D13: only a ceremony's Confirm reads heirHome.
+  // Whether the id names a placed bind point is aurad's boot check.
+  if (inter.heirHome && !('ceremony' in inter)) {
+    err(`${who}: interaction.heirHome is where a stone's heirs wake, and this actor authors no ceremony, so the key would be silently inert`);
+  }
   for (const node of nodes) {
     if (CEREMONY_STEP_KINDS.includes(node.rows) && !listed.has(node.id)) {
       err(`${who}: node "${node.id}" is a ceremony step but interaction.ceremony does not list it`);

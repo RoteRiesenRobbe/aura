@@ -1295,9 +1295,9 @@ system ships blind.
 >    2026-11-15 (the spellbook's Campfire tab; PO: "works visually"). ✅ CT3 DONE 2026-11-17
 >    (the rest buffs; PO: "works"). Owed: the German strings, the reconnect ruling.
 > 6. ✅ **Quest icons QI1, DONE 2026-11-17** (`archive/plan-dialogue-quest-icons.md`; PO: "works").
-> 7. **Ascension ceremony AC1 → AC2 → AC3** (`plan-ascension-ceremony.md`, approved 2026-11-17).
->    ✅ AC1 DONE 2026-11-18, ✅ AC2 DONE 2026-11-20 (their joint PO look: "all works"). ⭐ NEXT: AC3.
-> 8. **Audio C1 onward** (`plan-audio.md`).
+> 7. ✅ **Ascension ceremony AC1 → AC2 → AC3, DONE 2026-11-21** (`archive/plan-ascension-ceremony.md`).
+>    AC1 2026-11-18, AC2 2026-11-20, AC3 (the heir home) 2026-11-21; every PO look: "all works".
+> 8. **Audio C1 onward** (`plan-audio.md`). ⭐ NEXT.
 > 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
 >
 > ⭐ **Appearance C0b + the skull repack jump the queue** the day the pilot art lands; the
@@ -1332,6 +1332,8 @@ system ships blind.
 ### Parked threads and watch items
 
 Moved out of `CLAUDE.md ## Status` on 2026-10-18 to keep the always-loaded file small; the entries are verbatim as of that date. `CLAUDE.md` keeps only the live "Next" work and the standing rules. When an item here becomes current, move it back into `CLAUDE.md` Status "Next".
+
+- **PER-PICK HEIR HOMES: Q5 OPEN, deferred to the first faction stone** (`archive/plan-ascension-ceremony.md` D14 + §7 Q5, parked 2026-11-21 at the plan's archive): the precedence is built (a step's own home, last in ceremony order, else the stone's `heirHome`, else unbound; `CompleteAscension`), no step can author one yet. Open: (a) a home on the gift entry or (b) a home step; decide with that stone's content.
 
 - **THE NEW TORCH HAS NO ROLE YET** (PO 2026-10-25, a global call, moved out of `content-zone-2-woodland.md` §3.9 Q8): the light skills swap display names (passive `Torch` 46 shows as **Lamp**, active `Lantern` 6 shows as **Torch**). Open: what the active Torch is for and who teaches it (today only the ascension stone offers it), and whether the Emberkeeper's fire line, which starts with the passive, keeps starting with "Lamp".
 

@@ -507,6 +507,10 @@ still has one there, or an exit still written with `door` or `look: hidden`
 - **Bind point** (`bindPoints`, drawn in game as a campfire): a point whose
   **Name** is its spawn-point id, which must be unique. Tick `startingSpawn`
   on at least one, or fresh players have nowhere to land.
+  ⚑ An ascension stone's `heirHome` names one by this id
+  (`plan-ascension-ceremony.md` D13): its heirs wake there, and the summary
+  names the place by the area the fire stands in. Renaming or deleting that
+  fire refuses the boot until the stone is updated.
 - **Dark area**: an ellipse. ⚑ Hold **Shift** while resizing — the format
   carries one radius, so a stretched ellipse is refused.
 - **Anchor**: a point whose **Name** is what content refers to. Unique, and

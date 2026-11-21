@@ -136,6 +136,13 @@ type Ceremony struct {
 	Steps []*InteractionNode
 	// Summary is the generated last stop, whose Confirm starts the channel.
 	Summary *InteractionNode
+	// HeirHome is the bind point this stone's heirs wake at, "" for none
+	// (plan-ascension-ceremony.md D13). Whether it names a placed bind point is
+	// world.CrossValidateHeirHomes's question: zones load after mobs.
+	HeirHome string
+	// HeirHomeArea is the area HeirHome's fire stands in, recorded at boot by
+	// world.ResolveHeirHomes: the place the summary names (Q4).
+	HeirHomeArea string
 }
 
 // CeremonySummaryNodeID is the generated summary node's id, reserved: an
@@ -650,6 +657,8 @@ type jsonInteraction struct {
 	// Ceremony is a stone's ordered step node ids (plan-ascension-ceremony.md
 	// D2). A pointer so an authored `[]` is refused rather than read as absent.
 	Ceremony *[]string `json:"ceremony"`
+	// HeirHome is where the stone's heirs wake (plan-ascension-ceremony.md D13).
+	HeirHome string `json:"heirHome"`
 }
 
 type jsonInteractionNode struct {
@@ -1204,6 +1213,15 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 	}
 	if err := mapCeremony(m.Name, ji.Ceremony, in); err != nil {
 		return nil, err
+	}
+	if ji.HeirHome != "" {
+		// ⚑ A stone is an actor with a ceremony: anywhere else the key would be
+		// silently inert, because only a ceremony's Confirm reads it.
+		if ji.Ceremony == nil {
+			return nil, fmt.Errorf("mob %q: interaction.heirHome is where a stone's heirs wake, and this actor "+
+				"authors no ceremony, so the key would be silently inert", m.Name)
+		}
+		nodeByID(in, CeremonySummaryNodeID).Ceremony.HeirHome = ji.HeirHome
 	}
 	return in, nil
 }

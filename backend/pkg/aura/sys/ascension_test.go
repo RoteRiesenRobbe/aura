@@ -103,10 +103,12 @@ func TestRequestAscensionDoesNotPriceTheAscensionItself(t *testing.T) {
 func TestRequestAscensionHandsTheTransactionOffTheLoop(t *testing.T) {
 	s, g, c, p, ascensions, _ := ascendingFixture(t)
 
-	require.True(t, s.RequestAscension(p, persist.AscensionRequest{UnlockKey: "FrostShield"}, nil))
+	require.True(t, s.RequestAscension(p, persist.AscensionRequest{UnlockKey: "FrostShield",
+		HeirHome: "spawnpoint-11"}, nil))
 
 	require.Len(t, ascensions.requested, 1)
 	req := ascensions.requested[0]
+	assert.Equal(t, "spawnpoint-11", req.HeirHome, "the heir home is copied onto the request (D13)")
 	assert.NotZero(t, req.AccountID, "the account rides the ticket onto the session")
 	assert.NotZero(t, req.CharacterID)
 	assert.Equal(t, c.UUID(), req.ClientUUID)

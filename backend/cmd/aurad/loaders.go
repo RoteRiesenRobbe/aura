@@ -400,6 +400,16 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 	for _, w := range anchorWarnings {
 		slog.Warn("unreachable travel destination", slog.String("detail", w))
 	}
+	// Does every stone's heirHome name a placed bind point
+	// (plan-ascension-ceremony.md D13)? Here for the anchor pass's reason, and
+	// split the same way: a placed stone refuses, an unplaced one warns.
+	homeWarnings, err := world.ResolveHeirHomes(mr, zones)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range homeWarnings {
+		slog.Warn("unreachable heir home", slog.String("detail", w))
+	}
 	// Does any talk exit stand inside a campfire's dwell circle, where the
 	// flight offer swallows its E press (plan-passages.md D3, underworld L8)?
 	if err := world.CrossValidateExitClearance(zones, campfireDwellRadius(mr)); err != nil {

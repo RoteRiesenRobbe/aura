@@ -22,10 +22,11 @@ type fakeAscensions struct {
 }
 
 func (f *fakeAscensions) AscendCharacter(_ context.Context, accountID, characterID int64, unlockKey string,
-	_ []AppearanceGrant) (int, error) {
+	_ []AppearanceGrant, heirHome string) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.calls = append(f.calls, AscensionRequest{AccountID: accountID, CharacterID: characterID, UnlockKey: unlockKey})
+	f.calls = append(f.calls, AscensionRequest{AccountID: accountID, CharacterID: characterID, UnlockKey: unlockKey,
+		HeirHome: heirHome})
 	return 0, f.err
 }
 
@@ -33,6 +34,16 @@ func (f *fakeAscensions) callCount() int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return len(f.calls)
+}
+
+// The heir home reaches the transaction (plan-ascension-ceremony.md D13).
+func TestAscenderPassesTheHeirHome(t *testing.T) {
+	sink := &fakeAscensions{}
+	a := NewAscender(sink)
+	a.Ascend(AscensionRequest{AccountID: 7, CharacterID: 11, HeirHome: "spawnpoint-11"})
+	a.Wait()
+	require.Len(t, sink.calls, 1)
+	assert.Equal(t, "spawnpoint-11", sink.calls[0].HeirHome)
 }
 
 func TestAscenderRunsTheTransactionAndReportsBack(t *testing.T) {

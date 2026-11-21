@@ -185,9 +185,15 @@ func (s *Store) createCharacterOnce(ctx context.Context, params NewCharacter) (C
 		Ring:      params.Ring,
 		Faction:   params.Faction,
 	}
+	// ⭐ The heir home is copied IN this INSERT (plan-ascension-ceremony.md
+	// D13, L9): the predecessor was derived inside this transaction, and a copy
+	// in a second request could race the heir-taken check. A first life has no
+	// predecessor, so the subselect is NULL and it starts unbound.
 	err = tx.QueryRow(ctx,
-		`INSERT INTO game.characters (account_id, slot_index, name, avatar, ring, faction, previous_character_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO game.characters (account_id, slot_index, name, avatar, ring, faction, previous_character_id,
+		                              home_campfire_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7::bigint,
+		         (SELECT home_campfire_id FROM game.characters WHERE id = $7::bigint))
 		 RETURNING id, level, experience, created_at`,
 		accountID, slot, params.Name, params.Avatar, params.Ring, params.Faction, previous).
 		Scan(&created.ID, &created.Level, &created.Experience, &created.CreatedAt)

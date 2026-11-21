@@ -42,6 +42,10 @@ type ceremonyStep interface {
 // shown (L2). 255 is the wire's no-grant sentinel.
 const summaryConfirmIndex = 254
 
+// summaryHeirHomeIndex is the summary's heir-home line (D13): fixed, below
+// Confirm and far above any step line's index.
+const summaryHeirHomeIndex = 253
+
 // ascensionCeremony serves every ceremony node: the steps (through their kind)
 // and the summary. It is the AscensionSource both systems are wired with.
 type ascensionCeremony struct {
@@ -173,6 +177,17 @@ func (c *ascensionCeremony) summaryRows(node *mobs.InteractionNode, p learner) [
 	for i, s := range steps {
 		rows = append(rows, c.steps[s.node.Rows].summaryLine(s.node, i, s.pick.Key))
 	}
+	if cer := node.Ceremony; cer != nil && cer.HeirHome != "" && len(steps) > 0 {
+		// The stone's home (D13, Q4). The client names the place from its area.
+		rows = append(rows, model.ConversationOption{
+			OptionIndex: summaryHeirHomeIndex,
+			GrantIndex:  model.ConversationNoGrant,
+			Locked:      true,
+			Text:        "Your heir wakes at: " + cer.HeirHomeArea,
+			TextKey:     "conversation.ascend.summary.heir-home",
+			Place:       cer.HeirHomeArea,
+		})
+	}
 	if complete {
 		rows = append(rows, model.ConversationOption{
 			OptionIndex: summaryConfirmIndex,
@@ -205,7 +220,7 @@ func (c *ascensionCeremony) confirm(node *mobs.InteractionNode, p learner, optio
 	if !complete || sc == nil {
 		return "", false
 	}
-	pick := &skills.AscensionPick{Gate: node.Gate}
+	pick := &skills.AscensionPick{Gate: node.Gate, HeirHome: node.Ceremony.HeirHome}
 	for _, s := range steps {
 		pick.Picks = append(pick.Picks, s.pick)
 		pick.BonusLooks = append(pick.BonusLooks, s.node.BonusLooks...)
@@ -229,6 +244,14 @@ func (c *ascensionCeremony) CompleteAscension(p learner, pick *skills.AscensionP
 			return persist.AscensionRequest{}, false
 		}
 		step.grant(sp.Key, &req)
+	}
+	// ⭐ THE HEIR-HOME PRECEDENCE (D14), fixed here so a later step kind does
+	// not invent its own: the LAST step in ceremony order whose pick names a
+	// home wins (the picks run in that order and each grant overwrites
+	// req.HeirHome); else the stone's heirHome; else unbound. No shipped step
+	// kind names a home yet (Q5).
+	if req.HeirHome == "" {
+		req.HeirHome = pick.HeirHome
 	}
 	return req, true
 }

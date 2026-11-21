@@ -1065,7 +1065,7 @@ func TestListCharactersCarriesEachSlotsBloodline(t *testing.T) {
 	var accountID int64
 	require.NoError(t, h.db.Pool.QueryRow(context.Background(),
 		`SELECT account_id FROM game.characters WHERE id = $1`, h.characterID(spent)).Scan(&accountID))
-	_, err := h.db.AscendCharacter(context.Background(), accountID, h.characterID(spent), "FrostShield", nil)
+	_, err := h.db.AscendCharacter(context.Background(), accountID, h.characterID(spent), "FrostShield", nil, "")
 	require.NoError(t, err)
 
 	require.Equal(t, http.StatusCreated, h.createCharacter("Wilma").code)
@@ -1127,7 +1127,7 @@ func TestSelectCarriesTheBloodlineOntoTheTicket(t *testing.T) {
 	var accountID int64
 	require.NoError(t, h.db.Pool.QueryRow(context.Background(),
 		`SELECT account_id FROM game.characters WHERE id = $1`, first).Scan(&accountID))
-	_, err := h.db.AscendCharacter(context.Background(), accountID, first, "FrostShield", nil)
+	_, err := h.db.AscendCharacter(context.Background(), accountID, first, "FrostShield", nil, "")
 	require.NoError(t, err)
 
 	heir := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Wilma", "slotIndex": 0})

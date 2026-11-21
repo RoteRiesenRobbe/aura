@@ -380,6 +380,9 @@ type AscensionPick struct {
 	// BonusLooks is the stone's bonus (plan-appearance.md C5b), stashed with
 	// its price: appearance ids granted on top of the picks at completion.
 	BonusLooks []string
+	// HeirHome is the stone's heirHome, stashed with its price
+	// (plan-ascension-ceremony.md D13): the fallback a step's own home beats.
+	HeirHome string
 }
 
 // StepPick is one ceremony step's pick (plan-ascension-ceremony.md D4). Ids

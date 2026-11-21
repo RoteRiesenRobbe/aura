@@ -413,7 +413,7 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			text := builder.CreateString(opt.Text)
 			next := builder.CreateString(opt.Next)
 			reply := builder.CreateString(opt.Reply)
-			var textID, replyID, textKey, replyKey, locks flatbuffers.UOffsetT
+			var textID, replyID, textKey, replyKey, locks, place flatbuffers.UOffsetT
 			if opt.TextID != "" {
 				textID = builder.CreateString(opt.TextID)
 			}
@@ -428,6 +428,9 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			}
 			if len(opt.Locks) > 0 {
 				locks = lockReasonsFlatbuf(builder, opt.Locks)
+			}
+			if opt.Place != "" {
+				place = builder.CreateString(opt.Place)
 			}
 
 			AuraApi.ConversationOptionStart(builder)
@@ -464,6 +467,9 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			}
 			AuraApi.ConversationOptionAddQuestMarker(builder, byte(opt.QuestMarker))
 			AuraApi.ConversationOptionAddAppearance(builder, opt.Appearance)
+			if place != 0 {
+				AuraApi.ConversationOptionAddPlace(builder, place)
+			}
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))

@@ -179,6 +179,7 @@ func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, grants pe
 		ClientUUID:  clientUUID,
 		UnlockKey:   grants.UnlockKey,
 		Appearance:  append(grants.Appearance, s.ascensionAppearance(p, bonusLooks)...),
+		HeirHome:    grants.HeirHome,
 	})
 	return true
 }

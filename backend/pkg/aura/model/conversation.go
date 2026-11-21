@@ -185,4 +185,8 @@ type ConversationOption struct {
 	// + 1; 0 = none (plan-ascension-ceremony.md D8): a look step's rows and the
 	// summary's look lines.
 	Appearance uint16
+	// Place is the area id this row names, "" for none
+	// (plan-ascension-ceremony.md D13): the summary's heir-home line. The
+	// client words it from the region title in its own language.
+	Place string
 }

@@ -208,7 +208,7 @@ func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]Sl
 // account scope only: the caller leaves out character items, which would land
 // on the life that is ending.
 func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string,
-	appearance []persist.AppearanceGrant) (int, error) {
+	appearance []persist.AppearanceGrant, heirHome string) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("starting the ascension transaction: %w", err)
@@ -218,12 +218,18 @@ func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int6
 	// Ownership and aliveness are part of the WHERE clause, so "not yours",
 	// "no such id", "already sacrificed" and "deleted" are one answer — and the
 	// sacrificed⊕deleted CHECK stays unreachable rather than becoming a 500.
+	//
+	// ⭐ The heir home rides the same UPDATE (plan-ascension-ceremony.md D13):
+	// the stone's home goes onto the ENDING row, where CreateCharacter copies it
+	// to the heir. ALWAYS written, NULL when the stone names none, so the ending
+	// life's own bind is never inherited (Q4). Nothing overwrites it later: the
+	// periodic save filters sacrificed_at IS NULL (L8).
 	var slotIndex int
 	err = tx.QueryRow(ctx,
-		`UPDATE game.characters SET sacrificed_at = now()
+		`UPDATE game.characters SET sacrificed_at = now(), home_campfire_id = $3
 		  WHERE id = $1 AND account_id = $2 AND sacrificed_at IS NULL AND deleted_at IS NULL
 		  RETURNING slot_index`,
-		characterID, accountID).Scan(&slotIndex)
+		characterID, accountID, nullableString(heirHome)).Scan(&slotIndex)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, ErrNoCharacter
 	}

@@ -84,6 +84,7 @@
   "conversation.ascend.pick-a-look": "Choose a look above, or take none.",
   "conversation.ascend.reply": "{skill} it is.",
   "conversation.ascend.summary.gift": "Gift: {skill}",
+  "conversation.ascend.summary.heir-home": "Your heir wakes at: {place}",
   "conversation.ascend.summary.no-gift": "Gift: none",
   "conversation.ascend.summary.no-portrait": "Portrait: none",
   "conversation.ascend.summary.no-ring": "Ring: none",

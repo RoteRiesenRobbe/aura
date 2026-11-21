@@ -107,11 +107,11 @@ func TestAscendCharacterWritesTheAppearanceGrants(t *testing.T) {
 	c := createIn(t, db, "Ascender", accountID, 2)
 	grants := []persist.AppearanceGrant{{Item: "ring-claws", Scope: "bloodline"}, {Item: "halo", Scope: "account"}}
 
-	_, err := db.AscendCharacter(ctx, accountID+999, c.ID, "", grants)
+	_, err := db.AscendCharacter(ctx, accountID+999, c.ID, "", grants, "")
 	require.ErrorIs(t, err, store.ErrNoCharacter)
 	assert.Zero(t, scalar[int](t, db.Pool, `SELECT count(*) FROM game.appearance_unlocks`), "a failed ascension grants nothing")
 
-	_, err = db.AscendCharacter(ctx, accountID, c.ID, "", grants)
+	_, err = db.AscendCharacter(ctx, accountID, c.ID, "", grants, "")
 	require.NoError(t, err)
 	owned, err := db.OwnedAppearance(ctx, accountID, 2, 0)
 	require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestSlotBloodlinesCarryThePredecessorsLook(t *testing.T) {
 	params.Avatar, params.Ring = "green-hood", "ring-leather"
 	elder, err := db.CreateCharacter(ctx, params)
 	require.NoError(t, err)
-	_, err = db.AscendCharacter(ctx, accountID, elder.ID, "", nil)
+	_, err = db.AscendCharacter(ctx, accountID, elder.ID, "", nil, "")
 	require.NoError(t, err)
 
 	slots, err := db.SlotBloodlines(ctx, accountID)

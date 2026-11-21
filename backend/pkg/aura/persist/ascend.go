@@ -29,6 +29,10 @@ type AscensionRequest struct {
 	// Appearance is the count-based appearance items this sacrifice earns
 	// (plan-appearance.md D21a), granted in the same transaction.
 	Appearance []AppearanceGrant
+	// HeirHome is the bind point the heir wakes at, "" for none
+	// (plan-ascension-ceremony.md D13). It lives on the request, not on the
+	// stone lookup, so a later step kind can set it (D14).
+	HeirHome string
 }
 
 // AscensionResult is a finished attempt, waiting for the loop to observe it.
@@ -45,7 +49,7 @@ type AscensionResult struct {
 // package depends on nothing else in aura.
 type AscensionSink interface {
 	AscendCharacter(ctx context.Context, accountID, characterID int64, unlockKey string,
-		appearance []AppearanceGrant) (int, error)
+		appearance []AppearanceGrant, heirHome string) (int, error)
 }
 
 // Ascender runs sacrifice transactions off the game loop and holds their
@@ -106,7 +110,8 @@ func (a *Ascender) Ascend(req AscensionRequest) {
 	a.live.Add(1)
 	go func() {
 		defer a.live.Done()
-		_, err := a.sink.AscendCharacter(context.Background(), req.AccountID, req.CharacterID, req.UnlockKey, req.Appearance)
+		_, err := a.sink.AscendCharacter(context.Background(), req.AccountID, req.CharacterID, req.UnlockKey, req.Appearance,
+			req.HeirHome)
 		if err == nil && a.onCommitted != nil {
 			// ⚑ AFTER the transaction returns, never before: the re-read has to
 			// see the committed row, and a nudge sent early would refresh the

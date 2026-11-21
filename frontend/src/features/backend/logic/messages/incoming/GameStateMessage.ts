@@ -5,6 +5,7 @@ import {formatText, tKey} from '../../../../localization/logic/Locale';
 import {mobDefinition} from '../../../../../client-data/Mobs';
 import {skillDisplayName} from '../../../../../client-data/Skills';
 import {itemAtFlat} from '../../../../../client-data/Appearance';
+import {PLACES} from '../../../../regions/logic/RegionNames';
 import {decodeLock, decodeObjectives, LockData, lockedText, mobName, objectiveLine} from '../../../../localization/logic/WireText';
 import * as BackendConstants from '../../BackendConstants';
 import * as Props from '../../../../game-objects/logic/Props';
@@ -448,6 +449,8 @@ function rowText(o: AuraApi.ConversationOption): string {
     const skillName = o.skillId() ? skillDisplayName(o.skillId()) : '';
     // A look row or summary line names its appearance item (flat + 1, D8).
     const itemName = o.appearance() ? itemAtFlat(o.appearance() - 1)?.item.name ?? '' : '';
+    // The summary's heir-home line names its area (plan-ascension-ceremony.md D13).
+    const placeName = o.place() ? PLACES.get(o.place()!)?.title ?? '' : '';
     let base: string | null = null;
     if (o.textId()) {
         base = contentText(o.textId(), '');
@@ -455,7 +458,7 @@ function rowText(o: AuraApi.ConversationOption): string {
         // The catalog has not landed yet: the server's English names the item.
         base = english;
     } else if (o.textKey()) {
-        base = tKey(o.textKey(), {skill: skillName, item: itemName}, '');
+        base = tKey(o.textKey(), {skill: skillName, item: itemName, place: placeName}, '');
     } else if (itemName) {
         base = itemName;
     } else if (skillName) {

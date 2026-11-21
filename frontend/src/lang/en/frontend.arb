@@ -359,6 +359,11 @@
   "@conversation.ascend.summary.no-ring": {
     "description": "Ascension summary line when the player skipped the stone's ring step."
   },
+  "conversation.ascend.summary.heir-home": "Your heir wakes at: {place}",
+  "@conversation.ascend.summary.heir-home": {
+    "description": "Ascension summary line naming the place where the next character of this bloodline will first appear (the stone's heir home).",
+    "placeholders": {"place": {"type": "String", "description": "The place's title, as the region banner shows it", "example": "Umberwood"}}
+  },
   "conversation.ascend.no-look": "No new look.",
   "@conversation.ascend.no-look": {
     "description": "Row at an ascension stone's look step that skips it: the heir's line gets no new portrait or ring from this step."

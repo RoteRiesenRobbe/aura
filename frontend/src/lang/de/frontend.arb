@@ -84,6 +84,7 @@
   "conversation.ascend.summary.no-portrait": "Porträt: keins",
   "conversation.ascend.summary.ring": "Ring: {item}",
   "conversation.ascend.summary.no-ring": "Ring: keiner",
+  "conversation.ascend.summary.heir-home": "Dein Erbe erwacht in: {place}",
   "conversation.ascend.no-look": "Kein neues Aussehen.",
   "conversation.ascend.take-look": "Dieses Aussehen nehmen.",
   "conversation.ascend.pick-a-look": "Wähle oben ein Aussehen oder keins.",

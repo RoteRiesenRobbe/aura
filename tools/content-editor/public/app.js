@@ -978,6 +978,16 @@ function dialogueTreeSection(mob, onChange) {
         onChange();
       }, 'ceremony-textarea'),
     ]));
+    // plan-ascension-ceremony.md D13: where the stone's heirs wake, a bind
+    // point's id (its Tiled Name); empty = the default spawn.
+    col.body.appendChild(el('div', { class: 'subsection' }, [
+      el('label', { text: 'Heir home (a bind point id, e.g. spawnpoint-11; empty = the default spawn)' }),
+      textInput(inter.heirHome || '', (v) => {
+        const id = v.trim();
+        if (id) inter.heirHome = id; else delete inter.heirHome;
+        onChange();
+      }),
+    ]));
   }
 
   const graphWrap = el('div', { class: 'graph-wrap' });

@@ -1711,6 +1711,31 @@ func TestMapMobDefinition_RejectsABadCeremony(t *testing.T) {
 	}
 }
 
+// --- the heir home (plan-ascension-ceremony.md AC3, D13) ---
+//
+// A stone authors `heirHome`, a bind point's id. Whether the id names a placed
+// bind point is world.CrossValidateHeirHomes's question (this package loads
+// before any zone); the shape is checked here.
+
+func TestMapMobDefinition_ResolvesAHeirHome(t *testing.T) {
+	def, err := mapInteraction(t, `{"heirHome": "spawnpoint-11", "ceremony": ["catalog"], "nodes": [
+	  {"id": "catalog", "lines": ["pick"], "rows": "ascension_catalog", "rewards": []}]}`)
+	require.NoError(t, err)
+	catalog := nodeByID(def.Interaction, "catalog")
+	require.NotNil(t, catalog.Ceremony)
+	assert.Equal(t, "spawnpoint-11", catalog.Ceremony.HeirHome)
+
+	def, err = mapInteraction(t, ceremonyStoneJSON)
+	require.NoError(t, err)
+	assert.Empty(t, nodeByID(def.Interaction, "catalog").Ceremony.HeirHome, "absent: the heir is unbound")
+}
+
+func TestMapMobDefinition_RefusesAHeirHomeOffAStone(t *testing.T) {
+	_, err := mapInteraction(t, `{"heirHome": "spawnpoint-11", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "heirHome")
+}
+
 // --- the look step (plan-ascension-ceremony.md AC2, D7) ---
 //
 // A look step offers the looks its stone authors, one slot per step. Whether

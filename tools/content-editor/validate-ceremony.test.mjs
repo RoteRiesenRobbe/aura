@@ -14,6 +14,13 @@ test('a stone listing its step validates', () => {
   assert.doesNotMatch(problems({ ceremony: ['catalog'], nodes: [catalog] }), /ceremony/);
 });
 
+// plan-ascension-ceremony.md AC3, D13: heirHome belongs on a stone.
+test('heirHome needs a ceremony', () => {
+  assert.doesNotMatch(problems({ heirHome: 'spawnpoint-11', ceremony: ['catalog'], nodes: [catalog] }), /heirHome/);
+  assert.match(problems({ heirHome: 'spawnpoint-11', nodes: [{ id: 'root', lines: [{ id: 'hi', text: 'hi' }] }] }),
+    /heirHome .*no ceremony/);
+});
+
 test('every ceremony refusal of the loader is mirrored', () => {
   const root = { id: 'root', lines: [{ id: 'hi', text: 'hi' }] };
   for (const [name, interaction, want] of [

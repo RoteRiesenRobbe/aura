@@ -971,6 +971,10 @@ table ConversationOption {
   // (plan-ascension-ceremony.md D8), so the client draws the item and words
   // its name. Appended at the table end.
   appearance:ushort = 0;
+  // The area id this row names, absent for none: the ascension summary's
+  // heir-home line (plan-ascension-ceremony.md D13), which the client words
+  // from the region title in its own language. Appended at the table end.
+  place:string;
 }
 
 // StoneGift: a look only an ascension stone gives (plan-appearance.md C5b).

@@ -1186,6 +1186,7 @@ func TestGameStateConversation_RowSourceAndAppearanceRoundTrip(t *testing.T) {
 			}},
 			{ID: "portrait", Rows: "ascension_looks", Options: []model.ConversationOption{
 				{OptionIndex: 1, Text: "Elder Sage", Appearance: 12},
+				{OptionIndex: 253, Text: "Your heir wakes at: umberwood", Place: "umberwood"},
 			}},
 		},
 	}
@@ -1202,10 +1203,14 @@ func TestGameStateConversation_RowSourceAndAppearanceRoundTrip(t *testing.T) {
 	assert.Empty(t, string(node.Rows()))
 	require.True(t, node.Options(&opt, 0))
 	assert.Zero(t, opt.Appearance())
+	assert.Empty(t, string(opt.Place()), "an ordinary row names no place")
 	require.True(t, conv.Nodes(&node, 1))
 	assert.Equal(t, "ascension_looks", string(node.Rows()))
 	require.True(t, node.Options(&opt, 0))
 	assert.Equal(t, uint16(12), opt.Appearance())
+	// AC3 (D13): the summary's heir-home line names its area.
+	require.True(t, node.Options(&opt, 1))
+	assert.Equal(t, "umberwood", string(opt.Place()))
 }
 
 // plan-quest-giver-markers.md C2: the markers in order, every field intact.

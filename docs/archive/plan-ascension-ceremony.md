@@ -1,9 +1,10 @@
 # Plan: Ascension ceremony: one ascension, several picks in order, a summary at the end
 
-**Status: APPROVED 2026-11-17 (PO in chat: D1-D14 as laid out; Q1, Q3, Q4, Q6 ruled as
-proposed). Designed 2026-10-22.** Still open in §7: Q5 (the per-pick home form,
-deferred to the first faction stone). Three chunks (§5); AC1 DONE 2026-11-18 `a8a240a5`,
-AC2 DONE 2026-11-20 `d3b3ab94`, their joint PO look passed 2026-11-20 (§11); AC3 next. It needs nothing from appearance C5c, and C5c needs nothing from it.
+**Status: COMPLETE, archived 2026-11-21. APPROVED 2026-11-17 (PO in chat: D1-D14 as
+laid out; Q1, Q3, Q4, Q6 ruled as proposed). Designed 2026-10-22.** All three chunks built
+and PO-passed (§11): AC1 2026-11-18 `a8a240a5`, AC2 2026-11-20 `d3b3ab94`, AC3 2026-11-21.
+Q5 (the per-pick home form, D14) is deferred to the first faction stone's content and
+parked in `roadmap.md` "Parked threads and watch items"; it is a design call, not unbuilt work.
 
 **Owns:** the ascension stone as an ordered walk of steps, the draft of picks, the
 summary and its single confirm, the step-kind seam that later kinds plug into, and
@@ -555,3 +556,60 @@ harness runs and the PO look; it is CSS only (webpack compiled), not re-looked.
 
 **In-game (PO, 2026-11-20, AC1 + AC2 together):** "all works, as expected";
 the one finding (the run-on confirm list) fixed in this chunk.
+
+### AC3 - the heir home: DONE 2026-11-21 [uncommitted], PO look passed 2026-11-21 ("all works")
+
+**Built:** a stone authors `heirHome` (a bind-point id) beside its `ceremony`; the
+mob loader puts it on the summary node's `Ceremony` and refuses the key on an actor
+without a ceremony. `world.ResolveHeirHomes` (boot, `cmd/aurad/loaders.go`) checks
+it against every loaded zone's bind points and records the fire's area on the
+ceremony. Confirm stashes the home on `skills.AscensionPick` with the price;
+`CompleteAscension` applies D14 in code (a step's own home, the last in ceremony
+order, else the stone's, else none) and `RequestAscension` carries it as
+`AscensionRequest.HeirHome`. `AscendCharacter` takes `heirHome` and writes it in the
+same `UPDATE` that sets `sacrificed_at` (NULL when absent, so a homeless stone
+leaves the heir unbound, Q4); `CreateCharacter`'s `INSERT` copies
+`home_campfire_id` from `previous_character_id` (L9). The summary gets a locked row
+"Your heir wakes at: <place>" above Confirm (index 253); the client names the place
+from the region title in the player's language. Editor: a "Heir home" field on the
+ceremony subsection, `validate.mjs` mirrors the refusal. Content: the front stone
+sends its heirs to `spawnpoint-11`, the east fire of the front camp [PLACEHOLDER];
+the debug world gains a `spawnpoint-11` beside its front stone.
+
+**Rulings (PO 2026-11-21, choice prompts):**
+- **The place rides the wire**: +1 `ConversationOption.place` (the area id) rather
+  than baking the name into the row text, so the client localizes it.
+- **The heir fire is `spawnpoint-11`** (Q6's placeholder).
+- **The debug world gets the fire too**, so the debug-world harnesses boot against
+  the same content.
+
+**Departures:**
+- **Wire +1, not "wire none"** as §5 designed, per the first ruling.
+- **An unplaced stone only warns.** D13 refuses an unknown id; built as the
+  `CrossValidateTravelAnchors` split instead: a stone some zone places fails the
+  boot, one nobody places logs `unreachable heir home`. A blanket refusal broke three
+  `cmd/aurad` tests that boot the real mobs against a one-zone fixture, and the split
+  lets a stone and its fire land in either order.
+- **The debug world shows no place name**: it has no areas, so the line reads
+  "Your heir wakes at: " there. Accepted for the debug world.
+- **L8 pinned**: a periodic save after the sacrifice returns `store.ErrNoCharacter`
+  and cannot overwrite the written home (now a test).
+
+**Schema:** DB none (reuses `characters.home_campfire_id`) · wire +1
+(`ConversationOption.place`, a hard refresh at the next deploy) · conf none ·
+content +1 stone key (`heirHome`), +1 debug-world bind point · lang +1 UI key, en + de.
+
+**Verified:** Go 0 FAIL (`./...`; `accounts.TestRepeatedFailuresAreThrottled` the
+known load flake, green alone with the DB) · `db-test` ok (the home written or
+cleared, inherited, the last ascension's wins, a fresh slot unbound; replacing the
+copy subselect with NULL turns both red) · vitest 2013/0 · typecheck · editor 17/0 ·
+`aurad -validate` 0 findings on both worlds, embedded and on-disk (a bogus id is
+refused) · `hygiene-wire-prune` 0 errors (first run a WebGL context loss, backlog §29;
+rerun clean) · `c2a-ascension-site` 48/48 · `c1-front-stone` 13/16 (3 expected).
+Headless cannot reach the line: the front stone's catalog sits behind the elite-orc
+price.
+
+**In-game (PO, 2026-11-21):** the summary line at the front stone, the heir waking
+and respawning at `spawnpoint-11`, a new bind winning, a homeless stone's heir and a
+fresh account on the default spawn: "all works". The German line "Dein Erbe erwacht
+in: {place}" was on the checklist.

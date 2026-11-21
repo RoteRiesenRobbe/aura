@@ -371,3 +371,73 @@ func TestCeremony_CompletionRefusesAnUnknownKind(t *testing.T) {
 	}})
 	assert.False(t, ok)
 }
+
+// --- the heir home (plan-ascension-ceremony.md AC3, D13 + D14) ----------------
+
+// A stone with a home: Confirm stashes it with the price, the summary names the
+// place on its own inert line, and completion puts it on the request.
+func TestCeremony_TheStonesHeirHomeRidesTheConfirmAndTheSummary(t *testing.T) {
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
+	p := newAscensionLearner(30)
+	step := catalogNode()
+	summary := inCeremony(step)
+	summary.Ceremony.HeirHome, summary.Ceremony.HeirHomeArea = "spawnpoint-11", "umberwood"
+
+	assert.Empty(t, src.PresentRows(summary, p), "an empty draft still shows nothing")
+	_, ok := src.ApplyRow(step, p, 1, 0)
+	require.True(t, ok)
+	rows := src.PresentRows(summary, p)
+	require.Len(t, rows, 3, "the gift line, the home line, Confirm")
+	home := rows[1]
+	assert.True(t, home.Locked, "the home line is inert")
+	assert.Equal(t, uint8(summaryHeirHomeIndex), home.OptionIndex, "at its own fixed index")
+	assert.Equal(t, model.ConversationNoGrant, home.GrantIndex)
+	assert.Equal(t, "conversation.ascend.summary.heir-home", home.TextKey)
+	assert.Equal(t, "umberwood", home.Place, "the client names the place from its area")
+	assert.Equal(t, uint8(summaryConfirmIndex), rows[2].OptionIndex)
+
+	_, ok = src.ApplyRow(summary, p, summaryConfirmIndex, 0)
+	require.True(t, ok)
+	require.NotNil(t, p.sc.PendingAscension)
+	assert.Equal(t, "spawnpoint-11", p.sc.PendingAscension.HeirHome, "the home rides the stash, like the price")
+
+	req, ok := src.CompleteAscension(p, p.sc.PendingAscension)
+	require.True(t, ok)
+	assert.Equal(t, "spawnpoint-11", req.HeirHome)
+}
+
+// A stone without a home: no line, and the request carries none.
+func TestCeremony_AStoneWithoutAHomeSaysNothingAndSendsNone(t *testing.T) {
+	src := NewAscensionRows(testCatalog(nil), appearance.Catalog{})
+	p := newAscensionLearner(30)
+	step := catalogNode()
+	summary := inCeremony(step)
+	_, ok := src.ApplyRow(step, p, 1, 0)
+	require.True(t, ok)
+	assert.Len(t, src.PresentRows(summary, p), 2, "the gift line and Confirm only")
+
+	req, ok := src.CompleteAscension(p, &skills.AscensionPick{Picks: []skills.StepPick{
+		{Step: "catalog", Kind: string(mobs.RowSourceAscensionCatalog), Key: "FrostShield"}}})
+	require.True(t, ok)
+	assert.Empty(t, req.HeirHome)
+}
+
+// homeStep is a step kind whose pick names a home: the D14 seam no shipped
+// kind uses yet.
+type homeStep struct{ fakeStep }
+
+func (h *homeStep) grant(key string, req *persist.AscensionRequest) { req.HeirHome = key }
+
+// ⭐ D14's precedence: a step's home beats the stone's, and the LAST such step
+// in ceremony order wins.
+func TestCeremony_AStepsHomeBeatsTheStones(t *testing.T) {
+	c := newAscensionCeremony(newAscensionRows(testCatalog(nil)), newAscensionLooks(appearance.Catalog{}))
+	c.steps[fakeStepKind] = &homeStep{}
+	p := newAscensionLearner(30)
+	req, ok := c.CompleteAscension(p, &skills.AscensionPick{HeirHome: "spawnpoint-11", Picks: []skills.StepPick{
+		{Step: "a", Kind: string(fakeStepKind), Key: "spawnpoint-4"},
+		{Step: "b", Kind: string(fakeStepKind), Key: "spawnpoint-9"},
+	}})
+	require.True(t, ok)
+	assert.Equal(t, "spawnpoint-9", req.HeirHome)
+}
