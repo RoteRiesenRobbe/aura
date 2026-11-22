@@ -944,10 +944,6 @@
   "@conv.Hans.baabara-bolts-if-you-come": {
     "description": "Hans speaks this in the conversation, node \"strays_far\", line 2."
   },
-  "conv.Hans.be-careful-stranger": "Be careful, stranger!",
-  "@conv.Hans.be-careful-stranger": {
-    "description": "Hans answers this when the player picks \"I'll do it.\" (node \"wolves\")."
-  },
   "conv.Hans.can-you-help-me-i": "Can you help me? I reckon you can ...",
   "@conv.Hans.can-you-help-me-i": {
     "description": "Hans speaks this in the conversation, node \"root\", line 2."
@@ -956,17 +952,9 @@
   "@conv.Hans.come-up-behind-them": {
     "description": "Hans speaks this in the conversation, node \"strays_on_it\", line 2."
   },
-  "conv.Hans.find-them-out": "Find them out in the pasture and kill 6 of them.",
-  "@conv.Hans.find-them-out": {
-    "description": "Hans speaks this in the conversation, node \"wolves\", line 2."
-  },
   "conv.Hans.find-them-out-2": "Find them out in the pasture and kill 6 of them.",
   "@conv.Hans.find-them-out-2": {
     "description": "Hans speaks this in the conversation, node \"wolves_on_it\", line 1."
-  },
-  "conv.Hans.he-who-cried-wolf": "He who cried wolf",
-  "@conv.Hans.he-who-cried-wolf": {
-    "description": "A row the player picks when talking to Hans (node \"root\"), written as the player's own words."
   },
   "conv.Hans.ho-its-you-again": "Ho, it's you again!",
   "@conv.Hans.ho-its-you-again": {
@@ -1015,10 +1003,6 @@
   "conv.Hans.the-wolves": "Are the wolves gone?",
   "@conv.Hans.the-wolves": {
     "description": "Hans speaks this in the conversation, node \"wolves_running\", line 1."
-  },
-  "conv.Hans.these-dangerous-wolves-are": "These dangerous wolves are a threat to all of us, especially to my sheep!",
-  "@conv.Hans.these-dangerous-wolves-are": {
-    "description": "Hans speaks this in the conversation, node \"wolves\", line 1."
   },
   "conv.Hans.they-are-a-featherbrained-lot": "They are a featherbrained lot. I'm sure they're grazing peacefully somewhere in the farmlands.",
   "@conv.Hans.they-are-a-featherbrained-lot": {
