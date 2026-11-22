@@ -2,7 +2,7 @@
 //
 // What this owns that no Go test can: the site is a mob definition plus a zone
 // spawn plus a gated dialogue tree, and every one of those layers is pinned in
-// Go (the census, the placement, the minLevel-equals-the-cap coupling) while
+// Go (the census, the placement, the gated nodes) while
 // nothing pins that a PLAYER standing in the world is offered the stone and
 // gets the right greeting from it. The gate in particular only ever runs on the
 // present() path, per tick, for a real conversing player.
@@ -51,6 +51,7 @@
 // bloodline unlock reaches a joining character is `c1-bloodline-seed.mjs`.
 
 import { execFileSync } from 'child_process';
+import { readFileSync } from 'fs';
 import { createRequire } from 'module';
 import { join } from 'path';
 import { joinAsNewCharacter } from './lib/join.mjs';
@@ -74,6 +75,19 @@ const ACTOR = 'Ascension Stone';
 // and prose beside a gate goes stale the moment the gate moves.
 const PREVIEW_LINE = 'A life can be laid down here';
 const READY_LINE = 'you can spend this character here';
+// The price and the curve are read from content and conf, never typed here.
+const readJson = (path) => JSON.parse(readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8'));
+const PRICE = readJson('api/mobs/ascension-stone.json').interaction.nodes
+  .find((n) => n.id === 'ready').conditions.find((c) => c.kind === 'minLevel').value;
+const CURVE = readJson('backend/conf.default.json').game.player;
+// player.go experienceForNextLevel: float32 growth, rounded per level.
+const xpToReach = (level) => {
+  let total = 0;
+  for (let l = 1; l < level; l++) {
+    total += Math.round(CURVE.levelUpXPBase * Math.fround(CURVE.levelUpXPGrowthFactor) ** (l - 1));
+  }
+  return total;
+};
 const CATALOG_ROW = 'Show me the rewards';
 const CATALOG_LINE = 'unlocks permanently for this character slot';
 // plan-appearance.md C5b: the main stone's bonus look, granted on any pick.
@@ -390,11 +404,11 @@ check('below the cap the greeting is the preview',
 // Below the cap there is still nothing to DO here (the row is inert and clicking
 // it does nothing), but there is now something to READ: the price, composed live
 // from the catalog node's own gate instead of hand-typed into the lines beside it.
-check('⭐ the preview offers ONE locked row, and it names the cap (C2)',
-  !!low && low.locked.length === 1 && low.locked[0].includes('level 30'),
+check('⭐ the preview offers ONE locked row, and it names the price (C2)',
+  !!low && low.locked.length === 1 && low.locked[0].includes(`level ${PRICE}`),
   low ? `locked: ${low.locked.join(' | ') || '(none)'}` : 'no panel');
 check('...and the lines beside it no longer hand-type that number',
-  !!low && !low.lines.includes('30'),
+  !!low && !low.lines.includes(String(PRICE)),
   low ? low.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
 
 await page.screenshot({ path: `.claude/skills/verify/c2a-site-preview-${label}.png` });
@@ -407,17 +421,29 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(600);
 
 const xpBefore = await xpText();
-await cmd('XP 100000000');
+// Leg 3b (plan-vertical-slice.md R12): both sides of the stone's price. One
+// level short is still refused; landing exactly on it opens the stone.
+await cmd(`XP ${xpToReach(PRICE - 1)}`);
+await page.waitForTimeout(1500);
+await pressInteract();
+const short = await panel();
+check('one level below the price the stone still refuses, and counts',
+  !!short && !short.lines.includes(READY_LINE) && short.locked.length === 1
+    && short.locked[0].includes(`(${PRICE - 1}/${PRICE})`),
+  short ? `locked: ${short.locked.join(' | ') || '(none)'}` : 'no panel');
+await page.keyboard.press('Escape');
+await page.waitForTimeout(600);
+await cmd(`XP ${xpToReach(PRICE) - xpToReach(PRICE - 1)}`);
 await page.waitForTimeout(1500);
 const xpAfter = await xpText();
 check('the XP cheat landed (the premise of leg 4)',
   xpBefore !== xpAfter,
   `"${xpBefore}" → "${xpAfter}"`);
 
-// --- leg 4: at the cap the gated greeting replaces it ----------------------
+// --- leg 4: exactly at the price the gated greeting replaces it -------------
 await pressInteract();
 const high = await panel();
-check('at the cap the stone greets differently',
+check('exactly at the price the stone greets differently',
   !!high && high.lines.includes(READY_LINE) && !high.lines.includes(PREVIEW_LINE),
   high ? high.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
 check('and it is still the stone',

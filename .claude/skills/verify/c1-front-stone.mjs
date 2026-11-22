@@ -12,14 +12,14 @@
 //     finished "Thin the Orc Line" — the first gate in the game where meeting
 //     one half is not enough — and the half that is missing is invisible from
 //     the Go side, where both are just conditions in a list.
-//   - ⭐ ONE PLAYER, TWO SITES. The same qualifying character walks to the
-//     VILLAGE stone and is still turned away, because that stone asks for 30.
+//   - ⭐ ONE PLAYER, TWO SITES. A level-25 character without the quest is turned
+//     away here and welcomed at the VILLAGE stone, whose price is lower since
+//     plan-vertical-slice.md R12 (it was 30, and this leg was the reverse).
 //     A global rule dressed up as content would pass every other leg here.
 //
 // ⛑ BOUNDARY. `c2a-ascension-site.mjs` owns the VILLAGE stone: its greeting,
 // its eight rows, its ceremony. This script asserts nothing about that stone's
-// content beyond "it did not open for the front stone's price", which is the
-// negative half of C1's own story and belongs to nobody else.
+// content beyond "it opens for a character the front stone refuses".
 // `c3-memorial-catalog.mjs` owns the monument. No assertion is shared.
 //
 // ⛑ THE ACTOR NAMES OVERLAP: "Front Ascension Stone" CONTAINS "Ascension
@@ -34,8 +34,8 @@
 // what `c3-memorial-catalog` grinds through in 25 s — so five of them is minutes
 // of standing for a starting build, whatever this script waits.
 //
-// What that costs: legs 3-5 below (the two-clause price PAID, the village stone
-// refusing the same character, and the ceremony completing below the old cap)
+// What that costs: legs 3 and 5 below (the two-clause price PAID, and the
+// ceremony completing below the old cap; leg 4 went with R12, leg 2b covers it)
 // are the POSITIVE half of C1, and they are carried by Go instead —
 // `TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn` and
 // `TestRequestAscensionDoesNotPriceTheAscensionItself`. What only this script
@@ -79,6 +79,7 @@ const FRONT_ACTOR = 'Front Ascension Stone';
 const VILLAGE_ACTOR = 'Ascension Stone';
 const FRONT_PREVIEW = 'Front stone.';
 const FRONT_READY = 'You held the line';
+const VILLAGE_READY = 'you can spend this character here';
 const CATALOG_ROW = 'Show me the rewards';
 const UNGATED_ROW = 'Rime-Burst';
 const QUEST = 'thin-the-orc-line';
@@ -288,20 +289,18 @@ check('⭐ level 25 alone does not open the stone: the quest half of the price i
 // character, two stones, two prices, both readable, and this version of it
 // needs only the level cheat, so it runs green instead of skipping behind the
 // orc gate no harness can pay (leg 4 keeps the stronger, unpayable form).
-// ⛑ The two counters must DISAGREE. Both stones say "level N (25/N)" here, so a
-// row that somehow rendered the node it is standing ON rather than the node it
-// leads to would still look plausible at a glance; only the numbers differ.
+// ⛑ The two stones must DISAGREE (reversed by plan-vertical-slice.md R12): the
+// front one refuses this character, the village one opens for the same one.
 const villageAt25 = await openAt(WARP_VILLAGE);
 check('⛑ ...and it is the VILLAGE stone that answered there',
   villageAt25?.actor === VILLAGE_ACTOR, `actor "${villageAt25?.actor ?? '(none)'}"`);
-check('⭐ the same character reads a DIFFERENT price at the other stone (C2)',
-  !!villageAt25 && villageAt25.locked.length === 1
-    && villageAt25.locked[0].includes('level 30 (25/30)'),
-  villageAt25 ? `locked: ${villageAt25.locked.join(' | ') || '(none)'}` : 'no panel');
-check('...and it names neither the front stone\'s level nor its quest',
-  !!villageAt25 && !(villageAt25.locked[0] ?? '').includes('25/25')
-    && !(villageAt25.locked[0] ?? '').includes('Orc Line'),
-  villageAt25 ? `locked: ${villageAt25.locked.join(' | ') || '(none)'}` : 'no panel');
+check('⭐ the same character is welcomed by the stone with the lower price (C2, R12)',
+  !!villageAt25 && villageAt25.lines.includes(VILLAGE_READY) && villageAt25.locked.length === 0,
+  villageAt25 ? villageAt25.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
+check('...and it asks nothing of the front stone\'s quest',
+  !!villageAt25 && !villageAt25.lines.includes('Orc Line')
+    && villageAt25.rows.some((r) => r.includes(CATALOG_ROW)),
+  villageAt25 ? `rows: ${villageAt25.rows.join(' | ') || '(none)'}` : 'no panel');
 await leave();
 await page.screenshot({ path: `.claude/skills/verify/c1-front-preview-${label}.png` });
 
@@ -363,27 +362,9 @@ await page.screenshot({ path: `.claude/skills/verify/c1-front-ready-${label}.png
 await leave();
 
 // ===========================================================================
-// Leg 4 — ⭐ one player, two sites: the village stone still says no.
+// Leg 4 is gone (plan-vertical-slice.md R12): the village stone is the cheaper
+// one now, so "still turned away there" is false. Leg 2b owns the two prices.
 // ===========================================================================
-if (isReady) {
-  const atVillage = await openAt(WARP_VILLAGE);
-  check('⛑ ...and it is the VILLAGE stone that answered there',
-    atVillage?.actor === VILLAGE_ACTOR, `actor "${atVillage?.actor ?? '(none)'}"`);
-  // ⭐ THE BEST PROOF C2 HAS, and it is this leg rather than leg 1: ONE
-  // character, TWO stones, and the second one says WHY it refuses: a number
-  // this player can act on, composed from that stone's own gate. Before C2 the
-  // same player got a panel that simply offered nothing.
-  check('⭐ the same qualifying character is turned away by the stone priced at 30',
-    !!atVillage && atVillage.locked.length === 1 && atVillage.locked[0].includes('level 30'),
-    atVillage ? `locked: ${atVillage.locked.join(' | ') || '(none)'}` : 'no panel');
-  check('...and its counter reads the character it is refusing',
-    !!atVillage && /\(2[5-9]\/30\)/.test(atVillage.locked[0] ?? ''),
-    atVillage ? `locked: ${atVillage.locked.join(' | ') || '(none)'}` : 'no panel');
-  await leave();
-} else {
-  check('⭐ the same qualifying character is turned away by the stone priced at 30', null,
-    'SKIP: the character never qualified at the front stone');
-}
 
 // ===========================================================================
 // Leg 5 — ⭐ the ceremony completes BELOW the old cap.
