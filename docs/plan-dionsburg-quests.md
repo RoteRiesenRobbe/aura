@@ -7,14 +7,14 @@ Annie's). 3 chunks (§5); DQ1 can start once the PO approves and the build order
 **Owns:** five new Dionsburg NPCs' conversations (Yolanda Nalweri, Lynora, General Geoffrey
 Mulbrey, Gwendolyn, the city guards later), three new quests (`a-cure-for-the-wounded`,
 `a-nasty-poisoning`, `unsustainable-working-conditions`), the reshaped `the-stolen-shipment`,
-`he-who-cried-wolf` and `oil-for-the-lamps`, and the Town Crier's `wolves-on-the-road` leaving play.
+`he-who-cried-wolf` and `oil-for-the-lamps`, and ~~the Town Crier's `wolves-on-the-road` leaving play~~ (withdrawn 2026-11-22, see R8).
 **Builds on:** the quest engine as it stands (`kill`, `harvest`, `talk_to`, `reach` objectives;
 `offer_quest` with `toStage`; `advance_quest`; line and row `conditions` with `any`/`all`), the
 two-row quest shape (`archive/plan-quest-dialogue.md`), greeting lines with conditions (dialogue
 pass 2026-10-25), the city layout (`content-city-dionsburg.md` §2-§3).
 **Amends:** `content-zone-2-woodland.md` §3.8 (the oil gate: shipment-or-level-7 becomes a
 mushroom barter, R3; the shipment's recipient becomes Yolanda, R4).
-**Replaces in play:** `wolves-on-the-road` (the Crier stops offering it; the file stays, R8).
+**Replaces in play:** nothing since 2026-11-22 (R8 withdrawn).
 **Schema (as designed):** DB none · wire none (every new NPC reuses art through `entityType`) ·
 conf none · content +4 mobs +3 quests, 3 quests gain stages · zone +4 NPC spawns in `world.json`
 (`city-hub`) · lang +~120 keys en + de.
@@ -47,7 +47,7 @@ the city, where four new people answer them and open the war at the gate. Her br
 - **Pim's oil** costs 3 red-cap mushrooms from the forest before he hands it over.
 - **The bandits**: Tobias says bandits attacked him, yet kobolds have the shipment; a bandit step
   comes first, and only part of the cargo is found there.
-- **One wolf quest, not two**: the Town Crier's goes; Hans's stays.
+- ~~**One wolf quest, not two**: the Town Crier's goes; Hans's stays.~~ Withdrawn 2026-11-22 (R8).
 
 ### 1.1 What already exists and is reused
 
@@ -77,7 +77,10 @@ the city, where four new people answer them and open the war at the gate. Her br
   the burnt cart" (talk to the Dead Carter). A real camp with chests replaces it later (backlog).
 - **R7 - Three spider-kill quests are kept** (Mulbrey 8, Gwendolyn 6, `spiders-in-the-diggings`
   6); the overlap is flagged to Annie.
-- **R8 - The Town Crier's wolf quest leaves play** (Annie: a duplicate of Hans's). The file stays.
+- ~~**R8 - The Town Crier's wolf quest leaves play**~~ (Annie: a duplicate of Hans's). **WITHDRAWN
+  2026-11-22** by `plan-vertical-slice.md` R21 + R27: the Crier's quest stays and Hans's
+  `he-who-cried-wolf` is the one retired (`77028018`). ⚑ DQ2 starts from that quest and
+  needs a new start (slice Q27).
 - **R9 - Varied guard greetings are deferred.**
 - **R10 - German is drafted with the content; Annie reviews it** in the next sheet round.
 
@@ -153,7 +156,7 @@ Each reuses art, so no enum value and no wire change (the add-content rule). Por
 edit (half-live: restart after the save). Every one gets a two-row quest shape and a greeting that
 changes once their quest is done, as the 2026-10-25 pass made the norm.
 
-### D8 - The Town Crier stops offering Wolves on the Road
+### D8 - The Town Crier stops offering Wolves on the Road [WITHDRAWN 2026-11-22, slice R21: do not build]
 
 The offer row goes; the City Guard's and the Shaman's turn-in rows stay, so a character who has it
 running can still finish it (and still learns Taunt at the guard). The Crier's root keeps his lore
@@ -222,7 +225,8 @@ lang en + de.
   the existing interaction and quest content tests; red first where one does not yet cover a
   shape (a stage inserted before an existing one; a row moved between NPCs).
 - **Save compatibility pins:** a quest saved at `follow` (shipment) or `bring` (oil) loads and
-  finishes; a character with `wolves-on-the-road` running can still turn it in at the guard.
+  finishes; a character with `wolves-on-the-road` running can still turn it in at the guard (⚑ since
+  2026-11-22 the Crier also still offers it, R8 withdrawn).
 - **Lang:** `UPDATE_LANG=1 go test -count=1 -run TestLang ./cmd/aurad/`, `aurad -lang-status` 0/0.
 - **Harness:** extend `woods-w123.mjs`'s talk table with the new NPCs (venues re-derived from
   `world.json`, never hardcoded, L5).

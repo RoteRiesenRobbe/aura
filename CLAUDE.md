@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **⭐ BUILD ORDER (PO 2026-10-30, amended 2026-11-22, `docs/roadmap.md` "The near-term build order"):** items 1-7 ✅ (revive fix … AC3, 2026-11-21) → **the VERTICAL SLICE (next)**, audio C1+ inside it → UI pass C9 after it. Appearance C0b + the skull repack jump the queue when the art lands; PO looks run beside.
 
-- **⭐ VERTICAL SLICE: VS1 DONE 2026-11-22, approval of the rest owed; next the PO playthrough (VS-P, §5.2 sheet), then VS0; umbrella over audio C1+; desktop only** (`docs/plan-vertical-slice.md`): ~2 h to an ascension at 12; open calls §7. **Schema: content fills · conf none.**
+- **⭐ VERTICAL SLICE: VS-P played 2026-11-22, next PF1 of its fix list §5.3 (step 0: main red since `77028018`; levels + density are the coworker's, §5.5); pasted feedback: §5.2; umbrella over audio C1+; desktop only** (`docs/plan-vertical-slice.md`): stone 12 → 16 in VS3 (R20); open calls §7. **Schema: content fills · conf none.**
 
 - **⭐ ENTITY PRESENTATION: EP1-EP3 DONE (EP3 2026-11-01), every PO look passed 2026-11-01; the doc stays live for Q2 (the glyph list, an art pass) and Q3 (durations for others, parked)** (`docs/plan-entity-presentation.md`, R1-R16, ledger §11): states sit at reserved angles outside the medallion ring; every token an aura can reach is a medallion (R15). ⚑ `applied_effects` has one free bit left (15): the state after it widens the field.
 
