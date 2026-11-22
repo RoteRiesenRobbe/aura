@@ -399,7 +399,7 @@ Findings land in `docs/feedback.md`; rulings from them land in §2.
 
 ## 11. Chunk ledgers
 
-### VS1 - the ascension at 12 ✅ DONE 2026-11-22 `[uncommitted]`, PO look = VS-P
+### VS1 - the ascension at 12 ✅ DONE 2026-11-22 `babc3674`, PO look = VS-P
 
 Pulled ahead of VS-P and VS0 on the PO's go (Q11): "Fix, commit, push, deploy", so that
 the playthrough can end in a real ascension on live.
