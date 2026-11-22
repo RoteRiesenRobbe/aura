@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R27 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **⚑ main is red at `bc58a9cb` (1 Go test, PF1 step 0). Next: PF1 (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF2.** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **⚑ main is red at `bc58a9cb` (1 Go test, PF1 step 0). Next: PF1 (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -146,7 +146,7 @@ The two wolf quests can share kills; if they do, the total is 14,699 (still 14).
   sessions: "no immediate content changes on that front" (PO). The notes that only asked
   (F37) or were marked as ideas (F53-F56) stay proposals.
 
-- **R19 (2026-11-22, Q25) - The fix order is §5.3's:** rules and bugs, quests and map batch
+- **R19 (2026-11-22, Q25; ⚑ amended by R28) - The fix order is §5.3's:** rules and bugs, quests and map batch
   (the coworker starts after it), words, HUD, looks, sound, XP tuning after the level pass.
 - **R20 (2026-11-22, Q18) - "Stone 16, bluff open" (PO).** Supersedes R2's 12 and amends R8:
   Wreckers' Bluff is inside the slice. The gate moves in VS3, once the Bluff has its mobs;
@@ -168,6 +168,10 @@ The two wolf quests can share kills; if they do, the total is 14,699 (still 14).
 - **R27 (2026-11-22) - "The push stands":** `77028018` retired Hans's `he-who-cried-wolf`
   (the turn-in stays for characters on it). The Crier's Wolves on the Road is the one wolf
   quest, DQ R8/D8 stays withdrawn, and Young Wolves count for no quest.
+
+- **R28 (2026-11-22) - HUD is pulled forward to third, before the coworker** (PO: "I want
+  to pull hud forward to before the coworker. so it would be number 3"). HUD and Words swap
+  numbers (HUD = PF3, Words = PF4) and the coworker's pass starts after PF3.
 
 ## 3. Design
 
@@ -365,20 +369,21 @@ Evidence checked at `34da212b`, the pushes re-checked at `bc58a9cb`; the POs pla
 in the Farmlands (+12 stags, +2 boars, two stags 1 → 2), and none makes a requested level
 change. `77028018` retired Hans's wolf quest (R27).
 
-**Order.** PF1 → PF2 (it unblocks the coworker) → CW beside PF3 → PF4 → PF5 → PF6 → VS3
+**Order (R19, amended by R28).** PF1 → PF2 → PF3 (HUD) → then CW starts, beside
+PF4 (Words) → PF5 → PF6 → VS3
 (only after CW: levels and density both move XP) → VS4 → VS5. PF7 is optional. VS0's audit
 and VS2's borders keep their place before VS3. One session per chunk.
 
 ⚑ **`api/zones/world.json` has one writer at a time.** PF2 makes all of this side's map
-edits in one commit and hands the file to CW. Commit the generated copy
+edits in one commit; the file goes to CW once PF3 is pushed (R28). Commit the generated copy
 (`backend/pkg/api/zones/`) with every map edit; `23060f46` left it out (`bc58a9cb` caught it up).
 
 | Chunk | Notes | Why together | Size | Deploy | Schema |
 |---|---|---|---|---|---|
 | **PF1 Rules and bugs** | F1, F40, F55 | Engine behaviour; F1 makes every later redeploy safer | S-M | full | DB none · wire none · conf none · content collision masks |
 | **PF2 Quests, teachers, map batch** | F10, F22, F23 (species), F25, F26, F27, F29, F42, F43, F52 | Who gives what; every map edit this side owns | M | full | DB none · wire none (both new mobs reuse an entityType) · conf none · content +2 mobs +1 quest |
-| **PF3 Words** | F2, F13, F14, F17, F19, F20, F21, F28, F32, F33, F34, F38, F39, F41, F56 | All text, English + German in one pass | M | full (client strings) | DB none · wire none · conf none · lang |
-| **PF4 HUD** | F4, F9, F11, F12, F15 | Layout, one browser look | M | full | none |
+| **PF3 HUD** | F4, F9, F11, F12, F15 | Layout, one browser look | M | full | none |
+| **PF4 Words** | F2, F13, F14, F17, F19, F20, F21, F28, F32, F33, F34, F38, F39, F41, F56 | All text, English + German in one pass | M | full (client strings) | DB none · wire none · conf none · lang |
 | **PF5 Looks** | F5, F6, F7, F8, F16, F18, F30, F31 | One pick sheet for the POs, one atlas repack | M | full | DB none · wire none · conf none · icon keys |
 | **PF6 Sound and level-up** | F3, F54 | The audio table | S-M | full | none, client data |
 | **CW Coworker: levels, density, placement** | F23 (placement), F24, F35, F45, F46, F47, F48, F49, F50, F51 | §5.5; manual, in their own sessions | L | full (map) | content + zone |
@@ -428,7 +433,17 @@ edits in one commit and hands the file to CW. Commit the generated copy
 mobs), `TestContent_QuestXPBudget` (the crab quest's entry), `c2-kill-quests` (runs the
 bears quest end to end). Young Wolf needs its plural in both languages (D24).
 
-**PF3** (display text only: ids and keys stay)
+**PF3** (desktop; the phone layout must not move)
+- **F4:** one strip in the body for both: points + Reset (the Campfire tab already has it).
+- **F9:** players draw at the 30 px default, NPC plates at 16: players → 16.
+- **F11:** one row (?, magnifier, zoom in, level, zoom out) above the Focus bar, nothing removed (R26).
+- **F12:** 2×2 under the minimap; badges move along; game tooltips, never `title`; the
+  quest tracker takes the freed height.
+- **F15:** a scrim on `#alertBanner`.
+- **F12 needs four PONETI picks here,** ahead of PF5's sheet: show crops first, then
+  a small atlas repack (PF5 repacks again).
+
+**PF4** (display text only: ids and keys stay)
 - **F2:** `NameGenerator.ts` is three arrays in code; the female list is never used. ⚑ Most
   names are The Flintstones' characters: replace before external testers. Move them to a
   data file, use both lists, stop `substr(0, 20)` cutting a name into an invalid one. A
@@ -450,14 +465,6 @@ bears quest end to end). Young Wolf needs its plural in both languages (D24).
 - **F34:** nameplate + welcome. **F38:** the id `LongRangeStrike` stays.
 - **F56:** three "nothing else" gate tooltips, 21 em dashes in the English UI file, the
   German equivalents, and up to 18 hardcoded candidates in TS/HTML to check.
-
-**PF4** (desktop; the phone layout must not move)
-- **F4:** one strip in the body for both: points + Reset (the Campfire tab already has it).
-- **F9:** players draw at the 30 px default, NPC plates at 16: players → 16.
-- **F11:** one row (?, magnifier, zoom in, level, zoom out) above the Focus bar, nothing removed (R26).
-- **F12:** 2×2 under the minimap; badges move along; game tooltips, never `title`; the
-  quest tracker takes the freed height.
-- **F15:** a scrim on `#alertBanner`.
 
 **PF5**
 - **F30: 18 placed NPCs share three faces.** Farmer (9): Reinhard, his wife, Benjamin,
@@ -489,8 +496,8 @@ bears quest end to end). Young Wolf needs its plural in both languages (D24).
   `c1-front-stone` (which stone is cheaper) re-run. Until then an ascension is testable at 12.
 
 **In-game (PO) per chunk:** PF1 redeploy under a player, a lone mushroom, walk through
-Reinhard · PF2 both wolf quests, the Guard, Pickaxe, the crabs · PF3 read each changed line
-in EN + DE · PF4 1280×800 and 1920×1080 with six quests tracked · PF5 the pick sheet, then
+Reinhard · PF2 both wolf quests, the Guard, Pickaxe, the crabs · PF3 1280×800 and 1920×1080
+with six quests tracked · PF4 read each changed line in EN + DE · PF5 the pick sheet, then
 a walk past every NPC · PF6 walk Farmlands → City → Swamp unmuted, one level-up · CW walk
 each region at its level · VS3 a timed fresh run to the stone.
 

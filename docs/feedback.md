@@ -38,46 +38,46 @@ Standing rules:
 
 | Date | Source | Item | State |
 |---|---|---|---|
-| 2026-11-22 | VS-P F2 (both POs, live `e9c30279`; F2-F56 are one pasted round) | Name generator: generic fantasy names instead of stone age names; the POs can provide a list. | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F2 (both POs, live `e9c30279`; F2-F56 are one pasted round) | Name generator: generic fantasy names instead of stone age names; the POs can provide a list. | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F3 | Music: "Farmland needs its own music"; the forest track plays in Farmlands, forest and swamp, the main theme everywhere else (in the slice: start menu + city). | → plan: VS §5.3 PF6 |
-| 2026-11-22 | VS-P F4 | Spellbook: one layout for skill and Campfire tabs. Reset button wherever is easier; "points to spend" always in the body. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F4 | Spellbook: one layout for skill and Campfire tabs. Reset button wherever is easier; "points to spend" always in the body. | → plan: VS §5.3 PF3 |
 | 2026-11-22 | VS-P F5 | Villager icon: another PONETI pick. | → plan: VS §5.3 PF5 |
 | 2026-11-22 | VS-P F6 | PONETI icons for the campfire skills and every other rough placeholder (e.g. the camp speed buff in the tray). | → plan: VS §5.3 PF5 |
 | 2026-11-22 | VS-P F7 | Remove the campfire's inner ring. | → plan: VS §5.3 PF5 |
 | 2026-11-22 | VS-P F8 | Henrik: a fitting male PONETI icon. | → plan: VS §5.3 PF5 |
-| 2026-11-22 | VS-P F9 | Player name tags as small as a similar-sized NPC token's, still above the token. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F9 | Player name tags as small as a similar-sized NPC token's, still above the token. | → plan: VS §5.3 PF3 |
 | 2026-11-22 | VS-P F10 | Memorial stone: from the Farmlands to the Cathedral. | → plan: VS §5.3 PF2 |
-| 2026-11-22 | VS-P F11 | The three lower-right options (zoom + info): horizontal above the Focus bar, and smaller "by putting" (the note breaks off). | → plan: VS §5.3 PF4 |
-| 2026-11-22 | VS-P F12 | Appearance, map, spellbook, journal: a 2×2 square of hotkey + PONETI icon, the name on hover, leaving room for the quest tracker. | → plan: VS §5.3 PF4 |
-| 2026-11-22 | VS-P F13 | Remove the Town Crier's hail. | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F14 | Remove "Wear it under Appearance" from the new-appearance popup. | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F15 | A semi-transparent background behind the notification popup. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F11 | The three lower-right options (zoom + info): horizontal above the Focus bar, and smaller "by putting" (the note breaks off). | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F12 | Appearance, map, spellbook, journal: a 2×2 square of hotkey + PONETI icon, the name on hover, leaving room for the quest tracker. | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F13 | Remove the Town Crier's hail. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F14 | Remove "Wear it under Appearance" from the new-appearance popup. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F15 | A semi-transparent background behind the notification popup. | → plan: VS §5.3 PF3 |
 | 2026-11-22 | VS-P F16 | More colour variety on the unlockable rings (forest = green). | → plan: VS §5.3 PF5 |
-| 2026-11-22 | VS-P F17 | Reinhard's wife after the ring quest: "Thanks for bringing back my husbands wedding ring. He would lose his head if it wasn't screwed on…" | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F17 | Reinhard's wife after the ring quest: "Thanks for bringing back my husbands wedding ring. He would lose his head if it wasn't screwed on…" | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F18 | Reinhard's wife: a fitting female PONETI icon. | → plan: VS §5.3 PF5 |
-| 2026-11-22 | VS-P F19 | Dog: remove "Teach me something", Summon Companion only through the dialogue. | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F20 | Alpha boar quest: no "den", minimal change; name "Alpha Boar" in the Farmlands instead of "Beast of the Farmland". | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F21 | "Rats in the Granary" → "Rats in the Barn", every granary reference too. | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F19 | Dog: remove "Teach me something", Summon Companion only through the dialogue. | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F20 | Alpha boar quest: no "den", minimal change; name "Alpha Boar" in the Farmlands instead of "Beast of the Farmland". | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F21 | "Rats in the Granary" → "Rats in the Barn", every granary reference too. | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F22 | Remove Taunt from where it is currently given. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F23 | Farmlands wolves become "Young Wolves", which do not count for Wolves on the Road; only forest wolves do. | → plan: VS §5.3 PF2 (species) + CW (placement) |
 | 2026-11-22 | VS-P F24 | Forest wolves at least level 6. | → plan: VS §5.5 CW |
 | 2026-11-22 | VS-P F25 | Wolves on the Road: turn in only at the City Guard, not at the Shaman. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F26 | Remove Bears at the Walls from the City Guard. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F27 | The City Guard no longer teaches Strong. | → plan: VS §5.3 PF2 |
-| 2026-11-22 | VS-P F28 | City Guard, "Where can I make myself useful": "There are always people in Dionsburg that need help." | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F28 | City Guard, "Where can I make myself useful": "There are always people in Dionsburg that need help." | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F29 | Place the Pickaxe skill in the playtest world. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F30 | A unique icon for each named NPC. | → plan: VS §5.3 PF5 |
 | 2026-11-22 | VS-P F31 | Hatchet: a PONETI icon (the note says "account"). | → plan: VS §5.3 PF5 |
-| 2026-11-22 | VS-P F32 | Fritz: quests only after "What happened here?". | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F33 | "Kobolds on the Road" → "Kobolds in the Forest"; "Kill 8 Kobolds in the northwest of the forest". | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F34 | Woodcutter 3 → "Lumberjack Guild Associate"; welcome "Hello there, are you interested in learning about the lumber business? Or maybe cutting your own wood?" | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F32 | Fritz: quests only after "What happened here?". | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F33 | "Kobolds on the Road" → "Kobolds in the Forest"; "Kill 8 Kobolds in the northwest of the forest". | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F34 | Woodcutter 3 → "Lumberjack Guild Associate"; welcome "Hello there, are you interested in learning about the lumber business? Or maybe cutting your own wood?" | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F35 | Boars around the Farmlands higher: 4 in the north, 6 in the south. | → plan: VS §5.5 CW |
 | 2026-11-22 | VS-P F36 | An example walkthrough of what a character would do (see Bob McMarble on live); it fits but drifts to overleveled. | → plan: VS §5.4 (done), VS3 |
 | 2026-11-22 | VS-P F37 | The forest's Dire Wolves quest is green? | → plan: VS §5.3 VS3 |
-| 2026-11-22 | VS-P F38 | "Long-Range Strike" → "Short Bow". | → plan: VS §5.3 PF3 |
-| 2026-11-22 | VS-P F39 | Pirate Deckhand welcome: "Ahoy matey, you actually made it through that hellish swamp?" | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F38 | "Long-Range Strike" → "Short Bow". | → plan: VS §5.3 PF4 |
+| 2026-11-22 | VS-P F39 | Pirate Deckhand welcome: "Ahoy matey, you actually made it through that hellish swamp?" | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F40 | Players can shoot blue mushrooms though only Harvest hurts them: "I thought we fixed that?" | → plan: VS §5.3 PF1 |
-| 2026-11-22 | VS-P F41 | "Kobold Ranged" → "Kobold Archer". | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F41 | "Kobold Ranged" → "Kobold Archer". | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F42 | Short Bow costs more Focus: damage and range are too high. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F43 | Decrease the bramble respawn time. | → plan: VS §5.3 PF2 |
 | 2026-11-22 | VS-P F44 | Quests done with some skipped: ended at 13, which seems the end level of the playtest state. | → ruled: VS R20 (stone 16) |
@@ -92,7 +92,7 @@ Standing rules:
 | 2026-11-22 | VS-P F53 (idea, not required) | Discovered ability teachers on the map, also while the skill is locked but visible in the teach menu. | → plan: VS §5.3 PF7 |
 | 2026-11-22 | VS-P F54 (idea; a rough animation is needed, sound ideally) | Better level-up indicator: animation on the character + an audio theme (placeholder). | → plan: VS §5.3 PF6 |
 | 2026-11-22 | VS-P F55 (idea) | Quest NPCs: no collision, drawn over players; bosses may keep it. | → plan: VS §5.3 PF1 |
-| 2026-11-22 | VS-P F56 (idea) | A quick pass over AI-written skill wording: no em dashes, no "It's not X, but Y" or "Does X, nothing else" (Harvest). A human pass stays open. | → plan: VS §5.3 PF3 |
+| 2026-11-22 | VS-P F56 (idea) | A quick pass over AI-written skill wording: no em dashes, no "It's not X, but Y" or "Does X, nothing else" (Harvest). A human pass stays open. | → plan: VS §5.3 PF4 |
 | 2026-11-22 | VS-P F1 (session finding, local restart test, build `e9c30279`) | **A server restart freezes the game with no "Connection lost" banner**: the client shows the world, accepts no input and says nothing until a manual reload. Likely cause (read, not proven): `Backend.ts` `onclose` takes the `joinInFlight` branch on every close, as its own comment says `isJoinInFlight()` stays true for the whole session, so the banner branch is never reached. | → plan: `plan-vertical-slice.md` §5.3 PF1 |
 | 2026-10-20 | campfire menu wrap (session finding) | **Many verify-harness venues predate the world rebuild**: hardcoded fire/NPC coordinates no longer match `api/zones/world.json` (e.g. spawnpoint-1 is now (-239.78, 15.36), spawnpoint-2 (-141.33, 2.13)). The campfire-menu wrap re-derived them in the ten scripts it touched; the rest are unswept. Also open from that wrap: `c2-pull-through` 19/1/2 and `c1-open-portal` 15/2 (flaky E/Q presses, owner-gone legs time out), six rewritten scripts never run (r4-recall-utility, m3-home-pointer, jumper, c2-campfire-markers, c3-player-roster, r4-badge), `c3-flight-client` 4e/6f (two-page input), `r4-camp` camp-heal % reads. | open |
 | 2026-09-23 | PO, C3a look (chat) | **A DoT redraws its projectile on every tick.** The Giant Spider's spit, Immolate, the Bandit Pyromancer's ember and every other DoT draw their `on: hit` layer once per TICK, because a DoT tick is an ordinary hit on the wire and application/refresh emits no event at all. PO wants: the spit / fireball / projectile drawn ONCE on application and again on RE-application (after the debuff lapsed), ticks then just tick (the engine's mark only). Needs a wire vocabulary for "applied" vs "tick" (`HitKind` values, the server already knows ignite vs refresh) and a new trigger. Same session ask: the Giant Spider gets a general auto-attack (two big white FANGS clamping the player from either side) and the Pyromancer gets per-tick damage beside its DoT, because a DoT-only aura now draws exactly once per application. | → plan: `plan-skill-vfx.md` §12h (C3a-ii), PO 2026-09-23: draw on application AND every refresh, never on a tick |
