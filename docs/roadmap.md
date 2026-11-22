@@ -1299,7 +1299,7 @@ system ships blind.
 >    AC1 2026-11-18, AC2 2026-11-20, AC3 (the heir home) 2026-11-21; every PO look: "all works".
 > 8. **The vertical slice** (`plan-vertical-slice.md`, PO 2026-11-22: the next big step,
 >    the umbrella over what follows). ⭐ NEXT. ✅ VS1 DONE and live 2026-11-22 (the city
->    stone opens at 12). Then VS-P (the two POs' playthrough; ✅ played 2026-11-22, its fixes PF1-PF6 run next,
+>    stone opens at 12). Then VS-P (the two POs' playthrough; ✅ played 2026-11-22, its fixes PF1-PF6 run next, PF1 ✅ built 2026-11-22,
 >    the stone moves to 16 in VS3) → VS0 (feature audit) →
 >    borders, fills, character entries CE1, tuning, power check, release. **Audio C1
 >    onward** (`plan-audio.md`) runs inside it; which lanes is ruled after VS-P.

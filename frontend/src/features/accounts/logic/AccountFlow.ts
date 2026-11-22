@@ -27,6 +27,8 @@ let registered = false;
 let signedInAs: string | null = null;
 /** The character whose Play was pressed, so an expired ticket can be re-minted. */
 let playing: Character | null = null;
+/** A join was sent and its Accept is still out (isJoinInFlight). */
+let awaitingAccept = false;
 /** ⚑ The loop guard: at most ONE silent retry per join attempt (§7b). */
 let retriedTicket = false;
 
@@ -319,6 +321,7 @@ export async function onWorldSessionEnded(): Promise<boolean> {
     // was right either way, which is exactly why it needed a console listener
     // to find.
     playing = null;
+    awaitingAccept = false;
     Session.reconnectToken = null;
     Session.playingCharacterId = null;
 
@@ -465,6 +468,7 @@ async function enterWorld(character: Character): Promise<void> {
     // RECONNECT after a page refresh can mint one too (see reconnect()).
     playing = character;
     Session.playingCharacterId = character.id;
+    awaitingAccept = true;
     new JoinMessage(character.name, Session.reconnectToken, ticket.ticket).send();
     GameJoinEvent.trigger('start');
 
@@ -500,6 +504,7 @@ export async function onJoinRefused(): Promise<void> {
         // Second failure, or nothing to retry: bounce to character-select with a
         // plain message. ⚑ Never surface the word "ticket".
         playing = null;
+        awaitingAccept = false;
         retriedTicket = false;
         await toCharacterSelect(false);
         AccountScreens.showError(
@@ -511,10 +516,12 @@ export async function onJoinRefused(): Promise<void> {
     retriedTicket = true;
     try {
         const ticket = await AccountsApi.selectCharacter(character.id);
+        awaitingAccept = true;
         new JoinMessage(character.name, Session.reconnectToken, ticket.ticket).send();
         GameJoinEvent.trigger('start');
     } catch (error) {
         playing = null;
+        awaitingAccept = false;
         retriedTicket = false;
         await toCharacterSelect(false);
         AccountScreens.showError(
@@ -526,6 +533,7 @@ export async function onJoinRefused(): Promise<void> {
 
 /** Called on a successful Accept: the join stuck, so the retry budget resets. */
 export function onJoinAccepted(): void {
+    awaitingAccept = false;
     retriedTicket = false;
 }
 
@@ -536,7 +544,11 @@ export function onJoinAccepted(): void {
  * The server closes the socket rather than sending a refusal message, so the
  * close event is identical in both cases and only the client knows which it was
  * expecting.
+ *
+ * ⚑ Not `playing !== null`: `playing` outlives the Accept, because the retry
+ * needs it. Read as "in flight" it took every close for a refused join, and a
+ * server restart froze the world with no banner (plan-vertical-slice.md F1).
  */
 export function isJoinInFlight(): boolean {
-    return playing !== null;
+    return awaitingAccept;
 }

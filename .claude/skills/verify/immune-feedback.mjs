@@ -1,30 +1,26 @@
 #!/usr/bin/env node
-// plan-immune-feedback.md - the wiring the Go pins cannot see: a fully
-// mitigated hit puts a grey "Immune" over the target's head, and no damage
-// number appears there.
+// "Never targets what it can never hurt" (plan-vertical-slice.md R23, F40) and
+// what is left of the "Immune" label (plan-immune-feedback.md): a TEMPORARY
+// immunity is still targeted and still says so (plan-immune-targets.md D2).
 //
-// Venue: the Bramble wall in the forest shortcut corridor (-68.7..-65.1,
-// -4.8) - the same {"*": 0} + gateKeys shape as the Rockfall the plan names,
-// but OUTDOORS: the Rockfall sits in the Dark Tunnel, where showFloatingText's
-// darkness suppression would swallow the label and the run would prove
-// nothing. The starting damage aura (radius 1.0) ticks on the wall and every
-// hit is fully resisted, so the label repeats at aura cadence - the count is
-// logged for the plan's §9 cadence question, not asserted.
+// DEBUG world. Three legs:
+//   1. alone at the Bramble wall ({"*": 0}, gateKeys chop) with Damage on:
+//      empty ground. No strike, no "Immune", no number, no combat.
+//   2. the CONTROL at the same spot with Hatchet: strike, number, combat. Leg 1
+//      only counts when this passes: absence passes on a dead venue too.
+//   3. OmniStrike's 3 s self-immunity inside a Poison Pool: grey "Immune" on
+//      the own character (GOD off, which is what makes the label possible).
 //
-// ⚑ The starting aura is pre-equipped but NOT active - the long-held `1`
-//   (~1.4 s, rAF-sampled) switches it on, and `.auraSlot.activeSlot` is the
-//   confirmation gate.
-// ⚑ The "no damage number" half is scoped BY POSITION (over a bramble's own
-//   head: within 0.3 u of its x, up to 1.5 u above it): mobs fight each other
-//   elsewhere in the viewport, so a global "no red text" assert would flake
-//   on an unrelated wolf, and a 2.5 u radius admitted a wolf at melee with the
-//   bot (2026-09-13). The "Immune" half keeps the wider 2.5 u radius.
-// Tri-state: a warp that lands off-target or an aura that never activates is
-// INCONCLUSIVE, not red.
+// ⚑ The wall (-68.7..-65.1, -4.8) is approached from its SOUTH side: a wolf
+//   spawns 3.9 u north of it, and its fight would fail leg 1's oracles.
+// ⚑ Loadout first: combat locks it.
+// ⚑ Slot keys are rAF-sampled: long holds (verify skill).
+// Tri-state: venue and input failures are INCONCLUSIVE, not red.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { closeSpellbook, showSkillRowAt } from './lib/spellbook.mjs';
 import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
@@ -41,147 +37,161 @@ const env = {
   LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':'),
 };
 
+const WALL = [[-68.7, -4.8], [-67.5, -4.8], [-66.3, -4.8], [-65.1, -4.8]];
+const STAND = { x: -67.5, y: -6.1 };
+const SAFE = { x: 7.8, y: -22.5 };
+const POOL = { x: 7.8, y: -26.4 }; // PoisonPool, ticks every 20
+
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1600, height: 900 } })).newPage();
 const errors = [];
-let inconclusive = false;
+const results = [];
+// pass: true, false, or null = INCONCLUSIVE
+const check = (name, pass, detail) => results.push({ name, pass, detail });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-const fail = (msg) => { errors.push('CHECK FAILED: ' + msg); };
+page.on('console', m => { if (m.type() === 'error' && !/favicon/i.test(m.text())) errors.push('console: ' + m.text()); });
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await joinAsNewCharacter(page, botName('immune'));
-await page.waitForFunction(() => !!window.game?.character, null, { timeout: 30_000 });
+await page.waitForFunction(() => !!window.game?.character, null, { timeout: 60_000 });
+await page.waitForSelector('#console_command', { state: 'attached' });
 await page.evaluate(() => {
   const panel = document.getElementById('developPanel');
   if (panel) panel.style.display = 'none';
   // Cache the scene root while alive (verify skill: a dead player nulls it).
-  window.__auraRoot = window.game.character.plate.parent;
+  let root = window.game.character.plate.parent;
+  while (root.parent) root = root.parent;
+  window.__auraRoot = root;
 });
-console.log('joined');
 
-async function runCommand(command) {
-  await page.waitForSelector('#console_command', { state: 'attached' });
-  await page.evaluate((cmd) => {
-    const input = document.querySelector('#console_command');
-    input.value = cmd;
+async function cmd(command, wait = 500) {
+  await page.evaluate((c) => {
+    document.querySelector('#console_command').value = c;
     document.querySelector('#console').dispatchEvent(new Event('submit', { cancelable: true }));
   }, command);
-  await page.waitForTimeout(400);
+  if (wait) await page.waitForTimeout(wait);
 }
-
-// The middle of the bramble wall; stand 1.4 u north of the -67.5 bramble.
-const BRAMBLES = [[-68.7, -4.8], [-67.5, -4.8], [-66.3, -4.8], [-65.1, -4.8]];
-const STAND = { x: -67.5, y: -3.4 };
-
-await runCommand('GOD on'); // survival only - GOD never touches the MOB's takeDamage
-await runCommand(`WARP ${Math.round(STAND.x * 120)} ${Math.round(STAND.y * 120)}`);
-
-// Wait until the character actually reports the warped position (world units).
-const landed = await page.waitForFunction(({ x, y }) => {
+const warp = (p, wait) => cmd(`WARP ${Math.round(p.x * 120)} ${Math.round(p.y * 120)}`, wait);
+const at = (p) => page.waitForFunction(({ x, y }) => {
   const c = window.game.character;
-  return Math.hypot(c.getX() / 120 - x, c.getY() / 120 - y) < 1.0;
-}, STAND, { timeout: 20_000 }).then(() => true).catch(() => false);
-if (!landed) {
-  const at = await page.evaluate(() => {
-    const c = window.game.character;
-    return { x: c.getX() / 120, y: c.getY() / 120 };
-  });
-  console.log(`INCONCLUSIVE: warp did not land near the bramble wall (at ${at.x.toFixed(1)}, ${at.y.toFixed(1)})`);
-  inconclusive = true;
-}
+  return c && Math.hypot(c.getX() / 120 - x, c.getY() / 120 - y) < 0.8;
+}, p, { timeout: 20_000 }).then(() => true).catch(() => false);
 
-// Switch the starting damage aura ON (pre-equipped, NOT active).
-await page.keyboard.down('1');
-await page.waitForTimeout(1400);
-await page.keyboard.up('1');
-const auraOn = await page.waitForSelector('.auraSlot.activeSlot', { timeout: 8_000 })
-  .then(() => true).catch(() => false);
-if (!auraOn) {
-  // Retry once - rAF-sampled hotkeys can eat the first hold.
-  await page.keyboard.down('1');
-  await page.waitForTimeout(1600);
-  await page.keyboard.up('1');
-  const retried = await page.waitForSelector('.auraSlot.activeSlot', { timeout: 8_000 })
+async function equip(name, list, slot) {
+  const row = await page.waitForFunction((n) => {
+    const i = [...document.querySelectorAll('#spellbookList li')].findIndex((li) => li.textContent.includes(n));
+    return i >= 0 ? { i } : null;
+  }, name, { timeout: 20_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => null);
+  if (!row || !(await showSkillRowAt(page, row.i))) return false;
+  const box = await (await page.$$('#spellbookList li'))[row.i].boundingBox();
+  await page.mouse.click(box.x + 25, box.y + box.height / 2);
+  await page.waitForTimeout(700);
+  const target = `#${list} li[data-slot="${slot}"]`;
+  const slotBox = await page.locator(target).first().boundingBox().catch(() => null);
+  if (!slotBox) return false;
+  await page.mouse.click(slotBox.x + slotBox.width / 2, slotBox.y + slotBox.height / 2);
+  await closeSpellbook(page);
+  return page.waitForFunction(({ target, name }) =>
+    document.querySelector(`${target} .slotLabel`)?.textContent?.includes(name), { target, name }, { timeout: 15_000 })
     .then(() => true).catch(() => false);
-  if (!retried) {
-    console.log('INCONCLUSIVE: the damage aura never activated - nothing can have hit the wall');
-    inconclusive = true;
-  }
 }
-console.log('aura active, watching the bramble wall for 12 s');
 
-// One atomic in-page watch: every sample walks the scene graph once, reading
-// label text + fill + world position together (verify skill: one sample = one
-// evaluate; here one sample = one synchronous walk).
-const watch = await page.evaluate(({ brambles }) => new Promise((resolve) => {
-  const stage = (() => { let n = window.__auraRoot; while (n.parent) n = n.parent; return n; })();
-  const GREY = 0xB0B0B0;
-  const seen = new WeakSet(); // count each floating Text once, not per sample
-  const out = { immune: 0, immuneNear: 0, immuneGrey: 0, damageNear: 0, samples: [] };
-  const hex = (fill) => typeof fill === 'string' ? parseInt(fill.replace('#', ''), 16) : fill;
-  const nearWall = (node) => {
-    // Detached floating text lives in a world-space layer; position is wire px.
-    const wx = node.position.x / 120, wy = node.position.y / 120;
-    return brambles.some(([bx, by]) => Math.hypot(wx - bx, wy - by) < 2.5);
-  };
-  // A number OVER a bramble: it spawns within a lane's half-gap of the
-  // bramble's x and rises from one prop-size above its y. Tighter than
-  // nearWall on purpose (2026-09-13): a mob that wanders to melee with the bot
-  // stands ~2.3 u from the wall, and its own damage numbers scored as the D9
-  // guard broken three runs in a row on a long-lived server.
-  const overWall = (node) => {
-    const wx = node.position.x / 120, wy = node.position.y / 120;
-    return brambles.some(([bx, by]) => Math.abs(wx - bx) < 0.3 && by - wy > 0 && by - wy < 1.5);
-  };
+async function auraOn(key, slot) {
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.down(key);
+    await page.waitForTimeout(1400);
+    await page.keyboard.up(key);
+    const on = await page.waitForSelector(`#auraSlotList li[data-slot="${slot}"].activeSlot`, { timeout: 6_000 })
+      .then(() => true).catch(() => false);
+    if (on) return true;
+  }
+  return false;
+}
+
+// One synchronous walk per sample: label, fill, number, position, combat.
+const watch = (ms) => page.evaluate(({ ms, wall }) => new Promise((resolve) => {
+  const hex = (f) => (typeof f === 'string' ? parseInt(f.replace('#', ''), 16) : f);
+  const strikes = () => window.game.skillFx().spawnedByKind.strike ?? 0;
+  const before = strikes();
+  const seen = new WeakSet();
+  const out = { immune: 0, grey: 0, numbers: 0, combat: false, strikes: 0 };
   const visit = (node) => {
     if (node.text !== undefined && !seen.has(node)) {
       const t = String(node.text);
+      const x = node.position.x / 120, y = node.position.y / 120;
       if (t === 'Immune') {
         seen.add(node);
         out.immune++;
-        if (nearWall(node)) out.immuneNear++;
-        if (hex(node.style?.fill) === GREY) out.immuneGrey++;
-      } else if (/^-\d+$/.test(t) && overWall(node)) {
+        if (hex(node.style?.fill) === 0xB0B0B0) out.grey++;
+      } else if (/^-\d+$/.test(t) && wall.some(([bx, by]) => Math.abs(x - bx) < 0.3 && by - y > 0 && by - y < 1.5)) {
+        // Scoped OVER a bramble: mobs fight each other elsewhere in view.
         seen.add(node);
-        out.damageNear++;
-        out.samples.push('damage text near wall: ' + t);
+        out.numbers++;
       }
     }
     (node.children ?? []).forEach(visit);
   };
   const t0 = Date.now();
   const poll = () => {
-    visit(stage);
-    if (Date.now() - t0 > 12_000) return resolve(out);
+    visit(window.__auraRoot);
+    out.combat ||= document.getElementById('combatIndicator')?.classList.contains('hidden') === false;
+    if (Date.now() - t0 > ms) {
+      out.strikes = strikes() - before;
+      return resolve(out);
+    }
     setTimeout(poll, 120);
   };
   poll();
-}), { brambles: BRAMBLES });
+}), { ms, wall: WALL });
 
-await page.screenshot({ path: join(outdir, 'immune-label.png') });
-console.log(`"Immune" labels seen: ${watch.immune} (near the wall: ${watch.immuneNear}, grey: ${watch.immuneGrey})`);
-console.log(`damage numbers near the wall: ${watch.damageNear}`);
-if (watch.samples.length) console.log(watch.samples.join('\n'));
-console.log('cadence note (§9): labels repeat at aura tick rate - ' +
-  `${watch.immune} in 12 s ≈ one per ${(12 / Math.max(1, watch.immune)).toFixed(1)} s`);
+await cmd('PING'); // the first command after joining is dropped
+await cmd('GOD on');
+await cmd('SKILL Hatchet', 1000);
+await cmd('SKILL OmniStrike', 1000);
+const hatchet = await equip('Hatchet', 'auraSlotList', 1);
+const omni = await equip('Omni', 'cooldownSlotList', 0);
 
-if (!inconclusive) {
-  if (watch.immune === 0) {
-    fail('no "Immune" label appeared over a fully resisted target in 12 s');
-  } else {
-    if (watch.immuneNear === 0) fail('"Immune" appeared but never near the bramble wall - wrong subject');
-    if (watch.immuneGrey === 0) fail('"Immune" appeared but not in the grey D3 colour');
+await warp(STAND);
+const atWall = await at(STAND);
+const damageOn = atWall && await auraOn('1', 0);
+const alone = damageOn ? await watch(8_000) : null;
+await page.screenshot({ path: join(outdir, 'immune-wall.png') });
+
+const hatchetOn = damageOn && hatchet && await auraOn('2', 1);
+const control = hatchetOn ? await watch(6_000) : null;
+await page.screenshot({ path: join(outdir, 'immune-control.png') });
+
+const controlled = !!control && control.numbers > 0 && control.strikes > 0 && control.combat;
+check('2 the control: Hatchet strikes the same wall, with a number and combat', control ? controlled : null, JSON.stringify(control));
+const LEG1 = '1 alone at the wall is empty ground: no strike, label, number or combat';
+check(LEG1, controlled ? (alone.strikes === 0 && alone.immune === 0 && alone.numbers === 0 && !alone.combat) : null,
+  `${JSON.stringify(alone)}${controlled ? '' : ' (INCONCLUSIVE without the control)'}`);
+
+const LEG3 = '3 a temporary immunity is still targeted and says "Immune", in grey';
+let temporary = null;
+if (omni) {
+  await cmd('XP 5000'); // a level-1 pool dies in the pool
+  await warp(SAFE, 1500);
+  await cmd('GOD off');
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('q');
+  const fired = await page.waitForFunction(() =>
+    /\d+(\.\d+)?s/.test(document.querySelector('#cooldownSlotList li[data-slot="0"]')?.textContent || ''),
+  null, { timeout: 8_000, polling: 100 }).then(() => true).catch(() => false);
+  await page.keyboard.up('q');
+  if (fired) {
+    await warp(POOL, 0);
+    temporary = await watch(4_000);
+    await page.screenshot({ path: join(outdir, 'immune-label.png') });
   }
-  if (watch.damageNear > 0) fail('a damage number appeared over the immune wall (D9 guard broken)');
+  await cmd('GOD on');
 }
+check(LEG3, temporary ? (temporary.immune > 0 && temporary.grey > 0) : null, JSON.stringify(temporary));
 
 await browser.close();
-const realErrors = errors.filter(e => !/favicon/i.test(e));
-if (realErrors.length) {
-  console.log('\nERRORS / FAILURES:');
-  realErrors.forEach(e => console.log('  ' + e));
-  console.log(`\nRESULT: FAIL (${realErrors.length})`);
-  process.exit(1);
-}
-console.log(inconclusive ? '\nRESULT: INCONCLUSIVE (see above)' : '\nRESULT: PASS');
+check('0 no page errors', errors.length === 0, errors.slice(0, 5).join(' | '));
+for (const r of results) console.log(`${r.pass === true ? 'PASS' : r.pass === null ? 'INCONCLUSIVE' : 'FAIL'}  ${r.name}: ${r.detail}`);
+const failed = results.some(r => r.pass === false);
+console.log(`\nRESULT: ${failed ? 'FAIL' : results.some(r => r.pass === null) ? 'INCONCLUSIVE' : 'PASS'}`);
+process.exitCode = failed ? 1 : 0;

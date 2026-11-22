@@ -121,7 +121,7 @@ const nearestAnyMob = () => page.evaluate(() => {
   if (!layer?.parent) return null;
   const ch = window.game.character;
   let bestD = Infinity, bestIn = null;
-  const MOB_LAYERS = ['totem', 'companion', 'campfireMob', 'turnip', 'wildlife', 'npcs']; // Game.ts layers.mobs
+  const MOB_LAYERS = ['totem', 'companion', 'campfireMob', 'turnip', 'wildlife', 'fixtures', 'npcs']; // Game.ts layers.mobs
   for (const group of layer.parent.children) {
     if (!MOB_LAYERS.includes(group.name)) continue;
     for (const c of group.children || []) {

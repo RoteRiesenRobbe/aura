@@ -1,7 +1,7 @@
 package sys
 
-// plan-immune-targets.md C1: an effect that deals damage picks targets it can
-// hurt before targets it can never hurt (D1), read from the species file only
+// plan-vertical-slice.md R23 (amends plan-immune-targets.md D1 and D4): an
+// effect never targets what it can never hurt, read from the species file only
 // (D2), and an exact authored zero is the only resistance that steers (D3).
 // Every leg puts the immune mob NEARER than the one the hit should take, or it
 // would pass by accident (L6).
@@ -42,7 +42,7 @@ func physicalNearest1() skills.EffectDef {
 
 // --- selectDamageTargets directly ---
 
-func TestSelectDamageTargets_DemotesOnlyWhenTheCapCuts(t *testing.T) {
+func TestSelectDamageTargets_NeverPicksTheImmune(t *testing.T) {
 	bramble, wolf := brambleMob(), speciesMob(nil)
 	set := setOf(colliderAt(vec(1, 0), bramble), colliderAt(vec(2, 0), wolf))
 
@@ -51,9 +51,12 @@ func TestSelectDamageTargets_DemotesOnlyWhenTheCapCuts(t *testing.T) {
 	assert.Same(t, wolf, got[0].Shape().UserData, "the hurtable mob takes the single slot")
 
 	got = selectDamageTargets(set, vec(0, 0), skills.SelectorNearest, 2, alwaysEligible, []string{"physical"}, "")
-	require.Len(t, got, 2)
-	assert.Same(t, bramble, got[0].Shape().UserData,
-		"nobody is dropped, so nothing is reordered (L5)")
+	require.Len(t, got, 1, "a spare slot stays empty")
+	assert.Same(t, wolf, got[0].Shape().UserData)
+
+	got = selectDamageTargets(set, vec(0, 0), skills.SelectorAll, 0, alwaysEligible, []string{"physical"}, "")
+	require.Len(t, got, 1, "an uncapped effect skips it as well")
+	assert.Same(t, wolf, got[0].Shape().UserData)
 }
 
 func TestSelectDamageTargets_KeepsSelectorOrderAmongTheHurtable(t *testing.T) {
@@ -68,7 +71,7 @@ func TestSelectDamageTargets_KeepsSelectorOrderAmongTheHurtable(t *testing.T) {
 	assert.Same(t, midWolf, got[1].Shape().UserData, "a stable partition: the selector's order survives")
 }
 
-func TestSelectDamageTargets_NonMobIsNeverDemoted(t *testing.T) {
+func TestSelectDamageTargets_NonMobIsNeverSkipped(t *testing.T) {
 	// A target without a species file (a player, a test double) always
 	// counts as "can hurt" (§4).
 	bramble, other := brambleMob(), &touchRecorder{}
@@ -93,19 +96,63 @@ func TestDamageAura_Nearest1SkipsANearerImmuneStructure(t *testing.T) {
 	assert.False(t, struck(bramble), "the Bramble no longer soaks it")
 }
 
-// §8 leg 2 + D4: alone at the wall, the strike still lands and reads "Immune".
-func TestDamageAura_AloneWithAnImmuneStructureStillStrikesIt(t *testing.T) {
-	bramble := brambleMob()
+// R23, the PO's report (F40): alone at the mushroom is empty ground. No hit,
+// no cost, no combat. The wolf leg is the control: the same effect does all
+// three.
+func TestAuraEffect_AloneWithAnImmuneTargetIsEmptyGround(t *testing.T) {
+	dot := dotEffect() // fire-tagged
+	dot.Type = skills.EffectTypeDotAura
+	dot.Selector, dot.MaxTargets = skills.SelectorNearest, 1
+	all := physicalNearest1()
+	all.Selector, all.MaxTargets = skills.SelectorAll, 0
+	gated := physicalNearest1()
+	gated.Damage = &skills.DamageParams{HP: 10, GateKey: "smash"}
 
-	applyDamageAura(newFakePlayer(), testSkillID, 1, physicalNearest1(), setOf(colliderAt(vec(1, 0), bramble)), testRNG())
+	for name, tc := range map[string]struct {
+		effect   skills.EffectDef
+		hurtable func() *mob.Mob
+	}{
+		"capped damage":   {physicalNearest1(), func() *mob.Mob { return speciesMob(nil) }},
+		"uncapped damage": {all, func() *mob.Mob { return speciesMob(nil) }},
+		"dot":             {dot, func() *mob.Mob { return speciesMob(nil) }},
+		"another key":     {gated, func() *mob.Mob { return speciesMob(map[string]float32{"*": 0}, "smash") }},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cast := func(target *mob.Mob) *fakePlayer {
+				p := newFakePlayer()
+				testSkillSystem().applyAuraEffect(p, testSkillID, 1, costed(tc.effect, 0.1), setOf(colliderAt(vec(1, 0), target)))
+				return p
+			}
 
-	events := bramble.SkillEvents()
-	require.Len(t, events, 1)
-	assert.Equal(t, model.HitKindImmune, events[0].Kind)
+			control := cast(tc.hurtable())
+			require.Less(t, int(control.vitalSigns.Health), 100, "the control pays")
+			require.Positive(t, control.combatActions, "the control enters combat")
+
+			bramble := brambleMob()
+			p := cast(bramble)
+			assert.Empty(t, bramble.SkillEvents(), "no hit event, so no shot is drawn")
+			assert.EqualValues(t, 100, p.vitalSigns.Health, "no cost")
+			assert.Zero(t, p.combatActions, "no combat")
+			assert.False(t, bramble.InCombat())
+		})
+	}
 }
 
-// §8 leg 3: a slot nobody else takes still goes to the immune target.
-func TestDamageAura_SpareSlotStillStrikesTheImmuneStructure(t *testing.T) {
+// The gated mirror: Harvest alone beside a wolf reaches nobody. A refused gate
+// notes no event, so this leg reads the cost and the combat.
+func TestAuraEffect_HarvestAloneBesideAWolfIsEmptyGround(t *testing.T) {
+	p := newFakePlayer()
+	effect := physicalNearest1()
+	effect.Damage = &skills.DamageParams{HP: 10, GateKey: "harvest"}
+
+	testSkillSystem().applyAuraEffect(p, testSkillID, 1, costed(effect, 0.1), setOf(colliderAt(vec(1, 0), speciesMob(nil))))
+
+	assert.EqualValues(t, 100, p.vitalSigns.Health)
+	assert.Zero(t, p.combatActions)
+}
+
+// R23: a spare slot stays empty.
+func TestDamageAura_SpareSlotLeavesTheImmuneStructureAlone(t *testing.T) {
 	bramble, wolf := brambleMob(), speciesMob(nil)
 	set := setOf(colliderAt(vec(1, 0), bramble), colliderAt(vec(2, 0), wolf))
 	effect := physicalNearest1()
@@ -114,7 +161,32 @@ func TestDamageAura_SpareSlotStillStrikesTheImmuneStructure(t *testing.T) {
 	applyDamageAura(newFakePlayer(), testSkillID, 1, effect, set, testRNG())
 
 	assert.True(t, struck(wolf))
-	assert.True(t, struck(bramble))
+	assert.False(t, struck(bramble))
+}
+
+// D2 with nobody else to take the slot: a temporary immunity stays a target
+// and still reads "Immune".
+func TestDamageAura_AloneWithAnInvulnerableMobStillStrikesIt(t *testing.T) {
+	warlord := speciesMob(nil)
+	warlord.SetInvulnerable(true)
+
+	landed := applyDamageAura(newFakePlayer(), testSkillID, 1, physicalNearest1(), setOf(colliderAt(vec(1, 0), warlord)), testRNG())
+
+	assert.True(t, landed)
+	events := warlord.SkillEvents()
+	require.Len(t, events, 1)
+	assert.Equal(t, model.HitKindImmune, events[0].Kind)
+}
+
+func TestMobDamageAura_AloneWithAnImmuneStructureLandsNothing(t *testing.T) {
+	caster := newFakeMob()
+	caster.faction = model.FactionAligned // the target loads hostile
+	bramble := brambleMob()
+
+	landed := applyDamageAura(caster, testSkillID, 1, physicalNearest1(), setOf(colliderAt(vec(1, 0), bramble)), testRNG())
+
+	assert.False(t, landed)
+	assert.False(t, struck(bramble))
 }
 
 // §8 leg 4, the mirror: Harvest picks the key holder over a nearer wolf.

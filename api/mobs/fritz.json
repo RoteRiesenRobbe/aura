@@ -1,5 +1,5 @@
 {
-  "_comment": "Fritz, foreman of the woodcutters, at the fire on the woods road with the survivors (content-zone-2-woodland.md §3.5); he took over the Wanderer's spawn and quests there. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Gives kobolds-on-the-road, the-lost-friend, the-captive, the-alpha-bear and the-wolf-den, each in the two-row shape. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Fritz, foreman of the woodcutters, at the fire on the woods road with the survivors (content-zone-2-woodland.md §3.5); he took over the Wanderer's spawn and quests there. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 96 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Gives kobolds-on-the-road, the-lost-friend, the-captive, the-alpha-bear and the-wolf-den, each in the two-row shape. entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
   "id": 124,
   "name": "Fritz",
   "type": "MOB",
@@ -15,7 +15,7 @@
   },
   "body": {
     "radius": 0.35,
-    "collisionLayer": 97,
+    "collisionLayer": 96,
     "collisionMask": 16,
     "aggroRadius": 1
   },

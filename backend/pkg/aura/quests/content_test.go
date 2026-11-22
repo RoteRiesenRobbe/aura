@@ -156,8 +156,9 @@ var expectedQuests = map[string]string{
 // the "startable in play" and "every stage reachable" pins, never from the
 // census.
 var parkedQuests = map[string]string{
-	"the-strays":    "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
-	"the-lost-lamp": "PO 2026-10-25 (content-zone-2-woodland.md §3.8): retired; the Lamplighter's oil-for-the-lamps took its place",
+	"the-strays":        "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
+	"he-who-cried-wolf": "PO 2026-11-22 (plan-vertical-slice.md R27): Hans stopped offering it; the turn-in stays for characters on it until none holds it",
+	"the-lost-lamp":     "PO 2026-10-25 (content-zone-2-woodland.md §3.8): retired; the Lamplighter's oil-for-the-lamps took its place",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -633,4 +634,3 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 		"a completed quest must not still match its terminal stage, or the other leg's turn-in row stays clickable forever")
 	assert.True(t, l.MatchesStage("wolves-on-the-road", mobs.QuestStageCompleted))
 }
-

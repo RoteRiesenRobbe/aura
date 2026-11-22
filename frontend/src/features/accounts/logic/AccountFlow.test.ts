@@ -17,29 +17,38 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 vi.mock('../../user-interface/account-screens/logic/AccountScreens', () => ({
     showError: vi.fn(),
+    clearError: vi.fn(),
+    setFormBusy: vi.fn(),
     element: vi.fn(() => document.createElement('div')),
 }));
 vi.mock('../../user-interface/account-screens/logic/CharacterCreation', () => ({
     show: vi.fn(),
     bind: vi.fn(),
+    setup: vi.fn(),
 }));
 vi.mock('../../user-interface/account-screens/logic/CharacterSelect', () => ({
     show: vi.fn(),
     bind: vi.fn(),
+    setup: vi.fn(),
 }));
 vi.mock('../../user-interface/account-screens/logic/AuthForms', () => ({
     bind: vi.fn(),
     show: vi.fn(),
+    setup: vi.fn(),
 }));
 vi.mock('../../user-interface/account-screens/logic/RegistrationNag', () => ({
     update: vi.fn(),
     bind: vi.fn(),
+    setup: vi.fn(),
+    showForFreshLogin: vi.fn(),
 }));
 // ⚑ Not for isolation — for RESOLUTION. These reach the generated FlatBuffers
 // bindings, whose `import * as flatbuffers` is satisfied by a webpack alias that
 // vitest does not have. Nothing here is on the path under test.
 vi.mock('../../backend/logic/messages/outgoing/JoinMessage', () => ({
-    JoinMessage: class {},
+    JoinMessage: class {
+        send() {}
+    },
 }));
 vi.mock('../../core/logic/Events', () => ({
     GameJoinEvent: {trigger: vi.fn(), subscribe: vi.fn()},
@@ -183,5 +192,51 @@ describe('the end of a world session', () => {
 
         expect(ascended).toBe(false);
         expect(reload).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * A socket close means "join refused" only until the Accept
+ * (plan-vertical-slice.md PF1, F1). It used to mean that for the whole session,
+ * so a server restart was answered with a ticket retry into the closed socket
+ * and the world froze with no banner.
+ */
+describe('a join in flight', () => {
+    const aCharacter = {id: 7, slotIndex: 0, name: 'Bob', avatar: 'default', faction: 'aligned', level: 1};
+
+    async function pressPlay() {
+        AccountFlow.setup();
+        const {onPlay} = vi.mocked(CharacterSelect.setup).mock.lastCall[0];
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, {ticket: 'a-ticket'}));
+        onPlay(aCharacter as Parameters<typeof onPlay>[0]);
+        await vi.waitFor(() => expect(AccountFlow.isJoinInFlight()).toBe(true));
+    }
+
+    it('ends at the Accept: a later close is an ordinary drop', async () => {
+        await pressPlay();
+
+        AccountFlow.onJoinAccepted();
+
+        expect(AccountFlow.isJoinInFlight()).toBe(false);
+    });
+
+    it('is in flight again for the one retry, until that is accepted', async () => {
+        await pressPlay();
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, {ticket: 'a-second-ticket'}));
+
+        await AccountFlow.onJoinRefused();
+        expect(AccountFlow.isJoinInFlight()).toBe(true);
+
+        AccountFlow.onJoinAccepted();
+        expect(AccountFlow.isJoinInFlight()).toBe(false);
+    });
+
+    it('ends when the retry gives up', async () => {
+        await pressPlay();
+        fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+        await AccountFlow.onJoinRefused();
+
+        expect(AccountFlow.isJoinInFlight()).toBe(false);
     });
 });

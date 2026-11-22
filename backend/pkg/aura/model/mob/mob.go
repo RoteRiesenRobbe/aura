@@ -2080,7 +2080,7 @@ func (m *Mob) Invulnerable() bool {
 // m.invulnerable (L1, D2), and only an exact zero counts (D3).
 //
 // The pin below is L3: a drifted signature breaks the build instead of
-// silently demoting nobody behind the selector's type assertion.
+// silently skipping nobody behind the selector's type assertion.
 var _ model.SpeciesImmunity = (*Mob)(nil)
 
 func (m *Mob) NeverHurtBy(tags []string, gateKey string) bool {

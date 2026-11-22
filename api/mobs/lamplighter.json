@@ -9,7 +9,7 @@
   "tier": "normal",
   "curveLevel": 1,
   "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
-  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "body": { "radius": 0.35, "collisionLayer": 96, "collisionMask": 16, "aggroRadius": 1 },
   "skills": [],
   "interaction": {
     "range": 2,

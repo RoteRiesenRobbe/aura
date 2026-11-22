@@ -1,5 +1,5 @@
 {
-  "_comment": "Tobias, Reinhard's farmhand, resting at the Wanderer's fire in the woods. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `a-lost-shipment`, then offers `the-stolen-shipment` (content-zone-2-woodland.md §3.5), gated on the first being completed; the gnome turns that one in. His lines are drafted, the sheet has none. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Tobias, Reinhard's farmhand, resting at the Wanderer's fire in the woods. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 96 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Turns in `a-lost-shipment`, then offers `the-stolen-shipment` (content-zone-2-woodland.md §3.5), gated on the first being completed; the gnome turns that one in. His lines are drafted, the sheet has none. entityType Farmer is placeholder art. All values [PLACEHOLDER].",
   "id": 121,
   "name": "Tobias",
   "type": "MOB",
@@ -9,7 +9,7 @@
   "tier": "normal",
   "curveLevel": 1,
   "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
-  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "body": { "radius": 0.35, "collisionLayer": 96, "collisionMask": 16, "aggroRadius": 1 },
   "skills": [],
   "interaction": {
     "range": 2,

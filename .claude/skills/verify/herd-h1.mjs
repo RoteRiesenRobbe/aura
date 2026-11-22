@@ -41,11 +41,16 @@ const named = (s) => NAMED.some((p) => Math.hypot(p.x - s.x, p.y - s.y) < 0.6);
 const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await chromium.launch({
+  args: ['--no-sandbox'],
+  env: { ...process.env, LD_LIBRARY_PATH: [join(workdir, 'libs/usr/lib/x86_64-linux-gnu'), join(workdir, 'libs/usr/lib/x86_64-linux-gnu/nss'), process.env.LD_LIBRARY_PATH || ''].join(':') },
+});
 const errors = [];
 const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 800 } })).newPage();
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+page.on('console', (m) => { if (m.type() === 'error' && !(m.location().url || '').includes('/icons/icons.json')) errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+// Pack portraits are canvases with no name, so the pack is refused and sheep.svg draws.
+await page.route('**/icons/icons.json', (route) => route.fulfill({ status: 404, body: '' }));
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 await joinAsNewCharacter(page, 'herd');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
@@ -66,11 +71,11 @@ const cmd = async (text, wait = 700) => {
 };
 const warp = (p) => cmd(`WARP ${Math.round(p.x * 120)} ${Math.round(p.y * 120)}`, 3000);
 
-// Every visible sheep sprite in the wildlife layer, in world units. A sprite
+// Every visible sheep sprite on the npcs layer, in world units. A sprite
 // is a sheep when some texture in its subtree comes from sheep.svg.
 const sheep = () => page.evaluate(() => {
   let layer = null;
-  const find = (c) => { if (layer) return; if (c?.name === 'wildlife') { layer = c; return; } (c?.children || []).forEach(find); };
+  const find = (c) => { if (layer) return; if (c?.name === 'npcs') { layer = c; return; } (c?.children || []).forEach(find); };
   find(window.__auraRoot);
   if (!layer) return [];
   const isSheep = (c) => {

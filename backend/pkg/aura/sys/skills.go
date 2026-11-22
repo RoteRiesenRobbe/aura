@@ -2501,7 +2501,8 @@ func (s *SkillSystem) probeLanding(start, dir phy.Vec2f, dist, radius float32) p
 // the nearest enemy inside the level-scaled search radius. The pick is fixed,
 // so the authored effect carries no target flags; they are set here. Shared by
 // the activation precondition and applyCharge, so the cast that passed the
-// gate is the cast that lands.
+// gate is the cast that lands. An enemy no ungated hit can ever hurt (a
+// harvestable) is none (plan-vertical-slice.md R23).
 func (s *SkillSystem) chargeTarget(e skillEntity, effect skills.EffectDef, level int) (phy.Collider, bool) {
 	pick := effect
 	pick.TargetsEnemies, pick.TargetsAllies, pick.TargetsStructures = true, false, false
@@ -2513,7 +2514,8 @@ func (s *SkillSystem) chargeTarget(e skillEntity, effect skills.EffectDef, level
 	for _, h := range hits {
 		candidates[h] = struct{}{}
 	}
-	eligible := eligibleByTargetFlags[model.Factioned](pick, e, e.Basic().ID(), true)
+	isEnemy := eligibleByTargetFlags[model.Factioned](pick, e, e.Basic().ID(), true)
+	eligible := func(c phy.Collider) bool { return isEnemy(c) && !neverHurtBy(c, anyUngatedHit, "") }
 	targets := selectTargets(candidates, e.AuraCollider().Position(), skills.SelectorNearest, 1, eligible)
 	if len(targets) == 0 {
 		return nil, false

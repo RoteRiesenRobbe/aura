@@ -142,12 +142,9 @@ export class Backend implements IBackend {
             // server ends the session and closes the socket with no message
             // (plan-ascension.md P13).
             //
-            // ⚑ It has to run BEFORE the join-refused branch, not beside it.
-            // `isJoinInFlight()` is `playing !== null`, which stays true for the
-            // whole session — so that branch swallows every close, and it
-            // answers an ascension by retrying `/select` against a character the
-            // server just retired: a 404 in the console, and an error message
-            // about a ticket, at the end of a ten-second ceremony.
+            // ⚑ It has to run before both branches below: the banner would
+            // answer an ascension with "Connection lost", and the refused-join
+            // retry would `/select` a character the server just retired.
             //
             // ⚑ It costs one `/characters` round trip on a genuine drop before
             // the reconnect retry starts. That is the price of not guessing.

@@ -348,9 +348,13 @@ export class Game implements IGame {
                 turnip: createNamedContainer('turnip'),
                 // Z1 wildlife + brambles share one layer (content pass C2).
                 wildlife: createNamedContainer('wildlife'),
-                // NPCs, under the player like every other mob
-                // (plan-prop-draw-order.md D9). They used to share the props
-                // container and draw over the player.
+                // What talks and blocks (signs, stones, doors, the old tree),
+                // plus the placeholder art hostile species share: under the
+                // player like every other mob.
+                fixtures: createNamedContainer('fixtures'),
+                // Talking people and animals, OVER the player, who walks
+                // through them (plan-vertical-slice.md F55; supersedes
+                // plan-prop-draw-order.md D9 for them alone).
                 npcs: createNamedContainer('npcs'),
             },
             // A character in FLIGHT, above the props (flight C3, PO
@@ -446,11 +450,15 @@ export class Game implements IGame {
             this.layers.mobs.campfire,
             this.layers.mobs.turnip,
             this.layers.mobs.wildlife,
-            this.layers.mobs.npcs,
+            this.layers.mobs.fixtures,
         );
 
         // Characters above mobs
         this.cameraGroup.addChild(this.layers.characters);
+
+        // ...but for the talkers a player walks through (F55): still under
+        // the props, like the player.
+        this.cameraGroup.addChild(this.layers.mobs.npcs);
 
         // Props, one container: rocks no longer draw below every other prop,
         // the id order decides (plan-prop-draw-order.md D7).

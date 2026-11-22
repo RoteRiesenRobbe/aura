@@ -1,5 +1,5 @@
 {
-  "_comment": "Hans's flock, and the herd of plan-herding.md: a sheep RUNS from every player inside its sensor (aggroRadius 2.5 is the run radius, D1) and counts once it has stood 2 s in its pen `hans-pen` (D4) — every player it ran from in the last 10 s gets one credit on the Sheep counter, and it fades out and grazes again after its spawn's respawnTicks. Running is movement, never a fight: faction townsfolk (hostileTo [] acquires nobody; friendlyToPlayers so player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64), deliberately NOT Action(2), so no aura can target it and players bump into it. ⭐ collisionMask 80 = MobStatic(64) + Border(16), the mob default: the fence paths sit on MobStatic, so this is what keeps a sheep out of (and inside) the pen; the old 16 walked straight through fences. Speed 0.6, slower than the Stag's 0.85 (R6), with a grazing default of wanderRadius 2 at idleSpeedFactor 0.3, so a sheep left alone drifts back towards its spawn: a herd needs steady pressure. role creature, xpFactor 0 keeps it off the nameplate path. ⭐ IT AUTHORS NO `interaction` (PO 2026-09-20): only the three named strays answer, which is how the-strays' search worked. ⚑ Absent from the interaction census by design; in the role and xpFactor censuses only. ⛑ entityType Sheep, the placeholder sheep (plan-herding.md R13, D11), worn by the named three too; the real sprite comes at the Zone 1 art pass. All values [PLACEHOLDER].",
+  "_comment": "Hans's flock, and the herd of plan-herding.md: a sheep RUNS from every player inside its sensor (aggroRadius 2.5 is the run radius, D1) and counts once it has stood 2 s in its pen `hans-pen` (D4) — every player it ran from in the last 10 s gets one credit on the Sheep counter, and it fades out and grazes again after its spawn's respawnTicks. Running is movement, never a fight: faction townsfolk (hostileTo [] acquires nobody; friendlyToPlayers so player damage skips it) and collisionLayer 96 = Viewport(32) + MobStatic(64), deliberately NOT Action(2), so no aura can target it, and players walk through it. ⭐ collisionMask 80 = MobStatic(64) + Border(16), the mob default: the fence paths sit on MobStatic, so this is what keeps a sheep out of (and inside) the pen; the old 16 walked straight through fences. Speed 0.6, slower than the Stag's 0.85 (R6), with a grazing default of wanderRadius 2 at idleSpeedFactor 0.3, so a sheep left alone drifts back towards its spawn: a herd needs steady pressure. role creature, xpFactor 0 keeps it off the nameplate path. ⭐ IT AUTHORS NO `interaction` (PO 2026-09-20): only the three named strays answer, which is how the-strays' search worked. ⚑ Absent from the interaction census by design; in the role and xpFactor censuses only. ⛑ entityType Sheep, the placeholder sheep (plan-herding.md R13, D11), worn by the named three too; the real sprite comes at the Zone 1 art pass. All values [PLACEHOLDER].",
   "id": 78,
   "name": "Sheep",
   "type": "MOB",
@@ -17,7 +17,7 @@
   },
   "body": {
     "radius": 0.35,
-    "collisionLayer": 97,
+    "collisionLayer": 96,
     "collisionMask": 80,
     "aggroRadius": 2.5
   },

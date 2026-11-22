@@ -2439,7 +2439,7 @@ func TestInteractionSystem_NpcBodyIsNotAnAuraTarget(t *testing.T) {
 	space := phy.NewSpace()
 
 	def := npcDef("Farmer", teachingInteraction([]string{"lore"}))
-	def.Body.CollisionLayer = 97 // PlayerStatic|Viewport|MobStatic — no Action(2)
+	def.Body.CollisionLayer = 96 // Viewport|MobStatic, the walk-through talker: no Action(2)
 	m := mob.NewMob(def, 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	addNpcToSpace(t, space, m)
@@ -2455,6 +2455,33 @@ func TestInteractionSystem_NpcBodyIsNotAnAuraTarget(t *testing.T) {
 
 	for c := range aura.Collisions() {
 		assert.NotSame(t, m.Bodies()[0], c, "an NPC body must never surface as an aura target")
+	}
+}
+
+// plan-vertical-slice.md F55, as physics: a player body passes through a
+// person (96) and is pushed out of an object (97), and the person's sensor
+// still sees a player standing on it, so E still offers.
+func TestNpcBody_PlayersPassThroughPeopleAndNotObjects(t *testing.T) {
+	for layer, blocks := range map[int]bool{96: false, 97: true} {
+		space := phy.NewSpace()
+		def := npcDef("Farmer", teachingInteraction([]string{"lore"}))
+		def.Body.CollisionLayer = layer
+		def.Body.CollisionMask = int(model.LayerBorderCollision)
+		m := mob.NewMob(def, 0, nil)
+		m.SetPosition(phy.VEC2F_ZERO)
+		addNpcToSpace(t, space, m)
+
+		start := phy.Vec2f{X: 0.2, Y: 0}
+		player := phy.NewCircle(start, 0.25) // model/player's body bits
+		player.Shape().Layer = int(model.LayerViewportCollision | model.LayerPlayerCollision)
+		player.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
+		space.AddShape(player)
+		space.Update()
+
+		assert.Equal(t, blocks, player.Position() != start, "layer %d", layer)
+		if !blocks {
+			assert.Contains(t, m.Sensor().Collisions(), phy.Collider(player), "E still offers")
+		}
 	}
 }
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "Benjamin, at the beet field east of Flora's house, teaches Harvest; talking to him is an objective of `ready-for-harvest`. A Beet takes damage only from a `harvest`-tagged aura. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
+  "_comment": "Benjamin, at the beet field east of Flora's house, teaches Harvest; talking to him is an objective of `ready-for-harvest`. A Beet takes damage only from a `harvest`-tagged aura. Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 96 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 83,
   "name": "Benjamin",
   "type": "MOB",
@@ -15,7 +15,7 @@
   },
   "body": {
     "radius": 0.35,
-    "collisionLayer": 97,
+    "collisionLayer": 96,
     "collisionMask": 16,
     "aggroRadius": 1
   },

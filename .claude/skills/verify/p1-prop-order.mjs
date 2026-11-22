@@ -17,8 +17,8 @@
 //   3. Walk away and come back (a WARP far enough that both leave the
 //      snapshot, then back): legs 1 and 2 again. ⭐ This is the case that used
 //      to reshuffle: a returning prop was rebuilt and APPENDED on top.
-//   4. Container order: npcs < characters < props.standing, and Flora's own
-//      sprite is on `mobs.npcs` (D9: NPCs under the player).
+//   4. Container order: fixtures < characters < npcs < props.standing, and
+//      Flora's own sprite is on `mobs.npcs` (VS PF1 F55: people over the player).
 //
 // ⚑ Expectations are DERIVED from api/zones/world.json, never typed in. The
 // webpack dev server bundles the same file, and the server reads it too under
@@ -95,6 +95,7 @@ const sample = () => page.evaluate(() => {
   return {
     standing: L.props.standing.children.map((c) => ({ x: c.position.x, y: c.position.y })),
     npcIdx: npcs ? idx(npcs) : -1,
+    fixturesIdx: idx(L.mobs.fixtures),
     charIdx: idx(L.characters),
     standingIdx: idx(L.props.standing),
     npcChildren: npcs ? npcs.children.map((c) => ({ x: c.position.x, y: c.position.y })) : [],
@@ -137,8 +138,8 @@ judgeOrder(first, 'arrival');
 
 const e = { x: eliza.x * 120, y: eliza.y * 120 };
 const elizaOnNpcs = first.npcChildren.some((c) => Math.hypot(c.x - e.x, c.y - e.y) < 6 * 120);
-check(first.npcIdx >= 0 && first.npcIdx < first.charIdx && first.charIdx < first.standingIdx,
-  'npcs < characters < props.standing', `npcs ${first.npcIdx}, characters ${first.charIdx}, standing ${first.standingIdx}`);
+check(first.fixturesIdx >= 0 && first.fixturesIdx < first.charIdx && first.charIdx < first.npcIdx && first.npcIdx < first.standingIdx,
+  'fixtures < characters < npcs < props.standing', `fixtures ${first.fixturesIdx}, characters ${first.charIdx}, npcs ${first.npcIdx}, standing ${first.standingIdx}`);
 check(elizaOnNpcs, 'an NPC near Flora draws on mobs.npcs', `${first.npcChildren.length} child(ren) on npcs`);
 
 // Leg 3: walk away until both leave the snapshot, then come back.

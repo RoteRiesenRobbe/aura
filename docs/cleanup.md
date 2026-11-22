@@ -201,6 +201,16 @@ C7/C8 plan its delivery).
 | **Trigger** | ⭐ **The PO deletes it.** |
 | **Closes when** | The file is gone (delete this row). |
 
+### 9. `he-who-cried-wolf`: loaded, offered by nobody
+
+| | |
+|---|---|
+| **Today** | `api/quests/he-who-cried-wolf.json` still loads, but Hans stopped offering it in `77028018` (PO "the push stands", `plan-vertical-slice.md` R27). The turn-in stays for characters on it. Boot warns "offered by no conversant"; `parkedQuests` exempts it. |
+| **Successor** | `wolves-on-the-road` (the Town Crier's). |
+| **Cost** | As #7, plus Hans's turn-in rows; a look at saved ledgers first. |
+| **Trigger** | ⭐ **No saved character holds it, and the PO deletes it.** |
+| **Closes when** | The file is gone (delete this row), or a conversant offers it again. |
+
 ---
 
 

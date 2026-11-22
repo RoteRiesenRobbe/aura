@@ -85,27 +85,6 @@ func withinReach(c phy.Collider, center phy.Vec2f, radius float32) bool {
 // required for fixed-seed reproducibility in the sim harness
 // (plan-sim-harness §3, chunk 3) and harmless in-game.
 func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool) []phy.Collider {
-	return pickTargets(collisions, casterPos, sel, maxTargets, eligible, nil)
-}
-
-// damageHit is what the damage selector asks a candidate about: the hit's
-// tags and gate key (plan-immune-targets.md).
-type damageHit struct {
-	tags    []string
-	gateKey string
-}
-
-// selectDamageTargets is selectTargets for an effect that deals damage
-// (plan-immune-targets.md C1, D1): when the cap drops someone, targets the hit
-// can hurt are picked before targets their species file makes immune to it.
-// An immune target stays valid and fills a slot nobody else takes (D4).
-func selectDamageTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool, tags []string, gateKey string) []phy.Collider {
-	return pickTargets(collisions, casterPos, sel, maxTargets, eligible, &damageHit{tags: tags, gateKey: gateKey})
-}
-
-// pickTargets is the shared pipeline; hit is nil for effects that deal no
-// damage.
-func pickTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool, hit *damageHit) []phy.Collider {
 	candidates := make([]phy.Collider, 0, len(collisions))
 	for c := range collisions {
 		if eligible(c) {
@@ -125,30 +104,29 @@ func pickTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Sel
 	}
 
 	sortBySelector(candidates, casterPos, sel)
-	if hit != nil {
-		hurtableFirst(candidates, maxTargets, hit)
-	}
 	return candidates[:maxTargets]
 }
 
-// hurtableFirst moves the first maxTargets candidates the hit can hurt to the
-// front, in place and stably, so the selector's order and the fixed-seed roll
-// order survive (L5). Immune candidates keep their relative order behind them.
-// It allocates nothing and stops once the cap is filled.
-func hurtableFirst(candidates []phy.Collider, maxTargets int, hit *damageHit) {
-	front := 0
-	for i, c := range candidates {
-		if s, ok := c.Shape().UserData.(model.SpeciesImmunity); ok && s.NeverHurtBy(hit.tags, hit.gateKey) {
-			continue
-		}
-		copy(candidates[front+1:i+1], candidates[front:i])
-		candidates[front] = c
-		front++
-		if front == maxTargets {
-			return
-		}
-	}
+// selectDamageTargets is selectTargets for an effect that deals damage. What
+// the hit can never hurt is not eligible (plan-vertical-slice.md R23), so alone
+// in range it is empty ground: no hit, no cost, no combat.
+func selectDamageTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool, tags []string, gateKey string) []phy.Collider {
+	return selectTargets(collisions, casterPos, sel, maxTargets, func(c phy.Collider) bool {
+		return eligible(c) && !neverHurtBy(c, tags, gateKey)
+	})
 }
+
+// neverHurtBy asks the target's species file only, so a temporary immunity
+// stays targeted (plan-immune-targets.md D2). A target without one (a player)
+// can always be hurt.
+func neverHurtBy(c phy.Collider, tags []string, gateKey string) bool {
+	s, ok := c.Shape().UserData.(model.SpeciesImmunity)
+	return ok && s.NeverHurtBy(tags, gateKey)
+}
+
+// anyUngatedHit stands for every damage tag at once, for a selector that has
+// none of its own (chargeTarget): only a wildcard-immune species answers "never".
+var anyUngatedHit = []string{skills.ResistWildcard}
 
 // stableOrderKey is a collider's deterministic sort key: the entity ID behind
 // its shape (creation order, unique). Colliders without an entity UserData

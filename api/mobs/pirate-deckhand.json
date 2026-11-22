@@ -17,7 +17,7 @@
   },
   "body": {
     "radius": 0.3,
-    "collisionLayer": 97,
+    "collisionLayer": 96,
     "collisionMask": 80,
     "aggroRadius": 1
   },

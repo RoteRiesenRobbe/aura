@@ -131,7 +131,7 @@ const badgeGeometry = () => page.evaluate((gap) => {
     let best = null, bestD = Infinity;
     const scan = (c) => {
       for (const k of (c?.children || [])) {
-        if (k.parent?.label === 'npcs' || k.parent?.label === 'wildlife') {
+        if (['npcs', 'fixtures', 'wildlife'].includes(k.parent?.label)) {
           const d = Math.hypot(k.x - p.x, k.y - p.y);
           if (d < bestD) { best = k; bestD = d; }
         } else {

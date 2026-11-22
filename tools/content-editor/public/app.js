@@ -177,7 +177,8 @@ function toCamelName(s) {
 
 // The CityGuard-shaped unattackable teaching-NPC template (docs/manual-
 // content-authoring.md §1c): role creature + speed 0 so it never moves or
-// fights, faction townsfolk so player auras skip it, collisionLayer 97
+// fights, faction townsfolk so player auras skip it, collisionLayer 96 (players
+// walk through a person, plan-vertical-slice.md F55; an object takes 97)
 // authored explicitly (required once a mob carries `interaction`).
 // entityType "NpcPlaceholder" is the documented deliberate-missing-art
 // marker, so the file is playable the moment it's saved — no art/EntityType
@@ -204,7 +205,7 @@ function createNewNpc() {
     tier: 'normal',
     curveLevel: 1,
     factors: { baseMaxHealth: 200, xpFactor: 0, speed: 0 },
-    body: { radius: 0.35, collisionLayer: 97, collisionMask: 16, aggroRadius: 1.0 },
+    body: { radius: 0.35, collisionLayer: 96, collisionMask: 16, aggroRadius: 1.0 },
     skills: [],
     displayName: display,
     interaction: { range: 2, ambient: [], nodes: [{ id: 'root', lines: [{ text: "TODO: write this NPC's opening line." }], options: [] }] },

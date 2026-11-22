@@ -88,6 +88,50 @@ func TestCharge_SkipsFriendlyTargets(t *testing.T) {
 	assert.InDelta(t, -3.5, p.Position().X, 1e-4, "the charge ran at the hostile, not the friendly NPC")
 }
 
+// plan-vertical-slice.md R23: charge selects on its own and carries no tags,
+// so it skips what no ungated hit can ever hurt (the harvest shape).
+func TestCharge_NeverPicksWhatItCanNeverHurt(t *testing.T) {
+	space := phy.NewSpace()
+	chargeTargetAt(space, phy.Vec2f{X: 1, Y: 0}, brambleMob()) // nearer
+	hostileAt(space, phy.Vec2f{X: -4, Y: 0})
+	space.Update()
+	p, s := chargePlayer(space)
+
+	require.True(t, s.applyCharge(p, chargeEffect(6), 1))
+
+	assert.InDelta(t, -3.5, p.Position().X, 1e-4, "the charge ran past the mushroom at the enemy")
+}
+
+func TestCharge_AloneWithAnImmuneStructureIsRefused(t *testing.T) {
+	space := phy.NewSpace()
+	chargeTargetAt(space, phy.Vec2f{X: 1, Y: 0}, brambleMob())
+	space.Update()
+	p, s := chargePlayer(space)
+
+	got := s.activationPrecondition(p, &skills.EquippedSkill{Def: chargeStunDef(), Level: 1})
+
+	assert.Equal(t, model.ActivationRejectedNoTarget, got, "refused like empty ground: no dash, no cost, no cooldown")
+}
+
+// One immune tag is no reason to skip, and neither is a temporary immunity (D2).
+func TestCharge_StillPicksTagImmuneAndInvulnerableMobs(t *testing.T) {
+	warlord := speciesMob(nil)
+	warlord.SetInvulnerable(true)
+	for name, target := range map[string]any{
+		"poison immune": speciesMob(map[string]float32{"poison": 0}),
+		"invulnerable":  warlord,
+	} {
+		t.Run(name, func(t *testing.T) {
+			space := phy.NewSpace()
+			chargeTargetAt(space, phy.Vec2f{X: 3, Y: 0}, target)
+			space.Update()
+			p, s := chargePlayer(space)
+
+			assert.True(t, s.applyCharge(p, chargeEffect(6), 1))
+		})
+	}
+}
+
 func TestCharge_StopsAtAWall(t *testing.T) {
 	space := phy.NewSpace()
 	hostileAt(space, phy.Vec2f{X: 4, Y: 0})

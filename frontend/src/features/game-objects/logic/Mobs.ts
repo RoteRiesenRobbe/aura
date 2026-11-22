@@ -870,14 +870,14 @@ export class Stag extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Stag, file('stag'), maxSize('stag'));
 
-// The placeholder sheep (plan-herding.md D11): a woolly face on the same
-// wildlife layer as the stag. Named sheep (Baabara and her kin) are
+// The placeholder sheep (plan-herding.md D11): a woolly face, over the player
+// who walks through the flock (F55). Named sheep (Baabara and her kin) are
 // conversants, so the species wears a medallion; townsfolk draw the grey ring.
 export class Sheep extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.mobs.wildlife, x, y,
+        super(id, Game.layers.mobs.npcs, x, y,
             size, Sheep.svg, medallion('sheep'));
     }
 }
@@ -1371,10 +1371,12 @@ Preloading.registerGameObjectSVG(FireTotem, file('fireTotem'), maxSize('fireTote
 // their sprite classes live here. Three deliberate departures from the mob
 // classes above:
 //
-//  1. They render on `mobs.npcs`, UNDER the characters and the props
-//     (plan-prop-draw-order.md D9, PO 2026-10-02: "yes under players"). They
-//     used to share the props container, which drew every NPC over the
-//     player, stacked at random among the trees.
+//  1. People and animals render on `mobs.npcs`, OVER the characters and
+//     under the props: players walk through them (plan-vertical-slice.md F55).
+//     What blocks (signs, stones, doors, the old tree) and the placeholder art,
+//     which hostile species share, render on `mobs.fixtures`, under the
+//     characters (plan-prop-draw-order.md D9). A new class picks by that rule;
+//     Mobs.layers.test.ts holds it to the species' collisionLayer.
 //  2. They size from the WIRE radius (the 4th constructor argument
 //     EntityManager always passes) rather than from a GraphicsConfig
 //     min/max roll — the npc entries carry no minSize, and a fixed
@@ -1424,7 +1426,7 @@ export class NpcPlaceholder extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.mobs.npcs, x, y, size, NpcPlaceholder.svg, npcMedallion('placeholder'));
+        super(id, Game.layers.mobs.fixtures, x, y, size, NpcPlaceholder.svg, npcMedallion('placeholder'));
     }
 }
 
@@ -1435,7 +1437,7 @@ export class Signpost extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.mobs.npcs, x, y, size, Signpost.svg);
+        super(id, Game.layers.mobs.fixtures, x, y, size, Signpost.svg);
     }
 
     // A stone, a sign or a root that talks (plan-passages.md Q9, PO
@@ -1461,7 +1463,7 @@ Preloading.registerGameObjectSVG(Signpost, npcFile('signpost'), npcCfg('signpost
  */
 export class Passage extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.mobs.npcs, x, y, size, PIXI.Texture.EMPTY);
+        super(id, Game.layers.mobs.fixtures, x, y, size, PIXI.Texture.EMPTY);
     }
 
     protected override isBare(): boolean {
@@ -1572,7 +1574,7 @@ export class GrandfatherKnot extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.mobs.npcs, x, y, size, GrandfatherKnot.svg, npcMedallion('grandfatherKnot'));
+        super(id, Game.layers.mobs.fixtures, x, y, size, GrandfatherKnot.svg, npcMedallion('grandfatherKnot'));
     }
 }
 

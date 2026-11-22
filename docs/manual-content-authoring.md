@@ -457,6 +457,14 @@ specific to the talking half:
   ride the **Mob** wire path, the sprite class lives in `Mobs.ts`, not
   `Resources.ts`. Omit it and you get the name-based fallback; author
   `"entityType": "NpcPlaceholder"` for the deliberate missing-art marker.
+- **Collision and draw order** (plan-vertical-slice.md F55). A talking person
+  or animal authors `collisionLayer` **96** (Viewport 32 + MobStatic 64):
+  players walk through it, mobs steer around it, and its class sits on
+  `layers.mobs.npcs`, over the player. A talking object (sign, stone, remains,
+  door, chest) and a boss author **97** (+ PlayerStatic 1) and draw under the
+  player (`layers.mobs.fixtures`). `NpcPlaceholder` always draws under: hostile
+  species share it. Pins: `talker_collision_content_test.go` (a new object type
+  needs a row there) and `Mobs.layers.test.ts`.
 - **Visual size.** NPCs are the one actor kind that sizes from the **wire**
   rather than from `GraphicsConfig` — `body.radius` is both the sensor and the
   drawn size. (`Mob.radius` had been in the schema unwritten since the project

@@ -1,5 +1,5 @@
 {
-  "_comment": "Reinhard's wife, a bark NPC beside him (the Miller's spawn, re-cast; Reinhard took over his quests). Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 97 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. The display name derives from the def name, so it reads 'Reinhards Wife' without an apostrophe. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
+  "_comment": "Reinhard's wife, a bark NPC beside him (the Miller's spawn, re-cast; Reinhard took over his quests). Standing talkable-NPC shape (miller.json): townsfolk, collisionLayer 96 without Action(2) so no aura targets it, role creature + speed 0, xpFactor 0. The display name derives from the def name, so it reads 'Reinhards Wife' without an apostrophe. Dialogue from the PO's quest sheet. All values [PLACEHOLDER].",
   "id": 80,
   "name": "ReinhardsWife",
   "type": "MOB",
@@ -15,7 +15,7 @@
   },
   "body": {
     "radius": 0.35,
-    "collisionLayer": 97,
+    "collisionLayer": 96,
     "collisionMask": 16,
     "aggroRadius": 1.0
   },

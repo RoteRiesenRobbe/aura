@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **⚑ main is red at `bc58a9cb` (1 Go test, PF1 step 0). Next: PF1 (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 built 2026-11-22 `[uncommitted]`, PO "all works", its restart step not yet walked (§11). Next: PF2, on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -614,7 +614,7 @@ Baseline `bc58a9cb` (its moves kept the road counts as they were). `23060f46` mo
 - ~~**Q16 - When is the census script saved as a tool?**~~ RULED 2026-11-22: in VS0 (D2).
 - **Q17 - (deferred 2026-11-22 to after VS-P) Approval of this plan:** both POs refine it
   with the playthrough's notes, then approve. Nothing further is built until then.
-  ⚑ R19 ruled the fix order; the go to start PF1 is still to be given.
+  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt). PF2 needs one.
 - ~~**Q18 - End level and the Bluff**~~ RULED 2026-11-22: R20, stone 16, Bluff open.
 - ~~**Q19 - Wolves on the Road against DQ R8/D8**~~ RULED 2026-11-22: R21, keep both.
 - ~~**Q20 - Immune targets**~~ RULED 2026-11-22: R23, never targeted.
@@ -702,3 +702,74 @@ the playthrough can end in a real ascension on live.
   `-validate` 0 (both zone sets) · `c2a` 49/49 (one earlier run 48/49 on the headless WebGL
   context loss, backlog §29) · `c2b` 12/12 · `c3-memorial` 14/14 · `c1-front-stone` 13/15
   (2 expected). Harnesses ran on the debug venue against `aura_test`.
+
+### PF1 - rules and bugs ✅ BUILT 2026-11-22 `[uncommitted]`, PO "all works", not deployed
+
+- **Step 0:** `he-who-cried-wolf` is in `parkedQuests` (R27), `cleanup.md` #9.
+- **F1, reproduced first:** the cause was as read. `isJoinInFlight()` was `playing !== null`,
+  true for the whole session, so every close ran the refused-join retry. Two faces: a frozen
+  world, or (server back at once) character select over a dead socket. An F5'd tab never had
+  it (`reconnect()` does not set `playing`). It is now true only from a sent join to its
+  Accept; `playing` stays for the retry. A logout in another tab now gets the banner too
+  (by reading).
+- **F40 / R23:** `selectDamageTargets` drops what the hit can never hurt in eligibility, so
+  alone it is empty ground. `hurtableFirst` and `pickTargets` are gone. D2 holds.
+  **`chargeTarget`** carries no tags, so it skips only what no ungated hit can hurt
+  (`NeverHurtBy(["*"])`: the seven harvest species). This is the session's reading of R23,
+  for the PO to confirm: Charge at a lone mushroom is now refused like empty ground.
+- **F55:** 34 of the 48 layer-97 files → 96 (people, the dog, the four sheep). 14 keep 97:
+  the two ascension stones, the memorial, the forest sign, the three roots, Grandfather
+  Knot, the two remains, the sunk chest, the cave mouth, the two portals. No boss carried
+  97, so "bosses keep it" needed no edit. `layers.mobs.npcs` moved above the characters
+  (supersedes `plan-prop-draw-order.md` D9 for talkers; Sheep joined it); what blocks, and
+  `NpcPlaceholder` (shared with hostile species), moved to a new `layers.mobs.fixtures`
+  below. The content editor's new-NPC template is 96 too; on placeholder art it still
+  draws under the player. Pins: `talker_collision_content_test.go`, `Mobs.layers.test.ts`,
+  `TestNpcBody_PlayersPassThroughPeopleAndNotObjects`.
+- **Schema:** DB none · wire none · conf none · content 34 collision layers (+ their
+  comments) · zone none · lang none.
+
+**Verified**
+- Go build + full suite 0 FAIL (40 packages) · `store` + `accounts` on `aura_test`,
+  uncached: ok · vitest 2017/0 · typecheck · `-validate` 0 in both zone sets.
+- Server restart under a client: joined (SIGTERM, instant restart, SIGKILL), reloaded and
+  respawned show the banner; a reload gets back in (checked on two of them). Dead: shown,
+  but dimmed (below). At character select: invisible, the same at HEAD.
+- `immune-feedback` rewritten, 4/4 (1 earlier run: 3 legs + the §29 context loss) ·
+  `chunk3b-interact` 14/14 · `c3-charge` 6/6 (2 earlier runs inconclusive on the venue) ·
+  `p1-prop-order` 10/10 · `herd-h1` 4/4 · `herd-h2` 3/4, six sheep penned. Both herd
+  scripts were blind at HEAD (icon pack) and are repaired.
+- Red at HEAD `39c3356e` too, run on an export: `herd-h2`'s Woolliam leg (its oracle),
+  `r4-badge` 3/5, `passages` (venue drift before joining). The layer-name edits in the
+  last two are therefore unexercised.
+- **Not run:** `chunk2-accounts` (owns `AccountFlow`): its leg 8 writes the dev database
+  `aura` by name (`psql -d aura`), whatever database the server uses. Not affected, not
+  run: `c3-player-roster` (orders campfire and wildlife only), `bridge-underfoot` (prop
+  containers untouched).
+- **Not seen in game:** walking through a person (physics test only), a blue mushroom (the
+  harness used a Bramble), herding on foot (the harness warps). All three were put in the walk (result below).
+
+**Found, not built (each one proposed rule, for the PO)**
+- The banner fades after 4.5 s: keep "Connection lost" up until the reload.
+- It sits under "You Died" (whose Respawn is then dead), under the guest registration nag,
+  and inside the hidden HUD at character select: draw it above all screens.
+- `slow_aura`, stun, fear and the other non-damage effects still pick a mushroom (by
+  reading): Slow pays there, and Hoarfrost, Suppression and Warbanner enter combat through
+  their slow. Extend R23 to every enemy-targeted effect.
+- A player's instant cooldown still pays on cast beside a mushroom, as into empty ground
+  (D8): leave it.
+- `chunk2-accounts` should take its database from the environment.
+
+**In-game (PO)**
+1. Join through Play, restart the server: "Connection lost"; reload gets you back in.
+2. A lone blue mushroom with Damage on: no shot, no "Immune", no combat. With Harvest: it
+   pops. Charge at it: "No valid target".
+3. Walk through Reinhard: not blocked, he draws over you, E still offers. The city's
+   ascension stone still blocks and draws under you (the forest sign is placed only in the
+   debug world).
+4. Herd one sheep into Hans's pen on foot.
+
+**Walk result, 2026-11-22:** PO "all works". The walk server's log has a single boot, so
+step 1's restart was not walked: F1 rests on the restart probe until the PO sees the banner.
+The log shows the warp to the mushroom and Harvest equipped, and no `SKILL Charge`; casts,
+walking and herding leave no line there, so it cannot speak for the rest.

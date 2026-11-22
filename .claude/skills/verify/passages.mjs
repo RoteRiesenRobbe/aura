@@ -159,7 +159,7 @@ const clickFirstRow = async () => {
 };
 
 // One sample of everything P2 asserts about the door at `at` (world units),
-// read in one evaluate: the npcs-layer entity standing there, its visible
+// read in one evaluate: the fixtures-layer entity standing there, its visible
 // Graphics, its plate's text, and the exit looks drawn within 0.5 u.
 const doorSample = (at) => page.evaluate(({ x, y }) => {
   let r = window.game.character.plate.parent;
@@ -170,8 +170,8 @@ const doorSample = (at) => page.evaluate(({ x, y }) => {
     return null;
   };
   const near = (o) => Math.hypot(o.position.x / 120 - x, o.position.y / 120 - y) < 0.5;
-  const npcs = byLabel(r, 'npcs');
-  const door = (npcs?.children || []).find(near);
+  const fixtures = byLabel(r, 'fixtures');
+  const door = (fixtures?.children || []).find(near);
   const visibleGraphics = (c) => (c.visible === false ? 0 : (c.context ? 1 : 0)
     + (c.children || []).reduce((n, k) => n + visibleGraphics(k), 0));
   const texts = (c) => (c.text !== undefined ? [c.text] : []).concat(...(c.children || []).map(texts));
@@ -180,7 +180,7 @@ const doorSample = (at) => page.evaluate(({ x, y }) => {
   const looks = (byLabel(r, 'exitLooks')?.children || []).filter(near).map(s => s.label);
   // The control: some OTHER mob in view does draw Graphics (its health bar),
   // or a zero above proves nothing.
-  const others = ['npcs', 'turnip', 'wildlife'].flatMap(l => byLabel(r, l)?.children || []).filter(o => o !== door);
+  const others = ['npcs', 'fixtures', 'turnip', 'wildlife'].flatMap(l => byLabel(r, l)?.children || []).filter(o => o !== door);
   const control = Math.max(0, ...others.map(visibleGraphics));
   return {
     found: !!door,
@@ -202,7 +202,7 @@ for (const c of CASES) {
   await warp({ x: c.at.x + 4, y: c.at.y });
   const s = await doorSample(c.at);
   if (!s.found) {
-    fail(`${c.leg}: bare`, 'no entity on the npcs layer at the exit');
+    fail(`${c.leg}: bare`, 'no entity on the fixtures layer at the exit');
   } else if (!(s.control > 0)) {
     fail(`${c.leg}: bare`, 'no other mob in view draws Graphics, so a zero proves nothing');
   } else if (s.graphics === 0 && (s.plateText === null || s.plateText.length === 0)) {
@@ -288,7 +288,7 @@ for (const mob of ['MemorialStone', 'AscensionStone']) {
   await warp({ x: at.x + 4, y: at.y });
   const s6 = await doorSample(at);
   if (!s6.found) {
-    fail(leg, 'no entity on the npcs layer at its spawn');
+    fail(leg, 'no entity on the fixtures layer at its spawn');
   } else if (s6.graphics === 0 && s6.plateText && s6.plateText.length > 0) {
     pass(leg, `no health bar, its name stays: ${JSON.stringify(s6.plateText)}`);
   } else {
