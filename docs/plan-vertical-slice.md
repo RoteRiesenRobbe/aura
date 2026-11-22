@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 built 2026-11-22 `[uncommitted]`, PO "all works", its restart step not yet walked (§11). Next: PF2, on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PO walk passed (§11). Next: PF2, on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -703,7 +703,7 @@ the playthrough can end in a real ascension on live.
   context loss, backlog §29) · `c2b` 12/12 · `c3-memorial` 14/14 · `c1-front-stone` 13/15
   (2 expected). Harnesses ran on the debug venue against `aura_test`.
 
-### PF1 - rules and bugs ✅ BUILT 2026-11-22 `[uncommitted]`, PO "all works", not deployed
+### PF1 - rules and bugs ✅ DONE 2026-11-22 `6ed28a92`, PO walk passed, not deployed
 
 - **Step 0:** `he-who-cried-wolf` is in `parkedQuests` (R27), `cleanup.md` #9.
 - **F1, reproduced first:** the cause was as read. `isJoinInFlight()` was `playing !== null`,
@@ -769,7 +769,6 @@ the playthrough can end in a real ascension on live.
    debug world).
 4. Herd one sheep into Hans's pen on foot.
 
-**Walk result, 2026-11-22:** PO "all works". The walk server's log has a single boot, so
-step 1's restart was not walked: F1 rests on the restart probe until the PO sees the banner.
-The log shows the warp to the mushroom and Harvest equipped, and no `SKILL Charge`; casts,
-walking and herding leave no line there, so it cannot speak for the rest.
+**Walk result, 2026-11-22:** PO "all works" for steps 2-4. Step 1 was not walked and the
+PO waived it: "I dont need to manually test the restart, rest is fine". F1 rests on the
+restart probe (stop, instant restart and kill all show the banner).
