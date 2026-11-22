@@ -158,6 +158,12 @@ func (s *AreaEffectSystem) Update(float32) {
 			if d, ok := e.a.(interface{ Dormant() bool }); ok && d.Dormant() {
 				continue
 			}
+			// A flyer is skipped for the same reason (PO 2026-11-22: immune to
+			// all while flying): it is out of phy.Space too. Skipped, not just
+			// refused in takeDamage, so no DoT outlasts the landing.
+			if f, ok := e.a.(interface{ Flying() bool }); ok && f.Flying() {
+				continue
+			}
 			pos := e.a.Position()
 			x, y := pos.X, pos.Y
 			if !r.area.Bounds.Contains(x, y) {

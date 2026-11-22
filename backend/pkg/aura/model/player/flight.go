@@ -28,6 +28,15 @@ func (p *player) Flying() bool {
 	return p.flight.active
 }
 
+// untouchable is the one gate for "nothing hostile lands": GOD, or airborne
+// (PO 2026-11-22: a flyer is immune to everything). Leaving phy.Space keeps
+// auras off a flyer; this covers what does not go through the space — a DoT
+// applied before takeoff, a placed area under the lerp. takeDamage and the
+// slow/stun/fear doors all ask it.
+func (p *player) untouchable() bool {
+	return p.IsGod() || p.Flying()
+}
+
 // FlightDest is the landing position; zero while not flying. On the wire as
 // Character.flight_dest.
 func (p *player) FlightDest() phy.Vec2f {

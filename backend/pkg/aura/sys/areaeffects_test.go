@@ -33,6 +33,7 @@ type areaDummy struct {
 	pos     phy.Vec2f
 	buffs   skills.Buffs
 	dormant bool
+	flying  bool
 }
 
 func (d *areaDummy) Position() phy.Vec2f { return d.pos }
@@ -43,6 +44,7 @@ func (d *areaDummy) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks in
 	return d.buffs.ApplyHot(source, hot, ticks)
 }
 func (d *areaDummy) Dormant() bool { return d.dormant }
+func (d *areaDummy) Flying() bool  { return d.flying }
 
 // tick advances this entity's buff store one game tick and returns the events
 // that came due, exactly as SkillSystem.tickBuffEvents drains them.
@@ -326,6 +328,21 @@ func TestAreaEffect_ADormantEntityTakesNothing(t *testing.T) {
 	s.AddEntity(d)
 	events, _ := runTicks(s, d, areaInterval*3)
 	assert.Zero(t, events, "a dormant entity must not be reached by an area")
+}
+
+// A flyer crossing a bog takes nothing, not even a DoT that would outlast the
+// landing (PO 2026-11-22: immune to all while flying). Same reason as dormancy:
+// a flyer is out of phy.Space, so an area is the only thing that could reach it.
+func TestAreaEffect_AFlyingEntityTakesNothing(t *testing.T) {
+	s := newAreaSystem(t, []*skills.SkillDefinition{burnSkill()}, areaAt("TestBurn", areaBox))
+	d := &areaDummy{pos: insideArea, flying: true}
+	s.AddEntity(d)
+	events, _ := runTicks(s, d, areaInterval*2)
+	assert.Zero(t, events, "a flyer must not be reached by an area")
+
+	d.flying = false
+	events, _ = runTicks(s, d, areaInterval)
+	assert.Equal(t, 1, events, "landed in the bog, it burns again")
 }
 
 // ⛔ SKIPPED, NOT RESISTED — different mechanisms with the same observable, and

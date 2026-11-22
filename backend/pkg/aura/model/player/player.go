@@ -432,8 +432,9 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	// buff or debuff (D14); clamped inside the shared factor (chunk 1a — the
 	// mob takeDamage calls the same method).
 	hp32 *= p.EffectiveStats().DamageReductionFactor()
-	// God short-circuits before the absorb step — god never drains a shield.
-	if p.IsGod() {
+	// God and a flyer short-circuit before the absorb step — neither drains a
+	// shield.
+	if p.untouchable() {
 		return 0
 	}
 	// A fully resisted hit stays a non-event: no combat stamp, no absorb.
@@ -855,7 +856,7 @@ func (p *player) ApplySpeed(source skills.SkillID, factor float32, ticks int) bo
 // fresh or refresh, stamps the in-combat window here in the door, so every
 // caller is covered: a slowed player is in combat before the first bite (A4).
 func (p *player) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
-	if p.IsGod() {
+	if p.untouchable() {
 		return false
 	}
 	p.NoteCombatAction()
@@ -873,7 +874,7 @@ func (p *player) ApplySlow(source skills.SkillID, fraction float32, ticks int) b
 // floats it on this tick's snapshot instead of waiting for a press (P5). The
 // reason is cleared by ResetTickNumbers, so it is one float per landing.
 func (p *player) ApplyStun(source skills.SkillID, ticks int) bool {
-	if p.IsGod() || !p.buffs.ApplyStun(source, ticks) {
+	if p.untouchable() || !p.buffs.ApplyStun(source, ticks) {
 		return false
 	}
 	p.skills.CancelCast()
@@ -887,7 +888,7 @@ func (p *player) ApplyStun(source skills.SkillID, ticks int) bool {
 // the stun steps. The input system then moves the player away from the fearer
 // each tick, whatever they press.
 func (p *player) ApplyFear(source skills.SkillID, from any, ticks int) bool {
-	if p.IsGod() || !p.buffs.ApplyFear(source, from, ticks) {
+	if p.untouchable() || !p.buffs.ApplyFear(source, from, ticks) {
 		return false
 	}
 	p.skills.CancelCast()
