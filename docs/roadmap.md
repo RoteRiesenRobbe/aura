@@ -1297,8 +1297,13 @@ system ships blind.
 > 6. ✅ **Quest icons QI1, DONE 2026-11-17** (`archive/plan-dialogue-quest-icons.md`; PO: "works").
 > 7. ✅ **Ascension ceremony AC1 → AC2 → AC3, DONE 2026-11-21** (`archive/plan-ascension-ceremony.md`).
 >    AC1 2026-11-18, AC2 2026-11-20, AC3 (the heir home) 2026-11-21; every PO look: "all works".
-> 8. **Audio C1 onward** (`plan-audio.md`). ⭐ NEXT.
-> 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the real-phone session.
+> 8. **The vertical slice** (`plan-vertical-slice.md`, PO 2026-11-22: the next big step,
+>    the umbrella over what follows). ⭐ NEXT. ✅ VS1 DONE and live 2026-11-22 (the city
+>    stone opens at 12). Then VS-P (the two POs' playthrough) → VS0 (feature audit) →
+>    borders, fills, character entries CE1, tuning, power check, release. **Audio C1
+>    onward** (`plan-audio.md`) runs inside it; which lanes is ruled after VS-P.
+> 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the slice (its playtest is desktop
+>    only, PO 2026-11-22) and the real-phone session.
 >
 > ⭐ **Appearance C0b + the skull repack jump the queue** the day the pilot art lands; the
 > open-work gate no longer waits on them (it held campfire traits and quest icons behind

@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 12 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R13 RULED (R12 supersedes R1's cap), D1-D9 PROPOSED, Q1-Q16 open except Q10-Q12, VS1 built 2026-11-22.** **Next: VS-P, the two POs' playthrough (§5.2).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R17 RULED (R12 supersedes R1's cap), D1-D9 PROPOSED, still open: Q1, Q2, Q4, Q6, Q8, Q9, Q13-Q16, VS1 built and live 2026-11-22.** **Next: VS-P, the two POs' playthrough (§5.2).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -10,7 +10,8 @@ budgets, the L9 quest price D2, D4, D5; its held D3 is settled here, R9),
 `plan-character-entries.md` (CE1, Wisp Powder, the city → swamp → city chain),
 `plan-audio.md` (C1+), `plan-ui-pass.md` (C9), `archive/plan-ascension-ceremony.md`
 (the stone as built). **Amends:** the near-term build order (CLAUDE.md Status, `roadmap.md`
-"The near-term build order"): the slice becomes the umbrella over audio C1+ and UI C9 (R6).
+"The near-term build order"): the slice is next and the umbrella over audio C1+ (R6, R17);
+UI C9 follows it (R15).
 **Schema (as designed):** DB none expected (Q2 may add a one-off live cleanup, not a
 migration) · wire none expected · conf: none for the ascension (R12), only the
 tuned `killXP.base` · content: the city stone's four `minLevel` gates 30 → 12, then per fill chunk · zone: the borders (VS2) · lang: per fill chunk.
@@ -130,6 +131,15 @@ The two wolf quests can share kills; if they do, the total is 14,699 (still 14).
   R1's mechanism after L1 and L4 were measured: the city stone asks for the slice's level
   (12, R2) and its "You are max level" line is reworded.
 - **R13 (2026-11-22, Q10) - The POs play on the live server.**
+- **R14 (2026-11-22, Q3) - The city stone ends the slice.** The front stone stays as it
+  is, behind the borders.
+- **R15 (2026-11-22, Q5) - The playtest is desktop only.** Amends R6: UI C9 waits until
+  after the slice, and the tester handout says desktop browser.
+- **R16 (2026-11-22, Q7) - The audit decides the unreachable features** (the four
+  debug-only givers, the Lantern quest): VS0 lists what the route misses, with VS-P's
+  notes, and the POs pick by feature.
+- **R17 (2026-11-22) - The slice is the next item of the build order** (`roadmap.md`),
+  audio C1+ inside it.
 
 ## 3. Design
 
@@ -252,7 +262,6 @@ Fixed chunks, in order. Fill chunks (VS-F#) are added by VS0's ruled checklist.
 | **CE1** (+ chain) | Character entries | As `plan-character-entries.md` designs it (its D1–D11 approval is owed, Q6). | M–L | approval there |
 | **VS-F1…n** | Fills | One per "missing" checklist row, as ruled at VS0 (candidates in D3 and §1.1). | S–M each | VS0 ruling |
 | **A-C1+** | Audio | `plan-audio.md` C1 and the lanes Q4 picks for the slice. | per that plan | |
-| **UI-C9** | Mobile UI pass | Only if Q5 says phones are in the playtest. | per that plan | |
 | **VS3** | Tuning | D7: bands, kill base, quest prices, spawn levels; the D2 tool's before/after; a timed PO run. | M | fills done |
 | **VS4** | Power check | D8: a ruling per catalog entry and gift; the heir's first 30 minutes walked. | S | VS3 |
 | **VS5** | Release | D9: runbook, fresh DB or cleanup, deploy, tester handout. | S | everything |
@@ -315,22 +324,18 @@ Findings land in `docs/feedback.md`; rulings from them land in §2.
 
 ## 7. Open PO calls
 
-- **Q1 - The bands inside the cap.** Proposed D4: Farmlands 1 → 5, Woods 5 → 9, City + Swamp
+- **Q1 - (deferred 2026-11-22 to after VS-P) The bands up to 12.** Proposed D4: Farmlands 1 → 5, Woods 5 → 9, City + Swamp
   9 → 12 [PLACEHOLDER], replacing the 2026-10-25 bands (Woods 4 → 7, Swamp 8 → 12).
-- **Q2 - Live characters above 12.** The live DB is losable (no backups, by ruling).
-  Proposed: wipe or clean it at VS5 so every tester starts fresh; otherwise a level-20
-  character meets a cap of 12 (L4).
-- **Q3 - Which stone ends the slice?** Proposed: the city stone, read from the route ("and
-  back"). The front stone (25,
-  Umberwood) stays outside, behind a border.
-- **Q4 - Which audio lanes does the playtest need?** Proposed: C1 (foundation) + one-shots
+- **Q2 - (deferred 2026-11-22 to VS5) Wipe the live DB before external testers?** It is
+  losable (no backups, by ruling). With R12 nothing caps existing characters, but one at
+  12+ can ascend at once.
+- ~~**Q3 - Which stone ends the slice?**~~ RULED 2026-11-22: R14, the city stone.
+- **Q4 - (deferred 2026-11-22 to after VS-P) Which audio lanes does the playtest need?** Proposed: C1 (foundation) + one-shots
   + region music; ascension music if it is cheap.
-- **Q5 - Are phones in the playtest?** Mobile is not v1 scope. Proposed: desktop only, C9
-  stays after the slice unless testers are expected on phones.
+- ~~**Q5 - Are phones in the playtest?**~~ RULED 2026-11-22: R15, desktop only.
 - **Q6 - Character entries' D1–D11 approval**, owed before CE1 (`plan-character-entries.md`).
-- **Q7 - Do the 4 debug-only givers and the Lantern quest come into the slice?** Decided by
-  VS0's checklist (they carry features: Slow, Totem, Revive, the fire line and Wildfire,
-  light support), not by their XP.
+- ~~**Q7 - Do the 4 debug-only givers and the Lantern quest come into the slice?**~~ RULED
+  2026-11-22: R16, VS0's checklist decides.
 - **Q9 - `bears-at-the-walls`** (level 16, 2,300 XP, ungated in the Deep Woods): proposed
   re-level it into the Woods' band or move it out of the slice at VS3.
 - **Q8 - German for new lines:** same change as always (D23), or a slice-wide pass at VS5?
@@ -399,7 +404,7 @@ Findings land in `docs/feedback.md`; rulings from them land in §2.
 
 ## 11. Chunk ledgers
 
-### VS1 - the ascension at 12 ✅ DONE 2026-11-22 `babc3674`, PO look = VS-P
+### VS1 - the ascension at 12 ✅ DONE 2026-11-22 `babc3674`, DEPLOYED LIVE 2026-11-22 as `e9c30279`, PO look = VS-P
 
 Pulled ahead of VS-P and VS0 on the PO's go (Q11): "Fix, commit, push, deploy", so that
 the playthrough can end in a real ascension on live.

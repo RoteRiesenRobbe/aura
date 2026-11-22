@@ -259,6 +259,16 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-11-22, `e9c30279` (baseline `200a5046`, 2026-11-21):** full
+  deploy: ascension ceremony AC3 (the heir home) and vertical slice VS1 (the city
+  stone opens at 12, its line reworded EN + DE). Wire changed (AC3's
+  `ConversationOption.place`) → hard refresh required. No migrations; no pre-deploy
+  dump. PO's go: announced or nobody online. Before it: the bundle validated with
+  the live conf (0 findings). Verified: TLS boot, 48 campfires in 7 zones, the game
+  loop started (the last 25 log lines only: the WARN count and the flush line were
+  not read), new client bundle `main.674e7673…js` served, `/skills` 200, `/lang`
+  serves the new stone line in both languages. PO smoke join on live owed (the
+  playthrough).
 - **DEPLOYED 2026-11-21, `200a5046` (baseline `891dc7aa`, 2026-10-28):** full
   deploy of 35 commits: entity presentation EP2 + EP3, the Torch / Belt Lantern
   change, campfire traits CT1-CT3, bug report BR1 + BR2, the forest region music,
