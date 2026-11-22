@@ -209,6 +209,15 @@ export class Game implements IGame {
             // Only reachable once init() resolved — application.canvas does not
             // exist before that, so a loss during init itself stays unlabelled.
             installContextLossWarning(this.application.canvas);
+            // ⚑ Pixi restores a lost context by itself, but a RenderTexture's
+            // PIXELS do not come back: every blend mask returns as undefined
+            // GPU memory (2026-11-22, the Wreckers Bluff pit drew a blurred
+            // stale "450" and the water's mask flooded the screen). The masks
+            // are baked once per paint, so re-bake them. Deferred so Pixi's own
+            // restore listener (registered first) has rebuilt its GL state.
+            this.application.canvas.addEventListener('webglcontextrestored', () => {
+                setTimeout(() => this.paintTerrainSurfaces(), 0);
+            });
         }));
     }
 
