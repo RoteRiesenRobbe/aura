@@ -773,7 +773,7 @@ the playthrough can end in a real ascension on live.
 PO waived it: "I dont need to manually test the restart, rest is fine". F1 rests on the
 restart probe (stop, instant restart and kill all show the banner).
 
-### PF2 - quests, teachers, map batch ✅ DONE 2026-11-24 `[uncommitted]`, PO walk passed, not deployed
+### PF2 - quests, teachers, map batch ✅ DONE 2026-11-24 `4dc4de15`, PO walk passed, not deployed
 
 Built 2026-11-23, wrapped 2026-11-24 after the PO's walk.
 
