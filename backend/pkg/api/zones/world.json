@@ -4173,12 +4173,6 @@
           "angle": 0
         },
         {
-          "mob": "MemorialStone",
-          "x": -211.62,
-          "y": 5.72,
-          "angle": 0
-        },
-        {
           "mob": "Farmhand",
           "x": -187.92,
           "y": 15.57,
@@ -12761,7 +12755,7 @@
           "x": -158.49,
           "y": -14.03,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         },
         {
@@ -12769,7 +12763,7 @@
           "x": -157.34,
           "y": -14.51,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         },
         {
@@ -12777,7 +12771,7 @@
           "x": -155.94,
           "y": -15.11,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         },
         {
@@ -12785,7 +12779,7 @@
           "x": -124.47,
           "y": -34.7,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         },
         {
@@ -12793,7 +12787,7 @@
           "x": -123.03,
           "y": -34.57,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         },
         {
@@ -12801,7 +12795,7 @@
           "x": -121.89,
           "y": -34.53,
           "angle": 0,
-          "respawnTicks": 9000,
+          "respawnTicks": 3600,
           "respawnVariancePct": 0.1
         }
       ],
@@ -17985,6 +17979,12 @@
           "angle": 0
         },
         {
+          "mob": "MemorialStone",
+          "x": -24.6,
+          "y": 2.6,
+          "angle": 0
+        },
+        {
           "mob": "ArmySoldier",
           "x": -53.13,
           "y": -31.6,
@@ -18090,6 +18090,12 @@
           "mob": "Woodcutter3",
           "x": -73,
           "y": 3.6,
+          "angle": 0
+        },
+        {
+          "mob": "MinerGuildAssociate",
+          "x": -44.6,
+          "y": -23.4,
           "angle": 0
         }
       ],

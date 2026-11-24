@@ -236,6 +236,35 @@
     "description": "Quest title of \"clear-the-grove\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
+  "quest.crabs-in-the-hammocks.cull.journal": "Kill 8 lake crabs on the beach by the pirates' camp.",
+  "@quest.crabs-in-the-hammocks.cull.journal": {
+    "description": "Journal (diary) entry of quest \"crabs-in-the-hammocks\", stage \"cull\": written in the player's voice, first person."
+  },
+  "quest.crabs-in-the-hammocks.cull.tracker": "{n, number}/{m, number} crabs killed",
+  "@quest.crabs-in-the-hammocks.cull.tracker": {
+    "description": "Tracker line of quest \"crabs-in-the-hammocks\", stage \"cull\": the one objective line shown under the quest title.",
+    "placeholders": {
+      "n": {"type": "int", "description": "Count done so far", "example": "3"},
+      "m": {"type": "int", "description": "Count required", "example": "8"}
+    }
+  },
+  "quest.crabs-in-the-hammocks.done.journal": "Done. Reported back to Captain Brack.",
+  "@quest.crabs-in-the-hammocks.done.journal": {
+    "description": "Journal (diary) entry of quest \"crabs-in-the-hammocks\", stage \"done\": written in the player's voice, first person."
+  },
+  "quest.crabs-in-the-hammocks.report.journal": "The crabs are dealt with; Captain Brack waits at his fire on the lake shore.",
+  "@quest.crabs-in-the-hammocks.report.journal": {
+    "description": "Journal (diary) entry of quest \"crabs-in-the-hammocks\", stage \"report\": written in the player's voice, first person."
+  },
+  "quest.crabs-in-the-hammocks.report.tracker": "Return to Captain Brack",
+  "@quest.crabs-in-the-hammocks.report.tracker": {
+    "description": "Tracker line of quest \"crabs-in-the-hammocks\", stage \"report\": the one objective line shown under the quest title."
+  },
+  "quest.crabs-in-the-hammocks.title": "Crabs in the Hammocks",
+  "@quest.crabs-in-the-hammocks.title": {
+    "description": "Quest title of \"crabs-in-the-hammocks\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
+    "x-maxLength": 30
+  },
   "quest.dire-wolves-at-the-camp.cull.journal": "Kill 6 dire wolves around the Shaman's camp.",
   "@quest.dire-wolves-at-the-camp.cull.journal": {
     "description": "Journal (diary) entry of quest \"dire-wolves-at-the-camp\", stage \"cull\": written in the player's voice, first person."
@@ -990,11 +1019,11 @@
     "description": "Quest title of \"village-welcome\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.wolves-on-the-road.carry-word.journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east, or the Shaman at his fire east along the road.",
+  "quest.wolves-on-the-road.carry-word.journal": "The wolves are thinned; word should reach the City Guard at the city gate far to the east.",
   "@quest.wolves-on-the-road.carry-word.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"carry-word\": written in the player's voice, first person."
   },
-  "quest.wolves-on-the-road.carry-word.tracker": "Report to the City Guard or the Shaman",
+  "quest.wolves-on-the-road.carry-word.tracker": "Report to the City Guard",
   "@quest.wolves-on-the-road.carry-word.tracker": {
     "description": "Tracker line of quest \"wolves-on-the-road\", stage \"carry-word\": the one objective line shown under the quest title."
   },
@@ -1015,7 +1044,7 @@
     "description": "Quest title of \"wolves-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.wolves-on-the-road.told-militia.journal": "Done. Reported to the City Guard. Learned Taunt.",
+  "quest.wolves-on-the-road.told-militia.journal": "Done. Reported to the City Guard.",
   "@quest.wolves-on-the-road.told-militia.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"told-militia\": written in the player's voice, first person."
   },

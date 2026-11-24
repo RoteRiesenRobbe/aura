@@ -144,6 +144,10 @@ var expectedQuests = map[string]string{
 	"the-spider-queen":        "The Spider Queen",
 	"treasure-in-the-bog":     "Treasure in the Bog",
 
+	// Captain Brack's second quest (plan-vertical-slice.md PF2, F52): the lake
+	// crabs on his beach.
+	"crabs-in-the-hammocks": "Crabs in the Hammocks",
+
 	// The opening arc's handoff and the first REACH quest
 	// (plan-region-identity.md R2): handed over by Flora, done on arriving at
 	// Reinhard's farm, turned in on his 'Flora sends me.' row.
@@ -159,6 +163,14 @@ var parkedQuests = map[string]string{
 	"the-strays":        "plan-herding.md R7: replaced by back-to-the-pen; kept until the PO deletes or restores it",
 	"he-who-cried-wolf": "PO 2026-11-22 (plan-vertical-slice.md R27): Hans stopped offering it; the turn-in stays for characters on it until none holds it",
 	"the-lost-lamp":     "PO 2026-10-25 (content-zone-2-woodland.md §3.8): retired; the Lamplighter's oil-for-the-lamps took its place",
+	"bears-at-the-walls": "PO 2026-11-22 (plan-vertical-slice.md F26): the City Guard stopped offering it; the turn-in stays for characters on it until none holds it",
+}
+
+// retiredStages are stages of a LIVE quest that nothing enters any more, on
+// purpose: a saved ledger may stand on one, so the stage and its diary entry
+// stay. Keyed "quest/stage". Exempt from the "every stage reachable" pin only.
+var retiredStages = map[string]string{
+	"wolves-on-the-road/told-shaman": "PO 2026-11-22 (plan-vertical-slice.md F25): turned in only at the City Guard; the Shaman's leg is gone",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -215,12 +227,11 @@ func TestContent_EveryFirstPassVerbIsAuthored(t *testing.T) {
 	assert.NotEmpty(t, seen[ObjectiveTalkTo], "no quest counts a conversation")
 }
 
-// ⭐ D9, and the reason C4 was worth authoring by hand: two conversants finish the
-// SAME quest out of the same stage, into different terminal stages, for different
-// rewards — and no code anywhere knows there is a choice. If a future edit
-// collapses the branch, the schema's headline capability goes back to being
-// untested by content.
-func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing.T) {
+// F22 + F25 (plan-vertical-slice.md, PO 2026-11-22): the wolf cull is turned in
+// at the City Guard ALONE, into told-militia, for XP and no skill. The D9 branch
+// it used to prove by content is gone; TestLedger_BranchEdgesExclusive keeps
+// the mechanism covered on fixtures.
+func TestContent_TheWolfQuestTurnsInAtTheCityGuardOnly(t *testing.T) {
 	mr, qr := contentRegistries(t)
 
 	q, err := qr.Get("wolves-on-the-road")
@@ -260,18 +271,9 @@ func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing
 		}
 	}
 
-	require.Len(t, legs, 2, "the branch is exactly two legs")
-	assert.NotEqual(t, legs[0].mob, legs[1].mob, "two DIFFERENT conversants finish it")
-	assert.NotEqual(t, legs[0].toStage, legs[1].toStage, "into two different terminal stages")
-	assert.NotEqual(t, legs[0].skill, legs[1].skill, "for two different rewards, or the choice is cosmetic")
-
-	for _, l := range legs {
-		assert.NotEmpty(t, l.skill, "%s: the leg teaches nothing", l.mob)
-		assert.NotZero(t, l.xp, "%s: the leg pays no XP", l.mob)
-		to := q.Stage(l.toStage)
-		require.NotNil(t, to, "%s: %s is not a stage", l.mob, l.toStage)
-		assert.True(t, q.IsTerminal(to), "%s: a branch leg must END the quest — L10 permits grant_xp nowhere else", l.mob)
-	}
+	require.Len(t, legs, 1, "one turn-in row finishes the wolf cull")
+	assert.Equal(t, leg{mob: "CityGuard", toStage: "told-militia", xp: 400}, legs[0], "the City Guard pays XP and teaches nothing (F22)")
+	assert.True(t, q.IsTerminal(q.Stage("told-militia")), "the turn-in ENDS the quest: L10 permits grant_xp nowhere else")
 }
 
 // The light skills (content-zone-2-woodland.md §3.8, PO 2026-10-25): the
@@ -354,6 +356,11 @@ func TestContent_EveryStageIsReachable(t *testing.T) {
 					reachedByCounter = true
 				}
 			}
+			if _, retired := retiredStages[q.ID+"/"+s.ID]; retired {
+				assert.False(t, reachedByCounter || byDialogue[q.ID][s.ID],
+					"quest %q stage %q is listed as retired but something enters it again: drop it from retiredStages", q.ID, s.ID)
+				continue
+			}
 			assert.True(t, reachedByCounter || byDialogue[q.ID][s.ID],
 				"quest %q stage %q: nothing enters it, so its diary entry can never be written", q.ID, s.ID)
 		}
@@ -396,7 +403,7 @@ func TestContent_QuestXPBudget(t *testing.T) {
 	assert.Equal(t, map[string]uint64{
 		"village-welcome":    150,
 		"turnip-chore":       150,
-		"wolves-on-the-road": 800, // 400 per leg, and a player can only ever walk one
+		"wolves-on-the-road": 400, // the City Guard's leg alone since F25 (the Shaman's is retired)
 
 		// The generic kill quests (plan-generic-kill-quests.md C1 + C2): the L9
 		// half-level rule applied literally — ½ × 300 × 1.2^(targetLevel−1).
@@ -461,6 +468,7 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"mushrooms-for-the-gnome": 645,  // L9, ½ × 300 × 1.2⁸ ≈ 645
 		"the-spider-queen":        1115, // L12, ½ × 300 × 1.2¹¹ ≈ 1115, plus FenTonic
 		"treasure-in-the-bog":     774,  // L10, ½ × 300 × 1.2⁹ ≈ 774
+		"crabs-in-the-hammocks":   710,  // L9/L10 crabs, split the pair like the bandits: (645 + 774) / 2 ≈ 710
 	}, total)
 }
 
@@ -633,4 +641,26 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 	assert.False(t, l.MatchesStage("wolves-on-the-road", "told-militia"),
 		"a completed quest must not still match its terminal stage, or the other leg's turn-in row stays clickable forever")
 	assert.True(t, l.MatchesStage("wolves-on-the-road", mobs.QuestStageCompleted))
+}
+
+// F23 / R27 (plan-vertical-slice.md): Young Wolves count for no quest. The
+// species wears the Wolf's art, so only its own def id keeps it apart: kills
+// are credited by MobID (Ledger.NoteKill), never by the entity type.
+func TestContent_YoungWolvesCountForNoQuest(t *testing.T) {
+	mr, qr := contentRegistries(t)
+
+	young, err := mr.GetByName("YoungWolf")
+	require.NoError(t, err)
+	wolf, err := mr.GetByName("Wolf")
+	require.NoError(t, err)
+	assert.NotEqual(t, wolf.ID, young.ID)
+	assert.Equal(t, wolf.Name, young.EntityType, "the Young Wolf reuses the Wolf's art (no wire change)")
+
+	for _, q := range qr.All() {
+		for _, s := range q.Stages {
+			for _, o := range s.Objectives {
+				assert.NotEqual(t, young.ID, o.Target, "quest %q stage %q counts Young Wolves", q.ID, s.ID)
+			}
+		}
+	}
 }

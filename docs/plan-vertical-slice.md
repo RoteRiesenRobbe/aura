@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PO walk passed (§11). Next: PF2, on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24, both PO walks passed (§11). Next: PF3 (HUD), on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 is pushed (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -614,7 +614,7 @@ Baseline `bc58a9cb` (its moves kept the road counts as they were). `23060f46` mo
 - ~~**Q16 - When is the census script saved as a tool?**~~ RULED 2026-11-22: in VS0 (D2).
 - **Q17 - (deferred 2026-11-22 to after VS-P) Approval of this plan:** both POs refine it
   with the playthrough's notes, then approve. Nothing further is built until then.
-  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt). PF2 needs one.
+  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23. PF3 needs one.
 - ~~**Q18 - End level and the Bluff**~~ RULED 2026-11-22: R20, stone 16, Bluff open.
 - ~~**Q19 - Wolves on the Road against DQ R8/D8**~~ RULED 2026-11-22: R21, keep both.
 - ~~**Q20 - Immune targets**~~ RULED 2026-11-22: R23, never targeted.
@@ -772,3 +772,50 @@ the playthrough can end in a real ascension on live.
 **Walk result, 2026-11-22:** PO "all works" for steps 2-4. Step 1 was not walked and the
 PO waived it: "I dont need to manually test the restart, rest is fine". F1 rests on the
 restart probe (stop, instant restart and kill all show the banner).
+
+### PF2 - quests, teachers, map batch ✅ DONE 2026-11-24 `[uncommitted]`, PO walk passed, not deployed
+
+Built 2026-11-23, wrapped 2026-11-24 after the PO's walk.
+
+- **F22 + F27 (R25):** the City Guard teaches nothing. His Taunt grant on the wolf turn-in
+  and his Strong row are gone, and the journal's "Learned Taunt." with them. ⚑ Strong has no
+  source now until it is re-homed; Taunt's other source is the Rally Drummer's drop.
+- **F25:** the Shaman's wolf turn-in row and its text are gone. `wolves-on-the-road` turns in
+  at the Guard alone; the crier's brief and the journal name only him. `told-shaman` stays
+  for saved characters: a new `retiredStages` map in `quests/content_test.go` exempts it from
+  "every stage reachable" and goes red if anything enters it again. The D9 content pin
+  became `TestContent_TheWolfQuestTurnsInAtTheCityGuardOnly`; `TestLedger_BranchEdgesExclusive`
+  still covers the branch mechanism on fixtures.
+- **F26:** the Guard's bears offer is gone, the turn-in stays; `bears-at-the-walls` is in
+  `parkedQuests`.
+- **F23:** new species `YoungWolf` (id 139, the Wolf's stats, bite and Swift drop on the
+  Wolf's entityType), plural in EN + DE. No quest counts it. Not placed: CW swaps the
+  Farmlands and Brackenfold spawns.
+- **F29 (R24):** new `MinerGuildAssociate` (id 140, the Miner's entityType, standing
+  talkable shape, layer 96) at (-44.6, -23.4) outside the Anvilguard Forge, teaching
+  Pickaxe only.
+- **F42:** Long Range Strike costs 0.020 + 0.0032 per level [PLACEHOLDER].
+- **F43:** all six `respawnTicks` 9000 → 3600 [PLACEHOLDER].
+- **F10:** the memorial moved from (-211.62, 5.72) into the nave at (-24.6, 2.6), 3.4 units
+  from the stone. The debug world's pair is unchanged, so `c3-memorial-catalog` (a DEBUG-venue
+  harness) needed no edit.
+- **F52:** `crabs-in-the-hammocks` at Captain Brack: kill 8 Lake Crabs, 710 XP (the L9
+  half-level rule, crabs placed at L9-L10), two-row shape, the POs' draft text, German
+  beside it. `LakeCrab`'s name became a plural.
+- **Tiled palette** carries both new mobs.
+- **Schema:** DB none · wire none (both new mobs reuse an entityType) · conf none ·
+  content +2 mobs +1 quest, 4 conversants, 1 skill cost, 2 quest comments · zone memorial +
+  associate placed, 6 respawn values · lang EN + DE.
+
+**Verified**
+- Go build + full suite 0 FAIL (40 packages), `-count=1`, `store` + `accounts` on
+  `aura_test` · `-validate` 0 findings. vitest and typecheck not run: no frontend change.
+- `pf2-slice-world` (new, LIVE world) 13/13: the memorial and the stone each answer for
+  themselves, the associate teaches Pickaxe, the crab quest runs offer → 8 real kills →
+  turn-in paying exactly 710 XP. Its run logged the headless WebGL context loss (backlog
+  §29) and a follow-on `terrain` pageerror.
+- `c2-kill-quests` 23/23 ×3 (debug) · `c3-memorial-catalog` 14/14 (debug). `chunkC4-quests`
+  not run (27/39 at HEAD before PF2).
+
+**Walk result, 2026-11-24:** PO "all works as expected": crier, Guard, memorial and stone,
+the associate, the crab quest, Long Range Strike's cost, the 2-minute respawn.

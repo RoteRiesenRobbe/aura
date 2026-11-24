@@ -120,9 +120,25 @@
   "@conv.Campfire.you-restock-at-the-fire": {
     "description": "Campfire answers this when the player picks \"Restock\" (node \"root\")."
   },
+  "conv.CaptainBrack.about-the-crabs": "About the crabs...",
+  "@conv.CaptainBrack.about-the-crabs": {
+    "description": "A row the player picks when talking to Captain Brack (node \"root\"), written as the player's own words."
+  },
   "conv.CaptainBrack.about-your-chest": "About your chest.",
   "@conv.CaptainBrack.about-your-chest": {
     "description": "A row the player picks when talking to Captain Brack (node \"root\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.any-other-trouble": "Any other trouble in the camp?",
+  "@conv.CaptainBrack.any-other-trouble": {
+    "description": "A row the player picks when talking to Captain Brack (node \"root\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.first-good-nights-sleep": "First good night's sleep in weeks. The crew owes you one.",
+  "@conv.CaptainBrack.first-good-nights-sleep": {
+    "description": "Captain Brack answers this when the player picks \"The crabs are dealt with.\" (node \"crabs_running\")."
+  },
+  "conv.CaptainBrack.good-watch-your-toes-out": "Good. Watch your toes out there.",
+  "@conv.CaptainBrack.good-watch-your-toes-out": {
+    "description": "Captain Brack answers this when the player picks \"\" (node \"crabs\")."
   },
   "conv.CaptainBrack.i-found-your-chest": "I found your chest.",
   "@conv.CaptainBrack.i-found-your-chest": {
@@ -140,9 +156,25 @@
   "@conv.CaptainBrack.south-past-where-the-planks": {
     "description": "Captain Brack speaks this in the conversation, node \"treasure_on_it\", line 1."
   },
+  "conv.CaptainBrack.still-hearing-claws-at-night": "Still hearing claws at night.",
+  "@conv.CaptainBrack.still-hearing-claws-at-night": {
+    "description": "Captain Brack speaks this in the conversation, node \"crabs_on_it\", line 1."
+  },
   "conv.CaptainBrack.still-shut-and-still-heavy": "Still shut, and still heavy. Here is your share.",
   "@conv.CaptainBrack.still-shut-and-still-heavy": {
     "description": "Captain Brack answers this when the player picks \"I found your chest.\" (node \"treasure_running\")."
+  },
+  "conv.CaptainBrack.the-crabs": "The crabs?",
+  "@conv.CaptainBrack.the-crabs": {
+    "description": "Captain Brack speaks this in the conversation, node \"crabs_running\", line 1."
+  },
+  "conv.CaptainBrack.the-crabs-are-dealt": "The crabs are dealt with.",
+  "@conv.CaptainBrack.the-crabs-are-dealt": {
+    "description": "A row the player picks when talking to Captain Brack (node \"crabs_running\"), written as the player's own words."
+  },
+  "conv.CaptainBrack.these-damn-crabs-keep-crawling": "These damn crabs keep crawling into our hammocks and pinching our toes. Get rid of them for me, would you, lad?",
+  "@conv.CaptainBrack.these-damn-crabs-keep-crawling": {
+    "description": "Captain Brack speaks this in the conversation, node \"crabs\", line 1."
   },
   "conv.CaptainBrack.we-hid-a-chest": "We hid a chest in the bog. Then the spiders came, and the bog swallowed the path we took.",
   "@conv.CaptainBrack.we-hid-a-chest": {
@@ -175,10 +207,6 @@
   "conv.CityGuard.i-killed-the-5-bears": "I killed the 5 bears.",
   "@conv.CityGuard.i-killed-the-5-bears": {
     "description": "A row the player picks when talking to City Guard (node \"bears_running\"), written as the player's own words."
-  },
-  "conv.CityGuard.kill-5-bears-near": "Kill 5 bears near the city walls, then come back to me.",
-  "@conv.CityGuard.kill-5-bears-near": {
-    "description": "City Guard speaks this in the conversation, node \"bears\", line 1."
   },
   "conv.CityGuard.kill-5-bears-near-2": "Kill 5 bears near the city walls, then come back to me.",
   "@conv.CityGuard.kill-5-bears-near-2": {
@@ -1272,6 +1300,14 @@
   "@conv.Miner.what-happened-down-there": {
     "description": "A row the player picks when talking to Miner (node \"root\"), written as the player's own words."
   },
+  "conv.MinerGuildAssociate.ore-coal-good-building-stone": "Ore, coal, good building stone. The guild digs it, I sell it.",
+  "@conv.MinerGuildAssociate.ore-coal-good-building-stone": {
+    "description": "Miner Guild Associate speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.MinerGuildAssociate.rocks-in-your-way": "Rocks in your way? A pickaxe will see you through.",
+  "@conv.MinerGuildAssociate.rocks-in-your-way": {
+    "description": "Miner Guild Associate speaks this in the conversation, node \"teachings\", line 1."
+  },
   "conv.PirateDeckhand.the-captain-does-the-talking": "The captain does the talking. I only row.",
   "@conv.PirateDeckhand.the-captain-does-the-talking": {
     "description": "Pirate Deckhand speaks this in the conversation, node \"root\", line 1."
@@ -1544,10 +1580,6 @@
   "@conv.Shaman.let-nature-guide-you": {
     "description": "Shaman speaks this in the conversation, node \"root\", line 1."
   },
-  "conv.Shaman.the-8-wolves": "The 8 wolves on the west road are dead.",
-  "@conv.Shaman.the-8-wolves": {
-    "description": "A row the player picks when talking to Shaman (node \"root\"), written as the player's own words."
-  },
   "conv.Shaman.the-dire-wolves": "Have the dire wolves fallen?",
   "@conv.Shaman.the-dire-wolves": {
     "description": "Shaman speaks this in the conversation, node \"direwolves_running\", line 1."
@@ -1680,7 +1712,7 @@
   "@conv.TownCrier.kill-8-wolves": {
     "description": "Town Crier speaks this in the conversation, node \"wolves\", line 1."
   },
-  "conv.TownCrier.kill-8-wolves-2": "Kill 8 wolves on the west road. Then report to the City Guard or the Shaman.",
+  "conv.TownCrier.kill-8-wolves-2": "Kill 8 wolves on the west road. Then report to the City Guard.",
   "@conv.TownCrier.kill-8-wolves-2": {
     "description": "Town Crier speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
@@ -1728,7 +1760,7 @@
   "@conv.TownCrier.the-wolves": {
     "description": "Town Crier speaks this in the conversation, node \"wolves_running\", line 1."
   },
-  "conv.TownCrier.then-report-to-the-city": "Then report to the City Guard at the city gate far to the east, or to the Shaman at his fire east along the road.",
+  "conv.TownCrier.then-report-to-the-city": "Then report to the City Guard at the city gate far to the east.",
   "@conv.TownCrier.then-report-to-the-city": {
     "description": "Town Crier speaks this in the conversation, node \"wolves\", line 2."
   },

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // The zone-2 generic kill quests at the game surface (plan-generic-kill-quests.md C2).
 //
-// Boundary: this script owns the FIVE C2 quests — each giver carries the offer
-// row, one quest (bears-at-the-walls) walks end to end, the show-rule seals it.
+// Boundary: this script owns the FIVE C2 quests: four givers carry the offer
+// row, one quest (bears-at-the-walls, PARKED since plan-vertical-slice.md F26:
+// offered by nobody, turned in for holders) walks end to end from a QUEST
+// ACCEPT, the show-rule seals it.
 // The C1 quests belong to c1-kill-quests.mjs, the C4 originals to
 // chunkC4-quests.mjs — including the wolves turn-in rows that share the
 // Shaman/CityGuard roots (their coexistence with the new rows is chunkC4's
@@ -10,7 +12,8 @@
 // any edit here). Never asserts how much quest content exists.
 //
 // Legs:
-//   A  bears-at-the-walls on the City Guard, END TO END — warps spawn point to
+//   A  bears-at-the-walls on the City Guard, END TO END from QUEST ACCEPT (the
+//      Guard offers it no longer); it warps spawn point to
 //      spawn point across the five authored L16 Bear spawns (predators wander,
 //      so tri-state: a short hunt is an INCONCLUSIVE venue, not a failure).
 //   B  dire-wolves-at-the-camp: Shaman offer + accept.
@@ -275,21 +278,18 @@ check('the five C2 kill quests are served (by name, never by count)',
 try {
   await warpTo(AT.CityGuard);
   const guard = await talkTo('City Guard');
-  check('A1 the City Guard carries the quest behind its own root row (turn-in-only no more)',
-    guard?.actor === 'City Guard' && guard.rows.some((r) => r.includes('Do you have a task for me')),
+  check('A1 the City Guard offers no task (F26: bears-at-the-walls is parked)',
+    guard?.actor === 'City Guard' && !guard.rows.some((r) => r.includes('Do you have a task for me')),
     `actor=${guard?.actor} rows=${JSON.stringify(guard?.rows)}`);
+  check('A2 ...and teaches nothing (F27: Strong left him)',
+    guard !== null && !guard.rows.some((r) => r.includes('Teach me')),
+    `rows=${JSON.stringify(guard?.rows)}`);
+  await leave();
 
-  await clickRow('Do you have a task for me');
-  const node = await panel();
-  check('A2 the bear node speaks the brief and offers Accept (turn-in hidden before the deed)',
-    node?.rows.some((r) => r.includes("I'll do it"))
-    && !node.rows.some((r) => r.includes('I killed the 5 bears')),
-    `lines="${node?.lines}" rows=${JSON.stringify(node?.rows)}`);
-
-  await clickRow("I'll do it");
+  await cmd('QUEST ACCEPT bears-at-the-walls');
   await waitForJournal((j) => inList(j.running, titleOf('bears-at-the-walls')));
   const accepted = await detailOf(titleOf('bears-at-the-walls'));
-  check('A3 accepting writes the diary and shows the "{n}/{m} bears killed" tracker (Q2)',
+  check('A3 a holder (QUEST ACCEPT) gets the diary and the "{n}/{m} bears killed" tracker (Q2)',
     accepted?.entries[0] === prose('bears-at-the-walls', 'cull')
     && (accepted?.objectives ?? []).some((o) => /^0\/5 bears killed$/.test(o)),
     `entries=${JSON.stringify(accepted?.entries)} objectives=${JSON.stringify(accepted?.objectives)}`);
@@ -300,7 +300,7 @@ try {
   // be read - sampling here used to return null and score the show-rule red.
   await page.keyboard.press('KeyJ');
   const reOpened = await talkTo('City Guard');
-  check('A4 the root rows SWAPPED with the accept: the offer row left, "About the bears..." came (two-row shape)',
+  check('A4 a holder sees "About the bears..." at the Guard, and still no offer row (two-row shape)',
     reOpened !== null
     && !reOpened.rows.some((r) => r.includes('Do you have a task for me'))
     && reOpened.rows.some((r) => r.includes('About the bears')),

@@ -392,10 +392,13 @@
     "description": "Name of the KoboldRanged (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
-  "mob.LakeCrab.name": "Lake Crab",
+  "mob.LakeCrab.name": "{count, plural, one {Lake Crab} other {Lake Crabs}}",
   "@mob.LakeCrab.name": {
     "description": "Name of the LakeCrab (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
-    "x-maxLength": 26
+    "x-maxLength": 26,
+    "placeholders": {
+      "count": {"type": "int", "description": "How many: 1 on a nameplate or in a banner, the required count on a tracker line", "example": "8"}
+    }
   },
   "mob.Lambert.name": "Lambert",
   "@mob.Lambert.name": {
@@ -450,6 +453,11 @@
   "mob.Miner.name": "Miner",
   "@mob.Miner.name": {
     "description": "Name of the Miner (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26
+  },
+  "mob.MinerGuildAssociate.name": "Miner Guild Associate",
+  "@mob.MinerGuildAssociate.name": {
+    "description": "Name of the MinerGuildAssociate (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
   },
   "mob.Orc.name": "{count, plural, one {Orc} other {Orcs}}",
@@ -700,5 +708,13 @@
   "@mob.Woolliam.name": {
     "description": "Name of the Woolliam (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
     "x-maxLength": 26
+  },
+  "mob.YoungWolf.name": "{count, plural, one {Young Wolf} other {Young Wolves}}",
+  "@mob.YoungWolf.name": {
+    "description": "Name of the YoungWolf (nameplate, conversation header, quest lines). Nominative; never inflected by a template (D9/L8). Plain text, or with its plural forms as {count, plural, one {…} other {…}} (D24): a mob a kill or harvest quest counts needs them, and a translation may use every plural category its language has. At most 26 characters: it sits on the nameplate.",
+    "x-maxLength": 26,
+    "placeholders": {
+      "count": {"type": "int", "description": "How many: 1 on a nameplate or in a banner, the required count on a tracker line", "example": "8"}
+    }
   }
 }

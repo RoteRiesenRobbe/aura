@@ -670,27 +670,27 @@ try {
   })();
 
   if (!hunted) {
-    skip('C3–C9 D9\'s branch (two turn-ins, different rewards)',
+    skip('C3–C9 the cull and its one turn-in at the City Guard',
       `INCONCLUSIVE — eight wolves were not killed inside 180 s (aura armed: ${armed.ok}). ` +
       'The branch itself is pinned by the Go content tests; re-run alone on a freshly restarted server ' +
       'to walk it at the surface.');
   } else {
     check('C3 eight real wolf kills advance the cull off the counters',
       hunted.entries[1] === prose('wolves-on-the-road', 'carry-word'), `entries=${JSON.stringify(hunted.entries)}`);
-    check('C4 ...and the carry stage shows its authored tracker (the choice, in the journal)',
-      (hunted.objectives ?? []).some((o) => /Report to the City Guard or the Shaman/.test(o)),
+    check('C4 ...and the carry stage shows its authored tracker (the City Guard alone, F25)',
+      (hunted.objectives ?? []).some((o) => /^Report to the City Guard$/.test(o)),
       `objectives=${JSON.stringify(hunted.objectives)}`);
 
     await warpTo(AT.Shaman);
     const shaman = await talkTo('Shaman');
-    check('C5 ⭐ the Shaman carries a turn-in row AT ROOT for a quest given by somebody else (D9)',
-      shaman?.rows.some((r) => r.includes('8 wolves on the west road are dead')),
+    check('C5 the Shaman carries NO turn-in row for it any more (F25: one turn-in, the City Guard)',
+      shaman !== null && !shaman.rows.some((r) => r.includes('8 wolves on the west road are dead')),
       `actor=${shaman?.actor} rows=${JSON.stringify(shaman?.rows)}`);
-    await leave(); // deliberately NOT taken: the other leg is the one we walk
+    await leave();
 
     await warpTo(AT.CityGuard);
     const guard = await talkTo('City Guard');
-    check('C6 ⭐ ...and so does the City Guard — the same stage, two eligible NPCs (D9)',
+    check('C6 ⭐ the City Guard carries the turn-in row AT ROOT for a quest given by somebody else',
       guard?.rows.some((r) => r.includes('8 wolves on the west road are dead')),
       `actor=${guard?.actor} rows=${JSON.stringify(guard?.rows)}`);
 
@@ -699,22 +699,19 @@ try {
     const done = await waitForJournal((j) => inList(j.completed, titleOf('wolves-on-the-road')));
     const bookAfter = await spellbook();
     const doneDetail = await detailOf(titleOf('wolves-on-the-road'));
-    check('C7 taking the militia leg completes the quest on ITS terminal stage, with its own diary entry',
+    check('C7 the turn-in completes the quest on told-militia, with its diary entry',
       inList(done?.completed ?? [], titleOf('wolves-on-the-road'))
       && doneDetail?.entries.slice(-1)[0] === prose('wolves-on-the-road', 'told-militia'),
       `entries=${JSON.stringify(doneDetail?.entries)}`);
-    check('C8 ...and pays the militia leg\'s own reward — Taunt, which the shaman leg does not teach',
-      !bookBefore.some((r) => /taunt/i.test(r)) && bookAfter.some((r) => /taunt/i.test(r)),
+    check('C8 ...and teaches nothing (F22: Taunt left the Guard)',
+      bookAfter.length === bookBefore.length && !bookAfter.some((r) => /taunt/i.test(r)),
       `spellbook gained: ${JSON.stringify(bookAfter.filter((r) => !bookBefore.includes(r)))}`);
     await leave();
-
-    // The branch seals: a completed quest matches `completed`, never the terminal
-    // stage it ended on (C2 shape decision ②), so the road not taken is gone.
-    await warpTo(AT.Shaman);
-    const shamanAfter = await talkTo('Shaman');
-    check('C9 ⭐ the road not taken is closed — the Shaman\'s turn-in row is gone once the quest is finished',
-      !(shamanAfter?.rows ?? []).some((r) => r.includes('8 wolves on the west road are dead')),
-      `rows=${JSON.stringify(shamanAfter?.rows)}`);
+    await page.keyboard.press('KeyJ'); // the journal read above left the Guard (UI pass C2 D1)
+    const guardAfter = await talkTo('City Guard');
+    check('C9 the Guard\'s turn-in row is gone once the quest is finished',
+      guardAfter !== null && !guardAfter.rows.some((r) => r.includes('8 wolves on the west road are dead')),
+      `rows=${JSON.stringify(guardAfter?.rows)}`);
     await leave();
   }
 } catch (e) {

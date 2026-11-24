@@ -70,7 +70,7 @@
   "mob.Kobold.name": "{count, plural, one {Kobold} other {Kobolde}}",
   "mob.KoboldChief.name": "{count, plural, one {Koboldhäuptling} other {Koboldhäuptlinge}}",
   "mob.KoboldRanged.name": "Koboldschütze",
-  "mob.LakeCrab.name": "Seekrabbe",
+  "mob.LakeCrab.name": "{count, plural, one {Seekrabbe} other {Seekrabben}}",
   "mob.Lambert.name": "Lambert",
   "mob.LamplessTraveller.name": "Reisender ohne Lampe",
   "mob.Lamplighter.name": "Wanderer",
@@ -82,6 +82,7 @@
   "mob.MercenaryCaptain.name": "Söldnerhauptmann",
   "mob.MercenaryCrossbowman.name": "Söldner-Armbrustschütze",
   "mob.Miner.name": "Bergmann",
+  "mob.MinerGuildAssociate.name": "Bergmannsgildner",
   "mob.Orc.name": "{count, plural, one {Ork} other {Orks}}",
   "mob.OrcGrunt.name": "Orkkrieger",
   "mob.OrcWarlord.name": "Ork-Kriegsherr",
@@ -126,5 +127,6 @@
   "mob.Wolf.name": "{count, plural, one {Wolf} other {Wölfe}}",
   "mob.Woodcutter2.name": "Zacharias",
   "mob.Woodcutter3.name": "Holzfäller 3",
-  "mob.Woolliam.name": "Woolliam"
+  "mob.Woolliam.name": "Woolliam",
+  "mob.YoungWolf.name": "{count, plural, one {Jungwolf} other {Jungwölfe}}"
 }

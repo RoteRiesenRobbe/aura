@@ -1,0 +1,50 @@
+{
+  "_comment": "The miners' guild associate outside the Anvilguard Forge in the city's northern district: teaches Pickaxe to anyone, the second of its two teachers beside the Miner. Standing talkable-NPC shape (woodcutter-3.json). entityType Miner reuses the Miner's art. All values [PLACEHOLDER].",
+  "id": 140,
+  "name": "MinerGuildAssociate",
+  "type": "MOB",
+  "entityType": "Miner",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 96,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          {"id": "ore-coal-good-building-stone"}
+        ],
+        "options": [
+          { "stock": "ask-teach", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          {"id": "rocks-in-your-way"}
+        ],
+        "options": [
+          {
+            "grants": [
+              { "stock": "teach-skill", "kind": "teach_skill", "skill": "Pickaxe" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

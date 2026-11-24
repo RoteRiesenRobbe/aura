@@ -240,6 +240,7 @@
       "MercenaryCaptain",
       "MercenaryCrossbowman",
       "Miner",
+      "MinerGuildAssociate",
       "Orc",
       "OrcGrunt",
       "OrcWarlord",
@@ -284,7 +285,8 @@
       "Wolf",
       "Woodcutter2",
       "Woodcutter3",
-      "Woolliam"
+      "Woolliam",
+      "YoungWolf"
     ],
     "AuraPatrolMode": [
       "pingpong",
@@ -1244,6 +1246,7 @@
     "MercenaryCaptain": "combat",
     "MercenaryCrossbowman": "combat",
     "Miner": "talker",
+    "MinerGuildAssociate": "talker",
     "Orc": "combat",
     "OrcGrunt": "combat",
     "OrcWarlord": "combat",
@@ -1288,7 +1291,8 @@
     "Wolf": "combat",
     "Woodcutter2": "talker",
     "Woodcutter3": "talker",
-    "Woolliam": "talker"
+    "Woolliam": "talker",
+    "YoungWolf": "combat"
   },
   "MOB_SPEED": {
     "AlphaBear": 0.4,
@@ -1373,6 +1377,7 @@
     "MercenaryCaptain": 0.52,
     "MercenaryCrossbowman": 0.6,
     "Miner": 0,
+    "MinerGuildAssociate": 0,
     "Orc": 0.5,
     "OrcGrunt": 0.6,
     "OrcWarlord": 0.45,
@@ -1417,7 +1422,8 @@
     "Wolf": 0.7,
     "Woodcutter2": 0,
     "Woodcutter3": 0,
-    "Woolliam": 0.4
+    "Woolliam": 0.4,
+    "YoungWolf": 0.7
   },
   "PROFILE_NAMES": [
     "Fields",

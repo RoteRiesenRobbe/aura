@@ -273,6 +273,7 @@
                 "MercenaryCaptain",
                 "MercenaryCrossbowman",
                 "Miner",
+                "MinerGuildAssociate",
                 "Orc",
                 "OrcGrunt",
                 "OrcWarlord",
@@ -317,7 +318,8 @@
                 "Wolf",
                 "Woodcutter2",
                 "Woodcutter3",
-                "Woolliam"
+                "Woolliam",
+                "YoungWolf"
             ],
             "valuesAsFlags": false
         },

@@ -1,0 +1,18 @@
+{
+  "_comment": "Captain Brack's crab cull on Sorrowfen's beach: 8 Lake Crabs (placed at L9 and L10), 710 XP on his turn-in row, the L9 half-level rule splitting the pair. Count and reward [PLACEHOLDER].",
+  "id": "crabs-in-the-hammocks",
+  "level": 9,
+  "stages": [
+    {
+      "id": "cull",
+      "objectives": [{ "kind": "kill", "species": "LakeCrab", "count": 8 }],
+      "next": "report"
+    },
+    {
+      "id": "report"
+    },
+    {
+      "id": "done"
+    }
+  ]
+}

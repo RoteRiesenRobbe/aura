@@ -15,8 +15,8 @@
   "effects": [
     {
       "type": "damage_aura",
-      "costFractionOfMax": 0.0116,
-      "costFractionOfMaxPerLevel": 0.001867,
+      "costFractionOfMax": 0.020,
+      "costFractionOfMaxPerLevel": 0.0032,
       "radius": 2.6,
       "radiusPerLevel": 0.0444,
       "damageHP": 9,

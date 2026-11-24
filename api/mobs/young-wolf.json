@@ -1,0 +1,31 @@
+{
+  "_comment": "The Farmlands' wolf: the Wolf's stats, bite and Swift drop under its own species, so Wolves on the Road (which counts the forest Wolf) never credits it. entityType Wolf reuses the art. All values [PLACEHOLDER].",
+  "id": 139,
+  "name": "YoungWolf",
+  "type": "MOB",
+  "entityType": "Wolf",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 2,
+  "factors": {
+    "baseMaxHealth": 55,
+    "maxHealthVariance": 0.1,
+    "speed": 0.7,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 4,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 60,
+    "idleDwellMaxTicks": 180
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 3
+  },
+  "skills": [
+    { "skillName": "WolfBite", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "Swift", "chance": 0.04 }
+  ]
+}

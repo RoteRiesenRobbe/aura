@@ -168,6 +168,9 @@ var expectedConversants = []string{
 	"Fennick",
 	"CaptainBrack",
 	"PirateDeckhand",
+	// The vertical slice (plan-vertical-slice.md PF2, F29): Pickaxe's second
+	// teacher, outside the Anvilguard Forge.
+	"MinerGuildAssociate",
 	"SunkChest",
 }
 

@@ -134,7 +134,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// + Sorrowfen (content-zone-7-swamp.md 6b): Hedda, Fennick, Captain Brack,
 	// the Pirate Deckhand and the SunkChest (talkable), the Spider Queen, Bog
 	// Frog, Bog Snake and Lake Crab (fighting creatures): 100 -> 109.
-	assert.Len(t, byRole[RoleCreature], 109, "everything else is a creature")
+	// + the vertical slice's PF2 (plan-vertical-slice.md): the Miner Guild
+	// Associate (talkable) and the Young Wolf (fighting creature): 109 -> 111.
+	assert.Len(t, byRole[RoleCreature], 111, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

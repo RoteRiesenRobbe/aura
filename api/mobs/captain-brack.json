@@ -1,5 +1,6 @@
 {
-  "_comment": "Captain Brack (placeholder name), the pirate captain at the fire on Sorrowfen's lake shore (content-zone-7-swamp.md §2.2, C5): offers and turns in treasure-in-the-bog, whose chest (SunkChest) lies past a wrong-way plank in the swamp's core. Standing talkable-NPC shape; entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+  "_comment": "Captain Brack (placeholder name), the pirate captain at the fire on Sorrowfen's lake shore (content-zone-7-swamp.md §2.2): offers and turns in treasure-in-the-bog, whose chest (SunkChest) lies past a wrong-way plank in the swamp's core, and crabs-in-the-hammocks (the lake crabs on his beach). Standing talkable-NPC shape; entityType Wanderer is placeholder art. All values [PLACEHOLDER].",
+
   "id": 132,
   "name": "CaptainBrack",
   "type": "MOB",
@@ -30,7 +31,9 @@
         ],
         "options": [
           { "id": "what-brings-pirates", "next": "treasure" },
-          { "id": "about-your-chest", "next": "treasure_running" }
+          { "id": "about-your-chest", "next": "treasure_running" },
+          { "id": "any-other-trouble", "next": "crabs" },
+          { "id": "about-the-crabs", "next": "crabs_running" }
         ]
       },
       {
@@ -69,6 +72,43 @@
         ],
         "lines": [
           {"id": "south-past-where-the-planks"}
+        ]
+      },
+      {
+        "id": "crabs",
+        "lines": [
+          {"id": "these-damn-crabs-keep-crawling"}
+        ],
+        "options": [
+          {
+            "stock": "quest-accept",
+            "grants": [ { "id": "good-watch-your-toes-out", "kind": "offer_quest", "quest": "crabs-in-the-hammocks" } ]
+          }
+        ]
+      },
+      {
+        "id": "crabs_running",
+        "lines": [
+          {"id": "the-crabs"}
+        ],
+        "options": [
+          {
+            "id": "the-crabs-are-dealt",
+            "grants": [
+              { "id": "first-good-nights-sleep", "kind": "advance_quest", "quest": "crabs-in-the-hammocks", "fromStage": "report", "toStage": "done" },
+              { "kind": "grant_xp", "xp": 710 }
+            ]
+          },
+          { "stock": "quest-progress", "next": "crabs_on_it" }
+        ]
+      },
+      {
+        "id": "crabs_on_it",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "crabs-in-the-hammocks", "stage": "cull" }
+        ],
+        "lines": [
+          {"id": "still-hearing-claws-at-night"}
         ]
       }
     ]
