@@ -246,6 +246,8 @@
   "spellbook.respec.confirm": "Sicher?",
   "spellbook.respec.label": "Zurücksetzen",
   "spellbook.respec.title": "Jede Fertigkeit auf Stufe 1 zurücksetzen und alle Punkte erstatten",
+  "spellbook.skill-points-pill": "{points, number}",
+  "spellbook.skill-points.text": "Fertigkeitspunkte: {points, number}",
   "spellbook.spend-cost.title": "{cost, plural, one {Kostet # Fertigkeitspunkt} other {Kostet # Fertigkeitspunkte}}",
   "start.beta-stamp": "Prototyp",
   "start.browser.body": "In der Beta-Version läuft das Spiel nur in einem aktuellen <chrome>Chrome</chrome>- oder <firefox>Firefox</firefox>-Browser flüssig.",

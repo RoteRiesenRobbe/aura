@@ -295,7 +295,8 @@ if (!stocked.spellbook || stocked.rows < 10) {
       && afterRebuild.spellbook === true,
     `before="${beforeRebuild.activeTab} ${beforeRebuild.pageLabel}" after="${afterRebuild.activeTab} ${afterRebuild.pageLabel}"`);
   check('F2 the points badge rides the open button, and the spend buttons are live',
-    afterRebuild.badgeShown === true && /Point/.test(afterRebuild.badge)
+    // A bare number since PF3 F12: the badge is the spellbook tile's pill.
+    afterRebuild.badgeShown === true && /^\d+$/.test(afterRebuild.badge)
       && afterRebuild.contract.hasPoints === true && afterRebuild.contract.spend > 0,
     `badge="${afterRebuild.badge}" shown=${afterRebuild.badgeShown} spend=${afterRebuild.contract.spend}`);
 }

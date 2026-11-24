@@ -46,44 +46,49 @@
          the map button has to stay reachable without opening it (the minimap
          itself is inside the sheet on mobile, so it cannot be the phone's way
          in). PO ruling 2026-08-04. -->
-    <div data-i18n-attr="title:hud.map-button.title" id="mapButton" title="Map (M)">
-        <span class="mapButtonHotkey">M</span><span data-i18n="map.label">Map</span>
+    <!-- The four tiles under the minimap (VS-P F12, PF3): a 2×2 of hotkey +
+         PONETI icon, M B / J C (PO 2026-11-24), the name in the game tooltip
+         on hover (HudTiles.ts), never a native title. The grid is a class,
+         not an id, and is styled on the desktop only: on the phone it is a
+         plain zero-height block, #mapButton keeps its fixed spot and label,
+         and the other three stay hidden (pf3-hud.mjs pins the phone). -->
+    <div class="hudTileGrid">
+    <div id="mapButton" class="hudTile">
+        <span class="mapButtonHotkey">M</span><span data-i18n="map.label">Map</span><span class="hudTileIcon"></span>
     </div>
 
-    <!-- The spellbook's desktop way in (UI pass C3): the book is a panel now,
-         so it needs a button, and it carries the unspent-points badge that used
-         to sit in the panel's own title (the panel can be shut when the point
-         arrives). Stacked under #mapButton rather than inside #leftColumn, so
-         the button does not disappear with the panel it opens; the phone's
-         entry is the ☰ sheet's own row further down, and this one is hidden
-         there. Both share .spellbookOpenButton, which is what Spellbook.ts
-         wires. -->
-    <div data-i18n-attr="title:hud.spellbook-button.title" id="spellbookButton" class="spellbookOpenButton" title="Spellbook (B)">
-        <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span id="skillPointsBadge" class="skillPointsBadge hidden"></span><span class="campPointsBadge hidden"></span>
+    <!-- The spellbook's desktop way in (UI pass C3), outside #leftColumn so
+         it does not disappear with the panel it opens; the phone's entry is
+         the ☰ sheet's own row further down. Both share .spellbookOpenButton,
+         which is what Spellbook.ts wires. Its badges are number pills (a tile
+         has no room for "3 Points"): #skillPointsBadge is the gold one, fed
+         the bare count by HUD.ts; the campfire pill was a number already. -->
+    <div id="spellbookButton" class="spellbookOpenButton hudTile">
+        <span class="spellbookButtonHotkey">B</span><span data-i18n="spellbook.label">Spellbook</span><span class="hudTileIcon"></span><span class="hudTileBadges"><span id="skillPointsBadge" class="skillPointsPill hidden"></span><span class="campPointsBadge hidden"></span></span>
+    </div>
+
+    <!-- The journal's tile (it rode the quest tracker's header until PF3).
+         Two "J Journal" affordances on purpose, one per layout: this one,
+         and the ☰ sheet's #journalButton on the phone. -->
+    <div id="questTrackerJournal" class="hudTile">
+        <span class="journalButtonHotkey">J</span><span data-i18n="journal.label">Journal</span><span class="hudTileIcon"></span>
     </div>
 
     <!-- The Appearance panel's desktop way in (plan-appearance.md C4, D10),
-         one button height under #spellbookButton in the same hand-placed
-         column, the spellbook's pattern (plan-ui-pass.md C3); the phone's
-         entry is the ☰ sheet's row below. Both share .appearanceOpenButton,
-         which is what AppearancePanel.ts wires. -->
-    <div data-i18n-attr="title:hud.appearance-button.title" id="appearanceButton" class="appearanceOpenButton" title="Appearance (C)">
-        <span class="appearanceButtonHotkey">C</span><span data-i18n="appearance.label">Appearance</span>
+         the spellbook's pattern; the phone's entry is the ☰ sheet's row
+         below. Both share .appearanceOpenButton, which is what
+         AppearancePanel.ts wires. -->
+    <div id="appearanceButton" class="appearanceOpenButton hudTile">
+        <span class="appearanceButtonHotkey">C</span><span data-i18n="appearance.label">Appearance</span><span class="hudTileIcon"></span>
+    </div>
     </div>
 
-    <!-- Quest tracker (2026-08-23; the list rebuilt at UI pass C7 D2): the
-         journal button's desktop home, stacked under the map button, and below
-         it one scrim listing every running quest as a gold title over its last
-         objective line (rendered by QuestTracker.ts from the same per-tick
-         ledger the journal reads). A sibling of #mapButton for the same phone
-         reason: the tracker is hidden on mobile, where the ☰ sheet keeps the
-         old #journalButton row below - which is why that element still exists
-         even though desktop hides it. Two "J Journal" affordances on purpose,
-         one per layout, both wired to Journal.toggle. -->
+    <!-- Quest tracker (2026-08-23; the list rebuilt at UI pass C7 D2): under
+         the tile grid, one scrim listing every running quest as a gold title
+         over its last objective line (rendered by QuestTracker.ts from the
+         same per-tick ledger the journal reads). Hidden on mobile. Since PF3
+         it takes the height the button column freed, down to the zoom row. -->
     <div id="questTracker">
-        <div data-i18n-attr="title:hud.quest-tracker.journal.title" id="questTrackerJournal" title="Journal (J)">
-            <span class="journalButtonHotkey">J</span><span data-i18n="journal.label">Journal</span>
-        </div>
         <ul id="questTrackerList" class="hidden"></ul>
     </div>
 
@@ -132,7 +137,7 @@
 
     <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
     <div id="zoomControl">
-        <div data-i18n-attr="title:hud.help-button.title" id="helpButton" title="How Aura works">?</div>
+        <div id="helpButton">?</div>
         <div class="zoomIcon">
             <svg viewBox="0 0 24 24">
                 <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
@@ -339,13 +344,22 @@
              32 verify scripts read #spellbookList straight out of the DOM.
              Structure is Spellbook.ts's; the rows are HUD.updateSpellbook's. -->
         <div id="spellbook" class="hidden">
-            <div class="spellbookTitle"><span class="spellbookTitleText" data-i18n="spellbook.label">Spellbook</span><span class="skillPointsBadge hidden"></span><span data-i18n-attr="title:spellbook.respec.title" data-i18n="spellbook.respec.label" id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
+            <div class="spellbookTitle"><span class="spellbookTitleText" data-i18n="spellbook.label">Spellbook</span></div>
             <ul id="spellbookTabs">
                 <li data-i18n="skill-kind.auras" class="spellbookTab hidden" data-category="aura">Auras</li>
                 <li data-i18n="skill-kind.passives" class="spellbookTab hidden" data-category="passive">Passives</li>
                 <li data-i18n="skill-kind.cooldowns" class="spellbookTab hidden" data-category="cooldown">Cooldowns</li>
                 <li class="spellbookTab hidden" data-category="camp"><span data-i18n="skill-kind.campfire">Campfire</span><span class="campPointsBadge hidden"></span></li>
             </ul>
+            <!-- The points strip (VS-P F4, PF3): one strip in the body for every
+                 tab, the unspent points and the Reset that refunds them. The
+                 skill pair shows on the ability tabs, the campfire pair on
+                 the Campfire tab (Spellbook.ts' .campTab; the phone takes it
+                 too, PO 2026-11-24). Hovers are game tooltips (HUD.ts). -->
+            <div id="spellbookStrip">
+                <span id="skillPointsText"></span><span data-i18n="spellbook.respec.label" id="respecButton">Reset</span>
+                <span id="campPointsText"></span><span data-i18n="spellbook.respec.label" id="campRespecButton">Reset</span>
+            </div>
             <div id="spellbookScroll">
                 <ul id="spellbookList"></ul>
             </div>
@@ -355,7 +369,6 @@
                  Rows are HUD.updateCampTraits'; which pane shows is
                  Spellbook.ts'. -->
             <div id="campTraitPane" class="hidden">
-                <div class="campTraitStrip"><span id="campPointsText"></span><span data-i18n="spellbook.respec.label" id="campRespecButton">Reset</span></div>
                 <ul id="campTraitList"></ul>
             </div>
             <div id="spellbookPager" class="hidden">

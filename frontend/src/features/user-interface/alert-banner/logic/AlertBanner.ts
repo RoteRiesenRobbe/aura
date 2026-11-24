@@ -45,7 +45,7 @@ function showNext() {
     }
     showing = true;
 
-    bannerElement.textContent = next.text;
+    renderLines(bannerElement, next.text);
     bannerElement.className = 'visible ' + next.kind;
 
     clearTimeout(hideTimeout);
@@ -53,6 +53,25 @@ function showNext() {
         bannerElement.classList.remove('visible');
         hideTimeout = setTimeout(showNext, FADE_MS);
     }, SHOW_MS);
+}
+
+// renderLines puts the first line (what happened: the unlocked skill, the
+// level, the announcement) in .alertTitle and every line after it (where it
+// came from) in a smaller .alertDetail (PF3 feedback, PO 2026-11-24). The
+// newline stays a text node between them, so textContent reads exactly as
+// the message did and the harnesses that match it are unaffected.
+export function renderLines(element: HTMLElement, text: string) {
+    const cut = text.indexOf('\n');
+    const title = document.createElement('span');
+    title.className = 'alertTitle';
+    title.textContent = cut < 0 ? text : text.slice(0, cut);
+    element.replaceChildren(title);
+    if (cut >= 0) {
+        const detail = document.createElement('span');
+        detail.className = 'alertDetail';
+        detail.textContent = text.slice(cut + 1);
+        element.append('\n', detail);
+    }
 }
 
 // clear drops any pending alerts, e.g. on death/respawn screen transitions.

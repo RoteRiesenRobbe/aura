@@ -571,7 +571,7 @@
   },
   "hud.appearance-button.title": "Appearance (C)",
   "@hud.appearance-button.title": {
-    "description": "HUD: the title attribute of the <div id=appearanceButton> element in #gameUI."
+    "description": "HUD: the game tooltip of the Appearance tile (<div id=appearanceButton>) under the minimap; the letter is the hotkey."
   },
   "hud.appearance-sheet-button.title": "Appearance (C)",
   "@hud.appearance-sheet-button.title": {
@@ -622,7 +622,7 @@
   },
   "hud.help-button.title": "How Aura works",
   "@hud.help-button.title": {
-    "description": "HUD: the title attribute of the <div id=helpButton> element in #zoomControl in #gameUI."
+    "description": "HUD: the game tooltip of the ? button (<div id=helpButton>) in the zoom row."
   },
   "hud.interact-button.title": "Talk",
   "@hud.interact-button.title": {
@@ -634,7 +634,7 @@
   },
   "hud.map-button.title": "Map (M)",
   "@hud.map-button.title": {
-    "description": "HUD: the title attribute of the <div id=mapButton> element in #gameUI."
+    "description": "HUD: the game tooltip of the map tile (<div id=mapButton>) under the minimap; the letter is the hotkey."
   },
   "hud.mobile-menu.title": "Menu",
   "@hud.mobile-menu.title": {
@@ -642,7 +642,7 @@
   },
   "hud.quest-tracker.journal.title": "Journal (J)",
   "@hud.quest-tracker.journal.title": {
-    "description": "HUD: the title attribute of the <div id=questTrackerJournal> element in #questTracker in #gameUI."
+    "description": "HUD: the game tooltip of the journal tile (<div id=questTrackerJournal>) under the minimap; the letter is the hotkey."
   },
   "hud.radar.zoom-in.title": "Zoom in",
   "@hud.radar.zoom-in.title": {
@@ -683,7 +683,7 @@
   },
   "hud.spellbook-button.title": "Spellbook (B)",
   "@hud.spellbook-button.title": {
-    "description": "HUD: the title attribute of the <div id=spellbookButton> element in #gameUI."
+    "description": "HUD: the game tooltip of the spellbook tile (<div id=spellbookButton>) under the minimap; the letter is the hotkey."
   },
   "hud.spellbook-sheet-button.title": "Spellbook (B)",
   "@hud.spellbook-sheet-button.title": {
@@ -1118,7 +1118,7 @@
   },
   "spellbook.points-badge": "{points, plural, one {# Point} other {# Points}}",
   "@spellbook.points-badge": {
-    "description": "Badge on the spellbook button: unspent skill points.",
+    "description": "Badge on the phone menu's spellbook row: unspent skill points.",
     "placeholders": {
       "points": {"type": "int", "description": "Unspent skill points", "example": "3"}
     }
@@ -1135,7 +1135,21 @@
   },
   "spellbook.respec.title": "Reset every skill to level 1 and refund all points",
   "@spellbook.respec.title": {
-    "description": "HUD: the title attribute of the <span id=respecButton> element in #spellbook in #leftColumn."
+    "description": "Spellbook: the game tooltip of the skill Reset button in the points strip."
+  },
+  "spellbook.skill-points-pill": "{points, number}",
+  "@spellbook.skill-points-pill": {
+    "description": "A small pill on the spellbook tile under the minimap (desktop): unspent skill points. Just the number.",
+    "placeholders": {
+      "points": {"type": "int", "description": "Unspent skill points", "example": "3"}
+    }
+  },
+  "spellbook.skill-points.text": "Skill points: {points, number}",
+  "@spellbook.skill-points.text": {
+    "description": "Spellbook, ability tabs: the strip above the skill list, how many skill points are unspent. Shown at 0 too.",
+    "placeholders": {
+      "points": {"type": "int", "description": "Unspent skill points", "example": "3"}
+    }
   },
   "spellbook.spend-cost.title": "{cost, plural, one {Costs # skill point} other {Costs # skill points}}",
   "@spellbook.spend-cost.title": {

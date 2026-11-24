@@ -247,6 +247,14 @@
 		0 0 6px rgba(0, 0, 0, 0.85);
 	pointer-events: none;
 
+	// The scrim (VS-P F15, PF3): a semi-transparent ground behind the text, so
+	// a banner over a busy scene still reads. It fades with the text (the same
+	// opacity). Desktop only: HUD.mobile.less resets it, the phone stays as it
+	// was (PO 2026-11-24). [PLACEHOLDER] alpha, padding, radius.
+	padding: 0.35em 0.9em;
+	background: fade(black, 45%);
+	border-radius: 0.4em;
+
 	opacity: 0;
 	transition: opacity 0.4s ease-in-out; // FADE_MS in AlertBanner.ts
 
@@ -270,6 +278,18 @@
 	// unnoticed. Red, so it never reads as a reward.
 	&.warning {
 		color: #ff8a72;
+	}
+
+	// Two type styles (PF3 feedback, PO 2026-11-24): the first line says what
+	// happened, big and in the kind's colour; the lines after it (the unlock's
+	// source) are a smaller, lighter row under it, in a soft white whatever the
+	// kind. AlertBanner.renderLines splits them. [PLACEHOLDER] size and colour.
+	> .alertDetail {
+		display: block;
+		margin-top: 0.15em;
+		font-size: 0.6em;
+		font-weight: 600;
+		color: #f4eee2;
 	}
 }
 
@@ -917,11 +937,13 @@
 				color: white;
 			}
 
+			// ⚑ No font-weight change: a bold label is wider, so the row
+			// wrapped differently depending on WHICH tab was selected (German,
+			// PO 2026-11-24). Colour, tint and the underline carry the state.
 			&.active {
 				background: fade(@gold-levelup, 12%);
 				border-bottom-color: fade(@gold-levelup, 75%);
 				color: @gold-levelup;
-				font-weight: 700;
 			}
 
 			&.hidden {
@@ -974,10 +996,14 @@
 		display: none;
 	}
 
-	// The pane's strip: the campfire points and the traits-only reset, the
-	// title strip's badge + reset in miniature. The title's own pair is about
-	// skills, so it steps aside while this tab is up (one Reset on screen).
-	> #campTraitPane > .campTraitStrip {
+	// The points strip (VS-P F4, PF3): one strip in the body for every tab,
+	// the unspent points and the Reset that refunds them. The skill pair shows
+	// on the ability tabs, the campfire pair on the Campfire tab (one Reset on
+	// screen). It sits OUTSIDE the fixed page, between the tabs and the page,
+	// so the page keeps its ruled height; the title gave up the row the skill
+	// pair used to take, which pays for most of the strip. The book is the
+	// same height on every tab (pf3-hud.mjs).
+	> #spellbookStrip {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
@@ -985,8 +1011,20 @@
 		margin-bottom: 0.4rem;
 		padding-bottom: 0.4rem;
 		border-bottom: 1px solid @panel-row-divider;
-		color: @brand;
+		font-size: @panel-font-size;
 
+		> #skillPointsText {
+			color: fade(@gold-flash, 90%);
+		}
+
+		> #campPointsText {
+			color: @brand;
+		}
+
+		// The reset-all buttons (round-7 item 8, CT2). Deliberately quiet next
+		// to the count; the armed state goes warning-red because the next
+		// press wipes every spent point.
+		> #respecButton,
 		> #campRespecButton {
 			color: fade(#ffffff, 55%);
 			white-space: nowrap;
@@ -1003,6 +1041,13 @@
 		}
 	}
 
+	&.campTab > #spellbookStrip > #skillPointsText,
+	&.campTab > #spellbookStrip > #respecButton,
+	&:not(.campTab) > #spellbookStrip > #campPointsText,
+	&:not(.campTab) > #spellbookStrip > #campRespecButton {
+		display: none;
+	}
+
 	// The same fixed page as #spellbookScroll, so switching to the tab never
 	// makes the book jump (PO 2026-09-24 / 2026-10-18), short-viewport
 	// exception included; it scrolls natively in that case.
@@ -1012,10 +1057,6 @@
 		overflow-y: auto;
 	}
 
-	&.campTab > .spellbookTitle > .skillPointsBadge,
-	&.campTab > .spellbookTitle > #respecButton {
-		display: none;
-	}
 
 	> #spellbookScroll {
 		// SimpleBar needs an explicit height/max-height ON THIS element — its
@@ -1059,9 +1100,7 @@
 	}
 
 	// The direction-C wood strip (UI pass C6), same overlay pattern as the
-	// journal's. ⚑ WRAP, NEVER RENAME: the badge and #respecButton ride INSIDE
-	// the strip as they were - nothing is re-parented and every selector still
-	// matches. The strip's own 2px ink edge replaces the gold rule this title
+	// journal's. The strip's own 2px ink edge replaces the gold rule this title
 	// carried; the gold TITLE stays, it is the one thing the mockup renders.
 	> .spellbookTitle {
 		.ink-panel-header();
@@ -1074,56 +1113,12 @@
 		color: @gold-levelup;
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
-		// The title takes a row of its own, the badge and reset share the
-		// one under it: squeezed onto one row, German broke "ZAUBERBUCH"
-		// over two or three lines depending on the badge's digit count, and
-		// the whole book jumped by a line (PO 2026-10-18).
-		flex-wrap: wrap;
-		row-gap: 0.3rem;
-
+		// The title has its row to itself since PF3 (the count and Reset moved
+		// into #spellbookStrip): a long title must never wrap and jump the
+		// book (German "ZAUBERBUCH", PO 2026-10-18).
 		> .spellbookTitleText {
 			flex-basis: 100%;
 			white-space: nowrap;
-		}
-
-		// The points badge shows in BOTH places since the C3 PO look: on the
-		// open buttons (.spellbookOpenButton below) because the book can be
-		// shut when the point arrives, and here in the title so the count
-		// stays in view while spending. HUD.ts feeds every .skillPointsBadge
-		// the same text, so the two can never disagree.
-		> .skillPointsBadge {
-			color: fade(@gold-flash, 90%);
-			text-transform: none;
-			letter-spacing: normal;
-			font-size: @panel-font-size;
-			white-space: nowrap;
-
-			&.hidden {
-				display: none;
-			}
-		}
-
-		// The reset-all button (round-7 item 8). Deliberately quiet next to
-		// the points badge; the armed state goes warning-red because the next
-		// press wipes every spent point.
-		> #respecButton {
-			margin-left: auto;
-			color: fade(#ffffff, 55%);
-			text-transform: none;
-			letter-spacing: normal;
-			font-size: @panel-font-size;
-			font-weight: 400;
-			white-space: nowrap;
-			cursor: pointer;
-
-			&:hover {
-				color: fade(#ffffff, 85%);
-			}
-
-			&.armed {
-				color: #ff6b6b;
-				font-weight: 700;
-			}
 		}
 	}
 
@@ -1933,16 +1928,20 @@
 }
 
 /* ============================================================================
- * Zoom control — right edge above the vital-sign bars.
+ * Zoom control — one row at the right edge, above the Focus bar (VS-P F11,
+ * PF3; R26: the same elements, only laid out horizontally).
  * Fixed FOV: buttons step the visible world area (camera/logic/Zoom.ts).
  */
 
 // Combat indicator: red sword shown while Character.in_combat is set — sits
-// just left of the zoom column, above the health bar. Hidden when not in combat.
+// just left of the zoom row, above the health bar. Hidden when not in combat.
+// ⚑ Coupled to #zoomControl by hand: the row is 0.1 (inset) + 2.12 (its five
+// elements) + 4 × 0.15 (gaps) = 2.82 @uiElementHeight wide, so 3.0 clears it.
+// pf3-hud.mjs asserts the two never overlap.
 #combatIndicator {
 	position: absolute;
-	right: (0.75 * @uiElementHeight); // left of #zoomControl's column
-	bottom: 13vh;                     // same band as the zoom, above #vitalSigns
+	right: (3.0 * @uiElementHeight); // left of #zoomControl's row
+	bottom: 13vh;                    // same band as the zoom, above #vitalSigns
 
 	width: (0.5 * @uiElementHeight);
 	height: (0.5 * @uiElementHeight);
@@ -1973,16 +1972,16 @@
 	bottom: 13vh; // just above #vitalSigns (12vh) + its bar margin
 
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 	align-items: center;
-	gap: 0.6vh;
+	// In @uiElementHeight, not vh: #combatIndicator's offset adds these up.
+	gap: (0.15 * @uiElementHeight);
 
-	// The help button rides at the top of the zoom column ("by the zoom
-	// control", PO 2026-08-02) — a circled ? opening the #help panel.
+	// The help button leads the zoom row ("by the zoom control", PO
+	// 2026-08-02) — a circled ? opening the #help panel.
 	> #helpButton {
 		width: (0.45 * @uiElementHeight);
 		height: (0.45 * @uiElementHeight);
-		margin-bottom: 0.6vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -2091,6 +2090,11 @@
 		color: @panel-title-color;
 		font-size: 1.25rem;
 		margin-bottom: 0.35rem;
+
+		// A name-only hover (the HUD tiles, the ?, PF3) has no subtitle.
+		&:empty {
+			display: none;
+		}
 	}
 
 	// The served per-skill prose (UI pass C8, D1/D2), between the subtitle and
@@ -2617,7 +2621,8 @@
 // The map button. Styled like #journalButton (same HUD vocabulary) but placed
 // by hand under the minimap, because it is a sibling of #minimap rather than a
 // member of #leftColumn — see the markup comment for why that matters on
-// phones.
+// phones. ⚑ Since PF3 this rule is what the PHONE builds on (HUD.mobile.less);
+// the desktop draws it as a tile of .hudTileGrid, which out-ranks it.
 #mapButton {
 	position: absolute;
 	top: 15.6vw;
@@ -2667,15 +2672,6 @@
 	}
 }
 
-// Under #mapButton, one button height down - the same hand-placed column, see
-// #mapButton's note for why these are siblings of #minimap rather than members
-// of #leftColumn.
-#spellbookButton {
-	position: absolute;
-	top: calc(15.6vw + 3.6rem);
-	right: 0.3vw;
-}
-
 // Mobile-only, exactly like #journalButton above it in the sheet.
 // ⚑ Single-id selector for the same reason: HUD.mobile.less re-shows it.
 #spellbookSheetButton {
@@ -2697,48 +2693,152 @@
 	}
 }
 
-// Under #spellbookButton, one more button height down the same column.
-#appearanceButton {
-	position: absolute;
-	top: calc(15.6vw + 7.2rem);
-	right: 0.3vw;
-}
-
 // Mobile-only, like #spellbookSheetButton.
 #appearanceSheetButton {
 	display: none;
 }
 
-// The quest tracker (2026-08-23): journal button + running-quest objectives,
-// stacked under #mapButton in the minimap's column. Desktop only - the phone
-// keeps its #journalButton row in the ☰ sheet instead (HUD.mobile.less).
-// ⚑ The geometry is coupled to its neighbours by hand, like #mapButton's
-// 15.6vw: the top clears the map, spellbook and appearance buttons above it
-// (15.6vw + 3 × ~3.6rem), the width is the minimap's 15vw ("as big as the
-// map"), and the max-height stops the list above the #zoomControl column
-// (bottom 13vh + ~17vh of column, so its top edge sits near 70vh) - the list
-// scrolls once it would reach it.
+// The tile grid (VS-P F12, PF3): map, spellbook, journal, appearance as a
+// 2×2 under the minimap, M B / J C (PO 2026-11-24), each a PONETI icon
+// (HudTiles.ts) with its hotkey chip on the corner and its name in the game
+// tooltip. ⚑ DESKTOP ONLY BY SCOPE: every rule sits under html:not(.mobile),
+// so the phone sees none of it (#mapButton keeps the label and the fixed spot
+// HUD.mobile.less gives it; pf3-hud.mjs pins that). The #gameUI id makes these
+// out-rank #mapButton's own placement above. [PLACEHOLDER] sizes.
+@hud-tile: 3.6rem;
+@hud-tile-icon: 2.8rem;
+@hud-tile-gap: 0.5rem;
+// Where the grid starts: under the minimap's OUTER ring (its margin-top
+// 0.3vw + 9px, its 15vw disc, the 9px ring), plus room for the hotkey chips
+// that stick up 0.4rem past each tile. The old map button at 15.6vw sat at the
+// screen edge beside the disc; a centred grid sits under the disc itself.
+@hud-tiles-top: ~"15.3vw + 18px + 0.9rem";
+// Where the grid ends, for the tracker under it.
+@hud-tiles-bottom: ~"@{hud-tiles-top} + 2 * @{hud-tile} + @{hud-tile-gap}";
+
+html:not(.mobile) #gameUI {
+	.hudTileGrid {
+		position: absolute;
+		top: calc(@hud-tiles-top);
+		right: 0.3vw;
+		width: 15vw; // the minimap's, so the grid centres under it
+
+		display: grid;
+		grid-template-columns: repeat(2, @hud-tile);
+		grid-auto-rows: @hud-tile;
+		justify-content: center;
+		gap: @hud-tile-gap;
+	}
+
+	.hudTileGrid > .hudTile {
+		.hud-button-chrome();
+		position: relative;
+		top: auto;
+		right: auto;
+		width: @hud-tile;
+		height: @hud-tile;
+		padding: 0;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0;
+
+		// The points glow (.spellbookOpenButton.hasPoints), restated: the
+		// chrome re-applied above out-ranks it.
+		&.hasPoints {
+			border-color: fade(@gold-levelup, 80%);
+			color: @gold-levelup;
+		}
+
+		// The name is the tooltip's; the span stays for the phone's map button.
+		> span[data-i18n] {
+			display: none;
+		}
+
+		> .mapButtonHotkey,
+		> .spellbookButtonHotkey,
+		> .journalButtonHotkey,
+		> .appearanceButtonHotkey {
+			.hud-key-chip(17px, 11px);
+			position: absolute;
+			left: -0.4rem;
+			top: -0.4rem;
+			margin: 0;
+			z-index: 1;
+		}
+
+		> .hudTileIcon {
+			width: @hud-tile-icon;
+			height: @hud-tile-icon;
+
+			// The pack art bare inside the tile's own frame; the letter
+			// fallback (no atlases) keeps its glyph colour.
+			> .ink-token {
+				width: 100%;
+				height: 100%;
+				background: none;
+				border: none;
+				border-radius: 0;
+				box-shadow: none;
+				font-size: (@hud-tile-icon * 0.5);
+			}
+		}
+
+		// The number pills, top right; dark-backed so they read over the art.
+		> .hudTileBadges {
+			position: absolute;
+			right: -0.5rem;
+			top: -0.5rem;
+			display: flex;
+			gap: 0.2rem;
+			z-index: 1;
+
+			> .skillPointsPill,
+			> .campPointsBadge {
+				margin: 0;
+				background: @ink;
+			}
+		}
+	}
+}
+
+// The spellbook tile's skill-point pill: the campfire pill's shape in the
+// skill points' gold (PF3 F12; .skillPointsBadge's "3 Points" does not fit).
+.skillPointsPill {
+	padding: 0 0.45em;
+	border: 1px solid fade(@gold-levelup, 70%);
+	border-radius: 0.8em;
+	color: @gold-flash;
+	font-size: 0.85em;
+	font-weight: 700;
+	white-space: nowrap;
+
+	&.hidden {
+		display: none;
+	}
+}
+
+// The quest tracker (2026-08-23): the running-quest objectives under the tile
+// grid. Desktop only - the phone keeps its #journalButton row in the ☰ sheet
+// instead (HUD.mobile.less).
+// ⚑ The geometry is coupled to its neighbours by hand: the top clears the
+// tile grid (@hud-tiles-bottom + a gap), the width is the minimap's 15vw ("as
+// big as the map"), and the max-height stops the list above the zoom row
+// (bottom 13vh + 0.45 × @uiElementHeight tall, so its top is near 83.9vh;
+// PF3 F12, "the quest tracker takes the freed height") - the list scrolls once
+// it would reach it. pf3-hud.mjs asserts the gap at 1280×800 and 1920×1080.
 #questTracker {
 	position: absolute;
-	top: calc(15.6vw + 10.8rem);
+	top: calc(@hud-tiles-bottom + 0.6rem);
 	right: 0.3vw;
 	width: 15vw;
-	max-height: calc(69vh - 15.6vw - 10.8rem);
+	max-height: calc(83vh - (@hud-tiles-bottom + 0.6rem));
 
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
 	gap: 0.4rem;
-
-	> #questTrackerJournal {
-		flex: none;
-		.hud-button-chrome();
-
-		> .journalButtonHotkey {
-			.hud-key-chip();
-			margin-right: 0.8rem;
-		}
-	}
 
 	// UI pass C7 D2/D3: ONE plain scrim around the whole tracking space, and
 	// the list IS that scrim - it already spans every quest, already hides at

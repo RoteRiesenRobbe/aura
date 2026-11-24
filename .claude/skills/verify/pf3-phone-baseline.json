@@ -1,0 +1,2499 @@
+{
+ "viewport": {
+  "width": 844,
+  "height": 390
+ },
+ "noise": {
+  "sheet|#regionBanner|opacity": true
+ },
+ "states": {
+  "plain": {
+   "#alertBanner": {
+    "rendered": true,
+    "box": "422,112,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#regionBanner": {
+    "rendered": true,
+    "box": "344,160,156,46",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mobileMenuButton": {
+    "rendered": true,
+    "box": "11,11,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#minimap": {
+    "rendered": true,
+    "box": "737,283,96,96",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgb(255, 248, 220) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomIn": {
+    "rendered": true,
+    "box": "735,361,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomOut": {
+    "rendered": true,
+    "box": "735,371,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton": {
+    "rendered": true,
+    "box": "11,93,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .mapButtonHotkey": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(20, 16, 11) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .": {
+    "rendered": true,
+    "box": "29,118,34,20",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#spellbookButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#skillPointsBadge": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#appearanceButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTracker": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#questTrackerJournal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTrackerList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "9.594px 14.391px",
+    "insideBook": false
+   },
+   "#vitalSigns": {
+    "rendered": true,
+    "box": "93,11,740,119",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#healthBar": {
+    "rendered": true,
+    "box": "93,11,740,18",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(132, 13, 37) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#xpBar": {
+    "rendered": true,
+    "box": "93,34,740,12",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(74, 29, 138) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#buffTray": {
+    "rendered": true,
+    "box": "93,54,659,76",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#combatIndicator": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#interactButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "14.391px",
+    "insideBook": false
+   },
+   "#zoomControl": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#helpButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomInButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomLevelDisplay": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomOutButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#worldMap": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.88) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#appearance": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#help": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#leftColumn": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journalButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbookSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#appearanceSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbook": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": true
+   },
+   "#respecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookTabs": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookScroll": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitPane": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campPointsText": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campRespecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookPager": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "6.396px 0px 0px",
+    "insideBook": true
+   },
+   "#spellbookPageLabel": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#passiveLoadout": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "12px 16px",
+    "insideBook": false
+   },
+   "#passiveSlotList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#bottomCenter": {
+    "rendered": true,
+    "box": "0,299,844,80",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px 11.193px",
+    "insideBook": false
+   },
+   "#conversation": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "15.99px 23.985px",
+    "insideBook": false
+   },
+   "#confirmRow": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "19.188px 23.985px",
+    "insideBook": false
+   },
+   "#castBar": {
+    "rendered": true,
+    "box": "11,299,822,14",
+    "display": "block",
+    "visibility": "hidden",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#flightBar": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#actionBars": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#abilityBar": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraLoadout": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraSlotList": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownLoadout": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownSlotList": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityBar": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityList": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#chat": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.6) none",
+    "padding": "2.73px",
+    "insideBook": false
+   },
+   "#chatInput": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   }
+  },
+  "sheet": {
+   "#alertBanner": {
+    "rendered": true,
+    "box": "422,112,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#regionBanner": {
+    "rendered": true,
+    "box": "344,160,156,46",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0.0235153",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mobileMenuButton": {
+    "rendered": true,
+    "box": "11,11,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#minimap": {
+    "rendered": true,
+    "box": "737,283,96,96",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(255, 248, 220) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomIn": {
+    "rendered": true,
+    "box": "735,361,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomOut": {
+    "rendered": true,
+    "box": "735,371,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .mapButtonHotkey": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(20, 16, 11) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#spellbookButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#skillPointsBadge": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#appearanceButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTracker": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#questTrackerJournal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTrackerList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "9.594px 14.391px",
+    "insideBook": false
+   },
+   "#vitalSigns": {
+    "rendered": true,
+    "box": "93,11,740,119",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#healthBar": {
+    "rendered": true,
+    "box": "93,11,740,18",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(132, 13, 37) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#xpBar": {
+    "rendered": true,
+    "box": "93,34,740,12",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(74, 29, 138) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#buffTray": {
+    "rendered": true,
+    "box": "93,54,659,76",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#combatIndicator": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#interactButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "14.391px",
+    "insideBook": false
+   },
+   "#zoomControl": {
+    "rendered": true,
+    "box": "0,272,844,118",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.96) none",
+    "padding": "11.193px",
+    "insideBook": false
+   },
+   "#helpButton": {
+    "rendered": true,
+    "box": "11,296,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomInButton": {
+    "rendered": true,
+    "box": "98,296,70,70",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomLevelDisplay": {
+    "rendered": true,
+    "box": "184,318,43,25",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomOutButton": {
+    "rendered": true,
+    "box": "243,296,70,70",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#worldMap": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.88) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#appearance": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#help": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#leftColumn": {
+    "rendered": true,
+    "box": "0,0,844,390",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 129.519px",
+    "insideBook": false
+   },
+   "#journalButton": {
+    "rendered": true,
+    "box": "11,93,822,48",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbookSheetButton": {
+    "rendered": true,
+    "box": "11,153,822,48",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#appearanceSheetButton": {
+    "rendered": true,
+    "box": "11,214,822,48",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbook": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": true
+   },
+   "#respecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookTabs": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookScroll": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitPane": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campPointsText": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campRespecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookPager": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "6.396px 0px 0px",
+    "insideBook": true
+   },
+   "#spellbookPageLabel": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#passiveLoadout": {
+    "rendered": true,
+    "box": "11,275,822,228",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "12px 16px",
+    "insideBook": false
+   },
+   "#passiveSlotList": {
+    "rendered": true,
+    "box": "30,331,784,157",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#bottomCenter": {
+    "rendered": true,
+    "box": "0,299,844,80",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px 11.193px",
+    "insideBook": false
+   },
+   "#conversation": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "15.99px 23.985px",
+    "insideBook": false
+   },
+   "#confirmRow": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "19.188px 23.985px",
+    "insideBook": false
+   },
+   "#castBar": {
+    "rendered": true,
+    "box": "11,299,822,14",
+    "display": "block",
+    "visibility": "hidden",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#flightBar": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#actionBars": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#abilityBar": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraLoadout": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraSlotList": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownLoadout": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownSlotList": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityBar": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityList": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#chat": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.6) none",
+    "padding": "2.73px",
+    "insideBook": false
+   },
+   "#chatInput": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   }
+  },
+  "bookSkills": {
+   "#alertBanner": {
+    "rendered": true,
+    "box": "422,112,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#regionBanner": {
+    "rendered": true,
+    "box": "344,160,156,46",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mobileMenuButton": {
+    "rendered": true,
+    "box": "11,11,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#minimap": {
+    "rendered": true,
+    "box": "737,283,96,96",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgb(255, 248, 220) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomIn": {
+    "rendered": true,
+    "box": "735,361,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomOut": {
+    "rendered": true,
+    "box": "735,371,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .mapButtonHotkey": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(20, 16, 11) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#spellbookButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#skillPointsBadge": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#appearanceButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTracker": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#questTrackerJournal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTrackerList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "9.594px 14.391px",
+    "insideBook": false
+   },
+   "#vitalSigns": {
+    "rendered": true,
+    "box": "93,11,740,119",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#healthBar": {
+    "rendered": true,
+    "box": "93,11,740,18",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(132, 13, 37) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#xpBar": {
+    "rendered": true,
+    "box": "93,34,740,12",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(74, 29, 138) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#buffTray": {
+    "rendered": true,
+    "box": "93,54,659,76",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#combatIndicator": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#interactButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "14.391px",
+    "insideBook": false
+   },
+   "#zoomControl": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#helpButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomInButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomLevelDisplay": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomOutButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#worldMap": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.88) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#appearance": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#help": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#leftColumn": {
+    "rendered": true,
+    "box": "16,16,0,358",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journalButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbookSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#appearanceSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbook": {
+    "rendered": true,
+    "box": "0,0,844,390",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": true
+   },
+   "#respecButton": {
+    "rendered": true,
+    "box": "778,127,55,24",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookTabs": {
+    "rendered": true,
+    "box": "11,168,822,48",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookScroll": {
+    "rendered": true,
+    "box": "11,225,822,512",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookList": {
+    "rendered": true,
+    "box": "11,225,822,64",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitPane": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campPointsText": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campRespecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookPager": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "6.396px 0px 0px",
+    "insideBook": true
+   },
+   "#spellbookPageLabel": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#passiveLoadout": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "12px 16px",
+    "insideBook": false
+   },
+   "#passiveSlotList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#bottomCenter": {
+    "rendered": true,
+    "box": "0,299,844,80",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px 11.193px",
+    "insideBook": false
+   },
+   "#conversation": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "15.99px 23.985px",
+    "insideBook": false
+   },
+   "#confirmRow": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "19.188px 23.985px",
+    "insideBook": false
+   },
+   "#castBar": {
+    "rendered": true,
+    "box": "11,299,822,14",
+    "display": "block",
+    "visibility": "hidden",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#flightBar": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#actionBars": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#abilityBar": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraLoadout": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraSlotList": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownLoadout": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownSlotList": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityBar": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityList": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#chat": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.6) none",
+    "padding": "2.73px",
+    "insideBook": false
+   },
+   "#chatInput": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   }
+  },
+  "bookCamp": {
+   "#alertBanner": {
+    "rendered": true,
+    "box": "422,112,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#regionBanner": {
+    "rendered": true,
+    "box": "344,160,156,46",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mobileMenuButton": {
+    "rendered": true,
+    "box": "11,11,70,70",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#minimap": {
+    "rendered": true,
+    "box": "737,283,96,96",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "0",
+    "background": "rgb(255, 248, 220) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomIn": {
+    "rendered": true,
+    "box": "735,361,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#radarZoomOut": {
+    "rendered": true,
+    "box": "735,371,9,9",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 16, 11, 0.8) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .mapButtonHotkey": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(20, 16, 11) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#mapButton > .": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#spellbookButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#skillPointsBadge": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#appearanceButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTracker": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#questTrackerJournal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#questTrackerList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "9.594px 14.391px",
+    "insideBook": false
+   },
+   "#vitalSigns": {
+    "rendered": true,
+    "box": "93,11,740,119",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#healthBar": {
+    "rendered": true,
+    "box": "93,11,740,18",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(132, 13, 37) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#xpBar": {
+    "rendered": true,
+    "box": "93,34,740,12",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgb(74, 29, 138) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#buffTray": {
+    "rendered": true,
+    "box": "93,54,659,76",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#combatIndicator": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#interactButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.65) none",
+    "padding": "14.391px",
+    "insideBook": false
+   },
+   "#zoomControl": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#helpButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomInButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomLevelDisplay": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#zoomOutButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline-block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(255, 255, 255, 0.1) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#worldMap": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.88) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journal": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#appearance": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#help": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": false
+   },
+   "#leftColumn": {
+    "rendered": true,
+    "box": "16,16,0,358",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#journalButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbookSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#appearanceSheetButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "7.995px 23.985px",
+    "insideBook": false
+   },
+   "#spellbook": {
+    "rendered": true,
+    "box": "0,0,844,390",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.95) none",
+    "padding": "92.742px 11.193px 11.193px",
+    "insideBook": true
+   },
+   "#respecButton": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookTabs": {
+    "rendered": true,
+    "box": "11,134,822,48",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookScroll": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitPane": {
+    "rendered": true,
+    "box": "11,192,822,512",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campPointsText": {
+    "rendered": true,
+    "box": "11,192,177,24",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campRespecButton": {
+    "rendered": true,
+    "box": "778,192,55,24",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#campTraitList": {
+    "rendered": true,
+    "box": "11,229,822,384",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#spellbookPager": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "6.396px 0px 0px",
+    "insideBook": true
+   },
+   "#spellbookPageLabel": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "inline",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": true
+   },
+   "#passiveLoadout": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "12px 16px",
+    "insideBook": false
+   },
+   "#passiveSlotList": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#bottomCenter": {
+    "rendered": true,
+    "box": "0,299,844,80",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px 11.193px",
+    "insideBook": false
+   },
+   "#conversation": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.5) none",
+    "padding": "15.99px 23.985px",
+    "insideBook": false
+   },
+   "#confirmRow": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(16, 38, 26, 0.9) none",
+    "padding": "19.188px 23.985px",
+    "insideBook": false
+   },
+   "#castBar": {
+    "rendered": true,
+    "box": "11,299,822,14",
+    "display": "block",
+    "visibility": "hidden",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#flightBar": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(20, 24, 28, 0.75) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#actionBars": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#abilityBar": {
+    "rendered": true,
+    "box": "221,320,402,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraLoadout": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#auraSlotList": {
+    "rendered": true,
+    "box": "221,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownLoadout": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#cooldownSlotList": {
+    "rendered": true,
+    "box": "432,320,191,59",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityBar": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#utilityList": {
+    "rendered": true,
+    "box": "762,157,70,152",
+    "display": "flex",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   },
+   "#chat": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "none",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0.6) none",
+    "padding": "2.73px",
+    "insideBook": false
+   },
+   "#chatInput": {
+    "rendered": false,
+    "box": "0,0,0,0",
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "background": "rgba(0, 0, 0, 0) none",
+    "padding": "0px",
+    "insideBook": false
+   }
+  }
+ }
+}

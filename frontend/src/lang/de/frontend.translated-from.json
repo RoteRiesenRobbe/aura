@@ -245,6 +245,8 @@
   "spellbook.respec.confirm": "Confirm?",
   "spellbook.respec.label": "Reset",
   "spellbook.respec.title": "Reset every skill to level 1 and refund all points",
+  "spellbook.skill-points-pill": "{points, number}",
+  "spellbook.skill-points.text": "Skill points: {points, number}",
   "spellbook.spend-cost.title": "{cost, plural, one {Costs # skill point} other {Costs # skill points}}",
   "start.beta-stamp": "Prototype",
   "start.browser.body": "In the Beta version, the game only runs smoothly on an up to date <chrome>Chrome</chrome> or <firefox>Firefox</firefox> browser.",

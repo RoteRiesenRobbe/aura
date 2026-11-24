@@ -187,11 +187,14 @@ export class Character extends GameObject
             return;
         }
 
+        // The NPC plate's size and stroke (Mobs.ts), not TextDisplay's 30 px
+        // default: a player is a similar-sized token (VS-P F9, PF3).
         const text = new Text({
             text: this.name,
             style: TextDisplay.style({
                 fill: 'white',
-                stroke: {color: '#000000', width: 4},
+                stroke: {color: '#000000', width: 3},
+                fontSize: 16,
                 fontWeight: '700',
             }),
         });

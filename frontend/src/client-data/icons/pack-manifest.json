@@ -34,6 +34,7 @@
     "frost-nova": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_FrostNova.png",
     "frozen-hand": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_DeepCold.png",
     "glowing-leaf": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_NatureHeal.png",
+    "glowing-tome": "6000FantasyIcons/ProfessionIcons/ProfessionAndCraftIcons/Enchantment/Enchantment_41_book.png",
     "hammer-ground": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_HammerEarthHit.png",
     "heal-crosses": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_Restoration.png",
     "healing-staff": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_HealingAura.png",
@@ -147,6 +148,7 @@
     "red-bubble": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_RedShield.png",
     "red-skull": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3_nb/Rune_Death_nb.png",
     "rising-hand": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Resurrection.png",
+    "rolled-scroll": "6000FantasyIcons/ProfessionIcons/ProfessionAndCraftIcons/Enchantment/Enchantment_22_scroll.png",
     "rubble-pile": "6000FantasyIcons/BuildingMaterials/Stones.png",
     "rune-ring": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/teleport.png",
     "running-man": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_RuningMan.png",
@@ -160,6 +162,7 @@
     "stun-swirl": "6000FantasyIcons/SkillsIcons/Bonus/Skill1_Standart/Y_shadowstun.png",
     "swap-loop": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_SwapPosition.png",
     "sword-grip": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_SwordAttack.png",
+    "theatre-mask": "6000FantasyIcons/MedievalIcons/Update/QuestMask.png",
     "thick-skin": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_ThickSkin.png",
     "three-soldiers": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/Skill_294_army.png",
     "throwing-net": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Net.png",
@@ -170,6 +173,7 @@
     "venom-drip": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/venom.png",
     "venom-splat": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/venom02.png",
     "war-banner": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Warriorskill_36_flag.png",
-    "war-drum": "6000FantasyIcons/MedievalIcons/Update/Drums.png"
+    "war-drum": "6000FantasyIcons/MedievalIcons/Update/Drums.png",
+    "winding-road": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_FastTravel.png"
   }
 }

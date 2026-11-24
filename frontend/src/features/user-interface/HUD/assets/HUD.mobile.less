@@ -265,6 +265,10 @@ html.mobile {
 	#alertBanner {
 		top: 7rem;
 		max-width: 90vw;
+		// The desktop scrim (PF3 F15) stays off the phone (PO 2026-11-24).
+		padding: 0;
+		background: none;
+		border-radius: 0;
 	}
 
 	// vh-sized type is tiny on a landscape phone, like the alert banner's
@@ -622,9 +626,14 @@ html.mobile {
 	// The desktop spellbook button is hidden for the same reason and lands in
 	// the same place: the sheet's own #spellbookSheetButton row (C3, D4). One
 	// entry point per layout, never two.
+	// #questTrackerJournal left the tracker for the desktop tile grid at PF3
+	// and is listed on its own; .hudTileIcon is the tiles' PONETI art, which
+	// the phone's map button never shows (it keeps its label).
 	#questTracker,
+	#questTrackerJournal,
 	#spellbookButton,
-	#appearanceButton {
+	#appearanceButton,
+	.hudTileIcon {
 		display: none;
 	}
 

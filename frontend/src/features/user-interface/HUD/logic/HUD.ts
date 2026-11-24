@@ -7,6 +7,7 @@ import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
 import * as Spellbook from './Spellbook';
 import * as AppearancePanel from './AppearancePanel';
+import * as HudTiles from './HudTiles';
 import * as Interact from '../../../interact/logic/Interact';
 import * as Utilities from '../../../utilities/logic/Utilities';
 import * as Mobile from '../../logic/Mobile';
@@ -90,9 +91,13 @@ function skillLevelOf(skillId: number): number {
 
 let selectedSkillId: number | null = null;
 // The unspent-points badge and the glow live on the OPEN BUTTONS since C3:
-// one per layout (the desktop button under the map, the ☰ sheet's row), because
-// the panel they used to sit in can be shut when the point arrives.
+// one per layout (the desktop tile under the map, the ☰ sheet's row), because
+// the panel they used to sit in can be shut when the point arrives. The
+// desktop tile's is a number pill (PF3 F12); the book's own count is the
+// strip's text (PF3 F4), shown at 0 too.
 let skillPointsBadgeElements: HTMLElement[] = [];
+let skillPointsPillElements: HTMLElement[] = [];
+let skillPointsTextElement: HTMLElement | null = null;
 let spellbookButtonElements: HTMLElement[] = [];
 // Latest unspent-skill-point count from the server; gates the spend buttons.
 let currentSkillPoints = 0;
@@ -153,6 +158,7 @@ export function setup(game) {
     QuestTracker.setup();
     Help.setup();
     AppearancePanel.setup();
+    HudTiles.setup();
     MobileMenu.setup();
     Interact.setupButton();
 }
@@ -494,8 +500,11 @@ function setupSpellbook() {
     // book's structure, this one owns what the points count SAYS, and the
     // badge is the second half of that sentence.
     skillPointsBadgeElements = [...document.querySelectorAll('.skillPointsBadge')] as HTMLElement[];
+    skillPointsPillElements = [...document.querySelectorAll('.skillPointsPill')] as HTMLElement[];
+    skillPointsTextElement = document.getElementById('skillPointsText');
     spellbookButtonElements = [...document.querySelectorAll('.spellbookOpenButton')] as HTMLElement[];
     setupRespecButton(document.getElementById('respecButton'));
+    setupRespecTooltips();
     setupCampTraits();
     // Explicit init: the HUD partial lands after DOMContentLoaded, so
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
@@ -806,6 +815,13 @@ function updateSkillPointsDisplay(points: number) {
         badge.textContent = t('spellbook.points-badge', {points});
         badge.classList.toggle('hidden', points <= 0);
     }
+    for (const pill of skillPointsPillElements) {
+        pill.textContent = t('spellbook.skill-points-pill', {points});
+        pill.classList.toggle('hidden', points <= 0);
+    }
+    if (skillPointsTextElement) {
+        skillPointsTextElement.textContent = t('spellbook.skill-points.text', {points});
+    }
     refreshOpenButtonGlow();
     document.getElementById('spellbook').classList.toggle('hasPoints', points > 0);
 }
@@ -838,15 +854,29 @@ function setupCampTraits() {
         if (!button || button.classList.contains('inactive')) return;
         new SpendSkillPointMessage(id, button.classList.contains('unspendBtn')).send();
     });
-    const respec = document.getElementById('campRespecButton');
-    setupRespecButton(respec, true);
-    // The game tooltip, never a native title (PO 2026-08-03, 2026-10-23).
-    attachTooltips(respec.parentElement, '#campRespecButton', (entry) => showTooltip(entry, {
-        title: t('spellbook.respec.label'),
-        subtitle: t('tooltip.category.camp'),
-        description: t('spellbook.camp-respec.tooltip'),
-        lines: [],
-    }));
+    setupRespecButton(document.getElementById('campRespecButton'), true);
+}
+
+// Both Resets share the points strip (PF3 F4), so one delegated hover serves
+// them. The game tooltip, never a native title (PO 2026-08-03, 2026-10-23).
+function setupRespecTooltips() {
+    const strip = document.getElementById('spellbookStrip');
+    if (!strip) {
+        return;
+    }
+    attachTooltips(strip, '#respecButton, #campRespecButton', (entry) => showTooltip(entry, entry.id === 'campRespecButton'
+        ? {
+            title: t('spellbook.respec.label'),
+            subtitle: t('tooltip.category.camp'),
+            description: t('spellbook.camp-respec.tooltip'),
+            lines: [],
+        }
+        : {
+            title: t('spellbook.respec.label'),
+            subtitle: '',
+            description: t('spellbook.respec.title'),
+            lines: [],
+        }));
 }
 
 // updateCampPoints is called every tick with the unspent campfire points

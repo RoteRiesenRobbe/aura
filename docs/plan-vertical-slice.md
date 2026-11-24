@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24, both PO walks passed (§11). Next: PF3 (HUD), on the PO's go (§5.3, order ruled R19); the coworker's level pass (§5.5) after PF3 is pushed (R28).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25, every PO look passed (§11). Next: push PF3, then `world.json` goes to the coworker (§5.5, R28) beside PF4 (Words), on the PO's go.** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -614,7 +614,7 @@ Baseline `bc58a9cb` (its moves kept the road counts as they were). `23060f46` mo
 - ~~**Q16 - When is the census script saved as a tool?**~~ RULED 2026-11-22: in VS0 (D2).
 - **Q17 - (deferred 2026-11-22 to after VS-P) Approval of this plan:** both POs refine it
   with the playthrough's notes, then approve. Nothing further is built until then.
-  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23. PF3 needs one.
+  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23, PF3 2026-11-24. PF4 needs one.
 - ~~**Q18 - End level and the Bluff**~~ RULED 2026-11-22: R20, stone 16, Bluff open.
 - ~~**Q19 - Wolves on the Road against DQ R8/D8**~~ RULED 2026-11-22: R21, keep both.
 - ~~**Q20 - Immune targets**~~ RULED 2026-11-22: R23, never targeted.
@@ -819,3 +819,59 @@ Built 2026-11-23, wrapped 2026-11-24 after the PO's walk.
 
 **Walk result, 2026-11-24:** PO "all works as expected": crier, Guard, memorial and stone,
 the associate, the crab quest, Long Range Strike's cost, the 2-minute respawn.
+
+### PF3 - HUD ✅ DONE 2026-11-25 `[uncommitted]`, PO look passed, not deployed
+
+Built 2026-11-24, one PO feedback round, wrapped 2026-11-25 after the look. Desktop only;
+the phone is pinned to a HEAD baseline.
+
+- **F12:** map, spellbook, journal and appearance are a 2×2 tile grid under the minimap's
+  outer ring, M B / J C (PO), each a PONETI icon with its hotkey chip on the corner; the
+  name is the game tooltip (`HudTiles.ts`), the four native `title`s are gone (EN + DE
+  notes updated). Icons after the PO's feedback round: map `winding-road` (Aura_FastTravel;
+  the pack has no intact map: the torn one read as broken, the compass as a clock), spellbook
+  `glowing-tome`, journal `rolled-scroll`, appearance `theatre-mask`; atlas repacked (174
+  icons). The spellbook tile's badge is a number pill (`#skillPointsBadge`, now
+  `.skillPointsPill`), its gold glow restated inside the tile rule. `#questTrackerJournal`
+  left the tracker for the grid; the tracker starts under the grid and reaches down to the
+  zoom row (303 px at 1280×800, scrolls with six quests; all six fit at 1920×1080). Every
+  tile rule sits under `html:not(.mobile)`; the phone's map button keeps its label. A clone
+  without the gitignored atlases draws the label's initial (Spellbook "S", Appearance "A").
+- **F11 (R26):** `#zoomControl` is one row (?, magnifier, +, level, −) right-aligned above the
+  Focus bar; `#combatIndicator` moved left of it (coupled by hand, 3.0 × @uiElementHeight);
+  the ? has the game tooltip.
+- **F4:** one `#spellbookStrip` between the tabs and the page: "Skill points: N" + Reset on
+  the ability tabs, "Campfire points: N" + its Reset on the Campfire tab (both Resets keep
+  their ids, one delegated game tooltip). The title holds only its text. The phone's book
+  takes the strip too (PO). Feedback round: the active tab no longer turns bold, which had
+  wrapped German "Abklingfähigkeiten" onto a second row only while selected; colour, tint
+  and underline carry the state.
+- **F9:** player names draw at 16 px with a 3 px stroke, the NPC plate's size.
+- **F15:** `#alertBanner` has a scrim (black 45 %, padding, radius [PLACEHOLDER]) on the
+  desktop; `HUD.mobile.less` resets it (PO: desktop only). Feedback round: the banner's
+  first line stays big in the kind's colour, the lines after it (the unlock's source) are a
+  smaller soft-white `.alertDetail` (0.6 em [PLACEHOLDER]), on the phone too;
+  `AlertBanner.renderLines` keeps `textContent` exactly the message, which eight harnesses match.
+- **Schema:** DB none · wire none · conf none · content none · lang +2 keys EN + DE
+  (`spellbook.skill-points.text`, `spellbook.skill-points-pill`), 7 translator notes · icon
+  manifest +4 entries.
+
+**Verified**
+- vitest 2020/0 (3 new `AlertBanner` tests; the manifest pin counts `HUD_TILES`) ·
+  typecheck clean · Go full suite 0 FAIL (40 packages, `-count=1`, before the feedback
+  round: no Go change since).
+- `pf3-hud.mjs` (new): desktop 1280×800 and 1920×1080 all legs green, one size per run;
+  `german` 3/3 (tab row 68 px on all four tabs, banner source line 0.6 × the headline and
+  white); `phone` 0 differences outside the open book against the HEAD baseline (inside it,
+  the ruled strip: 8); `PF3_NO_ATLAS=1` draws the four letters.
+- On the first PF3 build, against HEAD counts taken the same day: `c3-spellbook` 24/0 + 2
+  inconclusive (its badge check now expects the number) · `c4b-breadcrumb` 24/0 ·
+  `r7-respec-cost` all · `c7-tracker` 9/10 and `mobile-layout`'s 3 journal legs, both the
+  same at HEAD · `ct2-camp-tab` 17/18 (HEAD 13/19) · `c6-theme` green on a rerun · `i18n-de`
+  died at the join (HEAD 5/7).
+- ⚑ **Joins hang intermittently at world entry** (120 s on `#accountScreens.hidden`, any
+  script, first join or later; a rerun passes); cause open. The start-screen world bake
+  alone takes ~30 s on this box, HEAD measured the same on a second server.
+
+**Look result, 2026-11-25:** PO "all others pass" after one round (icons, banner type,
+the tab row); the map and journal icons picked from a numbered sheet.
