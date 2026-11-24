@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, every PO look passed (§11). Next: push PF3, then `world.json` goes to the coworker (§5.5, R28) beside PF4 (Words), on the PO's go.** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: `world.json` goes to the coworker (§5.5, R28) beside PF4 (Words), on the PO's go.** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -703,7 +703,7 @@ the playthrough can end in a real ascension on live.
   context loss, backlog §29) · `c2b` 12/12 · `c3-memorial` 14/14 · `c1-front-stone` 13/15
   (2 expected). Harnesses ran on the debug venue against `aura_test`.
 
-### PF1 - rules and bugs ✅ DONE 2026-11-22 `6ed28a92`, PO walk passed, not deployed
+### PF1 - rules and bugs ✅ DONE 2026-11-22 `6ed28a92`, PO walk passed, DEPLOYED LIVE 2026-11-25 as `90fcab23`
 
 - **Step 0:** `he-who-cried-wolf` is in `parkedQuests` (R27), `cleanup.md` #9.
 - **F1, reproduced first:** the cause was as read. `isJoinInFlight()` was `playing !== null`,
@@ -773,7 +773,7 @@ the playthrough can end in a real ascension on live.
 PO waived it: "I dont need to manually test the restart, rest is fine". F1 rests on the
 restart probe (stop, instant restart and kill all show the banner).
 
-### PF2 - quests, teachers, map batch ✅ DONE 2026-11-24 `4dc4de15`, PO walk passed, not deployed
+### PF2 - quests, teachers, map batch ✅ DONE 2026-11-24 `4dc4de15`, PO walk passed, DEPLOYED LIVE 2026-11-25 as `90fcab23`
 
 Built 2026-11-23, wrapped 2026-11-24 after the PO's walk.
 
@@ -820,7 +820,7 @@ Built 2026-11-23, wrapped 2026-11-24 after the PO's walk.
 **Walk result, 2026-11-24:** PO "all works as expected": crier, Guard, memorial and stone,
 the associate, the crab quest, Long Range Strike's cost, the 2-minute respawn.
 
-### PF3 - HUD ✅ DONE 2026-11-25 `690591eb`, PO look passed, not deployed
+### PF3 - HUD ✅ DONE 2026-11-25 `690591eb`, PO look passed, DEPLOYED LIVE 2026-11-25 as `90fcab23`
 
 Built 2026-11-24, one PO feedback round, wrapped 2026-11-25 after the look. Desktop only;
 the phone is pinned to a HEAD baseline.

@@ -259,6 +259,17 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-11-25, `90fcab23` (baseline `e9c30279`, 2026-11-22):** full
+  deploy: vertical slice PF1 (rules and bugs), PF2 (quests, teachers, map batch) and
+  PF3 (the HUD), plus five pushes since the baseline (`037c74c2` flyer immunity,
+  `23060f46` map fixes, `34da212b` blend-mask re-bake, `77028018` Hans's wolf quest
+  retired, `bc58a9cb` NPC and spawn adjustments). No wire change; a hard refresh
+  loads the new client. No migrations; no pre-deploy dump. PO's go after the
+  announce question. Verified: TLS boot, 48 campfires in 7 zones, the game loop
+  started, no WARN/ERROR in the last 25 log lines (the flush and content-source
+  lines were not read), new client bundle `main.40b46266…js` served, `/skills` 200,
+  `icons/icons.json` carries the four HUD tile icons. PO smoke join on live passed
+  2026-11-25.
 - **DEPLOYED 2026-11-22, `e9c30279` (baseline `200a5046`, 2026-11-21):** full
   deploy: ascension ceremony AC3 (the heir home) and vertical slice VS1 (the city
   stone opens at 12, its line reworded EN + DE). Wire changed (AC3's
