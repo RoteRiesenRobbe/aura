@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, PF4 done 2026-11-25 `[uncommitted]`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: CW (the coworker's `world.json` pass, §5.5, R28) beside PF5 (Looks).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, PF4 done 2026-11-25 `b18a39cb`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: CW (the coworker's `world.json` pass, §5.5, R28) beside PF5 (Looks).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -876,7 +876,7 @@ the phone is pinned to a HEAD baseline.
 **Look result, 2026-11-25:** PO "all others pass" after one round (icons, banner type,
 the tab row); the map and journal icons picked from a numbered sheet.
 
-### PF4 - Words ✅ DONE 2026-11-25 `[uncommitted]`, PO look passed 2026-11-25
+### PF4 - Words ✅ DONE 2026-11-25 `b18a39cb`, PO look passed 2026-11-25
 
 Built and looked at 2026-11-25 (PO: "works"), in English and German in one pass. Display
 text only: every id and key that already existed stays, and the map was not touched (CW owns
