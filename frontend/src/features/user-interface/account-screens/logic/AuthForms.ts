@@ -72,7 +72,7 @@ export function showLogin(state: AnonymousState): void {
     AccountScreens.setFormBusy(panel, false);
     (panel.querySelector('.anonymousWarning') as HTMLElement).classList.add('hidden');
     (AccountScreens.element('loginForm') as HTMLFormElement).reset();
-    (panel.querySelector('input[type="submit"]') as HTMLInputElement).value = 'Log in';
+    (panel.querySelector('input[type="submit"]') as HTMLInputElement).value = t('account.login.submit');
 
     AccountScreens.showPanel('loginPanel');
     AccountScreens.element<HTMLInputElement>('loginUsername').focus();
@@ -122,7 +122,7 @@ async function submitLogin(): Promise<void> {
     } catch (error) {
         report(panel, error);
         discardConfirmed = false;
-        (panel.querySelector('input[type="submit"]') as HTMLInputElement).value = 'Log in';
+        (panel.querySelector('input[type="submit"]') as HTMLInputElement).value = t('account.login.submit');
     } finally {
         AccountScreens.setFormBusy(panel, false);
     }
@@ -135,7 +135,7 @@ async function submitRegister(): Promise<void> {
     const repeatPassword = AccountScreens.element<HTMLInputElement>('registerPasswordRepeat').value;
     if (password !== repeatPassword) {
         AccountScreens.setFormBusy(panel, false);
-        AccountScreens.showError(panel, "Passwords do not match.");
+        AccountScreens.showError(panel, t('account.error.password-mismatch'));
         return;
     }
 
@@ -159,7 +159,7 @@ async function submitRegister(): Promise<void> {
  */
 function report(panel: HTMLElement, error: unknown): void {
     if (!(error instanceof ApiError)) {
-        AccountScreens.showError(panel, 'Something went wrong. Please try again.');
+        AccountScreens.showError(panel, t('account.error.generic'));
         return;
     }
 
@@ -172,15 +172,15 @@ function report(panel: HTMLElement, error: unknown): void {
             AccountScreens.showError(panel, error.message);
             return;
         case 'already_registered':
-            AccountScreens.showError(panel, 'This account already has a username.');
+            AccountScreens.showError(panel, t('api-error.already-registered'));
             return;
         case 'busy':
-            AccountScreens.showError(panel, 'Aura is busy right now. Please try again in a moment.');
+            AccountScreens.showError(panel, t('api-error.busy'));
             return;
         case 'network':
             AccountScreens.showError(panel, error.message);
             return;
         default:
-            AccountScreens.showError(panel, 'Something went wrong. Please try again.', error.ref);
+            AccountScreens.showError(panel, t('account.error.generic'), error.ref);
     }
 }

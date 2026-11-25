@@ -26,7 +26,8 @@
       {
         "id": "root",
         "lines": [
-          {"id": "he-thinks-i-havent-noticed"}
+          {"id": "he-thinks-i-havent-noticed", "conditions": [{"kind": "quest_at_stage", "quest": "the-millers-ring", "stage": "not_completed"}]},
+          {"id": "thanks-for-bringing-back-my", "conditions": [{"kind": "quest_at_stage", "quest": "the-millers-ring", "stage": "completed"}]}
         ],
         "options": []
       }

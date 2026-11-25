@@ -330,11 +330,12 @@ export class Backend implements IBackend {
                     // entity id is the item's flat index, not a skill id. A
                     // grant on the join tick can beat /appearance, so the name
                     // waits for the catalog (appearanceReady always resolves).
+                    // One line only: the POs dropped "Wear it under Appearance"
+                    // (plan-vertical-slice.md F14); the key still marks the kind.
                     const flat = Number(entityMessage.entityId());
-                    const source = wireMessageText(entityMessage);
                     void appearanceReady.then(() => AlertBanner.show(
-                        t('unlock.banner', {category: 'appearance', name: itemAtFlat(flat)?.item.name ?? ''})
-                        + `\n${source}`, 'unlock'));
+                        t('unlock.banner', {category: 'appearance', name: itemAtFlat(flat)?.item.name ?? ''}),
+                        'unlock'));
                 } else if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock) {
                     // Skill unlock (plan-unlock-attribution.md): entity_id carries
                     // the skill id, message carries the source label. The client

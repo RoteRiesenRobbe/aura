@@ -43,8 +43,8 @@ const spawnOf = (mob) => {
 };
 
 const QUEST = 'giant-rats-in-the-barn';
-const OFFER = 'The pest in the granary';
-const PROGRESS = 'About the rats in the granary...';
+const OFFER = 'Rats in the barn';
+const PROGRESS = 'About the rats in the barn...';
 const ACCEPT = "I'll do it.";
 const ON_IT = 'Any assistance for the task?';
 const TURN_IN = "I've killed the rats."; // hidden while hunting

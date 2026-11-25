@@ -69,7 +69,7 @@
   "mob.Hermit.name": "Einsiedler",
   "mob.Kobold.name": "{count, plural, one {Kobold} other {Kobolde}}",
   "mob.KoboldChief.name": "{count, plural, one {Koboldhäuptling} other {Koboldhäuptlinge}}",
-  "mob.KoboldRanged.name": "Koboldschütze",
+  "mob.KoboldRanged.name": "Koboldbogenschütze",
   "mob.LakeCrab.name": "{count, plural, one {Seekrabbe} other {Seekrabben}}",
   "mob.Lambert.name": "Lambert",
   "mob.LamplessTraveller.name": "Reisender ohne Lampe",
@@ -126,7 +126,7 @@
   "mob.Wisp.name": "Irrlicht",
   "mob.Wolf.name": "{count, plural, one {Wolf} other {Wölfe}}",
   "mob.Woodcutter2.name": "Zacharias",
-  "mob.Woodcutter3.name": "Holzfäller 3",
+  "mob.Woodcutter3.name": "Holzfällergildner",
   "mob.Woolliam.name": "Woolliam",
   "mob.YoungWolf.name": "{count, plural, one {Jungwolf} other {Jungwölfe}}"
 }

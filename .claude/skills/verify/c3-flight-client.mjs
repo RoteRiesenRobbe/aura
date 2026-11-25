@@ -487,7 +487,7 @@ try {
 
   // --- 4. airborne ---------------------------------------------------------
   phase = 'airborne';
-  check(/^Flying — \d+\.\ds$/.test(s.barText),
+  check(/^Flying: \d+\.\ds$/.test(s.barText),
     '4 the indicator shows an ETA in the cast bar\'s convention', `"${s.barText}"`);
   check(s.locked, '4b the ability bar is greyed for the duration');
   check(s.zoomInInactive && s.zoomOutInactive,

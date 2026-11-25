@@ -81,8 +81,8 @@ check('a counted mob shows its singular and plural (D24)', names.one === 'Wolf' 
 
 // 4. skill name
 await open('skill', /^Long/);
-const skillName = await page.evaluate(() => [...document.querySelectorAll('input')].map((i) => i.value).find((v) => v === 'Long-Range Strike') || '');
-check('a skill name field shows its authored English name', skillName === 'Long-Range Strike', skillName);
+const skillName = await page.evaluate(() => [...document.querySelectorAll('input')].map((i) => i.value).find((v) => v === 'Short Bow') || '');
+check('a skill name field shows its authored English name', skillName === 'Short Bow', skillName);
 
 check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();

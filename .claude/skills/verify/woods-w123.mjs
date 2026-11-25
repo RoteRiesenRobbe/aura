@@ -154,7 +154,7 @@ const talk = [
   ['Wanderer', spawnOf('Lamplighter'), { dx: -1.0, dy: -0.4 }, /Can I help with your lamp\?/],
   ['Illias', spawnOf('FallenTraveller'), { dx: 0, dy: -1.1 }, null],
   ['Zacharias', spawnOf('Woodcutter2'), { dx: 0, dy: 1.1 }, null],
-  ['Woodcutter 3', spawnOf('Woodcutter3'), { dx: 0, dy: 1.1 }, null],
+  ['Lumberjack Guild Associate', spawnOf('Woodcutter3'), { dx: 0, dy: 1.1 }, null],
   // the bridge is back (PO 2026-10-25): his greeting says the gate is open
   ['City Guard', spawnOf('CityGuard'), { dx: -1.1, dy: 0 }, null, /The gate is open./],
 ];

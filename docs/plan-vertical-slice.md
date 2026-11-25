@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: `world.json` goes to the coworker (§5.5, R28) beside PF4 (Words), on the PO's go.** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, PF4 done 2026-11-25 `[uncommitted]`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: CW (the coworker's `world.json` pass, §5.5, R28) beside PF5 (Looks).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -614,7 +614,7 @@ Baseline `bc58a9cb` (its moves kept the road counts as they were). `23060f46` mo
 - ~~**Q16 - When is the census script saved as a tool?**~~ RULED 2026-11-22: in VS0 (D2).
 - **Q17 - (deferred 2026-11-22 to after VS-P) Approval of this plan:** both POs refine it
   with the playthrough's notes, then approve. Nothing further is built until then.
-  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23, PF3 2026-11-24. PF4 needs one.
+  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23, PF3 2026-11-24, PF4 2026-11-25 (its go the same day). PF5 needs one.
 - ~~**Q18 - End level and the Bluff**~~ RULED 2026-11-22: R20, stone 16, Bluff open.
 - ~~**Q19 - Wolves on the Road against DQ R8/D8**~~ RULED 2026-11-22: R21, keep both.
 - ~~**Q20 - Immune targets**~~ RULED 2026-11-22: R23, never targeted.
@@ -875,3 +875,70 @@ the phone is pinned to a HEAD baseline.
 
 **Look result, 2026-11-25:** PO "all others pass" after one round (icons, banner type,
 the tab row); the map and journal icons picked from a numbered sheet.
+
+### PF4 - Words ✅ DONE 2026-11-25 `[uncommitted]`, PO look passed 2026-11-25
+
+Built and looked at 2026-11-25 (PO: "works"), in English and German in one pass. Display
+text only: every id and key that already existed stays, and the map was not touched (CW owns
+`world.json`).
+
+- **F2:** the name suggestions live in `frontend/src/client-data/character-names.json`
+  (20 male + 20 female first names, 40 last names, generic fantasy [PLACEHOLDER] until the
+  POs send a list; no Flintstones names, no placed NPC's name). Both first-name lists are
+  drawn. `NameGenerator.test.ts` checks all 1,600 combinations against the server's name
+  rule (at most 20 characters, ASCII subset of the charset), so the reroll no longer cuts.
+- **F13:** the Town Crier's walk-by line is gone (content + its key EN + DE); his dialogue
+  greeting stays. No conversant carries `ambient` lines now; the field and its presenter
+  stay, covered by unit tests. `TestContent_AuthoredTrees` pins "no ambient anywhere"
+  (red first), `chunk3b-ii-conversation` leg 8 now expects silence.
+- **F14:** the look-unlock banner is one line; the key `unlock.appearance` stays as the
+  marker that the unlock is a look (its English is only the server's fallback now).
+- **F17:** Reinhard's wife: "He thinks I haven't noticed" while `the-millers-ring` is not
+  completed, the POs' thank-you line (with "husband's") once it is.
+- **F19:** the dog's root "Teach me something" row is gone; lost, herd and teachings still
+  lead to Summon Companion.
+- **F20:** journal, tracker and Reinhard's lines say Alpha Boar and lose the den ("their
+  leader roams south of this farm"); the title "The Beast of the Farmlands" and its offer
+  row stay.
+- **F21:** "Rats in the Barn": title, 3 journal lines, 6 of Reinhard's lines (granary →
+  barn; "grain sacks" stays). Pins: `quests/content_test.go`, `sys/quest_content_test.go`,
+  `qi1-quest-icons`.
+- **F23 (words):** the Crier's two lines and the journal: "Kill 8 wolves in the forest,
+  along the road east"; the City Guard's turn-in row "The 8 wolves in the forest are dead"
+  (`chunkC4-quests` follows). The title "Wolves on the Road" stays (R21).
+- **F28:** the City Guard answers "Where can I make myself useful?" with the POs' line
+  (a new key; "The front is in the south" retired).
+- **F32:** Fritz's five offer rows moved into the "What happened here?" node; the five
+  running rows stay on the root.
+- **F33:** "Kobolds in the Forest"; the journal and Fritz's two lines say "the northwest of
+  the forest".
+- **F34, F38, F39, F41:** Lumberjack Guild Associate (26 characters, the nameplate limit;
+  German *Holzfällergildner*, after *Bergmannsgildner*) and his welcome; Short Bow
+  (*Kurzbogen*, the id `LongRangeStrike` stays); the Deckhand's "Ahoy matey" welcome;
+  Kobold Archer (*Koboldbogenschütze*). The two welcomes are new keys; the old lines retired.
+- **F56:** the three gate tooltips read "... only" ("Cuts down brambles only"); all 21 em
+  dashes in `en/frontend.arb` rewritten and the German reworded to match (the HUD.html
+  fallbacks follow). The hardcoded-text scan only catches assignments, so 18 literals passed
+  into calls had slipped through: 13 now come from the catalog with German (seven refusal
+  floating texts as `hud.refusal.*` keyed by the wire enum, five account-screen errors, the
+  Log in button). Left: the five changelog headings (the changelog entries are English-only
+  files) and the server's English for some login errors (server text, outside PF4).
+- **Noticed, not changed:** the nameplate "Reinhards Wife" has no apostrophe (no note asks).
+- **Schema:** DB none · wire none · conf none · content: 1 ambient line removed, Fritz's rows
+  moved, 2 lines added, 2 lines replaced · lang EN + DE (content: 30 lines changed,
+  5 new keys, 3 retired; UI: 21 rewritten, 9 new keys).
+
+**Verified**
+- vitest 2025/0 (new `NameGenerator.test.ts`; refusal keys pinned per enum member) ·
+  typecheck clean · Go full suite 0 FAIL (`-count=1`; DB tests skipped, `AURA_TEST_DB_URL`
+  unset, no DB change) · `-validate` 0 findings · `-lang-status` 0 missing, 0 outdated,
+  0 too long · `extract-english --check` clean.
+- `qi1-quest-icons` 13/13 (one earlier run 12/13, a flake) · `woods-w123` 15/15 · a scratch
+  probe walked Fritz, the dog, Reinhard, the City Guard, the Deckhand and the Lumberjack in
+  en-US and de-DE: every changed line as written, 0 page errors.
+- `c3-flight-client` 1/7, the same 1/7 at HEAD `ea14da7d` (worktree on port 2100): the spawn
+  fire is never discovered, before any PF4 surface; cause open. Not run: `chunk3b-ii-
+  conversation` and `chunkC4-quests` (debug world, red at HEAD since 2026-11-17; their PF4
+  text checks were updated), `content-editor-lang` (stale since 2026-10-20; updated).
+
+**Look result, 2026-11-25:** PO "works" on the 20-item checklist, English and German.

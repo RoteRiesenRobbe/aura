@@ -19,8 +19,8 @@
 //   7. Leave              → the ✕ closes; the "Leave." row closes; walking out
 //                           of range closes; E toggles
 //   8. Wanderer           → stops while talked to, walks on afterwards (D22)
-//   9. TownCrier          → calls out its ambient line as you pass WITHOUT
-//                           opening anything (D18 — the NPC that does both)
+//   9. TownCrier          → says NOTHING as you pass (F13 removed the game's
+//                           only ambient line) and opens nothing until E
 //
 // ⚑ The old leg 10 ("being hit closes the panel", a permanent SKIP) is GONE
 // with the gates themselves: Q1 §4.2 deleted every combat gate, so combat ends
@@ -708,7 +708,7 @@ if (!pinnedByBadge) {
   check('...and walks on afterwards', driftAfter > 0.05, `after ${driftAfter}`);
 }
 
-// ================= 8. the TownCrier's ambient line (D18) =================
+// ================= 8. the TownCrier is silent on the way past (F13) =================
 await cmd(`WARP ${NEAR_TOWNCRIER}`);
 await page.waitForTimeout(20_000);
 
@@ -737,8 +737,11 @@ await collectBubbles();
 const ambientPanel = await panelOpen();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-8-ambient.png` });
 
-check('The TownCrier CALLS OUT as you pass (D18: ambient is its own field)',
-  ambientBubbles.some((t) => /Hail Adventurer/i.test(t)),
+// ⚑ A negative pin needs a subject capable of the thing denied: the crier
+// still owns "Hail, adventurer!" as his dialogue greeting, so this is the
+// line that would show if the walk-by bubble came back.
+check('The TownCrier does NOT call out as you pass (F13 removed the hail)',
+  crierReached && !ambientBubbles.some((t) => /Hail Adventurer/i.test(t)),
   `reached ${crierReached} at ${JSON.stringify(await pos())}; matched: ` +
   JSON.stringify(ambientBubbles.filter((t) => /Hail Adventurer/i.test(t))));
 check('...WITHOUT opening a panel — the two are independent',

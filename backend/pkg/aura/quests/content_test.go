@@ -78,7 +78,7 @@ var expectedQuests = map[string]string{
 	// The generic kill quests (plan-generic-kill-quests.md C1 + C2).
 	"boars-in-the-field":          "The Problematic Boars",
 	"dire-wolves-in-the-forest":   "Dire Wolves in the Forest",
-	"kobolds-on-the-road":         "Kobolds on the Road",
+	"kobolds-on-the-road":         "Kobolds in the Forest",
 	"spiders-in-the-diggings":     "Spiders in the Diggings",
 	"dire-wolves-at-the-camp":     "Dire Wolves at the Camp",
 	"bandits-at-the-shrine":       "Bandits at the Shrine",
@@ -117,7 +117,7 @@ var expectedQuests = map[string]string{
 	// Reinhard's THIRD quest (content-zone-design-guide.md §2.4) — he is the
 	// first three-offer giver, where the Farmer he used to be was the first
 	// two-offer one.
-	"giant-rats-in-the-barn": "The Pest in the Granary",
+	"giant-rats-in-the-barn": "Rats in the Barn",
 
 	// Grandfather Knot's two errands (docs/plan-grandfather-knot.md): a harvest,
 	// then — offered only once that is completed — three talk_to legs, the last

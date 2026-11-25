@@ -4,7 +4,7 @@
   "@account.abandon.button": {
     "description": "Login button after the abandon warning."
   },
-  "account.abandon.warning": "You are currently playing without an account. Logging in will abandon that progress permanently — it cannot be recovered afterwards. Press Log in again to continue.",
+  "account.abandon.warning": "You are currently playing without an account. Logging in will abandon that progress permanently; it cannot be recovered afterwards. Press Log in again to continue.",
   "@account.abandon.warning": {
     "description": "Login form warning for a guest with progress; the login button then reads account.abandon.button."
   },
@@ -23,6 +23,10 @@
   "account.create-character.change-look": "Change look",
   "@account.create-character.change-look": {
     "description": "Account screens: link under the character's medallion on character creation; opens (and closes) the portrait and ring choices."
+  },
+  "account.create-character.blank-name": "Please enter a name, or leave the field empty to use the suggested one.",
+  "@account.create-character.blank-name": {
+    "description": "Error under the character name field: the player typed only spaces. An empty field takes the suggested name."
   },
   "account.create-character.portrait": "Portrait",
   "@account.create-character.portrait": {
@@ -59,6 +63,10 @@
   "account.error.generic": "Something went wrong. Please try again.",
   "@account.error.generic": {
     "description": "Account screens: generic error."
+  },
+  "account.error.password-mismatch": "Passwords do not match.",
+  "@account.error.password-mismatch": {
+    "description": "Error under the create-account form: the two password fields differ."
   },
   "account.error.join-timeout": "That took too long; please pick your character again.",
   "@account.error.join-timeout": {
@@ -226,7 +234,7 @@
   "@appearance.locked-bare": {
     "description": "Appearance panel: the tooltip line of a locked look before the server's reasons have arrived (plan-appearance.md C5c)."
   },
-  "backend.connection-lost": "Connection lost — reload to reconnect",
+  "backend.connection-lost": "Connection lost. Reload to reconnect",
   "@backend.connection-lost": {
     "description": "Banner: the game connection dropped."
   },
@@ -464,11 +472,11 @@
     "description": "Floating text over a target that ignored an effect. At most 14 characters: it floats over a target.",
     "x-maxLength": 14
   },
-  "graphics.context-lost": "Graphics context lost — please reload the page.",
+  "graphics.context-lost": "Graphics context lost. Please reload the page.",
   "@graphics.context-lost": {
     "description": "Warning banner: WebGL context was lost."
   },
-  "help.auras.body": "You fight with auras: a circle around you. No targeting, no aiming — where you stand is the attack. Each aura picks its own targets inside its range, and most affect only a limited number at a time (usually the nearest). An active aura ticks on a steady rhythm — every tick applies its effect; the ring pulse and the pip on the slot show the beat. Enemy auras tick too: stepping out between beats is real play. Exactly one aura is active at a time. You start with Damage equipped.",
+  "help.auras.body": "You fight with auras: a circle around you. No targeting, no aiming: where you stand is the attack. Each aura picks its own targets inside its range, and most affect only a limited number at a time (usually the nearest). An active aura ticks on a steady rhythm, and every tick applies its effect; the ring pulse and the pip on the slot show the beat. Enemy auras tick too: stepping out between beats is real play. Exactly one aura is active at a time. You start with Damage equipped.",
   "@help.auras.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -476,7 +484,7 @@
   "@help.close.title": {
     "description": "HUD: the title attribute of the <span> element in #help in #gameUI."
   },
-  "help.costs.body": "Most skills spend Focus — the tooltip states every price. The basic Damage aura is always free: you are never left without an option.",
+  "help.costs.body": "Most skills spend Focus. The tooltip states every price. The basic Damage aura is always free: you are never left without an option.",
   "@help.costs.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -484,7 +492,7 @@
   "@help.costs.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
   },
-  "help.darkness.body": "Some areas are dark — bring a light aura, or a friend who carries one while you carry the damage. Filling roles for each other is the design. There is no PvP.",
+  "help.darkness.body": "Some areas are dark. Bring a light aura, or a friend who carries one while you carry the damage. Filling roles for each other is the design. There is no PvP.",
   "@help.darkness.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -508,7 +516,7 @@
   "@help.equipping.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
   },
-  "help.fighting.body": "Everyone who takes part in a fight gets XP — being close with an aura on counts. The red sword means you are in combat. Mobs stop regenerating for a moment after being hit.",
+  "help.fighting.body": "Everyone who takes part in a fight gets XP: being close with an aura on counts. The red sword means you are in combat. Mobs stop regenerating for a moment after being hit.",
   "@help.fighting.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -516,7 +524,7 @@
   "@help.fighting.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
   },
-  "help.focus.body": "The bar at the top is Focus — your health and everything you spend, in one value. At zero you die. It refills out of combat; getting hit pauses that for a few seconds.",
+  "help.focus.body": "The bar at the top is Focus: your health and everything you spend, in one value. At zero you die. It refills out of combat; getting hit pauses that for a few seconds.",
   "@help.focus.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -537,7 +545,7 @@
   "@help.levels.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
   },
-  "help.moving.body": "Move with WASD or the arrow keys. The minimap is north-up; its compass shows directions. The world is shared — everyone you see is really there.",
+  "help.moving.body": "Move with WASD or the arrow keys. The minimap is north-up; its compass shows directions. The world is shared: everyone you see is really there.",
   "@help.moving.body": {
     "description": "HUD: text of the <p> element in #help in #gameUI."
   },
@@ -553,7 +561,7 @@
   "@help.people.heading": {
     "description": "HUD: text of the <h3> element in #help in #gameUI."
   },
-  "help.skill-kinds.body": "<em>Auras</em>: slots 1–3, one active, switch with the hotkeys — also mid-fight. <em>Passives</em>: always on, all in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then recharge — the cooldown belongs to the skill, not the slot. Besides your skills, everyone always has two utility buttons, free and unlevelled: <em>Recall</em> takes you back to your bound campfire, and <em>Camp</em> puts down a small fire that heals everyone standing in it for a short while. Both cast slowly and break if you move or get hit. Camp costs a charge — resting at a real campfire refills them, and you carry more of them as you level.",
+  "help.skill-kinds.body": "<em>Auras</em>: slots 1–3, one active, switch with the hotkeys, also mid-fight. <em>Passives</em>: always on, all in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then recharge; the cooldown belongs to the skill, not the slot. Besides your skills, everyone always has two utility buttons, free and unlevelled: <em>Recall</em> takes you back to your bound campfire, and <em>Camp</em> puts down a small fire that heals everyone standing in it for a short while. Both cast slowly and break if you move or get hit. Camp costs a charge. Resting at a real campfire refills them, and you carry more of them as you level.",
   "@help.skill-kinds.body": {
     "description": "HUD help panel (\"How Aura works\"), section \"The three kinds of skills\". <em> marks a term in emphasis; keep the tags around the translated terms (Auren, Passive, Abklingfähigkeiten, Rückkehr, Lager)."
   },
@@ -585,7 +593,7 @@
       "max": {"type": "int", "description": "Maximum Focus", "example": "120"}
     }
   },
-  "hud.bar.focus.title": "Focus — your health and everything you spend to act",
+  "hud.bar.focus.title": "Focus: your health and everything you spend to act",
   "@hud.bar.focus.title": {
     "description": "HUD: the title attribute of the <div id=healthBar> element in #vitalSigns in #gameUI."
   },
@@ -597,7 +605,7 @@
       "next": {"type": "int", "description": "XP needed for the next level", "example": "400"}
     }
   },
-  "hud.bar.xp.title": "Experience — fills up to your next level",
+  "hud.bar.xp.title": "Experience: fills up to your next level",
   "@hud.bar.xp.title": {
     "description": "HUD: the title attribute of the <div id=xpBar> element in #vitalSigns in #gameUI."
   },
@@ -609,11 +617,11 @@
       "secs": {"type": "double", "description": "Seconds left, one decimal", "example": "2.5"}
     }
   },
-  "hud.combat-indicator.title": "In combat — loadout editing locked",
+  "hud.combat-indicator.title": "In combat: loadout editing locked",
   "@hud.combat-indicator.title": {
     "description": "HUD: the title attribute of the <div id=combatIndicator> element in #gameUI."
   },
-  "hud.flying-bar": "Flying — {secs, number, ::.0}s",
+  "hud.flying-bar": "Flying: {secs, number, ::.0}s",
   "@hud.flying-bar": {
     "description": "Flight bar text: seconds of flight left.",
     "placeholders": {
@@ -656,6 +664,34 @@
   "@hud.refusal.abilities-while-flying": {
     "description": "Warning banner: abilities are locked during flight."
   },
+  "hud.refusal.feared": "Feared",
+  "@hud.refusal.feared": {
+    "description": "Floating text over the own character: a fear landed, abilities are refused while it lasts."
+  },
+  "hud.refusal.generic": "Cannot use that now",
+  "@hud.refusal.generic": {
+    "description": "Floating text over the own character: the server refused an ability for a reason this client does not know."
+  },
+  "hud.refusal.no-anchor": "No campfire bound",
+  "@hud.refusal.no-anchor": {
+    "description": "Floating text over the own character: Recall needs a bound campfire."
+  },
+  "hud.refusal.no-charges": "No camp charges. Rest at a campfire",
+  "@hud.refusal.no-charges": {
+    "description": "Floating text over the own character: Camp has no charges left; resting at a campfire refills them."
+  },
+  "hud.refusal.no-target": "No valid target",
+  "@hud.refusal.no-target": {
+    "description": "Floating text over the own character: the ability needs a target and none is in range."
+  },
+  "hud.refusal.not-enough-focus": "Not enough Focus",
+  "@hud.refusal.not-enough-focus": {
+    "description": "Floating text over the own character: the ability costs more Focus than the player has. Focus is the one resource bar."
+  },
+  "hud.refusal.stunned": "Stunned",
+  "@hud.refusal.stunned": {
+    "description": "Floating text over the own character: a stun landed, abilities are refused while it lasts."
+  },
   "hud.refusal.loadout-in-combat": "Can't change loadout in combat",
   "@hud.refusal.loadout-in-combat": {
     "description": "Warning banner: equipping is locked in combat."
@@ -667,7 +703,7 @@
       "secs": {"type": "int", "description": "Whole seconds left", "example": "4"}
     }
   },
-  "hud.slot.empty": "— Empty —",
+  "hud.slot.empty": "Empty",
   "@hud.slot.empty": {
     "description": "HUD: text of the <span> element in #cooldownSlotList in #cooldownLoadout."
   },
@@ -782,7 +818,7 @@
   "@journal.tab.running": {
     "description": "HUD: text of the <div> element in #journal in #gameUI."
   },
-  "journal.unavailable": "Journal unavailable — the quest catalog could not be loaded.",
+  "journal.unavailable": "Journal unavailable: the quest catalog could not be loaded.",
   "@journal.unavailable": {
     "description": "Journal status when the quest catalog failed to load."
   },
@@ -1417,11 +1453,11 @@
       "duration": {"type": "String", "description": "Already formatted duration", "example": "…"}
     }
   },
-  "tooltip.gate.chop": "Cuts down brambles — nothing else",
+  "tooltip.gate.chop": "Cuts down brambles only",
   "@tooltip.gate.chop": {
     "description": "Skill tooltip. Tooltip line of a skill that only affects brambles."
   },
-  "tooltip.gate.harvest": "Harvests plants — nothing else",
+  "tooltip.gate.harvest": "Harvests plants only",
   "@tooltip.gate.harvest": {
     "description": "Skill tooltip. Tooltip line of a skill that only affects plants."
   },
@@ -1432,7 +1468,7 @@
       "key": {"type": "String", "description": "Already formatted key", "example": "…"}
     }
   },
-  "tooltip.gate.smash": "Smashes boulders and rockfalls — nothing else",
+  "tooltip.gate.smash": "Smashes boulders and rockfalls only",
   "@tooltip.gate.smash": {
     "description": "Skill tooltip. Tooltip line of a skill that only affects boulders."
   },
@@ -1703,7 +1739,7 @@
       "pct": {"type": "String", "description": "Already formatted pct", "example": "…"}
     }
   },
-  "tooltip.stun": "Holds one enemy for {held} — it cannot move, attack or use abilities",
+  "tooltip.stun": "Holds one enemy for {held}: it cannot move, attack or use abilities",
   "@tooltip.stun": {
     "description": "Skill tooltip. Stun line.",
     "placeholders": {
@@ -1887,7 +1923,7 @@
   },
   "unlock.appearance": "Wear it under Appearance",
   "@unlock.appearance": {
-    "description": "Unlock banner, second line: the player earned a portrait or ring (plan-appearance.md C5); Appearance is the HUD button's name."
+    "description": "The server's fallback text for an earned portrait or ring (plan-appearance.md C5); Appearance is the HUD button's name. Not shown in the banner since plan-vertical-slice.md F14: the key only tells the client the unlock is a look."
   },
   "unlock.cheat": "Cheat",
   "@unlock.cheat": {
@@ -1949,7 +1985,7 @@
   "@utility.recall.bind": {
     "description": "Recall tooltip."
   },
-  "utility.recall.free": "Free — no cost, no cooldown.",
+  "utility.recall.free": "Free: no cost, no cooldown.",
   "@utility.recall.free": {
     "description": "Recall tooltip."
   },

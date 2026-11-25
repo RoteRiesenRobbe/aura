@@ -248,7 +248,7 @@ describe('character power scale', () => {
             })],
         });
 
-        expect(lines(harvest, 1, 1)).toContain('Harvests plants — nothing else');
+        expect(lines(harvest, 1, 1)).toContain('Harvests plants only');
         expect(lines(harvest, 1, 1).some(l => l.startsWith('Damage type'))).toBe(false);
 
         // Brambles take Hatchet's chop key since content-zone-2-woodland.md §3.7.
@@ -259,7 +259,7 @@ describe('character power scale', () => {
                 damage: {...damageParams(14), tags: null as any, gateKey: 'chop'},
             })],
         });
-        expect(lines(hatchet, 1, 1)).toContain('Cuts down brambles — nothing else');
+        expect(lines(hatchet, 1, 1)).toContain('Cuts down brambles only');
     });
 
     it('rounds HP the way the server does (vitals.HP: half up, min 1)', () => {
@@ -610,7 +610,7 @@ describe('stun', () => {
     it('says the target cannot act, not merely that it cannot move', () => {
         // 90 ticks at 33 ms = 2.97 s; 96 at rank 2.
         const out = lines(paralyze, 1, 1);
-        expect(out).toContain('Holds one enemy for 3s → 3.2s — it cannot move, attack or use abilities');
+        expect(out).toContain('Holds one enemy for 3s → 3.2s: it cannot move, attack or use abilities');
         // ⚑ C8 D1 split this case: the duration line is number-bearing and
         // stays generated, only the unbreakable-by-damage sentence moved.
         expect(formatSkillTooltip(paralyze, 1, 1).description).toBe('Damage does not break it');
@@ -619,7 +619,7 @@ describe('stun', () => {
     });
 
     it('drops the preview at max level', () => {
-        expect(lines(paralyze, 5, 1)).toContain('Holds one enemy for 3.8s — it cannot move, attack or use abilities');
+        expect(lines(paralyze, 5, 1)).toContain('Holds one enemy for 3.8s: it cannot move, attack or use abilities');
     });
 });
 

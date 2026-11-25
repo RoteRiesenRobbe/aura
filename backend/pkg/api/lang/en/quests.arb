@@ -348,7 +348,7 @@
     "description": "Quest title of \"eliza-sends-me\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.giant-rats-in-the-barn.clear.journal": "Miller Reinhard tasked you to kill 8 of the rats that have infested the granary.",
+  "quest.giant-rats-in-the-barn.clear.journal": "Miller Reinhard tasked you to kill 8 of the rats that have infested the barn.",
   "@quest.giant-rats-in-the-barn.clear.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"clear\": written in the player's voice, first person."
   },
@@ -360,11 +360,11 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.giant-rats-in-the-barn.done.journal": "The granary is Reinhard's again.",
+  "quest.giant-rats-in-the-barn.done.journal": "The barn is Reinhard's again.",
   "@quest.giant-rats-in-the-barn.done.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.giant-rats-in-the-barn.report.journal": "The granary is quiet. Reinhard is waiting.",
+  "quest.giant-rats-in-the-barn.report.journal": "The barn is quiet. Reinhard is waiting.",
   "@quest.giant-rats-in-the-barn.report.journal": {
     "description": "Journal (diary) entry of quest \"giant-rats-in-the-barn\", stage \"report\": written in the player's voice, first person."
   },
@@ -372,7 +372,7 @@
   "@quest.giant-rats-in-the-barn.report.tracker": {
     "description": "Tracker line of quest \"giant-rats-in-the-barn\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.giant-rats-in-the-barn.title": "The Pest in the Granary",
+  "quest.giant-rats-in-the-barn.title": "Rats in the Barn",
   "@quest.giant-rats-in-the-barn.title": {
     "description": "Quest title of \"giant-rats-in-the-barn\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
@@ -422,7 +422,7 @@
     "description": "Quest title of \"he-who-cried-wolf\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.kobolds-on-the-road.cull.journal": "Kill 8 kobolds near the road.",
+  "quest.kobolds-on-the-road.cull.journal": "Kill 8 kobolds in the northwest of the forest.",
   "@quest.kobolds-on-the-road.cull.journal": {
     "description": "Journal (diary) entry of quest \"kobolds-on-the-road\", stage \"cull\": written in the player's voice, first person."
   },
@@ -446,7 +446,7 @@
   "@quest.kobolds-on-the-road.report.tracker": {
     "description": "Tracker line of quest \"kobolds-on-the-road\", stage \"report\": the one objective line shown under the quest title."
   },
-  "quest.kobolds-on-the-road.title": "Kobolds on the Road",
+  "quest.kobolds-on-the-road.title": "Kobolds in the Forest",
   "@quest.kobolds-on-the-road.title": {
     "description": "Quest title of \"kobolds-on-the-road\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
@@ -770,11 +770,11 @@
     "description": "Quest title of \"the-sleeping-roots\", shown in the journal list and the tracker. At most 30 characters: it heads the quest tracker.",
     "x-maxLength": 30
   },
-  "quest.the-sounder-at-the-mill.cull.journal": "Kill the leader of the boars. You'll find him in their den to the south.",
+  "quest.the-sounder-at-the-mill.cull.journal": "Kill the Alpha Boar, the leader of the boars. You'll find him south of the farm.",
   "@quest.the-sounder-at-the-mill.cull.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"cull\": written in the player's voice, first person."
   },
-  "quest.the-sounder-at-the-mill.cull.tracker": "Kill the beast of the farmlands ({n, number}/{m, number})",
+  "quest.the-sounder-at-the-mill.cull.tracker": "Kill the Alpha Boar ({n, number}/{m, number})",
   "@quest.the-sounder-at-the-mill.cull.tracker": {
     "description": "Tracker line of quest \"the-sounder-at-the-mill\", stage \"cull\": the one objective line shown under the quest title.",
     "placeholders": {
@@ -782,11 +782,11 @@
       "m": {"type": "int", "description": "Count required", "example": "8"}
     }
   },
-  "quest.the-sounder-at-the-mill.done.journal": "The beast is dead and the crops are safe.",
+  "quest.the-sounder-at-the-mill.done.journal": "The Alpha Boar is dead and the crops are safe.",
   "@quest.the-sounder-at-the-mill.done.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"done\": written in the player's voice, first person."
   },
-  "quest.the-sounder-at-the-mill.report.journal": "The beast of the farmlands is dead. Reinhard will want to hear it.",
+  "quest.the-sounder-at-the-mill.report.journal": "The Alpha Boar is dead. Reinhard will want to hear it.",
   "@quest.the-sounder-at-the-mill.report.journal": {
     "description": "Journal (diary) entry of quest \"the-sounder-at-the-mill\", stage \"report\": written in the player's voice, first person."
   },
@@ -1027,7 +1027,7 @@
   "@quest.wolves-on-the-road.carry-word.tracker": {
     "description": "Tracker line of quest \"wolves-on-the-road\", stage \"carry-word\": the one objective line shown under the quest title."
   },
-  "quest.wolves-on-the-road.thin.journal": "Kill 8 wolves on the west road.",
+  "quest.wolves-on-the-road.thin.journal": "Kill 8 wolves in the forest, along the road east.",
   "@quest.wolves-on-the-road.thin.journal": {
     "description": "Journal (diary) entry of quest \"wolves-on-the-road\", stage \"thin\": written in the player's voice, first person."
   },

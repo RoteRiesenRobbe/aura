@@ -14,6 +14,7 @@ import {contentCatalogUrl} from '../features/backend/logic/Urls';
 // wire-binding graph (and its flatbuffers dependency) into this catalog
 // module, which only needs the three named values.
 import {ActivationRejection} from '../../../api/schema/js/aura-api/activation-rejection';
+import {tKey} from '../features/localization/logic/Locale';
 
 // 'camp' is a campfire trait (plan-campfire-traits D2): bought from its own
 // pool, never equipped, and listed by no ability section of the spellbook.
@@ -685,19 +686,20 @@ export function skillCategory(id: number): SkillCategory {
     return catalog.get(id)?.category ?? 'aura';
 }
 
-// Static rejection-reason → feedback text map (skill-vocab chunk 4, §3.5):
-// keyed by the wire ActivationRejection enum (§35 C4b — server.fbs is the
-// single authored home, values pinned there); rendered as floating text over
-// the own character. Skills.test.ts asserts every enum member has an entry.
-export const ActivationRejectionMessages: { [reason: number]: string } = {
-    [ActivationRejection.NoAnchor]: 'No campfire bound',
-    [ActivationRejection.NoTarget]: 'No valid target',
-    [ActivationRejection.NotEnoughResource]: 'Not enough Focus',
-    [ActivationRejection.NoCharges]: 'No camp charges — rest at a campfire',
+// Rejection reason → feedback text key (skill-vocab chunk 4, §3.5; text in
+// frontend.arb since plan-vertical-slice.md PF4): keyed by the wire
+// ActivationRejection enum (§35 C4b: server.fbs is the single authored home,
+// values pinned there); rendered as floating text over the own character.
+// Skills.test.ts asserts every enum member has a key and every key a text.
+export const ActivationRejectionKeys: { [reason: number]: string } = {
+    [ActivationRejection.NoAnchor]: 'hud.refusal.no-anchor',
+    [ActivationRejection.NoTarget]: 'hud.refusal.no-target',
+    [ActivationRejection.NotEnoughResource]: 'hud.refusal.not-enough-focus',
+    [ActivationRejection.NoCharges]: 'hud.refusal.no-charges',
     // Also stamped once, with skill id 0, the tick a stun lands on the player.
-    [ActivationRejection.Stunned]: 'Stunned',
+    [ActivationRejection.Stunned]: 'hud.refusal.stunned',
     // Also stamped once, with skill id 0, the tick a fear lands on the player.
-    [ActivationRejection.Feared]: 'Feared',
+    [ActivationRejection.Feared]: 'hud.refusal.feared',
 };
 
 // How many Camp charges a character of this level may hold (plan-downtime.md
@@ -738,5 +740,5 @@ export function campTraitTotal(kind: string, levelOf: (id: number) => number): n
 }
 
 export function activationRejectionMessage(reason: number): string {
-    return ActivationRejectionMessages[reason] ?? 'Cannot use that now';
+    return tKey(ActivationRejectionKeys[reason] ?? 'hud.refusal.generic');
 }

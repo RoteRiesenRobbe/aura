@@ -61,8 +61,9 @@ const (
 	KeyUnlockCombination = "unlock.combination"
 	KeyUnlockTaughtBy    = "unlock.taught-by"
 	KeyUnlockCheat       = "unlock.cheat"
-	// KeyUnlockAppearance is the second line of an earned portrait or ring's
-	// banner (plan-appearance.md C5); the client words the first from the item.
+	// KeyUnlockAppearance marks an earned portrait or ring's unlock
+	// (plan-appearance.md C5); the client words the banner from the item and
+	// shows no second line (plan-vertical-slice.md F14).
 	KeyUnlockAppearance = "unlock.appearance"
 	KeyJournalUpdated   = "journal.updated"
 	KeyQuestComplete    = "journal.quest-complete"

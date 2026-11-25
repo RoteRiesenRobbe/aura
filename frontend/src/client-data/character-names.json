@@ -1,0 +1,25 @@
+{
+  "_comment": "The suggested character names on the creation screen: a first name from either list, a space, a last name. Every combination must pass the server's name rule (auth.ValidateCharacterName: letters or digits, single separators between them, at most 20 characters); NameGenerator.test.ts checks all of them. The lists are placeholders until the POs provide their own; avoid the names of placed NPCs.",
+  "maleFirstNames": [
+    "Aldric", "Bertram", "Cedric", "Dorian", "Edmund",
+    "Falk", "Gareth", "Hagen", "Ivo", "Jorin",
+    "Konrad", "Leif", "Magnus", "Niklas", "Osric",
+    "Roland", "Severin", "Tobin", "Ulrich", "Wendel"
+  ],
+  "femaleFirstNames": [
+    "Adela", "Brigid", "Cora", "Dagny", "Elsbeth",
+    "Freya", "Greta", "Hilda", "Ida", "Jorunn",
+    "Kaja", "Lotte", "Maren", "Nell", "Odile",
+    "Petra", "Runa", "Sigrid", "Thea", "Ulla"
+  ],
+  "lastNames": [
+    "Ashdown", "Ashford", "Barrow", "Blackwood", "Bramble",
+    "Brightwater", "Coldbrook", "Dunmore", "Eastmarch", "Fairweather",
+    "Fenwick", "Foxglove", "Greenhill", "Hartwell", "Hawthorne",
+    "Highmoor", "Ironside", "Kettle", "Larkspur", "Marsh",
+    "Millbrook", "Moorcroft", "Northcott", "Oakheart", "Quill",
+    "Ravensworth", "Redfern", "Rookwood", "Saltmarsh", "Silverbrook",
+    "Stonebridge", "Stormwell", "Thornbury", "Valebrook", "Westbrook",
+    "Whitlock", "Wildmere", "Willowby", "Wren", "Yarrow"
+  ]
+}

@@ -30,15 +30,10 @@
         ],
         "options": [
           { "id": "what-happened-here", "next": "camp" },
-          { "stock": "ask-task", "next": "kobolds" },
           { "id": "about-the-kobolds", "next": "kobolds_running" },
-          { "id": "are-all-your-people-here", "next": "friend" },
           { "id": "about-your-scout", "next": "friend_running" },
-          { "id": "and-your-other-missing", "next": "captive" },
           { "id": "about-the-captive", "next": "captive_running" },
-          { "id": "what-about-the-bears", "next": "bear" },
           { "id": "about-the-bear", "next": "bear_running" },
-          { "id": "anything-else-out-there", "next": "wolf" },
           { "id": "about-the-wolf", "next": "wolf_running" }
         ]
       },
@@ -48,6 +43,13 @@
           {"id": "we-are-woodcutters-our-camp"},
           {"id": "bears-came-out"},
           {"id": "and-the-city-sends-no"}
+        ],
+        "options": [
+          { "stock": "ask-task", "next": "kobolds" },
+          { "id": "are-all-your-people-here", "next": "friend" },
+          { "id": "and-your-other-missing", "next": "captive" },
+          { "id": "what-about-the-bears", "next": "bear" },
+          { "id": "anything-else-out-there", "next": "wolf" }
         ]
       },
       {

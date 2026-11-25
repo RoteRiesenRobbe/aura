@@ -465,7 +465,7 @@
     "description": "Name of the skill LightningStrike: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30
   },
-  "skill.LongRangeStrike.name": "Long-Range Strike",
+  "skill.LongRangeStrike.name": "Short Bow",
   "@skill.LongRangeStrike.name": {
     "description": "Name of the skill LongRangeStrike: spellbook, ability bar, tooltip title, unlock banner. At most 30 characters: it sits on the ability bar and in the spellbook.",
     "x-maxLength": 30

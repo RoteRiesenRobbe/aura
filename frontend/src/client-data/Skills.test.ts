@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {ActivationRejection} from '../../../api/schema/js/aura-api/activation-rejection';
 import {
-    ActivationRejectionMessages, activationRejectionMessage, CATEGORY_MAP, loadSkillCatalog, skillDisplayNameFor,
+    ActivationRejectionKeys, activationRejectionMessage, CATEGORY_MAP, loadSkillCatalog, skillDisplayNameFor,
 } from './Skills';
 
 // §35 C4b: the rejection-feedback map used to be keyed by bare numbers,
@@ -20,10 +20,16 @@ describe('activation rejection messages', () => {
             .filter(([, value]) => value !== ActivationRejection.None);
         expect(members.length).toBeGreaterThan(0);
         for (const [name, value] of members) {
-            expect(ActivationRejectionMessages[value],
-                `ActivationRejection.${name} (= ${value}) has no feedback message — ` +
-                'add one to ActivationRejectionMessages in Skills.ts').toBeDefined();
+            expect(ActivationRejectionKeys[value],
+                `ActivationRejection.${name} (= ${value}) has no feedback key: ` +
+                'add one to ActivationRejectionKeys in Skills.ts').toBeDefined();
+            // tKey falls back to the key itself: a text proves the key exists.
+            expect(activationRejectionMessage(value)).not.toContain('hud.refusal');
         }
+    });
+
+    it('words a reason from the catalog', () => {
+        expect(activationRejectionMessage(ActivationRejection.NotEnoughResource)).toBe('Not enough Focus');
     });
 
     it('falls back to a generic line for an unknown reason', () => {

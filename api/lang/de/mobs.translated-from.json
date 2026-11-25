@@ -68,7 +68,7 @@
   "mob.Hermit.name": "Hermit",
   "mob.Kobold.name": "{count, plural, one {Kobold} other {Kobolds}}",
   "mob.KoboldChief.name": "{count, plural, one {Kobold Chief} other {Kobold Chiefs}}",
-  "mob.KoboldRanged.name": "Kobold Ranged",
+  "mob.KoboldRanged.name": "Kobold Archer",
   "mob.LakeCrab.name": "{count, plural, one {Lake Crab} other {Lake Crabs}}",
   "mob.Lambert.name": "Lambert",
   "mob.LamplessTraveller.name": "Lampless Traveller",
@@ -125,7 +125,7 @@
   "mob.Wisp.name": "Wisp",
   "mob.Wolf.name": "{count, plural, one {Wolf} other {Wolves}}",
   "mob.Woodcutter2.name": "Zacharias",
-  "mob.Woodcutter3.name": "Woodcutter 3",
+  "mob.Woodcutter3.name": "Lumberjack Guild Associate",
   "mob.Woolliam.name": "Woolliam",
   "mob.YoungWolf.name": "{count, plural, one {Young Wolf} other {Young Wolves}}"
 }

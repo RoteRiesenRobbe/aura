@@ -212,7 +212,7 @@
   "@conv.CityGuard.kill-5-bears-near-2": {
     "description": "City Guard speaks this in the conversation, node \"bears_on_it\", line 1."
   },
-  "conv.CityGuard.the-8-wolves": "The 8 wolves on the west road are dead.",
+  "conv.CityGuard.the-8-wolves": "The 8 wolves in the forest are dead.",
   "@conv.CityGuard.the-8-wolves": {
     "description": "A row the player picks when talking to City Guard (node \"root\"), written as the player's own words."
   },
@@ -220,13 +220,13 @@
   "@conv.CityGuard.the-bears": {
     "description": "City Guard speaks this in the conversation, node \"bears_running\", line 1."
   },
-  "conv.CityGuard.the-front-is": "The front is in the south. They need fighters.",
-  "@conv.CityGuard.the-front-is": {
-    "description": "City Guard speaks this in the conversation, node \"front\", line 1."
-  },
   "conv.CityGuard.the-gate-is-open": "The gate is open. Stay sharp, the orcs are not far.",
   "@conv.CityGuard.the-gate-is-open": {
     "description": "City Guard speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.CityGuard.there-are-always-people": "There are always people in Dionsburg that need help.",
+  "@conv.CityGuard.there-are-always-people": {
+    "description": "City Guard speaks this in the conversation, node \"front\", line 1."
   },
   "conv.CityGuard.where-can-i-make-myself": "Where can I make myself useful?",
   "@conv.CityGuard.where-can-i-make-myself": {
@@ -644,7 +644,7 @@
   "@conv.Fritz.its-cave-is-east": {
     "description": "Fritz speaks this in the conversation, node \"bear_on_it\", line 1."
   },
-  "conv.Fritz.kill-8-kobolds-near": "Kill 8 kobolds near the road to the north, then come back to me.",
+  "conv.Fritz.kill-8-kobolds-near": "Kill 8 kobolds in the northwest of the forest, then come back to me.",
   "@conv.Fritz.kill-8-kobolds-near": {
     "description": "Fritz speaks this in the conversation, node \"kobolds_on_it\", line 1."
   },
@@ -692,7 +692,7 @@
   "@conv.Fritz.the-kobolds": {
     "description": "Fritz speaks this in the conversation, node \"kobolds_running\", line 1."
   },
-  "conv.Fritz.the-kobolds-are-all-over": "The kobolds are all over the road now. Please help make it safer by thinning their numbers. Kill 8, then report back to me.",
+  "conv.Fritz.the-kobolds-are-all-over": "The kobolds are all over the northwest of the forest now. Please help make it safer by thinning their numbers. Kill 8, then report back to me.",
   "@conv.Fritz.the-kobolds-are-all-over": {
     "description": "Fritz speaks this in the conversation, node \"kobolds\", line 1."
   },
@@ -1308,8 +1308,8 @@
   "@conv.MinerGuildAssociate.rocks-in-your-way": {
     "description": "Miner Guild Associate speaks this in the conversation, node \"teachings\", line 1."
   },
-  "conv.PirateDeckhand.the-captain-does-the-talking": "The captain does the talking. I only row.",
-  "@conv.PirateDeckhand.the-captain-does-the-talking": {
+  "conv.PirateDeckhand.ahoy-matey-you-actually-made": "Ahoy matey, you actually made it through that hellish swamp?",
+  "@conv.PirateDeckhand.ahoy-matey-you-actually-made": {
     "description": "Pirate Deckhand speaks this in the conversation, node \"root\", line 1."
   },
   "conv.PortalHome.it-leads-to-the-campfire": "It leads to the campfire the caster is bound to.",
@@ -1324,7 +1324,7 @@
   "@conv.Reinhard.a-lost-shipment": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.about-the-beast": "About the beast...",
+  "conv.Reinhard.about-the-beast": "About the Alpha Boar...",
   "@conv.Reinhard.about-the-beast": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
@@ -1332,7 +1332,7 @@
   "@conv.Reinhard.about-the-boars": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
-  "conv.Reinhard.about-the-rats": "About the rats in the granary...",
+  "conv.Reinhard.about-the-rats": "About the rats in the barn...",
   "@conv.Reinhard.about-the-rats": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
@@ -1368,7 +1368,7 @@
   "@conv.Reinhard.be-careful-its-dark": {
     "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 2."
   },
-  "conv.Reinhard.be-careful-once-you-get": "Be careful once you get close to their den. The beast will not be the only boar you'll encounter there.",
+  "conv.Reinhard.be-careful-once-you-get": "Be careful once you get close to the Alpha Boar. It will not be the only boar you'll encounter there.",
   "@conv.Reinhard.be-careful-once-you-get": {
     "description": "Reinhard speaks this in the conversation, node \"beast_on_it\", line 1."
   },
@@ -1384,11 +1384,11 @@
   "@conv.Reinhard.floras-a-good-judge": {
     "description": "Reinhard answers this when the player picks \"Flora sends me. I'm looking for work.\" (node \"root\")."
   },
-  "conv.Reinhard.go-inside-the-granary-kill": "Go inside the granary, kill 8 of the beasts and come back to me.",
+  "conv.Reinhard.go-inside-the-granary-kill": "Go inside the barn, kill 8 of the beasts and come back to me.",
   "@conv.Reinhard.go-inside-the-granary-kill": {
     "description": "Reinhard speaks this in the conversation, node \"rats\", line 2."
   },
-  "conv.Reinhard.go-to-the-granary": "Go to the granary and climb down the ladder.",
+  "conv.Reinhard.go-to-the-granary": "Go to the barn and climb down the ladder.",
   "@conv.Reinhard.go-to-the-granary": {
     "description": "Reinhard speaks this in the conversation, node \"rats_on_it\", line 1."
   },
@@ -1424,7 +1424,7 @@
   "@conv.Reinhard.ive-found-your-ring": {
     "description": "A row the player picks when talking to Reinhard (node \"ring_running\"), written as the player's own words."
   },
-  "conv.Reinhard.ive-killed-the-beast": "I've killed the beast.",
+  "conv.Reinhard.ive-killed-the-beast": "I've killed the Alpha Boar.",
   "@conv.Reinhard.ive-killed-the-beast": {
     "description": "A row the player picks when talking to Reinhard (node \"beast_running\"), written as the player's own words."
   },
@@ -1476,7 +1476,7 @@
   "@conv.Reinhard.thank-you-i-knew-i": {
     "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"shipment\")."
   },
-  "conv.Reinhard.the-beast": "Is the beast dead?",
+  "conv.Reinhard.the-beast": "Is the Alpha Boar dead?",
   "@conv.Reinhard.the-beast": {
     "description": "Reinhard speaks this in the conversation, node \"beast_running\", line 1."
   },
@@ -1500,11 +1500,11 @@
   "@conv.Reinhard.the-fields-where-i-plant": {
     "description": "Reinhard speaks this in the conversation, node \"boars\", line 1."
   },
-  "conv.Reinhard.the-granarys-right-behind-you": "The granary's right behind you. Good luck!",
+  "conv.Reinhard.the-granarys-right-behind-you": "The barn's right behind you. Good luck!",
   "@conv.Reinhard.the-granarys-right-behind-you": {
     "description": "Reinhard answers this when the player picks \"I'll do it.\" (node \"rats\")."
   },
-  "conv.Reinhard.the-pest-in-the-granary": "The pest in the granary",
+  "conv.Reinhard.the-pest-in-the-granary": "Rats in the barn",
   "@conv.Reinhard.the-pest-in-the-granary": {
     "description": "A row the player picks when talking to Reinhard (node \"root\"), written as the player's own words."
   },
@@ -1520,7 +1520,7 @@
   "@conv.Reinhard.the-turnips": {
     "description": "Reinhard speaks this in the conversation, node \"turnips_running\", line 1."
   },
-  "conv.Reinhard.these-darn-rats-have-taken": "These darn rats have taken over the granary. Large as my forearm they are.",
+  "conv.Reinhard.these-darn-rats-have-taken": "These darn rats have taken over the barn. Large as my forearm they are.",
   "@conv.Reinhard.these-darn-rats-have-taken": {
     "description": "Reinhard speaks this in the conversation, node \"rats\", line 1."
   },
@@ -1528,7 +1528,7 @@
   "@conv.Reinhard.they-came": {
     "description": "Reinhard speaks this in the conversation, node \"rats_more\", line 1."
   },
-  "conv.Reinhard.they-have-a-den-south": "They have a den south of this farm. It's protected by a real beast! Kill it, and our crops will finally be safe!",
+  "conv.Reinhard.they-have-a-den-south": "Their leader roams south of this farm: the Alpha Boar, a real beast! Kill it, and our crops will finally be safe!",
   "@conv.Reinhard.they-have-a-den-south": {
     "description": "Reinhard speaks this in the conversation, node \"beast\", line 2."
   },
@@ -1559,6 +1559,10 @@
   "conv.ReinhardsWife.he-thinks-i-havent-noticed": "He thinks I haven't noticed that his wedding band's missing ...",
   "@conv.ReinhardsWife.he-thinks-i-havent-noticed": {
     "description": "Reinhards Wife speaks this in the conversation, node \"root\", line 1."
+  },
+  "conv.ReinhardsWife.thanks-for-bringing-back-my": "Thanks for bringing back my husband's wedding ring. He would lose his head if it wasn't screwed on ...",
+  "@conv.ReinhardsWife.thanks-for-bringing-back-my": {
+    "description": "Reinhards Wife speaks this in the conversation, node \"root\", line 2."
   },
   "conv.Shaman.about-the-dire-wolves": "About the dire wolves...",
   "@conv.Shaman.about-the-dire-wolves": {
@@ -1672,10 +1676,6 @@
   "@conv.TownCrier.but-maybe-someone-in-dionsburg": {
     "description": "Town Crier speaks this in the conversation, node \"hans\", line 3."
   },
-  "conv.TownCrier.hail-adventurer": "Hail, adventurer!",
-  "@conv.TownCrier.hail-adventurer": {
-    "description": "Town Crier calls this out to a player walking past (speech bubble)."
-  },
   "conv.TownCrier.hail-adventurer-2": "Hail, adventurer!",
   "@conv.TownCrier.hail-adventurer-2": {
     "description": "Town Crier speaks this in the conversation, node \"root\", line 1."
@@ -1708,11 +1708,11 @@
   "@conv.TownCrier.its-a-mighty-guild": {
     "description": "Town Crier speaks this in the conversation, node \"order\", line 1."
   },
-  "conv.TownCrier.kill-8-wolves": "Kill 8 wolves on the west road.",
+  "conv.TownCrier.kill-8-wolves": "Kill 8 wolves in the forest, along the road east.",
   "@conv.TownCrier.kill-8-wolves": {
     "description": "Town Crier speaks this in the conversation, node \"wolves\", line 1."
   },
-  "conv.TownCrier.kill-8-wolves-2": "Kill 8 wolves on the west road. Then report to the City Guard.",
+  "conv.TownCrier.kill-8-wolves-2": "Kill 8 wolves in the forest, along the road east. Then report to the City Guard.",
   "@conv.TownCrier.kill-8-wolves-2": {
     "description": "Town Crier speaks this in the conversation, node \"wolves_on_it\", line 1."
   },
@@ -1836,8 +1836,8 @@
   "@conv.Woodcutter3.brambles-in-your-way": {
     "description": "Woodcutter3 speaks this in the conversation, node \"teachings\", line 1."
   },
-  "conv.Woodcutter3.timber-kindling-lumber-fritzs": "Timber, kindling, lumber. Fritz's people cut it, I sell it.",
-  "@conv.Woodcutter3.timber-kindling-lumber-fritzs": {
+  "conv.Woodcutter3.hello-there-are-you-interested": "Hello there, are you interested in learning about the lumber business? Or maybe cutting your own wood?",
+  "@conv.Woodcutter3.hello-there-are-you-interested": {
     "description": "Woodcutter3 speaks this in the conversation, node \"root\", line 1."
   },
   "conv.Woolliam.are-you-woolliam": "Are you Woolliam?",

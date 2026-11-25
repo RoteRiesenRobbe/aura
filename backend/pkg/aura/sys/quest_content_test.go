@@ -59,8 +59,8 @@ func optionTexts(rows []model.ConversationOption) []string {
 
 const (
 	ratsQuest    = "giant-rats-in-the-barn"
-	ratsOffer    = "The pest in the granary"
-	ratsProgress = "About the rats in the granary..."
+	ratsOffer    = "Rats in the barn"
+	ratsProgress = "About the rats in the barn..."
 	ratsAccept   = "I'll do it."
 	ratsTurnIn   = "I've killed the rats."
 	ratsOnIt     = "Any assistance for the task?"

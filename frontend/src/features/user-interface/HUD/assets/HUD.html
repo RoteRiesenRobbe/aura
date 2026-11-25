@@ -93,14 +93,14 @@
     </div>
 
     <div id="vitalSigns" class="layout-column">
-        <div data-i18n-attr="title:hud.bar.focus.title" id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
+        <div data-i18n-attr="title:hud.bar.focus.title" id="healthBar" class="bar flex" title="Focus: your health and everything you spend to act">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>
             <div class="shieldIndicator"></div>
             <span class="barText"></span>
         </div>
-        <div data-i18n-attr="title:hud.bar.xp.title" id="xpBar" class="bar flex" title="Experience — fills up to your next level">
+        <div data-i18n-attr="title:hud.bar.xp.title" id="xpBar" class="bar flex" title="Experience: fills up to your next level">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>
@@ -111,7 +111,7 @@
     <!-- Combat indicator: red sword, visible only while the player is in
          combat (Character.in_combat) — the window during which loadout
          editing is locked server-side. Shown/hidden by HUD.updateCombatIndicator. -->
-    <div data-i18n-attr="title:hud.combat-indicator.title" id="combatIndicator" class="hidden" title="In combat — loadout editing locked">
+    <div data-i18n-attr="title:hud.combat-indicator.title" id="combatIndicator" class="hidden" title="In combat: loadout editing locked">
         <svg viewBox="0 0 24 24">
             <path d="M14.5 3 L21 3 L21 9.5 L11 19.5 L4.5 19.5 L4.5 13 Z M14.5 3 L21 9.5"
                   fill="none" stroke="currentColor" stroke-width="2"
@@ -232,29 +232,29 @@
             <section>
                 <h3 data-i18n="help.moving.heading">Moving</h3>
                 <p data-i18n="help.moving.body">Move with WASD or the arrow keys. The minimap is north-up; its
-                    compass shows directions. The world is shared — everyone you
+                    compass shows directions. The world is shared: everyone you
                     see is really there.</p>
             </section>
             <section>
                 <h3 data-i18n="skill-kind.auras">Auras</h3>
                 <p data-i18n="help.auras.body">You fight with auras: a circle around you. No targeting, no
-                    aiming — where you stand is the attack. Each aura picks its
+                    aiming: where you stand is the attack. Each aura picks its
                     own targets inside its range, and most affect only a limited
                     number at a time (usually the nearest). An active aura ticks
-                    on a steady rhythm — every tick applies its effect; the ring
+                    on a steady rhythm, and every tick applies its effect; the ring
                     pulse and the pip on the slot show the beat. Enemy auras tick
                     too: stepping out between beats is real play. Exactly one
                     aura is active at a time. You start with Damage equipped.</p>
             </section>
             <section>
                 <h3 data-i18n="help.focus.heading">Focus</h3>
-                <p data-i18n="help.focus.body">The bar at the top is Focus — your health and everything you
+                <p data-i18n="help.focus.body">The bar at the top is Focus: your health and everything you
                     spend, in one value. At zero you die. It refills out of
                     combat; getting hit pauses that for a few seconds.</p>
             </section>
             <section>
                 <h3 data-i18n="help.fighting.heading">Fighting and XP</h3>
-                <p data-i18n="help.fighting.body">Everyone who takes part in a fight gets XP — being close with
+                <p data-i18n="help.fighting.body">Everyone who takes part in a fight gets XP: being close with
                     an aura on counts. The red sword means you are in combat.
                     Mobs stop regenerating for a moment after being hit.</p>
             </section>
@@ -267,15 +267,15 @@
             <section>
                 <h3 data-i18n="help.skill-kinds.heading">The three kinds of skills</h3>
                 <p data-i18n-rich="help.skill-kinds.body"><em data-i18n-tag="em">Auras</em>: slots 1–3, one active, switch with the
-                    hotkeys — also mid-fight. <em data-i18n-tag="em">Passives</em>: always on, all
+                    hotkeys, also mid-fight. <em data-i18n-tag="em">Passives</em>: always on, all
                     in parallel. <em data-i18n-tag="em">Cooldowns</em> (Q, R, F): fire once, then
-                    recharge — the cooldown belongs to the skill, not the
+                    recharge; the cooldown belongs to the skill, not the
                     slot. Besides your skills, everyone always has two utility
                     buttons, free and unlevelled: <em data-i18n-tag="em">Recall</em> takes you back
                     to your bound campfire, and <em data-i18n-tag="em">Camp</em> puts down a small
                     fire that heals everyone standing in it for a short while.
                     Both cast slowly and break if you move or get hit. Camp
-                    costs a charge — resting at a real campfire refills them,
+                    costs a charge. Resting at a real campfire refills them,
                     and you carry more of them as you level.</p>
             </section>
             <section>
@@ -291,7 +291,7 @@
             </section>
             <section>
                 <h3 data-i18n="help.costs.heading">Costs</h3>
-                <p data-i18n="help.costs.body">Most skills spend Focus — the tooltip states every price. The
+                <p data-i18n="help.costs.body">Most skills spend Focus. The tooltip states every price. The
                     basic Damage aura is always free: you are never left without
                     an option.</p>
             </section>
@@ -308,7 +308,7 @@
             </section>
             <section>
                 <h3 data-i18n="help.darkness.heading">Dark places and other players</h3>
-                <p data-i18n="help.darkness.body">Some areas are dark — bring a light aura, or a friend who
+                <p data-i18n="help.darkness.body">Some areas are dark. Bring a light aura, or a friend who
                     carries one while you carry the damage. Filling roles for
                     each other is the design. There is no PvP.</p>
             </section>
@@ -388,9 +388,9 @@
         <div id="passiveLoadout">
             <div data-i18n="skill-kind.passives" class="auraLoadoutTitle">Passives</div>
             <ul id="passiveSlotList">
-                <li class="auraSlot passiveSlot" data-slot="0" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot passiveSlot" data-slot="1" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot passiveSlot" data-slot="2" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="0" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span></li>
+                <li class="auraSlot passiveSlot" data-slot="1" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span></li>
+                <li class="auraSlot passiveSlot" data-slot="2" data-skill-id="0"><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span></li>
             </ul>
         </div>
     </div>
@@ -479,9 +479,9 @@
                              pulsed by HUD.pulseAuraMetronome each time the aura's tick lands.
                              Since C5 it renders as the mockup's ember dot under the active
                              slot; same element, same class, same query. -->
-                        <li class="auraSlot hotkeySlot" data-slot="0" data-skill-id="0"><span class="hotkey">1</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                        <li class="auraSlot hotkeySlot" data-slot="1" data-skill-id="0"><span class="hotkey">2</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                        <li class="auraSlot hotkeySlot" data-slot="2" data-skill-id="0"><span class="hotkey">3</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="0" data-skill-id="0"><span class="hotkey">1</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="1" data-skill-id="0"><span class="hotkey">2</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="2" data-skill-id="0"><span class="hotkey">3</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="beatPip"></span></li>
                     </ul>
                 </div>
 
@@ -492,9 +492,9 @@
                 <div id="cooldownLoadout">
                     <div data-i18n="skill-kind.cooldowns" class="auraLoadoutTitle">Cooldowns</div>
                     <ul id="cooldownSlotList">
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0" data-skill-id="0"><span class="hotkey">Q</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1" data-skill-id="0"><span class="hotkey">R</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
-                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2" data-skill-id="0"><span class="hotkey">F</span><span data-i18n="hud.slot.empty" class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0" data-skill-id="0"><span class="hotkey">Q</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1" data-skill-id="0"><span class="hotkey">R</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2" data-skill-id="0"><span class="hotkey">F</span><span data-i18n="hud.slot.empty" class="slotLabel">Empty</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
                     </ul>
                 </div>
             </div>

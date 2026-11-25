@@ -32,10 +32,6 @@
           {
             "id": "are-you-the-shepherds-lost",
             "next": "lost"
-          },
-          {
-            "stock": "ask-teach",
-            "next": "teachings"
           }
         ]
       },

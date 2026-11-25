@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          {"id": "timber-kindling-lumber-fritzs"}
+          {"id": "hello-there-are-you-interested"}
         ],
         "options": [
           { "stock": "ask-teach", "next": "teachings" }

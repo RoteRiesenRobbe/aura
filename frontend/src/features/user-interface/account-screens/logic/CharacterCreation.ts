@@ -1,4 +1,5 @@
 import * as NameGenerator from '../../../player/logic/NameGenerator';
+import {t} from '../../../localization/logic/Locale';
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
 import {appearanceCatalog, appearanceReady, heirLook, heirWears, LookHeritage} from '../../../../client-data/Appearance';
@@ -19,7 +20,7 @@ const MAX_LENGTH = 20;
 /**
  * ⚑ How many times a REJECTED SUGGESTION is re-rolled (§4b).
  *
- * The generator draws from ~550 combinations and character names are now
+ * The generator draws from 1,600 combinations and character names are now
  * globally unique, so a player who simply accepts the offered name will
  * increasingly be told it is taken — for a name the game itself proposed. That
  * is the game's fault, not the player's, so it silently tries another.
@@ -191,7 +192,7 @@ async function submit(): Promise<void> {
     // ErrCharacterNameShape — a name may not begin on a separator), but with a
     // message about name shape rather than about the field being blank.
     if (typed.length === 0 && raw.length > 0) {
-        AccountScreens.showError(panel, 'Please enter a name, or leave the field empty to use the suggested one.');
+        AccountScreens.showError(panel, t('account.create-character.blank-name'));
         input.focus();
         return;
     }
@@ -211,7 +212,7 @@ async function submit(): Promise<void> {
             } catch (error) {
                 const taken = error instanceof ApiError && error.code === 'name_taken';
                 if (taken && usedSuggestion && attempt < SUGGESTION_REROLLS) {
-                    name = NameGenerator.generate().substr(0, MAX_LENGTH);
+                    name = NameGenerator.generate();
                     input.setAttribute('placeholder', name);
                     continue;
                 }
@@ -236,7 +237,7 @@ async function submit(): Promise<void> {
             // verbatim — the server will only ever put an auth.RuleError there.
             AccountScreens.showError(panel, error.message, error.ref);
         } else {
-            AccountScreens.showError(panel, 'Something went wrong. Please try again.');
+            AccountScreens.showError(panel, t('account.error.generic'));
         }
         // The field keeps its value on rejection (§4b) so a long name is not
         // retyped; only re-focus it.

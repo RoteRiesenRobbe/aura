@@ -284,13 +284,16 @@ func TestContent_AuthoredTrees(t *testing.T) {
 			"%s is one of D23's authored trees", name)
 	}
 
-	// The TownCrier is the NPC D18 exists for: it calls out as you pass AND
-	// opens a tree on the key. Those were mutually exclusive under the retired
-	// single-valued trigger, which is what forced its deletion.
-	assert.NotEmpty(t, found["TownCrier"].Interaction.Ambient,
-		"the TownCrier carries the game's only ambient lines")
+	// The TownCrier was the NPC D18 exists for (it called out as you passed).
+	// The POs removed the hail (plan-vertical-slice.md F13): no conversant
+	// carries ambient lines now; the field and its presenter stay, covered by
+	// their unit tests. The greeting inside the dialogue stays.
+	for name, def := range found {
+		assert.Empty(t, def.Interaction.Ambient,
+			"%s calls out as you pass; F13 removed the game's only walk-by line", name)
+	}
 	assert.Greater(t, len(found["TownCrier"].Interaction.Nodes), 1,
-		"...and a conversation behind the key at the same time")
+		"the TownCrier keeps its conversation behind the key")
 
 	// D22: the Wanderer is the one conversant that moves, so the hold is
 	// provable in-game rather than shipped blind.

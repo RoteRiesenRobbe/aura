@@ -684,18 +684,18 @@ try {
     await warpTo(AT.Shaman);
     const shaman = await talkTo('Shaman');
     check('C5 the Shaman carries NO turn-in row for it any more (F25: one turn-in, the City Guard)',
-      shaman !== null && !shaman.rows.some((r) => r.includes('8 wolves on the west road are dead')),
+      shaman !== null && !shaman.rows.some((r) => r.includes('8 wolves in the forest are dead')),
       `actor=${shaman?.actor} rows=${JSON.stringify(shaman?.rows)}`);
     await leave();
 
     await warpTo(AT.CityGuard);
     const guard = await talkTo('City Guard');
     check('C6 ⭐ the City Guard carries the turn-in row AT ROOT for a quest given by somebody else',
-      guard?.rows.some((r) => r.includes('8 wolves on the west road are dead')),
+      guard?.rows.some((r) => r.includes('8 wolves in the forest are dead')),
       `actor=${guard?.actor} rows=${JSON.stringify(guard?.rows)}`);
 
     const bookBefore = await spellbook();
-    await clickRow('8 wolves on the west road are dead');
+    await clickRow('8 wolves in the forest are dead');
     const done = await waitForJournal((j) => inList(j.completed, titleOf('wolves-on-the-road')));
     const bookAfter = await spellbook();
     const doneDetail = await detailOf(titleOf('wolves-on-the-road'));
@@ -710,7 +710,7 @@ try {
     await page.keyboard.press('KeyJ'); // the journal read above left the Guard (UI pass C2 D1)
     const guardAfter = await talkTo('City Guard');
     check('C9 the Guard\'s turn-in row is gone once the quest is finished',
-      guardAfter !== null && !guardAfter.rows.some((r) => r.includes('8 wolves on the west road are dead')),
+      guardAfter !== null && !guardAfter.rows.some((r) => r.includes('8 wolves in the forest are dead')),
       `rows=${JSON.stringify(guardAfter?.rows)}`);
     await leave();
   }

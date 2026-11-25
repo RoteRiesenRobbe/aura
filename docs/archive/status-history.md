@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-25, the vertical slice PF4 wrap: the VERTICAL SLICE PF1 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: VERTICAL SLICE PF1, rules and bugs** ✅ DONE 2026-11-22 `6ed28a92`, PO walk passed (restart look waived: the probe covers it), DEPLOYED LIVE 2026-11-25 as `90fcab23` (ledger + walk: `docs/plan-vertical-slice.md` §11 PF1): main green (wolf quest parked); a restart shows "Connection lost"; an effect never targets what it can never hurt (R23, Charge included); talking people and animals are walk-through (layer 96) on `layers.mobs.npcs` over the player, objects keep 97 on the new `fixtures` layer. ⚑ `chunk2-accounts` writes the dev DB `aura` by name, whatever the server uses (not run). **Schema: DB none · wire none · conf none · content 34 collision layers.** Verified: Go 0 FAIL · DB tests ok · vitest 2017/0 · typecheck · `-validate` 0 · restart probe · `immune-feedback` 4/4 · `chunk3b-interact` 14/14 · `herd-h1` 4/4 · 3 harness reds also red at HEAD.
+
 *(2026-11-25, the vertical slice PF3 wrap: the VERTICAL SLICE VS1 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: VERTICAL SLICE VS1, the ascension at 12** ✅ DONE 2026-11-22 `babc3674`, DEPLOYED LIVE 2026-11-22 as `e9c30279` with AC3, PO look = today's playthrough on live (ledger: `docs/plan-vertical-slice.md` §11 VS1): the city stone's four gates 30 → 12 [PLACEHOLDER] + its "max level" line reworded; `maxLevel` stays 30. ⚑ Never lower `maxLevel` over saved characters: their next death erases the XP above the cap (L4). **Schema: DB none · wire none · conf none · content 4 values · lang 1 line EN + DE.** Verified: Go 0 FAIL · db-test ok · vitest 2013/0 · typecheck · `-validate` 0 · `c2a` 49/49 · `c2b` 12/12 · `c3-memorial` 14/14 · `c1-front-stone` 13/15 (2 expected).
