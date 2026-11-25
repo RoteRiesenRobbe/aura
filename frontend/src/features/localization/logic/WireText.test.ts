@@ -1,6 +1,6 @@
 import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {AuraApi} from '../../backend/logic/AuraApi';
-import {lockedText, lockReasonText, objectiveLine, resolveArgs, WireArg, wireMessageText} from './WireText';
+import {appearanceUnlockSource, lockedText, lockReasonText, objectiveLine, resolveArgs, WireArg, wireMessageText} from './WireText';
 import {formatMobName, loadMobCatalog, mobName} from '../../../client-data/Mobs';
 import {loadLangBundle} from '../../../client-data/LangBundle';
 import {loadCatalog, setLocaleForTest} from './Locale';
@@ -167,6 +167,34 @@ describe('lockReasonText', () => {
         setLocaleForTest('de');
         expect(lockReasonText({kind: AuraApi.ConversationLockKind.StoneGift}))
             .toBe('ein Geschenk eines Aufstiegssteins');
+    });
+});
+
+describe('appearanceUnlockSource (PO 2026-11-25)', () => {
+    const level = {kind: AuraApi.ConversationLockKind.MinLevel, value: 3};
+    const line = {kind: AuraApi.ConversationLockKind.Ascensions, value: 1};
+
+    it('words the authored condition as the source, without progress', () => {
+        expect(appearanceUnlockSource([level], false)).toBe('Level 3 reward');
+        expect(appearanceUnlockSource([line], false)).toBe('Reward for 1 ascension in this line');
+        setLocaleForTest('de');
+        expect(appearanceUnlockSource([level], false)).toBe('Belohnung für Stufe 3');
+    });
+
+    it('joins an all-gate, and gives up on an any-gate it cannot pin to one', () => {
+        expect(appearanceUnlockSource([level, line], false))
+            .toBe('Level 3 reward and Reward for 1 ascension in this line');
+        expect(appearanceUnlockSource([level, line], true)).toBe('');
+        expect(appearanceUnlockSource([level], true)).toBe('Level 3 reward');
+    });
+
+    it('shows no line when it cannot word a condition', () => {
+        expect(appearanceUnlockSource(undefined, false)).toBe('');
+        expect(appearanceUnlockSource([], false)).toBe('');
+        expect(appearanceUnlockSource([{kind: AuraApi.ConversationLockKind.Kills, value: 5}], false)).toBe('');
+        // A quest the catalog has not loaded would show its slug: no line instead.
+        expect(appearanceUnlockSource([{kind: AuraApi.ConversationLockKind.QuestComplete, quest: 'village-welcome'}], false))
+            .toBe('');
     });
 });
 

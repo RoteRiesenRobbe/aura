@@ -62,15 +62,18 @@ const (
 	KeyUnlockTaughtBy    = "unlock.taught-by"
 	KeyUnlockCheat       = "unlock.cheat"
 	// KeyUnlockAppearance marks an earned portrait or ring's unlock
-	// (plan-appearance.md C5); the client words the banner from the item and
-	// shows no second line (plan-vertical-slice.md F14).
+	// (plan-appearance.md C5); the client words the banner from the item, its
+	// second line from the item's own conditions (PO 2026-11-25), never this.
 	KeyUnlockAppearance = "unlock.appearance"
 	KeyJournalUpdated   = "journal.updated"
-	KeyQuestComplete    = "journal.quest-complete"
-	KeyWarlordFallen    = "warlord.fallen"
-	KeyWarlordReturned  = "warlord.returned"
-	KeySaveResumed      = "save.resumed"
-	KeySaveFailing      = "save.failing"
+	// KeyCampPointGained is the banner when a newly discovered fire adds a
+	// campfire point (plan-campfire-traits D3).
+	KeyCampPointGained = "camp.point-gained"
+	KeyQuestComplete   = "journal.quest-complete"
+	KeyWarlordFallen   = "warlord.fallen"
+	KeyWarlordReturned = "warlord.returned"
+	KeySaveResumed     = "save.resumed"
+	KeySaveFailing     = "save.failing"
 	// KeyAscensionRefused is the bubble over a player whose ascension did not
 	// land (plan-ascension.md P14).
 	KeyAscensionRefused = "ascension.refused"
@@ -88,6 +91,7 @@ var ServerKeys = map[string][]string{
 	KeyUnlockCheat:       nil,
 	KeyUnlockAppearance:  nil,
 	KeyJournalUpdated:    {"quest"},
+	KeyCampPointGained:   nil,
 	KeyQuestComplete:     {"quest"},
 	KeyWarlordFallen:     {"names", "count"},
 	KeyWarlordReturned:   nil,

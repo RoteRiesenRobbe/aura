@@ -35,7 +35,8 @@
  */
 import {Graphics} from 'pixi.js';
 import type {Texture} from 'pixi.js';
-import {jaggedPolyline, JAG_AMPLITUDE_PX, JAG_SEGMENTS} from './SkillFxMath';
+import {boltPaths} from './SkillFxMath';
+import type {BoltPoint} from './SkillFxMath';
 
 /** Every name the bodies folder holds, whether or not its texture has landed. */
 const knownBodies = new Set<string>();
@@ -307,29 +308,41 @@ export function drawProjectilePlaceholder(g: Graphics, color: number, sizePx: nu
         .fill({color: 0xffffff, alpha: 0.8});
 }
 
+/** Adds each polyline as its own subpath, so one stroke draws them all. */
+function tracePaths(g: Graphics, lines: readonly BoltPoint[][]): Graphics {
+    for (const line of lines) {
+        g.moveTo(line[0].x, line[0].y);
+        for (let i = 1; i < line.length; i++) {
+            g.lineTo(line[i].x, line[i].y);
+        }
+    }
+    return g;
+}
+
 /**
- * `beam` / `flash`: a kinked line from the caster to the victim. Redrawn each
- * frame because the endpoints follow both entities and the width follows the
- * envelope - the one placeholder that is not a static shape.
+ * `beam` / `flash`: lightning from the caster to the victim (boltPaths: main
+ * bolt, a second strand, forks and crackles at the victim). Redrawn each frame
+ * because the endpoints follow both entities, the width follows the envelope,
+ * and `frame` re-kinks the shape so it flickers.
  */
 export function drawBeamFlashPlaceholder(
     g: Graphics, color: number,
     fromX: number, fromY: number, toX: number, toY: number,
-    widthPx: number, alpha: number, seed: number,
+    widthPx: number, alpha: number, seed: number, frame: number,
 ): Graphics {
-    const points = jaggedPolyline(fromX, fromY, toX, toY, JAG_SEGMENTS, JAG_AMPLITUDE_PX, seed);
-    g.clear().moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        g.lineTo(points[i].x, points[i].y);
-    }
-    // A wide soft pass under a thin white core: the cheapest thing that reads
-    // as a bolt rather than as a line.
-    g.stroke({color, width: widthPx * 2.6, alpha: alpha * 0.4});
-    g.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        g.lineTo(points[i].x, points[i].y);
-    }
-    return g.stroke({color: 0xffffff, width: widthPx, alpha});
+    const b = boltPaths(fromX, fromY, toX, toY, seed, frame);
+    const thin = Math.max(1, widthPx * 0.45);
+    g.clear();
+    // Glow at both ends: the charge leaving the hand and landing on the victim.
+    g.circle(toX, toY, widthPx * 2.4).fill({color, alpha: alpha * 0.3});
+    g.circle(toX, toY, widthPx * 1.1).fill({color: 0xffffff, alpha: alpha * 0.55});
+    g.circle(fromX, fromY, widthPx * 1.4).fill({color, alpha: alpha * 0.3});
+    // A wide soft pass under everything, then the cores: thin forks, crackles
+    // and strand, the white main bolt on top.
+    tracePaths(g, [b.main, b.strand, ...b.forks]).stroke({color, width: widthPx * 2.6, alpha: alpha * 0.35, join: 'round'});
+    tracePaths(g, [b.strand]).stroke({color, width: thin, alpha: alpha * 0.7, join: 'round'});
+    tracePaths(g, [...b.forks, ...b.sparks]).stroke({color: 0xffffff, width: thin, alpha: alpha * 0.85, join: 'round'});
+    return tracePaths(g, [b.main]).stroke({color: 0xffffff, width: widthPx, alpha, join: 'round'});
 }
 
 // --- the strike weapons -----------------------------------------------------

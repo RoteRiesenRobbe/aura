@@ -14,6 +14,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/lang"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -1481,6 +1482,11 @@ func (s *ConnectionStateSystem) discoverCampfires() {
 		}
 		set.add(id)
 		s.publishCampfireState(p)
+		// Every discovered fire is one campfire point (D3): say so here, at
+		// the one place a point is earned, never from the count (a respec
+		// raises it too).
+		_ = p.Client().SendJournal(lang.Message{Key: lang.KeyCampPointGained,
+			English: "New Campfire Skill Point gained"})
 	}
 }
 

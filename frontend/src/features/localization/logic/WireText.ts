@@ -254,6 +254,43 @@ export function lockReasonText(l: LockData): string {
     }
 }
 
+/**
+ * Where an earned portrait or ring came from, for its unlock banner's second
+ * line (PO 2026-11-25): the item's authored conditions worded as a source
+ * ("Level 3 reward"), never with progress. '' (no second line) when a
+ * condition has no source wording, a quest title has not loaded, or an any-gate
+ * of several conditions cannot say which one opened it.
+ */
+export function appearanceUnlockSource(locks: readonly LockData[] | undefined, any: boolean): string {
+    if (!locks || locks.length === 0 || (any && locks.length > 1)) {
+        return '';
+    }
+    const parts: string[] = [];
+    for (const l of locks) {
+        const part = unlockSourceText(l);
+        if (part === '') {
+            return '';
+        }
+        parts.push(part);
+    }
+    return formatList(parts, 'conjunction');
+}
+
+function unlockSourceText(l: LockData): string {
+    switch (l.kind) {
+        case AuraApi.ConversationLockKind.MinLevel:
+            return t('unlock.level-reward', {level: l.value ?? 0});
+        case AuraApi.ConversationLockKind.Ascensions:
+            return t('unlock.ascension-reward', {count: l.value ?? 0});
+        case AuraApi.ConversationLockKind.QuestComplete: {
+            const title = questDefinition(l.quest ?? '')?.title;
+            return title ? t('unlock.quest-reward', {quest: title}) : '';
+        }
+        default:
+            return '';
+    }
+}
+
 function reasonsList(locks: LockData[], any: boolean): string {
     return formatList(locks.map(lockReasonText), any ? 'disjunction' : 'conjunction');
 }

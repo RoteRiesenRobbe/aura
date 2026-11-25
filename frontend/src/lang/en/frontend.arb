@@ -305,6 +305,10 @@
   "@bug-report.not-saved.refused": {
     "description": "Bug report panel: the line under the banner when the server refused the copy for another reason (too long, storage full) (plan-bug-report.md D10)."
   },
+  "camp.point-gained": "New Campfire Skill Point gained",
+  "@camp.point-gained": {
+    "description": "Banner when discovering a new campfire grants a campfire point to spend in the spellbook's Campfire tab."
+  },
   "confirm-row.cancel": "Cancel",
   "@confirm-row.cancel": {
     "description": "HUD: text of the <a> element in #confirmRow in #bottomCenter."
@@ -1923,7 +1927,7 @@
   },
   "unlock.appearance": "Wear it under Appearance",
   "@unlock.appearance": {
-    "description": "The server's fallback text for an earned portrait or ring (plan-appearance.md C5); Appearance is the HUD button's name. Not shown in the banner since plan-vertical-slice.md F14: the key only tells the client the unlock is a look."
+    "description": "The server's fallback text for an earned portrait or ring (plan-appearance.md C5); Appearance is the HUD button's name. Not shown: the key only tells the client the unlock is a look; the banner's second line words the item's own unlock condition."
   },
   "unlock.cheat": "Cheat",
   "@unlock.cheat": {
@@ -1945,6 +1949,20 @@
     "description": "Unlock banner, second line: a milestone level granted the skill.",
     "placeholders": {
       "level": {"type": "int", "description": "The level reached", "example": "5"}
+    }
+  },
+  "unlock.quest-reward": "Reward for “{quest}”",
+  "@unlock.quest-reward": {
+    "description": "Unlock banner, second line under an earned portrait or ring: finishing this quest unlocked it.",
+    "placeholders": {
+      "quest": {"type": "String", "description": "Quest title, already localized", "example": "Welcome to the Village"}
+    }
+  },
+  "unlock.ascension-reward": "Reward for {count, plural, one {# ascension} other {# ascensions}} in this line",
+  "@unlock.ascension-reward": {
+    "description": "Unlock banner, second line under an earned portrait or ring: this many ascensions in the character's bloodline unlocked it.",
+    "placeholders": {
+      "count": {"type": "int", "description": "Ascensions required", "example": "1"}
     }
   },
   "unlock.taught-by": "Taught by: {mob}",

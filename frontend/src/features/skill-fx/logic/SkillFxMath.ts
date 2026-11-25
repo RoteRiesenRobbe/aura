@@ -893,6 +893,103 @@ export function jaggedPolyline(
     return points;
 }
 
+// --- the full bolt (main, strand, forks, sparks) ----------------------------
+//
+// One caster->victim hop drawn like a chain lightning arc rather than a single
+// line (PO 2026-11-25: "more than just the single bolt"): a dense main bolt, a
+// fainter second strand twisting around it, short forks breaking off its
+// nodes, and small crackles at the victim. Every number is [PLACEHOLDER].
+
+/** How long one bolt shape holds before the next frame re-kinks it. */
+export const BOLT_FLICKER_MS = 45;
+/** One main-bolt node per this many pixels, clamped to the range below. */
+const BOLT_PX_PER_SEGMENT = 14;
+const BOLT_MIN_SEGMENTS = JAG_SEGMENTS;
+const BOLT_MAX_SEGMENTS = 18;
+/** Sideways throw: a share of the hop, capped, so a short hop stays tight. */
+const BOLT_AMPLITUDE_SHARE = 0.14;
+const BOLT_MAX_AMPLITUDE_PX = 16;
+/** One fork per this many pixels of hop, at least one, at most the cap. */
+const BOLT_PX_PER_FORK = 40;
+const BOLT_MAX_FORKS = 5;
+/** Fork length as a share of the hop, between these, capped in pixels. */
+const FORK_MIN_SHARE = 0.18;
+const FORK_MAX_SHARE = 0.4;
+const FORK_MAX_PX = 70;
+const FORK_MIN_PX = 12;
+/** How far off the bolt's direction a fork leaves, in radians. */
+const FORK_MIN_ANGLE = 0.45;
+const FORK_MAX_ANGLE = 1.1;
+/** The crackles at the victim. */
+const SPARK_COUNT = 4;
+const SPARK_MIN_PX = 16;
+const SPARK_MAX_PX = 32;
+
+export type BoltPoint = { x: number, y: number };
+
+export interface BoltPaths {
+    main: BoltPoint[];
+    strand: BoltPoint[];
+    forks: BoltPoint[][];
+    sparks: BoltPoint[][];
+}
+
+/** A deterministic 0..1 from any number: the classic sine hash. */
+export function hash01(n: number): number {
+    const s = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+    return s - Math.floor(s);
+}
+
+/**
+ * Everything one lightning hop draws this frame. `frame` is the flicker bucket
+ * (elapsed / BOLT_FLICKER_MS): the same (seed, frame) always gives the same
+ * shape, a new frame re-kinks it, so the bolt crackles while it lives.
+ * Both the main bolt and the strand start on the caster and end on the victim.
+ */
+export function boltPaths(
+    fromX: number, fromY: number, toX: number, toY: number,
+    seed: number, frame: number,
+): BoltPaths {
+    const dist = Math.hypot(toX - fromX, toY - fromY);
+    const s = seed + frame * 7.31;
+    const segments = Math.max(BOLT_MIN_SEGMENTS,
+        Math.min(BOLT_MAX_SEGMENTS, Math.round(dist / BOLT_PX_PER_SEGMENT)));
+    const amplitude = Math.min(BOLT_MAX_AMPLITUDE_PX, dist * BOLT_AMPLITUDE_SHARE);
+    const main = jaggedPolyline(fromX, fromY, toX, toY, segments, amplitude, s);
+    const strand = jaggedPolyline(fromX, fromY, toX, toY,
+        Math.max(BOLT_MIN_SEGMENTS, segments - 3), amplitude * 1.7, s + 101);
+    if (dist === 0) {
+        return {main, strand, forks: [], sparks: []};
+    }
+    const axis = Math.atan2(toY - fromY, toX - fromX);
+
+    const forkCount = Math.min(BOLT_MAX_FORKS, Math.max(1, Math.floor(dist / BOLT_PX_PER_FORK)));
+    const forks: BoltPoint[][] = [];
+    for (let k = 0; k < forkCount; k++) {
+        const h = s * 3.7 + k * 19.1;
+        // Interior nodes only: a fork at either end would read as a second bolt.
+        const at = main[1 + Math.floor(hash01(h) * (main.length - 2))];
+        const side = hash01(h + 1) < 0.5 ? -1 : 1;
+        const angle = axis + side * (FORK_MIN_ANGLE + (FORK_MAX_ANGLE - FORK_MIN_ANGLE) * hash01(h + 2));
+        const length = Math.max(FORK_MIN_PX, Math.min(FORK_MAX_PX,
+            dist * (FORK_MIN_SHARE + (FORK_MAX_SHARE - FORK_MIN_SHARE) * hash01(h + 3))));
+        forks.push(jaggedPolyline(at.x, at.y,
+            at.x + Math.cos(angle) * length, at.y + Math.sin(angle) * length,
+            4, length * 0.12, h + 4));
+    }
+
+    const sparks: BoltPoint[][] = [];
+    for (let k = 0; k < SPARK_COUNT; k++) {
+        const h = s * 5.3 + k * 11.7;
+        const angle = (k / SPARK_COUNT) * Math.PI * 2 + hash01(h) * 1.2;
+        const length = SPARK_MIN_PX + (SPARK_MAX_PX - SPARK_MIN_PX) * hash01(h + 1);
+        sparks.push(jaggedPolyline(toX, toY,
+            toX + Math.cos(angle) * length, toY + Math.sin(angle) * length,
+            3, length * 0.15, h + 2));
+    }
+    return {main, strand, forks, sparks};
+}
+
 // --- the chain --------------------------------------------------------------
 
 /** How long each chain hop waits on the one before it. [PLACEHOLDER] */

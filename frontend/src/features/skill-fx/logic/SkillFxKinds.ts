@@ -43,6 +43,7 @@ import {
     beamExtend,
     beamFlash,
     beamSpriteScale,
+    BOLT_FLICKER_MS,
     PROJECTILE_SIZE_FACTOR,
     landsOnVictim,
     STRIKE_MIN_LENGTH_PX,
@@ -626,7 +627,7 @@ class BeamFx implements Fx {
             this.paint(
                 from.x, from.y,
                 from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e,
-                this.widthPx, phase.alpha);
+                this.widthPx, phase.alpha, elapsed);
         } else {
             const phase = beamFlash(elapsed, this.totalMs);
             if (phase.done) {
@@ -634,7 +635,7 @@ class BeamFx implements Fx {
             }
             this.paint(
                 from.x, from.y, to.x, to.y,
-                this.widthPx * phase.width, phase.intensity);
+                this.widthPx * phase.width, phase.intensity, elapsed);
         }
         this.body.visible = true;
         return true;
@@ -652,7 +653,7 @@ class BeamFx implements Fx {
      */
     private paint(
         fromX: number, fromY: number, toX: number, toY: number,
-        widthPx: number, alpha: number,
+        widthPx: number, alpha: number, elapsedMs: number,
     ): void {
         if (this.sprite !== null) {
             const scale = beamSpriteScale(
@@ -670,7 +671,8 @@ class BeamFx implements Fx {
             return;
         }
         drawBeamFlashPlaceholder(
-            this.g, this.ctx.color, fromX, fromY, toX, toY, widthPx, alpha, this.ctx.seed);
+            this.g, this.ctx.color, fromX, fromY, toX, toY, widthPx, alpha, this.ctx.seed,
+            Math.floor(elapsedMs / BOLT_FLICKER_MS));
     }
 
     dispose(): void {

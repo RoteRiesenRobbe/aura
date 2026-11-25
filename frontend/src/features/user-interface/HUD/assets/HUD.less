@@ -909,24 +909,25 @@
 	// are exactly what a harness clicks.
 	> #spellbookTabs {
 		display: flex;
-		// Four tabs since CT2 (Campfire): a language whose labels outgrow the
-		// fixed book width wraps the ROW onto a second line instead of the
-		// global `hyphens: auto` breaking each label mid-word (German read
-		// "Au-ren / Pas-sive" on the desktop book, 2026-11-15).
-		// Smaller than the panel text so four English tabs share ONE row at
-		// the fixed book width (PO 2026-11-15); a longer language wraps the
-		// row and the book grows by it (PO: "we go for rows").
-		flex-wrap: wrap;
-		gap: 0.3rem;
+		// ONE row in every language (PO 2026-11-25, replacing 2026-11-15's
+		// "we go for rows"): the tabs never wrap and share the book's width,
+		// each as wide as its label. `hyphens: manual` below keeps the global
+		// `hyphens: auto` from breaking a label mid-word ("Au-ren", 2026-11-15).
+		flex-wrap: nowrap;
+		gap: 0.15rem;
 		margin: 0 0 0.6rem;
 		padding: 0;
 		list-style: none;
 
 		> .spellbookTab {
+			flex: 1 1 auto;
+			text-align: center;
 			white-space: nowrap;
 			hyphens: manual;
-			font-size: 0.8em;
-			padding: 0.3rem 0.4rem;
+			// Small enough that German's four labels fit the 26rem book
+			// (Abklingfähigkeiten is the long one); measured by ct2-camp-tab.
+			font-size: 0.72em;
+			padding: 0.3rem 0.25rem;
 			border: 1px solid @panel-border;
 			border-radius: 0.4rem 0.4rem 0 0;
 			border-bottom: 2px solid fade(@gold-levelup, 25%);

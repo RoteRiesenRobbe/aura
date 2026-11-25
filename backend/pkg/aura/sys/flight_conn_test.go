@@ -52,6 +52,26 @@ func TestCampfireDiscovered_FollowsTheVisit(t *testing.T) {
 	assert.True(t, s.CampfireDiscovered(c.UUID(), "spawnpoint-2"))
 }
 
+// A new fire is a new campfire point (plan-campfire-traits D3), and the
+// player hears it once, at the discovery (PO 2026-11-25).
+func TestCampfireDiscovered_AnnouncesThePointOnce(t *testing.T) {
+	s, g := newStateFixture(t)
+	first, second := twoFires()
+	first.StartingSpawn = true
+	s.SetCampfireAnchors([]CampfireAnchor{first, second})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	before := len(c.journals)
+
+	visit(s, p, second)
+	require.Len(t, c.journals, before+1, "discovering a fire announces its point")
+	assert.Equal(t, "New Campfire Skill Point gained", c.journals[before])
+
+	visit(s, p, first)
+	visit(s, p, second)
+	assert.Len(t, c.journals, before+1, "a known fire announces nothing")
+}
+
 func TestCampfirePosition_StaleIdIsSkippedNotAnError(t *testing.T) {
 	s, _ := newStateFixture(t)
 	first, _ := twoFires()

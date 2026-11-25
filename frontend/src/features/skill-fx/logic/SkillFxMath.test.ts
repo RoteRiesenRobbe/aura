@@ -3,6 +3,7 @@ import {
     BEAM_EXTEND_FADE_FRACTION,
     beamExtend,
     beamFlash,
+    boltPaths,
     BURST_REACH_FACTOR,
     CAST_POSE_DEFAULT_MS,
     castPoseAlpha,
@@ -363,6 +364,46 @@ describe('jaggedPolyline', () => {
     });
     it('degenerates to the two endpoints for a zero-length bolt', () => {
         expect(jaggedPolyline(5, 5, 5, 5, 6, 10, 0)).toEqual([{x: 5, y: 5}, {x: 5, y: 5}]);
+    });
+});
+
+describe('boltPaths', () => {
+    it('runs the main bolt and the strand exactly caster to victim', () => {
+        const b = boltPaths(10, 20, 210, 20, 3, 0);
+        for (const line of [b.main, b.strand]) {
+            expect(line[0]).toEqual({x: 10, y: 20});
+            expect(line[line.length - 1]).toEqual({x: 210, y: 20});
+        }
+    });
+    it('grows denser and forkier with the hop, with at least one fork', () => {
+        const short = boltPaths(0, 0, 30, 0, 3, 0);
+        const long = boltPaths(0, 0, 240, 0, 3, 0);
+        expect(short.forks.length).toBe(1);
+        expect(long.forks.length).toBeGreaterThan(short.forks.length);
+        expect(long.main.length).toBeGreaterThan(short.main.length);
+    });
+    it('starts every fork on an interior node of the main bolt', () => {
+        const b = boltPaths(0, 0, 240, 0, 3, 2);
+        const interior = b.main.slice(1, -1);
+        for (const fork of b.forks) {
+            expect(interior).toContainEqual(fork[0]);
+        }
+    });
+    it('crackles at the victim', () => {
+        const b = boltPaths(0, 0, 100, 0, 3, 0);
+        expect(b.sparks.length).toBeGreaterThan(0);
+        for (const spark of b.sparks) {
+            expect(spark[0]).toEqual({x: 100, y: 0});
+        }
+    });
+    it('is deterministic per frame and re-kinks on the next one', () => {
+        expect(boltPaths(0, 0, 100, 0, 3, 1)).toEqual(boltPaths(0, 0, 100, 0, 3, 1));
+        expect(boltPaths(0, 0, 100, 0, 3, 2).main).not.toEqual(boltPaths(0, 0, 100, 0, 3, 1).main);
+    });
+    it('draws no forks or sparks for a zero-length hop', () => {
+        const b = boltPaths(5, 5, 5, 5, 3, 0);
+        expect(b.forks).toEqual([]);
+        expect(b.sparks).toEqual([]);
     });
 });
 

@@ -27,7 +27,7 @@ import {allQuestMarkers, setQuestMarkers} from '../../../client-data/QuestMarker
 import {appearanceReady, itemAtFlat} from '../../../client-data/Appearance';
 import * as AppearancePanel from '../../user-interface/HUD/logic/AppearancePanel';
 import {AuraApi} from './AuraApi';
-import {wireMessageText} from '../../localization/logic/WireText';
+import {appearanceUnlockSource, wireMessageText} from '../../localization/logic/WireText';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
@@ -330,12 +330,18 @@ export class Backend implements IBackend {
                     // entity id is the item's flat index, not a skill id. A
                     // grant on the join tick can beat /appearance, so the name
                     // waits for the catalog (appearanceReady always resolves).
-                    // One line only: the POs dropped "Wear it under Appearance"
-                    // (plan-vertical-slice.md F14); the key still marks the kind.
+                    // The second line is the item's unlock source, worded from
+                    // its authored conditions (PO 2026-11-25, replacing F14's
+                    // "Wear it under Appearance"), or absent when none words.
                     const flat = Number(entityMessage.entityId());
-                    void appearanceReady.then(() => AlertBanner.show(
-                        t('unlock.banner', {category: 'appearance', name: itemAtFlat(flat)?.item.name ?? ''}),
-                        'unlock'));
+                    void appearanceReady.then(() => {
+                        const item = itemAtFlat(flat)?.item;
+                        const source = appearanceUnlockSource(item?.locks, item?.conditionsMode === 'any');
+                        AlertBanner.show(
+                            t('unlock.banner', {category: 'appearance', name: item?.name ?? ''})
+                            + (source ? `\n${source}` : ''),
+                            'unlock');
+                    });
                 } else if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock) {
                     // Skill unlock (plan-unlock-attribution.md): entity_id carries
                     // the skill id, message carries the source label. The client
