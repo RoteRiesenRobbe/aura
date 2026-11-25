@@ -2785,19 +2785,29 @@ html:not(.mobile) #gameUI {
 			}
 		}
 
-		// The number pills, top right; dark-backed so they read over the art.
+		// The number pills down the right edge, clear of the hotkey chip on
+		// the top left (side by side they grew into it): skill points top
+		// right, campfire points bottom right, each in its corner even alone.
+		// Dark-backed so they read over the art.
 		> .hudTileBadges {
 			position: absolute;
 			right: -0.5rem;
 			top: -0.5rem;
+			bottom: -0.5rem;
 			display: flex;
-			gap: 0.2rem;
+			flex-direction: column;
+			align-items: flex-end;
 			z-index: 1;
+			pointer-events: none;
 
 			> .skillPointsPill,
 			> .campPointsBadge {
 				margin: 0;
 				background: @ink;
+			}
+
+			> .campPointsBadge {
+				margin-top: auto;
 			}
 		}
 	}
