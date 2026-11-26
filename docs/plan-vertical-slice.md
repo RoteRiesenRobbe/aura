@@ -987,7 +987,9 @@ from the PONETI pack; the sheets and atlases stay out of the repo.
 - New `pf5-looks.mjs` 5/5: 20 conversants seen across the 18 stops, 20 faces; the forest
   ring 0x5fae4a on the token and rgb(95, 174, 74) on 18 masked multiply layers in the
   appearance panel; shots of every NPC, the campfire and the Campfire tab. One of four runs
-  logged a page error "reading 'terrain'" (MiniMap / ground textures / `Game.ts`, none
-  touched; likely the long warps): open flake. `ct2-camp-tab` 19/19 · `pack-icons` pass.
+  logged a page error "reading 'terrain'": a WebGL context restored during boot ran
+  `Game.paintTerrainSurfaces` before `setup()` built the layers. Fixed 2026-11-26 (a guard;
+  a scratch probe firing the restore handler on registration was red before, green after).
+  `ct2-camp-tab` 19/19 · `pack-icons` pass.
 
 **Look result, 2026-11-26:** PO "works" after the pick sheet and a walk in game.

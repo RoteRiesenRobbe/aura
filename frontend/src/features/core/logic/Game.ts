@@ -975,6 +975,12 @@ export class Game implements IGame {
     }
 
     private paintTerrainSurfaces(): void {
+        // A context lost and restored during boot fires the restore handler
+        // before setup() has built the layers: nothing is painted yet, and
+        // the first zone load paints everything anyway.
+        if (!this.layers) {
+            return;
+        }
         const layer = this.layers.terrain.regions;
         const polygonLayer = this.layers.terrain.polygons;
         const pathLayer = this.layers.terrain.paths;
