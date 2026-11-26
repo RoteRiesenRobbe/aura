@@ -3,6 +3,7 @@
   "id": 184,
   "name": "CampSpeedBuff",
   "icon": "lorc/wingfoot",
+  "packIcon": "horseshoe",
   "category": "camp",
   "maxLevel": 15,
   "campTrait": {

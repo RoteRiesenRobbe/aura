@@ -3,6 +3,7 @@
   "id": 174,
   "name": "Hatchet",
   "icon": "lorc/scythe",
+  "packIcon": "double-axe",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

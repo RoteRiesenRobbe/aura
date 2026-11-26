@@ -3,6 +3,7 @@
   "id": 179,
   "name": "CampDuration",
   "icon": "lorc/stopwatch",
+  "packIcon": "hourglass",
   "category": "camp",
   "maxLevel": 15,
   "campTrait": {

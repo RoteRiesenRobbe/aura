@@ -15,7 +15,7 @@ import {
     setOwnedAppearance,
     wireOf,
 } from './Appearance';
-import {RING_FAMILY_FILES} from './Medallions';
+import {RING_FAMILY_FILES, ringItemTint} from './Medallions';
 import {GraphicsConfig} from './Graphics';
 
 // plan-appearance.md C3: Character.portrait / ring are 1 + the position in the
@@ -78,13 +78,13 @@ describe('defaultLook', () => {
 describe('lookArt', () => {
     it('is the bust and the ring family a worn look draws', () => {
         setAppearanceCatalog(catalog);
-        expect(lookArt(1, 1)).toEqual({packIcon: 'portrait-auburn-curls', family: 'leather'});
-        expect(lookArt(0, 0)).toEqual({packIcon: 'portrait-morion-helm', family: 'grey'});
+        expect(lookArt(1, 1)).toEqual({packIcon: 'portrait-auburn-curls', family: 'leather', tint: ringItemTint('ring-leather')});
+        expect(lookArt(0, 0)).toEqual({packIcon: 'portrait-morion-helm', family: 'grey', tint: ringItemTint('ring-plain')});
     });
 
     it('draws the class portrait in the grey ring before the catalog arrives', () => {
         setAppearanceCatalog(null);
-        expect(lookArt(1, 1)).toEqual({packIcon: undefined, family: 'grey'});
+        expect(lookArt(1, 1)).toEqual({packIcon: undefined, family: 'grey', tint: ringItemTint(undefined)});
     });
 });
 

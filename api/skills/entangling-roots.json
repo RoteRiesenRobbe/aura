@@ -3,6 +3,7 @@
   "id": 157,
   "name": "EntanglingRoots",
   "icon": "lorc/vine-leaf",
+  "packIcon": "root-boot",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,

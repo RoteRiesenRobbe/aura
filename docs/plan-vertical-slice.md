@@ -1,6 +1,6 @@
 # Plan: Vertical slice: a short, completable playtest build (Farmlands → Woods → City → Swamp → the stone at 16 → an heir)
 
-**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, PF4 done 2026-11-25 `b18a39cb`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: CW (the coworker's `world.json` pass, §5.5, R28) beside PF5 (Looks).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
+**Status: DESIGNED 2026-11-22 (planning session, PO in chat). R1-R28 RULED (R27 supersedes half of R21) (R12 supersedes R1's cap, R20 supersedes R2's 12), D1-D9 PROPOSED, still open: §7. VS1 built and live 2026-11-22. VS-P played 2026-11-22 (no ascension yet).** **PF1 done 2026-11-22 `6ed28a92`, PF2 done 2026-11-24 `4dc4de15`, PF3 done 2026-11-25 `690591eb`, PF4 done 2026-11-25 `b18a39cb`, PF5 done 2026-11-26 `[uncommitted]`, every PO look passed (§11). PF1-PF3 live 2026-11-25 as `90fcab23`. Next: CW (the coworker's `world.json` pass, §5.5, R28) beside PF6 (Sound and level-up).** Open PO calls in §7. The plan is deliberately AGILE (R4): VS0,
 the feature audit, decides which fill chunks exist; §5 lists the fixed chunks and
 the candidate fills. VS-P needs no approval; VS0 starts once the plan is approved.
 
@@ -614,7 +614,7 @@ Baseline `bc58a9cb` (its moves kept the road counts as they were). `23060f46` mo
 - ~~**Q16 - When is the census script saved as a tool?**~~ RULED 2026-11-22: in VS0 (D2).
 - **Q17 - (deferred 2026-11-22 to after VS-P) Approval of this plan:** both POs refine it
   with the playthrough's notes, then approve. Nothing further is built until then.
-  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23, PF3 2026-11-24, PF4 2026-11-25 (its go the same day). PF5 needs one.
+  ⚑ R19 ruled the fix order; PF1 got its own go 2026-11-22 (the PO's prompt); PF2 was built 2026-11-23, PF3 2026-11-24, PF4 2026-11-25 (its go the same day), PF5 2026-11-26 (its go the same day). PF6 needs one.
 - ~~**Q18 - End level and the Bluff**~~ RULED 2026-11-22: R20, stone 16, Bluff open.
 - ~~**Q19 - Wolves on the Road against DQ R8/D8**~~ RULED 2026-11-22: R21, keep both.
 - ~~**Q20 - Immune targets**~~ RULED 2026-11-22: R23, never targeted.
@@ -942,3 +942,52 @@ text only: every id and key that already existed stays, and the map was not touc
   text checks were updated), `content-editor-lang` (stale since 2026-10-20; updated).
 
 **Look result, 2026-11-25:** PO "works" on the 20-item checklist, English and German.
+
+### PF5 - Looks ✅ DONE 2026-11-26 `[uncommitted]`, PO look passed 2026-11-26
+
+Built and looked at 2026-11-26 (PO: "works"). One pick sheet (four pages, A/B/C per subject,
+the PO's letters in chat), one atlas repack: 207 icons in 5 atlases. Every new picture comes
+from the PONETI pack; the sheets and atlases stay out of the repo.
+
+- **F30, F8, F18:** the 16 NPCs that shared the farmer, hooded-woman and prophet busts each
+  wear their own, through `GraphicsConfig.speciesPortraits` (client only, keyed by mob name,
+  no wire change). Reinhard and the Hermit keep the class face. The PO's picks: A for all
+  except Hans B (red scarf), the Lumberjack Guild Associate C (Viking), Henrik B (hooded
+  archer), Fritz C (topknot), the Deckhand C (masked bald), the Wanderer B (homeless).
+  Benjamin moved off Human_63 to Human_32 so the villager could have it.
+- **F5:** the `villager` look is Human_63 (`portrait-curly-smile`).
+- **F6, F31, F38:** the 16 skills without a `packIcon` have one (camp traits: cooking fire,
+  hourglass, healing lamp, flaming sword, third eye, horseshoe; Hatchet double axe, Bulwark
+  stone shield, Bursting Totem wind totem, Charge sprinter, Demoralize battle cry, Entangling
+  Roots great roots, Nature's Swiftness tree face, Terrify fear, Thorns wooden spikes, Vanish
+  invisible rogue; PO: A except Charge C and Entangling Roots C). Short Bow has `longbow-shot`
+  instead of `spear-thrust`. Recall and Camp already had icons. The buff tray draws the rest
+  buffs through the trait's skill id, so it follows.
+- **F16:** `ringItemTint` in `Medallions.ts` gives each ring item its tint (leather 0xb07840,
+  forest 0x5fae4a, heirloom 0x4a8fc0, claws 0xc04a38; the plain ring stays the normal tier
+  grey; never the elite silver or boss gold). `lookArt` carries it, so both doors follow: the
+  world token's `Medallion` and the DOM medallion (`MedallionElement`), where a layer masked
+  to the ring image multiplies the colour over the greyscale art (replacing the old
+  brightness filter). Corpses stay `GREY_RING`.
+- **F7:** the campfire's bind circle is not drawn (the `DwellRing` path removed from
+  `Mobs.ts`, `WireSetters.ts`, `EntityManager.ts`). The server's radius still drives
+  discovery, E and flight; on the client `dwell_radius` only feeds the fire's light
+  (`server.fbs`: comment only, no regen).
+- **Noticed, not changed:** the placed sheep Baabara, Lambert and Woolliam share one sheep
+  face (outside F30's 18; a question for the POs). The Kobold and the Kobold Chief share a
+  face (combat mobs, outside F30).
+- **Schema:** DB none · wire none · conf none · content 17 skill `packIcon`s · icons +34 −1
+  (`pack-manifest.json`).
+
+**Verified**
+- vitest 2037/0 (`ringItemTint` red first; `PackIcons.test.ts` now walks every folder under
+  `api/skills`, it missed `camp/`) · typecheck clean · Go full suite 0 FAIL · `-validate`
+  0 findings · `-lang-status` 0 missing · packer `--self-test` 12/0 · `check-icon-leak --tree`
+  clean (3010 files).
+- New `pf5-looks.mjs` 5/5: 20 conversants seen across the 18 stops, 20 faces; the forest
+  ring 0x5fae4a on the token and rgb(95, 174, 74) on 18 masked multiply layers in the
+  appearance panel; shots of every NPC, the campfire and the Campfire tab. One of four runs
+  logged a page error "reading 'terrain'" (MiniMap / ground textures / `Game.ts`, none
+  touched; likely the long warps): open flake. `ct2-camp-tab` 19/19 · `pack-icons` pass.
+
+**Look result, 2026-11-26:** PO "works" after the pick sheet and a walk in game.

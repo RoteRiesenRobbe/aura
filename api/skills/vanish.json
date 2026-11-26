@@ -3,6 +3,7 @@
   "id": 168,
   "name": "Vanish",
   "icon": "delapouite/invisible",
+  "packIcon": "invisible-rogue",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 1800,

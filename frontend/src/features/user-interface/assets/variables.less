@@ -162,4 +162,12 @@
 		border-radius: 50%;
 		transform: scale(0.86);
 	}
+
+	// The ring item's colour (F16), multiplied over the greyscale ring
+	// inside the ring's own shape, as the world token's tint does.
+	.medallionRingTint {
+		mask-size: 100% 100%;
+		-webkit-mask-size: 100% 100%;
+		mix-blend-mode: multiply;
+	}
 }

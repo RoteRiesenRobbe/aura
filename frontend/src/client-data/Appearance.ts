@@ -6,7 +6,7 @@
 // (GraphicsConfig.playerPortraits, Medallions.RING_FAMILY_FILES).
 
 import {contentCatalogUrl} from '../features/backend/logic/Urls';
-import {FALLBACK_FAMILY, RING_FAMILY_FILES, RingFamily} from './Medallions';
+import {FALLBACK_FAMILY, RING_FAMILY_FILES, RingFamily, ringItemTint} from './Medallions';
 import {GraphicsConfig} from './Graphics';
 
 export type AppearanceSlot = 'portrait' | 'ring';
@@ -94,14 +94,16 @@ export function ringFamilyOf(item: AppearanceItem | undefined): RingFamily {
 
 /**
  * The art a worn look draws: the portrait's pack bust (undefined = the class
- * portrait) and the ring family. Before the catalog arrives that is the class
+ * portrait), the ring family and the ring item's tint. Before the catalog arrives that is the class
  * portrait in the grey ring, so a token is never bare.
  */
-export function lookArt(portraitWire: number, ringWire: number): { packIcon: string | undefined, family: RingFamily } {
+export function lookArt(portraitWire: number, ringWire: number): { packIcon: string | undefined, family: RingFamily, tint: number } {
     const portrait = portraitAt(portraitWire);
+    const ring = ringAt(ringWire);
     return {
         packIcon: portrait && GraphicsConfig.playerPortraits[portrait.id]?.packIcon,
-        family: ringFamilyOf(ringAt(ringWire)),
+        family: ringFamilyOf(ring),
+        tint: ringItemTint(ring?.id),
     };
 }
 

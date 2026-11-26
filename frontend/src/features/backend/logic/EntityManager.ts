@@ -17,7 +17,6 @@ import {wireLightRadius} from '../../darkness/logic/LightColor';
 import type {
     AuraDisplay,
     CharacterLook,
-    DwellRing,
     Interactable,
     LevelDisplay,
     MobPlate,
@@ -143,7 +142,7 @@ export class EntityManager {
         // none of these, a corpse only setLook) while the dot access makes a rename a
         // compile error instead of a silently-dead feature.
         const go = gameObject as GameObject &
-            Partial<OverheadVitals & TokenStateDisplay & AuraDisplay & LevelDisplay & MobPlate & DwellRing & CharacterLook>;
+            Partial<OverheadVitals & TokenStateDisplay & AuraDisplay & LevelDisplay & MobPlate & CharacterLook>;
 
         // The worn portrait and ring (plan-appearance.md C3), on a player and
         // on a player's corpse (C6).
@@ -215,12 +214,6 @@ export class EntityManager {
         // that reset reading as a beat); mobs carry none → 0.
         if (isDefined(entity.auraTickInterval) && isFunction(go.setAuraTick)) {
             go.setAuraTick(entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
-        }
-
-        // Campfire bind circle (chunk 4): wire-driven dwell radius in px,
-        // 0 for everything that is not a respawn anchor.
-        if (isDefined(entity.dwellRadius) && isFunction(go.setDwellRadius)) {
-            go.setDwellRadius(entity.dwellRadius);
         }
 
         // Light hole in the darkness overlay (chunk 3): characters and mobs

@@ -3,6 +3,7 @@
   "id": 182,
   "name": "CampFocusBuff",
   "icon": "sbed/health-increase",
+  "packIcon": "third-eye",
   "category": "camp",
   "maxLevel": 15,
   "campTrait": {

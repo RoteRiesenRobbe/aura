@@ -91,6 +91,8 @@ export class Medallion {
     // Only a token that wears a look (setLook) draws one: a Mob's ring and
     // portrait come from its species (setRing, setPortrait) instead.
     private wearsLook = false;
+    // The worn ring item's colour (F16), in place of the tier's.
+    private lookTint = ringTint(0);
     private portraitWire = 0;
     private ringWire = 0;
     private ringDrawn: RingFamily | null = null;
@@ -140,9 +142,13 @@ export class Medallion {
      */
     refresh() {
         if (this.wearsLook) {
-            const {packIcon, family} = lookArt(this.portraitWire, this.ringWire);
+            const {packIcon, family, tint} = lookArt(this.portraitWire, this.ringWire);
             if (family !== this.ringDrawn && this.setRing(family)) {
                 this.ringDrawn = family;
+            }
+            if (tint !== this.lookTint) {
+                this.lookTint = tint;
+                this.applyTints();
             }
             this.setPortraitTexture(packIconTexture(packIcon));
         }
@@ -231,7 +237,7 @@ export class Medallion {
     private applyTints() {
         this.disc.tint = this.grey ? GREY_DISC : stanceTint(this.stance);
         if (this.ring) {
-            this.ring.tint = this.grey ? GREY_RING : ringTint(this.tierRank);
+            this.ring.tint = this.grey ? GREY_RING : this.wearsLook ? this.lookTint : ringTint(this.tierRank);
         }
     }
 

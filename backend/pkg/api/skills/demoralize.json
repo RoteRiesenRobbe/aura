@@ -3,6 +3,7 @@
   "id": 159,
   "name": "Demoralize",
   "icon": "lorc/shouting",
+  "packIcon": "battle-cry",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,

@@ -17,7 +17,7 @@ import * as PIXI from 'pixi.js';
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
-import type {AuraDisplay, DwellRing, Interactable, LevelDisplay, MobPlate, OverheadVitals, TokenStateDisplay} from './WireSetters';
+import type {AuraDisplay, Interactable, LevelDisplay, MobPlate, OverheadVitals, TokenStateDisplay} from './WireSetters';
 import {indicatorBand, tokenState} from './TokenState';
 import {aboveTokenY, mobBarAnchorY} from './PlateAnchors';
 import {InteractBadge} from './InteractBadge';
@@ -155,8 +155,7 @@ export abstract class Mob extends GameObject
             this.medallion = new Medallion(this.slots, this.portrait, this.size);
             this.ringResolver = new RingResolver(medallion);
         }
-        // Bottom of belowArt: the ring renders behind the mob art and under
-        // the campfire's dwell ring. Every mob gets one, as it already did on
+        // Bottom of belowArt: the ring renders behind the mob art. Every mob gets one, as it already did on
         // its first snapshot (setAuraCategories); it stays empty until an
         // aura is drawn.
         this.auraRings = new AuraRingStack();
@@ -439,7 +438,7 @@ export abstract class Mob extends GameObject
             // Drawn onto the plate, beside the quest glyph, so no tree or roof
             // covers it (PO 2026-10-19); the plate fades with the mob and hides
             // in unlit darkness. Anchored off the art alone — the shape group
-            // also carries the aura rings, the dwell ring and the health bar (R4).
+            // also carries the aura rings and the health bar (R4).
             this.interactBadge = new InteractBadge(this.plate, this.actualShape, this.indicatorBand());
         }
         this.interactBadge.setVisible(interactable);
@@ -660,53 +659,17 @@ Preloading.registerGameObjectSVG(Companion, file('companion'), maxSize('companio
 // The fixed world campfire (atmosphere & recovery chunk 2): a permanent
 // aligned heal fixture. Hazard-fixture pattern — stationary, structurally unkillable
 // (Viewport-only body layer), pure aura carrier. Fixed size.
-export class Campfire extends Mob implements DwellRing {
+// The bind circle inside the heal ring is not drawn (plan-vertical-slice.md
+// PF5, F7). The bind radius still drives discovery, E and flight on the
+// server; on the client the wire dwell_radius only drops the campfire's wire
+// light (LightColor.wireLightRadius).
+export class Campfire extends Mob {
     static svg: PIXI.Texture;
-
-    private dwellRing: PIXI.Graphics = null;
-    private dwellRingRadius = 0;
 
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.campfire, x, y,
             randomInt(minSize('campfire'), maxSize('campfire')),
             Campfire.svg);
-    }
-
-    // The darker orange bind circle inside the heal-range ring, drawn from
-    // the wire dwell_radius (chunk 4) — the server's bind factor is the
-    // single source of truth. True-radius: the server checks the player's
-    // center, so the circle gets NO collider-radius extension (unlike the
-    // outer ring). Snapshots repeat the value 30×/s; redraw only on change.
-    setDwellRadius(radiusPx: number) {
-        if (radiusPx === this.dwellRingRadius) {
-            return;
-        }
-        this.dwellRingRadius = radiusPx;
-        if (radiusPx <= 0) {
-            if (this.dwellRing !== null) {
-                this.dwellRing.visible = false;
-            }
-            return;
-        }
-        if (this.dwellRing === null) {
-            this.dwellRing = new PIXI.Graphics();
-            // belowArt: above the aura ring (the constructor put it there
-            // first), below the fire itself
-            this.belowArt.addChild(this.dwellRing);
-        }
-        this.dwellRing.clear()
-            .circle(0, 0, radiusPx)
-            .fill({color: 0xB84A00, alpha: 0.25})
-            .stroke({color: 0xB84A00, width: 3, alpha: 0.8});
-        this.dwellRing.visible = true;
-    }
-
-    // A hidden aura (fade-out sets 0) hides the bind circle with it.
-    override setAuraRadius(radiusPx: number) {
-        super.setAuraRadius(radiusPx);
-        if (radiusPx <= 0) {
-            this.setDwellRadius(0);
-        }
     }
 }
 
@@ -715,8 +678,8 @@ Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire')
 
 // The player-placed mini-campfire (plan-downtime.md C2): the same artwork at
 // half the size, on the same layer, and deliberately NOT a subclass of
-// Campfire — a camp can never be bound to, so it must never grow the dwell
-// bind circle. Its own wire EntityType is what lets it size independently.
+// Campfire: a camp can never be bound to. Its own wire EntityType is what
+// lets it size independently.
 export class Camp extends Mob {
     static svg: PIXI.Texture;
 

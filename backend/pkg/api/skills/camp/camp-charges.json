@@ -3,6 +3,7 @@
   "id": 181,
   "name": "CampCharges",
   "icon": "lorc/campfire",
+  "packIcon": "campfire-cooking",
   "category": "camp",
   "maxLevel": 5,
   "campTrait": {

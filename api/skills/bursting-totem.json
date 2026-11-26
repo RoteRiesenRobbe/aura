@@ -3,6 +3,7 @@
   "id": 165,
   "name": "BurstingTotem",
   "icon": "lorc/totem-head",
+  "packIcon": "wind-totem",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 450,

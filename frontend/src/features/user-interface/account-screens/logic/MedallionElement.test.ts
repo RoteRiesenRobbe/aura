@@ -1,7 +1,9 @@
 import {describe, expect, it} from 'vitest';
 import {medallionElement, refreshMedallions} from './MedallionElement';
 import {setAppearanceCatalog} from '../../../../client-data/Appearance';
-import {RING_FAMILY_FILES} from '../../../../client-data/Medallions';
+import {RING_FAMILY_FILES, ringItemTint} from '../../../../client-data/Medallions';
+
+const hexRgb = (c: number) => `rgb(${c >> 16}, ${(c >> 8) & 0xff}, ${c & 0xff})`;
 import {GraphicsConfig} from '../../../../client-data/Graphics';
 
 // plan-appearance.md C3: the select card and the creation picker draw the
@@ -22,17 +24,19 @@ const parts = (el: HTMLElement) => ({
     disc: el.querySelector('.medallionDisc') as HTMLElement,
     portrait: el.querySelector('.medallionPortrait') as HTMLImageElement,
     ring: el.querySelector('.medallionRing') as HTMLImageElement,
+    tint: el.querySelector('.medallionRingTint') as HTMLElement,
 });
 
 describe('medallionElement', () => {
     it('stacks disc, portrait and ring, the ring in its family', () => {
         setAppearanceCatalog(catalog);
-        const {disc, portrait, ring} = parts(medallionElement('green-hood', 'ring-leather'));
+        const {disc, portrait, ring, tint} = parts(medallionElement('green-hood', 'ring-leather'));
         expect(disc.style.backgroundColor).toBe('rgb(46, 111, 216)');
         // No pack in a test: the committed fallback portrait.
         expect(portrait.getAttribute('src')).toBe(GraphicsConfig.character.file);
         expect(ring.getAttribute('src')).toBe(RING_FAMILY_FILES.leather);
-        expect(ring.style.filter).toBe('brightness(0.439)');
+        // The ring item's own colour (PF5 F16), multiplied over the ring.
+        expect(tint.style.backgroundColor).toBe(hexRgb(ringItemTint('ring-leather')));
     });
 
     it('draws the defaults for an id the catalog does not hold', () => {

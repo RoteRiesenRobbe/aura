@@ -3,6 +3,7 @@
   "id": 160,
   "name": "Charge",
   "icon": "lorc/wingfoot",
+  "packIcon": "sprinter",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 450,

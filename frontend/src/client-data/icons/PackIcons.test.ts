@@ -16,9 +16,17 @@ function portraitOf(npc: object): string | undefined {
 const manifest = JSON.parse(readFileSync(join(repoRoot, 'frontend/src/client-data/icons/pack-manifest.json'), 'utf8'));
 const manifestNames = new Set(Object.keys(manifest.icons));
 
-/** Player skills and the mob-embedded ones: a mob skill may carry a packIcon since plan-buff-tray.md C0. */
+/**
+ * Every skill file, api/skills and each folder in it (mobs/, camp/): a mob
+ * skill may carry a packIcon since plan-buff-tray.md C0, a camp trait since
+ * plan-vertical-slice.md PF5. Folders are listed, not named, so a new one
+ * cannot hide its icons from these pins.
+ */
 function skillPackIcons(): { file: string, packIcon: string }[] {
-    return ['api/skills', 'api/skills/mobs'].flatMap((rel) => {
+    const folders = readdirSync(join(repoRoot, 'api/skills'), {withFileTypes: true})
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => `api/skills/${entry.name}`);
+    return ['api/skills', ...folders].flatMap((rel) => {
         const dir = join(repoRoot, rel);
         return readdirSync(dir, {withFileTypes: true})
             .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))

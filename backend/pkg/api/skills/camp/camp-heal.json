@@ -3,6 +3,7 @@
   "id": 180,
   "name": "CampHeal",
   "icon": "delapouite/healing",
+  "packIcon": "healing-lamp",
   "category": "camp",
   "maxLevel": 15,
   "campTrait": {

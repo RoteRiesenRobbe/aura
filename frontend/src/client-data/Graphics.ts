@@ -597,7 +597,7 @@ export const GraphicsConfig = {
         'short-crop': {packIcon: 'portrait-short-crop'},
         'auburn-curls': {packIcon: 'portrait-auburn-curls'},
         // Earned, not a starter (C5, PO pick 2026-10-21).
-        'villager': {packIcon: 'portrait-villager'},
+        'villager': {packIcon: 'portrait-curly-smile'},
         // Only the ascension stone grants it (C5b) [PLACEHOLDER bust].
         'gold-amulet': {packIcon: 'portrait-gold-amulet'},
         // The main stone's portrait step (plan-ascension-ceremony.md AC2,
@@ -609,15 +609,19 @@ export const GraphicsConfig = {
     // Per-SPECIES portraits for species that share one sprite class, keyed by
     // the catalog name (api/mobs `name`), so each one draws its own pack bust
     // (plan-appearance.md D33). Today: the species drawing the NpcPlaceholder
-    // marker, which otherwise all wear the same purple face, and Flora, who
-    // borrows the village healer's sprite. Resolved in
+    // marker, which otherwise all wear the same purple face, Flora, who
+    // borrows the village healer's sprite, and the named NPCs sharing the
+    // farmer, hooded-woman and prophet busts (plan-vertical-slice.md PF5,
+    // F30: one face each; Reinhard and the Hermit keep the class's). Resolved in
     // Mob.resolvePortrait once the /mobs catalog names the species; without
     // the pack the class's `file` stays. A `packTint` recolours a bust that a
     // kin species shares (D33, D34) [PLACEHOLDER shades].
     speciesPortraits: <{ [species: string]: { packIcon: string, packTint?: color } }> {
+        Benjamin: {packIcon: 'portrait-farm-boy'},
         BlightedTreant: {packIcon: 'portrait-tree-man', packTint: <color> 0xa0c088},
         BogFrog: {packIcon: 'portrait-lizard', packTint: <color> 0x9cc66a},
         BogSnake: {packIcon: 'portrait-lizard', packTint: <color> 0x7a8f52},
+        CaptainBrack: {packIcon: 'portrait-eyepatch-pirate'},
         CultAcolyte: {packIcon: 'portrait-hades-servant'},
         CultHighPriest: {packIcon: 'portrait-old-cultist'},
         Cultist: {packIcon: 'portrait-purple-hood'},
@@ -625,19 +629,33 @@ export const GraphicsConfig = {
         Dragon: {packIcon: 'portrait-war-dragon'},
         DragonkinWarrior: {packIcon: 'portrait-dragon-warrior'},
         Drakeling: {packIcon: 'portrait-purple-drake'},
+        Farmhand: {packIcon: 'portrait-striped-shirt'},
+        Fennick: {packIcon: 'portrait-sage'},
         Flora: {packIcon: 'portrait-old-woman'},
+        Fritz: {packIcon: 'portrait-topknot'},
         Ghoul: {packIcon: 'portrait-zombie'},
         GiantRat: {packIcon: 'portrait-rat'},
         GiantScorpion: {packIcon: 'portrait-scorpion'},
+        Gnome1: {packIcon: 'portrait-hat-gnome'},
+        Governor: {packIcon: 'portrait-duke'},
+        Hans: {packIcon: 'portrait-red-scarf'},
+        Hedda: {packIcon: 'portrait-red-headscarf'},
+        Henrik: {packIcon: 'portrait-hooded-archer'},
+        Lamplighter: {packIcon: 'portrait-homeless'},
         Mercenary: {packIcon: 'portrait-warrior'},
         MercenaryCaptain: {packIcon: 'portrait-bold-warrior'},
         MercenaryCrossbowman: {packIcon: 'portrait-spearman'},
+        PirateDeckhand: {packIcon: 'portrait-masked-bald'},
+        ReinhardsWife: {packIcon: 'portrait-lace-collar-woman'},
         SandBasilisk: {packIcon: 'portrait-lizard'},
         Skeleton: {packIcon: 'portrait-skeleton'},
-        SunkChest: {packIcon: 'portrait-gold-amulet'},
         SkeletonArcher: {packIcon: 'portrait-helmet-skeleton'},
+        SunkChest: {packIcon: 'portrait-gold-amulet'},
+        Tobias: {packIcon: 'portrait-merchant'},
         Treant: {packIcon: 'portrait-tree-man'},
         Wisp: {packIcon: 'portrait-ghost'},
+        Woodcutter2: {packIcon: 'portrait-green-woodsman'},
+        Woodcutter3: {packIcon: 'portrait-viking'},
     },
 
     // No `resources` entry: trees and rocks draw through the generic prop path

@@ -3,6 +3,7 @@
   "id": 162,
   "name": "NaturesSwiftness",
   "icon": "lorc/star-swirl",
+  "packIcon": "tree-face",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 1800,

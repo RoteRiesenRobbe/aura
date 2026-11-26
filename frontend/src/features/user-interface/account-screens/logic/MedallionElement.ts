@@ -1,6 +1,5 @@
 import {lookArt, wireOf, appearanceReady} from '../../../../client-data/Appearance';
-import {RING_FAMILY_FILES, ringTint, stanceTint} from '../../../../client-data/Medallions';
-import {TierRank} from '../../../../client-data/Mobs';
+import {RING_FAMILY_FILES, stanceTint} from '../../../../client-data/Medallions';
 import {GraphicsConfig} from '../../../../client-data/Graphics';
 import {packIconsReady, packIconTexture} from '../../../../client-data/icons/PackIconFiles';
 import {Stance} from '../../../../../../api/schema/js/aura-api/stance';
@@ -9,7 +8,7 @@ import {Stance} from '../../../../../../api/schema/js/aura-api/stance';
  * A player's medallion as DOM (plan-appearance.md C3): the select cards and
  * the creation picker draw it, from the same art as the world token
  * (Appearance.lookArt, D37). The disc is the friendly stance (D4) and the
- * ring wears the normal tier's shade.
+ * ring wears its item's colour (F16).
  *
  * The portrait is the pack bust's own baked canvas (PackIconFiles), as a data
  * URL made once per bust; without the pack, the committed fallback.
@@ -36,14 +35,18 @@ function hex(color: number): string {
     return '#' + color.toString(16).padStart(6, '0');
 }
 
-// The ring art is greyscale and the tier tint a grey (Medallions.RING_TINTS),
-// so a multiply by it is exactly a brightness filter.
-const RING_BRIGHTNESS = Math.round(((ringTint(TierRank.Normal) >> 16) & 0xff) / 255 * 1000) / 1000;
-
+// The ring art is greyscale and the world tints it by multiplying. As DOM,
+// the item's colour (F16) is a layer masked to the ring's shape and
+// multiplied over it (.medallionRingTint, variables.less).
 function fill(el: HTMLElement) {
-    const {packIcon, family} = lookArt(wireOf('portrait', el.dataset.portrait), wireOf('ring', el.dataset.ring));
+    const {packIcon, family, tint} = lookArt(wireOf('portrait', el.dataset.portrait), wireOf('ring', el.dataset.ring));
+    const ringUrl = RING_FAMILY_FILES[family];
     (el.querySelector('.medallionPortrait') as HTMLImageElement).src = portraitUrl(packIcon);
-    (el.querySelector('.medallionRing') as HTMLImageElement).src = RING_FAMILY_FILES[family];
+    (el.querySelector('.medallionRing') as HTMLImageElement).src = ringUrl;
+    const tintLayer = el.querySelector('.medallionRingTint') as HTMLElement;
+    tintLayer.style.backgroundColor = hex(tint);
+    tintLayer.style.setProperty('mask-image', `url("${ringUrl}")`);
+    tintLayer.style.setProperty('-webkit-mask-image', `url("${ringUrl}")`);
 }
 
 function part(tag: string, className: string): HTMLElement {
@@ -63,9 +66,7 @@ export function medallionElement(portraitId: string, ringId: string): HTMLElemen
     el.dataset.ring = ringId;
     const disc = part('div', 'medallionDisc');
     disc.style.backgroundColor = hex(stanceTint(Stance.Friendly));
-    const ring = part('img', 'medallionRing');
-    ring.style.filter = `brightness(${RING_BRIGHTNESS})`;
-    el.append(disc, part('img', 'medallionPortrait'), ring);
+    el.append(disc, part('img', 'medallionPortrait'), part('img', 'medallionRing'), part('div', 'medallionRingTint'));
     fill(el);
     return el;
 }

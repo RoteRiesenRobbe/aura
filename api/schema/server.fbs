@@ -564,7 +564,8 @@ table Mob {
   light_radius:ushort = 0;
 
   // bind radius (px) of a campfire respawn anchor (chunk 4); 0 = not an
-  // anchor. The client draws the inner dwell circle from this — the server's
+  // anchor. The client drops the campfire's wire light by it; the bind
+  // circle is no longer drawn (plan-vertical-slice.md PF5, F7). The server's
   // CampfireDwellRadiusFactor is the single source of the bind factor,
   // retiring the hand-synced client constant (the aura_radius precedent).
   // Appended at table end so existing field IDs stay stable.

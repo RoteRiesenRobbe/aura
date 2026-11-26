@@ -3,6 +3,7 @@
   "id": 183,
   "name": "CampDamageBuff",
   "icon": "lorc/broadsword",
+  "packIcon": "flaming-sword",
   "category": "camp",
   "maxLevel": 15,
   "campTrait": {

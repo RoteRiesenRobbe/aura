@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {readdirSync, readFileSync} from 'node:fs';
-import {FACTION_FAMILIES, FALLBACK_FAMILY, MedallionSpec, RING_FAMILY_FILES, RingResolver, ringFamily, ringTint, stanceTint} from './Medallions';
+import {FACTION_FAMILIES, FALLBACK_FAMILY, MedallionSpec, RING_FAMILY_FILES, RingResolver, ringFamily, ringItemTint, ringTint, stanceTint} from './Medallions';
 import {Stance} from '../../../api/schema/js/aura-api/stance';
 import {TierRank} from './Mobs';
 import {GraphicsConfig} from './Graphics';
@@ -35,6 +35,31 @@ describe('ringTint', () => {
 
     it('treats an unknown rank as normal', () => {
         expect(ringTint(99)).toBe(ringTint(TierRank.Normal));
+    });
+});
+
+// A player's ring item wears its own colour (plan-vertical-slice.md PF5,
+// F16): never the elite silver or the boss gold, which mean a mob's tier.
+describe('ringItemTint', () => {
+    const rings = readdirSync('../api/appearance')
+        .map(f => JSON.parse(readFileSync(`../api/appearance/${f}`, 'utf-8')) as {id: string, slot: string})
+        .filter(item => item.slot === 'ring')
+        .map(item => item.id);
+
+    it('gives every authored ring item a colour of its own', () => {
+        expect(new Set(rings.map(ringItemTint)).size).toBe(rings.length);
+    });
+
+    it('never wears a mob tier colour above normal', () => {
+        for (const id of rings) {
+            expect([ringTint(TierRank.Elite), ringTint(TierRank.Boss)], id).not.toContain(ringItemTint(id));
+        }
+    });
+
+    it('wears the normal tier grey for the plain ring and an unknown item', () => {
+        expect(ringItemTint('ring-plain')).toBe(ringTint(TierRank.Normal));
+        expect(ringItemTint('retired')).toBe(ringTint(TierRank.Normal));
+        expect(ringItemTint(undefined)).toBe(ringTint(TierRank.Normal));
     });
 });
 

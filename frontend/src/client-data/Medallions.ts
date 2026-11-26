@@ -60,6 +60,17 @@ const RING_TINTS: { readonly [rank: number]: number } = {
     [TierRank.Boss]: 0xffd040,
 };
 
+// A player's ring wears its ITEM's colour instead of a tier (plan-vertical-
+// slice.md PF5, F16, PO pick 2026-11-26): the forest ring green and so on,
+// never the elite silver or boss gold, which mean a mob's tier. The plain
+// ring and an item left out wear the normal tier's grey [PLACEHOLDER shades].
+const RING_ITEM_TINTS: { readonly [item: string]: number } = {
+    'ring-leather': 0xb07840,
+    'ring-forest': 0x5fae4a,
+    'ring-heirloom': 0x4a8fc0,
+    'ring-leather-claws': 0xc04a38,
+};
+
 // The disc behind every medallion portrait (plan-appearance.md C1b) shows the
 // mob's stance toward the player side (C2, D29): hostile red, neutral yellow,
 // friendly blue [PLACEHOLDER shades]. The pack busts are transparent (D31), so
@@ -80,6 +91,11 @@ export const GREY_DISC = 0x4a4a4a;
 /** The ring's tint for a wire tier rank; an unknown rank reads as normal. */
 export function ringTint(rank: number): number {
     return RING_TINTS[rank] ?? RING_TINTS[TierRank.Normal];
+}
+
+/** A player ring item's tint (F16); the normal tier's grey for none. */
+export function ringItemTint(item: string | undefined): number {
+    return RING_ITEM_TINTS[item ?? ''] ?? ringTint(TierRank.Normal);
 }
 
 /** The disc's tint for a wire stance; an unknown stance reads as neutral. */

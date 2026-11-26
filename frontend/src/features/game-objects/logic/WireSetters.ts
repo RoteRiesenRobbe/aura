@@ -54,10 +54,6 @@ export interface CharacterLook {    // Character, Corpse
     setLook(portrait: number, ring: number): void;
 }
 
-export interface DwellRing {        // Campfire
-    setDwellRadius(radiusPx: number): void;
-}
-
 export interface Interactable {     // Mob
     setInteractable(interactable: boolean): void;
 }

@@ -3,6 +3,7 @@
   "id": 166,
   "name": "Terrify",
   "icon": "lorc/shouting",
+  "packIcon": "fear-face",
   "category": "cooldown",
   "maxLevel": 3,
   "cooldownTicks": 600,

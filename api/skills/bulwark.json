@@ -3,6 +3,7 @@
   "id": 158,
   "name": "Bulwark",
   "icon": "lorc/bordered-shield",
+  "packIcon": "stone-shield",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

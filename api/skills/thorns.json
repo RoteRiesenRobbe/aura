@@ -3,6 +3,7 @@
   "id": 161,
   "name": "Thorns",
   "icon": "lorc/vine-leaf",
+  "packIcon": "thorn-spiral",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,
