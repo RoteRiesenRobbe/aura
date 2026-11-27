@@ -159,6 +159,9 @@ func main() {
 	// defaults when the conf block is absent.
 	mob.SetHealthGainTick(config.Game.Mob.HealthGainTick)
 	mob.SetWalkingSpeedPerTick(config.Game.Mob.WalkingSpeedPerTick)
+	// Version B's hidden difficulty (plan-playtest-versions.md D2); 1 and 1
+	// in version A, which is every conf without the block.
+	mob.SetDifficulty(config.Game.Mob.DamageFactor, config.Game.Mob.HealthFactor)
 	mob.SetKillXP(config.Game.Player.KillXP)
 	combat := cfg.CombatConfig{
 		DefaultCritFactor:  config.Game.Combat.DefaultCritFactor,
@@ -169,9 +172,14 @@ func main() {
 	// Logged post-normalization: these live behind setters rather than in the
 	// GameConfig dump, so this is the only place an operator can see what a
 	// missing conf block actually resolved to.
+	mobDamageFactor, mobHealthFactor := mob.Difficulty()
 	slog.Info("🎚️ tuning knobs",
 		slog.Float64("mob.healthGainTick", float64(mob.HealthGainTick())),
 		slog.Float64("mob.walkingSpeedPerTick", float64(mob.WalkingSpeedPerTick())),
+		// Which playtest version is live, readable in the deploy check
+		// (plan-playtest-versions.md D5): 1 and 1 is A.
+		slog.Float64("mob.damageFactor", float64(mobDamageFactor)),
+		slog.Float64("mob.healthFactor", float64(mobHealthFactor)),
 		slog.Float64("combat.defaultCritFactor", float64(combat.CritFactor())),
 		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())),
 		slog.Float64("combat.presenceRadius", float64(combat.PresenceRange())),

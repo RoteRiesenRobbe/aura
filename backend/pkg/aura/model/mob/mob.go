@@ -2038,7 +2038,7 @@ func (m *Mob) Health() vitals.VitalSign {
 // room to regenerate into, exactly like the player's own pool. The shrinking
 // direction is clamped in Update.
 func (m *Mob) MaxHealth() vitals.VitalSign {
-	return vitals.VitalSign(vitals.HP(m.baseMaxHealth * m.PowerScale() * m.skills.Derived.MaxHealthFactor()))
+	return vitals.VitalSign(vitals.HP(m.baseMaxHealth * m.PowerScale() * m.skills.Derived.MaxHealthFactor() * m.difficultyHealthFactor()))
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the

@@ -130,6 +130,10 @@ Two conf keys, both default `1`:
   ⚑ That set includes the gated harvestables (Bramble, Rockfall, Turnip, Beet, Seaweed,
   both mushrooms load as `FactionHostile`) and the hostile structures (totems, the war
   banner, barricades, the web), so `healthFactor` would also slow harvesting. Q9.
+  **As built (PV1):** the set is "no player owner, not `friendlyToPlayers`, no `gateKeys`"
+  (`Mob.difficultyScaled`, read from the definition). Prey (boar, stag, the Alpha Boar)
+  is in: players fight it, although its faction acquires nobody. Mob-cast summons and
+  structures are in (no owner); every tier is in (Q3).
 - Both factors reach the simharness as two flags (`-mob-damage-factor`,
   `-mob-health-factor`) calling the same setter, so D7 can measure B (the sim reads no
   conf, §1.1).
@@ -260,9 +264,9 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   Proposed: PV1 + PV2 deployed dormant at least one deploy before the playtest.
 - **Q2 - Does the crowd raise damage only, or also damage reduction?** Proposed: damage only
   (one stat, one read).
-- **Q3 - Do bosses and elites scale too?** Bosses are where groups are designed to gather.
+- ~~**Q3 - Do bosses and elites scale too?** Bosses are where groups are designed to gather.
   Proposed: every hostile mob, one value (B is meant to be harder); the alternative is
-  normal tier only.
+  normal tier only.~~ RULED 2026-11-27: every tier, one value.
 - **Q4 - Does a healer count as an attacker?** Proposed: yes, they are on the threat table
   (R2's rule, no exception).
 - **Q5 - A new bit 15 or the existing StatUp glyph (bit 8)?** R4 picked the last free bit.
@@ -275,10 +279,10 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   until they die or the mob resets. (b) Count only players whose last threat write is
   recent (`5 s` `[PLACEHOLDER]`): one timestamp per row, and a passer-by drops out
   soon after leaving.~~ RULED 2026-11-27: R5, (b).
-- **Q9 - Do harvestables and hostile structures get D2's factors?** Proposed: exclude every
+- ~~**Q9 - Do harvestables and hostile structures get D2's factors?** Proposed: exclude every
   mob a player can never damage with a combat aura (the immune-targets discriminator,
   `archive/plan-immune-targets.md`), so harvesting is as in A; totems, banner, barricades
-  and the web stay in (they fight).
+  and the web stay in (they fight).~~ RULED 2026-11-27: harvestables excluded, by the plainer test "the species authors `gateKeys`" (the eight harvestables, Deadwood included); structures stay in.
 - **Q7 - Are testers told what B changes?** Proposed: announce a restart only, so the
   feedback on B is unprompted.
 

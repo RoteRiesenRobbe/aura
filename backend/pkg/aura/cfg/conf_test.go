@@ -40,6 +40,22 @@ func TestReadConfig_PortDefaults(t *testing.T) {
 	})
 }
 
+// plan-playtest-versions.md D2 (PV1): version A is a conf WITHOUT the mob
+// difficulty factors, so an absent key must resolve to 1, never to the zeroed 0.
+func TestReadConfig_MobDifficultyDefaults(t *testing.T) {
+	t.Run("absent factors resolve to 1", func(t *testing.T) {
+		conf := readConf(t, `{"game":{}}`)
+		assert.Equal(t, float32(1), conf.Game.Mob.DamageFactor)
+		assert.Equal(t, float32(1), conf.Game.Mob.HealthFactor)
+	})
+
+	t.Run("authored factors are kept", func(t *testing.T) {
+		conf := readConf(t, `{"game":{"mob":{"damageFactor":1.5,"healthFactor":2}}}`)
+		assert.Equal(t, float32(1.5), conf.Game.Mob.DamageFactor)
+		assert.Equal(t, float32(2), conf.Game.Mob.HealthFactor)
+	})
+}
+
 // D2 (§35 C2): unknown conf keys warn at boot instead of failing it. The
 // regression fixture is the exact embedded conf.default.json state the
 // pre-accounts hygiene session found (c183ce12^ — kept verbatim): keys that no

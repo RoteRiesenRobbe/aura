@@ -283,3 +283,16 @@ func TestMobMarshalFlatbuf_LightColor(t *testing.T) {
 	assert.True(t, fire.LightFlicker())
 	assert.False(t, warm.LightFlicker(), "absent = steady")
 }
+
+// plan-playtest-versions.md D2 (PV1): version B's healthFactor reaches the
+// client through Mob.max_health and the spawn fill, so the bar stays honest.
+func TestMobMarshalFlatbuf_DifficultyHealthFactorOnTheWire(t *testing.T) {
+	plain := marshalledMob(t, mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil))
+
+	mob.SetDifficulty(1, 2)
+	t.Cleanup(func() { mob.SetDifficulty(1, 1) })
+	scaled := marshalledMob(t, mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil))
+
+	assert.Equal(t, 2*plain.MaxHealth(), scaled.MaxHealth())
+	assert.Equal(t, scaled.MaxHealth(), scaled.Health(), "spawned full at the scaled pool")
+}

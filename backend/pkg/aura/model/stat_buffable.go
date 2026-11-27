@@ -14,3 +14,10 @@ type StatBuffable interface {
 	// what the damage, crit, mitigation and threat sites read.
 	EffectiveStats() skills.DerivedStats
 }
+
+// DifficultyScaled is a caster whose outgoing damage version B multiplies
+// (plan-playtest-versions.md D2): mobs only, 1 outside the hostile set. Read by
+// sys.casterDamageFactor beside EffectiveStats, never by a heal site.
+type DifficultyScaled interface {
+	DifficultyDamageFactor() float32
+}

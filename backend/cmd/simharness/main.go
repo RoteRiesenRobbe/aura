@@ -23,6 +23,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
@@ -176,7 +177,14 @@ func main() {
 	mobPresetName := flag.String("mob-preset", "", "prefill the mob from an authored species (e.g. DireWolf); overrides the -mob-hp/-dmg/-tick/-radius/-speed/-role/-body/-aggro/-variance/-flee flags")
 	mobLevel := flag.Int("mob-level", 0, "level the -mob-preset species STANDS at (0 = its authored curveLevel) — the placement axis, C1.5")
 
+	// Version B's hidden difficulty (plan-playtest-versions.md D2 + D7): the
+	// sim reads no conf, so these mirror game.mob.damageFactor / healthFactor
+	// and call the same setter the server's boot does. 1 is version A.
+	mobDamageFactor := flag.Float64("mob-damage-factor", 1, "version B: multiplies a hostile mob's outgoing damage (mirrors conf game.mob.damageFactor)")
+	mobHealthFactor := flag.Float64("mob-health-factor", 1, "version B: multiplies a hostile mob's pool (mirrors conf game.mob.healthFactor)")
+
 	flag.Parse()
+	mob.SetDifficulty(float32(*mobDamageFactor), float32(*mobHealthFactor))
 
 	xpModel := sim.XPModel{
 		LevelUpBase: *xpBase, LevelUpGrowth: *xpGrowth,

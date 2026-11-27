@@ -122,6 +122,12 @@ type Config struct {
 			// defaults. [PLACEHOLDER]
 			WakeMargin  float32 `json:"wakeMargin"`
 			SleepMargin float32 `json:"sleepMargin"`
+			// DamageFactor / HealthFactor are version B's hidden difficulty
+			// (plan-playtest-versions.md D2): they multiply a hostile world
+			// mob's outgoing damage and its pool. Absent → 1, which is version
+			// A; only the live devops/conf.json ever authors them. [PLACEHOLDER]
+			DamageFactor float32 `json:"damageFactor"`
+			HealthFactor float32 `json:"healthFactor"`
 		} `json:"mob"`
 
 		// Combat holds factors that apply to every acting entity (player, mob,
@@ -204,6 +210,14 @@ func ParseConfig(data []byte, label string) (*Config, error) {
 	}
 	if config.Game.Player.MaxLevel <= 0 {
 		config.Game.Player.MaxLevel = curve.Default().MaxLevel
+	}
+	// Version A is the conf without the difficulty block (plan-playtest-versions
+	// D1), so an absent factor must read 1, never the zeroed 0.
+	if config.Game.Mob.DamageFactor <= 0 {
+		config.Game.Mob.DamageFactor = 1
+	}
+	if config.Game.Mob.HealthFactor <= 0 {
+		config.Game.Mob.HealthFactor = 1
 	}
 	if config.Game.Player.CritChance <= 0 {
 		config.Game.Player.CritChance = 0.05

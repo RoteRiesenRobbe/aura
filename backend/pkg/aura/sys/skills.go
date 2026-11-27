@@ -923,6 +923,11 @@ func healerThreatFactor() float32 { return combatFactors.HealerThreat() }
 // top, for the length of that one fire only.
 func casterDamageFactor(acting any) float32 {
 	factor := empowerFactor(acting)
+	// Version B's hidden mob damage factor (plan-playtest-versions.md D2): 1 in
+	// version A and for every mob outside the hostile set.
+	if d, ok := acting.(model.DifficultyScaled); ok {
+		factor *= d.DifficultyDamageFactor()
+	}
 	if s, ok := acting.(model.StatBuffable); ok {
 		return s.EffectiveStats().DamageFactor() * factor
 	}
