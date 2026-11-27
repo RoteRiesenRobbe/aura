@@ -2,7 +2,7 @@
   "_comment": "The Town Crier's wolf cull, turned in at the City Guard at the city gate (400 XP on his row). The told-shaman stage is retired: nothing enters it, and it stays for saved characters who finished there. Text deliberately plain.",
 
   "id": "wolves-on-the-road",
-  "level": 3,
+  "level": 6,
   "stages": [
     {
       "id": "thin",

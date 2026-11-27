@@ -59,7 +59,7 @@
             "id": "i-found-your-chest",
             "grants": [
               { "id": "still-shut-and-still-heavy", "kind": "advance_quest", "quest": "treasure-in-the-bog", "fromStage": "return", "toStage": "done" },
-              { "kind": "grant_xp", "xp": 774 }
+              { "kind": "grant_xp", "xp": 1925 }
             ]
           },
           { "stock": "quest-progress", "next": "treasure_on_it" }
@@ -96,7 +96,7 @@
             "id": "the-crabs-are-dealt",
             "grants": [
               { "id": "first-good-nights-sleep", "kind": "advance_quest", "quest": "crabs-in-the-hammocks", "fromStage": "report", "toStage": "done" },
-              { "kind": "grant_xp", "xp": 710 }
+              { "kind": "grant_xp", "xp": 1765 }
             ]
           },
           { "stock": "quest-progress", "next": "crabs_on_it" }

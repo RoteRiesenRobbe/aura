@@ -37,7 +37,7 @@
                 "fromStage": "search",
                 "toStage": "found"
               },
-              { "kind": "grant_xp", "xp": 311 }
+              { "kind": "grant_xp", "xp": 370 }
             ]
           }
         ]

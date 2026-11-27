@@ -407,9 +407,9 @@ func TestContent_QuestXPBudget(t *testing.T) {
 
 		// The generic kill quests (plan-generic-kill-quests.md C1 + C2): the L9
 		// half-level rule applied literally — ½ × 300 × 1.2^(targetLevel−1).
-		"boars-in-the-field":          180,  // L2 boars
-		"dire-wolves-in-the-forest":   370,  // L6 dire wolves
-		"kobolds-on-the-road":         450,  // L7 kobolds
+		"boars-in-the-field":          285,  // L4/L5 boars (north/south of Reinhard), split the pair: (259 + 311) / 2
+		"dire-wolves-in-the-forest":   645,  // L9 dire wolves
+		"kobolds-on-the-road":         645,  // L9 kobolds
 		"spiders-in-the-diggings":     930,  // L11 spiders
 		"dire-wolves-at-the-camp":     930,  // L11 dire wolves
 		"bandits-at-the-shrine":       1250, // L12–13 bandits (split the pair)
@@ -425,7 +425,7 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// TARGET'S LEVEL, not its tier, so the zone's one elite pays exactly what
 		// the Lamplighter's three dire wolves pay — the elite premium is in the
 		// drop table, not here. Revisit if elite kills are ever re-priced.
-		"the-sounder-at-the-mill": 370, // L6, ½ × 300 × 1.2^5
+		"the-sounder-at-the-mill": 311, // L5, ½ × 300 × 1.2⁴
 
 		// The beach search, priced at the zone's level-3 band: its target is a
 		// harvest structure, which has no level worth pricing.
@@ -441,7 +441,7 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// The quest sheet's newcomers (2026-10-13), the same rule.
 		"he-who-cried-wolf": 216, // L3 pasture wolves, ½ × 300 × 1.2²
 		"a-healthy-brew":    180, // L2, ½ × 300 × 1.2
-		"a-lost-shipment":   311, // L5, the woods' band, ½ × 300 × 1.2⁴
+		"a-lost-shipment":   370, // L6, the woods' entry band, ½ × 300 × 1.2⁵ ≈ 373
 
 		// ⚑ The same 180 the boars pay, and deliberately: the L9 rule prices the
 		// TARGET'S LEVEL, and the GiantRat is curveLevel 2 exactly like the Boar.
@@ -455,20 +455,21 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"the-sleeping-roots": 1000,
 
 		// Fritz's lost scout, priced at the L5 small spiders round the body.
-		"the-lost-friend": 311, // L5, ½ × 300 × 1.2⁴
+		"the-lost-friend": 450, // L7–8 small spiders round the body, ½ × 300 × 1.2⁶ ≈ 448
 
 		// The Deep Woods (content-zone-2-woodland.md §3.5), the same rule.
-		"the-stolen-shipment": 540, // L8, ½ × 300 × 1.2⁷ ≈ 537
-		"the-captive":         540, // L8, the plateau's band
-		"the-wolf-den":        540, // L8, the alpha wolf's placement
-		"the-alpha-bear":      645, // L9, ½ × 300 × 1.2⁸ ≈ 645
-		"oil-for-the-lamps":   450, // L7, ½ × 300 × 1.2⁶ ≈ 448, plus Lamp
+		"the-stolen-shipment": 774, // L10, the Kobold Chief, ½ × 300 × 1.2⁹ ≈ 774
+		"the-captive":         645, // L9, the plateau's band
+		"the-wolf-den":        645, // L9, the elite wolf's placement
+		"the-alpha-bear":      774, // L10, ½ × 300 × 1.2⁹ ≈ 774
+		"oil-for-the-lamps":   645, // L9, ½ × 300 × 1.2⁸ ≈ 645, plus Lamp
 
 		// Sorrowfen (content-zone-7-swamp.md §2.3), the same rule.
-		"mushrooms-for-the-gnome": 645,  // L9, ½ × 300 × 1.2⁸ ≈ 645
-		"the-spider-queen":        1115, // L12, ½ × 300 × 1.2¹¹ ≈ 1115, plus FenTonic
-		"treasure-in-the-bog":     774,  // L10, ½ × 300 × 1.2⁹ ≈ 774
-		"crabs-in-the-hammocks":   710,  // L9/L10 crabs, split the pair like the bandits: (645 + 774) / 2 ≈ 710
+		// Levels by the swamp's gradient (11 at the north entrance → 15), PO 2026-11-27.
+		"mushrooms-for-the-gnome": 1605, // L14 where the mushrooms grow, ½ × 300 × 1.2¹³ ≈ 1605
+		"the-spider-queen":        1925, // L15, ½ × 300 × 1.2¹⁴ ≈ 1926, plus FenTonic
+		"treasure-in-the-bog":     1925, // L15 at the chest, ½ × 300 × 1.2¹⁴ ≈ 1926
+		"crabs-in-the-hammocks":   1765, // L14/L15 crabs, split the pair like the bandits: (1605 + 1926) / 2 ≈ 1765
 	}, total)
 }
 

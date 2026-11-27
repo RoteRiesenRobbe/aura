@@ -8,7 +8,7 @@
 //   B  F29: the Miner Guild Associate outside the Anvilguard Forge teaches Pickaxe.
 //   C  F52: Captain Brack offers the crab quest (two-row shape); 8 real crab kills
 //      (tri-state: a short hunt is an INCONCLUSIVE venue) and a turn-in that pays
-//      exactly 710 XP.
+//      exactly 1765 XP.
 //
 // ⚑ Restart aurad first and run this script ALONE (standing conversant rule).
 //
@@ -341,8 +341,8 @@ try {
     await clickRow('The crabs are dealt with');
     const done = await waitForJournal((j) => inList(j.completed, titleOf(Q)));
     const xpAfter = await xpInLevel();
-    check('C8 the turn-in completes the quest and pays EXACTLY 710 XP',
-      inList(done?.completed ?? [], titleOf(Q)) && xpAfter - xpBefore === 710, `XP ${xpBefore} -> ${xpAfter}`);
+    check('C8 the turn-in completes the quest and pays EXACTLY 1765 XP',
+      inList(done?.completed ?? [], titleOf(Q)) && xpAfter - xpBefore === 1765, `XP ${xpBefore} -> ${xpAfter}`);
   }
 } catch (e) {
   check('leg C ran to completion', false, `threw: ${e.message}`);
