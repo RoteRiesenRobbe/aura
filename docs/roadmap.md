@@ -1303,6 +1303,9 @@ system ships blind.
 >    the stone moves to 16 in VS3) → VS0 (feature audit) →
 >    borders, fills, character entries CE1, tuning, power check, release. **Audio C1
 >    onward** (`plan-audio.md`) runs inside it; which lanes is ruled after VS-P.
+> 8a. ⭐ **Playtest versions PV1 → PV2 → PV3** (`plan-playtest-versions.md`, APPROVED 2026-11-27):
+>    NEXT IN LINE, ahead of PF6 (PO 2026-11-27). A harder version B for the playtest, the same
+>    build with a block in the live conf, swapped in halfway through on the feedback.
 > 9. **UI pass C9, mobile** (`plan-ui-pass.md`), after the slice (its playtest is desktop
 >    only, PO 2026-11-22) and the real-phone session.
 >
