@@ -35,6 +35,9 @@ import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
 import {skillEventNumber} from "./SkillEventNumbers";
+import {playHitSound} from "../../game-objects/logic/MobJuice";
+import {hitSoundVictims} from "../../audio/logic/HitSounds";
+import {TriggerIntervalMap} from "../../audio/logic/TriggerIntervalMap";
 import {recordSkillEvents} from "../../internal-tools/browser-console-integration/logic/BrowserConsole";
 import * as SkillFx from "../../skill-fx/logic/SkillFx";
 import {hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from "../../game-objects/logic/_GameObject";
@@ -607,6 +610,9 @@ export class Backend implements IBackend {
         // of their own still sees the fight.
         this.feedSkillFx(snapshot);
 
+        // The hit sound off the same events, everyone's (audio/logic/HitSounds).
+        this.playHitSounds(snapshot);
+
         // Conversation panel (chunk 3b-ii). Before the badge, because the badge
         // suppresses itself for whoever the panel belongs to.
         //
@@ -802,6 +808,27 @@ export class Backend implements IBackend {
         SkillFx.onSnapshot(events, (id) => (own && id === own.id)
             ? own
             : this.game.map.getObject(id));
+    }
+
+    private readonly hitSoundGate = new TriggerIntervalMap();
+
+    /**
+     * Play the hit sound on every victim HitSounds picks. Resolved like
+     * feedSkillFx (own Character first, by id); a victim this client does not
+     * hold has nowhere to sound from and is skipped.
+     */
+    private playHitSounds(snapshot: Snapshot): void {
+        const events = snapshot.skillEvents;
+        if (!events || events.length === 0) {
+            return;
+        }
+        const own = this.game.player?.character;
+        hitSoundVictims(events, this.hitSoundGate).forEach((id) => {
+            const victim = (own && id === own.id) ? own : this.game.map.getObject(id);
+            if (victim) {
+                playHitSound(victim.getPosition());
+            }
+        });
     }
 
     /**
