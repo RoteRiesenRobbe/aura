@@ -1372,6 +1372,8 @@ Moved out of `CLAUDE.md ## Status` on 2026-10-18 to keep the always-loaded file 
 
 - **Watch items.** CC (`docs/archive/plan-cc-and-retaliation.md`): mobs slow AND stun players, stuns diminish for all · CC immunity silent in-game · stun wire-identical to slow on the PIPS (§39; the tray's `kinds` tells them apart) · player stun chains UNSEEN past step two. Mob/XP tuning, unowned: **re-price HP/damage every placement** (incl. the pyromancer) · the levels 21-30 gap · ⚑ the single-target cap eased elites and bosses, UNMEASURED (sims are 1 player vs N).
 
+- **Watch: kiting with a ranged aura is risk-free** (found 2026-11-27 at `plan-playtest-versions.md` PV3, PO: log it, change nothing). Short Bow (`LongRangeStrike`, radius 2.6) kited around a same-level Wolf: ~102 kills/h vs ~60 facetanking with the default aura (sim, mob pinned, so a ceiling), no damage taken; the only price is its HP cost (~16 % max per kill, ~17 s of out-of-combat regen). Not infinite: no in-combat regen, the aura stops at 1 HP. Every hostile normal but GiantSpider and BroodMother is slower than the player. Version B widens the gap (`damageFactor` never reaches a kiter: at 1.1/1.1 facetank ×0.86, bow kite ×0.94). Watch at the playtest whether testers settle on ranged kiting; if so, retune costs or mob speed in BOTH versions (never B only, D1). Numbers [PLACEHOLDER].
+
 - **⭐ backlog §52, leave the world without a reload** (PO 2026-08-11): `docs/plan-leaving-the-world.md`, nothing built (shape (B) reset-not-teardown ≈ one chunk). Blocks §48.
 
 - ⚑ **Step 8a closed WITHOUT backups** (PO 2026-08-04): the live DB is losable. Still owed: firewall, DB to localhost, credentials, non-root deploy (`plan-playtest-deploy.md` §Ops).
