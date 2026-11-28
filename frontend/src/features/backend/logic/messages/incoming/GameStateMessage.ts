@@ -653,6 +653,9 @@ function unmarshalEntity(entity, eType) {
         tier: undefined,
         // stance toward the player side, tints the medallion disc (appearance C2)
         stance: undefined,
+        // version B's crowd resistance in percent, the badge under the mob's
+        // bar (plan-playtest-versions.md D9)
+        crowdResist: undefined,
         // mob definition id — the key into the /mobs catalog (nameplates)
         mobId: undefined,
         // PROP definition NAME — a prop's identity, and the key into the
@@ -722,6 +725,9 @@ function unmarshalEntity(entity, eType) {
         // stance toward the player side (0 hostile / 1 neutral / 2 friendly):
         // tints the medallion disc (plan-appearance.md C2).
         result.stance = entity.stance();
+        // version B's crowd resistance, 0-100, resolved on the server and only
+        // drawn here (plan-playtest-versions.md D9, L11); 0 hides the badge.
+        result.crowdResist = entity.crowdResist();
         // species id: the client looks its display name + combat level up in
         // the /mobs catalog to render the level-tinted nameplate (feedback
         // pass C item 2). Long-present on the wire, first read here.

@@ -40,16 +40,12 @@ const (
 	// A live stun (plan-entity-presentation.md D10, EP2): its own bit, so a
 	// stunned mob no longer reads as a slowed one.
 	AppliedEffectStun AppliedEffect = 1 << 14
-	// A crowded mob in version B (plan-playtest-versions.md D4, PV2): set by
-	// Mob.AppliedEffects while its crowd bonus is above 0. A mob state like
-	// camouflage, never a buff-store bit.
-	AppliedEffectCrowd AppliedEffect = 1 << 15
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 
-	// ⚑ The ushort is FULL since the crowd took bit 15 (plan-playtest-versions
-	// PV2; effect types round 2 C0 had widened the field from a ubyte,
-	// plan-effect-types-round-2.md): the next state widens the field again. lifestealPayload (R3) and
+	// ⚑ Bit 15 is the LAST free bit of the ushort (effect types round 2 C0
+	// widened the field from a ubyte; plan-effect-types-round-2.md): the state
+	// after it widens the field again. lifestealPayload (R3) and
 	// reflectPayload went without a pip while there was no room; reflect got
 	// bit 10 in that plan's C2, lifesteal still has none (PO 2026-10-31: not
 	// in EP2, plan-entity-presentation.md §7 Q1).

@@ -149,6 +149,7 @@
   "hud.interact-button.title": "Talk",
   "hud.journal-button.title": "Journal (J)",
   "hud.map-button.title": "Map (M)",
+  "hud.mob.crowd-resist": "{percent}%",
   "hud.mobile-menu.title": "Menu",
   "hud.quest-tracker.journal.title": "Journal (J)",
   "hud.radar.zoom-in.title": "Zoom in",

@@ -21,6 +21,31 @@ export function mobBarAnchorY(size: number, band: number): number {
     return Math.max(30, size + band + Math.max(0.08 * size, barHeight / 2 + BAR_CLEARANCE));
 }
 
+/** The Mob nameplate's top below its bar's centre, in px. [PLACEHOLDER] */
+export const NAMEPLATE_GAP = 16;
+
+/**
+ * The height of the crowd badge row under the Mob bar (plan-playtest-versions.md
+ * D9): the shield and the percent. The nameplate moves down by exactly this
+ * while the row is shown (L10). [PLACEHOLDER]
+ */
+export const CROWD_BADGE_ROW = 22;
+
+/** The crowd badge row's centre: right under the bar's bottom edge, stroke included. */
+export function crowdBadgeY(size: number, band: number): number {
+    const {barHeight} = overheadBarDimensions(size);
+    return mobBarAnchorY(size, band) + barHeight / 2 + OVERHEAD_BAR_BORDER.width / 2 + CROWD_BADGE_ROW / 2;
+}
+
+/**
+ * The Mob nameplate's top (its text hangs from it): under the bar, and under
+ * the crowd badge while that is shown. The one anchor every reader of the
+ * plate's y derives from (L10).
+ */
+export function mobNameplateY(size: number, band: number, crowdBadge: boolean): number {
+    return mobBarAnchorY(size, band) + NAMEPLATE_GAP + (crowdBadge ? CROWD_BADGE_ROW : 0);
+}
+
 /** The Character bar's y on its plate: today's place, or lower where the band needs it. */
 export function characterBarAnchorY(size: number, band: number): number {
     const {barHeight} = overheadBarDimensions(size);

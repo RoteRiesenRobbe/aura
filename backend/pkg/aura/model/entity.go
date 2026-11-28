@@ -168,6 +168,11 @@ type MobEntity interface {
 	// this mob (wire applied_effects — the client draws the pips from it; the
 	// received-status mirror of AuraCategories).
 	AppliedEffects() skills.AppliedEffect
+
+	// CrowdPercent is version B's crowd resistance in percent, 0-100 (wire
+	// crowd_resist: the client draws the badge under the health bar from it;
+	// plan-playtest-versions.md D9). 0 in version A.
+	CrowdPercent() uint8
 }
 
 // AABB is an alias to not expose transitive dependencies

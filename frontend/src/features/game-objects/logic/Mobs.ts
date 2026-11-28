@@ -19,7 +19,8 @@ import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
 import type {AuraDisplay, Interactable, LevelDisplay, MobPlate, OverheadVitals, TokenStateDisplay} from './WireSetters';
 import {indicatorBand, tokenState} from './TokenState';
-import {aboveTokenY, mobBarAnchorY} from './PlateAnchors';
+import {aboveTokenY, crowdBadgeY, mobBarAnchorY, mobNameplateY} from './PlateAnchors';
+import {CrowdBadge} from './CrowdBadge';
 import {InteractBadge} from './InteractBadge';
 import {BeatDetector} from './AuraBeat';
 import {meter2px} from "../../../client-data/BasicConfig";
@@ -59,9 +60,6 @@ function file(mob: keyof typeof GraphicsConfig.mobs): Preloading.PortraitSource 
     const cfg = GraphicsConfig.mobs[mob];
     return {file: cfg.file, packIcon: cfg.packIcon, packTint: cfg.packTint};
 }
-
-// Nameplate offset below the overhead HP bar, in px. [PLACEHOLDER]
-const NAMEPLATE_GAP = 16;
 
 // Conversant (NPC) plate colour: plain white, deliberately outside both the
 // difficulty palette (red/orange/yellow/green/gray all mean "a fight") and the
@@ -140,6 +138,9 @@ export abstract class Mob extends GameObject
     private spriteTop: number = null;
     // The last applied_effects mask shown (setAppliedEffects).
     private appliedMask = 0;
+    // Version B's crowd badge under the bar (plan-playtest-versions.md D9),
+    // built on the first percent above 0, so version A never builds one.
+    private crowdBadge: CrowdBadge = null;
 
     protected constructor(
         id: number,
@@ -307,9 +308,10 @@ export abstract class Mob extends GameObject
 
     // Y offset of the plate text: under the overhead bar, off the one anchor
     // the bar is built at, so the two cannot drift apart, and a mob with no
-    // bar (a Signpost) still plates where the bar would sit.
+    // bar (a Signpost) still plates where the bar would sit. Under the crowd
+    // badge while that is shown (plan-playtest-versions.md L10).
     private nameplateY(): number {
-        return this.barAnchorY() + NAMEPLATE_GAP;
+        return mobNameplateY(this.size, this.indicatorBand(), this.crowdBadge?.shown ?? false);
     }
 
     private barAnchorY(): number {
@@ -583,6 +585,26 @@ export abstract class Mob extends GameObject
      */
     setStance(stance: number) {
         this.medallion?.setStance(stance);
+    }
+
+    /**
+     * setCrowdResist shows version B's crowd resistance, the wire
+     * Mob.crowd_resist percent, as a shield and the number in a row under the
+     * health bar (plan-playtest-versions.md D9); 0 hides it. On the bar's
+     * parent (aboveArt), so it shares the darkness hide and the corpse fade. A
+     * mob without a bar shows none. The nameplate moves down while it shows.
+     */
+    setCrowdResist(percent: number) {
+        if (!this.overheadBar || (percent <= 0 && !this.crowdBadge)) {
+            return;
+        }
+        if (!this.crowdBadge) {
+            this.crowdBadge = new CrowdBadge(crowdBadgeY(this.size, this.indicatorBand()));
+            this.aboveArt.addChild(this.crowdBadge.container);
+        }
+        if (this.crowdBadge.set(percent)) {
+            this.nameElement?.position.set(0, this.nameplateY());
+        }
     }
 
     setRotation(rotation: number) {

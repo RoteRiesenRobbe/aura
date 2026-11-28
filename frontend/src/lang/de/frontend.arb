@@ -149,6 +149,7 @@
   "hud.interact-button.title": "Sprechen",
   "hud.journal-button.title": "Tagebuch (J)",
   "hud.map-button.title": "Karte (M)",
+  "hud.mob.crowd-resist": "{percent} %",
   "hud.mobile-menu.title": "Menü",
   "hud.quest-tracker.journal.title": "Tagebuch (J)",
   "hud.radar.zoom-in.title": "Hineinzoomen",

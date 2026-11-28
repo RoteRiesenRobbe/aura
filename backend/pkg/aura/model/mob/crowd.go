@@ -1,81 +1,97 @@
 package mob
 
-import "github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+import (
+	"math"
 
-// Version B's crowd scaling (plan-playtest-versions.md D3, PV2): a hostile mob
-// grows stronger for each extra player recently on its threat table.
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+)
+
+// Version B's crowd resistance (plan-playtest-versions.md D8, PV2b): a hostile
+// mob takes less damage for each extra player on its threat table.
 //
-//	attackers = live PLAYER rows whose last threat write is < crowdWindow ticks old
-//	bonus     = min((attackers - 1) × crowdPerAttacker, crowdCap)
+//	players = live PLAYER rows on the threat table, this tick (summons excluded)
+//	resist  = min((players - 1) × crowdPerAttacker, crowdCap)
+//	taken   = damage × DamageReductionFactor × (1 - resist)
 //
-// The bonus raises the damage the mob deals (damageDealt, D3) and mirrors onto
-// the damage it takes: × 1/(1+bonus) (Q2, PO 2026-11-28), so a full crowd
-// doubles its output and halves what it takes, never immune. Both knobs are 0
-// in version A, which turns the whole thing off. Set once at boot, like
-// SetDifficulty. All values [PLACEHOLDER].
+// The mob's own damage is untouched (R6). Both knobs are 0 in version A, which
+// turns the whole thing off. Set once at boot, like SetDifficulty. All values
+// [PLACEHOLDER].
 //
-// ⚑ The window belongs to the count, never to the table (L7): rows still leave
-// only on death, disconnect, detaunt or reset, because retention, the leash and
-// the dormancy wake read the table.
+// The rule is crowdResist (the formula) and tickCrowd (the count); everything
+// else reads the cached m.crowdResist or CrowdPercent (R9). A smarter rule
+// later replaces those two functions only.
+//
+// ⚑ The count reads the table as it is (L7b): nothing here expires or trims a
+// row, because retention, the leash and the dormancy wake read the table.
 var (
 	crowdPerAttacker float32
 	crowdCap         float32
-	crowdWindow      uint64 = defaultCrowdWindow
 )
 
-// defaultCrowdWindow is 5 s at 30 ticks/s (R5) [PLACEHOLDER]: the window an
-// absent conf key reads as, so a passer-by always drops out.
-const defaultCrowdWindow = 150
+// maxCrowdCap keeps a crowded mob mortal: a conf cap above it reads as it
+// [PLACEHOLDER].
+const maxCrowdCap = 0.9
 
-// SetCrowd sets the three knobs. A non-positive per-attacker or cap reads as 0
-// (off); a non-positive window as the default.
-func SetCrowd(perAttacker, capAt float32, windowTicks int) {
+// SetCrowd sets the two knobs. A non-positive per-attacker step or cap reads
+// as 0 (off); a cap above maxCrowdCap as maxCrowdCap.
+func SetCrowd(perAttacker, capAt float32) {
 	crowdPerAttacker = max(perAttacker, 0)
-	crowdCap = max(capAt, 0)
-	crowdWindow = defaultCrowdWindow
-	if windowTicks > 0 {
-		crowdWindow = uint64(windowTicks)
-	}
+	crowdCap = min(max(capAt, 0), maxCrowdCap)
 }
 
 // Crowd is the resolved knobs, for the boot log (D5).
-func Crowd() (perAttacker, capAt float32, windowTicks int) {
-	return crowdPerAttacker, crowdCap, int(crowdWindow)
+func Crowd() (perAttacker, capAt float32) {
+	return crowdPerAttacker, crowdCap
 }
 
-// CrowdBonus is this tick's cached bonus; 0 outside version B and the hostile
-// set.
-func (m *Mob) CrowdBonus() float32 {
-	return m.crowdBonus
+// crowdResist is the formula: the resistance a mob gets with this many players
+// on its table.
+func crowdResist(players int) float32 {
+	if players <= 1 {
+		return 0
+	}
+	return min(float32(players-1)*crowdPerAttacker, crowdCap)
 }
 
-// crowdTakenFactor is the mirror on incoming damage, 1/(1+bonus) (Q2). Its own
+// CrowdResist is this tick's cached resistance, 0 to maxCrowdCap; 0 outside
+// version B and the hostile set.
+func (m *Mob) CrowdResist() float32 {
+	return m.crowdResist
+}
+
+// CrowdPercent is the resistance as the wire and the badge carry it (R7, D9):
+// round(resist × 100).
+func (m *Mob) CrowdPercent() uint8 {
+	return uint8(math.Round(float64(m.crowdResist) * 100))
+}
+
+// crowdTakenFactor is the factor on incoming damage, (1 - resist). Its own
 // factor beside DamageReductionFactor, not folded into the additive, clamped
-// damageReduction stat.
+// damageReduction stat, so a buff and the crowd stack by multiplication and
+// the badge shows the crowd alone.
 func (m *Mob) crowdTakenFactor() float32 {
-	return 1 / (1 + m.crowdBonus)
+	return 1 - m.crowdResist
 }
 
-// tickCrowd advances the mob's crowd clock and recounts, once per tick from
-// Update: every read in between takes the cached value. A dormant mob skips
-// Update, but it has an empty table (dormancy.go), so nothing is missed.
+// tickCrowd recounts once per tick from Update: every read in between takes
+// the cached value. A dormant mob skips Update, but it has an empty table
+// (dormancy.go), so nothing is missed.
 func (m *Mob) tickCrowd() {
-	m.crowdTick++
-	m.crowdBonus = 0
+	m.crowdResist = 0
 	if crowdPerAttacker <= 0 || crowdCap <= 0 || !m.difficultyScaled() {
 		return
 	}
-	attackers := 0
+	players := 0
 	for _, e := range m.threat {
-		if m.crowdTick-e.lastTick >= crowdWindow || e.entity.HealthRatio() == 0 {
+		// A dead row stops counting at once, before pruneDeadThreat drops it
+		// (R8: a live count, not a latch).
+		if e.entity.HealthRatio() == 0 {
 			continue
 		}
 		// R2: players only. A summon's row names the summon, a Mob.
 		if _, isPlayer := e.entity.(model.PlayerEntity); isPlayer {
-			attackers++
+			players++
 		}
 	}
-	if attackers > 1 {
-		m.crowdBonus = min(float32(attackers-1)*crowdPerAttacker, crowdCap)
-	}
+	m.crowdResist = crowdResist(players)
 }

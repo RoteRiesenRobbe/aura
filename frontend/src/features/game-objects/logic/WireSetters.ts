@@ -46,6 +46,9 @@ export interface MobPlate {         // Mob
     setMobId(mobId: number): void;
     setTier(rank: number): void;
     setStance(stance: number): void;
+    // Version B's crowd resistance in percent (plan-playtest-versions.md D9):
+    // the badge under the bar, hidden at 0.
+    setCrowdResist(percent: number): void;
 }
 
 export interface CharacterLook {    // Character, Corpse

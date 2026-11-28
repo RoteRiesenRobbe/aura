@@ -296,3 +296,23 @@ func TestMobMarshalFlatbuf_DifficultyHealthFactorOnTheWire(t *testing.T) {
 	assert.Equal(t, 2*plain.MaxHealth(), scaled.MaxHealth())
 	assert.Equal(t, scaled.MaxHealth(), scaled.Health(), "spawned full at the scaled pool")
 }
+
+// percentMob reports a fixed crowd percent, so the wire half is pinned without
+// building a threat table of players (that half is crowd_test.go's).
+type percentMob struct {
+	*mob.Mob
+	percent uint8
+}
+
+func (p percentMob) CrowdPercent() uint8 { return p.percent }
+
+// Mob.crowd_resist (plan-playtest-versions.md D9, PV2b): the wire carries
+// CrowdPercent as is, and a mob without a crowd sends 0.
+func TestMobMarshalFlatbuf_CrowdResist(t *testing.T) {
+	plain := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil)
+	assert.Zero(t, marshalledMob(t, plain).CrowdResist())
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(MobEntityFlatbufMarshal(percentMob{Mob: plain, percent: 20}, b))
+	assert.Equal(t, uint8(20), AuraApi.GetRootAsMob(b.FinishedBytes(), 0).CrowdResist())
+}

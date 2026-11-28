@@ -6,6 +6,7 @@ import {GraphicsConfig} from '../Graphics';
 import {CAMP_PACK_ICONS} from '../../features/utilities/logic/Utilities';
 import {STATE_ROWS} from '../../features/game-objects/logic/TokenState';
 import {HUD_TILES} from '../../features/user-interface/HUD/logic/HudTiles';
+import {CROWD_BADGE_ICON} from '../../features/game-objects/logic/CrowdBadge';
 
 const repoRoot = join(__dirname, '..', '..', '..', '..');
 
@@ -96,7 +97,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
         expect(unknown, 'add the glyph to pack-manifest.json').toEqual([]);
     });
 
-    it('every manifest entry is used by a skill, a portrait, a utility or a HUD tile', () => {
+    it('every manifest entry is used by a skill, a portrait, a utility, a HUD tile or the crowd badge', () => {
         // The manifest is what the seat holder packs; an unused entry is dead
         // weight in the committed atlas and a stale pick nobody can see.
         const used = new Set<string>([
@@ -109,6 +110,7 @@ describe('pack icon content pins (the manifest is the only committed raw-pack da
             ...Object.values(CAMP_PACK_ICONS),
             ...STATE_ROWS.map((row) => row.glyph?.packIcon ?? ''),
             ...HUD_TILES.map((tile) => tile.packIcon),
+            CROWD_BADGE_ICON,
         ]);
         const unused = [...manifestNames].filter((name) => !used.has(name));
         expect(unused, 'remove the entry or name it somewhere').toEqual([]);

@@ -183,6 +183,11 @@ export class EntityManager {
             if (isDefined(entity.stance) && isFunction(go.setStance)) {
                 go.setStance(entity.stance);
             }
+            // Version B's crowd badge under the bar (plan-playtest-versions.md
+            // D9). Sent every tick, 0 included, so a reset clears it.
+            if (isDefined(entity.crowdResist) && isFunction(go.setCrowdResist)) {
+                go.setCrowdResist(entity.crowdResist);
+            }
             // Species id → the level-tinted nameplate, resolved against the
             // /mobs catalog (feedback pass C item 2). Sent every tick like the
             // rest; the mob rebuilds the plate only when the id actually

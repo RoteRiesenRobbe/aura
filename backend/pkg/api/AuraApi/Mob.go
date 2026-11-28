@@ -357,8 +357,20 @@ func (rcv *Mob) MutateStance(n Stance) bool {
 	return rcv._tab.MutateByteSlot(62, byte(n))
 }
 
+func (rcv *Mob) CrowdResist() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateCrowdResist(n byte) bool {
+	return rcv._tab.MutateByteSlot(64, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(30)
+	builder.StartObject(31)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -437,6 +449,9 @@ func MobAddLightFlicker(builder *flatbuffers.Builder, lightFlicker bool) {
 }
 func MobAddStance(builder *flatbuffers.Builder, stance Stance) {
 	builder.PrependByteSlot(29, byte(stance), 0)
+}
+func MobAddCrowdResist(builder *flatbuffers.Builder, crowdResist byte) {
+	builder.PrependByteSlot(30, crowdResist, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

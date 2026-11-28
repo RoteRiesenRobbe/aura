@@ -665,6 +665,13 @@ table Mob {
   // Presentation only. Hostile is the default, so it costs no bytes for a
   // mob that hunts players. Appended at the table end.
   stance:Stance = Hostile;
+
+  // version B's crowd resistance in percent, 0-100 (plan-playtest-versions.md
+  // D9): round(resist × 100), resolved on the server; the client draws it as
+  // the badge under the health bar and never recomputes it (L11). 0 = none,
+  // which every mob in version A sends, so it costs no bytes there. Appended
+  // at the table end.
+  crowd_resist:ubyte = 0;
 }
 
 table Character {

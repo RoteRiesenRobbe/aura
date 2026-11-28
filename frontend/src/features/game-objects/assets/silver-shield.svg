@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder for the PONETI Shield_v2_11 silver heater shield, the crowd badge
+     (plan-playtest-versions.md D9, PV2b): drawn where the icon pack is not on this machine.
+     Silver, never the absorb blue of the bar's shield segment. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M32 4 L56 12 V30 C56 45 45 55 32 60 C19 55 8 45 8 30 V12 Z"
+        fill="#c9ced6" stroke="#4a4f57" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M32 12 L48 17 V30 C48 41 41 48 32 52 C23 48 16 41 16 30 V17 Z" fill="#9aa1ab"/>
+  <path d="M32 18 V44 M24 26 H40" stroke="#4a4f57" stroke-width="4" stroke-linecap="round"/>
+</svg>

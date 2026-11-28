@@ -4,8 +4,8 @@
 PV1 BUILT 2026-11-27 (`382793a9`); PV2 BUILT 2026-11-28 (`efd5d4ee`, Q2/Q4/Q5 ruled, not
 deployed); PV3's measurement half done (B = 1.1/1.1, Q6). **Crowd rework R6-R9 RULED
 2026-11-28 (§2a): resistance only, a % badge under the bar, the live table count, no window.
-⭐ PV2b (D8 + D9) is the next chunk, then PV3's rest (the runbook D6 + the local rehearsal
-D7).** Open PO calls in §7 (Q1, the playtest date: a week or more out; Q6's crowd half;
+PV2b BUILT 2026-11-28 (D8 + D9, PO look passed: "works"; not deployed). ⭐ Next: PV3's rest
+(the runbook D6 + the local rehearsal D7).** Open PO calls in §7 (Q1, the playtest date: a week or more out; Q6's crowd half;
 Q7). 4 chunks (§5); PF6 follows the PV chunks.
 
 **Owns:** the version switch (how live goes from A to B and back), the mob difficulty
@@ -315,7 +315,8 @@ taken   = damage × DamageReductionFactor × (1 - resist)
   the pick, with a committed SVG fallback. ⚑ Not the absorb blue: the bar's shield segment
   (`shield_hp`) is blue, and a blue shield beside it reads as an absorb. `[PLACEHOLDER]`
   colour, the PO's look decides.
-- **Text:** through `t()` with the number as an arg (`hud.mob.crowdResist`: EN `{percent}%`,
+- **Text:** through `t()` with the number as an arg (`hud.mob.crowd-resist`, built hyphenated
+  for the catalog's D32 key pin: EN `{percent}%`,
   DE `{percent} %`), no literal. No hover (as D4; Q3 of `plan-entity-presentation.md` still
   owns state hovers).
 - **The glyph goes (R7):** `AppliedEffectCrowd` leaves `skills/applied_effects.go`,
@@ -476,7 +477,7 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   `crowdPerAttacker`, `crowdCap`, `crowdWindow`); absent = A. **PV2b: `crowdWindow` removed
   (+4 net); the crowd keys now mean resistance.**
 - **Content:** NONE. **Zone format:** NONE. **Lang:** none in PV2; **PV2b +1 key EN + DE**
-  (`hud.mob.crowdResist`). **Icons:** +1 (PV2); PV2b +1 shield, -1 rage figure.
+  (`hud.mob.crowd-resist`). **Icons:** +1 (PV2); PV2b +1 shield, -1 rage figure.
 
 ## 10. Cross-references
 
@@ -486,6 +487,53 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 `archive/plan-effect-types-round-2.md` (stat fold), `gdd.md` multiplayer (roles).
 
 ## 11. Chunk ledgers
+
+### PV2b, the crowd rework: 2026-11-28, `[uncommitted]`
+
+D8 + D9 as designed; PO look passed 2026-11-28 ("works"), booted locally with B's block
+(1.1/1.1, crowd 0.1/0.5). Not deployed.
+
+- **Go (`model/mob/crowd.go`):** `SetCrowd(per, cap)` clamps the cap to `maxCrowdCap` 0.9;
+  `crowdResist(players)` is the formula, `tickCrowd` the count of live player rows (summons
+  and dead rows skipped), cached in `Mob.crowdResist`, zeroed by `resetAggro`;
+  `CrowdPercent()` = `round(resist × 100)`; `takeDamage` multiplies by `1 - resist` beside
+  `DamageReductionFactor`. The `DamageDealtBonus` line, `crowdTick`, `threatEntry.lastTick`,
+  `crowdWindow` (conf field, default, boot log line) are gone. `model.MobEntity` gains
+  `CrowdPercent()`.
+- **Wire:** `crowd_resist:ubyte = 0` at the end of `table Mob`, written in `codec/mob.go`;
+  both bindings regenerated (diff confined to Mob).
+- **Client:** `GameStateMessage` → `EntityManager` (mob branch, every tick, 0 included) →
+  `MobPlate.setCrowdResist` → `CrowdBadge.ts` on `aboveArt`: PONETI `Shield_v2_11` as
+  `silver-shield` (local atlas repacked, 208 icons; the live atlas needs it at the next full
+  deploy) or the committed `silver-shield.svg`, white text `t('hud.mob.crowd-resist')`.
+  Anchors in `PlateAnchors.ts`: `NAMEPLATE_GAP` moved there, `CROWD_BADGE_ROW` 22,
+  `crowdBadgeY`, `mobNameplateY(size, band, badge)`; the nameplate re-anchors on a badge
+  toggle and on late creation. Icon 20 px, font 13 px, row 22 px `[PLACEHOLDER]`.
+- **Glyph removed:** the six PV2-touched files restored to `efd5d4ee^` (Go bit, shared
+  constants, `TokenState.ts` row + enum, both pins, the manifest), `red-rage-figure.svg`
+  deleted, `plan-entity-presentation.md`'s bit-15 notes reverted: bit 15 is free again.
+- **Deviations:** the key is `hud.mob.crowd-resist`, not `crowdResist` (the catalog's D32
+  pin); `_DamageTakenIsOneMinusResist` uses a 0.125 step, since 40 → 30 at three players
+  does not fit 0.1 (it gives 32); German `{percent} %` takes the plain space of the existing
+  `tooltip.unit.percent`, while `manual-localization-de.md` §2 names `Intl`'s narrow space
+  (open: which one rules).
+
+**Schema: DB none · wire +1 field (`Mob.crowd_resist`), bit 15 freed · conf -1 key
+(`crowdWindow`) · content none · lang +1 EN + DE · icons +1 -1.**
+
+Verified: `go test ./...` 0 FAIL in 40 packages (DB tests skipped, no DB impact);
+`TestCrowd_*` 15, red first on the four D8 asserts (with the new API on PV2's semantics:
+damage factor 1.2 / 1.5, 40 → 34, cap 2 unclamped), then green; the Go shared-constants pin
+red without `crowd`, then green; the codec test falsified (write removed → red); vitest
+2044/0 (the frontend pins written beside the code, not red first) · typecheck · `-validate`
+0 · lang-status 0/0/0 · `ep1-state-ring` 17/0/0 on A. `pv2-crowd.mjs` rewritten, 7/0/0 on
+B's conf (b5-b7; b8, after the last harness edit, every leg PASS + the console check FAIL on
+a lost WebGL context, backlog §29, environmental, 2 of 8 runs): summon alone 0, three players `crowd_resist` 20, badge "20%" under the
+bar with the nameplate clear, B and C 2.5 u away still 20 (R8), WARP away → reset → 0.
+⚑ PV2's INCONCLUSIVE reset leg was the harness: the three auras ground the Alpha out of
+view before leg 3, and `HOME` moved nobody (a fresh harness character has no bound
+campfire). Not seen live: the damage reduction itself, "hits no harder", "one dies → 10%"
+(Go tests; the harness runs GOD on).
 
 ### PV2, crowd scaling + the crowd glyph: 2026-11-28, `efd5d4ee`
 

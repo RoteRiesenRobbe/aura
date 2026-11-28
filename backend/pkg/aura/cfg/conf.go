@@ -128,14 +128,13 @@ type Config struct {
 			// A; only the live devops/conf.json ever authors them. [PLACEHOLDER]
 			DamageFactor float32 `json:"damageFactor"`
 			HealthFactor float32 `json:"healthFactor"`
-			// CrowdPerAttacker / CrowdCap / CrowdWindow are version B's crowd
-			// scaling (plan-playtest-versions.md D3): a hostile mob deals more
-			// and takes less for each extra player whose last threat write on
-			// it is under CrowdWindow TICKS old. Step and cap absent → 0, which
-			// is version A (off); the window absent → 150 (5 s). [PLACEHOLDER]
+			// CrowdPerAttacker / CrowdCap are version B's crowd resistance
+			// (plan-playtest-versions.md D8): a hostile mob takes less damage
+			// for each extra player on its threat table, step per player up to
+			// the cap (clamped to 0.9 at mob.SetCrowd). Absent → 0, which is
+			// version A (off). [PLACEHOLDER]
 			CrowdPerAttacker float32 `json:"crowdPerAttacker"`
 			CrowdCap         float32 `json:"crowdCap"`
-			CrowdWindow      int     `json:"crowdWindow"`
 		} `json:"mob"`
 
 		// Combat holds factors that apply to every acting entity (player, mob,
@@ -226,11 +225,6 @@ func ParseConfig(data []byte, label string) (*Config, error) {
 	}
 	if config.Game.Mob.HealthFactor <= 0 {
 		config.Game.Mob.HealthFactor = 1
-	}
-	// The crowd step and cap stay 0 when absent (off, version A); the window
-	// gets its 5 s so a B block naming only the step still drops passers-by.
-	if config.Game.Mob.CrowdWindow <= 0 {
-		config.Game.Mob.CrowdWindow = 150
 	}
 	if config.Game.Player.CritChance <= 0 {
 		config.Game.Player.CritChance = 0.05

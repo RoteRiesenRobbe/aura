@@ -45,7 +45,7 @@ describe('STATE_ROWS', () => {
         const harmful = [AppliedEffectBit.Stun, AppliedEffectBit.Dot, AppliedEffectBit.Slow,
             AppliedEffectBit.StatDown, AppliedEffectBit.Fear, AppliedEffectBit.Calm, AppliedEffectBit.Charm];
         const helpful = [AppliedEffectBit.Hot, AppliedEffectBit.Speed, AppliedEffectBit.StatUp,
-            AppliedEffectBit.Resist, AppliedEffectBit.Reflect, AppliedEffectBit.TickRate, AppliedEffectBit.Crowd];
+            AppliedEffectBit.Resist, AppliedEffectBit.Reflect, AppliedEffectBit.TickRate];
         for (const bit of harmful) {
             const angle = rowOf(bit).angle;
             expect(angle >= 0 && angle < 180, AppliedEffectBit[bit]).toBe(true);
@@ -74,22 +74,18 @@ describe('STATE_ROWS', () => {
         expect(rowOf(AppliedEffectBit.TickRate).angle).toBe(225);
     });
 
+    // plan-playtest-versions.md D9 (PV2b): the crowd glyph left 202.5° again;
+    // the crowd is a badge under the bar now, never an indicator.
+    it('keeps 157.5° and 202.5° as the spares', () => {
+        expect(indicatorRows.filter(row => row.angle === 157.5)).toEqual([]);
+        expect(indicatorRows.filter(row => row.angle === 202.5)).toEqual([]);
+    });
+
     it('gives stun 12 o\'clock with the swirl glyph (EP2, D10)', () => {
         const stun = rowOf(AppliedEffectBit.Stun);
         expect(indicatorRows.filter(row => row.angle === 0)).toEqual([stun]);
         expect(stun.glyph?.packIcon).toBeTruthy();
         expect(stun.glyph?.file).toBeTruthy();
-    });
-
-    // plan-playtest-versions.md D4 (PV2): a crowded mob in version B. Helpful
-    // to the wearer, so the left half's spare at 202.5° (R6).
-    it('gives the crowd the 202.5° spare with a pack glyph (PV2, D4)', () => {
-        const crowd = rowOf(AppliedEffectBit.Crowd);
-        expect(crowd.angle).toBe(202.5);
-        expect(indicatorRows.filter(row => row.angle === 202.5)).toEqual([crowd]);
-        expect(crowd.glyph?.packIcon).toBeTruthy();
-        expect(crowd.glyph?.file).toBeTruthy();
-        expect(tokenState(AppliedEffectBit.Crowd, false).indicators.map(row => row.id)).toEqual(['crowd']);
     });
 
     it('makes dead an indicator at 180° that also greys, with the skull glyph', () => {

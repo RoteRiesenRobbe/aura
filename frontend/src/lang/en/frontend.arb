@@ -648,6 +648,13 @@
   "@hud.map-button.title": {
     "description": "HUD: the game tooltip of the map tile (<div id=mapButton>) under the minimap; the letter is the hotkey."
   },
+  "hud.mob.crowd-resist": "{percent}%",
+  "@hud.mob.crowd-resist": {
+    "description": "Under a mob's health bar, beside a shield icon: how much less damage the mob takes because several players are fighting it (version B crowd resistance). Just the number and the percent sign, no words.",
+    "placeholders": {
+      "percent": {"type": "String", "description": "Whole percent, already formatted", "example": "20"}
+    }
+  },
   "hud.mobile-menu.title": "Menu",
   "@hud.mobile-menu.title": {
     "description": "HUD: the title attribute of the <div id=mobileMenuButton> element in #gameUI."

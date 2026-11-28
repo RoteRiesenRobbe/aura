@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-11-28, the playtest versions PV2b wrap: the VERTICAL SLICE PF4 entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: VERTICAL SLICE PF4, Words** ✅ DONE 2026-11-25 `b18a39cb`, PO look passed 2026-11-25: "works" (ledger: `docs/plan-vertical-slice.md` §11 PF4): 15 notes, English + German in one pass, display text only (ids and keys stay, map untouched): name suggestions from `client-data/character-names.json`, renamed quests and mobs, 21 UI em dashes rewritten. ⚑ The hardcoded-text scan only catches assignments: 13 literals passed into calls now use the catalog (`hud.refusal.*`, account errors). **Schema: DB none · wire none · conf none · content dialogue · lang EN + DE.** Verified: vitest 2025/0 · typecheck · Go 0 FAIL · `-validate` 0 · lang-status 0 · `qi1` 13/13 · `woods-w123` 15/15 · probe en + de; `c3-flight-client` 1/7 = HEAD.
+
 *(2026-11-28, the playtest versions PV2 wrap: the VERTICAL SLICE PF3 entry fell off the cap of three and moved here verbatim.)*
 
 - **Prior: VERTICAL SLICE PF3, the HUD** ✅ DONE 2026-11-25 `690591eb`, PO look passed 2026-11-25 after one feedback round, DEPLOYED LIVE 2026-11-25 as `90fcab23` (ledger: `docs/plan-vertical-slice.md` §11 PF3): map, spellbook, journal, appearance are a 2×2 of PONETI tiles under the minimap (game tooltips, no `title`); the zoom row lies above the Focus bar; the tracker takes the freed height; one points strip + Reset in the book for every tab (the active tab no longer bolds); player names at 16 px; the banner has a desktop scrim and a smaller white source line. ⚑ The phone is pinned by `pf3-hud.mjs phone` against a HEAD baseline. ⚑ Harness joins hang intermittently at world entry, cause open. **Schema: DB none · wire none · conf none · content none · lang +2 keys EN + DE · icons +4.** Verified: vitest 2020/0 · typecheck · Go 0 FAIL · `pf3-hud` desktop ×2 + german 3/3 + phone 0 diffs.

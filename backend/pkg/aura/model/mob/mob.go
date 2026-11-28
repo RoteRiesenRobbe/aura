@@ -501,11 +501,9 @@ type Mob struct {
 	// Lazily initialized by noteThreat.
 	threat map[uint64]*threatEntry
 
-	// Crowd scaling (plan-playtest-versions.md D3, crowd.go): the mob's own
-	// tick clock, which stamps each threat row's lastTick, and the bonus
-	// recounted from the table once per tick. Both stay 0 in version A.
-	crowdTick  uint64
-	crowdBonus float32
+	// Crowd resistance (plan-playtest-versions.md D8, crowd.go), recounted
+	// from the threat table once per tick. 0 in version A.
+	crowdResist float32
 
 	// tookDamage marks a real HP loss since the last Update — set by
 	// takeDamage (which runs in the SkillSystem phase, after mob updates) and
@@ -1684,7 +1682,7 @@ func (m *Mob) resetAggro() {
 	m.aggroTarget = nil
 	m.threat = nil
 	m.leashTicks = 0
-	m.crowdBonus = 0
+	m.crowdResist = 0
 }
 
 // targetWithinAuraReach reports whether the aggro target overlaps the mob's
@@ -1764,10 +1762,6 @@ func (m *Mob) findAggroTarget() model.Combatant {
 type threatEntry struct {
 	entity model.Combatant
 	threat float32
-	// lastTick is the mob's crowdTick at this row's latest write: a hit,
-	// healer threat or a taunt (every write resolves the row here). Only the
-	// crowd count reads it (R5); the row never expires by it (L7).
-	lastTick uint64
 }
 
 // noteThreat credits threat against source (chunk 3a). The amount is
@@ -1817,7 +1811,6 @@ func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
 		e = &threatEntry{entity: source}
 		m.threat[id] = e
 	}
-	e.lastTick = m.crowdTick
 	return e
 }
 
@@ -2246,11 +2239,7 @@ func (m *Mob) ApplyStat(source skills.SkillID, stat string, bonus float32, ticks
 
 // EffectiveStats is Derived plus the timed stat buffs (D14).
 func (m *Mob) EffectiveStats() skills.DerivedStats {
-	d := m.skills.Derived.WithBuffs(&m.buffs)
-	// Version B's crowd (plan-playtest-versions.md D3): one more damageDealt
-	// source, 0 in version A.
-	d.DamageDealtBonus += m.crowdBonus
-	return d
+	return m.skills.Derived.WithBuffs(&m.buffs)
 }
 
 // ApplyResist grants a transient tag-resistance buff from a resist aura
@@ -2414,16 +2403,10 @@ func (m *Mob) ShieldHP() vitals.VitalSign {
 // ShieldHP. A camouflaged species adds its Camouflage bit here, beside the
 // buff store's bits: it is a state of the mob, not a buff.
 func (m *Mob) AppliedEffects() skills.AppliedEffect {
-	bits := m.buffs.AppliedEffects()
 	if m.camouflaged() {
-		bits |= skills.AppliedEffectCamouflage
+		return m.buffs.AppliedEffects() | skills.AppliedEffectCamouflage
 	}
-	// The crowd glyph (plan-playtest-versions.md D4): a mob state, lit while
-	// the crowd bonus is above 0.
-	if m.crowdBonus > 0 {
-		bits |= skills.AppliedEffectCrowd
-	}
-	return bits
+	return m.buffs.AppliedEffects()
 }
 
 // camouflageHomeRadius is how far a camouflaged mob may sit from its spawn

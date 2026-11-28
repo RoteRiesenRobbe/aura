@@ -164,8 +164,13 @@ stance():Stance {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : Stance.Hostile;
 }
 
+crowdResist():number {
+  const offset = this.bb!.__offset(this.bb_pos, 64);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(30);
+  builder.startObject(31);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -278,6 +283,10 @@ static addLightFlicker(builder:flatbuffers.Builder, lightFlicker:boolean) {
 
 static addStance(builder:flatbuffers.Builder, stance:Stance) {
   builder.addFieldInt8(29, stance, Stance.Hostile);
+}
+
+static addCrowdResist(builder:flatbuffers.Builder, crowdResist:number) {
+  builder.addFieldInt8(30, crowdResist, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

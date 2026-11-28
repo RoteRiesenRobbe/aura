@@ -1,5 +1,8 @@
 import {describe, expect, it} from 'vitest';
-import {aboveTokenY, characterBarAnchorY, characterNameY, levelNumberOffset, mobBarAnchorY} from './PlateAnchors';
+import {
+    aboveTokenY, characterBarAnchorY, characterNameY, CROWD_BADGE_ROW, crowdBadgeY, levelNumberOffset, mobBarAnchorY,
+    mobNameplateY, NAMEPLATE_GAP,
+} from './PlateAnchors';
 import {overheadBarDimensions} from './OverheadHealthBar';
 import {indicatorBand} from './TokenState';
 import {OVERHEAD_BAR_BORDER} from '../../../client-data/Theme';
@@ -29,6 +32,24 @@ describe('anchors clear the indicator band', () => {
         expect(mobBarAnchorY(54, 0) - 54 * 1.08).toBeLessThan(1);
         expect(mobBarAnchorY(180, 0)).toBeCloseTo(180 * 1.08, 10);
         expect(mobBarAnchorY(10, 0)).toBe(30);
+    });
+
+    // plan-playtest-versions.md D9, L10: the crowd badge row sits between the
+    // bar's bottom edge and the nameplate, which moves down by the row only
+    // while it is shown.
+    it('the crowd badge row between the Mob bar and its nameplate', () => {
+        for (const size of [...SIZES, 10, 54, 180]) {
+            for (const band of [0, indicatorBand(size)]) {
+                const barY = mobBarAnchorY(size, band);
+                const {barHeight} = overheadBarDimensions(size);
+                const rowTop = crowdBadgeY(size, band) - CROWD_BADGE_ROW / 2;
+                const rowBottom = crowdBadgeY(size, band) + CROWD_BADGE_ROW / 2;
+                expect(rowTop, `size ${size}`).toBeGreaterThanOrEqual(barY + barHeight / 2 + STROKE);
+                expect(rowBottom, `size ${size}`).toBeLessThanOrEqual(mobNameplateY(size, band, true));
+                expect(mobNameplateY(size, band, false), `size ${size}`).toBe(barY + NAMEPLATE_GAP);
+                expect(mobNameplateY(size, band, true) - mobNameplateY(size, band, false)).toBe(CROWD_BADGE_ROW);
+            }
+        }
     });
 
     it('the Character bar on its plate', () => {

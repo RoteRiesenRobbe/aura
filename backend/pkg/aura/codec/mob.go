@@ -73,6 +73,9 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	AuraApi.MobAddStance(builder, AuraApi.Stance(m.Stance()))
 	// Buff/debuff kinds currently applied TO the mob — drives the pips.
 	AuraApi.MobAddAppliedEffects(builder, uint16(m.AppliedEffects()))
+	// Version B's crowd resistance, resolved here and only drawn by the
+	// client (plan-playtest-versions.md D9, L11).
+	AuraApi.MobAddCrowdResist(builder, m.CrowdPercent())
 
 	return AuraApi.MobEnd(builder)
 }
