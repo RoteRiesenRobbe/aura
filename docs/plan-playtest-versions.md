@@ -4,8 +4,10 @@
 PV1 BUILT 2026-11-27 (`382793a9`); PV2 BUILT 2026-11-28 (`efd5d4ee`, Q2/Q4/Q5 ruled, not
 deployed); PV3's measurement half done (B = 1.1/1.1, Q6). **Crowd rework R6-R9 RULED
 2026-11-28 (§2a): resistance only, a % badge under the bar, the live table count, no window.
-PV2b BUILT 2026-11-28 (D8 + D9, PO look passed: "works"; not deployed). ⭐ Next: PV3's rest
-(the runbook D6 + the local rehearsal D7).** Open PO calls in §7 (Q1, the playtest date: a week or more out; Q6's crowd half;
+PV2b BUILT 2026-11-28 (D8 + D9, PO look passed: "works"; not deployed). PV3 DONE 2026-11-28
+(the runbook D6 + the local rehearsal D7, §11); every chunk built. Live runs B since 17:47 UTC
+that day (`464f23a4`, the PO's live test). ⭐ Next: the playtest itself (swap by the runbook);
+PF6 of the vertical slice follows.** Open PO calls in §7 (Q1, the playtest date: a week or more out; Q6's crowd half;
 Q7). 4 chunks (§5); PF6 follows the PV chunks.
 
 **Owns:** the version switch (how live goes from A to B and back), the mob difficulty
@@ -232,6 +234,9 @@ check (`journalctl -u aurad -n 25`, already in `deploy.sh`) then shows A or B wi
 tool. No cheat, no endpoint (YAGNI).
 
 ### D6 - The swap runbook
+
+**Written 2026-11-28:** `plan-playtest-deploy.md` "Version swap (A ↔ B)", linked from VS D9.
+D7 rehearsed it locally the same day (§11 PV3).
 
 A section in `plan-playtest-deploy.md` (and a line in VS D9's checklist):
 
@@ -487,6 +492,50 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 `archive/plan-effect-types-round-2.md` (stat fold), `gdd.md` multiplayer (roles).
 
 ## 11. Chunk ledgers
+
+### PV3, the runbook (D6) + the local rehearsal (D7): 2026-11-28, `[uncommitted]`
+
+Docs + one harness, no production code. Schema: none. With the measurement half
+(2026-11-27, below) PV3 is done, and so is every chunk of this plan; the doc stays live for
+the playtest itself and Q1, Q6's crowd half, Q7.
+
+- **D6, the runbook:** `plan-playtest-deploy.md` "Version swap (A ↔ B)": B's block ready to
+  paste, A = no `mob` block at all (as at `2d39f77c`), seven steps (clean tree, edit only
+  `devops/conf.json`, commit it alone + push, PO go + `ANNOUNCE` "a restart" (Q7), a full
+  deploy never `--content-only`, read the `🎚️ tuning knobs` line, record UTC + commit in
+  three places), and what a swap does not touch (no client change, characters persist,
+  nothing B-only persisted, L6). VS D9 links it. ⚑ Its first use came before it was
+  written: live went A → B at 2026-11-28 17:47 UTC (`464f23a4`, the PO's live test, not the
+  playtest), by the same steps.
+- **D7, the rehearsal:** a second local aurad on port 2100 (the PO's 2000 server untouched),
+  scratch confs (local `conf.json` + port 2100; B adds the four keys), booted A → B → A. One
+  character throughout (`hrnss_pvrh_dbhli8l`, a persistent browser profile): the new
+  `pv3-rehearsal.mjs` (solo, GOD off, two level-4 Young Wolves at the farmlands, 15 s,
+  Damage aura) reads every mob's max pool and every hit taken off the wire.
+
+| Boot | Knobs (dmg / hp / crowd / cap) | Same character | Hits taken (median, range) | Young Wolf 4 pools |
+|---|---|---|---|---|
+| A | 1 / 1 / 0 / 0 | (first run) | 16 hits, 8 (8-10) | 71, 72, 76 |
+| B | 1.1 / 1.1 / 0.1 / 0.5 | yes | 14 hits, 10 (8-11) | 86, 88, 90 |
+| A again | 1 / 1 / 0 / 0 | yes | 18 hits, 8 (7-9) | 71, 76, 82, 83 |
+
+Read the pools against `maxHealthVariance 0.1`: each spawn rolls ±10 % at every boot, so a
+level-4 Young Wolf (55 × 1.12³ ≈ 77) lands in 70-85 in A and 77-94 in B. Every B pool sits
+above A's ceiling; the per-wolf ratio is not readable from three samples. The hits move
+the same way (median 8 → 10 → 8); the exact factor is the Go tests' job (PV1). The
+shutdowns flushed 0 characters (the harness had disconnected, so the save came at
+logout), boots 0 ERROR.
+
+**The crowd leg on B:** `pv2-crowd` 7/0/0 on the third run (the Alpha Boar read 20 with
+three players, the badge "20%" under the bar, walkers away still count, a reset clears).
+Runs 1 and 2 did not reach the reading: a join hang (INCONCLUSIVE), then client A never
+took its cheats or warp under host load ~8 (its FAIL is that setup, not the crowd).
+- **Not measured:** how B feels to people. The PO's live test on B is that read, and the
+  first real-player data for Q6's crowd half.
+- ⚑ The harness's 30 % stop is polled (200 ms), so a burst can take the character lower (A
+  again ended at 10/157); raise it if a harder venue is used.
+- Residue: the rehearsal + three crowd runs left ~10 `hrnss_*` characters in the dev DB;
+  not cleaned (the PO's aurad on 2000 was running, and cleanup needs it stopped).
 
 ### PV2b, the crowd rework: 2026-11-28, `f35eaa46`
 

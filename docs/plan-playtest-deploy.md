@@ -243,6 +243,60 @@ and stay acceptable only while the URL is unlisted:
 *DB closed* halves are untouched by that ruling and still owed). →
 **Before public:** rate limiting + `CheckOrigin`.
 
+## Version swap (A ↔ B)
+
+The runbook for `plan-playtest-versions.md` D6. Version A is the game as it is; version B is
+the same build with harder hostile mobs, switched on by one block in `devops/conf.json`. A
+swap in either direction is one commit plus one **full** deploy. First used 2026-11-28 17:47
+UTC (A → B, `464f23a4`, the PO's live test; record under Status).
+
+### The two confs
+
+**B** is A plus this block under `game` (values `[PLACEHOLDER]`, Q6 in the versions plan):
+
+```json
+"mob": {
+  "_comment": "Version B for the playtest (plan-playtest-versions.md D1): hostile mobs deal and have x1.1, and take 10 % less damage per extra player on their threat table, capped at 50 %. Remove this block for version A. [PLACEHOLDER]",
+  "damageFactor": 1.1,
+  "healthFactor": 1.1,
+  "crowdPerAttacker": 0.1,
+  "crowdCap": 0.5
+}
+```
+
+**A** has no `mob` block at all: `game` holds `startZone` only. Absent keys resolve to A in
+code (factors 1, crowd 0/0), so A is never written out as values. `devops/conf.json` at
+`2d39f77c` is the A file.
+
+### The swap (A → B, or back)
+
+1. **Tree clean.** `git status` shows nothing but the conf change: `deploy.sh` builds the
+   shared working tree, so another session's uncommitted work would ship too. If it is not
+   clean, stop and ask the PO.
+2. **Edit `devops/conf.json` only.** A → B: add the block above. B → A: remove it. Never put
+   B's values in `conf.default.json` or a local conf.
+3. **Commit that file alone, and push.** `chore(playtest): version B live` or
+   `chore(playtest): version A live`.
+4. **Ask the PO for the go**, then `ANNOUNCE` the restart in game (the cheat token stays on the
+   server) if anyone is online. Q7 stands: say "a restart", not what B changes.
+5. **Full deploy:** `devops/deploy.sh root@159.69.148.73`. **Never `--content-only`**: it does
+   not carry conf, so the swap would silently not happen.
+6. **Check the boot log** (the deploy's last 25 lines): the `🎚️ tuning knobs` line reads
+   `mob.damageFactor=1.1 mob.healthFactor=1.1 mob.crowdPerAttacker=0.1 mob.crowdCap=0.5` for
+   B, `1 1 0 0` for A. Plus the usual: TLS boot, content source `./api`, 0 ERROR, the shutdown
+   flush line, `/skills` 200. A failed restart or an ERROR: report it verbatim and stop.
+7. **Record it:** the time (UTC), the direction and the commit, under Status here, in the
+   versions plan's ledger, and in the playtest's intake in `docs/feedback.md`. Bug reports
+   (`/var/lib/state/bug-reports.jsonl`) carry timestamps, so feedback splits by the swap time.
+
+### What a swap does and does not touch
+
+- **No client change:** the wire is the same in A and B (`Mob.crowd_resist` reads 0 in A), so
+  testers need no hard refresh, only a reconnect after the restart.
+- **Characters persist** (the shutdown flushes them). Mobs respawn at boot with the new pool.
+- **Nothing B-only is persisted** (no skill, item or quest exists only in B), which is what
+  keeps B → A safe on an unbacked-up DB. Keep it that way (versions plan L6).
+
 ## Status
 
 - ⭐ **The box now persists (step 8a, closed 2026-08-04), and it is NOT backed
@@ -259,6 +313,15 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-11-28, `464f23a4` (baseline `2d39f77c`, the same day), VERSION B:** full
+  deploy whose only change is the B block in `devops/conf.json` (`plan-playtest-versions.md`
+  D1/D6): `game.mob` `damageFactor 1.1`, `healthFactor 1.1`, `crowdPerAttacker 0.1`,
+  `crowdCap 0.5` [PLACEHOLDER]. Swap started 2026-11-28 17:47 UTC, for the PO's live test
+  (not the playtest). No wire change (the client is unchanged since `99253ef0`); no
+  migrations; no pre-deploy dump. PO's go after the announce question. Verified: shutdown
+  flushed 1 live character, TLS boot, content source `./api`, the boot knobs read B, game
+  loop started, `/skills` 200, 0 ERROR, the same 4 "unreachable quest content" WARNs.
+  Back to A: a commit removing the block, then a full deploy.
 - **DEPLOYED 2026-11-28, `99253ef0` (baseline `90fcab23`, 2026-11-25):** full
   deploy in version A (`devops/conf.json` unchanged): vertical slice PF4 (words) and PF5
   (looks), playtest versions PV1 (difficulty multipliers), PV2 + PV2b (crowd resistance and

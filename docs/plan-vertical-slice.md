@@ -262,7 +262,9 @@ Shield, Blight) are either made reachable by a fill or stay visibly locked.
 
 The last chunk is a written runbook: fresh live DB or cleanup (Q2), deploy, the cheat
 token kept server-only, a tester handout (controls, the goal, how to report a bug),
-what to watch, and where feedback lands (`docs/feedback.md`).
+what to watch, and where feedback lands (`docs/feedback.md`). It includes the version
+swap A ↔ B (`plan-playtest-versions.md` D6; the steps: `plan-playtest-deploy.md` "Version
+swap (A ↔ B)").
 
 ## 4. What changes for the author
 
