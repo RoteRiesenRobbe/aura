@@ -488,7 +488,7 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 
 ## 11. Chunk ledgers
 
-### PV2b, the crowd rework: 2026-11-28, `[uncommitted]`
+### PV2b, the crowd rework: 2026-11-28, `f35eaa46`
 
 D8 + D9 as designed; PO look passed 2026-11-28 ("works"), booted locally with B's block
 (1.1/1.1, crowd 0.1/0.5). Not deployed.
