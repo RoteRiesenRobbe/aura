@@ -56,6 +56,26 @@ func TestReadConfig_MobDifficultyDefaults(t *testing.T) {
 	})
 }
 
+// plan-playtest-versions.md D3 (PV2): version A is a conf WITHOUT the crowd
+// keys. The per-attacker step and the cap stay 0 (crowd scaling off); the
+// window reads its default, so a B block that names only the step still drops
+// passers-by (R5).
+func TestReadConfig_MobCrowdDefaults(t *testing.T) {
+	t.Run("absent keys: off, default window", func(t *testing.T) {
+		conf := readConf(t, `{"game":{}}`)
+		assert.Zero(t, conf.Game.Mob.CrowdPerAttacker)
+		assert.Zero(t, conf.Game.Mob.CrowdCap)
+		assert.Equal(t, 150, conf.Game.Mob.CrowdWindow)
+	})
+
+	t.Run("authored keys are kept", func(t *testing.T) {
+		conf := readConf(t, `{"game":{"mob":{"crowdPerAttacker":0.25,"crowdCap":1,"crowdWindow":90}}}`)
+		assert.Equal(t, float32(0.25), conf.Game.Mob.CrowdPerAttacker)
+		assert.Equal(t, float32(1), conf.Game.Mob.CrowdCap)
+		assert.Equal(t, 90, conf.Game.Mob.CrowdWindow)
+	})
+}
+
 // D2 (§35 C2): unknown conf keys warn at boot instead of failing it. The
 // regression fixture is the exact embedded conf.default.json state the
 // pre-accounts hygiene session found (c183ce12^ — kept verbatim): keys that no

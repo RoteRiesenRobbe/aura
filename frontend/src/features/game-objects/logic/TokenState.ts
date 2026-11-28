@@ -40,6 +40,9 @@ export enum AppliedEffectBit {
     // A live stun (plan-entity-presentation.md D10, EP2): its own bit, so a
     // stunned mob no longer reads as a slowed one.
     Stun = 1 << 14,
+    // A crowded mob in version B (plan-playtest-versions.md D4, PV2): it hits
+    // harder and takes less while several players fight it. The last bit.
+    Crowd = 1 << 15,
 }
 
 /** A stealthed entity's alpha, for every viewer and its own player. [PLACEHOLDER] */
@@ -77,8 +80,8 @@ export interface StateRow {
  * never derived from a count, so adding a state never moves another (R5).
  * Harmful to the wearer sits on the right half, helpful on the left (R6);
  * calm and charm are done to a mob against its will, so they are harmful
- * (buff tray D13). Stun owns 12 o'clock (EP2); 157.5° and 202.5° are the
- * spares.
+ * (buff tray D13). Stun owns 12 o'clock (EP2), the crowd 202.5° (PV2);
+ * 157.5° is the spare.
  *
  * The colours are the retired pip strip's and the colour-disc fallback until
  * a glyph is picked (R12; stun and dead have one). Dot/slow/hot/resist/speed reuse the aura-ring
@@ -115,6 +118,12 @@ export const STATE_ROWS: readonly StateRow[] = [
         treatment: {grey: true},
     },
     // Left half: helpful.
+    // The crowd (plan-playtest-versions.md D4): PONETI `skill_188_rage`, with a
+    // committed placeholder for clones without the pack; the disc matches it.
+    {
+        id: 'crowd', source: AppliedEffectBit.Crowd, angle: 202.5, colour: 0xe0441c,
+        glyph: {packIcon: 'red-rage-figure', file: require('../assets/red-rage-figure.svg')},
+    },
     // A thorn rose, apart from the damage ring's red.
     {id: 'reflect', source: AppliedEffectBit.Reflect, angle: 247.5, colour: 0xd0507a},
     {id: 'tickRate', source: AppliedEffectBit.TickRate, angle: 225, colour: 0xe0812e},

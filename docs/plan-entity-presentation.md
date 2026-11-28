@@ -151,7 +151,7 @@ matching the tray's D13 rule):
 | 90 | fear | 270 | resist |
 | 112.5 | calm | 247.5 | reflect |
 | 135 | charm | 225 | tickRate |
-| 157.5 | *spare* | 202.5 | *spare* (lifesteal not in EP2, §7 Q1) |
+| 157.5 | *spare* | 202.5 | crowd (`plan-playtest-versions.md` PV2, 2026-11-28; lifesteal not in EP2, §7 Q1) |
 | 180 | **dead** | | |
 
 Explicit angles, never derived from a count, so adding a state never moves an existing one
@@ -237,7 +237,8 @@ stunned mob reads as slowed and a stun hides a weaker slow. EP2 adds `AppliedEff
 on both sides and `api/shared-constants.json`, the 0° row, and a swirl glyph. A stunned and
 slowed mob then shows both. ⚑ Built as `1 << 14` (EP2, 2026-10-31): camouflage took bit 13 on
 2026-10-25 (`content-zone-7-swamp.md` E2), after this plan was written. Bit 15 is the last free
-bit of the ushort.
+bit of the ushort. ⚑ Taken 2026-11-28 by the crowd state (`plan-playtest-versions.md` PV2, at
+202.5°): the ushort is FULL, the next state widens the field (a wire change).
 
 ### D11 - `aura_category` is a rule, not a chunk
 

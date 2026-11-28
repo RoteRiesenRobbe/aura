@@ -1,8 +1,10 @@
 # Plan: Playtest versions: a harder version B, swapped in halfway through a playtest
 
-**Status: APPROVED 2026-11-27 (planning session, PO in chat). R1-R5 RULED, D1-D7 approved,
-nothing built. ⭐ NEXT IN LINE: PV1 runs next, ahead of PF6 (PO 2026-11-27).** Open PO calls in §7 (Q1, the playtest date, first). 3 chunks (§5); PV1 is the next chunk to
-execute; PF6 follows the PV chunks.
+**Status: APPROVED 2026-11-27 (planning session, PO in chat). R1-R5 RULED, D1-D7 approved.
+PV1 BUILT 2026-11-27 (`382793a9`); PV2 BUILT 2026-11-28 (`[uncommitted]`, Q2/Q4/Q5 ruled);
+PV3's measurement half done (B = 1.1/1.1, Q6); ⭐ PV3's rest (the runbook D6 + the local
+rehearsal D7) is the next chunk.** Open PO calls in §7 (Q1, the playtest date: a week or
+more out; Q6's crowd half; Q7). 3 chunks (§5); PF6 follows the PV chunks.
 
 **Owns:** the version switch (how live goes from A to B and back), the mob difficulty
 multipliers, crowd scaling, its state glyph, the swap runbook.
@@ -14,8 +16,8 @@ medallion state glyphs (`plan-entity-presentation.md` EP1-EP3), the conf setter 
 VS-R10 (present content, hardcode nothing for the playtest) binds it: B is generic tuning,
 not a "playtest mode".
 **Schema (as designed):** DB none · wire +1 `applied_effects` bit VALUE (bit 15, no new
-field) · conf +5 optional keys under `game.mob` (absent = A) · content none · lang +2 keys
-EN + DE (the glyph's tooltip) · icons +1.
+field) · conf +5 optional keys under `game.mob` (absent = A) · content none · lang none
+(the glyph has no hover, PO 2026-11-28; was +2 keys) · icons +1.
 
 ⚑ Line references pinned 2026-11-27 at `f53d9394` (main); re-verify before relying on them.
 
@@ -165,8 +167,19 @@ bonus     = min((attackers - 1) × crowdPerAttacker, crowdCap)
   row gains a `lastTick` written by `noteThreat`, and only the count reads it: a player whose
   last hit or heal is older than `crowdWindow` (`5 s` `[PLACEHOLDER]`, in ticks) stops
   counting, so a passer-by drops out soon after leaving.
-- **A healer counts** (healer threat writes a row). That follows from R2's one rule; Q4
-  asks whether the PO wants it.
+- **A healer counts** (healer threat writes a row): R2's one rule, ruled at Q4.
+- **The mob also takes less (Q2, PO 2026-11-28):** incoming damage × `1/(1+bonus)`, its own
+  factor in `Mob.takeDamage` beside `DamageReductionFactor`, never folded into the additive,
+  clamped `damageReduction` stat. At the cap (+100 %) the mob deals 2× and takes ½; it is
+  never immune.
+- **As built (PV2):** `model/mob/crowd.go`. The clock is the mob's own `crowdTick`, bumped
+  in `Update` after the death and TTL checks (a dormant mob has an empty table, so a skipped
+  Update misses nothing). `threatEntryFor` stamps `lastTick`, so every write counts as
+  recent: a hit, healer threat and a taunt. A player row is a `model.PlayerEntity` (a summon
+  row names a `*Mob`). A row counts while `crowdTick - lastTick < crowdWindow`. The bonus is
+  cached as a float in `Mob.crowdBonus`, recounted once per tick after `updateAggro`, and
+  zeroed by `resetAggro`. Conf: `crowdWindow` is in ticks and defaults to 150 when absent;
+  the step and the cap default to 0 (off). No simharness flags (the sim is 1v1).
 - Same mob set as D2: hostile by definition, no player owner.
 - The count is recomputed at most once per tick per mob (a small cached int), not per damage
   read.
@@ -176,7 +189,12 @@ bonus     = min((attackers - 1) × crowdPerAttacker, crowdCap)
 `AppliedEffectCrowd = 1 << 15` is set on a mob while its D3 bonus is above 0, and cleared
 when it drops to 0. It is a mob STATE bit like stun, not a payload bit. The client draws
 one glyph at a reserved angle outside the medallion ring (the EP rules), from the PONETI
-pack (`feedback_always_use_icon_pack`), with a game tooltip (`hud.state.crowd.*`, EN + DE).
+pack (`feedback_always_use_icon_pack`). **No hover** (PO 2026-11-28): no medallion state
+glyph has one, and that question stays with `plan-entity-presentation.md` Q3 for every state
+at once, so no `hud.state.crowd.*` keys.
+**As built (PV2):** 202.5° (the left-half spare: the crowd helps the wearer, R6), PONETI
+`skill_188_rage` as `red-rage-figure`, a committed `red-rage-figure.svg` fallback, a red disc
+`0xe0441c` `[PLACEHOLDER]`. Set in `Mob.AppliedEffects` beside camouflage.
 
 ⚑ This fills the ushort: the state after it widens the field, which is a wire change
 (`plan-entity-presentation.md` ⚑). The alternative that keeps bit 15 free is Q5.
@@ -231,7 +249,7 @@ everything is as today.
 
 **PV2** needs PV1 (it reuses the mob set). Ships dormant in A.
 Schema: DB none · wire +1 bit value (bit 15) · conf +3 optional keys · content none · lang
-+2 keys EN + DE · icons +1.
+none (no hover, D4) · icons +1.
 In-game (PO): with `crowdPerAttacker 0.25`, fight a mob alone (no glyph, normal damage), then
 with two more players (glyph on, harder hits), a summon alone does not light it, the glyph
 goes off after a reset.
@@ -263,16 +281,18 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
 
 - **Q1 - When is the playtest, and when would the swap happen?** Decides whether PV2 fits.
   Proposed: PV1 + PV2 deployed dormant at least one deploy before the playtest.
-- **Q2 - Does the crowd raise damage only, or also damage reduction?** Proposed: damage only
-  (one stat, one read).
+  PO 2026-11-28: a week or more out (no date yet), so PV2 fits; the date stays open.
+- ~~**Q2 - Does the crowd raise damage only, or also damage reduction?** Proposed: damage only
+  (one stat, one read).~~ RULED 2026-11-28: both, mirrored: taken × 1/(1+bonus) (D3).
 - ~~**Q3 - Do bosses and elites scale too?** Bosses are where groups are designed to gather.
   Proposed: every hostile mob, one value (B is meant to be harder); the alternative is
   normal tier only.~~ RULED 2026-11-27: every tier, one value.
-- **Q4 - Does a healer count as an attacker?** Proposed: yes, they are on the threat table
-  (R2's rule, no exception).
-- **Q5 - A new bit 15 or the existing StatUp glyph (bit 8)?** R4 picked the last free bit.
+- ~~**Q4 - Does a healer count as an attacker?** Proposed: yes, they are on the threat table
+  (R2's rule, no exception).~~ RULED 2026-11-28: yes.
+- ~~**Q5 - A new bit 15 or the existing StatUp glyph (bit 8)?** R4 picked the last free bit.
   StatUp already means "this mob is buffed", costs no bit and keeps bit 15 for the next
-  state. Proposed: keep R4 unless the PO prefers to save the bit.
+  state. Proposed: keep R4 unless the PO prefers to save the bit.~~ RULED 2026-11-28: bit 15
+  (R4); the glyph gets no hover (D4).
 - **Q6 - B's starting values.** Proposed: `damageFactor 1.5`, `healthFactor 1.5`,
   `crowdPerAttacker 0.25`, `crowdCap 1.0`; PV3 measures them first.
   **Difficulty half RULED 2026-11-27 (PO, from the PV3 sim table in §11): `damageFactor 1.1`,
@@ -323,7 +343,7 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   needed (shipped before the swap). PV1 and PV3: none.
 - **Conf:** +5 optional keys under `game.mob` (`damageFactor`, `healthFactor`,
   `crowdPerAttacker`, `crowdCap`, `crowdWindow`); absent = A.
-- **Content:** NONE. **Zone format:** NONE. **Lang:** +2 keys EN + DE (PV2). **Icons:** +1 (PV2).
+- **Content:** NONE. **Zone format:** NONE. **Lang:** none (the PV2 glyph has no hover, D4). **Icons:** +1 (PV2).
 
 ## 10. Cross-references
 
@@ -333,6 +353,49 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 `archive/plan-effect-types-round-2.md` (stat fold), `gdd.md` multiplayer (roles).
 
 ## 11. Chunk ledgers
+
+### PV2, crowd scaling + the crowd glyph: 2026-11-28, `[uncommitted]`
+
+D3 + D4, as built in D3's and D4's "As built" notes. PO rulings this session: Q2 (the crowd
+also mirrors onto damage taken, × 1/(1+bonus)), Q4 (healers count), Q5 (bit 15), the glyph
+has no hover (lang +0), Q1 (the playtest is a week or more out). Three keys under
+`game.mob` (`crowdPerAttacker`, `crowdCap` 0 when absent = A; `crowdWindow` 150 ticks),
+printed in the boot log beside the PV1 factors. `AppliedEffectCrowd = 1 << 15` in Go,
+`api/shared-constants.json` and `TokenState.ts`: **the `applied_effects` ushort is now
+FULL** (L3). Glyph at 202.5°, PONETI `skill_188_rage` (`red-rage-figure`; the local atlas is
+repacked, 208 icons, the live one needs its repack at the next full deploy).
+**Schema: DB none · wire +1 bit value (bit 15) · conf +3 optional keys · content none ·
+lang none · icons +1.**
+
+Verified: `go test ./...` 0 FAIL in 40 packages (DB tests skipped, no DB impact);
+`TestCrowd_*` 12 + the alloc pin, red first (stubs) then green; the conf parse test; the Go
+shared-constants pin is hand-listed, so it stayed green until it named `crowd` (made red,
+then green), its vitest twin red then green; vitest 2041/0 · typecheck · `-validate` 0 ·
+lang-status 0 missing; `guardrail_test.go` untouched and green; `ep1-state-ring` 17/0/0 on A.
+New harness `pv2-crowd.mjs` on B's conf (1.1/1.1, crowd 0.25/1, a harness-only 3000-tick
+window), run b17: **PASS** one player + a Fire Totem lights 0 of 9 mobs (R2); **PASS** three
+players light bit 32768 on the Alpha Boar, indicator at 202.5° with its glyph; **INCONCLUSIVE**
+the reset leg in every run (the lit mob never back in the observer's entity list after
+everyone left, cause open), so the reset rests on `TestCrowd_ResetClears` and the PO look.
+⚑ Harness findings (in `coverage.md`): the third browser join hung at world entry in most
+runs with two pages in the world until those pages shrank to 200×150 during joins
+(`window.game.pause()` throws); a fourth never got in; with GOD off the observer died while
+the others joined, which lost the subject in early runs (the leg reads the bit, so GOD on;
+L8 binds damage tests).
+In-game (PO, owed): §5's PV2 check, booted with B's block.
+
+### PV1, difficulty multipliers: 2026-11-27, `382793a9`
+
+D2 + D5: two optional conf keys, `game.mob.damageFactor` and `game.mob.healthFactor`, both
+1 when absent (version A, defaulted in `cfg.ParseConfig`). They scale a hostile world mob's
+outgoing damage (at `casterDamageFactor`, never heals) and its pool. The set
+(`Mob.difficultyScaled`, `model/mob/difficulty.go`): no player owner, not
+`friendlyToPlayers`, no `gateKeys` (harvestables excluded, Q9); every tier (Q3); read from
+the definition, so a charmed mob keeps its pool. The boot log prints both factors; the
+simharness gains `-mob-damage-factor` / `-mob-health-factor`.
+**Schema: DB none · wire none · conf +2 optional keys · content none.**
+Verified: `go test ./...` 0 FAIL (DB tests skipped), `-validate` 0, simharness A unchanged
+(TTK 6.67 s / TTD 8.70 s), boot log A 1/1, B 1.5/2.
 
 ### PV3, measurement half (D7's simharness leg): 2026-11-27, at `382793a9`, no code change
 

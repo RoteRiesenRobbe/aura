@@ -501,6 +501,12 @@ type Mob struct {
 	// Lazily initialized by noteThreat.
 	threat map[uint64]*threatEntry
 
+	// Crowd scaling (plan-playtest-versions.md D3, crowd.go): the mob's own
+	// tick clock, which stamps each threat row's lastTick, and the bonus
+	// recounted from the table once per tick. Both stay 0 in version A.
+	crowdTick  uint64
+	crowdBonus float32
+
 	// tookDamage marks a real HP loss since the last Update — set by
 	// takeDamage (which runs in the SkillSystem phase, after mob updates) and
 	// consumed by updateAggro's in-combat check one tick later (chunk 3b).
@@ -1173,6 +1179,7 @@ func (m *Mob) Update(dt float32) bool {
 	// handles aggro, movement, regeneration and death.
 
 	m.updateAggro()
+	m.tickCrowd()
 
 	// Movement follows the mode's target (round 3): support mode walks to the
 	// ALLY it is healing, engage mode to the enemy it is fighting. The
@@ -1677,6 +1684,7 @@ func (m *Mob) resetAggro() {
 	m.aggroTarget = nil
 	m.threat = nil
 	m.leashTicks = 0
+	m.crowdBonus = 0
 }
 
 // targetWithinAuraReach reports whether the aggro target overlaps the mob's
@@ -1756,6 +1764,10 @@ func (m *Mob) findAggroTarget() model.Combatant {
 type threatEntry struct {
 	entity model.Combatant
 	threat float32
+	// lastTick is the mob's crowdTick at this row's latest write: a hit,
+	// healer threat or a taunt (every write resolves the row here). Only the
+	// crowd count reads it (R5); the row never expires by it (L7).
+	lastTick uint64
 }
 
 // noteThreat credits threat against source (chunk 3a). The amount is
@@ -1805,6 +1817,7 @@ func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
 		e = &threatEntry{entity: source}
 		m.threat[id] = e
 	}
+	e.lastTick = m.crowdTick
 	return e
 }
 
@@ -2123,7 +2136,7 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 	// player's takeDamage applies, in the same position: after resistances,
 	// before the non-event check (chunk 1a). Base resistances and a reduction
 	// passive are distinct sources and stack multiplicatively.
-	hp32 := damage.HP * multiplier * m.EffectiveStats().DamageReductionFactor()
+	hp32 := damage.HP * multiplier * m.EffectiveStats().DamageReductionFactor() * m.crowdTakenFactor()
 	// A fully resisted hit stays a non-event: no combat signal, no absorb.
 	// vitals.HP floors any positive amount to at least 1 (§2 of the plan), so
 	// this branch is reachable with damage.HP > 0 only when mitigation
@@ -2233,7 +2246,11 @@ func (m *Mob) ApplyStat(source skills.SkillID, stat string, bonus float32, ticks
 
 // EffectiveStats is Derived plus the timed stat buffs (D14).
 func (m *Mob) EffectiveStats() skills.DerivedStats {
-	return m.skills.Derived.WithBuffs(&m.buffs)
+	d := m.skills.Derived.WithBuffs(&m.buffs)
+	// Version B's crowd (plan-playtest-versions.md D3): one more damageDealt
+	// source, 0 in version A.
+	d.DamageDealtBonus += m.crowdBonus
+	return d
 }
 
 // ApplyResist grants a transient tag-resistance buff from a resist aura
@@ -2397,10 +2414,16 @@ func (m *Mob) ShieldHP() vitals.VitalSign {
 // ShieldHP. A camouflaged species adds its Camouflage bit here, beside the
 // buff store's bits: it is a state of the mob, not a buff.
 func (m *Mob) AppliedEffects() skills.AppliedEffect {
+	bits := m.buffs.AppliedEffects()
 	if m.camouflaged() {
-		return m.buffs.AppliedEffects() | skills.AppliedEffectCamouflage
+		bits |= skills.AppliedEffectCamouflage
 	}
-	return m.buffs.AppliedEffects()
+	// The crowd glyph (plan-playtest-versions.md D4): a mob state, lit while
+	// the crowd bonus is above 0.
+	if m.crowdBonus > 0 {
+		bits |= skills.AppliedEffectCrowd
+	}
+	return bits
 }
 
 // camouflageHomeRadius is how far a camouflaged mob may sit from its spawn
