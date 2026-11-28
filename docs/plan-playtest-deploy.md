@@ -259,6 +259,21 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-11-28, `99253ef0` (baseline `90fcab23`, 2026-11-25):** full
+  deploy in version A (`devops/conf.json` unchanged): vertical slice PF4 (words) and PF5
+  (looks), playtest versions PV1 (difficulty multipliers), PV2 + PV2b (crowd resistance and
+  its badge, all dormant in A), and the coworker's map pass `9249a8bf` (levels, density,
+  quests), merged locally (`99253ef0`) and checked on the merged tree (Go 0 FAIL, vitest
+  2044/0, typecheck, `-validate` 0, lang-status 0). **Wire change** (`Mob.crowd_resist`):
+  testers need a hard refresh. Icon atlas repacked (208 icons, the shield). No migrations;
+  no pre-deploy dump. PO's go after the announce question. Verified: TLS boot, content
+  source `./api`, token count 1, 149 skills / 129 mobs / 36 quests, 48 campfires in 7
+  zones, the boot knobs read A (`damageFactor 1`, `healthFactor 1`, crowd 0/0), shutdown
+  flushed 0 live characters, `/skills` 200, client bundle `runtime.d9a2f724…js` /
+  `vendors.b5583220…js` served (= the build). 0 ERROR; 4 WARN, all "unreachable quest
+  content" (`bears-at-the-walls`, `he-who-cried-wolf`, `the-lost-lamp`, `the-strays`
+  offered by no conversant), present before the merge too, not from this deploy. PO smoke
+  join on live owed.
 - **DEPLOYED 2026-11-25, `90fcab23` (baseline `e9c30279`, 2026-11-22):** full
   deploy: vertical slice PF1 (rules and bugs), PF2 (quests, teachers, map batch) and
   PF3 (the HUD), plus five pushes since the baseline (`037c74c2` flyer immunity,
