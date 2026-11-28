@@ -6,6 +6,13 @@
     "bugReportsPath": "/var/lib/state/bug-reports.jsonl"
   },
   "game": {
-    "startZone": "world"
+    "startZone": "world",
+    "mob": {
+      "_comment": "Version B for the playtest (plan-playtest-versions.md D1): hostile mobs deal and have x1.1, and take 10 % less damage per extra player on their threat table, capped at 50 %. Remove this block for version A. [PLACEHOLDER]",
+      "damageFactor": 1.1,
+      "healthFactor": 1.1,
+      "crowdPerAttacker": 0.1,
+      "crowdCap": 0.5
+    }
   }
 }
