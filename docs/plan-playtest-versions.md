@@ -1,10 +1,12 @@
 # Plan: Playtest versions: a harder version B, swapped in halfway through a playtest
 
 **Status: APPROVED 2026-11-27 (planning session, PO in chat). R1-R5 RULED, D1-D7 approved.
-PV1 BUILT 2026-11-27 (`382793a9`); PV2 BUILT 2026-11-28 (`[uncommitted]`, Q2/Q4/Q5 ruled);
-PV3's measurement half done (B = 1.1/1.1, Q6); ⭐ PV3's rest (the runbook D6 + the local
-rehearsal D7) is the next chunk.** Open PO calls in §7 (Q1, the playtest date: a week or
-more out; Q6's crowd half; Q7). 3 chunks (§5); PF6 follows the PV chunks.
+PV1 BUILT 2026-11-27 (`382793a9`); PV2 BUILT 2026-11-28 (`efd5d4ee`, Q2/Q4/Q5 ruled, not
+deployed); PV3's measurement half done (B = 1.1/1.1, Q6). **Crowd rework R6-R9 RULED
+2026-11-28 (§2a): resistance only, a % badge under the bar, the live table count, no window.
+⭐ PV2b (D8 + D9) is the next chunk, then PV3's rest (the runbook D6 + the local rehearsal
+D7).** Open PO calls in §7 (Q1, the playtest date: a week or more out; Q6's crowd half;
+Q7). 4 chunks (§5); PF6 follows the PV chunks.
 
 **Owns:** the version switch (how live goes from A to B and back), the mob difficulty
 multipliers, crowd scaling, its state glyph, the swap runbook.
@@ -93,7 +95,27 @@ in `world.json`.
   free bit of `applied_effects`. No stack count (that would be a wire change).
 - **R5 - A passer-by drops out after a few seconds (Q8).** Only players whose last threat
   write on the mob is recent count (`5 s` `[PLACEHOLDER]`), so walking past a fight cannot
-  keep it harder. Costs one timestamp per threat row.
+  keep it harder. Costs one timestamp per threat row. **Superseded by R8 (2026-11-28).**
+
+## 2a. PO rulings, the crowd rework (2026-11-28, after PV2 was built)
+
+- **R6 - The crowd makes a mob tougher, never stronger.** Mob damage no longer scales with
+  players; the mob gains damage resistance instead. Replaces D3's damage half and Q2's
+  mirror. PV1's flat `damageFactor` (D2) is a different knob and stays.
+- **R7 - The scaling is shown as a percentage under the mob's health bar** (a shield icon +
+  "10%", the PO's mockup). The server sends the resolved percent, never the player count.
+  **Overturns R4** (one glyph, no number): the crowd glyph and bit 15 go, so
+  `applied_effects` has a free bit again.
+- **R8 - The crowd is the players on the threat table, now.** No recency window: a player
+  counts from their first hit, heal or taunt until their row leaves (death, disconnect,
+  Fade) or the mob resets. **Overturns R5 / Q8(b)**, knowing that a passer-by whose aura
+  ticks the mob once keeps it tougher until a reset or their death. Live count, not a latch:
+  a player who dies stops counting.
+- **R9 - Built for the playtest, kept easy to change after it.** The whole rule is one
+  function (threat table in, resistance out) in `model/mob/crowd.go` plus two conf knobs;
+  the wire and the client only carry and draw the resulting percent. A smarter rule later
+  (damage share, levels, recency, damage back in) replaces that function and nothing else.
+  No abstraction layer is built for it now (YAGNI).
 
 ## 3. Design
 
@@ -149,6 +171,8 @@ of "harder"; the rehearsal (D7) measures it.
 
 ### D3 - Crowd scaling
 
+⚑ **Superseded by D8 (R6, R8, 2026-11-28)**: kept as the record of what PV2 built.
+
 One rule: **a mob deals more damage for each extra player on its threat table.**
 
 ```
@@ -185,6 +209,8 @@ bonus     = min((attackers - 1) × crowdPerAttacker, crowdCap)
   read.
 
 ### D4 - The crowd glyph
+
+⚑ **Superseded by D9 (R7, 2026-11-28)**: PV2b removes the glyph and frees bit 15.
 
 `AppliedEffectCrowd = 1 << 15` is set on a mob while its D3 bonus is above 0, and cleared
 when it drops to 0. It is a mob STATE bit like stun, not a payload bit. The client draws
@@ -228,6 +254,75 @@ harness players, swap back to A, and measure A vs B in the simharness with D2's 
 (TTK, TTD, XP per hour at two levels). The sim fights one player against one mob, so crowd
 scaling is measured by the harness leg only. The numbers go into the ledger so the PO picks B's values from data.
 
+### D8 - Crowd resistance (R6, R8, R9; replaces D3)
+
+One rule: **a mob takes less damage for each extra player on its threat table.**
+
+```
+players = live PLAYER rows on the threat table, this tick (summon rows excluded)
+resist  = min((players - 1) × crowdPerAttacker, crowdCap)      (crowdCap ≤ 0.9)
+taken   = damage × DamageReductionFactor × (1 - resist)
+```
+
+- **Start values: `crowdPerAttacker` `0.10`, `crowdCap` `0.50`** (= -50 % at 6 players)
+  `[PLACEHOLDER]`, both 0 when absent (version A, off). The number in conf is the number on
+  screen (R7): one extra player shows 10%. The cap is clamped to 0.9 at `SetCrowd`
+  `[PLACEHOLDER]`, so a mob is never immune.
+- **The mob's damage is untouched (R6):** the `DamageDealtBonus += crowdBonus` line in
+  `Mob.EffectiveStats` goes. `(1 - resist)` stays its own factor in `takeDamage`, beside
+  `DamageReductionFactor`, never folded into the additive, clamped `damageReduction` stat,
+  so a buff and the crowd stack by multiplication and the badge shows the crowd alone.
+- **The window goes (R8):** `crowdTick`, `threatEntry.lastTick`, the `crowdWindow` conf
+  key, its `ParseConfig` default and `_StaleAttackerDropsOutAtTheWindowTick` are deleted
+  (the code stays in git at `efd5d4ee` if a smarter version wants recency back). Conf
+  parsing ignores unknown keys, so a conf still naming `crowdWindow` boots.
+- **The seam (R9):** `crowdResist(players int) float32` is the formula and `tickCrowd` the
+  count; the cached `crowdResist` float and `CrowdPercent() uint8` are what everything else
+  reads (`takeDamage`, the codec). A later rule changes those two functions only.
+- Same mob set as D2 (`difficultyScaled`), recounted once per tick in `Update`, zeroed by
+  `resetAggro`.
+
+**When a mob scales, from the code (the PO's question at R8):**
+
+| Event | Effect on the count |
+|---|---|
+| A player's hit lands on the mob (an aura tick counts) | they join (`noteThreat`) |
+| A player heals someone the mob is fighting (healer threat) | they join (Q4) |
+| A player taunts the mob | they join |
+| A stealthed player hits, heals or taunts | no row: they do not join |
+| The mob chases a player who never hit it | no row: they do not join |
+| A player stands near the fight (bystander XP) | participants only, not the table |
+| A summon or companion hits the mob | the row names the summon: never counts (R2) |
+| A counted player dies | leaves (`pruneDeadThreat`; the count skips dead rows at once) |
+| A counted player disconnects | leaves (`ForgetEntity`) |
+| A counted player uses Fade / detaunt | leaves (`DropThreat`) |
+| A counted player walks away alive | **stays** until the mob resets (R8) |
+| The mob resets: leash, camped-standoff force-leash, target reaches a campfire, last target dead, calm, charm on or off | **all clear** (`resetAggro`) |
+| The mob dies | gone with it |
+
+### D9 - The crowd badge (R7; replaces D4)
+
+- **Wire:** `crowd_resist:ubyte = 0` appended at the end of `table Mob` (`server.fbs`), the
+  resolved percent 0-100 (`round(resist × 100)`), written in `codec/mob.go` beside
+  `applied_effects`. Regenerate from `api/schema` (`make.sh` only works there). A client
+  without the field reads 0, so it is additive; ships before the swap like the rest.
+- **Client:** `Mobs.ts` reads the field; at > 0 a row under the overhead bar shows a shield
+  icon + the percent, centred, on the same parent as the bar (`aboveArt`), so it inherits the
+  darkness hide and the corpse fade. The nameplate moves down by the row's height only while
+  the row is shown (`nameplateY`, one anchor so the two cannot drift; the offset is pinned in
+  `PlateAnchors.test.ts`). Characters never show it. A bare mob draws nothing (R3 of EP).
+- **Icon:** a shield from the PONETI pack (`feedback_always_use_icon_pack`), cropped before
+  the pick, with a committed SVG fallback. ⚑ Not the absorb blue: the bar's shield segment
+  (`shield_hp`) is blue, and a blue shield beside it reads as an absorb. `[PLACEHOLDER]`
+  colour, the PO's look decides.
+- **Text:** through `t()` with the number as an arg (`hud.mob.crowdResist`: EN `{percent}%`,
+  DE `{percent} %`), no literal. No hover (as D4; Q3 of `plan-entity-presentation.md` still
+  owns state hovers).
+- **The glyph goes (R7):** `AppliedEffectCrowd` leaves `skills/applied_effects.go`,
+  `api/shared-constants.json` and `TokenState.ts` (row + enum), `red-rage-figure.svg` and its
+  `pack-manifest.json` entry go, 202.5° is a spare again, the "FULL" comments revert to "bit
+  15 is the last free one". The live atlas repack PV2 owed is no longer needed.
+
 ## 5. Chunks
 
 Order: PV1 is next in line, ahead of PF6 (PO 2026-11-27, approving the plan); independent of
@@ -239,6 +334,7 @@ says "if we can still build it".
 |---|---|---|---|
 | **PV1** | Difficulty multipliers | D2 + D5: `game.mob.damageFactor` / `healthFactor` (defaulted to 1 in `ParseConfig`), the mob set, two simharness flags, the boot log | S |
 | **PV2** | Crowd scaling + glyph | D3 + D4: the attacker count, the `damageDealt` bonus, bit 15, the client glyph + tooltip | M |
+| **PV2b** | Crowd rework | D8 + D9: resistance only, the window removed, the `crowd_resist` wire field, the badge, the glyph and bit 15 removed | M |
 | **PV3** | Runbook + rehearsal | D6 + D7: the runbook in `plan-playtest-deploy.md`, the local rehearsal, the A/B numbers | S |
 
 **PV1** needs nothing first. Ships dormant in A (a full deploy; it can ride PF6's).
@@ -254,6 +350,19 @@ In-game (PO): with `crowdPerAttacker 0.25`, fight a mob alone (no glyph, normal 
 with two more players (glyph on, harder hits), a summon alone does not light it, the glyph
 goes off after a reset.
 
+**PV2b** needs PV2 (`efd5d4ee`). Ships dormant in A, before PV3's rehearsal (which then
+rehearses the final B).
+Order inside the session: Go first (the formula, the window removal, the field, red-first
+tests), then the schema + regen, then the client badge, then the glyph removal, then the
+harness.
+Schema: DB none · wire +1 field (`Mob.crowd_resist`), bit 15 freed · conf -1 key
+(`crowdWindow`), `crowdPerAttacker` / `crowdCap` now mean resistance · content none · lang +1
+key EN + DE · icons +1 -1.
+In-game (PO): boot with `crowdPerAttacker 0.1`, `crowdCap 0.5`. Fight a mob alone: no badge,
+normal damage taken by it. Bring two more players: badge "20%", the mob dies slower, its hits
+are no harder than solo. One player dies: "10%". Lead it to the leash or a campfire: the
+badge goes. A summon alone never shows it. No glyph at 202.5° anywhere.
+
 **PV3** needs PV1 (PV2 if built). Docs + a measurement, no production code.
 Schema: none.
 In-game (PO): the rehearsal itself: A → B → A locally, one character throughout.
@@ -267,12 +376,23 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   `_ThreeAttackersTwoSteps`, `_CapHolds` (the boundary at exactly cap/step attackers),
   `_SummonRowDoesNotCount`, `_DeadAttackerDropsOut`, `_StaleAttackerDropsOutAtTheWindowTick`, `_ResetClears`, `_HealerCounts`,
   `_BitFollowsTheBonus`, and an alloc pin (the idle-loop `*_alloc_test.go` discipline).
+- **PV2b, red first:** `TestCrowd_ThreeAttackersTwoSteps` and `_CapHolds` flip to "resist
+  0.2 / 0.5, `DamageFactor` stays 1" (R6); `_DamageTakenMirrorsTheBonus` becomes
+  `_DamageTakenIsOneMinusResist` (40 → 30 at 3 players); new `_CapClampedBelowImmune` (conf
+  cap 2.0 reads 0.9), `_WalkerAwayStillCounts` (a live row with no writes for 10 000 ticks
+  counts: R8), `_DisconnectAndFadeLeave`, `_PercentRounds` (`CrowdPercent`); the window test
+  is deleted. A codec test that `crowd_resist` carries `CrowdPercent`. Vitest: the badge's
+  text from a percent (EN + DE) and the nameplate offset with and without the row
+  (`PlateAnchors.test.ts`); `TokenState.test.ts` loses the crowd row and gets 202.5° back
+  as a spare. The shared-constants pins drop `crowd` (both sides, red then green).
 - **The shared bit table:** `shared_constants_test.go` + `SharedConstants.test.ts` fail
   until bit 15 is in `api/shared-constants.json` and `AppliedEffectBit`; a vitest for the
   glyph mapping beside `StateIndicators.test.ts`.
 - **Guardrails:** `cmd/simharness/guardrail_test.go` stays green untouched (A is the default).
 - **Harness:** a `verify` leg booted with B's conf: three players on one mob, read the glyph
-  bit off the wire; with GOD off (L8).
+  bit off the wire; with GOD off (L8). **PV2b:** `pv2-crowd.mjs` reads `crowd_resist`
+  instead (summon alone 0, three players 20), plus a screenshot of the badge under the bar
+  with the nameplate clear of it; `ep1-state-ring` stays green.
 - **Measurements for the ledger:** PV3's A/B table (TTK, TTD, XP/h at two levels).
 - **Full tail:** `go -C backend test -timeout 60s ./...` (scan every FAIL), vitest,
   typecheck, `aurad -validate`, `lang-status` 0.
@@ -300,6 +420,9 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
   a same-level normal mob; the PO first picked 1.2/1.2, then lowered it to 1.1/1.1 to keep
   the thin species (BanditPyromancer, OrcGrunt, Cultist) winnable at the floor. The crowd keys (`crowdPerAttacker`, `crowdCap`) stay as proposed:
   the sim fights one player, so only PV2's harness leg can measure them.
+  **Crowd half re-proposed by R6/R7 (2026-11-28): `crowdPerAttacker 0.10`, `crowdCap 0.50`**
+  `[PLACEHOLDER]` (resistance, the PO's 10% mockup); damage no longer scales, so 0.25/1.0's
+  difficulty no longer applies. Still unmeasured.
 - ~~**Q8 - A passer-by on the threat table (R2 ⚑): accept, or drop them?** (a) Accept: one
   rule, no new bookkeeping; a player walking past with an aura on can make a fight harder
   until they die or the mob resets. (b) Count only players whose last threat write is
@@ -332,6 +455,13 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
 - **L7 - R5's window belongs to the count, not the table.** Never expire threat rows to
   get it: retention, leash and the dormancy wake (`dormancy.go:98`, `len(m.threat) > 0`) read
   the table. Healer threat writes the timestamp too (it is a threat write).
+- **L7b - R8 dropped the window, not the rule behind L7.** Nothing in PV2b expires or
+  trims threat rows to change the count; the count reads the table as it is.
+- **L10 - The badge shifts the nameplate.** Every reader of the nameplate's y (harnesses
+  reading plate positions, the quest glyph above, the dialogue cap) assumes one fixed gap;
+  derive it from `nameplateY()` only, never a second constant.
+- **L11 - The wire field is the only client input.** The client never recomputes the
+  percent from bits or counts (R9): any rule change stays server-side.
 - **L8 - GOD skips `takeDamage`.** Test damage scaling with GOD off.
 - **L9 - A content edit does not invalidate the Go test cache** (`-count=1`), and mob tests
   read the embedded copy without `-content ../api`.
@@ -340,10 +470,13 @@ In-game (PO): the rehearsal itself: A → B → A locally, one character through
 
 - **DB:** NONE. Nothing new is persisted; B is a server conf.
 - **Wire:** +1 `applied_effects` bit value (bit 15) in PV2; no new field, no hard refresh
-  needed (shipped before the swap). PV1 and PV3: none.
+  needed (shipped before the swap). PV1 and PV3: none. **PV2b: +1 field
+  `Mob.crowd_resist:ubyte` (appended, additive) and bit 15 freed again.**
 - **Conf:** +5 optional keys under `game.mob` (`damageFactor`, `healthFactor`,
-  `crowdPerAttacker`, `crowdCap`, `crowdWindow`); absent = A.
-- **Content:** NONE. **Zone format:** NONE. **Lang:** none (the PV2 glyph has no hover, D4). **Icons:** +1 (PV2).
+  `crowdPerAttacker`, `crowdCap`, `crowdWindow`); absent = A. **PV2b: `crowdWindow` removed
+  (+4 net); the crowd keys now mean resistance.**
+- **Content:** NONE. **Zone format:** NONE. **Lang:** none in PV2; **PV2b +1 key EN + DE**
+  (`hud.mob.crowdResist`). **Icons:** +1 (PV2); PV2b +1 shield, -1 rage figure.
 
 ## 10. Cross-references
 
@@ -354,7 +487,11 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 
 ## 11. Chunk ledgers
 
-### PV2, crowd scaling + the crowd glyph: 2026-11-28, `[uncommitted]`
+### PV2, crowd scaling + the crowd glyph: 2026-11-28, `efd5d4ee`
+
+⚑ Reworked by R6-R9 before any deploy: PV2b (D8 + D9) replaces the damage half, the window
+and the glyph.
+
 
 D3 + D4, as built in D3's and D4's "As built" notes. PO rulings this session: Q2 (the crowd
 also mirrors onto damage taken, × 1/(1+bonus)), Q4 (healers count), Q5 (bit 15), the glyph
