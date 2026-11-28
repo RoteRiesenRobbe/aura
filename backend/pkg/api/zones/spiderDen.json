@@ -24,7 +24,7 @@
       "respawnTicks": 7200,
       "respawnVariancePct": 0.1,
       "wanderRadius": 1.5,
-      "level": 12
+      "level": 15
     }
   ],
   "exits": [

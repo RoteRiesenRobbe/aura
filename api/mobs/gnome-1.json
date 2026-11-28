@@ -44,7 +44,7 @@
             "id": "i-brought-the-shipment",
             "grants": [
               { "id": "wonderful-and-reinhards-letter", "kind": "advance_quest", "quest": "the-stolen-shipment", "fromStage": "deliver", "toStage": "done" },
-              { "kind": "grant_xp", "xp": 540 }
+              { "kind": "grant_xp", "xp": 774 }
             ]
           },
           { "stock": "quest-progress", "next": "shipment_on_it" }

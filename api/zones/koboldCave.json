@@ -312,7 +312,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -323,7 +323,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -334,7 +334,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -345,7 +345,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -356,7 +356,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -367,7 +367,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -378,7 +378,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -389,7 +389,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -400,7 +400,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -411,7 +411,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -422,7 +422,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -433,7 +433,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -444,7 +444,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -455,7 +455,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -466,7 +466,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -477,7 +477,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -488,7 +488,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -499,7 +499,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
       "idleSpeedFactor": 0.3,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -509,7 +509,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -519,7 +519,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -529,7 +529,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -539,7 +539,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -549,7 +549,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -559,7 +559,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -569,7 +569,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -579,7 +579,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "KoboldRanged",
@@ -589,7 +589,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -599,7 +599,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -609,7 +609,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -619,7 +619,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -629,7 +629,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -639,7 +639,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -649,7 +649,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -659,7 +659,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -669,7 +669,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 7
+      "level": 9
     },
     {
       "mob": "AlphaBear",
@@ -679,7 +679,7 @@
       "respawnTicks": 3600,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "level": 9
+      "level": 10
     }
   ],
   "exits": [

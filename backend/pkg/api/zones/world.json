@@ -110,56 +110,60 @@
       "profile": "Cliff",
       "points": [
         {
-          "x": -213.18,
-          "y": 10.71
+          "x": -215.54,
+          "y": 4.52
         },
         {
-          "x": -212.31,
-          "y": 12.15
+          "x": -214.67,
+          "y": 5.6
         },
         {
-          "x": -212.03,
-          "y": 13.46
+          "x": -214,
+          "y": 7.02
         },
         {
-          "x": -212.23,
-          "y": 15.24
+          "x": -213.72,
+          "y": 8.33
         },
         {
-          "x": -212.54,
-          "y": 16.37
+          "x": -213.92,
+          "y": 10.11
         },
         {
-          "x": -212.97,
-          "y": 17.38
+          "x": -214.23,
+          "y": 11.24
         },
         {
-          "x": -213.99,
-          "y": 18.7
+          "x": -214.66,
+          "y": 12.25
         },
         {
-          "x": -215.71,
-          "y": 19.24
+          "x": -215.5,
+          "y": 14.33
         },
         {
-          "x": -218.52,
-          "y": 20.53
+          "x": -217.06,
+          "y": 16.4
         },
         {
-          "x": -220.76,
-          "y": 20.83
+          "x": -219.33,
+          "y": 17.4
         },
         {
-          "x": -222.46,
-          "y": 20.62
+          "x": -221.64,
+          "y": 17.37
         },
         {
-          "x": -224.52,
-          "y": 19.12
+          "x": -223.34,
+          "y": 17.16
         },
         {
-          "x": -226.22,
-          "y": 18.93
+          "x": -224.75,
+          "y": 17.35
+        },
+        {
+          "x": -226.3,
+          "y": 18.02
         },
         {
           "x": -227.54,
@@ -2662,8 +2666,8 @@
           },
           {
             "type": "Stump",
-            "x": -212.68,
-            "y": -0.29,
+            "x": -212.28,
+            "y": -3.59,
             "rotation": 0
           },
           {
@@ -2674,8 +2678,8 @@
           },
           {
             "type": "Stump",
-            "x": -220,
-            "y": 5.25,
+            "x": -222.05,
+            "y": 0.1,
             "rotation": 0
           },
           {
@@ -3366,8 +3370,15 @@
           },
           {
             "type": "Tree",
-            "x": -216.27,
-            "y": 9.87,
+            "x": -218.5,
+            "y": 0.5,
+            "rotation": 0,
+            "scale": 1.394
+          },
+          {
+            "type": "Tree",
+            "x": -217.5,
+            "y": 13.54,
             "rotation": 0,
             "scale": 1.661
           },
@@ -3385,15 +3396,16 @@
           },
           {
             "type": "Tree",
-            "x": -224.59,
-            "y": 6.7,
+            "x": -224.39,
+            "y": 3.87,
             "rotation": 0
           },
           {
             "type": "Tree",
-            "x": -223.45,
-            "y": 2.73,
-            "rotation": 0
+            "x": -223.16,
+            "y": 3.02,
+            "rotation": 0,
+            "scale": 1.29
           },
           {
             "type": "Tree",
@@ -3422,7 +3434,7 @@
           {
             "type": "Tree",
             "x": -218.71,
-            "y": -5,
+            "y": -5.35,
             "rotation": 0
           },
           {
@@ -3669,8 +3681,8 @@
           },
           {
             "type": "Tree",
-            "x": -218.71,
-            "y": 14.67,
+            "x": -225.51,
+            "y": 15.07,
             "rotation": 0
           },
           {
@@ -4230,7 +4242,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4241,7 +4253,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4252,7 +4264,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 2
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -4263,7 +4275,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 2
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -4274,7 +4286,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4285,7 +4297,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4296,7 +4308,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4329,7 +4341,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 2
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -4340,7 +4352,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4351,7 +4363,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.4,
-          "level": 4
+          "level": 3
         },
         {
           "mob": "Boar",
@@ -4362,7 +4374,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.4,
-          "level": 4
+          "level": 3
         },
         {
           "mob": "Boar",
@@ -4384,7 +4396,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.4,
-          "level": 4
+          "level": 3
         },
         {
           "mob": "Rockfall",
@@ -4425,7 +4437,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 4
         },
         {
           "mob": "Boar",
@@ -4436,7 +4448,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -4447,7 +4459,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "Stag",
@@ -4539,8 +4551,8 @@
         },
         {
           "mob": "Stag",
-          "x": -200.44,
-          "y": -19.62,
+          "x": -209.74,
+          "y": -17.85,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -4594,8 +4606,8 @@
         },
         {
           "mob": "Stag",
-          "x": -218.71,
-          "y": 5.08,
+          "x": -218.04,
+          "y": 6.21,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -4694,7 +4706,7 @@
         {
           "mob": "Stag",
           "x": -222.45,
-          "y": 16.31,
+          "y": 14.14,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -4715,8 +4727,8 @@
         },
         {
           "mob": "Stag",
-          "x": -189.64,
-          "y": -22.02,
+          "x": -202.57,
+          "y": -22.59,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -4726,8 +4738,8 @@
         },
         {
           "mob": "Stag",
-          "x": -193.73,
-          "y": -19.78,
+          "x": -214.97,
+          "y": -2.81,
           "angle": 2.496,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -4979,6 +4991,149 @@
           "level": 3
         },
         {
+          "mob": "Boar",
+          "x": -181,
+          "y": 29,
+          "angle": 1.56,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -182.59,
+          "y": 30.85,
+          "angle": -2.58,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -180.56,
+          "y": 31.31,
+          "angle": 0.98,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -182,
+          "y": 44,
+          "angle": 1.1,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -182.46,
+          "y": 41.31,
+          "angle": 1.2,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -180.66,
+          "y": 42.2,
+          "angle": -3.12,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 5
+        },
+        {
+          "mob": "Boar",
+          "x": -257,
+          "y": -22,
+          "angle": 1.69,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -259.06,
+          "y": -21.88,
+          "angle": -2.17,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -258.37,
+          "y": -24.42,
+          "angle": -1.87,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -270,
+          "y": -24,
+          "angle": -0.56,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -268.65,
+          "y": -26.27,
+          "angle": -0.36,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -268.01,
+          "y": -22.89,
+          "angle": 2.68,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
+          "mob": "Boar",
+          "x": -246,
+          "y": -22,
+          "angle": 0.77,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.3,
+          "level": 3
+        },
+        {
           "mob": "Stag",
           "x": -259.07,
           "y": 31.43,
@@ -4990,7 +5145,7 @@
           "level": 4
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -190.99,
           "y": -22.15,
           "angle": 3.69,
@@ -5000,7 +5155,7 @@
           "level": 4
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -189.9,
           "y": -19.15,
           "angle": 2.2,
@@ -5010,7 +5165,7 @@
           "level": 4
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -259.74,
           "y": 41.94,
           "angle": 2.2,
@@ -5020,7 +5175,7 @@
           "level": 3
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -188.04,
           "y": -23.62,
           "angle": 2.2,
@@ -5030,7 +5185,7 @@
           "level": 3
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -196.1,
           "y": -22.08,
           "angle": 2.2,
@@ -5040,9 +5195,19 @@
           "level": 4
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -199.87,
           "y": -21.02,
+          "angle": 2.2,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1,
+          "level": 4
+        },
+        {
+          "mob": "YoungWolf",
+          "x": -209.74,
+          "y": -19.62,
           "angle": 2.2,
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
@@ -5381,6 +5546,116 @@
           "wanderRadius": 2,
           "idleSpeedFactor": 0.5,
           "level": 2
+        },
+        {
+          "mob": "Stag",
+          "x": -270,
+          "y": -14,
+          "angle": 0.43,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -269.1,
+          "y": -12.02,
+          "angle": -0.37,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -203,
+          "y": 20,
+          "angle": 2.77,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -205.34,
+          "y": 19.77,
+          "angle": -2.34,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -206,
+          "y": 47,
+          "angle": 2.89,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -207.25,
+          "y": 44.85,
+          "angle": 2.08,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -263,
+          "y": -4,
+          "angle": -1.79,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -260.93,
+          "y": -3.48,
+          "angle": 1.09,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -225,
+          "y": 23,
+          "angle": 2.57,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
+        },
+        {
+          "mob": "Stag",
+          "x": -224.92,
+          "y": 25.32,
+          "angle": -2.93,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.04,
+          "level": 3
         },
         {
           "mob": "Sheep",
@@ -6272,36 +6547,40 @@
               "y": 8.36
             },
             {
-              "x": -224.63,
-              "y": 8.49
+              "x": -223.73,
+              "y": 8.36
             },
             {
-              "x": -222.17,
-              "y": 8.32
+              "x": -221.6,
+              "y": 7.92
             },
             {
-              "x": -220.2,
-              "y": 7.52
+              "x": -220.57,
+              "y": 7.02
             },
             {
-              "x": -216.5,
-              "y": 6.89
+              "x": -218.3,
+              "y": 4.22
             },
             {
-              "x": -213.6,
-              "y": 6.86
+              "x": -216.8,
+              "y": 3.66
             },
             {
-              "x": -211.23,
-              "y": 6.66
+              "x": -214.73,
+              "y": 3.33
             },
             {
-              "x": -208.87,
-              "y": 6.49
+              "x": -212.04,
+              "y": 3.82
             },
             {
-              "x": -206.47,
-              "y": 6.89
+              "x": -208.97,
+              "y": 4.89
+            },
+            {
+              "x": -205.79,
+              "y": 6.59
             },
             {
               "x": -202.77,
@@ -7566,6 +7845,13 @@
           },
           {
             "type": "OakTree",
+            "x": -218.88,
+            "y": -1.21,
+            "rotation": 0,
+            "scale": 1.8
+          },
+          {
+            "type": "OakTree",
             "x": -263.53,
             "y": 26.25,
             "rotation": 0,
@@ -7583,7 +7869,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -7594,7 +7880,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -7605,7 +7891,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "Boar",
@@ -7616,7 +7902,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 3
+          "level": 5
         },
         {
           "mob": "AlphaBoar",
@@ -7627,7 +7913,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.3,
-          "level": 4
+          "level": 5
         },
         {
           "mob": "Stag",
@@ -7663,7 +7949,7 @@
           "level": 1
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -259.27,
           "y": 100.31,
           "angle": 0,
@@ -7673,7 +7959,7 @@
           "level": 3
         },
         {
-          "mob": "Wolf",
+          "mob": "YoungWolf",
           "x": -263.02,
           "y": 102.48,
           "angle": 5.79,
@@ -9021,6 +9307,13 @@
             "type": "OakTree",
             "x": -178.89,
             "y": -11.22,
+            "rotation": 2.53,
+            "scale": 1.403
+          },
+          {
+            "type": "OakTree",
+            "x": -198.32,
+            "y": -23.55,
             "rotation": 2.53,
             "scale": 1.403
           },
@@ -11155,7 +11448,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11166,7 +11459,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11177,7 +11470,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11188,7 +11481,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11199,7 +11492,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11210,7 +11503,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11221,7 +11514,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11232,7 +11525,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11243,7 +11536,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11254,7 +11547,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11265,7 +11558,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11276,7 +11569,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11287,7 +11580,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11298,7 +11591,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11309,7 +11602,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11320,7 +11613,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11331,7 +11624,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11342,7 +11635,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11353,7 +11646,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11364,7 +11657,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11375,7 +11668,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11386,7 +11679,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11397,7 +11690,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11408,7 +11701,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11419,7 +11712,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11430,7 +11723,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11441,7 +11734,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11452,7 +11745,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11463,7 +11756,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11474,7 +11767,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11485,7 +11778,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11496,7 +11789,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11507,7 +11800,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11518,7 +11811,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11529,7 +11822,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11540,7 +11833,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 1,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11551,7 +11844,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11562,7 +11855,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11573,7 +11866,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11584,7 +11877,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11595,7 +11888,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Wolf",
@@ -11606,7 +11899,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "DireWolf",
@@ -11617,7 +11910,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 8
+          "level": 9
         },
         {
           "mob": "Wolf",
@@ -11628,7 +11921,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11639,7 +11932,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11650,7 +11943,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11661,7 +11954,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11672,7 +11965,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11683,7 +11976,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -11694,7 +11987,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.6,
-          "level": 4
+          "level": 7
         },
         {
           "mob": "RedMushroom",
@@ -11804,7 +12097,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11814,7 +12107,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11824,7 +12117,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11834,7 +12127,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11844,7 +12137,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11854,7 +12147,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11864,7 +12157,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11874,7 +12167,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "KoboldRanged",
@@ -11884,7 +12177,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11894,7 +12187,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11904,7 +12197,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11914,7 +12207,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11924,7 +12217,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11934,7 +12227,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11944,7 +12237,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11954,7 +12247,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11964,7 +12257,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11974,7 +12267,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11984,7 +12277,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -11994,7 +12287,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12004,7 +12297,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12014,7 +12307,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12024,7 +12317,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12034,7 +12327,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12044,7 +12337,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12054,7 +12347,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Kobold",
@@ -12064,7 +12357,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "BanditRanged",
@@ -12074,7 +12367,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -12085,7 +12378,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Wolf",
@@ -12096,7 +12389,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Wolf",
@@ -12107,7 +12400,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Wolf",
@@ -12118,7 +12411,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Wolf",
@@ -12129,7 +12422,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Wolf",
@@ -12140,7 +12433,139 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
+          "level": 8
+        },
+        {
+          "mob": "Wolf",
+          "x": -145,
+          "y": 14,
+          "angle": 0.71,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
           "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -147.39,
+          "y": 15.37,
+          "angle": 2.01,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 7
+        },
+        {
+          "mob": "Wolf",
+          "x": -142,
+          "y": 30,
+          "angle": 2.37,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -144.25,
+          "y": 29.96,
+          "angle": -2.35,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 7
+        },
+        {
+          "mob": "Wolf",
+          "x": -140.91,
+          "y": 28.29,
+          "angle": -2.42,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -94,
+          "y": 12,
+          "angle": -1.64,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -95.65,
+          "y": 13.92,
+          "angle": 1.01,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 7
+        },
+        {
+          "mob": "Wolf",
+          "x": -134,
+          "y": 8,
+          "angle": -2.9,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -157,
+          "y": 34,
+          "angle": 1.7,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -154.54,
+          "y": 33.12,
+          "angle": 2.46,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 7
+        },
+        {
+          "mob": "Wolf",
+          "x": -162,
+          "y": -33,
+          "angle": -1.1,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 6
+        },
+        {
+          "mob": "Wolf",
+          "x": -159.23,
+          "y": -32.83,
+          "angle": 2.17,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 3,
+          "idleSpeedFactor": 0.6,
+          "level": 7
         },
         {
           "mob": "Bear",
@@ -12150,7 +12575,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Bear",
@@ -12160,7 +12585,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bear",
@@ -12170,7 +12595,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bear",
@@ -12180,7 +12605,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bear",
@@ -12190,7 +12615,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bear",
@@ -12200,7 +12625,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Bear",
@@ -12210,7 +12635,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Bear",
@@ -12220,7 +12645,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bandit",
@@ -12230,7 +12655,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bandit",
@@ -12240,7 +12665,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bandit",
@@ -12250,7 +12675,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bandit",
@@ -12260,7 +12685,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "Bandit",
@@ -12270,7 +12695,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 7
+          "level": 9
         },
         {
           "mob": "BanditHealer",
@@ -12280,7 +12705,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Spider",
@@ -12291,7 +12716,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12302,7 +12727,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12313,7 +12738,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12324,7 +12749,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12335,7 +12760,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12346,7 +12771,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12357,7 +12782,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12368,7 +12793,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12379,7 +12804,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12390,7 +12815,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12401,7 +12826,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12412,7 +12837,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12423,7 +12848,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12434,7 +12859,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12445,7 +12870,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -12456,7 +12881,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 11
         },
         {
           "mob": "VenomSpider",
@@ -12466,7 +12891,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 13
+          "level": 11
         },
         {
           "mob": "GiantSpider",
@@ -12476,7 +12901,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 14
+          "level": 11
         },
         {
           "mob": "Stag",
@@ -12487,7 +12912,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12498,7 +12923,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12509,7 +12934,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12520,7 +12945,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12531,7 +12956,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12542,7 +12967,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12553,7 +12978,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12564,7 +12989,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12575,7 +13000,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12586,7 +13011,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12597,7 +13022,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12608,7 +13033,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12619,7 +13044,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12630,7 +13055,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12641,7 +13066,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12652,7 +13077,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12663,7 +13088,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "Stag",
@@ -12674,7 +13099,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
           "idleSpeedFactor": 0.5,
-          "level": 3
+          "level": 6
         },
         {
           "mob": "DeadCarter",
@@ -12702,7 +13127,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Spider",
@@ -12712,7 +13137,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "Spider",
@@ -12722,7 +13147,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 5
+          "level": 7
         },
         {
           "mob": "Spider",
@@ -12732,7 +13157,7 @@
           "respawnTicks": 1800,
           "respawnVariancePct": 0.2,
           "wanderRadius": 3,
-          "level": 6
+          "level": 8
         },
         {
           "mob": "KoboldChief",
@@ -12742,7 +13167,7 @@
           "respawnTicks": 3600,
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
-          "level": 9
+          "level": 10
         },
         {
           "mob": "Woodcutter2",
@@ -23144,7 +23569,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 8
+          "level": 11
         },
         {
           "mob": "Spider",
@@ -23155,7 +23580,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 8
+          "level": 12
         },
         {
           "mob": "Spider",
@@ -23166,7 +23591,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 12
         },
         {
           "mob": "Spider",
@@ -23177,7 +23602,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 12
         },
         {
           "mob": "Spider",
@@ -23188,7 +23613,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "Spider",
@@ -23199,7 +23624,62 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 13
+        },
+        {
+          "mob": "Spider",
+          "x": -164,
+          "y": 43,
+          "angle": -0.33,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Spider",
+          "x": -161.68,
+          "y": 43.14,
+          "angle": 2.8,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Spider",
+          "x": -111,
+          "y": 99,
+          "angle": -2.42,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Spider",
+          "x": -112.86,
+          "y": 97.33,
+          "angle": -2.59,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Spider",
+          "x": -111.49,
+          "y": 101.03,
+          "angle": 1.7,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
         },
         {
           "mob": "VenomSpider",
@@ -23210,7 +23690,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 14
         },
         {
           "mob": "VenomSpider",
@@ -23221,7 +23701,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 14
         },
         {
           "mob": "VenomSpider",
@@ -23232,7 +23712,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 11
+          "level": 14
         },
         {
           "mob": "GiantSpider",
@@ -23243,7 +23723,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 11
+          "level": 14
         },
         {
           "mob": "GiantSpider",
@@ -23254,7 +23734,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 12
+          "level": 14
         },
         {
           "mob": "Wisp",
@@ -23265,7 +23745,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 12
         },
         {
           "mob": "Wisp",
@@ -23276,7 +23756,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 12
         },
         {
           "mob": "Wisp",
@@ -23287,7 +23767,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "Wisp",
@@ -23298,7 +23778,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 14
         },
         {
           "mob": "Wisp",
@@ -23309,7 +23789,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 15
         },
         {
           "mob": "Wisp",
@@ -23320,7 +23800,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 13
         },
         {
           "mob": "Wisp",
@@ -23331,7 +23811,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "Wisp",
@@ -23342,7 +23822,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 14
         },
         {
           "mob": "Wisp",
@@ -23353,7 +23833,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 14
         },
         {
           "mob": "Wisp",
@@ -23364,7 +23844,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "Wisp",
@@ -23375,7 +23855,161 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 1.5,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 15
+        },
+        {
+          "mob": "Wisp",
+          "x": -148,
+          "y": 106,
+          "angle": 1.16,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "Wisp",
+          "x": -150.65,
+          "y": 106.54,
+          "angle": 1.93,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "Wisp",
+          "x": -149.11,
+          "y": 107.94,
+          "angle": 0.72,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "Wisp",
+          "x": -145,
+          "y": 93,
+          "angle": 0.36,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -144.63,
+          "y": 90.29,
+          "angle": -0.11,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -112,
+          "y": 90,
+          "angle": -0.34,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -113.44,
+          "y": 91.55,
+          "angle": 0.85,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -109.43,
+          "y": 90.46,
+          "angle": -2.44,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -144,
+          "y": 58,
+          "angle": 0.15,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "Wisp",
+          "x": -142.75,
+          "y": 55.89,
+          "angle": 1.83,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "Wisp",
+          "x": -95,
+          "y": 99,
+          "angle": 1.39,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -95.69,
+          "y": 97.01,
+          "angle": -0.23,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -94.93,
+          "y": 101.46,
+          "angle": 1.57,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "Wisp",
+          "x": -116,
+          "y": 38,
+          "angle": 2.66,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 1.5,
+          "idleSpeedFactor": 0.7,
+          "level": 11
         },
         {
           "mob": "LakeCrab",
@@ -23386,7 +24020,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 14
         },
         {
           "mob": "LakeCrab",
@@ -23397,7 +24031,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 15
         },
         {
           "mob": "LakeCrab",
@@ -23408,7 +24042,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 14
         },
         {
           "mob": "LakeCrab",
@@ -23419,7 +24053,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 15
         },
         {
           "mob": "LakeCrab",
@@ -23430,7 +24064,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 15
         },
         {
           "mob": "LakeCrab",
@@ -23441,7 +24075,73 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 15
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -174.5,
+          "y": 56.5,
+          "angle": -1.4,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -173.6,
+          "y": 62.7,
+          "angle": -2.1,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -174.8,
+          "y": 69.3,
+          "angle": -0.9,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -173.5,
+          "y": 74.6,
+          "angle": -2.8,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -175,
+          "y": 81.3,
+          "angle": -1.9,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 15
+        },
+        {
+          "mob": "LakeCrab",
+          "x": -173.6,
+          "y": 88.6,
+          "angle": -3.1,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 2,
+          "idleSpeedFactor": 0.7,
+          "level": 15
         },
         {
           "mob": "Hedda",
@@ -23640,7 +24340,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 8
+          "level": 12
         },
         {
           "mob": "BogFrog",
@@ -23651,7 +24351,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "BogFrog",
@@ -23662,7 +24362,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 14
         },
         {
           "mob": "BogFrog",
@@ -23673,7 +24373,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 8
+          "level": 13
         },
         {
           "mob": "BogFrog",
@@ -23684,7 +24384,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 9
+          "level": 13
         },
         {
           "mob": "BogFrog",
@@ -23695,7 +24395,139 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 10
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -99,
+          "y": 90,
+          "angle": 2.64,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "BogFrog",
+          "x": -100.2,
+          "y": 92.2,
+          "angle": 1.6,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14
+        },
+        {
+          "mob": "BogFrog",
+          "x": -99,
+          "y": 64,
+          "angle": 2.55,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -96.65,
+          "y": 62.75,
+          "angle": 2.45,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -127,
+          "y": 59,
+          "angle": 0.96,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -129.12,
+          "y": 57.99,
+          "angle": -1.9,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -115,
+          "y": 56,
+          "angle": 1.05,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 12
+        },
+        {
+          "mob": "BogFrog",
+          "x": -115.82,
+          "y": 58.2,
+          "angle": 1.61,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 12
+        },
+        {
+          "mob": "BogFrog",
+          "x": -147,
+          "y": 41,
+          "angle": 0.83,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -145.5,
+          "y": 43.26,
+          "angle": 3.13,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13
+        },
+        {
+          "mob": "BogFrog",
+          "x": -96,
+          "y": 54,
+          "angle": 2.28,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 12
+        },
+        {
+          "mob": "BogFrog",
+          "x": -98,
+          "y": 53.4,
+          "angle": 0.58,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 12
         },
         {
           "mob": "BogSnake",
@@ -23706,7 +24538,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 9,
+          "level": 13,
           "waypoints": [
             {
               "x": -154.4,
@@ -23747,7 +24579,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 10,
+          "level": 13,
           "waypoints": [
             {
               "x": -117.4,
@@ -23788,7 +24620,7 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 0,
           "idleSpeedFactor": 0.7,
-          "level": 11,
+          "level": 14,
           "waypoints": [
             {
               "x": -147.4,
@@ -23817,6 +24649,375 @@
             {
               "x": -147.4,
               "y": 74
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -104,
+          "y": 78,
+          "angle": 2.56,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -105.77,
+          "y": 75.95,
+          "angle": -3.01,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -103.26,
+          "y": 80.26,
+          "angle": -2.29,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 13,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -162,
+          "y": 72,
+          "angle": 2.04,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -159.86,
+          "y": 70.67,
+          "angle": 2.85,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -159.3,
+          "y": 72.67,
+          "angle": -0.15,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -135,
+          "y": 86,
+          "angle": 0.32,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -136.7,
+          "y": 87.11,
+          "angle": 2.97,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
+            }
+          ]
+        },
+        {
+          "mob": "BogSnake",
+          "x": -135.18,
+          "y": 83.28,
+          "angle": -1.64,
+          "respawnTicks": 1800,
+          "respawnVariancePct": 0.2,
+          "wanderRadius": 0,
+          "idleSpeedFactor": 0.7,
+          "level": 14,
+          "waypoints": [
+            {
+              "x": -154.4,
+              "y": 54
+            },
+            {
+              "x": -155.7,
+              "y": 56.25
+            },
+            {
+              "x": -158.3,
+              "y": 56.25
+            },
+            {
+              "x": -159.6,
+              "y": 54
+            },
+            {
+              "x": -158.3,
+              "y": 51.75
+            },
+            {
+              "x": -155.7,
+              "y": 51.75
+            },
+            {
+              "x": -154.4,
+              "y": 54
             }
           ]
         }

@@ -58,7 +58,7 @@
             "id": "here-are-six-blue-mushrooms",
             "grants": [
               { "id": "good-ones-and-fresh-thank", "kind": "advance_quest", "quest": "mushrooms-for-the-gnome", "fromStage": "bring", "toStage": "done" },
-              { "kind": "grant_xp", "xp": 645 }
+              { "kind": "grant_xp", "xp": 1605 }
             ]
           },
           { "stock": "quest-progress", "next": "mushrooms_on_it" }
@@ -100,7 +100,7 @@
             "grants": [
               { "id": "now-i-can-brew", "kind": "advance_quest", "quest": "the-spider-queen", "fromStage": "bring", "toStage": "done" },
               { "kind": "teach_skill", "skill": "FenTonic" },
-              { "kind": "grant_xp", "xp": 1115 }
+              { "kind": "grant_xp", "xp": 1925 }
             ]
           },
           { "stock": "quest-progress", "next": "queen_on_it" }

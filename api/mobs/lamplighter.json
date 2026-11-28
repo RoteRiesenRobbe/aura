@@ -57,7 +57,7 @@
                 "fromStage": "report",
                 "toStage": "done"
               },
-              { "kind": "grant_xp", "xp": 370 }
+              { "kind": "grant_xp", "xp": 645 }
             ]
           },
           { "stock": "quest-progress", "next": "wolves_on_it" }
@@ -96,7 +96,7 @@
                 "toStage": "done"
               },
               { "kind": "teach_skill", "skill": "Torch" },
-              { "kind": "grant_xp", "xp": 450 }
+              { "kind": "grant_xp", "xp": 645 }
             ]
           },
           { "stock": "quest-progress", "next": "oil_on_it" }
