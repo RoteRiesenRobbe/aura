@@ -493,7 +493,7 @@ glyph rules, the free bit), `archive/plan-mob-depth.md` (threat table),
 
 ## 11. Chunk ledgers
 
-### PV3, the runbook (D6) + the local rehearsal (D7): 2026-11-28, `[uncommitted]`
+### PV3, the runbook (D6) + the local rehearsal (D7): 2026-11-28, `210da90d`
 
 Docs + one harness, no production code. Schema: none. With the measurement half
 (2026-11-27, below) PV3 is done, and so is every chunk of this plan; the doc stays live for
